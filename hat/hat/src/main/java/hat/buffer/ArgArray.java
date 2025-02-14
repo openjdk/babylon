@@ -42,11 +42,8 @@ public interface ArgArray extends Buffer {
                 void address(MemorySegment address);
                 long bytes();
                 void bytes(long bytes);
-                MemorySegment vendorPtr();
-                void vendorPtr(MemorySegment vendorPtr);
                 byte access();
                 void access(byte access);
-
             }
 
             boolean z1();
@@ -212,8 +209,8 @@ public interface ArgArray extends Buffer {
     Arg arg(long idx);
 
 
-    MemorySegment vendorPtr();
-    void vendorPtr(MemorySegment vendorPtr);
+    //MemorySegment vendorPtr();
+    //void vendorPtr(MemorySegment vendorPtr);
 
     int schemaLen();
 
@@ -227,12 +224,12 @@ public interface ArgArray extends Buffer {
                             .field("value", value->value
                                             .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")
                                                     .field("buf", buf->buf
-                                                            .fields("address","bytes","vendorPtr","access")
+                                                            .fields("address","bytes",/*"vendorPtr",*/"access")
                                                             .pad((int)(16 - JAVA_BYTE.byteSize()/* - JAVA_BYTE.byteSize()*/))
                                                     )
                             )
                     )
-            .field("vendorPtr")
+         //   .field("vendorPtr")
             .arrayLen("schemaLen").array("schemaBytes")
     );
 
@@ -287,8 +284,6 @@ public interface ArgArray extends Buffer {
     }
 
     static void update(ArgArray argArray,  Object... args) {
-        final byte javaDirty = 1;
-        final byte javaClean = 0;
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i);

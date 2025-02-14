@@ -62,6 +62,16 @@ public:
     public:
         boolean gpu;
     };
+    class OpenCLQueue : public Backend::Queue {
+    public:
+       size_t eventMax;
+       cl_event *events;
+       size_t eventc;
+       cl_command_queue command_queue;
+       OpenCLQueue():Backend::Queue(), eventMax(256), events(new cl_event[eventMax]), eventc(0){
+       }
+       virtual ~OpenCLQueue(){}
+    };
 
     class OpenCLProgram : public Backend::Program {
         class OpenCLKernel : public Backend::Program::Kernel {
@@ -69,21 +79,14 @@ public:
             class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
                 cl_mem clMem;
-
                 void copyToDevice();
-
                 void copyFromDevice();
-
                 OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
-
                 virtual ~OpenCLBuffer();
             };
 
         private:
             cl_kernel kernel;
-            size_t eventMax;
-            cl_event *events;
-            size_t eventc;
         protected:
             void showEvents(int width);
         public:
@@ -110,18 +113,11 @@ public:
 public:
     cl_platform_id platform_id;
     cl_context context;
-    cl_command_queue command_queue;
     cl_device_id device_id;
-
-
     OpenCLBackend();
-
     OpenCLBackend(OpenCLConfig *config, int configSchemaLen, char *configSchema);
-
     ~OpenCLBackend();
-
     int getMaxComputeUnits();
-
     void info();
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);

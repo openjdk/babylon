@@ -29,6 +29,11 @@ public:
     class SpirvConfig : public Backend::Config {
     public :
     };
+      class SpirvQueue : public Backend::Queue {
+        public :
+           SpirvQueue():Backend::Queue(){}
+                 virtual ~SpirvQueue(){}
+        };
 
     class SpirvProgram : public Backend::Program {
         class SpirvKernel : public Backend::Program::Kernel {
@@ -65,8 +70,8 @@ public:
 
 public:
 
-    SpirvBackend(SpirvConfig *spirvConfig, int spirvConfigSchemeLen, char *spirvBackendSchema)
-            : Backend(spirvConfig, spirvConfigSchemeLen, spirvBackendSchema) {
+    SpirvBackend(SpirvConfig *spirvConfig, int spirvConfigSchemeLen, char *spirvBackendSchema, SpirvQueue *spirvQueue )
+            : Backend(spirvConfig, spirvConfigSchemeLen, spirvBackendSchema, spirvQueue) {
         if (spirvConfig == nullptr) {
             std::cout << "spirvConfig == null" << std::endl;
         } else {
@@ -99,5 +104,6 @@ public:
 
 long getBackend(void *config, int configSchemaLen, char *configSchema) {
     SpirvBackend::SpirvConfig *spirvConfig = (SpirvBackend::SpirvConfig *) config;
-    return (long) new SpirvBackend(spirvConfig, configSchemaLen, configSchema);
+    SpirvBackend::SpirvQueue *spirvQueue = new SpirvBackend::SpirvQueue();
+    return (long) new SpirvBackend(spirvConfig, configSchemaLen, configSchema, spirvQueue);
 }

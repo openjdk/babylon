@@ -132,15 +132,9 @@ public interface Cascade extends Buffer {
 
     int featureCount();
 
- //  void featureCount(int featureCount);
-
-
     Feature feature(long idx);
 
     int stageCount();
-
-  //  void stageCount(int stageCount);
-
 
     Stage stage(long idx);
 
