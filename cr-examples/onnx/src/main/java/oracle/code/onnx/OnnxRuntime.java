@@ -274,11 +274,6 @@ public final class OnnxRuntime {
         }
     }
 
-    public MemorySegment loadFlatTensorFromMemoryMappedDataFile(String file, Tensor.ElementType elementType) throws IOException {
-        var f = new RandomAccessFile(file, "r");
-        return createTensor(f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena), elementType, new long[]{f.length() / elementType.size()});
-    }
-
     public MemorySegment createScalar(long element) {
         return createScalar(arena.allocateFrom(JAVA_LONG, element), Tensor.ElementType.INT64);
     }
@@ -294,6 +289,10 @@ public final class OnnxRuntime {
         } catch (Throwable t) {
             throw wrap(t);
         }
+    }
+
+    public MemorySegment createFlatTensor(byte... elements) {
+        return createTensor(arena.allocateFrom(JAVA_BYTE, elements), Tensor.ElementType.UINT8, new long[]{elements.length});
     }
 
     public MemorySegment createFlatTensor(long... elements) {

@@ -23,6 +23,7 @@
 
 package oracle.code.onnx;
 
+import java.io.*;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
@@ -36,18 +37,16 @@ import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 
-import java.io.StringWriter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -57,6 +56,7 @@ import onnx.OnnxMl;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
+import static oracle.code.onnx.OnnxOperators.Cast;
 import static oracle.code.onnx.OnnxOperators.Constant;
 import static oracle.code.onnx.OnnxOperators.Conv;
 import static oracle.code.onnx.OnnxOperators.Div;
@@ -101,7 +101,10 @@ public class CNNTest {
             // [NUM_LABELS]
             Tensor<Float> fc3Biases,
             // Inputs
-            Tensor<Float> inputImage) {
+            Tensor<Byte> ubyteImage) {
+
+        Tensor<Float> inputImage = Cast(ubyteImage, empty(), Tensor.ElementType.FLOAT.id);
+
         var shape = Constant(new long[]{-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE});
         var inputReshaped = Reshape(inputImage, shape, empty());
 
@@ -180,7 +183,7 @@ public class CNNTest {
                 OnnxType.TENSOR_FLOAT32, // fc2Biases
                 OnnxType.TENSOR_FLOAT32, // fc3Weights
                 OnnxType.TENSOR_FLOAT32,  // fc3Biases
-                OnnxType.TENSOR_FLOAT32 // input
+                OnnxType.TENSOR_UINT8 // input
         );
 
         return CoreOp.func("cnn", functionType).body(b -> {
@@ -195,7 +198,12 @@ public class CNNTest {
             Block.Parameter fc2Biases = b.parameters().get(7);
             Block.Parameter fc3Weights = b.parameters().get(8);
             Block.Parameter fc3Biases = b.parameters().get(9);
-            Block.Parameter inputImage = b.parameters().get(10);
+            Block.Parameter ubyteImage = b.parameters().get(10);
+
+            var inputImage = b.op(OnnxOps.Cast(OnnxType.TENSOR_FLOAT32,
+                    ubyteImage,
+                    empty(),
+                    OnnxType.TENSOR_FLOAT32.eType().id()));
 
             var shape = b.op(OnnxOps.Constant(OnnxType.TENSOR_INT64,
                     empty(),
@@ -323,23 +331,6 @@ public class CNNTest {
         });
     }
 
-    @Test
-    public void test() throws Exception {
-        CoreOp.FuncOp f = getFuncOp("cnn");
-        CoreOp.FuncOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
-//        System.out.println(onnxModel.toText());
-        CoreOp.FuncOp expectedOnnxModel = cnnModel();
-//        System.out.println(expectedOnnxModel.toText());
-        Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
-
-        // @@@ need some image to test :)
-        Tensor inputImage = new Tensor(new float[28*28]);
-        List<Tensor> w = loadWeights();
-        SimpleTest.assertEquals(
-            cnn(w.get(0), w.get(1), w.get(2), w.get(3), w.get(4), w.get(5), w.get(6), w.get(7), w.get(8), w.get(9), inputImage).tensorAddr,
-            OnnxRuntime.getInstance().runFunc(onnxModel, Stream.concat(w.stream(), Stream.of(inputImage)).map(t -> Optional.of(t.tensorAddr)).toList()).getFirst());
-    }
-
     static List<Tensor> loadWeights() throws IOException {
         try (var is = CNNTest.class.getResourceAsStream("lenet-torchscript.onnx")) {
             return OnnxMl.ModelProto.parseFrom(is).getGraph().getInitializerList().stream()
@@ -352,6 +343,86 @@ public class CNNTest {
                                 init.getDimsList().stream().mapToLong(a -> a).toArray()));
                     })
                     .toList();
+        }
+    }
+
+    static int nextBestMatch(FloatBuffer fb) {
+        float maxW = fb.get();
+        int maxI = 0;
+        for (int i = 1; i < 10; i++) {
+            float w = fb.get();
+            if (w > maxW) {
+                maxW = w;
+                maxI = i;
+            }
+        }
+        return maxI;
+    }
+
+    private static final String GREY_SCALE = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+
+    static void printImage(int imageIndex, ByteBuffer bb) {
+        System.out.println("Image #" + imageIndex + " :");
+        int offset = imageIndex * 28 * 28;
+        for (int y = 0; y < 28; y++) {
+            for (int x = 0; x < 28; x++) {
+                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & bb.get(offset + y * 28 + x)) / 256));
+            }
+            System.out.println();
+        }
+    }
+
+//    static final String IMAGES_PATH = "t10k-images-idx3-ubyte";
+//    static final String LABELS_PATH = "t10k-labels-idx1-ubyte";
+//    static final int IMAGES_HEADER_SIZE = 16;
+//    static final int LABELS_HEADER_SIZE = 8;
+
+    static final String IMAGES_PATH = CNNTest.class.getResource("images-ubyte").getPath();
+    static final String LABELS_PATH = CNNTest.class.getResource("labels-ubyte").getPath();
+    static final int IMAGES_HEADER_SIZE = 0;
+    static final int LABELS_HEADER_SIZE = 0;
+
+    @Test
+    public void test() throws Exception {
+        CoreOp.FuncOp f = getFuncOp("cnn");
+        CoreOp.FuncOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
+        System.out.println(onnxModel.toText());
+        CoreOp.FuncOp expectedOnnxModel = cnnModel();
+        System.out.println(expectedOnnxModel.toText());
+
+        Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
+
+        try (RandomAccessFile imagesF = new RandomAccessFile(IMAGES_PATH, "r");
+             RandomAccessFile labelsF = new RandomAccessFile(LABELS_PATH, "r")) {
+
+            ByteBuffer imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE);
+            ByteBuffer labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE);
+
+            List<Tensor> weights = loadWeights();
+            Tensor inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8);
+
+            FloatBuffer result = new Tensor(OnnxRuntime.getInstance().runFunc(
+                    onnxModel,
+                    Stream.concat(weights.stream(), Stream.of(inputImage))
+                            .map(t -> Optional.of(t.tensorAddr)).toList()).getFirst())
+                    .asByteBuffer().asFloatBuffer();
+
+            int matched = 0, mismatched = 0;
+            while (result.remaining() > 0) {
+                int expected = labelsIn.get();
+                int actual = nextBestMatch(result);
+                if (expected == actual) {
+                    matched++;
+                } else {
+                    int imageIndex = labelsIn.position() - 1;
+                    printImage(imageIndex, imagesIn);
+                    System.out.println("expected: " + expected + " actual: " + actual);
+                    System.out.println("-".repeat(28));
+                    mismatched++;
+                }
+            }
+            System.out.println("matched: " + matched + " mismatched: " + mismatched);
+            Assertions.assertTrue(mismatched / matched < 0.05);
         }
     }
 

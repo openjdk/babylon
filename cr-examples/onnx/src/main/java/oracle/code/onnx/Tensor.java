@@ -26,6 +26,7 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.MemorySegment;
+import java.nio.ByteBuffer;
 
     /*
 class DataType(enum.IntEnum):
@@ -75,6 +76,10 @@ public class Tensor<T> extends OnnxNumber {
         this(OnnxRuntime.getInstance().createScalar(data));
     }
 
+    public Tensor(byte... data) {
+        this(OnnxRuntime.getInstance().createFlatTensor(data));
+    }
+
     public Tensor(long... data) {
         this(OnnxRuntime.getInstance().createFlatTensor(data));
     }
@@ -83,8 +88,16 @@ public class Tensor<T> extends OnnxNumber {
         this(OnnxRuntime.getInstance().createFlatTensor(data));
     }
 
+    public Tensor(MemorySegment dataAddr, ElementType elementType) {
+        this(OnnxRuntime.getInstance().createTensor(dataAddr, elementType, new long[]{dataAddr.byteSize() / elementType.size()}));
+    }
+
     Tensor(MemorySegment tensorAddr) {
         this.tensorAddr = tensorAddr;
+    }
+
+    public ByteBuffer asByteBuffer() {
+        return OnnxRuntime.getInstance().tensorBuffer(tensorAddr);
     }
 
     public enum ElementType {
