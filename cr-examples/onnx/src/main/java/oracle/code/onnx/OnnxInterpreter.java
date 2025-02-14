@@ -39,8 +39,8 @@ public class OnnxInterpreter {
             var outTensors = OnnxRuntime.getInstance().runOp(
                     (OnnxOp.OnnxSchema)opClass.getDeclaredField("SCHEMA").get(null),
                     inputs.stream().map(o -> Optional.ofNullable(switch (o) {
-                        case Tensor t -> t.rtTensor;
-                        case Optional ot when ot.isPresent() && ot.get() instanceof Tensor t -> t.rtTensor;
+                        case Tensor t -> t.tensorAddr;
+                        case Optional ot when ot.isPresent() && ot.get() instanceof Tensor t -> t.tensorAddr;
                         default -> null;
                     })).toList(),
                     attributes);

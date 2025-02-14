@@ -72,9 +72,6 @@ public final class OnnxRuntime {
     private final MemorySegment runtimeAddress, ret, envAddress, defaultAllocatorAddress;
     private final MethodHandle  allocatorGetInfo,
                                 createTensorWithDataAsOrtValue,
-                                castTypeInfoToMapTypeInfo,
-                                castTypeInfoToSequenceTypeInfo,
-                                castTypeInfoToTensorInfo,
                                 createEnv,
                                 createSession,
                                 createSessionFromArray,
@@ -82,7 +79,6 @@ public final class OnnxRuntime {
                                 getAllocatorWithDefaultOptions,
                                 getDimensions,
                                 getDimensionsCount,
-                                getOnnxTypeFromTypeInfo,
                                 getTensorElementType,
                                 getTensorMutableData,
                                 getTensorShapeElementCount,
@@ -92,10 +88,8 @@ public final class OnnxRuntime {
                                 run,
                                 sessionGetInputCount,
                                 sessionGetInputName,
-                                sessionGetInputTypeInfo,
                                 sessionGetOutputCount,
                                 sessionGetOutputName,
-                                sessionGetOutputTypeInfo,
                                 setInterOpNumThreads;
 
     private OnnxRuntime() {
@@ -116,9 +110,6 @@ public final class OnnxRuntime {
         }
         allocatorGetInfo               = handle( 77, ADDRESS, ADDRESS);
         createTensorWithDataAsOrtValue = handle( 49, ADDRESS, ADDRESS, JAVA_LONG, ADDRESS, JAVA_LONG, JAVA_INT, ADDRESS);
-        castTypeInfoToMapTypeInfo      = handle(103, ADDRESS, ADDRESS);
-        castTypeInfoToSequenceTypeInfo = handle(104, ADDRESS, ADDRESS);
-        castTypeInfoToTensorInfo       = handle( 55, ADDRESS, ADDRESS);
         createEnv                      = handle(  3, JAVA_INT, ADDRESS, ADDRESS);
         createSession                  = handle(  7, ADDRESS, ADDRESS, ADDRESS, ADDRESS);
         createSessionFromArray         = handle(  8, ADDRESS, ADDRESS, JAVA_LONG, ADDRESS, ADDRESS);
@@ -126,7 +117,6 @@ public final class OnnxRuntime {
         getAllocatorWithDefaultOptions = handle( 78, ADDRESS);
         getDimensions                  = handle( 62, ADDRESS, ADDRESS, JAVA_LONG);
         getDimensionsCount             = handle( 61, ADDRESS, ADDRESS);
-        getOnnxTypeFromTypeInfo        = handle( 56, ADDRESS, ADDRESS);
         getTensorElementType           = handle( 60, ADDRESS, ADDRESS);
         getTensorMutableData           = handle( 51, ADDRESS, ADDRESS);
         getTensorShapeElementCount     = handle( 64, ADDRESS, ADDRESS);
@@ -136,10 +126,8 @@ public final class OnnxRuntime {
         run                            = handle(  9, ADDRESS, ADDRESS, ADDRESS, ADDRESS, JAVA_LONG, ADDRESS, JAVA_LONG, ADDRESS);
         sessionGetInputCount           = handle( 30, ADDRESS, ADDRESS);
         sessionGetInputName            = handle( 36, ADDRESS, JAVA_INT, ADDRESS, ADDRESS);
-        sessionGetInputTypeInfo        = handle( 33, ADDRESS, JAVA_INT, ADDRESS);
         sessionGetOutputCount          = handle( 31, ADDRESS, ADDRESS);
         sessionGetOutputName           = handle( 37, ADDRESS, JAVA_INT, ADDRESS, ADDRESS);
-        sessionGetOutputTypeInfo       = handle( 34, ADDRESS, JAVA_INT, ADDRESS);
         setInterOpNumThreads           = handle( 25, ADDRESS, JAVA_INT);
         try {
             envAddress = retAddr(createEnv.invokeExact(LOG_LEVEL, arena.allocateFrom(LOG_ID), ret));
@@ -162,22 +150,18 @@ public final class OnnxRuntime {
         return mh.asType(mh.type().changeReturnType(Object.class));
     }
 
-    public enum ONNXType {
-        UNKNOWN, TENSOR, SEQUENCE, MAP, OPAQUE, SPARSETENSOR, OPTIONAL
+    private List<Optional<Tensor.ElementType>> toElementTypes(List<Optional<MemorySegment>> values) {
+        return values.stream().map(ot -> ot.map(this::tensorElementType)).toList();
     }
 
-    private static List<Optional<Tensor.ElementType>> toElementTypes(List<Optional<OrtTensor>> values) {
-        return values.stream().map(ot -> ot.map(OrtTensor::getTensorTypeAndShape).map(OrtTensorTypeAndShapeInfo::getTensorElementType)).toList();
-    }
-
-    public List<OrtTensor> runOp(OnnxOp.OnnxSchema schema, List<Optional<OrtTensor>> inputValues, List<Object> attributes) {
+    public List<MemorySegment> runOp(OnnxOp.OnnxSchema schema, List<Optional<MemorySegment>> inputValues, List<Object> attributes) {
         var protoModel = OnnxProtoBuilder.buildOpModel(schema, toElementTypes(inputValues), attributes);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
         }
     }
 
-    public List<OrtTensor> runFunc(CoreOp.FuncOp model, List<Optional<OrtTensor>> inputValues) {
+    public List<MemorySegment> runFunc(CoreOp.FuncOp model, List<Optional<MemorySegment>> inputValues) {
         var protoModel = OnnxProtoBuilder.buildFuncModel(model);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
@@ -248,42 +232,8 @@ public final class OnnxRuntime {
             }
         }
 
-        public OrtTypeInfo getInputTypeInfo(int inputIndex) {
-            try {
-                return getTypeInfo(retAddr(sessionGetInputTypeInfo.invokeExact(sessionAddress, inputIndex, ret)));
-            } catch (Throwable t) {
-                throw wrap(t);
-            }
-        }
-
-        public OrtTypeInfo getOutputTypeInfo(int outputIndex) {
-            try {
-                return getTypeInfo(retAddr(sessionGetOutputTypeInfo.invokeExact(sessionAddress, outputIndex, ret)));
-            } catch (Throwable t) {
-                throw wrap(t);
-            }
-        }
-
-        private OrtTypeInfo getTypeInfo(MemorySegment typeAddress) {
-            try {
-                var type = ONNXType.values()[retInt(getOnnxTypeFromTypeInfo.invokeExact(typeAddress, ret))];
-                return switch (type) {
-                    case TENSOR, SPARSETENSOR ->
-                        new OrtTensorTypeAndShapeInfo(retAddr(castTypeInfoToTensorInfo.invokeExact(typeAddress, ret)));
-                    case SEQUENCE ->
-                        new SequenceTypeInfo(retAddr(castTypeInfoToSequenceTypeInfo.invokeExact(typeAddress, ret)));
-                    case MAP ->
-                        new MapTypeInfo(retAddr(castTypeInfoToMapTypeInfo.invokeExact(typeAddress, ret)));
-                    default ->
-                        throw new IllegalArgumentException("Invalid element type found in sequence " + type);
-                };
-            } catch (Throwable t) {
-                throw wrap(t);
-            }
-        }
-
         // @@@ only tensors are supported yet
-        public List<OrtTensor> run(List<Optional<OrtTensor>> inputValues) {
+        public List<MemorySegment> run(List<Optional<MemorySegment>> inputValues) {
             var runOptions = MemorySegment.NULL;
             int inputLen = getNumberOfInputs();
             int outputLen = getNumberOfOutputs();
@@ -293,7 +243,7 @@ public final class OnnxRuntime {
             for (int i = 0; i < inputLen; i++) {
                 if (inputValues.get(i).isPresent()) {
                     inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(getInputName(i)));
-                    inputs.setAtIndex(ADDRESS, index++, inputValues.get(i).get().valueAddress());
+                    inputs.setAtIndex(ADDRESS, index++, inputValues.get(i).get());
                 }
             }
             var outputNames = arena.allocate(ADDRESS, outputLen);
@@ -304,9 +254,9 @@ public final class OnnxRuntime {
             }
             try {
                 checkStatus(run.invokeExact(sessionAddress, runOptions, inputNames, inputs, (long)inputLen, outputNames, (long)outputLen, outputs));
-                var retArr = new OrtTensor[outputLen];
+                var retArr = new MemorySegment[outputLen];
                 for (int i = 0; i < outputLen; i++) {
-                    retArr[i] = new OrtTensor(outputs.getAtIndex(ADDRESS, i));
+                    retArr[i] = outputs.getAtIndex(ADDRESS, i);
                 }
                 return List.of(retArr);
             } catch (Throwable t) {
@@ -324,103 +274,77 @@ public final class OnnxRuntime {
         }
     }
 
-    public OrtTensor loadFlatTensorFromMemoryMappedDataFile(String file, Tensor.ElementType elementType) throws IOException {
+    public MemorySegment loadFlatTensorFromMemoryMappedDataFile(String file, Tensor.ElementType elementType) throws IOException {
         var f = new RandomAccessFile(file, "r");
-        return createTensor(f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena), elementType, new TensorShape(f.length() / elementType.size()));
+        return createTensor(f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena), elementType, new long[]{f.length() / elementType.size()});
     }
 
-    OrtTensor createScalar(long element) {
+    public MemorySegment createScalar(long element) {
         return createScalar(arena.allocateFrom(JAVA_LONG, element), Tensor.ElementType.INT64);
     }
 
-    OrtTensor createScalar(float element) {
+    public MemorySegment createScalar(float element) {
         return createScalar(arena.allocateFrom(JAVA_FLOAT, element), Tensor.ElementType.FLOAT);
     }
 
-    private OrtTensor createScalar(MemorySegment flatData, Tensor.ElementType elementType) {
+    private MemorySegment createScalar(MemorySegment flatData, Tensor.ElementType elementType) {
         try {
             var allocatorInfo = retAddr(allocatorGetInfo.invokeExact(defaultAllocatorAddress, ret));
-            return new OrtTensor(retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), MemorySegment.NULL, 0l, elementType.id, ret)));
+            return retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), MemorySegment.NULL, 0l, elementType.id, ret));
         } catch (Throwable t) {
             throw wrap(t);
         }
     }
 
-    OrtTensor createFlatTensor(long... elements) {
-        return createTensor(arena.allocateFrom(JAVA_LONG, elements), Tensor.ElementType.INT64, new TensorShape(elements.length));
+    public MemorySegment createFlatTensor(long... elements) {
+        return createTensor(arena.allocateFrom(JAVA_LONG, elements), Tensor.ElementType.INT64, new long[]{elements.length});
     }
 
-    OrtTensor createFlatTensor(float... elements) {
-        return createTensor(arena.allocateFrom(JAVA_FLOAT, elements), Tensor.ElementType.FLOAT, new TensorShape(elements.length));
+    public MemorySegment createFlatTensor(float... elements) {
+        return createTensor(arena.allocateFrom(JAVA_FLOAT, elements), Tensor.ElementType.FLOAT, new long[]{elements.length});
     }
 
-    OrtTensor createTensor(MemorySegment flatData, Tensor.ElementType elementType, TensorShape shape) {
+    public MemorySegment createTensor(MemorySegment flatData, Tensor.ElementType elementType, long[] shape) {
         try {
             var allocatorInfo = retAddr(allocatorGetInfo.invokeExact(defaultAllocatorAddress, ret));
-            return new OrtTensor(retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), shape.dataAddress, shape.getDimensionsCount(), elementType.id, ret)));
+            var shapeAddr = arena.allocateFrom(JAVA_LONG, shape);
+            return retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), shapeAddr, (long)shape.length, elementType.id, ret));
         } catch (Throwable t) {
             throw wrap(t);
         }
     }
 
-    public final class TensorShape {
-
-        private final MemorySegment dataAddress;
-
-        public TensorShape(long... dimensions) {
-            this(arena.allocateFrom(JAVA_LONG, dimensions));
-        }
-
-        private TensorShape(MemorySegment dataAddress) {
-            this.dataAddress = dataAddress;
-        }
-
-        public long getDimensionsCount() {
-            return dataAddress.byteSize() / JAVA_LONG.byteSize();
-        }
-
-        public long getDimension(long index) {
-            return dataAddress.getAtIndex(JAVA_LONG, index);
+    public Tensor.ElementType tensorElementType(MemorySegment tensorAddr) {
+        try {
+            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(tensorAddr, ret));
+            return Tensor.ElementType.fromOnnxId(retInt(getTensorElementType.invokeExact(infoAddr, ret)));
+        } catch (Throwable t) {
+            throw wrap(t);
         }
     }
 
-    public sealed interface OrtValue {
-
-        MemorySegment valueAddress();
-
+    public long[] tensorShape(MemorySegment tensorAddr) {
+        try {
+            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(tensorAddr, ret));
+            long dims = retLong(getDimensionsCount.invokeExact(infoAddr, ret));
+            var shape = arena.allocate(JAVA_LONG, dims);
+            checkStatus(getDimensions.invokeExact(infoAddr, shape, dims));
+            return shape.toArray(JAVA_LONG);
+        } catch (Throwable t) {
+            throw wrap(t);
+        }
     }
 
-    public final class OrtTensor implements OrtValue {
-
-        private final MemorySegment valueAddress;
-
-        private OrtTensor(MemorySegment valueAddress) {
-            this.valueAddress = valueAddress;
-        }
-
-        @Override
-        public MemorySegment valueAddress() {
-            return valueAddress;
-        }
-
-        public OrtTensorTypeAndShapeInfo getTensorTypeAndShape() {
-            try {
-                return new OrtTensorTypeAndShapeInfo(retAddr(getTensorTypeAndShape.invokeExact(valueAddress, ret)));
-            } catch (Throwable t) {
-                throw wrap(t);
-            }
-        }
-
-        public ByteBuffer asByteBuffer() {
-            var type = getTensorTypeAndShape();
-            long size = type.getTensorShapeElementCount() * type.getTensorElementType().size();
-            try {
-                return retAddr(getTensorMutableData.invokeExact(valueAddress, ret))
-                        .reinterpret(size)
-                        .asByteBuffer().order(ByteOrder.nativeOrder());
-            } catch (Throwable t) {
-                throw wrap(t);
-            }
+    public ByteBuffer tensorBuffer(MemorySegment tensorAddr) {
+        try {
+            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(tensorAddr, ret));
+            long size = retLong(getTensorShapeElementCount.invokeExact(infoAddr, ret))
+                    * Tensor.ElementType.fromOnnxId(retInt(getTensorElementType.invokeExact(infoAddr, ret))).size();
+            return retAddr(getTensorMutableData.invokeExact(tensorAddr, ret))
+                    .reinterpret(size)
+                    .asByteBuffer().order(ByteOrder.nativeOrder());
+        } catch (Throwable t) {
+            throw wrap(t);
         }
     }
 
@@ -447,71 +371,6 @@ public final class OnnxRuntime {
             } catch (Throwable t) {
                 throw wrap(t);
             }
-        }
-    }
-
-    public sealed interface OrtTypeInfo {
-    }
-
-    public final class OrtTensorTypeAndShapeInfo implements OrtTypeInfo {
-
-        private final MemorySegment infoAddress;
-
-        private OrtTensorTypeAndShapeInfo(MemorySegment infoAddress) {
-            this.infoAddress = infoAddress;
-        }
-
-        public long getDimensionsCount() {
-            try {
-                return retLong(getDimensionsCount.invokeExact(infoAddress, ret));
-            } catch (Throwable t) {
-                throw wrap(t);
-            }
-        }
-
-        public Tensor.ElementType getTensorElementType() {
-            try {
-                return Tensor.ElementType.fromOnnxId(retInt(getTensorElementType.invokeExact(infoAddress, ret)));
-            } catch (Throwable t) {
-                throw wrap(t);
-            }
-        }
-
-        public long getTensorShapeElementCount() {
-            try {
-                return retLong(getTensorShapeElementCount.invokeExact(infoAddress, ret));
-            } catch (Throwable t) {
-                throw wrap(t);
-            }
-        }
-
-        public TensorShape getShape() {
-            long dims = getDimensionsCount();
-            var shape = arena.allocate(JAVA_LONG, dims);
-            try {
-                checkStatus(getDimensions.invokeExact(infoAddress, shape, dims));
-            } catch (Throwable t) {
-                throw wrap(t);
-            }
-            return new TensorShape(shape);
-        }
-    }
-
-    public final class SequenceTypeInfo implements OrtTypeInfo {
-
-        private final MemorySegment infoAddress;
-
-        private SequenceTypeInfo(MemorySegment infoAddress) {
-            this.infoAddress = infoAddress;
-        }
-    }
-
-    public final class MapTypeInfo implements OrtTypeInfo {
-
-        private final MemorySegment infoAddress;
-
-        private MapTypeInfo(MemorySegment infoAddress) {
-            this.infoAddress = infoAddress;
         }
     }
 

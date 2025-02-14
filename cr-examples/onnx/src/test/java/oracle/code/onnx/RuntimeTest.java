@@ -34,7 +34,7 @@ public class RuntimeTest {
 
             assertEquals(1, absResult.size());
 
-            var absOutputTensor = (OnnxRuntime.OrtTensor)absResult.getFirst();
+            var absOutputTensor = absResult.getFirst();
 
             SimpleTest.assertEquals(absExpectedTensor, absOutputTensor);
 
@@ -42,7 +42,7 @@ public class RuntimeTest {
 
             assertEquals(1, addResult.size());
 
-            var addOutputTensor = (OnnxRuntime.OrtTensor)addResult.getFirst();
+            var addOutputTensor = addResult.getFirst();
 
             var addExpectedTensor = ort.createFlatTensor(0f, 4, 0, 8, 0, 12);
 

@@ -336,8 +336,8 @@ public class CNNTest {
         Tensor inputImage = new Tensor(new float[28*28]);
         List<Tensor> w = loadWeights();
         SimpleTest.assertEquals(
-            cnn(w.get(0), w.get(1), w.get(2), w.get(3), w.get(4), w.get(5), w.get(6), w.get(7), w.get(8), w.get(9), inputImage).rtTensor,
-            OnnxRuntime.getInstance().runFunc(onnxModel, Stream.concat(w.stream(), Stream.of(inputImage)).map(t -> Optional.of(t.rtTensor)).toList()).getFirst());
+            cnn(w.get(0), w.get(1), w.get(2), w.get(3), w.get(4), w.get(5), w.get(6), w.get(7), w.get(8), w.get(9), inputImage).tensorAddr,
+            OnnxRuntime.getInstance().runFunc(onnxModel, Stream.concat(w.stream(), Stream.of(inputImage)).map(t -> Optional.of(t.tensorAddr)).toList()).getFirst());
     }
 
     static List<Tensor> loadWeights() throws IOException {
@@ -349,7 +349,7 @@ public class CNNTest {
                         return new Tensor(OnnxRuntime.getInstance().createTensor(
                                 MemorySegment.ofBuffer(bb.rewind()),
                                 Tensor.ElementType.fromOnnxId(init.getDataType()),
-                                OnnxRuntime.getInstance().new TensorShape(init.getDimsList().stream().mapToLong(a -> a).toArray())));
+                                init.getDimsList().stream().mapToLong(a -> a).toArray()));
                     })
                     .toList();
         }

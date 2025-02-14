@@ -25,6 +25,8 @@
 
 package oracle.code.onnx;
 
+import java.lang.foreign.MemorySegment;
+
     /*
 class DataType(enum.IntEnum):
     """Enum for the data types of ONNX tensors, defined in ``onnx.TensorProto``."""
@@ -63,7 +65,7 @@ public class Tensor<T> extends OnnxNumber {
     // runtime representation
     // defer to ONNX runtime?
 
-    final OnnxRuntime.OrtTensor rtTensor;
+    final MemorySegment tensorAddr;
 
     public Tensor(long data) {
         this(OnnxRuntime.getInstance().createScalar(data));
@@ -81,11 +83,11 @@ public class Tensor<T> extends OnnxNumber {
         this(OnnxRuntime.getInstance().createFlatTensor(data));
     }
 
-    Tensor(OnnxRuntime.OrtTensor rtTensor) {
-        this.rtTensor = rtTensor;
+    Tensor(MemorySegment tensorAddr) {
+        this.tensorAddr = tensorAddr;
     }
 
-    enum ElementType {
+    public enum ElementType {
         FLOAT(1, float.class),
         UINT8(2, byte.class),
         INT8(3, byte.class),

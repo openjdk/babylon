@@ -1,17 +1,16 @@
 package oracle.code.onnx;
 
+import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandles;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
 import oracle.code.onnx.compiler.OnnxTransformer;
-import oracle.code.onnx.ir.OnnxOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -100,7 +99,7 @@ public class SimpleTest {
     private static Tensor runModel(String name, Tensor... params) throws NoSuchMethodException {
         return new Tensor(OnnxRuntime.getInstance().runFunc(
                 getOnnxModel(name),
-                Stream.of(params).map(t -> Optional.ofNullable(t.rtTensor)).toList()).getFirst());
+                Stream.of(params).map(t -> Optional.ofNullable(t.tensorAddr)).toList()).getFirst());
     }
 
     private static CoreOp.FuncOp getOnnxModel(String name) throws NoSuchMethodException {
@@ -109,33 +108,34 @@ public class SimpleTest {
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
-        assertEquals(expected.rtTensor, actual.rtTensor);
+        assertEquals(expected.tensorAddr, actual.tensorAddr);
     }
 
-    static void assertEquals(OnnxRuntime.OrtTensor expected, OnnxRuntime.OrtTensor actual) {
+    static void assertEquals(MemorySegment expectedTensorAddr, MemorySegment actualTensorAddr) {
 
-        var expectedType = expected.getTensorTypeAndShape();
-        var expectedShape = expectedType.getShape();
+        var rt = OnnxRuntime.getInstance();
 
-        var actualType = actual.getTensorTypeAndShape();
-        var actualShape = actualType.getShape();
+        var expectedType = rt.tensorElementType(expectedTensorAddr);
+        var expectedShape = rt.tensorShape(expectedTensorAddr);
+        var expectedBB = rt.tensorBuffer(expectedTensorAddr);
 
-        Assertions.assertSame(expectedType.getTensorElementType(), actualType.getTensorElementType());
+        var actualType = rt.tensorElementType(actualTensorAddr);
+        var actualShape = rt.tensorShape(actualTensorAddr);
+        var actualBB = rt.tensorBuffer(actualTensorAddr);
 
-        Assertions.assertEquals(expectedShape.getDimensionsCount(), actualShape.getDimensionsCount());
-        for (int i = 0; i < expectedShape.getDimensionsCount(); i++) {
-            Assertions.assertEquals(expectedShape.getDimension(i), actualShape.getDimension(i));
-        }
+        Assertions.assertSame(expectedType, actualType);
 
-        switch (actualType.getTensorElementType()) {
+        Assertions.assertArrayEquals(expectedShape, actualShape);
+
+        switch (actualType) {
             case UINT8, INT8, UINT16, INT16, INT32, INT64, STRING, BOOL, UINT32, UINT64, UINT4, INT4 ->
-                assertEquals(expected.asByteBuffer(), actual.asByteBuffer());
+                assertEquals(expectedBB, actualBB);
             case FLOAT ->
-                assertEquals(expected.asByteBuffer().asFloatBuffer(), actual.asByteBuffer().asFloatBuffer());
+                assertEquals(expectedBB.asFloatBuffer(), actualBB.asFloatBuffer());
             case DOUBLE ->
-                assertEquals(expected.asByteBuffer().asDoubleBuffer(), actual.asByteBuffer().asDoubleBuffer());
+                assertEquals(expectedBB.asDoubleBuffer(), actualBB.asDoubleBuffer());
             default ->
-                throw new UnsupportedOperationException("Unsupported tensor element type " + actualType.getTensorElementType());
+                throw new UnsupportedOperationException("Unsupported tensor element type " + actualType);
         }
     }
 
