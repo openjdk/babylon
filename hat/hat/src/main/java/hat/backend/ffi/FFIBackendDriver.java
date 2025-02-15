@@ -28,10 +28,8 @@ package hat.backend.ffi;
 import hat.backend.Backend;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
-import hat.buffer.SchemaBuilder;
 
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
@@ -52,15 +50,11 @@ public abstract class FFIBackendDriver implements Backend {
     final MethodHandle releaseProgram_MH;
     final MethodHandle getKernel_MH;
     final MethodHandle programOK_MH;
-
     final MethodHandle releaseKernel_MH;
-
     final MethodHandle ndrange_MH;
     final MethodHandle info_MH;
 
     public long backendHandle = 0;
-
-
     public final FFILib nativeLibrary;
 
     public FFIBackendDriver(String libName) {
@@ -77,11 +71,9 @@ public abstract class FFIBackendDriver implements Backend {
         this.ndrange_MH = nativeLibrary.longFunc("ndrange", JAVA_LONG,  ADDRESS);
         this.info_MH = nativeLibrary.voidFunc("info", JAVA_LONG);
         this.getBackend_MH = nativeLibrary.longFunc("getBackend");
-
     }
 
     public long getBackend() {
-
         try {
             backendHandle = (long) getBackend_MH.invoke();
         } catch (Throwable throwable) {
@@ -187,6 +179,4 @@ public abstract class FFIBackendDriver implements Backend {
             throw new RuntimeException(e);
         }
     }
-
-
 }
