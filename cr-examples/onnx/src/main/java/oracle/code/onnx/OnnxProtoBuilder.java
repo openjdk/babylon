@@ -1,7 +1,6 @@
 package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
