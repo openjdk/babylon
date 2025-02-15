@@ -8,6 +8,3 @@
 *.sh	diff=bash
 *.html	diff=html
 *.css	diff=css
-*.onnx  binary
-*-ubyte binary
-*-float binary
