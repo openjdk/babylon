@@ -28,7 +28,6 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
 
@@ -87,7 +86,7 @@ public class Main {
         S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
         var s32Array2DState = SegmentMapper.State.of(s32Array2D);
         System.out.println(s32Array2DState);
-        s32Array2DState.modeOr(SegmentMapper.State.MODE_TRACE_COPY_IN_AND_OUT);
+        s32Array2DState.orMode(SegmentMapper.State.MODE_TRACE_COPY_IN_AND_OUT);
         System.out.println(s32Array2DState);
 
 

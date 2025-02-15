@@ -373,15 +373,15 @@ public interface SegmentMapper<T> {
         // hat iface bffa   bitz
         // 4a7 1face bffa   b175
         public static final long MAGIC = 0x4a71facebffab175L;
-        public static int BIT_HOST_NEW = 0b0000_0000_0000_0100;
-        public static int BIT_GPU_NEW = 0b0000_0000_0000_1000;
-        public static int BIT_HOST_DIRTY = 0b0000_0000_0000_0001;
-        public static int BIT_GPU_DIRTY = 0b0000_0000_0000_0010;
-        public static int MODE_ALWAYS_COPY_OUT = 0b0000_0000_0000_0001;
-        public static int MODE_ALWAYS_COPY_IN = 0b0000_0000_0000_0010;
+        public static int BIT_HOST_NEW = 0x00000004;
+        public static int BIT_GPU_NEW = 0x00000008;
+        public static int BIT_HOST_DIRTY = 0x00000001;
+        public static int BIT_GPU_DIRTY = 0x00000002;
+        public static int MODE_ALWAYS_COPY_OUT = 0x00000001;
+        public static int MODE_ALWAYS_COPY_IN = 0x00000002;
         public static int MODE_ALWAYS_COPY_IN_AND_OUT = MODE_ALWAYS_COPY_IN | MODE_ALWAYS_COPY_OUT;
-        public static int MODE_TRACE_COPY_IN=0b0000_0000_0000_0100;
-        public static int MODE_TRACE_COPY_OUT=0b0000_0000_0000_1000;
+        public static int MODE_TRACE_COPY_IN=0x00000004;
+        public static int MODE_TRACE_COPY_OUT=0x00000008;
         public static int MODE_TRACE_COPY_IN_AND_OUT = MODE_TRACE_COPY_IN | MODE_TRACE_COPY_OUT;
 
         static final MemoryLayout stateMemoryLayout = MemoryLayout.structLayout(
@@ -427,34 +427,34 @@ public interface SegmentMapper<T> {
             return this;
         }
 
-        public State mode(int mode) {
+        public State setMode(int mode) {
             State.mode.set(segment, paddedSize, mode);
            return this;
         }
-        public State modeOr(int mode) {
-            State.mode.set(segment, paddedSize, mode()|mode);
+        public State orMode(int mode) {
+            State.mode.set(segment, paddedSize, getMode()|mode);
             return this;
         }
-        public State bits(int bits) {
+        public State setBits(int bits) {
             State.bits.set(segment, paddedSize, bits);
             return this;
         }
-        public State bitsOr(int bits) {
-            State.bits.set(segment, paddedSize, bits()|bits);
+        public State orBits(int bits) {
+            State.bits.set(segment, paddedSize, getBits()|bits);
             return this;
         }
-        public int mode() {
+        public int getMode() {
             return (Integer) State.mode.get(segment, paddedSize);
         }
 
-        public int bits() {
+        public int getBits() {
             return (Integer) State.bits.get(segment, paddedSize);
         }
         public boolean isModeSet(int mode) {
-            return (mode()&mode)==mode;
+            return (getMode()&mode)==mode;
         }
         public boolean areBitsSet(int bits) {
-            return (bits()&bits)==bits;
+            return (getBits()&bits)==bits;
         }
 
         public boolean isHostNew() {
@@ -494,7 +494,7 @@ public interface SegmentMapper<T> {
             StringBuilder builder = new StringBuilder();
             if (ok()){
                 builder.append("State:ok").append("\n");
-                builder.append("State:Bits:").append(paddedString(bits()));
+                builder.append("State:Bits:").append(paddedString(getBits()));
                 if (areBitsSet(BIT_HOST_DIRTY)){
                     builder.append(",").append("HOST_DIRTY");
                 }
@@ -505,7 +505,7 @@ public interface SegmentMapper<T> {
                     builder.append(",").append("HOST_NEW");
                 }
                 builder.append("\n");
-                builder.append("State:Mode:").append(paddedString(mode()));
+                builder.append("State:Mode:").append(paddedString(getMode()));
                 if (isModeSet(MODE_ALWAYS_COPY_IN)){
                     builder.append(",").append("ALWAYS_COPY_IN");
                 }
@@ -534,7 +534,7 @@ public interface SegmentMapper<T> {
         }
         //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
         var segment = arena.allocate(State.getLayoutSizeAfterPadding(layout()) + State.byteSize(), State.alignment);
-        new State(segment, State.getLayoutSizeAfterPadding(layout())).setMagic().bits(State.BIT_HOST_NEW|State.BIT_HOST_DIRTY).mode(State.MODE_ALWAYS_COPY_IN_AND_OUT);
+        new State(segment, State.getLayoutSizeAfterPadding(layout())).setMagic().setBits(State.BIT_HOST_NEW|State.BIT_HOST_DIRTY).setMode(State.MODE_ALWAYS_COPY_IN_AND_OUT);
         T returnValue=  get(segment, layout(), boundSchema);
         // Uncomment if you want to check the State
         /*

@@ -147,10 +147,20 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         switch (arg->variant) {
             case '&': {
                auto openclBuffer = new OpenCLBuffer(this, arg);
+                BufferState_s * bufferState = BufferState_s::of(
+                             arg->value.buffer.memorySegment,
+                             arg->value.buffer.sizeInBytes
+                             );
+
                 if (arg->idx == 0){
                     ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
                 }
-                openclBuffer->copyToDevice();
+                if (bufferState->isModeAlwaysCopyInAndOut()){
+                    openclBuffer->copyToDevice();
+                    if (bufferState->isModeTraceCopyInAndOut()){
+                       std::cout << "copying arg " << arg->idx <<" to device "<< std::endl;
+                    }
+                }
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
                 if (status != CL_SUCCESS) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
@@ -236,9 +246,15 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
               arg->value.buffer.memorySegment,
               arg->value.buffer.sizeInBytes
               );
-            static_cast<OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
+            if (bufferState->isModeAlwaysCopyInAndOut()){
+               static_cast<OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
+               if (bufferState->isModeTraceCopyInAndOut()){
+                  std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
+               }
+
             if (INFO){
                bufferState->dump("After copy from device");
+            }
             }
 
         }
@@ -257,6 +273,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     }
    // delete[] events;
     //eventMax = 0;
+    // This should be GUARDED !!!!!!!!!!!!!!!!!
    openclQueue->eventc = 0;
     //events = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
@@ -265,11 +282,13 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
             BufferState_s * bufferState = BufferState_s::of(
                       arg->value.buffer.memorySegment,
                       arg->value.buffer.sizeInBytes
-                      );
-            delete static_cast<OpenCLBuffer *>(bufferState->vendorPtr);
-            bufferState->vendorPtr = nullptr;
-            if (INFO){
-               bufferState->dump("After deleting buffer ");
+            );
+            if (bufferState->isModeAlwaysCopyInAndOut()){
+               delete static_cast<OpenCLBuffer *>(bufferState->vendorPtr);
+               bufferState->vendorPtr = nullptr;
+               if (INFO){
+                  bufferState->dump("After deleting buffer ");
+               }
             }
         }
     }
