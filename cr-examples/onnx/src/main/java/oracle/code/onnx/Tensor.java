@@ -25,8 +25,14 @@
 
 package oracle.code.onnx;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
     /*
 class DataType(enum.IntEnum):
@@ -61,38 +67,70 @@ class DataType(enum.IntEnum):
      */
 
 public class Tensor<T> extends OnnxNumber {
-    // element type
-    // dim
-    // runtime representation
-    // defer to ONNX runtime?
 
+    public static final long[] SCALAR_SHAPE = new long[0];
+
+    public static Tensor<?> fromIdxFile(File idxFile) throws IOException {
+        try (var in = new RandomAccessFile(idxFile, "r")) {
+            if (in.readShort() != 0) {
+                throw new IOException("Bad magix number");
+            }
+            var type = switch(in.readByte()) {
+                case 0x08 -> ElementType.UINT8;
+                case 0x09 -> ElementType.INT8;
+                case 0x0B -> ElementType.INT16;
+                case 0x0C -> ElementType.INT32;
+                case 0x0D -> ElementType.FLOAT;
+                case 0x0E -> ElementType.DOUBLE;
+                default -> throw new IOException("Unknown element type code");
+            };
+            var shape = new long[in.readUnsignedByte()];
+            for (int i = 0; i < shape.length; i++) {
+                shape[i] = in.readInt();
+            }
+            return new Tensor(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length() - in.getFilePointer(), Arena.ofAuto()), type, shape);
+        }
+    }
+
+    public static Tensor<Long> ofScalar(long l) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, l);
+        return new Tensor<>(data, ElementType.INT64, SCALAR_SHAPE);
+    }
+
+    public static Tensor<Float> ofScalar(float f) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_FLOAT, f);
+        return new Tensor(data, ElementType.FLOAT, SCALAR_SHAPE);
+    }
+
+    public static Tensor<Byte> ofFlat(byte... values) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, values);
+        return new Tensor(data, ElementType.UINT8, new long[]{values.length});
+    }
+
+    public static Tensor<Long> ofFlat(long... values) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, values);
+        return new Tensor(data, ElementType.INT64, new long[]{values.length});
+    }
+
+    public static Tensor<Float> ofFlat(float... values) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_FLOAT, values);
+        return new Tensor(data, ElementType.FLOAT, new long[]{values.length});
+    }
+
+    // Mandatory reference to dataAddr to avoid its garbage colletion
+    private final MemorySegment dataAddr;
     final MemorySegment tensorAddr;
 
-    public Tensor(long data) {
-        this(OnnxRuntime.getInstance().createScalar(data));
-    }
-
-    public Tensor(float data) {
-        this(OnnxRuntime.getInstance().createScalar(data));
-    }
-
-    public Tensor(byte... data) {
-        this(OnnxRuntime.getInstance().createFlatTensor(data));
-    }
-
-    public Tensor(long... data) {
-        this(OnnxRuntime.getInstance().createFlatTensor(data));
-    }
-
-    public Tensor(float... data) {
-        this(OnnxRuntime.getInstance().createFlatTensor(data));
-    }
-
-    public Tensor(MemorySegment dataAddr, ElementType elementType) {
-        this(OnnxRuntime.getInstance().createTensor(dataAddr, elementType, new long[]{dataAddr.byteSize() / elementType.size()}));
+    Tensor(MemorySegment dataAddr, ElementType type, long[] shape) {
+        this(dataAddr, OnnxRuntime.getInstance().createTensor(dataAddr, type, shape));
     }
 
     Tensor(MemorySegment tensorAddr) {
+        this(null, tensorAddr);
+    }
+
+    Tensor(MemorySegment dataAddr, MemorySegment tensorAddr) {
+        this.dataAddr = dataAddr;
         this.tensorAddr = tensorAddr;
     }
 

@@ -45,7 +45,7 @@ public class OnnxInterpreter {
                     })).toList(),
                     attributes);
             if (outTensors.size() == 1) {
-                return new Tensor<>(outTensors.getFirst());
+                return new Tensor(outTensors.getFirst());
             } else {
                 return outTensors.stream().map(Tensor::new).toArray();
             }

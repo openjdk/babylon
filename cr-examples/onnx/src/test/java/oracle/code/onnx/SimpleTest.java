@@ -23,8 +23,8 @@ public class SimpleTest {
 
     @Test
     public void testAdd() throws Exception {
-        var a = new Tensor(1f, 2, 3);
-        var b = new Tensor(6f, 5, 4);
+        var a = Tensor.ofFlat(1f, 2, 3);
+        var b = Tensor.ofFlat(6f, 5, 4);
         assertEquals(
                 add(a, b),
                 runModel("add", a, b));
@@ -38,7 +38,7 @@ public class SimpleTest {
     @Test
     public void testFconstant() throws Exception {
         // tests the numbers are encoded correctly
-        var expected = new Tensor(-1f);
+        var expected = Tensor.ofScalar(-1f);
         assertEquals(expected, fconstant());
         assertEquals(expected, runModel("fconstant"));
     }
@@ -51,7 +51,7 @@ public class SimpleTest {
     @Test
     public void testFconstants() throws Exception {
         // tests the numbers are encoded correctly
-        var expected = new Tensor(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
+        var expected = Tensor.ofFlat(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
         assertEquals(expected, fconstants());
         assertEquals(expected, runModel("fconstants"));
     }
@@ -64,7 +64,7 @@ public class SimpleTest {
     @Test
     public void testLconstant() throws Exception {
         // tests the numbers are encoded correctly
-        var expected = new Tensor(-1l);
+        var expected = Tensor.ofScalar(-1l);
         assertEquals(expected, lconstant());
         assertEquals(expected, runModel("lconstant"));
     }
@@ -77,7 +77,7 @@ public class SimpleTest {
     @Test
     public void testLconstants() throws Exception {
         // tests the numbers are encoded correctly
-        var expected = new Tensor(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
+        var expected = Tensor.ofFlat(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
         assertEquals(expected, lconstants());
         assertEquals(expected, runModel("lconstants"));
     }
@@ -89,8 +89,8 @@ public class SimpleTest {
 
     @Test
     public void testReshapeAndShape() throws Exception {
-        var data = new Tensor(1f, 2, 3, 4, 5, 6, 7, 8);
-        var shape = new Tensor(2l, 2, 2);
+        var data = Tensor.ofFlat(1f, 2, 3, 4, 5, 6, 7, 8);
+        var shape = Tensor.ofFlat(2l, 2, 2);
         assertEquals(
                 reshapeAndShape(data, shape),
                 runModel("reshapeAndShape", data, shape));

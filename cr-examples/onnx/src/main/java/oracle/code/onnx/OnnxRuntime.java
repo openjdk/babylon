@@ -274,39 +274,10 @@ public final class OnnxRuntime {
         }
     }
 
-    public MemorySegment createScalar(long element) {
-        return createScalar(arena.allocateFrom(JAVA_LONG, element), Tensor.ElementType.INT64);
-    }
-
-    public MemorySegment createScalar(float element) {
-        return createScalar(arena.allocateFrom(JAVA_FLOAT, element), Tensor.ElementType.FLOAT);
-    }
-
-    private MemorySegment createScalar(MemorySegment flatData, Tensor.ElementType elementType) {
-        try {
-            var allocatorInfo = retAddr(allocatorGetInfo.invokeExact(defaultAllocatorAddress, ret));
-            return retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), MemorySegment.NULL, 0l, elementType.id, ret));
-        } catch (Throwable t) {
-            throw wrap(t);
-        }
-    }
-
-    public MemorySegment createFlatTensor(byte... elements) {
-        return createTensor(arena.allocateFrom(JAVA_BYTE, elements), Tensor.ElementType.UINT8, new long[]{elements.length});
-    }
-
-    public MemorySegment createFlatTensor(long... elements) {
-        return createTensor(arena.allocateFrom(JAVA_LONG, elements), Tensor.ElementType.INT64, new long[]{elements.length});
-    }
-
-    public MemorySegment createFlatTensor(float... elements) {
-        return createTensor(arena.allocateFrom(JAVA_FLOAT, elements), Tensor.ElementType.FLOAT, new long[]{elements.length});
-    }
-
     public MemorySegment createTensor(MemorySegment flatData, Tensor.ElementType elementType, long[] shape) {
         try {
             var allocatorInfo = retAddr(allocatorGetInfo.invokeExact(defaultAllocatorAddress, ret));
-            var shapeAddr = arena.allocateFrom(JAVA_LONG, shape);
+            var shapeAddr = shape.length == 0 ? MemorySegment.NULL : arena.allocateFrom(JAVA_LONG, shape);
             return retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), shapeAddr, (long)shape.length, elementType.id, ret));
         } catch (Throwable t) {
             throw wrap(t);

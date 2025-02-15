@@ -23,9 +23,6 @@
 
 package oracle.code.onnx;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeReflection;
@@ -55,8 +52,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import javax.swing.JFrame;
 import onnx.OnnxMl;
 
 import static java.util.Optional.empty;
@@ -404,7 +399,7 @@ public class CNNTest {
             ByteBuffer labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE);
 
             List<Tensor> weights = loadWeights();
-            Tensor inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8);
+            Tensor inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8, new long[]{imagesF.length()});
 
             FloatBuffer result = new Tensor(OnnxRuntime.getInstance().runFunc(
                     onnxModel,
@@ -430,65 +425,65 @@ public class CNNTest {
             Assertions.assertTrue(mismatched / matched < 0.05);
         }
     }
-
-    static int detectNumber(ByteBuffer image) throws IOException {
-        List<Tensor> weights = loadWeights();
-        Tensor inputImage = new Tensor(MemorySegment.ofBuffer(image), Tensor.ElementType.UINT8);
-
-        return nextBestMatch(new Tensor(OnnxRuntime.getInstance().runFunc(
-                cnnModel(),
-                Stream.concat(weights.stream(), Stream.of(inputImage))
-                        .map(t -> Optional.of(t.tensorAddr)).toList()).getFirst())
-                .asByteBuffer().asFloatBuffer());
-    }
-
-    public static void main(String[] args) {
-        var frame = new JFrame("Drawing Canvas");
-        var clean = new AtomicBoolean(true);
-        frame.addMouseMotionListener(new MouseAdapter() {
-            @Override
-            public void mouseMoved(MouseEvent e) {
-                if ((e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) != 0) {
-                    if (clean.getAndSet(false)) {
-                        frame.getGraphics().clearRect(0, 0, frame.getWidth(), frame.getHeight());
-                    }
-                    frame.getGraphics().fillOval(e.getX(), e.getY(), 20, 20);
-                }
-            }
-        });
-        frame.addKeyListener(new KeyAdapter(){
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) try {
-                    var image = new BufferedImage(28, 28, BufferedImage.TYPE_INT_RGB);
-                    var g = image.createGraphics();
-                    g.drawImage(new Robot().createScreenCapture(new Rectangle(frame.getContentPane().getLocationOnScreen(), frame.getContentPane().getSize()))
-                                           .getScaledInstance(28, 28, Image.SCALE_SMOOTH), 0, 0, null);
-                    g.dispose();
-
-                    var bb = ByteBuffer.allocateDirect(28*28);
-                    for (int y = 0; y < 28; y++) {
-                        for (int x = 0; x < 28; x++) {
-                            bb.put((byte)(255 - (0xff & image.getRGB(x, y))));
-                        }
-                    }
-                    clean.set(true);
-
-                    printImage(0, bb);
-                    System.out.println("detected number: " + detectNumber(bb.rewind()));
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-        });
-        frame.setBackground(Color.WHITE);
-        frame.getContentPane().setPreferredSize(new Dimension(560, 560));
-        frame.pack();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-        System.out.println("Hold SHIFT to draw, click ENTER to detect.");
-    }
+//
+//    static int detectNumber(ByteBuffer image) throws IOException {
+//        List<Tensor> weights = loadWeights();
+//        Tensor inputImage = new Tensor(MemorySegment.ofBuffer(image), Tensor.ElementType.UINT8);
+//
+//        return nextBestMatch(new Tensor(OnnxRuntime.getInstance().runFunc(
+//                cnnModel(),
+//                Stream.concat(weights.stream(), Stream.of(inputImage))
+//                        .map(t -> Optional.of(t.tensorAddr)).toList()).getFirst())
+//                .asByteBuffer().asFloatBuffer());
+//    }
+//
+//    public static void main(String[] args) {
+//        var frame = new JFrame("Drawing Canvas");
+//        var clean = new AtomicBoolean(true);
+//        frame.addMouseMotionListener(new MouseAdapter() {
+//            @Override
+//            public void mouseMoved(MouseEvent e) {
+//                if ((e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) != 0) {
+//                    if (clean.getAndSet(false)) {
+//                        frame.getGraphics().clearRect(0, 0, frame.getWidth(), frame.getHeight());
+//                    }
+//                    frame.getGraphics().fillOval(e.getX(), e.getY(), 20, 20);
+//                }
+//            }
+//        });
+//        frame.addKeyListener(new KeyAdapter(){
+//            @Override
+//            public void keyPressed(KeyEvent e) {
+//                if (e.getKeyCode() == KeyEvent.VK_ENTER) try {
+//                    var image = new BufferedImage(28, 28, BufferedImage.TYPE_INT_RGB);
+//                    var g = image.createGraphics();
+//                    g.drawImage(new Robot().createScreenCapture(new Rectangle(frame.getContentPane().getLocationOnScreen(), frame.getContentPane().getSize()))
+//                                           .getScaledInstance(28, 28, Image.SCALE_SMOOTH), 0, 0, null);
+//                    g.dispose();
+//
+//                    var bb = ByteBuffer.allocateDirect(28*28);
+//                    for (int y = 0; y < 28; y++) {
+//                        for (int x = 0; x < 28; x++) {
+//                            bb.put((byte)(255 - (0xff & image.getRGB(x, y))));
+//                        }
+//                    }
+//                    clean.set(true);
+//
+////                    printImage(0, bb);
+//                    System.out.println("detected number: " + detectNumber(bb.rewind()));
+//                } catch (Exception ex) {
+//                    ex.printStackTrace();
+//                }
+//            }
+//        });
+//        frame.setBackground(Color.WHITE);
+//        frame.getContentPane().setPreferredSize(new Dimension(560, 560));
+//        frame.pack();
+//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//        frame.setLocationRelativeTo(null);
+//        frame.setVisible(true);
+//        System.out.println("Hold SHIFT to draw, click ENTER to detect.");
+//    }
 
     static String serialize(Op o) {
         StringWriter w = new StringWriter();
@@ -539,13 +534,13 @@ public class CNNTest {
         }
     }
 
-//    public static void main(String[] args) throws IOException {
-//        Path inputPath = Path.of(args[0]);
-//
-//        Path outputPath = Path.of(args[1]);
-//
-//        extractWeights(inputPath, outputPath);
-//    }
+    public static void main(String[] args) throws IOException {
+        Path inputPath = Path.of(args[0]);
+
+        Path outputPath = Path.of(args[1]);
+
+        extractWeights(inputPath, outputPath);
+    }
 
     /*
     ONNX code model

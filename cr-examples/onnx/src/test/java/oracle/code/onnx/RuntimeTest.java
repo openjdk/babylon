@@ -26,25 +26,25 @@ public class RuntimeTest {
             assertEquals(2, addOp.getNumberOfInputs());
             assertEquals(1, addOp.getNumberOfOutputs());
 
-            var inputTensor = ort.createFlatTensor(-1f, 2, -3, 4, -5, 6);
+            var inputTensor = Tensor.ofFlat(-1f, 2, -3, 4, -5, 6);
 
-            var absExpectedTensor = ort.createFlatTensor(1f, 2, 3, 4, 5, 6);
+            var absExpectedTensor = Tensor.ofFlat(1f, 2, 3, 4, 5, 6);
 
-            var absResult = absOp.run(List.of(Optional.of(inputTensor)));
+            var absResult = absOp.run(List.of(Optional.of(inputTensor.tensorAddr)));
 
             assertEquals(1, absResult.size());
 
-            var absOutputTensor = absResult.getFirst();
+            var absOutputTensor = new Tensor(absResult.getFirst());
 
             SimpleTest.assertEquals(absExpectedTensor, absOutputTensor);
 
-            var addResult = addOp.run(List.of(Optional.of(inputTensor), Optional.of(absOutputTensor)));
+            var addResult = addOp.run(List.of(Optional.of(inputTensor.tensorAddr), Optional.of(absOutputTensor.tensorAddr)));
 
             assertEquals(1, addResult.size());
 
-            var addOutputTensor = addResult.getFirst();
+            var addOutputTensor = new Tensor(addResult.getFirst());
 
-            var addExpectedTensor = ort.createFlatTensor(0f, 4, 0, 8, 0, 12);
+            var addExpectedTensor = Tensor.ofFlat(0f, 4, 0, 8, 0, 12);
 
             SimpleTest.assertEquals(addExpectedTensor, addOutputTensor);
         }
