@@ -37,7 +37,6 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 public abstract class FFIBackendDriver implements Backend {
-
     public boolean isAvailable() {
         return nativeLibrary.available;
     }
@@ -105,6 +104,9 @@ public abstract class FFIBackendDriver implements Backend {
     }
 
     public void dumpArgArray(ArgArray argArray) {
+        if (backendHandle == 0L) {
+            throw new IllegalStateException("no backend handle");
+        }
         try {
             dumpArgArray_MH.invoke(Buffer.getMemorySegment(argArray));
         } catch (Throwable e) {
@@ -127,6 +129,9 @@ public abstract class FFIBackendDriver implements Backend {
     }
 
     public void ndRange(long kernelHandle,  ArgArray argArray) {
+        if (backendHandle == 0L) {
+            throw new IllegalStateException("no backend handle");
+        }
         try {
             this.ndrange_MH.invoke(kernelHandle, Buffer.getMemorySegment(argArray));
         } catch (Throwable e) {
@@ -135,6 +140,9 @@ public abstract class FFIBackendDriver implements Backend {
     }
 
     public boolean programOK(long programHandle) {
+        if (backendHandle == 0L) {
+            throw new IllegalStateException("no backend handle");
+        }
         try {
             return (Boolean) programOK_MH.invoke(programHandle);
         } catch (Throwable e) {
@@ -143,6 +151,9 @@ public abstract class FFIBackendDriver implements Backend {
     }
 
     public long getKernel(long programHandle, String kernelName) {
+        if (backendHandle == 0L) {
+            throw new IllegalStateException("no backend handle");
+        }
         try {
             var arena = Arena.global();
             var cstr = arena.allocateFrom(kernelName);
@@ -153,6 +164,9 @@ public abstract class FFIBackendDriver implements Backend {
     }
 
     public void releaseKernel(long kernelHandle) {
+        if (backendHandle == 0L) {
+            throw new IllegalStateException("no backend handle");
+        }
         try {
             releaseKernel_MH.invoke(kernelHandle);
         } catch (Throwable e) {
@@ -161,6 +175,9 @@ public abstract class FFIBackendDriver implements Backend {
     }
 
     public void releaseProgram(long programHandle) {
+        if (backendHandle == 0L) {
+            throw new IllegalStateException("no backend handle");
+        }
         try {
             releaseProgram_MH.invoke(programHandle);
         } catch (Throwable e) {
