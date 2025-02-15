@@ -185,7 +185,6 @@ public abstract class FFIBackendDriver implements Backend {
         }
     }
 
-
     public void release() {
         if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
