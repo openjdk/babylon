@@ -54,7 +54,7 @@ public class PTXBackend extends C99FFIBackend {
         mathFns = new HashMap<>();
         usedMathFns = new HashSet<>();
         loadMathFns();
-        getBackend(null);
+        getBackend();
     }
 
     @Override

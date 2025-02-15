@@ -28,7 +28,6 @@ package hat.backend.jextracted;
 import hat.backend.Backend;
 import hat.backend.ffi.FFILib;
 import hat.buffer.ArgArray;
-import hat.buffer.BackendConfig;
 import hat.buffer.Buffer;
 import hat.buffer.SchemaBuilder;
 
@@ -86,17 +85,10 @@ public abstract class JExtractedBackendDriver implements Backend {
 
     }
 
-    public long getBackend(BackendConfig backendConfig) {
+    public long getBackend() {
 
         try {
-            if (backendConfig == null) {
-                backendHandle = (long) getBackend_MH.invoke(MemorySegment.NULL, 0, MemorySegment.NULL);
-            } else {
-                String schema = SchemaBuilder.schema(backendConfig);
-                var arena = Arena.global();
-                var cstr = arena.allocateFrom(schema);
-                backendHandle = (long) getBackend_MH.invoke(Buffer.getMemorySegment(backendConfig), schema.length(), cstr);
-            }
+            backendHandle = (long) getBackend_MH.invoke();
         } catch (Throwable throwable) {
             throw new IllegalStateException(throwable);
         }

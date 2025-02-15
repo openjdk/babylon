@@ -71,8 +71,8 @@ public:
 
 public:
 
-    MockBackend(MockConfig *mockConfig, int mockConfigSchemeLen, char *mockBackendSchema, MockQueue *mockQueue)
-            : Backend(mockConfig, mockConfigSchemeLen, mockBackendSchema, mockQueue) {
+    MockBackend(MockConfig *mockConfig,  MockQueue *mockQueue)
+            : Backend(mockConfig,  mockQueue) {
         if (mockConfig == nullptr) {
             std::cout << "mockConfig == null" << std::endl;
         } else {
@@ -103,8 +103,8 @@ public:
     }
 };
 
-long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    MockBackend::MockConfig *mockConfig = (MockBackend::MockConfig *) config;
+long getBackend() {
+    MockBackend::MockConfig *mockConfig = (MockBackend::MockConfig *) new MockBackend::MockConfig();
     MockBackend::MockQueue *mockQueue = (MockBackend::MockQueue *) new MockBackend::MockQueue();
-    return (long) new MockBackend(mockConfig, configSchemaLen, configSchema, mockQueue);
+    return (long) new MockBackend(mockConfig,  mockQueue);
 }

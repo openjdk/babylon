@@ -115,7 +115,7 @@ public:
     cl_context context;
     cl_device_id device_id;
     OpenCLBackend();
-    OpenCLBackend(OpenCLConfig *config, int configSchemaLen, char *configSchema);
+    OpenCLBackend(OpenCLConfig *config);
     ~OpenCLBackend();
     int getMaxComputeUnits();
     void info();

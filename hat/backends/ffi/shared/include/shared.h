@@ -427,8 +427,8 @@ public:
     char *configSchema;
     Queue *queue;
 
-    Backend(Config *config, int configSchemaLen, char *configSchema, Queue* queue)
-            : config(config),  configSchemaLen(configSchemaLen), configSchema(configSchema),queue(queue) {}
+    Backend( Config *config, Queue* queue)
+            : config(config),queue(queue) {}
 
     virtual ~Backend() {};
 
@@ -437,11 +437,9 @@ public:
     virtual int getMaxComputeUnits() = 0;
 
     virtual long compileProgram(int len, char *source) = 0;
-
-
 };
 
-extern "C" long getBackend(void *config, int configSchemaLen, char *configSchema);
+extern "C" long getBackend(void *config);
 extern "C" void info(long backendHandle);
 extern "C" int getMaxComputeUnits(long backendHandle);
 extern "C" long compileProgram(long backendHandle, int len, char *source);

@@ -28,40 +28,16 @@ package hat.backend.ffi;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.buffer.BackendConfig;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
 public class MockBackend extends FFIBackend {
 
-    interface MockConfig extends BackendConfig {
-        // See backends/mock/include/mock_backend.h
-        //  class MockConfig{
-        //       public:
-        //         boolean gpu;
-        //         boolean junk;
-        //   };
-        boolean gpu();
 
-        void gpu(boolean gpu);
-
-        boolean junk();
-
-        void junk(boolean junk);
-
-        Schema<MockConfig> schema = Schema.of(MockConfig.class, s->s.fields("gpu", "junk"));
-        static MockConfig create(Accelerator accelerator, boolean gpu) {
-            MockConfig config =schema.allocate(accelerator);
-            config.gpu(gpu);
-            return config;
-        }
-
-
-    }
 
     public MockBackend() {
         super("mock_backend");
-        getBackend(null);//MockConfig.create(MethodHandles.lookup(),this,  true));
+        getBackend();
     }
 
     @Override

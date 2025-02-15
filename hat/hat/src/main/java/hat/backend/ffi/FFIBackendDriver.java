@@ -27,7 +27,6 @@ package hat.backend.ffi;
 
 import hat.backend.Backend;
 import hat.buffer.ArgArray;
-import hat.buffer.BackendConfig;
 import hat.buffer.Buffer;
 import hat.buffer.SchemaBuilder;
 
@@ -44,18 +43,14 @@ public abstract class FFIBackendDriver implements Backend {
     public boolean isAvailable() {
         return nativeLibrary.available;
     }
-
     final MethodHandle getBackend_MH;
     final MethodHandle dumpArgArray_MH;
     final MethodHandle getDevice_MH;
-
     final MethodHandle releaseDevice_MH;
     final MethodHandle getMaxComputeUnits_MH;
-
     final MethodHandle compileProgram_MH;
     final MethodHandle releaseProgram_MH;
     final MethodHandle getKernel_MH;
-
     final MethodHandle programOK_MH;
 
     final MethodHandle releaseKernel_MH;
@@ -81,21 +76,14 @@ public abstract class FFIBackendDriver implements Backend {
         this.releaseKernel_MH = nativeLibrary.voidFunc("releaseKernel", JAVA_LONG);
         this.ndrange_MH = nativeLibrary.longFunc("ndrange", JAVA_LONG,  ADDRESS);
         this.info_MH = nativeLibrary.voidFunc("info", JAVA_LONG);
-        this.getBackend_MH = nativeLibrary.longFunc("getBackend", ADDRESS, JAVA_INT, ADDRESS);
+        this.getBackend_MH = nativeLibrary.longFunc("getBackend");
 
     }
 
-    public long getBackend(BackendConfig backendConfig) {
+    public long getBackend() {
 
         try {
-            if (backendConfig == null) {
-                backendHandle = (long) getBackend_MH.invoke(MemorySegment.NULL, 0, MemorySegment.NULL);
-            } else {
-                String schema = SchemaBuilder.schema(backendConfig);
-                var arena = Arena.global();
-                var cstr = arena.allocateFrom(schema);
-                backendHandle = (long) getBackend_MH.invoke(Buffer.getMemorySegment(backendConfig), schema.length(), cstr);
-            }
+            backendHandle = (long) getBackend_MH.invoke();
         } catch (Throwable throwable) {
             throw new IllegalStateException(throwable);
         }

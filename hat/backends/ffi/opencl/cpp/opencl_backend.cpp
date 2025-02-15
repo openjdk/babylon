@@ -314,8 +314,8 @@ bool OpenCLBackend::OpenCLProgram::programOK() {
     return true;
 }
 
-OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig, int configSchemaLen, char *configSchema)
-        : Backend((Backend::Config *) openclConfig,  configSchemaLen, configSchema, (Backend::Queue *) new OpenCLQueue()) {
+OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig)
+        : Backend((Backend::Config *) openclConfig, (Backend::Queue *) new OpenCLQueue()) {
 
     if (INFO){
        if (openclConfig == nullptr) {
@@ -378,7 +378,7 @@ OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig, int conf
 }
 
 OpenCLBackend::OpenCLBackend()
-        : OpenCLBackend(nullptr, 0, nullptr) {
+        : OpenCLBackend(nullptr) {
 
 }
 
@@ -703,9 +703,8 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
 }
 
 
-long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    return reinterpret_cast<long>(new OpenCLBackend(static_cast<OpenCLBackend::OpenCLConfig *>(config), configSchemaLen,
-                                                    configSchema));
+long getBackend(void *config) {
+    return reinterpret_cast<long>(new OpenCLBackend(static_cast<OpenCLBackend::OpenCLConfig *>(config)));
 }
 
 void __checkOpenclErrors(cl_int status, const char *file, const int line) {

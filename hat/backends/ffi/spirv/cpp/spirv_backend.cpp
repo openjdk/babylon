@@ -70,8 +70,8 @@ public:
 
 public:
 
-    SpirvBackend(SpirvConfig *spirvConfig, int spirvConfigSchemeLen, char *spirvBackendSchema, SpirvQueue *spirvQueue )
-            : Backend(spirvConfig, spirvConfigSchemeLen, spirvBackendSchema, spirvQueue) {
+    SpirvBackend(SpirvConfig *spirvConfig, SpirvQueue *spirvQueue )
+            : Backend(spirvConfig, spirvQueue) {
         if (spirvConfig == nullptr) {
             std::cout << "spirvConfig == null" << std::endl;
         } else {
@@ -102,8 +102,8 @@ public:
     }
 };
 
-long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    SpirvBackend::SpirvConfig *spirvConfig = (SpirvBackend::SpirvConfig *) config;
+long getBackend() {
+    SpirvBackend::SpirvConfig *spirvConfig = new SpirvBackend::SpirvConfig();
     SpirvBackend::SpirvQueue *spirvQueue = new SpirvBackend::SpirvQueue();
-    return (long) new SpirvBackend(spirvConfig, configSchemaLen, configSchema, spirvQueue);
+    return (long) new SpirvBackend(spirvConfig, spirvQueue);
 }

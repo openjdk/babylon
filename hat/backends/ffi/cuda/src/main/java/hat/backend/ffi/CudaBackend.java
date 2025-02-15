@@ -32,7 +32,7 @@ import hat.callgraph.KernelCallGraph;
 public class CudaBackend extends C99FFIBackend {
     public CudaBackend() {
         super("cuda_backend");
-        getBackend(null);
+        getBackend();
         info();
     }
 

@@ -28,41 +28,15 @@ package hat.backend.ffi;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.buffer.BackendConfig;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
 public class OpenCLBackend extends C99FFIBackend {
 
-    interface OpenCLConfig extends BackendConfig {
-        // See backends/opencl/include/opencl_backend.h
-        //  class OpenCLConfig{
-        //       public:
-        //         boolean gpu;
-        //         boolean verbose;
-        //   };
-        boolean gpu();
-
-        void gpu(boolean gpu);
-
-      //  boolean verbose();
-
-       // void verbose(boolean verbose);
-        Schema<OpenCLConfig> schema = Schema.of(OpenCLConfig.class, s->s.fields("gpu"));
-
-        static OpenCLConfig create(Accelerator accelerator, boolean gpu, boolean verbose) {
-            OpenCLConfig config =schema.allocate(accelerator);
-            config.gpu(gpu);
-         //   config.verbose(verbose);
-            return config;
-        }
-
-
-    }
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend(null);//OpenCLConfig.create( MethodHandles.lookup(),this, true, true));
+        getBackend();
         info();
     }
 
