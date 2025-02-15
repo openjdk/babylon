@@ -37,7 +37,7 @@ public class MockBackend extends FFIBackend {
 
     public MockBackend() {
         super("mock_backend");
-        getBackend();
+        getBackend(0,0, 0);
     }
 
     @Override

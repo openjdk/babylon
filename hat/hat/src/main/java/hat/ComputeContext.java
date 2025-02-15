@@ -26,32 +26,23 @@ package hat;
 
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
+import hat.buffer.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.LambdaOpWrapper;
-import hat.optools.ModuleOpWrapper;
 import hat.optools.OpWrapper;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CopyContext;
+
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.MethodRef;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+
 import java.util.function.Consumer;
 
 /**
@@ -73,7 +64,7 @@ import java.util.function.Consumer;
  *
  * @author Gary Frost
  */
-public class ComputeContext implements BufferAllocator {
+public class ComputeContext implements BufferAllocator, BufferTracker {
 
 
 
@@ -156,28 +147,48 @@ public class ComputeContext implements BufferAllocator {
     }
 
     public void preMutate(Buffer b) {
-        // System.out.println("preMutate " + b);
+         SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
+         if (!bufferState.isModeAlwaysCopyInAndOut()) {
+             System.out.println("preMutate " + b);
+         }
     }
-
+@Override
     public void postMutate(Buffer b) {
-        // System.out.println("postMutate " + b);
+        SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
+        if (!bufferState.isModeAlwaysCopyInAndOut()) {
+            System.out.println("postMutate " + b);
+        }
     }
 
+    @Override
     public void preAccess(Buffer b) {
-        // System.out.println("preAccess " + b);
-    }
+        SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
+        if (!bufferState.isModeAlwaysCopyInAndOut()) {
+            System.out.println("preAccess " + b);
 
+        }
+    }
+@Override
     public void postAccess(Buffer b) {
-        // System.out.println("postAccess " + b);
+        SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
+        if (!bufferState.isModeAlwaysCopyInAndOut()) {
+            System.out.println("postAccess " + b);
+        }
     }
-
+@Override
     public void preEscape(Buffer b) {
-        // System.out.println("preEscape " + b);
+        SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
+        if (!bufferState.isModeAlwaysCopyInAndOut()) {
+             System.out.println("preEscape " + b);
+        }
 
     }
-
+@Override
     public void postEscape(Buffer b) {
-        // System.out.println("postEscape " + b);
+        SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
+        if (!bufferState.isModeAlwaysCopyInAndOut()) {
+             System.out.println("postEscape " + b);
+        }
     }
 
     @Override

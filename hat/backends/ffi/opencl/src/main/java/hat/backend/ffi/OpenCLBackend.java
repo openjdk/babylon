@@ -28,15 +28,17 @@ package hat.backend.ffi;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
+import hat.buffer.Buffer;
+import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
-public class OpenCLBackend extends C99FFIBackend {
+public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend();
+        getBackend(0,0, 0 );
         info();
     }
 
@@ -63,5 +65,35 @@ public class OpenCLBackend extends C99FFIBackend {
         });
         compiledKernel.dispatch(ndRange,args);
 
+    }
+
+    @Override
+    public void preMutate(Buffer b) {
+        throw new UnsupportedOperationException("OpenCL Backend does not support pre-mutate");
+    }
+
+    @Override
+    public void postMutate(Buffer b) {
+        throw new UnsupportedOperationException("OpenCL Backend does not support post-mutate");
+    }
+
+    @Override
+    public void preAccess(Buffer b) {
+        throw new UnsupportedOperationException("OpenCL Backend does not support pre-access");
+    }
+
+    @Override
+    public void postAccess(Buffer b) {
+        throw new UnsupportedOperationException("OpenCL Backend does not support post-access");
+    }
+
+    @Override
+    public void preEscape(Buffer b) {
+        throw new UnsupportedOperationException("OpenCL Backend does not support pre-escape");
+    }
+
+    @Override
+    public void postEscape(Buffer b) {
+        throw new UnsupportedOperationException("OpenCL Backend does not support post-escape");
     }
 }

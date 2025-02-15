@@ -24,7 +24,11 @@
  */
 #include "opencl_backend.h"
 
-#define INFO 0
+#define INFO 1
+
+/*
+  OpenCLBuffer
+  */
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg)
         : Backend::Program::Kernel::Buffer(kernel, arg) {
@@ -119,6 +123,10 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
     clReleaseMemObject(clMem);
 }
+
+/*
+  OpenCLKernel
+  */
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::Program *program, char* name, cl_kernel kernel)
         : Backend::Program::Kernel(program, name), kernel(kernel){
@@ -295,7 +303,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     return 0;
 }
 
-
+/*
+  OpenCLProgram
+  */
 OpenCLBackend::OpenCLProgram::OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program)
         : Backend::Program(backend, buildInfo), program(program) {
 }
@@ -313,20 +323,21 @@ long OpenCLBackend::OpenCLProgram::getKernel(int nameLen, char *name) {
 bool OpenCLBackend::OpenCLProgram::programOK() {
     return true;
 }
+/*
+  OpenCLBackend
+  */
+bool OpenCLBackend::getBuffer(void *memorySegment, long memorySegmentLength) {
+    std::cout << "attempting  to get buffer from OpenCLBackend "<<std::endl;
+    return true;
+}
 
-OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig)
-        : Backend((Backend::Config *) openclConfig, (Backend::Queue *) new OpenCLQueue()) {
+OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
+        : Backend(mode, platform, device, new OpenCLConfig(mode),  new OpenCLQueue()) {
 
     if (INFO){
-       if (openclConfig == nullptr) {
-           std::cout << "openclConfig == null" << std::endl;
-       } else {
-           std::cout << "openclConfig->gpu" << (openclConfig->gpu ? "true" : "false") << std::endl;
-           std::cout << "openclConfig->schema" << configSchema << std::endl;
-       }
+           std::cout << "openclConfig->gpu" << (dynamic_cast<OpenCLConfig *>(config)->gpu ? "true" : "false") << std::endl;
     }
-    cl_device_type requestedType =
-            openclConfig == nullptr ? CL_DEVICE_TYPE_GPU : openclConfig->gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU;
+    cl_device_type requestedType =dynamic_cast<OpenCLConfig *>(config)->gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU;
 
     cl_int status;
     cl_uint platformc = 0;
@@ -375,11 +386,6 @@ OpenCLBackend::OpenCLBackend(OpenCLBackend::OpenCLConfig *openclConfig)
     device_id = device_ids[0];
     delete[] device_ids;
     delete[] platforms;
-}
-
-OpenCLBackend::OpenCLBackend()
-        : OpenCLBackend(nullptr) {
-
 }
 
 OpenCLBackend::~OpenCLBackend() {
@@ -526,9 +532,9 @@ void OpenCLBackend::info() {
     size_t *maxWorkItemSizes = new size_t[maxWorkItemDimensions];
     status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * maxWorkItemDimensions,
                              maxWorkItemSizes, NULL);
-    for (unsigned dimIdx = 0; dimIdx < maxWorkItemDimensions; dimIdx++) {
-        fprintf(stderr, "             dim[%d] = %ld\n", dimIdx, maxWorkItemSizes[dimIdx]);
-    }
+  //  for (unsigned dimIdx = 0; dimIdx < maxWorkItemDimensions; dimIdx++) {
+    //    fprintf(stderr, "             dim[%d] = %ld\n", dimIdx, maxWorkItemSizes[dimIdx]);
+   // }
 
     size_t maxWorkGroupSize;
     status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxWorkGroupSize), &maxWorkGroupSize,
@@ -703,9 +709,12 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
 }
 
 
-long getBackend(void *config) {
-    return reinterpret_cast<long>(new OpenCLBackend(static_cast<OpenCLBackend::OpenCLConfig *>(config)));
+long getBackend(int mode, int platform, int device) {
+  std::cerr << "Opencl Driver mode=" << mode << " platform=" << platform << " device=" << device << std::endl;
+
+    return reinterpret_cast<long>(new OpenCLBackend(mode, platform, device));
 }
+
 
 void __checkOpenclErrors(cl_int status, const char *file, const int line) {
     if (CL_SUCCESS != status) {

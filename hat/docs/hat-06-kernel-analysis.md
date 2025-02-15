@@ -283,7 +283,7 @@ There are a lot opportunities for catching such bugs.
 ## Flipping Generations
 
 Many algorithms require us to process data from generations. Consider
-Convolutions or Game Of Life style problems where we have an image or game state and
+Convolutions or Game Of Life style problems where we have an image or game bufferState and
 we need to calculate the result of applying rules to cells in the image or game.
 
 It is important that when we process the next generation (either in parallel or sequentially) we

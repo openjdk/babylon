@@ -367,7 +367,7 @@ public interface SegmentMapper<T> {
         }
          */
 
-    record State(MemorySegment segment, long paddedSize) {
+    record BufferState(MemorySegment segment, long paddedSize) {
         public static final long alignment = ValueLayout.JAVA_LONG.byteSize();
         // hat iface buffer bitz
         // hat iface bffa   bitz
@@ -411,44 +411,44 @@ public interface SegmentMapper<T> {
 
         public static long getLayoutSizeAfterPadding(GroupLayout layout) {
             return layout.byteSize() +
-                    ((layout.byteSize() % State.alignment) == 0 ? 0 : State.alignment - (layout.byteSize() % State.alignment));
+                    ((layout.byteSize() % BufferState.alignment) == 0 ? 0 : BufferState.alignment - (layout.byteSize() % BufferState.alignment));
         }
 
-        public static <T> State of(T t) {
+        public static <T> BufferState of(T t) {
             Buffer buffer = (Buffer) Objects.requireNonNull(t);
             MemorySegment s = Buffer.getMemorySegment(buffer);
-            return new State(s,s.byteSize()- State.byteSize());
+            return new BufferState(s,s.byteSize()- BufferState.byteSize());
         }
 
 
-        State setMagic(){
-            State.magic1.set(segment, paddedSize, MAGIC);
-            State.magic2.set(segment, paddedSize, MAGIC);
+        BufferState setMagic(){
+            BufferState.magic1.set(segment, paddedSize, MAGIC);
+            BufferState.magic2.set(segment, paddedSize, MAGIC);
             return this;
         }
 
-        public State setMode(int mode) {
-            State.mode.set(segment, paddedSize, mode);
+        public BufferState setMode(int mode) {
+            BufferState.mode.set(segment, paddedSize, mode);
            return this;
         }
-        public State orMode(int mode) {
-            State.mode.set(segment, paddedSize, getMode()|mode);
+        public BufferState orMode(int mode) {
+            BufferState.mode.set(segment, paddedSize, getMode()|mode);
             return this;
         }
-        public State setBits(int bits) {
-            State.bits.set(segment, paddedSize, bits);
+        public BufferState setBits(int bits) {
+            BufferState.bits.set(segment, paddedSize, bits);
             return this;
         }
-        public State orBits(int bits) {
-            State.bits.set(segment, paddedSize, getBits()|bits);
+        public BufferState orBits(int bits) {
+            BufferState.bits.set(segment, paddedSize, getBits()|bits);
             return this;
         }
         public int getMode() {
-            return (Integer) State.mode.get(segment, paddedSize);
+            return (Integer) BufferState.mode.get(segment, paddedSize);
         }
 
         public int getBits() {
-            return (Integer) State.bits.get(segment, paddedSize);
+            return (Integer) BufferState.bits.get(segment, paddedSize);
         }
         public boolean isModeSet(int mode) {
             return (getMode()&mode)==mode;
@@ -469,14 +469,20 @@ public interface SegmentMapper<T> {
         public boolean isGpuDirty() {
             return areBitsSet(BIT_GPU_DIRTY);
         }
+        public boolean isModeAlwaysCopyOut() {return isModeSet(MODE_ALWAYS_COPY_OUT);}
+        public boolean isModeAlwaysCopyIn() {return isModeSet(MODE_ALWAYS_COPY_IN);}
+        public boolean isModeAlwaysCopyInAndOut() {return isModeSet(MODE_ALWAYS_COPY_IN_AND_OUT);}
+        public boolean isModeTraceCopyOut() {return isModeSet(MODE_TRACE_COPY_OUT);}
+        public boolean isModeTraceCopyIn() {return isModeSet(MODE_TRACE_COPY_IN);}
+        public boolean isModeTraceCopyInAndOut() {return isModeSet(MODE_TRACE_COPY_IN_AND_OUT);}
 
 
         public long magic1() {
-            return (Long) State.magic1.get(segment, paddedSize);
+            return (Long) BufferState.magic1.get(segment, paddedSize);
         }
 
         public long magic2() {
-            return (Long) State.magic2.get(segment, paddedSize);
+            return (Long) BufferState.magic2.get(segment, paddedSize);
         }
 
         public boolean ok() {
@@ -533,8 +539,8 @@ public interface SegmentMapper<T> {
             throw new IllegalStateException("No bound Schema provided");
         }
         //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
-        var segment = arena.allocate(State.getLayoutSizeAfterPadding(layout()) + State.byteSize(), State.alignment);
-        new State(segment, State.getLayoutSizeAfterPadding(layout())).setMagic().setBits(State.BIT_HOST_NEW|State.BIT_HOST_DIRTY).setMode(State.MODE_ALWAYS_COPY_IN_AND_OUT);
+        var segment = arena.allocate(BufferState.getLayoutSizeAfterPadding(layout()) + BufferState.byteSize(), BufferState.alignment);
+        new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout())).setMagic().setBits(BufferState.BIT_HOST_NEW| BufferState.BIT_HOST_DIRTY).setMode(BufferState.MODE_ALWAYS_COPY_IN_AND_OUT);
         T returnValue=  get(segment, layout(), boundSchema);
         // Uncomment if you want to check the State
         /*

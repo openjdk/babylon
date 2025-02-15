@@ -60,7 +60,9 @@ class OpenCLBackend : public Backend {
 public:
     class OpenCLConfig : public Backend::Config {
     public:
-        boolean gpu;
+        bool gpu;
+        OpenCLConfig(int mode):Backend::Config(mode), gpu(true){}
+        virtual ~OpenCLConfig(){}
     };
     class OpenCLQueue : public Backend::Queue {
     public:
@@ -68,14 +70,14 @@ public:
        cl_event *events;
        size_t eventc;
        cl_command_queue command_queue;
-       OpenCLQueue():Backend::Queue(), eventMax(256), events(new cl_event[eventMax]), eventc(0){
+       OpenCLQueue()
+          :Backend::Queue(), eventMax(256), events(new cl_event[eventMax]), eventc(0){
        }
        virtual ~OpenCLQueue(){}
     };
 
     class OpenCLProgram : public Backend::Program {
         class OpenCLKernel : public Backend::Program::Kernel {
-
             class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
                 cl_mem clMem;
@@ -91,22 +93,16 @@ public:
             void showEvents(int width);
         public:
             OpenCLKernel(Backend::Program *program, char* name,cl_kernel kernel);
-
             ~OpenCLKernel();
-
             long ndrange( void *argArray);
         };
 
     private:
         cl_program program;
-
     public:
         OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program);
-
         ~OpenCLProgram();
-
         long getKernel(int nameLen, char *name);
-
         bool programOK();
     };
 
@@ -114,10 +110,10 @@ public:
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
-    OpenCLBackend();
-    OpenCLBackend(OpenCLConfig *config);
+    OpenCLBackend(int mode, int platform, int device);
     ~OpenCLBackend();
     int getMaxComputeUnits();
+    bool getBuffer(void *memorySegment, long memorySegmentLength);
     void info();
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
@@ -126,4 +122,3 @@ public:
 public:
     static const char *errorMsg(cl_int status);
 };
-

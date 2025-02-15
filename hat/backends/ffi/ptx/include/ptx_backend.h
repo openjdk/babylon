@@ -76,8 +76,19 @@ class PtxBackend : public Backend {
 public:
     class PtxConfig : public Backend::Config {
     public:
-        boolean gpu;
+      bool gpu;
+     PtxConfig(int mode):Backend::Config(mode), gpu(true){}
+                virtual ~PtxConfig(){}
+
     };
+
+     class PtxQueue : public Backend::Config {
+        public:
+
+         PtxQueue():Backend::Queue(){}
+                    virtual ~PtxQueue(){}
+
+        };
 
     class PtxProgram : public Backend::Program {
         class PtxKernel : public Backend::Program::Kernel {
@@ -124,9 +135,7 @@ private:
     CUcontext context;
 public:
 
-    PtxBackend(PtxConfig *config, int configSchemaLen, char *configSchema);
-
-    PtxBackend();
+    PtxBackend(int mode, int platform, int device, PtxConfig *ptxConfig, PtxQueue *ptxQueue);
 
     ~PtxBackend();
 

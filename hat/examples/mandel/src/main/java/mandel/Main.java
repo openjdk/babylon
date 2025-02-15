@@ -84,9 +84,9 @@ public class Main {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
         S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
-        var s32Array2DState = SegmentMapper.State.of(s32Array2D);
+        var s32Array2DState = SegmentMapper.BufferState.of(s32Array2D);
         System.out.println(s32Array2DState);
-        s32Array2DState.orMode(SegmentMapper.State.MODE_TRACE_COPY_IN_AND_OUT);
+        s32Array2DState.orMode(SegmentMapper.BufferState.MODE_TRACE_COPY_IN_AND_OUT);
         System.out.println(s32Array2DState);
 
 

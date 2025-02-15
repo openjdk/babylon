@@ -38,7 +38,7 @@ public class OpenCLBackend extends C99FFIBackend {
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend();
+        getBackend(0,0,0);
         info();
     }
 

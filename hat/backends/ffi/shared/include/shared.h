@@ -353,9 +353,12 @@ class Backend {
 public:
     class Config {
     public:
+      Config(int mode){}
+      virtual ~Config(){}
     };
     class Queue {
        public:
+       Queue(){}
        virtual ~Queue() {}
     };
 
@@ -421,25 +424,27 @@ public:
         };
 
     };
-
+    int mode;
+    int platform;
+    int device;
     Config *config;
-    int configSchemaLen;
-    char *configSchema;
     Queue *queue;
 
-    Backend( Config *config, Queue* queue)
-            : config(config),queue(queue) {}
-
-    virtual ~Backend() {};
+    Backend(int mode, int platform, int device, Config *config, Queue* queue)
+            : mode(mode), platform(platform), device(device), config(config),queue(queue) {}
 
     virtual void info() = 0;
 
     virtual int getMaxComputeUnits() = 0;
 
     virtual long compileProgram(int len, char *source) = 0;
+
+    virtual bool getBuffer(void *memorySegment, long memorySegmentLength)=0;
+
+    virtual ~Backend() {};
 };
 
-extern "C" long getBackend(void *config);
+extern "C" long getBackend(int mode, int platform, int device);
 extern "C" void info(long backendHandle);
 extern "C" int getMaxComputeUnits(long backendHandle);
 extern "C" long compileProgram(long backendHandle, int len, char *source);
@@ -449,4 +454,5 @@ extern "C" void releaseProgram(long programHandle);
 extern "C" bool programOK(long programHandle);
 extern "C" void releaseKernel(long kernelHandle);
 extern "C" long ndrange(long kernelHandle, void *argArray);
+extern "C" bool getBuffer(long backendHandle, long memorySegmentHandle, long memorySegmentLength);
 

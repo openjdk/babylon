@@ -28,8 +28,10 @@ package hat.backend.ffi;
 import hat.backend.Backend;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
+import hat.buffer.BufferTracker;
 
 import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
@@ -52,12 +54,13 @@ public abstract class FFIBackendDriver implements Backend {
     final MethodHandle releaseKernel_MH;
     final MethodHandle ndrange_MH;
     final MethodHandle info_MH;
-
+    final MethodHandle getBuffer_MH;
     public long backendHandle = 0;
     public final FFILib nativeLibrary;
 
     public FFIBackendDriver(String libName) {
         this.nativeLibrary = new FFILib(libName);
+        this.getBackend_MH = nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
         this.dumpArgArray_MH = nativeLibrary.voidFunc("dumpArgArray", ADDRESS);
         this.getDevice_MH = nativeLibrary.longFunc("getDeviceHandle");
         this.releaseDevice_MH = nativeLibrary.voidFunc("releaseDeviceHandle", JAVA_LONG);
@@ -69,16 +72,33 @@ public abstract class FFIBackendDriver implements Backend {
         this.releaseKernel_MH = nativeLibrary.voidFunc("releaseKernel", JAVA_LONG);
         this.ndrange_MH = nativeLibrary.longFunc("ndrange", JAVA_LONG,  ADDRESS);
         this.info_MH = nativeLibrary.voidFunc("info", JAVA_LONG);
-        this.getBackend_MH = nativeLibrary.longFunc("getBackend");
+
+        this.getBuffer_MH = nativeLibrary.booleanFunc("getBuffer",JAVA_LONG, ADDRESS, JAVA_LONG);
     }
 
-    public long getBackend() {
+    public long getBackend(int mode, int platform, int device) {
         try {
-            backendHandle = (long) getBackend_MH.invoke();
+            backendHandle = (long) getBackend_MH.invoke(mode, platform, device);
         } catch (Throwable throwable) {
             throw new IllegalStateException(throwable);
         }
         return backendHandle;
+    }
+
+    public boolean getBuffer(Buffer buffer) {
+        if (backendHandle == 0L) {
+            throw new IllegalStateException("no backend handle");
+        }
+        if (this instanceof BufferTracker) {
+            try {
+                MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
+                return (Boolean)getBuffer_MH.invoke(backendHandle, memorySegment, memorySegment.byteSize());
+            } catch (Throwable throwable) {
+                throw new IllegalStateException(throwable);
+            }
+        }else{
+            return false;
+        }
     }
 
     public int getGetMaxComputeUnits() {
