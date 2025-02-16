@@ -37,7 +37,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     public OpenCLBackend() {
         super("opencl_backend");
-        Mode mode = Mode.valueOf(System.getProperty("Mode", Mode.GPU_TRACE.toString()));
+        Mode mode = Mode.valueOf(System.getProperty("Mode", Mode.GPU.toString()));
         getBackend(mode.value,0, 0 );
         info();
     }
