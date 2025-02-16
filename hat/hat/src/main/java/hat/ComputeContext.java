@@ -75,10 +75,6 @@ import java.util.function.Consumer;
  */
 public class ComputeContext implements BufferAllocator {
 
-
-
-
-
     public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access"), ESCAPE("Escape");
         final public MethodRef pre;
