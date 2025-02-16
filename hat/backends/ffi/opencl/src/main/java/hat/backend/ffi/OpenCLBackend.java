@@ -35,10 +35,10 @@ import hat.ifacemapper.Schema;
 
 public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
-
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend(0,0, 0 );
+        Mode mode = Mode.valueOf(System.getProperty("Mode", Mode.GPU_TRACE.toString()));
+        getBackend(mode.value,0, 0 );
         info();
     }
 

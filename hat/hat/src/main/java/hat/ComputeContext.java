@@ -148,47 +148,40 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     public void preMutate(Buffer b) {
          SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
-         if (!bufferState.isModeAlwaysCopyInAndOut()) {
-             System.out.println("preMutate " + b);
-         }
+
+         //    System.out.println("preMutate " + b);
+
     }
 @Override
     public void postMutate(Buffer b) {
         SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
-        if (!bufferState.isModeAlwaysCopyInAndOut()) {
-            System.out.println("postMutate " + b);
-        }
+        //    System.out.println("postMutate " + b);
+
     }
 
     @Override
     public void preAccess(Buffer b) {
         SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
-        if (!bufferState.isModeAlwaysCopyInAndOut()) {
-            System.out.println("preAccess " + b);
+        //System.out.println("preAccess " + b);
 
-        }
+
     }
 @Override
     public void postAccess(Buffer b) {
         SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
-        if (!bufferState.isModeAlwaysCopyInAndOut()) {
-            System.out.println("postAccess " + b);
-        }
+        //System.out.println("postAccess " + b);
+
     }
 @Override
     public void preEscape(Buffer b) {
         SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
-        if (!bufferState.isModeAlwaysCopyInAndOut()) {
-             System.out.println("preEscape " + b);
-        }
-
+        //System.out.println("preEscape " + b);
     }
 @Override
     public void postEscape(Buffer b) {
         SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(b);
-        if (!bufferState.isModeAlwaysCopyInAndOut()) {
-             System.out.println("postEscape " + b);
-        }
+        System.out.println("postEscape " + b);
+
     }
 
     @Override

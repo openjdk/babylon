@@ -60,8 +60,22 @@ class OpenCLBackend : public Backend {
 public:
     class OpenCLConfig : public Backend::Config {
     public:
+        const static  int GPU_BIT =1<<1;
+        const static  int CPU_BIT =1<<2;
+        const static  int MINIMIZE_COPIES_BIT =1<<3;
+        const static  int TRACE_BIT =1<<4;
         bool gpu;
-        OpenCLConfig(int mode):Backend::Config(mode), gpu(true){}
+        bool minimizeCopies;
+        bool trace;
+        OpenCLConfig(int mode):
+           Backend::Config(mode),
+           gpu((mode&GPU_BIT)==GPU_BIT),
+           minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
+           trace((mode&TRACE_BIT)==TRACE_BIT){
+           printf("native gpu %d\n",gpu);
+           printf("native minimizeCopies %d\n", minimizeCopies);
+           printf("native trace %d\n", trace);
+        }
         virtual ~OpenCLConfig(){}
     };
     class OpenCLQueue : public Backend::Queue {

@@ -377,17 +377,12 @@ public interface SegmentMapper<T> {
         public static int BIT_GPU_NEW = 0x00000008;
         public static int BIT_HOST_DIRTY = 0x00000001;
         public static int BIT_GPU_DIRTY = 0x00000002;
-        public static int MODE_ALWAYS_COPY_OUT = 0x00000001;
-        public static int MODE_ALWAYS_COPY_IN = 0x00000002;
-        public static int MODE_ALWAYS_COPY_IN_AND_OUT = MODE_ALWAYS_COPY_IN | MODE_ALWAYS_COPY_OUT;
-        public static int MODE_TRACE_COPY_IN=0x00000004;
-        public static int MODE_TRACE_COPY_OUT=0x00000008;
-        public static int MODE_TRACE_COPY_IN_AND_OUT = MODE_TRACE_COPY_IN | MODE_TRACE_COPY_OUT;
+
 
         static final MemoryLayout stateMemoryLayout = MemoryLayout.structLayout(
                 ValueLayout.JAVA_LONG.withName("magic1"),
                         ValueLayout.JAVA_INT.withName("bits"),
-                        ValueLayout.JAVA_INT.withName("mode"),
+                        ValueLayout.JAVA_INT.withName("unused"),
                         ValueLayout.ADDRESS.withName("vendorPtr"),
                 ValueLayout.JAVA_LONG.withName("magic2")
         ).withName("state");
@@ -402,9 +397,7 @@ public interface SegmentMapper<T> {
         static final VarHandle bits = stateMemoryLayout.varHandle(
                 MemoryLayout.PathElement.groupElement("bits")
         );
-        static final VarHandle mode = stateMemoryLayout.varHandle(
-                MemoryLayout.PathElement.groupElement("mode")
-        );
+
         static final VarHandle magic2 = stateMemoryLayout.varHandle(
                 MemoryLayout.PathElement.groupElement("magic2")
         );
@@ -427,14 +420,6 @@ public interface SegmentMapper<T> {
             return this;
         }
 
-        public BufferState setMode(int mode) {
-            BufferState.mode.set(segment, paddedSize, mode);
-           return this;
-        }
-        public BufferState orMode(int mode) {
-            BufferState.mode.set(segment, paddedSize, getMode()|mode);
-            return this;
-        }
         public BufferState setBits(int bits) {
             BufferState.bits.set(segment, paddedSize, bits);
             return this;
@@ -443,15 +428,10 @@ public interface SegmentMapper<T> {
             BufferState.bits.set(segment, paddedSize, getBits()|bits);
             return this;
         }
-        public int getMode() {
-            return (Integer) BufferState.mode.get(segment, paddedSize);
-        }
+
 
         public int getBits() {
             return (Integer) BufferState.bits.get(segment, paddedSize);
-        }
-        public boolean isModeSet(int mode) {
-            return (getMode()&mode)==mode;
         }
         public boolean areBitsSet(int bits) {
             return (getBits()&bits)==bits;
@@ -469,13 +449,6 @@ public interface SegmentMapper<T> {
         public boolean isGpuDirty() {
             return areBitsSet(BIT_GPU_DIRTY);
         }
-        public boolean isModeAlwaysCopyOut() {return isModeSet(MODE_ALWAYS_COPY_OUT);}
-        public boolean isModeAlwaysCopyIn() {return isModeSet(MODE_ALWAYS_COPY_IN);}
-        public boolean isModeAlwaysCopyInAndOut() {return isModeSet(MODE_ALWAYS_COPY_IN_AND_OUT);}
-        public boolean isModeTraceCopyOut() {return isModeSet(MODE_TRACE_COPY_OUT);}
-        public boolean isModeTraceCopyIn() {return isModeSet(MODE_TRACE_COPY_IN);}
-        public boolean isModeTraceCopyInAndOut() {return isModeSet(MODE_TRACE_COPY_IN_AND_OUT);}
-
 
         public long magic1() {
             return (Long) BufferState.magic1.get(segment, paddedSize);
@@ -511,20 +484,7 @@ public interface SegmentMapper<T> {
                     builder.append(",").append("HOST_NEW");
                 }
                 builder.append("\n");
-                builder.append("State:Mode:").append(paddedString(getMode()));
-                if (isModeSet(MODE_ALWAYS_COPY_IN)){
-                    builder.append(",").append("ALWAYS_COPY_IN");
-                }
-                if (isModeSet(MODE_ALWAYS_COPY_OUT)){
-                    builder.append(",").append("ALWAYS_COPY_OUT");
-                }
-                if (isModeSet(MODE_TRACE_COPY_OUT)){
-                    builder.append(",").append("TRACE_COPY_OUT");
-                }
-                if (isModeSet(MODE_TRACE_COPY_IN)){
-                    builder.append(",").append("TRACE_COPY_IN");
-                }
-                builder.append("\n");
+
 
             }else{
                 builder.append("State: not ok").append("\n");
@@ -540,7 +500,7 @@ public interface SegmentMapper<T> {
         }
         //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
         var segment = arena.allocate(BufferState.getLayoutSizeAfterPadding(layout()) + BufferState.byteSize(), BufferState.alignment);
-        new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout())).setMagic().setBits(BufferState.BIT_HOST_NEW| BufferState.BIT_HOST_DIRTY).setMode(BufferState.MODE_ALWAYS_COPY_IN_AND_OUT);
+        new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout())).setMagic().setBits(BufferState.BIT_HOST_NEW| BufferState.BIT_HOST_DIRTY);
         T returnValue=  get(segment, layout(), boundSchema);
         // Uncomment if you want to check the State
         /*

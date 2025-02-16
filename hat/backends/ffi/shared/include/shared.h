@@ -85,44 +85,26 @@ extern void hexdump(void *ptr, int buflen);
    static const int   BIT_GPU_NEW =0x00000008;
    static const int   BIT_HOST_DIRTY =0x00000001;
    static const int   BIT_GPU_DIRTY =0x00000002;
-   static const int   MODE_ALWAYS_COPY_OUT =0x00000001;
-   static const int   MODE_ALWAYS_COPY_IN  =0x00000002;
-   static const int   MODE_ALWAYS_COPY_IN_AND_OUT=(MODE_ALWAYS_COPY_IN | MODE_ALWAYS_COPY_OUT);
-   static const int   MODE_TRACE_COPY_IN=0x00000004;
-   static const int   MODE_TRACE_COPY_OUT=0x00000008;
-   static const int   MODE_TRACE_COPY_IN_AND_OUT = MODE_TRACE_COPY_IN | MODE_TRACE_COPY_OUT;
+
 
    long magic1;
    int bits;
-   int mode;
+   int unused;
    void *vendorPtr;
    long magic2;
    bool ok(){
       return ((magic1 == MAGIC) && (magic2 == MAGIC));
    }
 
-
-         void setMode(int modeBits) {
-            mode = modeBits;
-        }
-         void orMode(int modeBits) {
-            mode|=modeBits;
-        }
          void setBits(int bitBits) {
             bits=bitBits;
         }
          void orBits(int bitBits) {
             bits|=bitBits;
         }
-         int getMode() {
-            return mode;
-        }
 
          int getBits() {
             return bits;
-        }
-         bool isModeSet(int modeBits) {
-            return (mode&modeBits)==modeBits;
         }
          bool areBitsSet(int bitBits) {
             return (bits&bitBits)==bitBits;
@@ -141,34 +123,15 @@ extern void hexdump(void *ptr, int buflen);
    bool isGpuDirty(){
       return areBitsSet(BIT_GPU_DIRTY);
    }
-   bool isModeAlwaysCopyInAndOut(){
-      return (mode&MODE_ALWAYS_COPY_IN_AND_OUT)==MODE_ALWAYS_COPY_IN_AND_OUT;
-   }
-   bool isModeAlwaysCopyIn(){
-      return (mode&MODE_ALWAYS_COPY_IN)==MODE_ALWAYS_COPY_IN;
-   }
-   bool isModeAlwaysCopyOut(){
-      return (mode&MODE_ALWAYS_COPY_OUT)==MODE_ALWAYS_COPY_OUT;
-   }
-
-        bool isModeTraceCopyInAndOut(){
-               return (mode&MODE_TRACE_COPY_IN_AND_OUT)==MODE_TRACE_COPY_IN_AND_OUT;
-            }
-            bool isModeTraceCopyIn(){
-               return (mode&MODE_TRACE_COPY_IN)==MODE_TRACE_COPY_IN;
-            }
-            bool isModeTraceCopyOut(){
-               return (mode&MODE_TRACE_COPY_OUT)==MODE_TRACE_COPY_OUT;
-            }
 
 
    void dump(const char *msg){
      if (ok()){
-        printf("{%s, bits:%08x, mode:%08x, vendorPtr:%016lx}\n", msg, bits, mode, (long)vendorPtr);
+        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}\n", msg, bits, unused, (long)vendorPtr);
      }else{
         printf("%s bad magic \n", msg);
         printf("(magic1:%016lx,", magic1);
-        printf("{%s, bits:%08x, mode:%08x, vendorPtr:%016lx}", msg, bits, mode, (long)vendorPtr);
+        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}", msg, bits, unused, (long)vendorPtr);
         printf("magic2:%016lx)\n", magic2);
      }
    }

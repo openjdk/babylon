@@ -47,7 +47,24 @@ import static hat.ComputeContext.WRAPPER.ESCAPE;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 
 public abstract class FFIBackend extends FFIBackendDriver {
-
+    public static final int GPU_BIT =1<<1;
+    public static final int CPU_BIT =1<<2;
+    public static final int MINIMIZE_COPIES_BIT =1<<3;
+    public static final int TRACE_BIT =1<<4;
+    public enum Mode{
+        GPU(GPU_BIT),
+        CPU(CPU_BIT),
+        GPU_TRACE(GPU_BIT|TRACE_BIT),
+        CPU_TRACE(CPU_BIT|TRACE_BIT),
+        GPU_TRACE_MINIMIZE_COPIES(GPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
+        CPU_TRACE_MINIMIZE_COPIES(CPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
+        GPU_MINIMIZE_COPIES(GPU_BIT|MINIMIZE_COPIES_BIT),
+        CPU_MINIMIZE_COPIES(CPU_BIT|MINIMIZE_COPIES_BIT);
+        public final int value;
+        Mode(int value) {
+            this.value=value;
+        }
+    }
     public final Arena arena = Arena.global();
 
 
