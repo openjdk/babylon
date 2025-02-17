@@ -54,7 +54,7 @@ public abstract class FFIBackendDriver implements Backend {
     final MethodHandle releaseKernel_MH;
     final MethodHandle ndrange_MH;
     final MethodHandle info_MH;
-    final MethodHandle getBuffer_MH;
+    final MethodHandle getBufferFromDeviceIfDirty_MH;
     public long backendHandle = 0;
     public final FFILib nativeLibrary;
 
@@ -73,7 +73,7 @@ public abstract class FFIBackendDriver implements Backend {
         this.ndrange_MH = nativeLibrary.longFunc("ndrange", JAVA_LONG,  ADDRESS);
         this.info_MH = nativeLibrary.voidFunc("info", JAVA_LONG);
 
-        this.getBuffer_MH = nativeLibrary.booleanFunc("getBuffer",JAVA_LONG, ADDRESS, JAVA_LONG);
+        this.getBufferFromDeviceIfDirty_MH = nativeLibrary.booleanFunc("getBufferFromDeviceIfDirty",JAVA_LONG, ADDRESS, JAVA_LONG);
     }
 
     public long getBackend(int mode, int platform, int device) {
@@ -85,20 +85,24 @@ public abstract class FFIBackendDriver implements Backend {
         return backendHandle;
     }
 
-    public boolean getBuffer(Buffer buffer) {
+    public Buffer getBufferFromDeviceIfDirty(Buffer buffer) {
         if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
         }
         if (this instanceof BufferTracker) {
             try {
                 MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
-                return (Boolean)getBuffer_MH.invoke(backendHandle, memorySegment, memorySegment.byteSize());
+                boolean ok = (Boolean) getBufferFromDeviceIfDirty_MH.invoke(backendHandle, memorySegment, memorySegment.byteSize());
+                if (!ok){
+                    throw new IllegalStateException("Failed to get buffer from backend");
+                }
+
             } catch (Throwable throwable) {
                 throw new IllegalStateException(throwable);
             }
-        }else{
-            return false;
         }
+        return buffer;
+
     }
 
     public int getGetMaxComputeUnits() {

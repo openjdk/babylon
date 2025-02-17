@@ -322,8 +322,8 @@ bool OpenCLBackend::OpenCLProgram::programOK() {
 /*
   OpenCLBackend
   */
-bool OpenCLBackend::getBuffer(void *memorySegment, long memorySegmentLength) {
-    std::cout << "attempting  to get buffer from OpenCLBackend "<<std::endl;
+bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
+    std::cout << "attempting  to get buffer from device (if dirty) from OpenCLBackend "<<std::endl;
     return true;
 }
 

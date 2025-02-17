@@ -169,13 +169,13 @@ extern "C" bool programOK(long programHandle) {
     return program->programOK();
 }
 
-extern "C" bool getBuffer(long backendHandle, long memorySegmentHandle, long memorySegmentLength) {
+extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength) {
     if (INFO){
        std::cout << "trampolining through to getBuffer " << std::endl;
     }
     auto backend = reinterpret_cast<Backend *>(backendHandle);
     auto memorySegment = reinterpret_cast<void *>(memorySegmentHandle);
-    return backend->getBuffer(memorySegment, memorySegmentLength);
+    return backend->getBufferFromDeviceIfDirty(memorySegment, memorySegmentLength);
 }
 
 

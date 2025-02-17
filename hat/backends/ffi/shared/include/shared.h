@@ -402,7 +402,7 @@ public:
 
     virtual long compileProgram(int len, char *source) = 0;
 
-    virtual bool getBuffer(void *memorySegment, long memorySegmentLength)=0;
+    virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength)=0;
 
     virtual ~Backend() {};
 };
@@ -417,5 +417,5 @@ extern "C" void releaseProgram(long programHandle);
 extern "C" bool programOK(long programHandle);
 extern "C" void releaseKernel(long kernelHandle);
 extern "C" long ndrange(long kernelHandle, void *argArray);
-extern "C" bool getBuffer(long backendHandle, long memorySegmentHandle, long memorySegmentLength);
+extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength);
 

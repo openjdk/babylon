@@ -420,7 +420,7 @@ public interface SegmentMapper<T> {
             return this;
         }
 
-        public BufferState setBits(int bits) {
+        public BufferState assignBits(int bits) {
             BufferState.bits.set(segment, paddedSize, bits);
             return this;
         }
@@ -428,27 +428,45 @@ public interface SegmentMapper<T> {
             BufferState.bits.set(segment, paddedSize, getBits()|bits);
             return this;
         }
-
+        public BufferState resetBits(int bits) {
+            int bitz = getBits();   // say bits = 0b0111 (7) and bitz = 0b0100 (4)
+            int xored = bits^bitz;  // xored = 0b0011 (3)
+            BufferState.bits.set(segment, paddedSize, xored);
+            return this;
+        }
 
         public int getBits() {
             return (Integer) BufferState.bits.get(segment, paddedSize);
         }
-        public boolean areBitsSet(int bits) {
+        public boolean testAllBitsAreSet(int bits) {
             return (getBits()&bits)==bits;
+        }
+        public boolean testAnyBitsAreSet(int bits) {
+            return (getBits()&bits)!=0;
         }
 
         public boolean isHostNew() {
-            return areBitsSet(BIT_HOST_NEW);
+            return testAllBitsAreSet(BIT_HOST_NEW);
         }
         public boolean isHostDirty() {
-            return areBitsSet(BIT_HOST_DIRTY);
+            return testAllBitsAreSet(BIT_HOST_DIRTY);
         }
         public boolean isHostNewOrDirty() {
-            return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
+            return testAllBitsAreSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
         }
         public boolean isGpuDirty() {
-            return areBitsSet(BIT_GPU_DIRTY);
+            return testAllBitsAreSet(BIT_GPU_DIRTY);
         }
+        public BufferState clearGpuDirty() {
+            return resetBits(BIT_GPU_DIRTY);
+        }
+        public BufferState resetHostDirty() {
+            return resetBits(BIT_HOST_DIRTY);
+        }
+        public BufferState resetHostNew() {
+            return resetBits(BIT_HOST_NEW);
+        }
+
 
         public long magic1() {
             return (Long) BufferState.magic1.get(segment, paddedSize);
@@ -474,13 +492,13 @@ public interface SegmentMapper<T> {
             if (ok()){
                 builder.append("State:ok").append("\n");
                 builder.append("State:Bits:").append(paddedString(getBits()));
-                if (areBitsSet(BIT_HOST_DIRTY)){
+                if (testAllBitsAreSet(BIT_HOST_DIRTY)){
                     builder.append(",").append("HOST_DIRTY");
                 }
-                if (areBitsSet(BIT_GPU_DIRTY)){
+                if (testAllBitsAreSet(BIT_GPU_DIRTY)){
                     builder.append(",").append("GPU_DIRTY");
                 }
-                if (areBitsSet(BIT_HOST_NEW)){
+                if (testAllBitsAreSet(BIT_HOST_NEW)){
                     builder.append(",").append("HOST_NEW");
                 }
                 builder.append("\n");
@@ -492,6 +510,8 @@ public interface SegmentMapper<T> {
             return builder.toString();
         }
 
+        public void setHostDirty() {
+        }
     }
 
     default T allocate(Arena arena, BoundSchema<?> boundSchema) {
@@ -500,7 +520,7 @@ public interface SegmentMapper<T> {
         }
         //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
         var segment = arena.allocate(BufferState.getLayoutSizeAfterPadding(layout()) + BufferState.byteSize(), BufferState.alignment);
-        new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout())).setMagic().setBits(BufferState.BIT_HOST_NEW| BufferState.BIT_HOST_DIRTY);
+        new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout())).setMagic().assignBits(BufferState.BIT_HOST_NEW| BufferState.BIT_HOST_DIRTY);
         T returnValue=  get(segment, layout(), boundSchema);
         // Uncomment if you want to check the State
         /*

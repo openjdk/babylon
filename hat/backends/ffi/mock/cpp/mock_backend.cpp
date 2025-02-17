@@ -83,7 +83,7 @@ public:
     ~MockBackend() {
     }
 
-    bool getBuffer(void *memorySegment, long memorySegmentLength) {
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
         std::cout << "attempting  to get buffer from Mockackend "<<std::endl;
         return false;
     }

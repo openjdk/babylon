@@ -144,6 +144,7 @@ public:
     void info();
 
     long compileProgram(int len, char *source);
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
 
 };
 

@@ -127,7 +127,7 @@ public:
     OpenCLBackend(int mode, int platform, int device);
     ~OpenCLBackend();
     int getMaxComputeUnits();
-    bool getBuffer(void *memorySegment, long memorySegmentLength);
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
     void info();
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);

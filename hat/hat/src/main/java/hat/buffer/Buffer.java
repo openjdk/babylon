@@ -27,6 +27,7 @@ package hat.buffer;
 
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
+import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
@@ -38,6 +39,18 @@ import static hat.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 
 public interface Buffer extends MappableIface {
+
+    default boolean isGpuDevice(){
+        return SegmentMapper.BufferState.of(this).isGpuDirty();
+    }
+
+    default void clearGpuDirty(){
+         SegmentMapper.BufferState.of(this).clearGpuDirty();
+    }
+
+    default void setHostDirty(){
+        SegmentMapper.BufferState.of(this).setHostDirty();
+    }
 
     interface Union extends MappableIface {
     }

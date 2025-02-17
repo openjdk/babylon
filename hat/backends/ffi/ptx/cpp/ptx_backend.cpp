@@ -459,7 +459,7 @@ long PtxBackend::compileProgram(int len, char *source) {
         exit(1);
     }
 }
-bool PtxBackend::getBuffer(void *memorySegment, long memorySegmentLength) {
+bool PtxBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
     std::cout << "attempting  to get buffer from PtxBackend "<<std::endl;
     return false;
 }

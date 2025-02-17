@@ -25,13 +25,11 @@
 package hat.backend.ffi;
 
 
-import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Schema;
 
 public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
@@ -69,31 +67,38 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     @Override
     public void preMutate(Buffer b) {
-        throw new UnsupportedOperationException("OpenCL Backend does not support pre-mutate");
+        if (b.isGpuDevice()){
+            getBufferFromDeviceIfDirty(b); // This might block to fetch from device
+            b.clearGpuDirty();
+        }
     }
 
     @Override
     public void postMutate(Buffer b) {
-        throw new UnsupportedOperationException("OpenCL Backend does not support post-mutate");
+       b.setHostDirty();
+
     }
 
     @Override
     public void preAccess(Buffer b) {
-        throw new UnsupportedOperationException("OpenCL Backend does not support pre-access");
+        if (b.isGpuDevice()){
+            getBufferFromDeviceIfDirty(b);
+            b.clearGpuDirty();// this should reset gpuDirty!
+        }
     }
 
     @Override
     public void postAccess(Buffer b) {
-        throw new UnsupportedOperationException("OpenCL Backend does not support post-access");
+       // a no op
     }
 
     @Override
     public void preEscape(Buffer b) {
-        throw new UnsupportedOperationException("OpenCL Backend does not support pre-escape");
+            getBufferFromDeviceIfDirty(b).clearGpuDirty(); //  we have to assume the escaped buffer is about to be accessed
     }
 
     @Override
     public void postEscape(Buffer b) {
-        throw new UnsupportedOperationException("OpenCL Backend does not support post-escape");
+        b.setHostDirty(); // We have no choice but to assume escaped buffer has been mutates
     }
 }
