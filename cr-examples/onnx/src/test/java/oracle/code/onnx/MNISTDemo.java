@@ -47,21 +47,18 @@ import static java.util.Optional.of;
 import static oracle.code.onnx.OnnxOperators.*;
 import static oracle.code.onnx.Tensor.ElementType.*;
 
-public class DigitRecognizer {
-
-    private static final int PIXEL_DEPTH = 255;
+public class MNISTDemo {
 
     private static float[] loadConstant(String resource) throws IOException {
-        var bb = ByteBuffer.wrap(DigitRecognizer.class.getResourceAsStream(resource).readAllBytes());
+        var bb = ByteBuffer.wrap(MNISTDemo.class.getResourceAsStream(resource).readAllBytes());
         return FloatBuffer.allocate(bb.capacity() / 4).put(bb.asFloatBuffer()).array();
     }
 
     @CodeReflection
     public static Tensor<Float> cnn(Tensor<Float> inputImage) throws IOException {
 
-        // Scaling and inverting the grayscale to 0-1
-        var scalingFactor = Constant((float) PIXEL_DEPTH);
-        var scaledInput = Div(Sub(scalingFactor, inputImage), scalingFactor);
+        // Scaling to 0-1
+        var scaledInput = Div(inputImage, Constant(255f));
 
         // First conv layer
         var conv1Weights = Reshape(Constant(loadConstant("conv1-weight-float")), Constant(new long[]{6, 1, 5, 5}), empty());
@@ -111,44 +108,54 @@ public class DigitRecognizer {
         return prediction;
     }
 
-    public static void main(String[] args) throws Exception {
-        var frame = new JFrame("Digit Recognizer");
-        var pane = new JPanel();
-        var status = new JLabel("   Hold SHIFT key to draw with trackpad, click ENTER to run digit recognition.");
-        var robot = new Robot();
-        var clean = new AtomicBoolean(true);
-        var session = OnnxRuntime.getInstance().createSession(
-                OnnxProtoBuilder.buildFuncModel(OnnxTransformer.transform(MethodHandles.lookup(),
-                        Op.ofMethod(DigitRecognizer.class.getDeclaredMethod("cnn", Tensor.class)).get())));
-        var image = new BufferedImage(28, 28, BufferedImage.TYPE_BYTE_GRAY);
-        var graphics = image.createGraphics();
-        var imageBuffer = ByteBuffer.allocateDirect(28 * 28 * 4).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
-        var sampleArray = new float[28 * 28];
-        var inputTensors = List.of(Optional.of(new Tensor(MemorySegment.ofBuffer(imageBuffer), FLOAT, 1, 1, 28, 28).tensorAddr));
+    static final int IMAGE_SIZE = 28;
+    static final int DRAW_AREA_SIZE = 560;
+    static final int PEN_SIZE = 20;
 
-        frame.setLayout(new BorderLayout());
-        frame.add(pane, BorderLayout.CENTER);
-        frame.add(status, BorderLayout.SOUTH);
-        frame.setBackground(Color.WHITE);
-        frame.addMouseMotionListener(new MouseAdapter() {
+    public static void main(String[] args) throws Exception {
+        var frame = new JFrame("CNN MNIST Demo - Handwritten Digit Classification");
+        var drawPane = new JPanel(false);
+        var statusBar = new JLabel("   Hold SHIFT key to draw with trackpad or mouse, click ENTER to run digit classification.");
+        var cleanFlag = new AtomicBoolean(true);
+        var runtimeSession = OnnxRuntime.getInstance().createSession(
+                OnnxProtoBuilder.buildFuncModel(
+                        OnnxTransformer.transform(MethodHandles.lookup(),
+                                Op.ofMethod(MNISTDemo.class.getDeclaredMethod("cnn", Tensor.class)).get())));
+        var drawAreaImage = new BufferedImage(DRAW_AREA_SIZE, DRAW_AREA_SIZE, BufferedImage.TYPE_BYTE_GRAY);
+        var drawGraphics = drawAreaImage.createGraphics();
+        var scaledImage = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_BYTE_GRAY);
+        var scaledGraphics = scaledImage.createGraphics();
+        var scaledImageDataBuffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
+        var inputArguments = List.of(Optional.of(new Tensor(MemorySegment.ofBuffer(scaledImageDataBuffer), FLOAT, 1, 1, IMAGE_SIZE, IMAGE_SIZE).tensorAddr));
+        var sampleArray = new float[IMAGE_SIZE * IMAGE_SIZE];
+
+        drawPane.setPreferredSize(new Dimension(DRAW_AREA_SIZE, DRAW_AREA_SIZE));
+        drawPane.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
                 if ((e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) != 0) {
-                    if (clean.getAndSet(false)) {
-                        pane.getGraphics().clearRect(0, 0, pane.getWidth(), pane.getHeight());
+                    if (cleanFlag.getAndSet(false)) {
+                        drawGraphics.clearRect(0, 0, DRAW_AREA_SIZE, DRAW_AREA_SIZE);
+                        drawPane.getGraphics().clearRect(0, 0, DRAW_AREA_SIZE, DRAW_AREA_SIZE);
                     }
-                    pane.getGraphics().fillOval(e.getX(), e.getY(), 20, 20);
+                    drawGraphics.fillOval(e.getX(), e.getY(), PEN_SIZE, PEN_SIZE);
+                    drawPane.getGraphics().fillOval(e.getX(), e.getY(), PEN_SIZE, PEN_SIZE);
                 }
             }
         });
+
+        frame.setLayout(new BorderLayout());
+        frame.add(drawPane, BorderLayout.CENTER);
+        frame.add(statusBar, BorderLayout.SOUTH);
+        frame.pack();
+        frame.setResizable(false);
         frame.addKeyListener(new KeyAdapter(){
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    graphics.drawImage(robot.createScreenCapture(new Rectangle(pane.getLocationOnScreen(), pane.getSize()))
-                                     .getScaledInstance(28, 28, Image.SCALE_SMOOTH), 0, 0, null);
-                    imageBuffer.put(0, image.getData().getSamples(0, 0, 28, 28, 0, sampleArray));
-                    FloatBuffer result = OnnxRuntime.getInstance().tensorBuffer(session.run(inputTensors).getFirst()).asFloatBuffer();
+                    scaledGraphics.drawImage(drawAreaImage.getScaledInstance(IMAGE_SIZE, IMAGE_SIZE, Image.SCALE_SMOOTH), 0, 0, null);
+                    scaledImageDataBuffer.put(0, scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, sampleArray));
+                    FloatBuffer result = OnnxRuntime.getInstance().tensorBuffer(runtimeSession.run(inputArguments).getFirst()).asFloatBuffer();
                     int max = 0;
                     for (int i = 1; i < 10; i++) {
                         if (result.get(i) > result.get(max)) max = i;
@@ -162,12 +169,11 @@ public class DigitRecognizer {
 
                         }
                     }
-                    status.setText(msg.toString());
-                    clean.set(true);
+                    statusBar.setText(msg.toString());
+                    cleanFlag.set(true);
                 }
             }
         });
-        frame.setSize(600, 600);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
