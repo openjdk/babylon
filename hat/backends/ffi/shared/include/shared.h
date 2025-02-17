@@ -319,11 +319,7 @@ public:
       Config(int mode){}
       virtual ~Config(){}
     };
-    class Queue {
-       public:
-       Queue(){}
-       virtual ~Queue() {}
-    };
+
 
     class Program {
     public:
@@ -391,10 +387,9 @@ public:
     int platform;
     int device;
     Config *config;
-    Queue *queue;
 
-    Backend(int mode, int platform, int device, Config *config, Queue* queue)
-            : mode(mode), platform(platform), device(device), config(config),queue(queue) {}
+    Backend(int mode, int platform, int device, Config *config)
+            : mode(mode), platform(platform), device(device), config(config){}
 
     virtual void info() = 0;
 

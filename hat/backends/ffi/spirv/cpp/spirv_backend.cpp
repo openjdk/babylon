@@ -31,11 +31,6 @@ public:
     SpirvConfig(int mode):Backend::Config(mode){}
                      virtual ~SpirvConfig(){}
     };
-      class SpirvQueue : public Backend::Queue {
-        public :
-           SpirvQueue():Backend::Queue(){}
-                 virtual ~SpirvQueue(){}
-        };
 
     class SpirvProgram : public Backend::Program {
         class SpirvKernel : public Backend::Program::Kernel {
@@ -72,7 +67,7 @@ public:
 
 public:
     SpirvBackend(int mode, int platform, int device)
-                : Backend(mode, platform, device, new SpirvConfig(mode), new SpirvQueue()) {
+                : Backend(mode, platform, device, new SpirvConfig(mode)) {
             std::cout << "spirvConfig != null" << std::endl;
     }
 

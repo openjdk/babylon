@@ -24,7 +24,7 @@
  */
 #include "opencl_backend.h"
 
-#define INFO 1
+
 
 /*
   OpenCLBuffer
@@ -38,6 +38,7 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
      */
     cl_int status;
     auto openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
+       auto openclConfig = dynamic_cast<OpenCLConfig *>(openclBackend->config);
     clMem = clCreateBuffer(openclBackend->context,
                            CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
                            arg->value.buffer.sizeInBytes,
@@ -52,14 +53,14 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
       arg->value.buffer.memorySegment,
       arg->value.buffer.sizeInBytes
       );
-    if (INFO){
+    if (openclConfig->trace){
        bufferState->dump("on allocation before assign");
     }
     bufferState->vendorPtr =  static_cast<void *>(this);
-    if (INFO){
+    if (openclConfig->trace){
         bufferState->dump("after assign ");
     }
-    if (INFO){
+    if (openclConfig->trace){
          std::cout << "created buffer " << std::endl;
     }
 }
@@ -73,23 +74,22 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
      */
     auto openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
     auto openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
-    auto openclQueue = dynamic_cast<OpenCLQueue *>(openclKernel->program->backend->queue);
     auto openclConfig = dynamic_cast<OpenCLConfig *>(openclKernel->program->backend->config);
-    cl_int status = clEnqueueWriteBuffer( openclQueue->command_queue,
+    cl_int status = clEnqueueWriteBuffer( openclBackend->openclQueue.command_queue,
                                          clMem,
                                          CL_FALSE,
                                          0,
                                          arg->value.buffer.sizeInBytes,
                                          arg->value.buffer.memorySegment,
-                                         openclQueue->eventc,
-                                         (openclQueue->eventc == 0) ? NULL : openclQueue->events,
-                                         &(openclQueue->events[openclQueue->eventc]));
+                                         openclBackend->openclQueue.eventc,
+                                         (openclBackend->openclQueue.eventc == 0) ? NULL : openclBackend->openclQueue.events,
+                                         &(openclBackend->openclQueue.events[openclBackend->openclQueue.eventc]));
 
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    openclQueue->eventc++;
+    openclBackend->openclQueue.eventc++;
     if(openclConfig->trace){
         std::cout << "enqueued buffer copyToDevice " << std::endl;
     }
@@ -98,23 +98,23 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
     auto openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
     auto openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
-       auto openclQueue = dynamic_cast<OpenCLQueue *>(openclKernel->program->backend->queue);
+
         auto openclConfig = dynamic_cast<OpenCLConfig *>(openclKernel->program->backend->config);
-    cl_int status = clEnqueueReadBuffer( openclQueue->command_queue,
+    cl_int status = clEnqueueReadBuffer( openclBackend->openclQueue.command_queue,
                                         clMem,
                                         CL_FALSE,
                                         0,
                                         arg->value.buffer.sizeInBytes,
                                         arg->value.buffer.memorySegment,
-                                        openclQueue->eventc,
-                                        (openclQueue->eventc == 0) ? NULL : openclQueue->events,
-                                        &(openclQueue->events[openclQueue->eventc]));
+                                        openclBackend->openclQueue.eventc,
+                                        (openclBackend->openclQueue.eventc == 0) ? NULL : openclBackend->openclQueue.events,
+                                        &(openclBackend->openclQueue.events[openclBackend->openclQueue.eventc]));
 
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    openclQueue->eventc++;
+    openclBackend->openclQueue.eventc++;
     if(openclConfig->trace){
        std::cout << "enqueued buffer copyFromDevice " << std::endl;
     }
@@ -139,7 +139,8 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
    // std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
-    OpenCLConfig *openclConfig = dynamic_cast<OpenCLConfig*>(program->backend->config);
+      OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(program->backend);
+    OpenCLConfig *openclConfig = dynamic_cast<OpenCLConfig*>(openclBackend->config);
     if (openclConfig->trace){
        Sled::show(std::cout, argArray);
     }
@@ -149,7 +150,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
    // eventMax = argSled.argc() * 4 + 1;
     //eventc = 0;
    // events = new cl_event[eventMax];
-    OpenCLQueue *openclQueue = dynamic_cast<OpenCLQueue *>(program->backend->queue);
+
     NDRange *ndrange = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
@@ -166,14 +167,16 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                 }
                 if (!openclConfig->minimizeCopies){
                     openclBuffer->copyToDevice();
-                    std::cout << "copying arg " << arg->idx <<" to device "<< std::endl;
+                    if (openclConfig->trace){
+                        std::cout << "copying arg " << arg->idx <<" to device "<< std::endl;
+                    }
                 }
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
                 if (status != CL_SUCCESS) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                if (INFO){
+                if (openclConfig->trace){
                    std::cout << "set buffer arg " << arg->idx << std::endl;
                 }
                 break;
@@ -185,7 +188,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                if (INFO){
+                if (openclConfig->trace){
                    std::cout << "set I or F arg " << arg->idx << std::endl;
                 }
                 break;
@@ -197,7 +200,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                if (INFO){
+                if (openclConfig->trace){
                    std::cout << "set S or C arg " << arg->idx << std::endl;
                 }
                 break;
@@ -209,7 +212,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
-                if (INFO){
+                if (openclConfig->trace){
                    std::cout << "set J or D arg " << arg->idx << std::endl;
                 }
                 break;
@@ -222,30 +225,30 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
     }
 
     size_t globalSize = ndrange->maxX;
-    if (INFO){
+    if (openclConfig->trace){
        std::cout << "ndrange = " << ndrange->maxX << std::endl;
     }
     size_t dims = 1;
     cl_int status = clEnqueueNDRangeKernel(
-            openclQueue->command_queue,
+            openclBackend->openclQueue.command_queue,
             kernel,
             dims,
             nullptr,
             &globalSize,
             nullptr,
-            openclQueue->eventc,
-            (openclQueue->eventc == 0) ? nullptr : openclQueue->events,
-            &(openclQueue->events[openclQueue->eventc]));
+            openclBackend->openclQueue.eventc,
+            (openclBackend->openclQueue.eventc == 0) ? nullptr : openclBackend->openclQueue.events,
+            &(openclBackend->openclQueue.events[openclBackend->openclQueue.eventc]));
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    if (INFO){
+    if (openclConfig->trace){
        std::cout << "enqueued dispatch  " << std::endl;
        std::cout <<  " globalSize=" << globalSize << " " << std::endl;
     }
 
-    openclQueue->eventc++;
+    openclBackend->openclQueue.eventc++;
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
@@ -255,21 +258,21 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
               );
             if (!openclConfig->minimizeCopies){
                static_cast<OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
-               std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
+
                if (openclConfig->trace){
+                std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
                   bufferState->dump("After copy from device");
                }
             }
-
         }
     }
-    status = clWaitForEvents(openclQueue->eventc, openclQueue->events);
+    status = clWaitForEvents(openclBackend->openclQueue.eventc, openclBackend->openclQueue.events);
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    for (int i = 0; i < openclQueue->eventc; i++) {
-        status = clReleaseEvent(openclQueue->events[i]);
+    for (int i = 0; i < openclBackend->openclQueue.eventc; i++) {
+        status = clReleaseEvent(openclBackend->openclQueue.events[i]);
         if (status != CL_SUCCESS) {
             std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
             exit(1);
@@ -278,7 +281,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
    // delete[] events;
     //eventMax = 0;
     // This should be GUARDED !!!!!!!!!!!!!!!!!
-   openclQueue->eventc = 0;
+   openclBackend->openclQueue.eventc = 0;
     //events = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
@@ -328,9 +331,9 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
 }
 
 OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
-        : Backend(mode, platform, device, new OpenCLConfig(mode),  new OpenCLQueue()) {
+        : Backend(mode, platform, device, new OpenCLConfig(mode))/*, OpenCLQueue() */ {
     OpenCLConfig *openclConfig = dynamic_cast<OpenCLConfig *>(config);
-     OpenCLQueue *openclQueue = dynamic_cast<OpenCLQueue *>(queue);
+
     if (openclConfig->trace){
         std::cout << "openclConfig->gpu" << (openclConfig->gpu ? "true" : "false") << std::endl;
         std::cout << "openclConfig->minimizeCopies" << (openclConfig->minimizeCopies ? "true" : "false") << std::endl;
@@ -373,7 +376,7 @@ OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
 
     cl_command_queue_properties queue_props = CL_QUEUE_PROFILING_ENABLE;
 
-    if ((openclQueue->command_queue = clCreateCommandQueue(context, device_ids[0], queue_props, &status)) == NULL ||
+    if ((openclQueue.command_queue = clCreateCommandQueue(context, device_ids[0], queue_props, &status)) == NULL ||
         status != CL_SUCCESS) {
         clReleaseContext(context);
         delete[] platforms;
@@ -388,16 +391,16 @@ OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
 
 OpenCLBackend::~OpenCLBackend() {
     clReleaseContext(context);
-    clReleaseCommandQueue(dynamic_cast<OpenCLQueue *>(queue)->command_queue);
+
 }
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::showEvents(int width) {
-    OpenCLQueue * openclQueue =  dynamic_cast<OpenCLQueue *>(program->backend->queue);
-    cl_ulong *samples = new cl_ulong[4 * openclQueue->eventc]; // queued, submit, start, end
+    OpenCLBackend * openclBackend =  dynamic_cast<OpenCLBackend *>(program->backend);
+    cl_ulong *samples = new cl_ulong[4 * openclBackend->openclQueue.eventc]; // queued, submit, start, end
     int sample = 0;
     cl_ulong min;
     cl_ulong max;
-    for (int event = 0; event < openclQueue->eventc; event++) {
+    for (int event = 0; event < openclBackend->openclQueue.eventc; event++) {
         for (int type = 0; type < 4; type++) {
             cl_profiling_info info;
             switch (type) {
@@ -415,7 +418,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::showEvents(int width) {
                     break;
             }
 
-            if ((clGetEventProfilingInfo(openclQueue->events[event], info, sizeof(samples[sample]), &samples[sample], NULL)) !=
+            if ((clGetEventProfilingInfo(openclBackend->openclQueue.events[event], info, sizeof(samples[sample]), &samples[sample], NULL)) !=
                 CL_SUCCESS) {
                 std::cerr << "failed to get profile info " << info << std::endl;
             }
@@ -438,7 +441,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::showEvents(int width) {
     std::cout << "Range: " << range << "(ns)" << std::endl;
     std::cout << "Scale: " << scale << " range (ns) per char" << std::endl;
 
-    for (int event = 0; event < openclQueue->eventc; event++) {
+    for (int event = 0; event < openclBackend->openclQueue.eventc; event++) {
         cl_ulong queue = (samples[sample++] - min) / scale;
         cl_ulong submit = (samples[sample++] - min) / scale;
         cl_ulong start = (samples[sample++] - min) / scale;
@@ -469,7 +472,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::showEvents(int width) {
 }
 
 int OpenCLBackend::getMaxComputeUnits() {
-    if (INFO){
+    if (dynamic_cast<OpenCLConfig*>(config)->trace){
        std::cout << "getMaxComputeUnits()" << std::endl;
     }
     cl_uint value;

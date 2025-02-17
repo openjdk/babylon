@@ -32,12 +32,6 @@ public:
             virtual ~MockConfig(){}
     };
 
-      class MockQueue : public Backend::Queue {
-        public :
-         MockQueue():Backend::Queue(){}
-         virtual ~MockQueue(){}
-        };
-
     class MockProgram : public Backend::Program {
         class MockKernel : public Backend::Program::Kernel {
         public:
@@ -74,7 +68,7 @@ public:
 public:
 
     MockBackend(int mode, int platform, int device)
-            : Backend(mode, platform, device,   new MockBackend::MockConfig(mode), new MockBackend::MockQueue()) {
+            : Backend(mode, platform, device,   new MockBackend::MockConfig(mode)) {
 
             std::cout << "mockConfig != null" << std::endl;
 

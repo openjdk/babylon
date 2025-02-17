@@ -78,16 +78,19 @@ public:
         }
         virtual ~OpenCLConfig(){}
     };
-    class OpenCLQueue : public Backend::Queue {
+    class OpenCLQueue {
     public:
        size_t eventMax;
        cl_event *events;
        size_t eventc;
        cl_command_queue command_queue;
        OpenCLQueue()
-          :Backend::Queue(), eventMax(256), events(new cl_event[eventMax]), eventc(0){
+          : eventMax(256), events(new cl_event[eventMax]), eventc(0){
        }
-       virtual ~OpenCLQueue(){}
+       virtual ~OpenCLQueue(){
+        clReleaseCommandQueue(command_queue);
+        delete []events;
+       }
     };
 
     class OpenCLProgram : public Backend::Program {
@@ -114,6 +117,7 @@ public:
     private:
         cl_program program;
     public:
+
         OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program);
         ~OpenCLProgram();
         long getKernel(int nameLen, char *name);
@@ -124,6 +128,7 @@ public:
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
+     OpenCLQueue openclQueue;
     OpenCLBackend(int mode, int platform, int device);
     ~OpenCLBackend();
     int getMaxComputeUnits();
