@@ -28,6 +28,7 @@ package hat;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
+import hat.buffer.BufferTracker;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.LambdaOpWrapper;
@@ -70,7 +71,7 @@ import java.util.function.Predicate;
  *
  * @author Gary Frost
  */
-public class Accelerator implements BufferAllocator {
+public class Accelerator implements BufferAllocator, BufferTracker {
     public MethodHandles.Lookup lookup;
     public final Backend backend;
 
@@ -108,6 +109,48 @@ public class Accelerator implements BufferAllocator {
     @Override
     public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundShema) {
         return backend.allocate(segmentMapper, boundShema);
+    }
+
+    @Override
+    public void preMutate(Buffer b) {
+        if (backend instanceof BufferTracker) {
+            ((BufferTracker) backend).preMutate(b);
+        }
+    }
+
+    @Override
+    public void postMutate(Buffer b) {
+        if (backend instanceof BufferTracker) {
+            ((BufferTracker) backend).postMutate(b);
+        }
+    }
+
+    @Override
+    public void preAccess(Buffer b) {
+        if (backend instanceof BufferTracker) {
+            ((BufferTracker) backend).preAccess(b);
+        }
+    }
+
+    @Override
+    public void postAccess(Buffer b) {
+        if (backend instanceof BufferTracker) {
+            ((BufferTracker) backend).postAccess(b);
+        }
+    }
+
+    @Override
+    public void preEscape(Buffer b) {
+        if (backend instanceof BufferTracker) {
+            ((BufferTracker) backend).preEscape(b);
+        }
+    }
+
+    @Override
+    public void postEscape(Buffer b) {
+        if (backend instanceof BufferTracker) {
+            ((BufferTracker) backend).postEscape(b);
+        }
     }
 
     /**

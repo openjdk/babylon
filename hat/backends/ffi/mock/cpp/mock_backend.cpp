@@ -28,13 +28,9 @@ class MockBackend : public Backend {
 public:
     class MockConfig : public Backend::Config {
     public :
+     MockConfig(int mode):Backend::Config(mode){}
+            virtual ~MockConfig(){}
     };
-
-      class MockQueue : public Backend::Queue {
-        public :
-         MockQueue():Backend::Queue(){}
-         virtual ~MockQueue(){}
-        };
 
     class MockProgram : public Backend::Program {
         class MockKernel : public Backend::Program::Kernel {
@@ -71,16 +67,19 @@ public:
 
 public:
 
-    MockBackend(MockConfig *mockConfig, int mockConfigSchemeLen, char *mockBackendSchema, MockQueue *mockQueue)
-            : Backend(mockConfig, mockConfigSchemeLen, mockBackendSchema, mockQueue) {
-        if (mockConfig == nullptr) {
-            std::cout << "mockConfig == null" << std::endl;
-        } else {
+    MockBackend(int mode, int platform, int device)
+            : Backend(mode, platform, device,   new MockBackend::MockConfig(mode)) {
+
             std::cout << "mockConfig != null" << std::endl;
-        }
+
     }
 
     ~MockBackend() {
+    }
+
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
+        std::cout << "attempting  to get buffer from Mockackend "<<std::endl;
+        return false;
     }
 
     int getMaxComputeUnits() {
@@ -103,8 +102,7 @@ public:
     }
 };
 
-long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    MockBackend::MockConfig *mockConfig = (MockBackend::MockConfig *) config;
-    MockBackend::MockQueue *mockQueue = (MockBackend::MockQueue *) new MockBackend::MockQueue();
-    return (long) new MockBackend(mockConfig, configSchemaLen, configSchema, mockQueue);
+long getBackend(int mode, int platform, int device) {
+
+    return (long) new MockBackend(mode, platform, device);
 }

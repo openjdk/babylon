@@ -28,12 +28,9 @@ class SpirvBackend : public Backend {
 public:
     class SpirvConfig : public Backend::Config {
     public :
+    SpirvConfig(int mode):Backend::Config(mode){}
+                     virtual ~SpirvConfig(){}
     };
-      class SpirvQueue : public Backend::Queue {
-        public :
-           SpirvQueue():Backend::Queue(){}
-                 virtual ~SpirvQueue(){}
-        };
 
     class SpirvProgram : public Backend::Program {
         class SpirvKernel : public Backend::Program::Kernel {
@@ -69,19 +66,18 @@ public:
     };
 
 public:
-
-    SpirvBackend(SpirvConfig *spirvConfig, int spirvConfigSchemeLen, char *spirvBackendSchema, SpirvQueue *spirvQueue )
-            : Backend(spirvConfig, spirvConfigSchemeLen, spirvBackendSchema, spirvQueue) {
-        if (spirvConfig == nullptr) {
-            std::cout << "spirvConfig == null" << std::endl;
-        } else {
+    SpirvBackend(int mode, int platform, int device)
+                : Backend(mode, platform, device, new SpirvConfig(mode)) {
             std::cout << "spirvConfig != null" << std::endl;
-        }
     }
 
     ~SpirvBackend() {
-    }
 
+    }
+bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
+    std::cout << "attempting  to get buffer from SpirvBackend "<<std::endl;
+    return false;
+}
     int getMaxComputeUnits() {
         std::cout << "spirv getMaxComputeUnits()" << std::endl;
         return 0;
@@ -102,8 +98,6 @@ public:
     }
 };
 
-long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    SpirvBackend::SpirvConfig *spirvConfig = (SpirvBackend::SpirvConfig *) config;
-    SpirvBackend::SpirvQueue *spirvQueue = new SpirvBackend::SpirvQueue();
-    return (long) new SpirvBackend(spirvConfig, configSchemaLen, configSchema, spirvQueue);
+long getBackend(int mode, int platform, int device) {
+    return (long) new SpirvBackend(mode, platform, device);
 }

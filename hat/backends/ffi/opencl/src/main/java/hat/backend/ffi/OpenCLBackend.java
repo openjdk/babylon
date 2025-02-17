@@ -25,44 +25,18 @@
 package hat.backend.ffi;
 
 
-import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.buffer.BackendConfig;
+import hat.buffer.Buffer;
+import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Schema;
 
-public class OpenCLBackend extends C99FFIBackend {
-
-    interface OpenCLConfig extends BackendConfig {
-        // See backends/opencl/include/opencl_backend.h
-        //  class OpenCLConfig{
-        //       public:
-        //         boolean gpu;
-        //         boolean verbose;
-        //   };
-        boolean gpu();
-
-        void gpu(boolean gpu);
-
-      //  boolean verbose();
-
-       // void verbose(boolean verbose);
-        Schema<OpenCLConfig> schema = Schema.of(OpenCLConfig.class, s->s.fields("gpu"));
-
-        static OpenCLConfig create(Accelerator accelerator, boolean gpu, boolean verbose) {
-            OpenCLConfig config =schema.allocate(accelerator);
-            config.gpu(gpu);
-         //   config.verbose(verbose);
-            return config;
-        }
-
-
-    }
+public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend(null);//OpenCLConfig.create( MethodHandles.lookup(),this, true, true));
+        Mode mode = Mode.valueOf(System.getProperty("Mode", Mode.GPU.toString()));
+        getBackend(mode.value,0, 0 );
         info();
     }
 
@@ -89,5 +63,42 @@ public class OpenCLBackend extends C99FFIBackend {
         });
         compiledKernel.dispatch(ndRange,args);
 
+    }
+
+    @Override
+    public void preMutate(Buffer b) {
+        if (b.isDeviceDevice()){
+            getBufferFromDeviceIfDirty(b); // This might block to fetch from device
+            b.clearDeviceDirty();
+        }
+    }
+
+    @Override
+    public void postMutate(Buffer b) {
+       b.setHostDirty();
+
+    }
+
+    @Override
+    public void preAccess(Buffer b) {
+        if (b.isDeviceDevice()){
+            getBufferFromDeviceIfDirty(b);
+            b.clearDeviceDirty();// this should reset deviceDirty!
+        }
+    }
+
+    @Override
+    public void postAccess(Buffer b) {
+       // a no op
+    }
+
+    @Override
+    public void preEscape(Buffer b) {
+            getBufferFromDeviceIfDirty(b).clearDeviceDirty(); //  we have to assume the escaped buffer is about to be accessed
+    }
+
+    @Override
+    public void postEscape(Buffer b) {
+        b.setHostDirty(); // We have no choice but to assume escaped buffer has been mutates
     }
 }

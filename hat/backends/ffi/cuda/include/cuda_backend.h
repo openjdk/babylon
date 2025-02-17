@@ -82,6 +82,11 @@ public:
     public:
         boolean gpu;
     };
+      class CudaQueue  {
+        public:
+
+        };
+      }
 
     class CudaProgram : public Backend::Program {
         class CudaKernel : public Backend::Program::Kernel {
@@ -139,8 +144,6 @@ public:
     void info();
 
     long compileProgram(int len, char *source);
-
-    //static const char *errorMsg(CUresult status);
 
 };
 

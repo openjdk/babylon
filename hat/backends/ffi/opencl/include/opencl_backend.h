@@ -60,22 +60,72 @@ class OpenCLBackend : public Backend {
 public:
     class OpenCLConfig : public Backend::Config {
     public:
-        boolean gpu;
+        const static  int GPU_BIT =1<<1;
+        const static  int CPU_BIT =1<<2;
+        const static  int MINIMIZE_COPIES_BIT =1<<3;
+        const static  int TRACE_BIT =1<<4;
+        bool gpu;
+        bool minimizeCopies;
+        bool trace;
+        OpenCLConfig(int mode):
+           Backend::Config(mode),
+           gpu((mode&GPU_BIT)==GPU_BIT),
+           minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
+           trace((mode&TRACE_BIT)==TRACE_BIT){
+           printf("native gpu %d\n",gpu);
+           printf("native minimizeCopies %d\n", minimizeCopies);
+           printf("native trace %d\n", trace);
+        }
+        virtual ~OpenCLConfig(){}
     };
-    class OpenCLQueue : public Backend::Queue {
+    class OpenCLQueue {
     public:
        size_t eventMax;
        cl_event *events;
        size_t eventc;
        cl_command_queue command_queue;
-       OpenCLQueue():Backend::Queue(), eventMax(256), events(new cl_event[eventMax]), eventc(0){
+       OpenCLQueue()
+          : eventMax(256), events(new cl_event[eventMax]), eventc(0){
        }
-       virtual ~OpenCLQueue(){}
+       cl_event *eventListPtr(){
+          return (eventc == 0) ? nullptr : events;
+       }
+        cl_event *nextEventPtr(){
+            return &events[eventc];
+        }
+        void showEvents(int width);
+         void wait(){
+                 cl_int status = clWaitForEvents(eventc, events);
+
+                    if (status != CL_SUCCESS) {
+                        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+                        exit(1);
+                    }
+        }
+        void release(){
+         cl_int status = CL_SUCCESS;
+
+            for (int i = 0; i < eventc; i++) {
+                status = clReleaseEvent(events[i]);
+                if (status != CL_SUCCESS) {
+                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+                    exit(1);
+                }
+            }
+               eventc = 0;
+            }
+
+
+
+
+       virtual ~OpenCLQueue(){
+        clReleaseCommandQueue(command_queue);
+        delete []events;
+       }
     };
 
     class OpenCLProgram : public Backend::Program {
         class OpenCLKernel : public Backend::Program::Kernel {
-
             class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
                 cl_mem clMem;
@@ -87,26 +137,20 @@ public:
 
         private:
             cl_kernel kernel;
-        protected:
-            void showEvents(int width);
+
         public:
             OpenCLKernel(Backend::Program *program, char* name,cl_kernel kernel);
-
             ~OpenCLKernel();
-
             long ndrange( void *argArray);
         };
 
     private:
         cl_program program;
-
     public:
+
         OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program);
-
         ~OpenCLProgram();
-
         long getKernel(int nameLen, char *name);
-
         bool programOK();
     };
 
@@ -114,10 +158,11 @@ public:
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
-    OpenCLBackend();
-    OpenCLBackend(OpenCLConfig *config, int configSchemaLen, char *configSchema);
+     OpenCLQueue openclQueue;
+    OpenCLBackend(int mode, int platform, int device);
     ~OpenCLBackend();
     int getMaxComputeUnits();
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
     void info();
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
@@ -126,4 +171,3 @@ public:
 public:
     static const char *errorMsg(cl_int status);
 };
-

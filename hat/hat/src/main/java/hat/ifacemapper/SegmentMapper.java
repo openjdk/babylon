@@ -367,23 +367,22 @@ public interface SegmentMapper<T> {
         }
          */
 
-    record State(MemorySegment segment, long paddedSize) {
+    record BufferState(MemorySegment segment, long paddedSize) {
         public static final long alignment = ValueLayout.JAVA_LONG.byteSize();
         // hat iface buffer bitz
         // hat iface bffa   bitz
         // 4a7 1face bffa   b175
         public static final long MAGIC = 0x4a71facebffab175L;
-        public static int BIT_HOST_NEW = 0b0000_0000_0000_0100;
-        public static int BIT_GPU_NEW = 0b0000_0000_0000_1000;
-        public static int BIT_HOST_DIRTY = 0b0000_0000_0000_0001;
-        public static int BIT_GPU_DIRTY = 0b0000_0000_0000_0010;
-        public static int MODE_ALWAYS_COPY_OUT = 0b0000_0000_0000_0001;
-        public static int MODE_ALWAYS_COPY_IN = 0b0000_0000_0000_0010;
-        public static int MODE_ALWAYS_COPY_IN_AND_OUT = MODE_ALWAYS_COPY_IN | MODE_ALWAYS_COPY_OUT;
+        public static int BIT_HOST_NEW = 0x00000004;
+        public static int BIT_DEVICE_NEW = 0x00000008;
+        public static int BIT_HOST_DIRTY = 0x00000001;
+        public static int BIT_DEVICE_DIRTY = 0x00000002;
+
+
         static final MemoryLayout stateMemoryLayout = MemoryLayout.structLayout(
                 ValueLayout.JAVA_LONG.withName("magic1"),
                         ValueLayout.JAVA_INT.withName("bits"),
-                        ValueLayout.JAVA_INT.withName("mode"),
+                        ValueLayout.JAVA_INT.withName("unused"),
                         ValueLayout.ADDRESS.withName("vendorPtr"),
                 ValueLayout.JAVA_LONG.withName("magic2")
         ).withName("state");
@@ -398,70 +397,120 @@ public interface SegmentMapper<T> {
         static final VarHandle bits = stateMemoryLayout.varHandle(
                 MemoryLayout.PathElement.groupElement("bits")
         );
-        static final VarHandle mode = stateMemoryLayout.varHandle(
-                MemoryLayout.PathElement.groupElement("mode")
-        );
+
         static final VarHandle magic2 = stateMemoryLayout.varHandle(
                 MemoryLayout.PathElement.groupElement("magic2")
         );
 
         public static long getLayoutSizeAfterPadding(GroupLayout layout) {
             return layout.byteSize() +
-                    ((layout.byteSize() % State.alignment) == 0 ? 0 : State.alignment - (layout.byteSize() % State.alignment));
+                    ((layout.byteSize() % BufferState.alignment) == 0 ? 0 : BufferState.alignment - (layout.byteSize() % BufferState.alignment));
         }
 
-        public static <T> State of(T t) {
+        public static <T> BufferState of(T t) {
             Buffer buffer = (Buffer) Objects.requireNonNull(t);
             MemorySegment s = Buffer.getMemorySegment(buffer);
-            return new State(s,s.byteSize()- State.byteSize());
+            return new BufferState(s,s.byteSize()- BufferState.byteSize());
         }
 
 
-        State setMagic(){
-            State.magic1.set(segment, paddedSize, MAGIC);
-            State.magic2.set(segment, paddedSize, MAGIC);
+        BufferState setMagic(){
+            BufferState.magic1.set(segment, paddedSize, MAGIC);
+            BufferState.magic2.set(segment, paddedSize, MAGIC);
             return this;
         }
 
-        public State mode(int mode) {
-            State.mode.set(segment, paddedSize, mode);
-           return this;
-        }
-        public State bits(int bits) {
-            State.bits.set(segment, paddedSize, bits);
+        public BufferState assignBits(int bits) {
+            BufferState.bits.set(segment, paddedSize, bits);
             return this;
         }
-        public int mode() {
-            return (Integer) State.mode.get(segment, paddedSize);
+        public BufferState orBits(int bits) {
+            BufferState.bits.set(segment, paddedSize, getBits()|bits);
+            return this;
+        }
+        public BufferState resetBits(int bits) {
+            int bitz = getBits();   // say bits = 0b0111 (7) and bitz = 0b0100 (4)
+            int xored = bits^bitz;  // xored = 0b0011 (3)
+            BufferState.bits.set(segment, paddedSize, xored);
+            return this;
         }
 
-        public int bits() {
-            return (Integer) State.bits.get(segment, paddedSize);
+        public int getBits() {
+            return (Integer) BufferState.bits.get(segment, paddedSize);
         }
+        public boolean testAllBitsAreSet(int bits) {
+            return (getBits()&bits)==bits;
+        }
+        public boolean testAnyBitsAreSet(int bits) {
+            return (getBits()&bits)!=0;
+        }
+
         public boolean isHostNew() {
-            return (bits()&BIT_HOST_NEW)==BIT_HOST_NEW;
+            return testAllBitsAreSet(BIT_HOST_NEW);
         }
         public boolean isHostDirty() {
-            return (bits()&BIT_HOST_DIRTY)==BIT_HOST_DIRTY;
+            return testAllBitsAreSet(BIT_HOST_DIRTY);
         }
         public boolean isHostNewOrDirty() {
-            return (bits()&(BIT_HOST_NEW|BIT_HOST_DIRTY))==(BIT_HOST_NEW|BIT_HOST_DIRTY);
+            return testAllBitsAreSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
         }
-        public boolean isGpuDirty() {
-            return (bits()&BIT_GPU_DIRTY)==BIT_GPU_DIRTY;
+        public boolean isDeviceDirty() {
+            return testAllBitsAreSet(BIT_DEVICE_DIRTY);
+        }
+        public BufferState clearDeviceDirty() {
+            return resetBits(BIT_DEVICE_DIRTY);
+        }
+        public BufferState resetHostDirty() {
+            return resetBits(BIT_HOST_DIRTY);
+        }
+        public BufferState resetHostNew() {
+            return resetBits(BIT_HOST_NEW);
         }
 
 
         public long magic1() {
-            return (Long) State.magic1.get(segment, paddedSize);
+            return (Long) BufferState.magic1.get(segment, paddedSize);
         }
 
         public long magic2() {
-            return (Long) State.magic2.get(segment, paddedSize);
+            return (Long) BufferState.magic2.get(segment, paddedSize);
         }
 
         public boolean ok() {
             return MAGIC == magic1() && MAGIC == magic2();
+        }
+
+        static String paddedString(int bits) {
+            String s = Integer.toBinaryString(bits);
+            String s32 = "                                  ";
+            return s32.substring(0,s32.length()-s.length())+s;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            if (ok()){
+                builder.append("State:ok").append("\n");
+                builder.append("State:Bits:").append(paddedString(getBits()));
+                if (testAllBitsAreSet(BIT_HOST_DIRTY)){
+                    builder.append(",").append("HOST_DIRTY");
+                }
+                if (testAllBitsAreSet(BIT_DEVICE_DIRTY)){
+                    builder.append(",").append("DEVICE_DIRTY");
+                }
+                if (testAllBitsAreSet(BIT_HOST_NEW)){
+                    builder.append(",").append("HOST_NEW");
+                }
+                builder.append("\n");
+
+
+            }else{
+                builder.append("State: not ok").append("\n");
+            }
+            return builder.toString();
+        }
+
+        public void setHostDirty() {
         }
     }
 
@@ -470,13 +519,13 @@ public interface SegmentMapper<T> {
             throw new IllegalStateException("No bound Schema provided");
         }
         //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
-        var segment = arena.allocate(State.getLayoutSizeAfterPadding(layout()) + State.byteSize(), State.alignment);
-        new State(segment, State.getLayoutSizeAfterPadding(layout())).setMagic().bits(State.BIT_HOST_NEW|State.BIT_HOST_DIRTY).mode(State.MODE_ALWAYS_COPY_IN_AND_OUT);
+        var segment = arena.allocate(BufferState.getLayoutSizeAfterPadding(layout()) + BufferState.byteSize(), BufferState.alignment);
+        new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout())).setMagic().assignBits(BufferState.BIT_HOST_NEW| BufferState.BIT_HOST_DIRTY);
         T returnValue=  get(segment, layout(), boundSchema);
         // Uncomment if you want to check the State
         /*
         State state = State.of(returnValue);
-        if (state.ok() &&!state.isGpuDirty() &&!state.isJavaDirty()){
+        if (state.ok() &&!state.isDeviceDirty() &&!state.isJavaDirty()){
             System.out.println("OK");
         }else{
             throw new IllegalArgumentException("BAD TAIL");
