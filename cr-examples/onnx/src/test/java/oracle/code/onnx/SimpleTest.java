@@ -96,6 +96,20 @@ public class SimpleTest {
                 runModel("reshapeAndShape", data, shape));
     }
 
+    @CodeReflection
+    public static Tensor<Long> indicesOfMaxPool(Tensor<Float> x) {
+        // testing secondary output
+        return OnnxOperators.MaxPool(x, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),  new long[]{2}).Indices();
+    }
+
+    @Test
+    public void testIndicesOfMaxPool() throws Exception {
+        var x = Tensor.ofShape(new long[]{2, 2, 2}, 1f, 2, 3, 4, 5, 6, 7, 8);
+        assertEquals(
+                indicesOfMaxPool(x),
+                runModel("indicesOfMaxPool", x));
+    }
+
     private static Tensor runModel(String name, Tensor... params) throws NoSuchMethodException {
         return new Tensor(OnnxRuntime.getInstance().runFunc(
                 getOnnxModel(name),
@@ -103,7 +117,7 @@ public class SimpleTest {
     }
 
     private static CoreOp.FuncOp getOnnxModel(String name) throws NoSuchMethodException {
-        return OnnxTransformer.transform(MethodHandles.publicLookup(),
+        return OnnxTransformer.transform(MethodHandles.lookup(),
                 Op.ofMethod(Stream.of(SimpleTest.class.getDeclaredMethods()).filter(m -> m.getName().equals(name)).findFirst().get()).get());
     }
 

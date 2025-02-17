@@ -66,40 +66,55 @@ public class Tensor<T> extends OnnxNumber {
 
     public static final long[] SCALAR_SHAPE = new long[0];
 
+    public static Tensor<Byte> ofScalar(byte b) {
+        return ofShape(SCALAR_SHAPE, b);
+    }
+
     public static Tensor<Long> ofScalar(long l) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, l);
-        return new Tensor<>(data, ElementType.INT64, SCALAR_SHAPE);
+        return ofShape(SCALAR_SHAPE, l);
     }
 
     public static Tensor<Float> ofScalar(float f) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_FLOAT, f);
-        return new Tensor(data, ElementType.FLOAT, SCALAR_SHAPE);
+        return ofShape(SCALAR_SHAPE, f);
     }
 
+
     public static Tensor<Byte> ofFlat(byte... values) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, values);
-        return new Tensor(data, ElementType.UINT8, new long[]{values.length});
+        return ofShape(new long[]{values.length}, values);
     }
 
     public static Tensor<Long> ofFlat(long... values) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, values);
-        return new Tensor(data, ElementType.INT64, new long[]{values.length});
+        return ofShape(new long[]{values.length}, values);
     }
 
     public static Tensor<Float> ofFlat(float... values) {
+        return ofShape(new long[]{values.length}, values);
+    }
+
+    public static Tensor<Byte> ofShape(long[] shape, byte... values) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, values);
+        return new Tensor(data, ElementType.UINT8, shape);
+    }
+
+    public static Tensor<Long> ofShape(long[] shape, long... values) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, values);
+        return new Tensor(data, ElementType.INT64, shape);
+    }
+
+    public static Tensor<Float> ofShape(long[] shape, float... values) {
         var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_FLOAT, values);
-        return new Tensor(data, ElementType.FLOAT, new long[]{values.length});
+        return new Tensor(data, ElementType.FLOAT, shape);
     }
 
     // Mandatory reference to dataAddr to avoid its garbage colletion
     private final MemorySegment dataAddr;
     final MemorySegment tensorAddr;
 
-    Tensor(MemorySegment dataAddr, ElementType type, long... shape) {
+    public Tensor(MemorySegment dataAddr, ElementType type, long... shape) {
         this(dataAddr, OnnxRuntime.getInstance().createTensor(dataAddr, type, shape));
     }
 
-    Tensor(MemorySegment tensorAddr) {
+    public Tensor(MemorySegment tensorAddr) {
         this(null, tensorAddr);
     }
 

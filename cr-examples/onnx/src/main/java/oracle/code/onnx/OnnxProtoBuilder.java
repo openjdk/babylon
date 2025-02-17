@@ -306,6 +306,11 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
             String getName(Value v) {
                 return computeIfAbsent(v, _ -> "#" + size());
             }
+            String getName(Value v, int subIndex) {
+                var name = getName(v);
+                if (subIndex != 0) name += "." + subIndex;
+                return name;
+            }
         };
         var entryBlock = model.body().entryBlock();
         var bytes = new ModelProto()
@@ -319,16 +324,15 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                             switch (op) {
                                 case OnnxOp onnxOp ->
                                     g.node(new NodeProto()
-                                            .forEach(op.operands(), (n, p) -> n.input(indexer.getName(p)))
-                                            .output(indexer.getName(op.result()))
+                                            .forEach(op.operands(), (n, i) -> n.input(indexer.getName(i)))
+                                            .forEach(onnxOp.onnxOutputs(), (n, o) -> n.output(indexer.getName(op.result(), o.ordinal())))
                                             .op_type(op.opName())
                                             .forEach(onnxOp.onnxAttributes().entrySet(), (n, ae) -> n.attribute(buildAttribute(ae.getKey(), ae.getValue()))));
                                 case CoreOp.ReturnOp _ -> {
                                      // skip
                                 }
-                                case CoreOp.TupleLoadOp _ -> {
-                                    // @@@ hack to forward to the first from the tuple
-                                    indexer.put(op.result(), indexer.getName(op.operands().getFirst()));
+                                case CoreOp.TupleLoadOp tlo -> {
+                                    indexer.put(op.result(), indexer.getName(op.operands().getFirst(), tlo.index()));
                                 }
                                 default ->
                                     throw new UnsupportedOperationException(op.toText());
