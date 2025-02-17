@@ -40,12 +40,12 @@ import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 
 public interface Buffer extends MappableIface {
 
-    default boolean isGpuDevice(){
-        return SegmentMapper.BufferState.of(this).isGpuDirty();
+    default boolean isDeviceDevice(){
+        return SegmentMapper.BufferState.of(this).isDeviceDirty();
     }
 
-    default void clearGpuDirty(){
-         SegmentMapper.BufferState.of(this).clearGpuDirty();
+    default void clearDeviceDirty(){
+         SegmentMapper.BufferState.of(this).clearDeviceDirty();
     }
 
     default void setHostDirty(){

@@ -374,9 +374,9 @@ public interface SegmentMapper<T> {
         // 4a7 1face bffa   b175
         public static final long MAGIC = 0x4a71facebffab175L;
         public static int BIT_HOST_NEW = 0x00000004;
-        public static int BIT_GPU_NEW = 0x00000008;
+        public static int BIT_DEVICE_NEW = 0x00000008;
         public static int BIT_HOST_DIRTY = 0x00000001;
-        public static int BIT_GPU_DIRTY = 0x00000002;
+        public static int BIT_DEVICE_DIRTY = 0x00000002;
 
 
         static final MemoryLayout stateMemoryLayout = MemoryLayout.structLayout(
@@ -454,11 +454,11 @@ public interface SegmentMapper<T> {
         public boolean isHostNewOrDirty() {
             return testAllBitsAreSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
         }
-        public boolean isGpuDirty() {
-            return testAllBitsAreSet(BIT_GPU_DIRTY);
+        public boolean isDeviceDirty() {
+            return testAllBitsAreSet(BIT_DEVICE_DIRTY);
         }
-        public BufferState clearGpuDirty() {
-            return resetBits(BIT_GPU_DIRTY);
+        public BufferState clearDeviceDirty() {
+            return resetBits(BIT_DEVICE_DIRTY);
         }
         public BufferState resetHostDirty() {
             return resetBits(BIT_HOST_DIRTY);
@@ -495,8 +495,8 @@ public interface SegmentMapper<T> {
                 if (testAllBitsAreSet(BIT_HOST_DIRTY)){
                     builder.append(",").append("HOST_DIRTY");
                 }
-                if (testAllBitsAreSet(BIT_GPU_DIRTY)){
-                    builder.append(",").append("GPU_DIRTY");
+                if (testAllBitsAreSet(BIT_DEVICE_DIRTY)){
+                    builder.append(",").append("DEVICE_DIRTY");
                 }
                 if (testAllBitsAreSet(BIT_HOST_NEW)){
                     builder.append(",").append("HOST_NEW");
@@ -525,7 +525,7 @@ public interface SegmentMapper<T> {
         // Uncomment if you want to check the State
         /*
         State state = State.of(returnValue);
-        if (state.ok() &&!state.isGpuDirty() &&!state.isJavaDirty()){
+        if (state.ok() &&!state.isDeviceDirty() &&!state.isJavaDirty()){
             System.out.println("OK");
         }else{
             throw new IllegalArgumentException("BAD TAIL");

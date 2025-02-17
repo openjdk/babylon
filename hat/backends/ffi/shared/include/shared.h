@@ -82,9 +82,9 @@ extern void hexdump(void *ptr, int buflen);
  struct BufferState_s{
    static const long  MAGIC =0x4a71facebffab175;
    static const int   BIT_HOST_NEW =0x00000004;
-   static const int   BIT_GPU_NEW =0x00000008;
+   static const int   BIT_DEVICE_NEW =0x00000008;
    static const int   BIT_HOST_DIRTY =0x00000001;
-   static const int   BIT_GPU_DIRTY =0x00000002;
+   static const int   BIT_DEVICE_DIRTY =0x00000002;
 
 
    long magic1;
@@ -120,8 +120,8 @@ extern void hexdump(void *ptr, int buflen);
      bool isHostNewOrDirty() {
                return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
            }
-   bool isGpuDirty(){
-      return areBitsSet(BIT_GPU_DIRTY);
+   bool isDeviceDirty(){
+      return areBitsSet(BIT_DEVICE_DIRTY);
    }
 
 

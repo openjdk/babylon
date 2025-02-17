@@ -67,9 +67,9 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     @Override
     public void preMutate(Buffer b) {
-        if (b.isGpuDevice()){
+        if (b.isDeviceDevice()){
             getBufferFromDeviceIfDirty(b); // This might block to fetch from device
-            b.clearGpuDirty();
+            b.clearDeviceDirty();
         }
     }
 
@@ -81,9 +81,9 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     @Override
     public void preAccess(Buffer b) {
-        if (b.isGpuDevice()){
+        if (b.isDeviceDevice()){
             getBufferFromDeviceIfDirty(b);
-            b.clearGpuDirty();// this should reset gpuDirty!
+            b.clearDeviceDirty();// this should reset deviceDirty!
         }
     }
 
@@ -94,7 +94,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     @Override
     public void preEscape(Buffer b) {
-            getBufferFromDeviceIfDirty(b).clearGpuDirty(); //  we have to assume the escaped buffer is about to be accessed
+            getBufferFromDeviceIfDirty(b).clearDeviceDirty(); //  we have to assume the escaped buffer is about to be accessed
     }
 
     @Override
