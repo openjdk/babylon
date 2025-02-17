@@ -109,7 +109,7 @@ public class MNISTDemo {
     }
 
     static final int IMAGE_SIZE = 28;
-    static final int DRAW_AREA_SIZE = 560;
+    static final int DRAW_AREA_SIZE = 600;
     static final int PEN_SIZE = 20;
 
     public static void main(String[] args) throws Exception {
@@ -117,7 +117,7 @@ public class MNISTDemo {
         var drawPane = new JPanel(false);
         var statusBar = new JLabel("   Hold SHIFT key to draw with trackpad or mouse, click ENTER to run digit classification.");
         var cleanFlag = new AtomicBoolean(true);
-        var runtimeSession = OnnxRuntime.getInstance().createSession(
+        var modelRuntimeSession = OnnxRuntime.getInstance().createSession(
                 OnnxProtoBuilder.buildFuncModel(
                         OnnxTransformer.transform(MethodHandles.lookup(),
                                 Op.ofMethod(MNISTDemo.class.getDeclaredMethod("cnn", Tensor.class)).get())));
@@ -155,7 +155,7 @@ public class MNISTDemo {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     scaledGraphics.drawImage(drawAreaImage.getScaledInstance(IMAGE_SIZE, IMAGE_SIZE, Image.SCALE_SMOOTH), 0, 0, null);
                     scaledImageDataBuffer.put(0, scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, sampleArray));
-                    FloatBuffer result = OnnxRuntime.getInstance().tensorBuffer(runtimeSession.run(inputArguments).getFirst()).asFloatBuffer();
+                    FloatBuffer result = OnnxRuntime.getInstance().tensorBuffer(modelRuntimeSession.run(inputArguments).getFirst()).asFloatBuffer();
                     int max = 0;
                     for (int i = 1; i < 10; i++) {
                         if (result.get(i) > result.get(max)) max = i;
@@ -163,9 +163,9 @@ public class MNISTDemo {
                     var msg = new StringBuilder("<html>&nbsp;");
                     for (int i = 0; i < 10; i++) {
                         if (max == i) {
-                            msg.append("&nbsp;&nbsp;<b>%d:&nbsp;%.1f%%</b>".formatted(i, 100 * result.get(i)));
+                            msg.append("&nbsp;&nbsp;<b><u>%d:&nbsp;%.1f%%</u></b>".formatted(i, 100 * result.get(i)));
                         } else {
-                            msg.append("&nbsp;&nbsp;%d:&nbsp;%.1f%%".formatted(i, result.get(i)));
+                            msg.append("&nbsp;&nbsp;%d:&nbsp;%.1f%%".formatted(i, 100 * result.get(i)));
 
                         }
                     }
