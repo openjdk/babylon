@@ -326,7 +326,15 @@ bool OpenCLBackend::OpenCLProgram::programOK() {
   OpenCLBackend
   */
 bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
-    std::cout << "attempting  to get buffer from device (if dirty) from OpenCLBackend "<<std::endl;
+    OpenCLConfig *openclConfig = dynamic_cast<OpenCLConfig *>(config);
+   // if (openclConfig->trace){
+       if (openclConfig->minimizeCopies){
+         std::cout << "attempting  to get buffer from device (if dirty) from OpenCLBackend "<<std::endl;
+       //}else{
+       //  std::cout << "skipping attempt  to get buffer from device (if dirty) from OpenCLBackend (we are not minimizing copies) "<<std::endl;
+       }
+   // }
+
     return true;
 }
 
