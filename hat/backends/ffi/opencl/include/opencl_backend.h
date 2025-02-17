@@ -87,6 +87,9 @@ public:
        OpenCLQueue()
           : eventMax(256), events(new cl_event[eventMax]), eventc(0){
        }
+
+                   void showEvents(int width);
+
        virtual ~OpenCLQueue(){
         clReleaseCommandQueue(command_queue);
         delete []events;
@@ -106,8 +109,7 @@ public:
 
         private:
             cl_kernel kernel;
-        protected:
-            void showEvents(int width);
+
         public:
             OpenCLKernel(Backend::Program *program, char* name,cl_kernel kernel);
             ~OpenCLKernel();

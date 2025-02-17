@@ -267,6 +267,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         }
     }
     status = clWaitForEvents(openclBackend->openclQueue.eventc, openclBackend->openclQueue.events);
+ //   openclBackend->openclQueue.showEvents(100);
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
@@ -402,13 +403,13 @@ OpenCLBackend::~OpenCLBackend() {
 
 }
 
-void OpenCLBackend::OpenCLProgram::OpenCLKernel::showEvents(int width) {
-    OpenCLBackend * openclBackend =  dynamic_cast<OpenCLBackend *>(program->backend);
-    cl_ulong *samples = new cl_ulong[4 * openclBackend->openclQueue.eventc]; // queued, submit, start, end
+void OpenCLBackend::OpenCLQueue::showEvents(int width) {
+
+    cl_ulong *samples = new cl_ulong[4 * eventc]; // queued, submit, start, end
     int sample = 0;
     cl_ulong min;
     cl_ulong max;
-    for (int event = 0; event < openclBackend->openclQueue.eventc; event++) {
+    for (int event = 0; event < eventc; event++) {
         for (int type = 0; type < 4; type++) {
             cl_profiling_info info;
             switch (type) {
@@ -426,7 +427,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::showEvents(int width) {
                     break;
             }
 
-            if ((clGetEventProfilingInfo(openclBackend->openclQueue.events[event], info, sizeof(samples[sample]), &samples[sample], NULL)) !=
+            if ((clGetEventProfilingInfo(events[event], info, sizeof(samples[sample]), &samples[sample], NULL)) !=
                 CL_SUCCESS) {
                 std::cerr << "failed to get profile info " << info << std::endl;
             }
@@ -449,7 +450,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::showEvents(int width) {
     std::cout << "Range: " << range << "(ns)" << std::endl;
     std::cout << "Scale: " << scale << " range (ns) per char" << std::endl;
 
-    for (int event = 0; event < openclBackend->openclQueue.eventc; event++) {
+    for (int event = 0; event < eventc; event++) {
         cl_ulong queue = (samples[sample++] - min) / scale;
         cl_ulong submit = (samples[sample++] - min) / scale;
         cl_ulong start = (samples[sample++] - min) / scale;
