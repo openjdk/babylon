@@ -221,6 +221,8 @@ public class OnnxTransformer {
                 return OnnxType.TENSOR_FLOAT32;
             } else if (elementType.equals(JavaType.J_L_LONG)) {
                 return OnnxType.TENSOR_INT64;
+            } else if (elementType.equals(JavaType.J_L_BYTE)) {
+                return OnnxType.TENSOR_UINT8;
             }
         }
         throw new UnsupportedOperationException("Unknown type: " + type);

@@ -25,6 +25,11 @@
 
 package oracle.code.onnx;
 
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
+import java.nio.ByteBuffer;
+
     /*
 class DataType(enum.IntEnum):
     """Enum for the data types of ONNX tensors, defined in ``onnx.TensorProto``."""
@@ -58,26 +63,56 @@ class DataType(enum.IntEnum):
      */
 
 public class Tensor<T> extends OnnxNumber {
-    // element type
-    // dim
-    // runtime representation
-    // defer to ONNX runtime?
 
-    final OnnxRuntime.OrtTensor rtTensor;
+    public static final long[] SCALAR_SHAPE = new long[0];
 
-    public Tensor(long... data) {
-        this(OnnxRuntime.getInstance().createFlatTensor(data));
+    public static Tensor<Long> ofScalar(long l) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, l);
+        return new Tensor<>(data, ElementType.INT64, SCALAR_SHAPE);
     }
 
-    public Tensor(float... data) {
-        this(OnnxRuntime.getInstance().createFlatTensor(data));
+    public static Tensor<Float> ofScalar(float f) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_FLOAT, f);
+        return new Tensor(data, ElementType.FLOAT, SCALAR_SHAPE);
     }
 
-    Tensor(OnnxRuntime.OrtTensor rtTensor) {
-        this.rtTensor = rtTensor;
+    public static Tensor<Byte> ofFlat(byte... values) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, values);
+        return new Tensor(data, ElementType.UINT8, new long[]{values.length});
     }
 
-    enum ElementType {
+    public static Tensor<Long> ofFlat(long... values) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, values);
+        return new Tensor(data, ElementType.INT64, new long[]{values.length});
+    }
+
+    public static Tensor<Float> ofFlat(float... values) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_FLOAT, values);
+        return new Tensor(data, ElementType.FLOAT, new long[]{values.length});
+    }
+
+    // Mandatory reference to dataAddr to avoid its garbage colletion
+    private final MemorySegment dataAddr;
+    final MemorySegment tensorAddr;
+
+    Tensor(MemorySegment dataAddr, ElementType type, long... shape) {
+        this(dataAddr, OnnxRuntime.getInstance().createTensor(dataAddr, type, shape));
+    }
+
+    Tensor(MemorySegment tensorAddr) {
+        this(null, tensorAddr);
+    }
+
+    Tensor(MemorySegment dataAddr, MemorySegment tensorAddr) {
+        this.dataAddr = dataAddr;
+        this.tensorAddr = tensorAddr;
+    }
+
+    public ByteBuffer asByteBuffer() {
+        return OnnxRuntime.getInstance().tensorBuffer(tensorAddr);
+    }
+
+    public enum ElementType {
         FLOAT(1, float.class),
         UINT8(2, byte.class),
         INT8(3, byte.class),

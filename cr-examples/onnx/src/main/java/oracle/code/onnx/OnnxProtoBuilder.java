@@ -6,8 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.Tensor.ElementType;
@@ -194,13 +194,11 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     final ByteArrayOutputStream buf = new ByteArrayOutputStream();
 
     void _encode(long number) {
-        long expanded = Long.expand(number, 0x7f7f7f7f7f7f7f7fl);
-        int bytesSize = Math.max(1, 8 - Long.numberOfLeadingZeros(expanded) / 8);
-        for (int i = 1; i < bytesSize; i++) {
-            buf.write(0x80 | (int)expanded & 0x7f);
-            expanded >>= 8;
+        for (int i = 64 - Long.numberOfLeadingZeros(number); i > 7; i -= 7) {
+            buf.write(0x80 | (int)number & 0x7f);
+            number >>= 7;
         }
-        buf.write((int)expanded & 0x7f);
+        buf.write((int)number & 0x7f);
     }
 
     @SuppressWarnings("unchecked")
@@ -261,23 +259,37 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     }
 
     static final int IR_VERSION = 10;
-    static final int OPSET_VERSION = 14;
+    static final int OPSET_VERSION = 21;
 
     // @@@ tensors only
-    // order of building defines order inside protobufs
-    static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<ElementType> inputElementTypes) {
+    static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<java.util.Optional<ElementType>> inputElementTypes, List<Object> attributes) {
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
+                        .forEach(schema.inputs(), (g, i) -> {
+                            if (inputElementTypes.get(i.ordinal()).isPresent()) {
+                                g.input(new ValueInfoProto()
+                                    .name(i.name())
+                                    .type(new TypeProto()
+                                            // inputValues match schema inputs by OnnxParameter::ordinal
+                                            .tensor_type(new Tensor().elem_type(inputElementTypes.get(i.ordinal()).get().id))));
+                            }
+                        })
                         .node(new NodeProto()
                             .forEach(schema.inputs(), (n, i) -> n.input(i.name()))
                             .forEach(schema.outputs(), (n, o) -> n.output(o.name()))
-                            .op_type(schema.name()))
-                        .forEach(schema.inputs(), (g, i) -> g.input(new ValueInfoProto()
-                                .name(i.name())
-                                .type(new TypeProto()
-                                        // inputValues matching schema inputs by OnnxParameter::ordinal
-                                        .tensor_type(new Tensor().elem_type(inputElementTypes.get(i.ordinal()).id)))))
+                            .op_type(schema.name())
+                            .forEach(schema.attributes(), (n, a) -> {
+                                // attributes match schema by OnnxAttribute::ordinal
+                                var attrValue = attributes.get(a.ordinal());
+                                if (a.isOptional()) {
+                                    if (attrValue instanceof java.util.Optional o && o.isPresent()) {
+                                        n.attribute(buildAttribute(a.name(), o.get()));
+                                    }
+                                } else {
+                                    n.attribute(buildAttribute(a.name(), attrValue));
+                                }
+                            }))
                         .forEach(schema.outputs(), (g, o) -> g.output(new ValueInfoProto()
                                 .name(o.name()))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
@@ -285,58 +297,10 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
     }
 
-    private static int toElementType(TypeElement type) {
-        if (type == OnnxType.TENSOR_FLOAT32) {
-            return 1;
-        } else if(type == OnnxType.TENSOR_UINT8) {
-            return 2;
-        } else if(type == OnnxType.TENSOR_INT8) {
-            return 3;
-        } else if(type == OnnxType.TENSOR_UINT16) {
-            return 4;
-        } else if(type == OnnxType.TENSOR_INT16) {
-            return 5;
-        } else if(type == OnnxType.TENSOR_INT32) {
-            return 6;
-        } else if(type == OnnxType.TENSOR_INT64) {
-            return 7;
-        } else if(type == OnnxType.TENSOR_STRING) {
-            return 8;
-        } else if(type == OnnxType.TENSOR_BOOL) {
-            return 9;
-        } else if(type == OnnxType.TENSOR_FLOAT16) {
-            return 10;
-        } else if(type == OnnxType.TENSOR_FLOAT64) {
-            return 11;
-        } else if(type == OnnxType.TENSOR_UINT32) {
-            return 12;
-        } else if(type == OnnxType.TENSOR_UINT64) {
-            return 13;
-        } else if(type == OnnxType.TENSOR_COMPLEX64) {
-            return 14;
-        } else if(type == OnnxType.TENSOR_COMPLEX128) {
-            return 15;
-        } else if(type == OnnxType.TENSOR_BFLOAT16) {
-            return 16;
-        } else if(type == OnnxType.TENSOR_FLOAT8E4M3FN) {
-            return 17;
-        } else if(type == OnnxType.TENSOR_FLOAT8E4M3FNUZ) {
-            return 18;
-        } else if(type == OnnxType.TENSOR_FLOAT8E5M2) {
-            return 19;
-        } else if(type == OnnxType.TENSOR_FLOAT8E5M2FNUZ) {
-            return 20;
-        } else if(type == OnnxType.TENSOR_UINT4) {
-            return 21;
-        } else if(type == OnnxType.TENSOR_INT4) {
-            return 22;
-        } else if(type == OnnxType.TENSOR_FLOAT4E2M1) {
-            return 23;
-        } else {
-            throw new RuntimeException(type.toString());
-        }
-    }
-
+    // @@@ unchecked constraints:
+    //         tensor FuncOp parameters and single tensor return type
+    //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
+    //         entry block only
     static ByteBuffer buildFuncModel(FuncOp model) {
         var indexer = new IdentityHashMap<Value, String>() {
             String getName(Value v) {
@@ -347,24 +311,59 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
-                        .forEach(entryBlock.ops(), (g, op) -> {
-                            if (op instanceof OnnxOp) {
-                                g.node(new NodeProto()
-                                        .forEach(op.operands(), (n, p) -> n.input(indexer.getName(p)))
-                                        .output(indexer.getName(op.result()))
-                                        .op_type(op.opName()));
-                            }
-                        })
-                        .forEach(model.parameters(), (g, p) -> g.input(new ValueInfoProto()
+                        .forEach(entryBlock.parameters(), (g, p) -> g.input(new ValueInfoProto()
                                 .name(indexer.getName(p))
                                 .type(new TypeProto()
-                                        .tensor_type(new Tensor().elem_type(toElementType(p.type()))))))
+                                        .tensor_type(new Tensor().elem_type(((OnnxType.TensorType)p.type()).eType().id())))))
+                        .forEach(entryBlock.ops(), (g, op) -> {
+                            switch (op) {
+                                case OnnxOp onnxOp ->
+                                    g.node(new NodeProto()
+                                            .forEach(op.operands(), (n, p) -> n.input(indexer.getName(p)))
+                                            .output(indexer.getName(op.result()))
+                                            .op_type(op.opName())
+                                            .forEach(onnxOp.onnxAttributes().entrySet(), (n, ae) -> n.attribute(buildAttribute(ae.getKey(), ae.getValue()))));
+                                case CoreOp.ReturnOp _ -> {
+                                     // skip
+                                }
+                                case CoreOp.TupleLoadOp _ -> {
+                                    // @@@ hack to forward to the first from the tuple
+                                    indexer.put(op.result(), indexer.getName(op.operands().getFirst()));
+                                }
+                                default ->
+                                    throw new UnsupportedOperationException(op.toText());
+                            }
+                        })
                         .output(new ValueInfoProto()
                                 .name(indexer.getName(entryBlock.terminatingOp().operands().getFirst()))
                                 .type(new TypeProto()
-                                        .tensor_type(new Tensor().elem_type(toElementType(model.body().yieldType()))))))
+                                        .tensor_type(new Tensor().elem_type(((OnnxType.TensorType)model.body().yieldType()).eType().id())))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
+    }
+
+    static Attribute buildAttribute(String name, Object value) {
+        var attr = new Attribute().name(name);
+        switch (value) {
+            case Float f -> {
+                attr.type(1).f(f);
+            }
+            case Long l -> {
+                attr.type(2).i(l);
+            }
+            case float[] floats -> {
+                attr.type(6);
+                for (float f : floats) attr.floats(f);
+            }
+            case long[] longs -> {
+                attr.type(7);
+                for (long l : longs) attr.ints(l);
+            }
+            default -> {
+                throw new UnsupportedOperationException(value.getClass().toString()); // @@@ ToDo
+            }
+        }
+        return attr;
     }
 }

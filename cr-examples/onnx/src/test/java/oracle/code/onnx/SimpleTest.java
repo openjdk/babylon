@@ -1,20 +1,21 @@
 package oracle.code.onnx;
 
+import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandles;
-import java.util.List;
+import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
+import java.nio.FloatBuffer;
 import java.util.Optional;
+import java.util.stream.Stream;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
 import oracle.code.onnx.compiler.OnnxTransformer;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class SimpleTest {
 
-    // Java code model -> ONNX code model -> ONNX runtime instance -> execute via ORT
-    // Run directly, each operation reflectively executes via ORT
     @CodeReflection
     public static Tensor<Float> add(Tensor<Float> a, Tensor<Float> b) {
         return OnnxOperators.Add(a, b);
@@ -22,12 +23,63 @@ public class SimpleTest {
 
     @Test
     public void testAdd() throws Exception {
-        var a = new Tensor(1f, 2, 3);
-        var b = new Tensor(6f, 5, 4);
+        var a = Tensor.ofFlat(1f, 2, 3);
+        var b = Tensor.ofFlat(6f, 5, 4);
         assertEquals(
                 add(a, b),
-                new Tensor(OnnxRuntime.getInstance().runFunc(getOnnxModel("add", Tensor.class, Tensor.class),
-                        List.of(a.rtTensor, b.rtTensor)).getFirst()));
+                runModel("add", a, b));
+    }
+
+    @CodeReflection
+    public static Tensor<Float> fconstant() {
+        return OnnxOperators.Constant(-1f);
+    }
+
+    @Test
+    public void testFconstant() throws Exception {
+        // tests the numbers are encoded correctly
+        var expected = Tensor.ofScalar(-1f);
+        assertEquals(expected, fconstant());
+        assertEquals(expected, runModel("fconstant"));
+    }
+
+    @CodeReflection
+    public static Tensor<Float> fconstants() {
+        return OnnxOperators.Constant(new float[]{-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE});
+    }
+
+    @Test
+    public void testFconstants() throws Exception {
+        // tests the numbers are encoded correctly
+        var expected = Tensor.ofFlat(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
+        assertEquals(expected, fconstants());
+        assertEquals(expected, runModel("fconstants"));
+    }
+
+    @CodeReflection
+    public static Tensor<Long> lconstant() {
+        return OnnxOperators.Constant(-1l);
+    }
+
+    @Test
+    public void testLconstant() throws Exception {
+        // tests the numbers are encoded correctly
+        var expected = Tensor.ofScalar(-1l);
+        assertEquals(expected, lconstant());
+        assertEquals(expected, runModel("lconstant"));
+    }
+
+    @CodeReflection
+    public static Tensor<Long> lconstants() {
+        return OnnxOperators.Constant(new long[]{-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE});
+    }
+
+    @Test
+    public void testLconstants() throws Exception {
+        // tests the numbers are encoded correctly
+        var expected = Tensor.ofFlat(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
+        assertEquals(expected, lconstants());
+        assertEquals(expected, runModel("lconstants"));
     }
 
     @CodeReflection
@@ -37,32 +89,74 @@ public class SimpleTest {
 
     @Test
     public void testReshapeAndShape() throws Exception {
-        var data = new Tensor(1f, 2, 3, 4, 5, 6, 7, 8);
-        var shape = new Tensor(2l, 2, 2);
-        assertEquals(shape, reshapeAndShape(data, shape));
-        assertEquals(shape, new Tensor(OnnxRuntime.getInstance().runFunc(getOnnxModel("reshapeAndShape", Tensor.class, Tensor.class),
-                        List.of(data.rtTensor, shape.rtTensor)).getFirst()));
+        var data = Tensor.ofFlat(1f, 2, 3, 4, 5, 6, 7, 8);
+        var shape = Tensor.ofFlat(2l, 2, 2);
+        assertEquals(
+                reshapeAndShape(data, shape),
+                runModel("reshapeAndShape", data, shape));
     }
 
-    private static CoreOp.FuncOp getOnnxModel(String name, Class... params) throws NoSuchMethodException {
+    private static Tensor runModel(String name, Tensor... params) throws NoSuchMethodException {
+        return new Tensor(OnnxRuntime.getInstance().runFunc(
+                getOnnxModel(name),
+                Stream.of(params).map(t -> Optional.ofNullable(t.tensorAddr)).toList()).getFirst());
+    }
+
+    private static CoreOp.FuncOp getOnnxModel(String name) throws NoSuchMethodException {
         return OnnxTransformer.transform(MethodHandles.publicLookup(),
-                Op.ofMethod(SimpleTest.class.getDeclaredMethod(name, params)).get());
+                Op.ofMethod(Stream.of(SimpleTest.class.getDeclaredMethods()).filter(m -> m.getName().equals(name)).findFirst().get()).get());
     }
 
-    static void assertEquals(Tensor actual, Tensor expected) {
-        var expectedTS = expected.rtTensor.getTensorTypeAndShape();
-        var actualTS = actual.rtTensor.getTensorTypeAndShape();
-        assertSame(expectedTS.getTensorElementType(), actualTS.getTensorElementType());
+    static void assertEquals(Tensor expected, Tensor actual) {
+        assertEquals(expected.tensorAddr, actual.tensorAddr);
+    }
 
-        // @@@ assert equal shapes
+    static void assertEquals(MemorySegment expectedTensorAddr, MemorySegment actualTensorAddr) {
 
-        switch (actualTS.getTensorElementType()) {
+        var rt = OnnxRuntime.getInstance();
+
+        var expectedType = rt.tensorElementType(expectedTensorAddr);
+        var expectedShape = rt.tensorShape(expectedTensorAddr);
+        var expectedBB = rt.tensorBuffer(expectedTensorAddr);
+
+        var actualType = rt.tensorElementType(actualTensorAddr);
+        var actualShape = rt.tensorShape(actualTensorAddr);
+        var actualBB = rt.tensorBuffer(actualTensorAddr);
+
+        Assertions.assertSame(expectedType, actualType);
+
+        Assertions.assertArrayEquals(expectedShape, actualShape);
+
+        switch (actualType) {
+            case UINT8, INT8, UINT16, INT16, INT32, INT64, STRING, BOOL, UINT32, UINT64, UINT4, INT4 ->
+                assertEquals(expectedBB, actualBB);
             case FLOAT ->
-                RuntimeTest.assertEqualData(expected.rtTensor.asByteBuffer().asFloatBuffer(), actual.rtTensor.asByteBuffer().asFloatBuffer());
-            case INT64 ->
-                RuntimeTest.assertEqualData(expected.rtTensor.asByteBuffer().asLongBuffer(), actual.rtTensor.asByteBuffer().asLongBuffer());
+                assertEquals(expectedBB.asFloatBuffer(), actualBB.asFloatBuffer());
+            case DOUBLE ->
+                assertEquals(expectedBB.asDoubleBuffer(), actualBB.asDoubleBuffer());
             default ->
-                throw new UnsupportedOperationException(); // @@@ ToDo
+                throw new UnsupportedOperationException("Unsupported tensor element type " + actualType);
+        }
+    }
+
+    static void assertEquals(ByteBuffer expectedData, ByteBuffer actualData) {
+        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
+        for (int i = 0; i < expectedData.capacity(); i++) {
+            Assertions.assertEquals(expectedData.get(i), actualData.get(i));
+        }
+    }
+
+    static void assertEquals(FloatBuffer expectedData, FloatBuffer actualData) {
+        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
+        for (int i = 0; i < expectedData.capacity(); i++) {
+            Assertions.assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
+        }
+    }
+
+    static void assertEquals(DoubleBuffer expectedData, DoubleBuffer actualData) {
+        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
+        for (int i = 0; i < expectedData.capacity(); i++) {
+            Assertions.assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
         }
     }
 }

@@ -28,6 +28,7 @@ package oracle.code.onnx;
 import oracle.code.onnx.ir.OnnxOp;
 
 import java.util.List;
+import java.util.Optional;
 
 public class OnnxInterpreter {
     public static Object interpret(Class<? extends OnnxOp> opClass,
@@ -37,9 +38,14 @@ public class OnnxInterpreter {
             // @@@ assuming tensor inputs and outputs
             var outTensors = OnnxRuntime.getInstance().runOp(
                     (OnnxOp.OnnxSchema)opClass.getDeclaredField("SCHEMA").get(null),
-                    inputs.stream().map(o -> ((Tensor)o).rtTensor).toList());
+                    inputs.stream().map(o -> Optional.ofNullable(switch (o) {
+                        case Tensor t -> t.tensorAddr;
+                        case Optional ot when ot.isPresent() && ot.get() instanceof Tensor t -> t.tensorAddr;
+                        default -> null;
+                    })).toList(),
+                    attributes);
             if (outTensors.size() == 1) {
-                return new Tensor<>(outTensors.getFirst());
+                return new Tensor(outTensors.getFirst());
             } else {
                 return outTensors.stream().map(Tensor::new).toArray();
             }
