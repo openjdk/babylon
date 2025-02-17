@@ -87,8 +87,36 @@ public:
        OpenCLQueue()
           : eventMax(256), events(new cl_event[eventMax]), eventc(0){
        }
+       cl_event *eventListPtr(){
+          return (eventc == 0) ? nullptr : events;
+       }
+        cl_event *nextEventPtr(){
+            return &events[eventc];
+        }
+        void showEvents(int width);
+         void wait(){
+                 cl_int status = clWaitForEvents(eventc, events);
 
-                   void showEvents(int width);
+                    if (status != CL_SUCCESS) {
+                        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+                        exit(1);
+                    }
+        }
+        void release(){
+         cl_int status = CL_SUCCESS;
+
+            for (int i = 0; i < eventc; i++) {
+                status = clReleaseEvent(events[i]);
+                if (status != CL_SUCCESS) {
+                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+                    exit(1);
+                }
+            }
+               eventc = 0;
+            }
+
+
+
 
        virtual ~OpenCLQueue(){
         clReleaseCommandQueue(command_queue);

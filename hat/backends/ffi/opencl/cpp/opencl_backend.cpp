@@ -49,20 +49,16 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
         exit(1);
     }
 
-    BufferState_s * bufferState = BufferState_s::of(
-      arg->value.buffer.memorySegment,
-      arg->value.buffer.sizeInBytes
-      );
+    BufferState_s * bufferState = BufferState_s::of(arg);
     if (openclConfig->trace){
        bufferState->dump("on allocation before assign");
     }
     bufferState->vendorPtr =  static_cast<void *>(this);
     if (openclConfig->trace){
         bufferState->dump("after assign ");
+        std::cout << "created buffer " << std::endl;
     }
-    if (openclConfig->trace){
-         std::cout << "created buffer " << std::endl;
-    }
+
 }
 
 
@@ -74,7 +70,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
      */
     auto openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
     auto openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
-    auto openclConfig = dynamic_cast<OpenCLConfig *>(openclKernel->program->backend->config);
+    auto openclConfig = dynamic_cast<OpenCLConfig *>(openclBackend->config);
     cl_int status = clEnqueueWriteBuffer( openclBackend->openclQueue.command_queue,
                                          clMem,
                                          CL_FALSE,
@@ -82,14 +78,16 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
                                          arg->value.buffer.sizeInBytes,
                                          arg->value.buffer.memorySegment,
                                          openclBackend->openclQueue.eventc,
-                                         (openclBackend->openclQueue.eventc == 0) ? NULL : openclBackend->openclQueue.events,
-                                         &(openclBackend->openclQueue.events[openclBackend->openclQueue.eventc]));
+                                         openclBackend->openclQueue.eventListPtr(),
+                                         openclBackend->openclQueue.nextEventPtr()
+                                       );
+    openclBackend->openclQueue.eventc++;
 
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    openclBackend->openclQueue.eventc++;
+
     if(openclConfig->trace){
         std::cout << "enqueued buffer copyToDevice " << std::endl;
     }
@@ -99,7 +97,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
     auto openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
     auto openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
 
-        auto openclConfig = dynamic_cast<OpenCLConfig *>(openclKernel->program->backend->config);
+    auto openclConfig = dynamic_cast<OpenCLConfig *>(openclKernel->program->backend->config);
     cl_int status = clEnqueueReadBuffer( openclBackend->openclQueue.command_queue,
                                         clMem,
                                         CL_FALSE,
@@ -107,14 +105,14 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
                                         arg->value.buffer.sizeInBytes,
                                         arg->value.buffer.memorySegment,
                                         openclBackend->openclQueue.eventc,
-                                        (openclBackend->openclQueue.eventc == 0) ? NULL : openclBackend->openclQueue.events,
-                                        &(openclBackend->openclQueue.events[openclBackend->openclQueue.eventc]));
-
+                                        openclBackend->openclQueue.eventListPtr(),
+                                        openclBackend->openclQueue.nextEventPtr()
+                                        );
+    openclBackend->openclQueue.eventc++;
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    openclBackend->openclQueue.eventc++;
     if(openclConfig->trace){
        std::cout << "enqueued buffer copyFromDevice " << std::endl;
     }
@@ -139,29 +137,26 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
    // std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
-      OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(program->backend);
+    OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(program->backend);
     OpenCLConfig *openclConfig = dynamic_cast<OpenCLConfig*>(openclBackend->config);
     if (openclConfig->trace){
        Sled::show(std::cout, argArray);
     }
-   // if (events != nullptr || eventc != 0) {
-     //   std::cerr << "opencl issue, we might have leaked events!" << std::endl;
-    //}
-   // eventMax = argSled.argc() * 4 + 1;
-    //eventc = 0;
-   // events = new cl_event[eventMax];
-
     NDRange *ndrange = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         switch (arg->variant) {
             case '&': {
-               auto openclBuffer = new OpenCLBuffer(this, arg);
-                BufferState_s * bufferState = BufferState_s::of(
-                             arg->value.buffer.memorySegment,
-                             arg->value.buffer.sizeInBytes
-                             );
-
+               BufferState_s * bufferState = BufferState_s::of(arg);
+               OpenCLBuffer * openclBuffer =nullptr;
+               if (bufferState->isHostNew()){
+                  openclBuffer = new OpenCLBuffer(this, arg);
+                 std::cout << "We allocated arg "<<i<<" buffer "<<std::endl;
+                   bufferState->clearHostNew();
+               }else{
+                 std::cout << "Were reusing  arg "<<i<<" buffer "<<std::endl;
+                    openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
+               }
                 if (arg->idx == 0){
                     ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
                 }
@@ -181,39 +176,21 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                 }
                 break;
             }
-            case 'I':
-            case 'F': {
-                cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(arg->value.x32), (void *) &arg->value);
+             case 'B':
+             case 'S':
+             case 'C':
+             case 'I':
+             case 'F':
+             case 'J':
+             case 'D':
+             {
+                cl_int status = clSetKernelArg(kernel, arg->idx, arg->size(), (void *) &arg->value);
                 if (status != CL_SUCCESS) {
                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
                     exit(1);
                 }
                 if (openclConfig->trace){
-                   std::cout << "set I or F arg " << arg->idx << std::endl;
-                }
-                break;
-            }
-            case 'S':
-            case 'C': {
-                cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(arg->value.x16), (void *) &arg->value);
-                if (status != CL_SUCCESS) {
-                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-                    exit(1);
-                }
-                if (openclConfig->trace){
-                   std::cout << "set S or C arg " << arg->idx << std::endl;
-                }
-                break;
-            }
-            case 'J':
-            case 'D': {
-                cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(arg->value.x64), (void *) &arg->value);
-                if (status != CL_SUCCESS) {
-                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-                    exit(1);
-                }
-                if (openclConfig->trace){
-                   std::cout << "set J or D arg " << arg->idx << std::endl;
+                   std::cerr << "set " <<arg->variant << " " << arg->idx << std::endl;
                 }
                 break;
             }
@@ -237,8 +214,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
             &globalSize,
             nullptr,
             openclBackend->openclQueue.eventc,
-            (openclBackend->openclQueue.eventc == 0) ? nullptr : openclBackend->openclQueue.events,
-            &(openclBackend->openclQueue.events[openclBackend->openclQueue.eventc]));
+            openclBackend->openclQueue.eventListPtr(),
+            openclBackend->openclQueue.nextEventPtr());
+    openclBackend->openclQueue.eventc++;
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
@@ -248,17 +226,12 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
        std::cout <<  " globalSize=" << globalSize << " " << std::endl;
     }
 
-    openclBackend->openclQueue.eventc++;
-    for (int i = 0; i < argSled.argc(); i++) {
+    for (int i = 1; i < argSled.argc(); i++) { // We don't need to copy back the KernelContext
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
-            BufferState_s * bufferState = BufferState_s::of(
-              arg->value.buffer.memorySegment,
-              arg->value.buffer.sizeInBytes
-              );
+            BufferState_s * bufferState = BufferState_s::of(arg );
             if (!openclConfig->minimizeCopies){
                static_cast<OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
-
                if (openclConfig->trace){
                 std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
                   bufferState->dump("After copy from device");
@@ -266,40 +239,10 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
             }
         }
     }
-    status = clWaitForEvents(openclBackend->openclQueue.eventc, openclBackend->openclQueue.events);
- //   openclBackend->openclQueue.showEvents(100);
-    if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-        exit(1);
-    }
-    for (int i = 0; i < openclBackend->openclQueue.eventc; i++) {
-        status = clReleaseEvent(openclBackend->openclQueue.events[i]);
-        if (status != CL_SUCCESS) {
-            std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-            exit(1);
-        }
-    }
-   // delete[] events;
-    //eventMax = 0;
-    // This should be GUARDED !!!!!!!!!!!!!!!!!
-   openclBackend->openclQueue.eventc = 0;
-    //events = nullptr;
-    for (int i = 0; i < argSled.argc(); i++) {
-        Arg_s *arg = argSled.arg(i);
-        if (arg->variant == '&') {
-            BufferState_s * bufferState = BufferState_s::of(
-                      arg->value.buffer.memorySegment,
-                      arg->value.buffer.sizeInBytes
-            );
-            if (!openclConfig->minimizeCopies){
-               delete static_cast<OpenCLBuffer *>(bufferState->vendorPtr);
-               bufferState->vendorPtr = nullptr;
-               if (openclConfig->trace){
-                  bufferState->dump("After deleting buffer ");
-               }
-            }
-        }
-    }
+    openclBackend->openclQueue.wait();
+    openclBackend->openclQueue.release();
+
+    /* NOte that we have leaked a clmem in the OpenCLBuffer attached to the Arg. **/
     return 0;
 }
 
