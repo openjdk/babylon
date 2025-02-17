@@ -162,12 +162,9 @@ public class MNISTDemo {
                     }
                     var msg = new StringBuilder("<html>&nbsp;");
                     for (int i = 0; i < 10; i++) {
-                        if (max == i) {
-                            msg.append("&nbsp;&nbsp;<b><u>%d:&nbsp;%.1f%%</u></b>".formatted(i, 100 * result.get(i)));
-                        } else {
-                            msg.append("&nbsp;&nbsp;%d:&nbsp;%.1f%%".formatted(i, 100 * result.get(i)));
-
-                        }
+                        msg.append((max == i ? "&nbsp;&nbsp;<b><u>%d:&nbsp;%.1f%%</u></b>"
+                                             : "&nbsp;&nbsp;%d:&nbsp;%.1f%%")
+                                .formatted(i, 100 * result.get(i)));
                     }
                     statusBar.setText(msg.toString());
                     cleanFlag.set(true);
