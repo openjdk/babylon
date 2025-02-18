@@ -58,17 +58,18 @@ extern void __checkOpenclErrors(cl_int status, const char *file, const int line)
 
 class OpenCLBackend : public Backend {
 public:
-    class OpenCLConfig : public Backend::Config {
+    class OpenCLConfig{
     public:
         const static  int GPU_BIT =1<<1;
         const static  int CPU_BIT =1<<2;
         const static  int MINIMIZE_COPIES_BIT =1<<3;
         const static  int TRACE_BIT =1<<4;
+        int mode;
         bool gpu;
         bool minimizeCopies;
         bool trace;
         OpenCLConfig(int mode):
-           Backend::Config(mode),
+           mode(mode),
            gpu((mode&GPU_BIT)==GPU_BIT),
            minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
            trace((mode&TRACE_BIT)==TRACE_BIT){
@@ -158,6 +159,7 @@ public:
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
+     OpenCLConfig openclConfig;
      OpenCLQueue openclQueue;
     OpenCLBackend(int mode, int platform, int device);
     ~OpenCLBackend();
@@ -171,3 +173,4 @@ public:
 public:
     static const char *errorMsg(cl_int status);
 };
+extern "C" long getOpenCLBackend(int mode, int platform, int device, int unused);

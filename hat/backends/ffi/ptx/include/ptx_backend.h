@@ -74,21 +74,6 @@ public:
 
 class PtxBackend : public Backend {
 public:
-    class PtxConfig : public Backend::Config {
-    public:
-      bool gpu;
-     PtxConfig(int mode):Backend::Config(mode), gpu(true){}
-                virtual ~PtxConfig(){}
-
-    };
-
-     class PtxQueue : public Backend::Config {
-        public:
-
-         PtxQueue():Backend::Queue(){}
-                    virtual ~PtxQueue(){}
-
-        };
 
     class PtxProgram : public Backend::Program {
         class PtxKernel : public Backend::Program::Kernel {
@@ -135,7 +120,7 @@ private:
     CUcontext context;
 public:
 
-    PtxBackend(int mode, int platform, int device, PtxConfig *ptxConfig, PtxQueue *ptxQueue);
+    PtxBackend(int mode);
 
     ~PtxBackend();
 
@@ -147,4 +132,5 @@ public:
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
 
 };
+extern "C" long getPtxBackend(int mode);
 

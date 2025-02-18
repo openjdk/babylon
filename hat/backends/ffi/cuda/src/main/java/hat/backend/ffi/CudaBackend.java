@@ -29,9 +29,24 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 
+import java.lang.invoke.MethodHandle;
+
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
 public class CudaBackend extends C99FFIBackend {
+
+    final MethodHandle getBackend_MH;
+    public long getBackend(int mode, int platform, int device) {
+        try {
+            backendHandle = (long) getBackend_MH.invoke(mode, platform, device);
+        } catch (Throwable throwable) {
+            throw new IllegalStateException(throwable);
+        }
+        return backendHandle;
+    }
     public CudaBackend() {
         super("cuda_backend");
+        getBackend_MH  =  nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
         getBackend(0,0, 0 );
         info();
     }

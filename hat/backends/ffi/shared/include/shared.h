@@ -343,12 +343,6 @@ public:
 
 class Backend {
 public:
-    class Config {
-    public:
-      Config(int mode){}
-      virtual ~Config(){}
-    };
-
 
     class Program {
     public:
@@ -413,12 +407,9 @@ public:
 
     };
     int mode;
-    int platform;
-    int device;
-    Config *config;
 
-    Backend(int mode, int platform, int device, Config *config)
-            : mode(mode), platform(platform), device(device), config(config){}
+    Backend(int mode)
+            : mode(mode){}
 
     virtual void info() = 0;
 
@@ -431,7 +422,6 @@ public:
     virtual ~Backend() {};
 };
 
-extern "C" long getBackend(int mode, int platform, int device);
 extern "C" void info(long backendHandle);
 extern "C" int getMaxComputeUnits(long backendHandle);
 extern "C" long compileProgram(long backendHandle, int len, char *source);

@@ -31,12 +31,26 @@ import hat.buffer.Buffer;
 import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
 
+import java.lang.invoke.MethodHandle;
+
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
 public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
+    final MethodHandle getBackend_MH;
+    public long getBackend(int mode, int platform, int device, int unused) {
+        try {
+            backendHandle = (long) getBackend_MH.invoke(mode, platform, device, unused);
+        } catch (Throwable throwable) {
+            throw new IllegalStateException(throwable);
+        }
+        return backendHandle;
+    }
 
     public OpenCLBackend() {
         super("opencl_backend");
         Mode mode = Mode.valueOf(System.getProperty("Mode", Mode.GPU.toString()));
-        getBackend(mode.value,0, 0 );
+        getBackend_MH  =  nativeLibrary.longFunc("getOpenCLBackend",JAVA_INT,JAVA_INT, JAVA_INT, JAVA_INT);
+        getBackend(mode.value,0, 0, 0 );
         info();
     }
 

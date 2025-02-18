@@ -357,8 +357,8 @@ bool PtxBackend::PtxProgram::programOK() {
     return true;
 }
 
-PtxBackend::PtxBackend(int mode, int platform, int device )
-        : Backend(mode, platform, device, new PtxBackend::PtxConfig(mode),new PtxBackend::PtxQueue()), device(),context()  {
+PtxBackend::PtxBackend(int mode )
+        : Backend(mode), device(),context()  {
   //  std::cout << "PtxBackend constructor " << ((ptxConfig == nullptr) ? "ptxConfig== null" : "got ptxConfig")
     //          << std::endl;
     int deviceCount = 0;
@@ -463,7 +463,7 @@ bool PtxBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegm
     std::cout << "attempting  to get buffer from PtxBackend "<<std::endl;
     return false;
 }
-long getBackend(int mode, int platform, int device) {
+long getPtxBackend(int mode, int platform, int device) {
     long backendHandle= reinterpret_cast<long>(new PtxBackend(mode, platform,device));
     std::cout << "getBackend() -> backendHandle=" << std::hex << backendHandle << std::dec << std::endl;
     return backendHandle;

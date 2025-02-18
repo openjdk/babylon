@@ -26,12 +26,6 @@
 
 class SpirvBackend : public Backend {
 public:
-    class SpirvConfig : public Backend::Config {
-    public :
-    SpirvConfig(int mode):Backend::Config(mode){}
-                     virtual ~SpirvConfig(){}
-    };
-
     class SpirvProgram : public Backend::Program {
         class SpirvKernel : public Backend::Program::Kernel {
         public:
@@ -66,8 +60,8 @@ public:
     };
 
 public:
-    SpirvBackend(int mode, int platform, int device)
-                : Backend(mode, platform, device, new SpirvConfig(mode)) {
+    SpirvBackend(int mode)
+                : Backend(mode) {
             std::cout << "spirvConfig != null" << std::endl;
     }
 
@@ -98,6 +92,6 @@ bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
     }
 };
 
-long getBackend(int mode, int platform, int device) {
-    return (long) new SpirvBackend(mode, platform, device);
+long getSpirvBackend(int mode) {
+    return (long) new SpirvBackend(mode);
 }

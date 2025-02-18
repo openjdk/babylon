@@ -34,9 +34,22 @@ import hat.optools.*;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.CoreOp;
+
+import java.lang.invoke.MethodHandle;
 import java.util.*;
 
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
 public class PTXBackend extends C99FFIBackend {
+    final MethodHandle getBackend_MH;
+    public long getBackend(int mode) {
+        try {
+            backendHandle = (long) getBackend_MH.invoke(mode);
+        } catch (Throwable throwable) {
+            throw new IllegalStateException(throwable);
+        }
+        return backendHandle;
+    }
     int major;
     int minor;
     String target;
@@ -54,7 +67,8 @@ public class PTXBackend extends C99FFIBackend {
         mathFns = new HashMap<>();
         usedMathFns = new HashSet<>();
         loadMathFns();
-        getBackend(0,0, 0);
+        getBackend_MH  =  nativeLibrary.longFunc("getPtxBackend",JAVA_INT);
+        getBackend(0);
     }
 
     @Override
