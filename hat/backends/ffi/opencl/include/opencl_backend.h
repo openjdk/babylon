@@ -26,28 +26,9 @@
 #define CL_TARGET_OPENCL_VERSION 120
 
 #ifdef __APPLE__
-#include <opencl/opencl.h>
-#define LongUnsignedNewline "%llu\n"
-#define Size_tNewline "%lu\n"
-#define LongHexNewline "(0x%llx)\n"
-#define alignedMalloc(size, alignment) memalign(alignment, size)
-#define SNPRINTF snprintf
+   #include <opencl/opencl.h>
 #else
-
-#include <CL/cl.h>
-#include <malloc.h>
-
-#define LongHexNewline "(0x%lx)\n"
-#define LongUnsignedNewline "%lu\n"
-#define Size_tNewline "%lu\n"
-#if defined (_WIN32)
-#include "windows.h"
-#define alignedMalloc(size, alignment) _aligned_malloc(size, alignment)
-#define SNPRINTF _snprintf
-#else
-#define alignedMalloc(size, alignment) memalign(alignment, size)
-#define SNPRINTF  snprintf
-#endif
+   #include <CL/cl.h>
 #endif
 
 #include "shared.h"
@@ -68,16 +49,8 @@ public:
         bool gpu;
         bool minimizeCopies;
         bool trace;
-        OpenCLConfig(int mode):
-           mode(mode),
-           gpu((mode&GPU_BIT)==GPU_BIT),
-           minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
-           trace((mode&TRACE_BIT)==TRACE_BIT){
-           printf("native gpu %d\n",gpu);
-           printf("native minimizeCopies %d\n", minimizeCopies);
-           printf("native trace %d\n", trace);
-        }
-        virtual ~OpenCLConfig(){}
+        OpenCLConfig(int mode);
+        virtual ~OpenCLConfig();
     };
     class OpenCLQueue {
     public:
@@ -85,44 +58,13 @@ public:
        cl_event *events;
        size_t eventc;
        cl_command_queue command_queue;
-       OpenCLQueue()
-          : eventMax(256), events(new cl_event[eventMax]), eventc(0){
-       }
-       cl_event *eventListPtr(){
-          return (eventc == 0) ? nullptr : events;
-       }
-        cl_event *nextEventPtr(){
-            return &events[eventc];
-        }
-        void showEvents(int width);
-         void wait(){
-                 cl_int status = clWaitForEvents(eventc, events);
-
-                    if (status != CL_SUCCESS) {
-                        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-                        exit(1);
-                    }
-        }
-        void release(){
-         cl_int status = CL_SUCCESS;
-
-            for (int i = 0; i < eventc; i++) {
-                status = clReleaseEvent(events[i]);
-                if (status != CL_SUCCESS) {
-                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-                    exit(1);
-                }
-            }
-               eventc = 0;
-            }
-
-
-
-
-       virtual ~OpenCLQueue(){
-        clReleaseCommandQueue(command_queue);
-        delete []events;
-       }
+       OpenCLQueue();
+       cl_event *eventListPtr();
+       cl_event *nextEventPtr();
+       void showEvents(int width);
+       void wait();
+       void release();
+       virtual ~OpenCLQueue();
     };
 
     class OpenCLProgram : public Backend::Program {

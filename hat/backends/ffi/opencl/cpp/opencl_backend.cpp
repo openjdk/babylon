@@ -23,8 +23,148 @@
  * questions.
  */
 #include "opencl_backend.h"
+#ifdef __APPLE__
+    #define LongUnsignedNewline "%llu\n"
+    #define Size_tNewline "%lu\n"
+    #define LongHexNewline "(0x%llx)\n"
+ //  #define alignedMalloc(size, alignment) memalign(alignment, size)
+#else
+    #include <malloc.h>
+    #define LongHexNewline "(0x%lx)\n"
+    #define LongUnsignedNewline "%lu\n"
+    #define Size_tNewline "%lu\n"
+    #if defined (_WIN32)
+        #include "windows.h"
+     //   #define alignedMalloc(size, alignment) _aligned_malloc(size, alignment)
+    #else
+     //  #define alignedMalloc(size, alignment) memalign(alignment, size)
+    #endif
+#endif
 
+OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
+       mode(mode),
+       gpu((mode&GPU_BIT)==GPU_BIT),
+       minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
+       trace((mode&TRACE_BIT)==TRACE_BIT){
+       printf("native gpu %d\n",gpu);
+        printf("native minimizeCopies %d\n", minimizeCopies);
+        printf("native trace %d\n", trace);
+ }
+ OpenCLBackend::OpenCLConfig::~OpenCLConfig(){
+ }
 
+ OpenCLBackend::OpenCLQueue::OpenCLQueue()
+  : eventMax(256), events(new cl_event[eventMax]), eventc(0){
+ }
+
+ cl_event *OpenCLBackend::OpenCLQueue::eventListPtr(){
+   return (eventc == 0) ? nullptr : events;
+  }
+ cl_event *OpenCLBackend::OpenCLQueue::nextEventPtr(){
+              return &events[eventc];
+ }
+
+void OpenCLBackend::OpenCLQueue::showEvents(int width) {
+
+    cl_ulong *samples = new cl_ulong[4 * eventc]; // queued, submit, start, end
+    int sample = 0;
+    cl_ulong min;
+    cl_ulong max;
+    for (int event = 0; event < eventc; event++) {
+        for (int type = 0; type < 4; type++) {
+            cl_profiling_info info;
+            switch (type) {
+                case 0:
+                    info = CL_PROFILING_COMMAND_QUEUED;
+                    break;
+                case 1:
+                    info = CL_PROFILING_COMMAND_SUBMIT;
+                    break;
+                case 2:
+                    info = CL_PROFILING_COMMAND_START;
+                    break;
+                case 3:
+                    info = CL_PROFILING_COMMAND_END;
+                    break;
+            }
+
+            if ((clGetEventProfilingInfo(events[event], info, sizeof(samples[sample]), &samples[sample], NULL)) !=
+                CL_SUCCESS) {
+                std::cerr << "failed to get profile info " << info << std::endl;
+            }
+            if (sample == 0) {
+                min = max = samples[sample];
+            } else {
+                if (samples[sample] < min) {
+                    min = samples[sample];
+                }
+                if (samples[sample] > max) {
+                    max = samples[sample];
+                }
+            }
+            sample++;
+        }
+    }
+    sample = 0;
+    int range = (max - min);
+    int scale = range / width;  // range per char
+    std::cout << "Range: " << range << "(ns)" << std::endl;
+    std::cout << "Scale: " << scale << " range (ns) per char" << std::endl;
+
+    for (int event = 0; event < eventc; event++) {
+        cl_ulong queue = (samples[sample++] - min) / scale;
+        cl_ulong submit = (samples[sample++] - min) / scale;
+        cl_ulong start = (samples[sample++] - min) / scale;
+        cl_ulong end = (samples[sample++] - min) / scale;
+        for (int c = 0; c < width; c++) {
+            if (c > queue) {
+                if (c > submit) {
+                    if (c > start) {
+                        if (c > end) {
+                            std::cout << " ";
+                        } else {
+                            std::cout << "=";
+                        }
+                    } else {
+                        std::cout << "#";
+                    }
+                } else {
+                    std::cout << "+";
+                }
+            } else {
+                std::cout << " ";
+            }
+        }
+        std::cout << std::endl;
+
+    }
+    delete[] samples;
+}
+ void OpenCLBackend::OpenCLQueue::wait(){
+     cl_int status = clWaitForEvents(eventc, events);
+      if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
+       }
+ }
+  void OpenCLBackend::OpenCLQueue::release(){
+      // showEvents(120);
+          cl_int status = CL_SUCCESS;
+
+             for (int i = 0; i < eventc; i++) {
+                 status = clReleaseEvent(events[i]);
+                 if (status != CL_SUCCESS) {
+                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+                     exit(1);
+                 }
+             }
+                eventc = 0;
+             }
+
+     OpenCLBackend::OpenCLQueue::~OpenCLQueue(){
+              clReleaseCommandQueue(command_queue);
+              delete []events;
+             }
 
 /*
   OpenCLBuffer
@@ -346,82 +486,6 @@ OpenCLBackend::~OpenCLBackend() {
 
 }
 
-void OpenCLBackend::OpenCLQueue::showEvents(int width) {
-
-    cl_ulong *samples = new cl_ulong[4 * eventc]; // queued, submit, start, end
-    int sample = 0;
-    cl_ulong min;
-    cl_ulong max;
-    for (int event = 0; event < eventc; event++) {
-        for (int type = 0; type < 4; type++) {
-            cl_profiling_info info;
-            switch (type) {
-                case 0:
-                    info = CL_PROFILING_COMMAND_QUEUED;
-                    break;
-                case 1:
-                    info = CL_PROFILING_COMMAND_SUBMIT;
-                    break;
-                case 2:
-                    info = CL_PROFILING_COMMAND_START;
-                    break;
-                case 3:
-                    info = CL_PROFILING_COMMAND_END;
-                    break;
-            }
-
-            if ((clGetEventProfilingInfo(events[event], info, sizeof(samples[sample]), &samples[sample], NULL)) !=
-                CL_SUCCESS) {
-                std::cerr << "failed to get profile info " << info << std::endl;
-            }
-            if (sample == 0) {
-                min = max = samples[sample];
-            } else {
-                if (samples[sample] < min) {
-                    min = samples[sample];
-                }
-                if (samples[sample] > max) {
-                    max = samples[sample];
-                }
-            }
-            sample++;
-        }
-    }
-    sample = 0;
-    int range = (max - min);
-    int scale = range / width;  // range per char
-    std::cout << "Range: " << range << "(ns)" << std::endl;
-    std::cout << "Scale: " << scale << " range (ns) per char" << std::endl;
-
-    for (int event = 0; event < eventc; event++) {
-        cl_ulong queue = (samples[sample++] - min) / scale;
-        cl_ulong submit = (samples[sample++] - min) / scale;
-        cl_ulong start = (samples[sample++] - min) / scale;
-        cl_ulong end = (samples[sample++] - min) / scale;
-        for (int c = 0; c < 80; c++) {
-            if (c > queue) {
-                if (c > submit) {
-                    if (c > start) {
-                        if (c > end) {
-                            std::cout << " ";
-                        } else {
-                            std::cout << "=";
-                        }
-                    } else {
-                        std::cout << "#";
-                    }
-                } else {
-                    std::cout << "+";
-                }
-            } else {
-                std::cout << " ";
-            }
-        }
-        std::cout << std::endl;
-
-    }
-    delete[] samples;
-}
 
 int OpenCLBackend::getMaxComputeUnits() {
     if (openclConfig.trace){
@@ -666,7 +730,12 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
             return error_table[ii].msg;
         }
     }
-    SNPRINTF(unknown, sizeof(unknown), "unmapped string for  error %d", status);
+     #if defined (_WIN32)
+        _snprintf
+     #else
+        snprintf
+     #endif
+     (unknown, sizeof(unknown), "unmapped string for  error %d", status);
     return unknown;
 }
 
