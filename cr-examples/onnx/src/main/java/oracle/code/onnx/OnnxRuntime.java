@@ -154,7 +154,7 @@ public final class OnnxRuntime {
         }
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
-                checkStatus(releaseEnv.invokeExact(envAddress, ret));
+                checkStatus(releaseEnv.invokeExact(runtimeAddress, envAddress, ret));
             } catch (Throwable t) {
                 throw wrap(t);
             }
@@ -306,8 +306,8 @@ public final class OnnxRuntime {
 
     public long[] tensorShape(MemorySegment tensorAddr) {
         try {
-            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(tensorAddr, ret));
-            long dims = retLong(getDimensionsCount.invokeExact(infoAddr, ret));
+            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(runtimeAddress, tensorAddr, ret));
+            long dims = retLong(getDimensionsCount.invokeExact(runtimeAddress, infoAddr, ret));
             var shape = arena.allocate(JAVA_LONG, dims);
             checkStatus(getDimensions.invokeExact(runtimeAddress, infoAddr, shape, dims));
             return shape.toArray(JAVA_LONG);
