@@ -512,19 +512,39 @@ void OpenCLBackend::computeEnd() {
  std::cout <<"compute end" <<std::endl;
  }
 }
+
+struct PlatformInfo{
+static char *str(cl_platform_id platform_id,cl_platform_info platform_info){
+     size_t sz;
+     cl_int  status = clGetPlatformInfo(platform_id, platform_info, 0, nullptr,  &sz);
+     char *ptr = new char[sz+1];
+     status = clGetPlatformInfo(platform_id, platform_info, sz, ptr,nullptr);
+     return ptr;
+}
+  char *versionName;
+  char *vendorName;
+  char *name;
+  PlatformInfo(cl_platform_id platform_id):
+     versionName(str(platform_id, CL_PLATFORM_VERSION)),
+     vendorName(str(platform_id, CL_PLATFORM_VENDOR)),
+     name(str(platform_id, CL_PLATFORM_NAME))
+     {
+  }
+  ~PlatformInfo(){
+     delete [] versionName;
+     delete [] vendorName;
+      delete [] name;
+  }
+};
+
+
 void OpenCLBackend::info() {
+    PlatformInfo platformInfo(platform_id);
     cl_int status;
     fprintf(stderr, "platform{\n");
-    char platformVersionName[512];
-    status = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, sizeof(platformVersionName), platformVersionName,
-                               NULL);
-    char platformVendorName[512];
-    char platformName[512];
-    status = clGetPlatformInfo(platform_id, CL_PLATFORM_VENDOR, sizeof(platformVendorName), platformVendorName, NULL);
-    status = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, sizeof(platformName), platformName, NULL);
-    fprintf(stderr, "   CL_PLATFORM_VENDOR..\"%s\"\n", platformVendorName);
-    fprintf(stderr, "   CL_PLATFORM_VERSION.\"%s\"\n", platformVersionName);
-    fprintf(stderr, "   CL_PLATFORM_NAME....\"%s\"\n", platformName);
+    fprintf(stderr, "   CL_PLATFORM_VENDOR..\"%s\"\n", platformInfo.vendorName);
+    fprintf(stderr, "   CL_PLATFORM_VERSION.\"%s\"\n", platformInfo.versionName);
+    fprintf(stderr, "   CL_PLATFORM_NAME....\"%s\"\n", platformInfo.name);
 
 
     cl_device_type deviceType;
