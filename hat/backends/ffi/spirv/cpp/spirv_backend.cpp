@@ -60,13 +60,10 @@ public:
     };
 
 public:
-    SpirvBackend(int mode)
-                : Backend(mode) {
-            std::cout << "spirvConfig != null" << std::endl;
+    SpirvBackend(int mode): Backend(mode) {
     }
 
     ~SpirvBackend() {
-
     }
 bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
     std::cout << "attempting  to get buffer from SpirvBackend "<<std::endl;

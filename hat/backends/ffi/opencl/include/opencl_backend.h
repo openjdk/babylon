@@ -159,8 +159,8 @@ public:
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
-     OpenCLConfig openclConfig;
-     OpenCLQueue openclQueue;
+    OpenCLConfig openclConfig;
+    OpenCLQueue openclQueue;
     OpenCLBackend(int mode, int platform, int device);
     ~OpenCLBackend();
     int getMaxComputeUnits();

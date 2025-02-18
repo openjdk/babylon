@@ -328,9 +328,8 @@ bool CudaBackend::CudaProgram::programOK() {
     return true;
 }
 
-CudaBackend::CudaBackend(CudaBackend::CudaConfig *cudaConfig, int
-configSchemaLen, char *configSchema)
-        : Backend((Backend::Config*) cudaConfig, configSchemaLen, configSchema), device(),context()  {
+CudaBackend::CudaBackend(int mode)
+        : Backend(mode), device(),context()  {
   //  std::cout << "CudaBackend constructor " << ((cudaConfig == nullptr) ? "cudaConfig== null" : "got cudaConfig")
     //          << std::endl;
     int deviceCount = 0;
@@ -349,9 +348,9 @@ configSchemaLen, char *configSchema)
     }
 }
 
-CudaBackend::CudaBackend() : CudaBackend(nullptr, 0, nullptr) {
-
-}
+//CudaBackend::CudaBackend() : CudaBackend(nullptr, 0, nullptr) {
+//
+//}
 
 CudaBackend::~CudaBackend() {
     std::cout << "freeing context" << std::endl;
@@ -435,10 +434,8 @@ long CudaBackend::compileProgram(int len, char *source) {
     }
 }
 
-long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    long backendHandle= reinterpret_cast<long>(
-            new CudaBackend(static_cast<CudaBackend::CudaConfig *>(config), configSchemaLen,
-                            configSchema));
+long getCudaBackend(int mode) {
+    long backendHandle= reinterpret_cast<long>(new CudaBackend(mode);
     std::cout << "getBackend() -> backendHandle=" << std::hex << backendHandle << std::dec << std::endl;
     return backendHandle;
 }

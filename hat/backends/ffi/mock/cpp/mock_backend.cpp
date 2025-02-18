@@ -26,18 +26,13 @@
 
 class MockBackend : public Backend {
 public:
-
-
     class MockProgram : public Backend::Program {
         class MockKernel : public Backend::Program::Kernel {
         public:
             MockKernel(Backend::Program *program, char *name)
                     : Backend::Program::Kernel(program, name) {
             }
-
-            ~MockKernel() {
-            }
-
+            ~MockKernel() {}
             long ndrange(void *argArray) {
                 std::cout << "mock ndrange() " << std::endl;
                 return 0;
@@ -63,10 +58,7 @@ public:
 
 public:
 
-    MockBackend(int mode)
-            : Backend(mode) {
-            std::cout << "mockConfig != null" << std::endl;
-
+    MockBackend(int mode): Backend(mode) {
     }
 
     ~MockBackend() {
