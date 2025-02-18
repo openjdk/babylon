@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.ByteBuffer;
@@ -68,7 +69,7 @@ public final class OnnxRuntime {
     private final Arena         arena;
     private final SymbolLookup  library;
     private final MemorySegment runtimeAddress, ret, envAddress, defaultAllocatorAddress;
-    private final MethodHandle  allocatorGetInfo,
+    private static final MethodHandle  allocatorGetInfo,
                                 createTensorWithDataAsOrtValue,
                                 createEnv,
                                 createSession,
@@ -90,22 +91,7 @@ public final class OnnxRuntime {
                                 sessionGetOutputName,
                                 setInterOpNumThreads;
 
-    private OnnxRuntime() {
-        arena = Arena.ofAuto();
-        library = SymbolLookup.libraryLookup(LIB_PATH, arena);
-        ret = arena.allocate(ADDR_WITH_ADDR);
-        try {
-            //  const OrtApi* ortPtr = OrtGetApiBase()->GetApi((uint32_t)apiVersion);
-            var apiBase = (MemorySegment)LINKER.downcallHandle(
-                    library.findOrThrow("OrtGetApiBase"),
-                    FunctionDescriptor.of(ADDR_WITH_ADDR)).invokeExact();
-            runtimeAddress = MemorySegment.ofAddress((long)LINKER.downcallHandle(
-                            (MemorySegment)VH_ADDRESS.get(apiBase, 0),
-                            FunctionDescriptor.of(JAVA_LONG, JAVA_INT)).invokeExact(ORT_VERSION))
-                    .reinterpret(285 * ADDRESS.byteSize());
-        } catch (Throwable t) {
-            throw wrap(t);
-        }
+    static {
         allocatorGetInfo               = handle( 77, ADDRESS, ADDRESS);
         createTensorWithDataAsOrtValue = handle( 49, ADDRESS, ADDRESS, JAVA_LONG, ADDRESS, JAVA_LONG, JAVA_INT, ADDRESS);
         createEnv                      = handle(  3, JAVA_INT, ADDRESS, ADDRESS);
@@ -127,24 +113,51 @@ public final class OnnxRuntime {
         sessionGetOutputCount          = handle( 31, ADDRESS, ADDRESS);
         sessionGetOutputName           = handle( 37, ADDRESS, JAVA_INT, ADDRESS, ADDRESS);
         setInterOpNumThreads           = handle( 25, ADDRESS, JAVA_INT);
+    }
+
+    private OnnxRuntime() {
+        arena = Arena.ofAuto();
+        library = SymbolLookup.libraryLookup(LIB_PATH, arena);
+        ret = arena.allocate(ADDR_WITH_ADDR);
         try {
-            envAddress = retAddr(createEnv.invokeExact(LOG_LEVEL, arena.allocateFrom(LOG_ID), ret));
-            defaultAllocatorAddress = retAddr(getAllocatorWithDefaultOptions.invokeExact(ret));
+            //  const OrtApi* ortPtr = OrtGetApiBase()->GetApi((uint32_t)apiVersion);
+            var apiBase = (MemorySegment)LINKER.downcallHandle(
+                    library.findOrThrow("OrtGetApiBase"),
+                    FunctionDescriptor.of(ADDR_WITH_ADDR)).invokeExact();
+            runtimeAddress = MemorySegment.ofAddress((long)LINKER.downcallHandle(
+                            (MemorySegment)VH_ADDRESS.get(apiBase, 0),
+                            FunctionDescriptor.of(JAVA_LONG, JAVA_INT)).invokeExact(ORT_VERSION))
+                    .reinterpret(285 * ADDRESS.byteSize());
+        } catch (Throwable t) {
+            throw wrap(t);
+        }
+        try {
+            envAddress = retAddr(createEnv.invokeExact(runtimeAddress, LOG_LEVEL, arena.allocateFrom(LOG_ID), ret));
+            defaultAllocatorAddress = retAddr(getAllocatorWithDefaultOptions.invokeExact(runtimeAddress, ret));
         } catch (Throwable t) {
             throw wrap(t);
         }
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
-                checkStatus(releaseEnv.invokeExact(envAddress, ret));
+                checkStatus(releaseEnv.invokeExact(runtimeAddress, envAddress, ret));
             } catch (Throwable t) {
                 throw wrap(t);
             }
         }));
     }
 
-    private MethodHandle handle(int methodIndex, MemoryLayout... args) {
-        var mh = LINKER.downcallHandle((MemorySegment)VH_ADDRESS.get(runtimeAddress, methodIndex * ADDRESS.byteSize()),
-                                     FunctionDescriptor.of(ADDRESS, args));
+    private static MethodHandle handle(int methodIndex, MemoryLayout... args) {
+        // create a "virtual" downcall handle with given function descriptor (MS, ...)->R
+        var mh = LINKER.downcallHandle(FunctionDescriptor.of(ADDRESS, args));
+        // obtain an indexed address method handle getter - (MS, long, long)->MS
+        var addressGetter = ADDRESS.arrayElementVarHandle()
+                .toMethodHandle(VarHandle.AccessMode.GET);
+        // inject provided method index into the address method handle getter - (MS)->MS
+        addressGetter = MethodHandles.insertArguments(addressGetter, 1, 0L, methodIndex);
+        // filter address argument of virtual downcall handle using the address method handle getter - (MS, ...)->R
+        // The resulting method handle expects 'runtimeAddress' as first parameter, and will access it accordingly
+        // to find the target address for the downcall
+        mh = MethodHandles.filterArguments(mh, 0, addressGetter);
         return mh.asType(mh.type().changeReturnType(Object.class));
     }
 
@@ -172,7 +185,7 @@ public final class OnnxRuntime {
 
     public Session createSession(String modelPath, SessionOptions options) {
         try {
-            return new Session(retAddr(createSession.invokeExact(envAddress, arena.allocateFrom(modelPath), options.sessionOptionsAddress, ret)));
+            return new Session(retAddr(createSession.invokeExact(runtimeAddress, envAddress, arena.allocateFrom(modelPath), options.sessionOptionsAddress, ret)));
         } catch (Throwable t) {
             throw wrap(t);
         }
@@ -184,7 +197,7 @@ public final class OnnxRuntime {
 
     private Session createSession(ByteBuffer model, SessionOptions options) {
         try {
-            return new Session(retAddr(createSessionFromArray.invokeExact(envAddress, MemorySegment.ofBuffer(model.rewind()), (long)model.limit(), options.sessionOptionsAddress, ret)));
+            return new Session(retAddr(createSessionFromArray.invokeExact(runtimeAddress, envAddress, MemorySegment.ofBuffer(model.rewind()), (long)model.limit(), options.sessionOptionsAddress, ret)));
         } catch (Throwable t) {
             throw wrap(t);
         }
@@ -200,7 +213,7 @@ public final class OnnxRuntime {
 
         public int getNumberOfInputs() {
             try {
-                return retInt(sessionGetInputCount.invokeExact(sessionAddress, ret));
+                return retInt(sessionGetInputCount.invokeExact(runtimeAddress, sessionAddress, ret));
             } catch (Throwable t) {
                 throw wrap(t);
             }
@@ -208,7 +221,7 @@ public final class OnnxRuntime {
 
         public String getInputName(int inputIndex) {
             try {
-                return retString(sessionGetInputName.invokeExact(sessionAddress, inputIndex, defaultAllocatorAddress, ret));
+                return retString(sessionGetInputName.invokeExact(runtimeAddress, sessionAddress, inputIndex, defaultAllocatorAddress, ret));
             } catch (Throwable t) {
                 throw wrap(t);
             }
@@ -216,7 +229,7 @@ public final class OnnxRuntime {
 
         public int getNumberOfOutputs() {
             try {
-                return retInt(sessionGetOutputCount.invokeExact(sessionAddress, ret));
+                return retInt(sessionGetOutputCount.invokeExact(runtimeAddress, sessionAddress, ret));
             } catch (Throwable t) {
                 throw wrap(t);
             }
@@ -224,7 +237,7 @@ public final class OnnxRuntime {
 
         public String getOutputName(int inputIndex) {
             try {
-                return retString(sessionGetOutputName.invokeExact(sessionAddress, inputIndex, defaultAllocatorAddress, ret));
+                return retString(sessionGetOutputName.invokeExact(runtimeAddress, sessionAddress, inputIndex, defaultAllocatorAddress, ret));
             } catch (Throwable t) {
                 throw wrap(t);
             }
@@ -251,7 +264,7 @@ public final class OnnxRuntime {
                 outputs.setAtIndex(ADDRESS, i, MemorySegment.NULL);
             }
             try {
-                checkStatus(run.invokeExact(sessionAddress, runOptions, inputNames, inputs, (long)inputLen, outputNames, (long)outputLen, outputs));
+                checkStatus(run.invokeExact(runtimeAddress, sessionAddress, runOptions, inputNames, inputs, (long)inputLen, outputNames, (long)outputLen, outputs));
                 var retArr = new MemorySegment[outputLen];
                 for (int i = 0; i < outputLen; i++) {
                     retArr[i] = outputs.getAtIndex(ADDRESS, i);
@@ -265,7 +278,7 @@ public final class OnnxRuntime {
         @Override
         public void close() {
             try {
-                checkStatus(releaseSession.invokeExact(sessionAddress));
+                checkStatus(releaseSession.invokeExact(runtimeAddress, sessionAddress));
             } catch (Throwable t) {
                 throw wrap(t);
             }
@@ -274,9 +287,9 @@ public final class OnnxRuntime {
 
     public MemorySegment createTensor(MemorySegment flatData, Tensor.ElementType elementType, long[] shape) {
         try {
-            var allocatorInfo = retAddr(allocatorGetInfo.invokeExact(defaultAllocatorAddress, ret));
+            var allocatorInfo = retAddr(allocatorGetInfo.invokeExact(runtimeAddress, defaultAllocatorAddress, ret));
             var shapeAddr = shape.length == 0 ? MemorySegment.NULL : arena.allocateFrom(JAVA_LONG, shape);
-            return retAddr(createTensorWithDataAsOrtValue.invokeExact(allocatorInfo, flatData, flatData.byteSize(), shapeAddr, (long)shape.length, elementType.id, ret));
+            return retAddr(createTensorWithDataAsOrtValue.invokeExact(runtimeAddress, allocatorInfo, flatData, flatData.byteSize(), shapeAddr, (long)shape.length, elementType.id, ret));
         } catch (Throwable t) {
             throw wrap(t);
         }
@@ -284,8 +297,8 @@ public final class OnnxRuntime {
 
     public Tensor.ElementType tensorElementType(MemorySegment tensorAddr) {
         try {
-            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(tensorAddr, ret));
-            return Tensor.ElementType.fromOnnxId(retInt(getTensorElementType.invokeExact(infoAddr, ret)));
+            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(runtimeAddress, tensorAddr, ret));
+            return Tensor.ElementType.fromOnnxId(retInt(getTensorElementType.invokeExact(runtimeAddress, infoAddr, ret)));
         } catch (Throwable t) {
             throw wrap(t);
         }
@@ -293,10 +306,10 @@ public final class OnnxRuntime {
 
     public long[] tensorShape(MemorySegment tensorAddr) {
         try {
-            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(tensorAddr, ret));
-            long dims = retLong(getDimensionsCount.invokeExact(infoAddr, ret));
+            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(runtimeAddress, tensorAddr, ret));
+            long dims = retLong(getDimensionsCount.invokeExact(runtimeAddress, infoAddr, ret));
             var shape = arena.allocate(JAVA_LONG, dims);
-            checkStatus(getDimensions.invokeExact(infoAddr, shape, dims));
+            checkStatus(getDimensions.invokeExact(runtimeAddress, infoAddr, shape, dims));
             return shape.toArray(JAVA_LONG);
         } catch (Throwable t) {
             throw wrap(t);
@@ -305,10 +318,10 @@ public final class OnnxRuntime {
 
     public ByteBuffer tensorBuffer(MemorySegment tensorAddr) {
         try {
-            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(tensorAddr, ret));
-            long size = retLong(getTensorShapeElementCount.invokeExact(infoAddr, ret))
-                    * Tensor.ElementType.fromOnnxId(retInt(getTensorElementType.invokeExact(infoAddr, ret))).size();
-            return retAddr(getTensorMutableData.invokeExact(tensorAddr, ret))
+            var infoAddr = retAddr(getTensorTypeAndShape.invokeExact(runtimeAddress, tensorAddr, ret));
+            long size = retLong(getTensorShapeElementCount.invokeExact(runtimeAddress, infoAddr, ret))
+                    * Tensor.ElementType.fromOnnxId(retInt(getTensorElementType.invokeExact(runtimeAddress, infoAddr, ret))).size();
+            return retAddr(getTensorMutableData.invokeExact(runtimeAddress, tensorAddr, ret))
                     .reinterpret(size)
                     .asByteBuffer().order(ByteOrder.nativeOrder());
         } catch (Throwable t) {
@@ -318,7 +331,7 @@ public final class OnnxRuntime {
 
     public SessionOptions createSessionOptions() {
         try {
-            return new SessionOptions(retAddr(createSessionOptions.invokeExact(ret)));
+            return new SessionOptions(retAddr(createSessionOptions.invokeExact(runtimeAddress, ret)));
         } catch (Throwable t) {
             throw wrap(t);
         }
@@ -335,7 +348,7 @@ public final class OnnxRuntime {
 
         public void setInterOpNumThreads(int numThreads) {
             try {
-                checkStatus(setInterOpNumThreads.invokeExact(sessionOptionsAddress, numThreads));
+                checkStatus(setInterOpNumThreads.invokeExact(runtimeAddress, sessionOptionsAddress, numThreads));
             } catch (Throwable t) {
                 throw wrap(t);
             }
