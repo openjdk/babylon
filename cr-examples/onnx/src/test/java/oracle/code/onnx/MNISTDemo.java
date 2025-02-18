@@ -50,7 +50,7 @@ import static oracle.code.onnx.Tensor.ElementType.*;
 public class MNISTDemo {
 
     private static float[] loadConstant(String resource) throws IOException {
-        var bb = ByteBuffer.wrap(MNISTDemo.class.getResourceAsStream(resource).readAllBytes());
+        var bb = ByteBuffer.wrap(MNISTDemo.class.getResourceAsStream(resource).readAllBytes()).order(ByteOrder.LITTLE_ENDIAN);
         return FloatBuffer.allocate(bb.capacity() / 4).put(bb.asFloatBuffer()).array();
     }
 
@@ -61,8 +61,8 @@ public class MNISTDemo {
         var scaledInput = Div(inputImage, Constant(255f));
 
         // First conv layer
-        var conv1Weights = Reshape(Constant(loadConstant("conv1-weight-float")), Constant(new long[]{6, 1, 5, 5}), empty());
-        var conv1Biases = Reshape(Constant(loadConstant("conv1-bias-float")), Constant(new long[]{6}), empty());
+        var conv1Weights = Reshape(Constant(loadConstant("conv1-weight-float-le")), Constant(new long[]{6, 1, 5, 5}), empty());
+        var conv1Biases = Reshape(Constant(loadConstant("conv1-bias-float-le")), Constant(new long[]{6}), empty());
         var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), of(new long[4]),
                 of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
                 of(1L), of(new long[]{5,5}));
@@ -73,8 +73,8 @@ public class MNISTDemo {
                 of(0L), empty(), of(new long[]{2, 2}), new long[]{2, 2});
 
         // Second conv layer
-        var conv2Weights = Reshape(Constant(loadConstant("conv2-weight-float")), Constant(new long[]{16, 6, 5, 5}), empty());
-        var conv2Biases = Reshape(Constant(loadConstant("conv2-bias-float")), Constant(new long[]{16}), empty());
+        var conv2Weights = Reshape(Constant(loadConstant("conv2-weight-float-le")), Constant(new long[]{16, 6, 5, 5}), empty());
+        var conv2Biases = Reshape(Constant(loadConstant("conv2-bias-float-le")), Constant(new long[]{16}), empty());
         var conv2 = Conv(pool1.Y(), conv2Weights, of(conv2Biases), of(new long[4]),
                 of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
                 of(1L), of(new long[]{5,5}));
@@ -88,20 +88,20 @@ public class MNISTDemo {
         var flatten = Flatten(pool2.Y(), of(1L));
 
         // First fully connected layer
-        var fc1Weights = Reshape(Constant(loadConstant("fc1-weight-float")), Constant(new long[]{120, 256}), empty());
-        var fc1Biases = Reshape(Constant(loadConstant("fc1-bias-float")), Constant(new long[]{120}), empty());
+        var fc1Weights = Reshape(Constant(loadConstant("fc1-weight-float-le")), Constant(new long[]{120, 256}), empty());
+        var fc1Biases = Reshape(Constant(loadConstant("fc1-bias-float-le")), Constant(new long[]{120}), empty());
         var fc1 = Gemm(flatten, fc1Weights, of(fc1Biases), of(1f), of(1L), of(1f), empty());
         var relu3 = Relu(fc1);
 
         // Second fully connected layer
-        var fc2Weights = Reshape(Constant(loadConstant("fc2-weight-float")), Constant(new long[]{84, 120}), empty());
-        var fc2Biases = Reshape(Constant(loadConstant("fc2-bias-float")), Constant(new long[]{84}), empty());
+        var fc2Weights = Reshape(Constant(loadConstant("fc2-weight-float-le")), Constant(new long[]{84, 120}), empty());
+        var fc2Biases = Reshape(Constant(loadConstant("fc2-bias-float-le")), Constant(new long[]{84}), empty());
         var fc2 = Gemm(relu3, fc2Weights, of(fc2Biases), of(1f), of(1L), of(1f), empty());
         var relu4 = Relu(fc2);
 
         // Softmax layer
-        var fc3Weights = Reshape(Constant(loadConstant("fc3-weight-float")), Constant(new long[]{10, 84}), empty());
-        var fc3Biases = Reshape(Constant(loadConstant("fc3-bias-float")), Constant(new long[]{10}), empty());
+        var fc3Weights = Reshape(Constant(loadConstant("fc3-weight-float-le")), Constant(new long[]{10, 84}), empty());
+        var fc3Biases = Reshape(Constant(loadConstant("fc3-bias-float-le")), Constant(new long[]{10}), empty());
         var fc3 = Gemm(relu4, fc3Weights, of(fc3Biases), of(1f), of(1L), of(1f), empty());
         var prediction = Softmax(fc3, of(1L));
 

@@ -24,6 +24,7 @@
 package oracle.code.onnx;
 
 import java.io.*;
+import java.lang.foreign.Arena;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
@@ -44,15 +45,10 @@ import java.util.Set;
 import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import onnx.OnnxMl;
+import java.util.function.Function;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -72,10 +68,22 @@ import static oracle.code.onnx.OnnxOperators.Softmax;
 // the verbosity e.g., esp. scalar constant expressions
 public class CNNTest {
 
+    private static final String IMAGES_PATH = CNNTest.class.getResource("images-ubyte").getPath();
+    private static final String LABELS_PATH = CNNTest.class.getResource("labels-ubyte").getPath();
+    private static final int IMAGES_HEADER_SIZE = 0;
+    private static final int LABELS_HEADER_SIZE = 0;
+
+//    static final String IMAGES_PATH = CNNTest.class.getResource("t10k-images-idx3-ubyte").getPath();
+//    static final String LABELS_PATH = CNNTest.class.getResource("t10k-labels-idx1-ubyte").getPath();
+//    static final int IMAGES_HEADER_SIZE = 16;
+//    static final int LABELS_HEADER_SIZE = 8;
+
+    private static final String GREY_SCALE = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+    private static final Arena ARENA = Arena.ofAuto();
+
     private static final int PIXEL_DEPTH = 255;
     private static final int NUM_CHANNELS = 1;
     private static final int IMAGE_SIZE = 28;
-    private static final int NUM_LABELS = 10;
 
     @CodeReflection
     public static Tensor<Float> cnn(
@@ -148,24 +156,6 @@ public class CNNTest {
         var prediction = Softmax(fc3, of(1L));
 
         return prediction;
-    }
-
-    @CodeReflection
-    public Tensor<Float> loadWeight(Initializer init) {
-        var buf = ByteBuffer.allocate(init.values().length).order(ByteOrder.nativeOrder());
-        buf.put(init.values());
-        buf.rewind();
-        var floatBuf = buf.asFloatBuffer();
-        var floatArr = new float[floatBuf.remaining()];
-        floatBuf.get(floatArr);
-        Tensor<Long> shape = Constant(
-                empty(), empty(), empty(), empty(), empty(), of(init.shape()), empty(), empty()
-        );
-        Tensor<Float> floats = Constant(
-                empty(), of(floatArr), empty(), empty(), empty(), empty(), empty(), empty()
-        );
-        var shaped = Reshape(floats, shape, empty());
-        return shaped;
     }
 
     static CoreOp.FuncOp cnnModel() {
@@ -331,19 +321,34 @@ public class CNNTest {
         });
     }
 
-    static List<Tensor> loadWeights() throws IOException {
-        try (var is = CNNTest.class.getResourceAsStream("lenet-torchscript.onnx")) {
-            return OnnxMl.ModelProto.parseFrom(is).getGraph().getInitializerList().stream()
-                    .map(init ->  {
-                        var bb = ByteBuffer.allocateDirect(init.getRawData().size());
-                        init.getRawData().copyTo(bb);
-                        return new Tensor(OnnxRuntime.getInstance().createTensor(
-                                MemorySegment.ofBuffer(bb.rewind()),
-                                Tensor.ElementType.fromOnnxId(init.getDataType()),
-                                init.getDimsList().stream().mapToLong(a -> a).toArray()));
-                    })
-                    .toList();
+    static void printImage(int imageIndex, ByteBuffer bb) {
+        System.out.println("Image #" + imageIndex + " :");
+        int offset = imageIndex * 28 * 28;
+        for (int y = 0; y < 28; y++) {
+            for (int x = 0; x < 28; x++) {
+                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & bb.get(offset + y * 28 + x)) / 256));
+            }
+            System.out.println();
         }
+    }
+
+    private static Tensor<Float> floatTensor(String resource, long... shape) throws IOException {
+        try (var file = new RandomAccessFile(CNNTest.class.getResource(resource).getPath(), "r")) {
+            return new Tensor(file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length(), ARENA), Tensor.ElementType.FLOAT, shape);
+        }
+    }
+
+    static List<Tensor> loadWeights() throws IOException {
+        return List.of(floatTensor("conv1-weight-float-le", 6, 1, 5, 5),
+                       floatTensor("conv1-bias-float-le", 6),
+                       floatTensor("conv2-weight-float-le", 16, 6, 5, 5),
+                       floatTensor("conv2-bias-float-le", 16),
+                       floatTensor("fc1-weight-float-le", 120, 256),
+                       floatTensor("fc1-bias-float-le", 120),
+                       floatTensor("fc2-weight-float-le", 84, 120),
+                       floatTensor("fc2-bias-float-le", 84),
+                       floatTensor("fc3-weight-float-le", 10, 84),
+                       floatTensor("fc3-bias-float-le", 10));
     }
 
     static int nextBestMatch(FloatBuffer fb) {
@@ -359,53 +364,45 @@ public class CNNTest {
         return maxI;
     }
 
-    private static final String GREY_SCALE = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-
-    static void printImage(int imageIndex, ByteBuffer bb) {
-        System.out.println("Image #" + imageIndex + " :");
-        int offset = imageIndex * 28 * 28;
-        for (int y = 0; y < 28; y++) {
-            for (int x = 0; x < 28; x++) {
-                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & bb.get(offset + y * 28 + x)) / 256));
-            }
-            System.out.println();
-        }
-    }
-
-//    static final String IMAGES_PATH = "t10k-images-idx3-ubyte";
-//    static final String LABELS_PATH = "t10k-labels-idx1-ubyte";
-//    static final int IMAGES_HEADER_SIZE = 16;
-//    static final int LABELS_HEADER_SIZE = 8;
-
-    static final String IMAGES_PATH = CNNTest.class.getResource("images-ubyte").getPath();
-    static final String LABELS_PATH = CNNTest.class.getResource("labels-ubyte").getPath();
-    static final int IMAGES_HEADER_SIZE = 0;
-    static final int LABELS_HEADER_SIZE = 0;
-
     @Test
-    public void test() throws Exception {
+    public void testModels() {
         CoreOp.FuncOp f = getFuncOp("cnn");
         CoreOp.FuncOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
         System.out.println(onnxModel.toText());
+
         CoreOp.FuncOp expectedOnnxModel = cnnModel();
         System.out.println(expectedOnnxModel.toText());
 
         Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
+    }
 
+    @Test
+    public void testInterpreter() throws Exception {
+        List<Tensor> weights = loadWeights();
+        test(inputImage -> cnn(weights.get(0), weights.get(1), weights.get(2), weights.get(3), weights.get(4),
+                               weights.get(5), weights.get(6), weights.get(7), weights.get(8), weights.get(9),
+                               inputImage));
+    }
+
+    @Test
+    public void testProtobufModel() throws Exception {
+        List<Tensor> weights = loadWeights();
+        test(inputImage -> new Tensor(OnnxRuntime.getInstance().runFunc(
+                    OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")),
+                    Stream.concat(weights.stream(), Stream.of(inputImage))
+                            .map(t -> Optional.of(t.tensorAddr)).toList()).getFirst()));
+    }
+
+    private void test(Function<Tensor, Tensor> executor) throws Exception {
         try (RandomAccessFile imagesF = new RandomAccessFile(IMAGES_PATH, "r");
              RandomAccessFile labelsF = new RandomAccessFile(LABELS_PATH, "r")) {
 
             ByteBuffer imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE);
             ByteBuffer labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE);
 
-            List<Tensor> weights = loadWeights();
-            Tensor inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8, new long[]{imagesF.length()});
+            Tensor inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
 
-            FloatBuffer result = new Tensor(OnnxRuntime.getInstance().runFunc(
-                    onnxModel,
-                    Stream.concat(weights.stream(), Stream.of(inputImage))
-                            .map(t -> Optional.of(t.tensorAddr)).toList()).getFirst())
-                    .asByteBuffer().asFloatBuffer();
+            FloatBuffer result = executor.apply(inputImage).asByteBuffer().asFloatBuffer();
 
             int matched = 0, mismatched = 0;
             while (result.remaining() > 0) {
@@ -441,47 +438,65 @@ public class CNNTest {
         return Op.ofMethod(m).get();
     }
 
-    public static void extractWeights(Path inputOnnx, Path outputSerialized) throws IOException  {
-        try (InputStream is = Files.newInputStream(inputOnnx)) {
-            OnnxMl.ModelProto model = OnnxMl.ModelProto.parseFrom(is);
-            OnnxMl.GraphProto graph = model.getGraph();
-            List<Initializer> initList = new ArrayList<>();
-            for (var init : graph.getInitializerList()) {
-                var name = init.getName();
-                var type = init.getDataType();
-                var shape = init.getDimsList().stream().mapToLong(a -> a).toArray();
-                var valuesBuf = init.getRawData().asReadOnlyByteBuffer();
-                var valuesArr = new byte[valuesBuf.remaining()];
-                valuesBuf.get(valuesArr);
-                var initializer = new Initializer(name, type, shape, valuesArr);
-                System.out.println(initializer);
-                initList.add(initializer);
-            }
-            try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(outputSerialized))) {
-                oos.writeObject(initList);
-            }
-        }
-    }
-
-    public record Initializer(String name, int type, long[] shape, byte[] values) implements java.io.Serializable {
-        @Override
-        public String toString() {
-            return "Initializer{" +
-                    "name='" + name + '\'' +
-                    ", type=" + type +
-                    ", shape=" + Arrays.toString(shape) +
-                    ", values.length=" + values.length +
-                    '}';
-        }
-    }
-
-    public static void main(String[] args) throws IOException {
-        Path inputPath = Path.of(args[0]);
-
-        Path outputPath = Path.of(args[1]);
-
-        extractWeights(inputPath, outputPath);
-    }
+//    @CodeReflection
+//    public Tensor<Float> loadWeight(Initializer init) {
+//        var buf = ByteBuffer.allocate(init.values().length).order(ByteOrder.nativeOrder());
+//        buf.put(init.values());
+//        buf.rewind();
+//        var floatBuf = buf.asFloatBuffer();
+//        var floatArr = new float[floatBuf.remaining()];
+//        floatBuf.get(floatArr);
+//        Tensor<Long> shape = Constant(
+//                empty(), empty(), empty(), empty(), empty(), of(init.shape()), empty(), empty()
+//        );
+//        Tensor<Float> floats = Constant(
+//                empty(), of(floatArr), empty(), empty(), empty(), empty(), empty(), empty()
+//        );
+//        var shaped = Reshape(floats, shape, empty());
+//        return shaped;
+//    }
+//
+//    public static void extractWeights(Path inputOnnx, Path outputSerialized) throws IOException  {
+//        try (InputStream is = Files.newInputStream(inputOnnx)) {
+//            OnnxMl.ModelProto model = OnnxMl.ModelProto.parseFrom(is);
+//            OnnxMl.GraphProto graph = model.getGraph();
+//            List<Initializer> initList = new ArrayList<>();
+//            for (var init : graph.getInitializerList()) {
+//                var name = init.getName();
+//                var type = init.getDataType();
+//                var shape = init.getDimsList().stream().mapToLong(a -> a).toArray();
+//                var valuesBuf = init.getRawData().asReadOnlyByteBuffer();
+//                var valuesArr = new byte[valuesBuf.remaining()];
+//                valuesBuf.get(valuesArr);
+//                var initializer = new Initializer(name, type, shape, valuesArr);
+//                System.out.println(initializer);
+//                initList.add(initializer);
+//            }
+//            try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(outputSerialized))) {
+//                oos.writeObject(initList);
+//            }
+//        }
+//    }
+//
+//    public record Initializer(String name, int type, long[] shape, byte[] values) implements java.io.Serializable {
+//        @Override
+//        public String toString() {
+//            return "Initializer{" +
+//                    "name='" + name + '\'' +
+//                    ", type=" + type +
+//                    ", shape=" + Arrays.toString(shape) +
+//                    ", values.length=" + values.length +
+//                    '}';
+//        }
+//    }
+//
+//    public static void main(String[] args) throws IOException {
+//        Path inputPath = Path.of(args[0]);
+//
+//        Path outputPath = Path.of(args[1]);
+//
+//        extractWeights(inputPath, outputPath);
+//    }
 
     /*
     ONNX code model
