@@ -96,7 +96,7 @@ public class Main {
 
     public static class Compute {
         @CodeReflection
-        public static int val(CellGrid grid, int from, int w, int x, int y) {
+        public static int val(@RO CellGrid grid, int from, int w, int x, int y) {
             return grid.cell( ((long) y * w)  + x +from)&1;
         }
 

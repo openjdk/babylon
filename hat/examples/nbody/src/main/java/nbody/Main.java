@@ -30,6 +30,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
+import static hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 
@@ -115,7 +116,7 @@ public class Main {
         protected final static float mass = .5f;
 
         @CodeReflection
-        static public void nbodyKernel(KernelContext kc, Universe universe, float mass, float delT, float espSqr) {
+        static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
             float accx = 0.0f;
             float accy = 0.0f;
             float accz = 0.0f;
@@ -144,7 +145,7 @@ public class Main {
         }
 
         @CodeReflection
-        public static void nbodyCompute(ComputeContext cc, Universe universe, float mass, float delT, float espSqr) {
+        public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, float mass, float delT, float espSqr) {
             float cmass = mass;
             float cdelT = delT;
             float cespSqr= espSqr;

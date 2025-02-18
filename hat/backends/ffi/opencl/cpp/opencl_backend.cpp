@@ -151,12 +151,16 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                OpenCLBuffer * openclBuffer =nullptr;
                if (bufferState->isHostNew()){
                   openclBuffer = new OpenCLBuffer(this, arg);
-                 std::cout << "We allocated arg "<<i<<" buffer "<<std::endl;
-                   bufferState->clearHostNew();
+                  if (openclConfig->trace){
+                     std::cout << "We allocated arg "<<i<<" buffer "<<std::endl;
+                  }
+                  bufferState->clearHostNew();
                }else{
-                 std::cout << "Were reusing  arg "<<i<<" buffer "<<std::endl;
-                    openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
-               }
+                  if (openclConfig->trace){
+                      std::cout << "Were reusing  arg "<<i<<" buffer "<<std::endl;
+                  }
+                  openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
+                }
                 if (arg->idx == 0){
                     ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
                 }
@@ -195,7 +199,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                 break;
             }
             default: {
-                std::cerr << "unexpected variant (ndrange) " << (char) arg->variant << std::endl;
+                std::cerr << "unexpected variant setting args in OpenCLkernel::ndrange " << (char) arg->variant << std::endl;
                 exit(1);
             }
         }
