@@ -2,6 +2,7 @@ package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -344,6 +345,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                         .tensor_type(new Tensor().elem_type(((OnnxType.TensorType)model.body().yieldType()).eType().id())))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
+        OnnxProtoPrinter.printModel(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN));
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
     }
 
