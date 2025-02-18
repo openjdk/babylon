@@ -116,10 +116,16 @@ public final class OnnxRuntime {
     }
 
     private static MethodHandle handle(int methodIndex, MemoryLayout... args) {
+        // create a "virtual" downcall handle with given function descriptor (MS, ...)->R
         var mh = LINKER.downcallHandle(FunctionDescriptor.of(ADDRESS, args));
+        // obtain an indexed address method handle getter - (MS, long, long)->MS
         var addressGetter = ADDRESS.arrayElementVarHandle()
                 .toMethodHandle(VarHandle.AccessMode.GET);
+        // inject provided method index into the address method handle getter - (MS)->MS
         addressGetter = MethodHandles.insertArguments(addressGetter, 1, 0L, methodIndex);
+        // filter address argument of virtual downcall handle using the address method handle getter - (MS, ...)->R
+        // The resulting method handle expects 'runtimeAddress' as first parameter, and will access it accordingly
+        // to find the target address for the downcall
         mh = MethodHandles.filterArguments(mh, 0, addressGetter);
         return mh.asType(mh.type().changeReturnType(Object.class));
     }
