@@ -345,7 +345,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                         .tensor_type(new Tensor().elem_type(((OnnxType.TensorType)model.body().yieldType()).eType().id())))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
-        OnnxProtoPrinter.printModel(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN));
+//        OnnxProtoPrinter.printModel(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN));
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
     }
 

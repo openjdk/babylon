@@ -338,7 +338,7 @@ public class CNNTest {
         }
     }
 
-    static List<Tensor> loadWeights() throws IOException {
+    static List<Tensor<Float>> loadWeights() throws IOException {
         return List.of(floatTensor("conv1-weight-float-le", 6, 1, 5, 5),
                        floatTensor("conv1-bias-float-le", 6),
                        floatTensor("conv2-weight-float-le", 16, 6, 5, 5),
@@ -378,7 +378,7 @@ public class CNNTest {
 
     @Test
     public void testInterpreter() throws Exception {
-        List<Tensor> weights = loadWeights();
+        var weights = loadWeights();
         test(inputImage -> cnn(weights.get(0), weights.get(1), weights.get(2), weights.get(3), weights.get(4),
                                weights.get(5), weights.get(6), weights.get(7), weights.get(8), weights.get(9),
                                inputImage));
@@ -386,21 +386,21 @@ public class CNNTest {
 
     @Test
     public void testProtobufModel() throws Exception {
-        List<Tensor> weights = loadWeights();
+        var weights = loadWeights();
         test(inputImage -> new Tensor(OnnxRuntime.getInstance().runFunc(
                     OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")),
                     Stream.concat(weights.stream(), Stream.of(inputImage))
                             .map(t -> Optional.of(t.tensorAddr)).toList()).getFirst()));
     }
 
-    private void test(Function<Tensor, Tensor> executor) throws Exception {
+    private void test(Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {
         try (RandomAccessFile imagesF = new RandomAccessFile(IMAGES_PATH, "r");
              RandomAccessFile labelsF = new RandomAccessFile(LABELS_PATH, "r")) {
 
             ByteBuffer imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE);
             ByteBuffer labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE);
 
-            Tensor inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
+            Tensor<Byte> inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
 
             FloatBuffer result = executor.apply(inputImage).asByteBuffer().asFloatBuffer();
 
