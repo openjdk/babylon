@@ -380,7 +380,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         }
     }
     openclBackend->openclQueue.wait();
-    openclBackend->openclQueue.release();
+   // openclBackend->openclQueue.release(); release in computeEnd
 
     /* NOte that we have leaked a clmem in the OpenCLBuffer attached to the Arg. **/
     return 0;
@@ -506,6 +506,8 @@ void OpenCLBackend::computeStart() {
   }
 }
 void OpenCLBackend::computeEnd() {
+ //openclQueue.showEvents(100);
+ openclQueue.release();
  if (openclConfig.trace){
  std::cout <<"compute end" <<std::endl;
  }
