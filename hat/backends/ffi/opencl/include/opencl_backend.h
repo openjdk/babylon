@@ -166,6 +166,8 @@ public:
     int getMaxComputeUnits();
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
     void info();
+    void computeStart();
+    void computeEnd();
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
     long compileProgram(int len, char *source);

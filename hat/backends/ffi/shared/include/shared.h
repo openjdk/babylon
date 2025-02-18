@@ -413,6 +413,9 @@ public:
 
     virtual void info() = 0;
 
+     virtual void computeStart() = 0;
+      virtual void computeEnd() = 0;
+
     virtual int getMaxComputeUnits() = 0;
 
     virtual long compileProgram(int len, char *source) = 0;
@@ -431,5 +434,7 @@ extern "C" void releaseProgram(long programHandle);
 extern "C" bool programOK(long programHandle);
 extern "C" void releaseKernel(long kernelHandle);
 extern "C" long ndrange(long kernelHandle, void *argArray);
+extern "C" void computeStart(long backendHandle);
+extern "C" void computeEnd(long backendHandle);
 extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength);
 

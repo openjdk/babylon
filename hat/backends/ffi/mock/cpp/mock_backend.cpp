@@ -65,7 +65,7 @@ public:
     }
 
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
-        std::cout << "attempting  to get buffer from Mockackend "<<std::endl;
+        std::cout << "attempting  to get buffer from Mockbackend "<<std::endl;
         return false;
     }
 
@@ -77,6 +77,12 @@ public:
     void info() {
         std::cout << "mock info()" << std::endl;
     }
+     void computeStart(){
+           std::cout << "mock compute start()" << std::endl;
+         }
+            void computeEnd(){
+              std::cout << "mock compute start()" << std::endl;
+            }
 
     long compileProgram(int len, char *source) {
         std::cout << "mock compileProgram()" << std::endl;

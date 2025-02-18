@@ -77,6 +77,12 @@ bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
     void info() {
         std::cout << "spirv info()" << std::endl;
     }
+     void computeStart(){
+       std::cout << "spirv compute start()" << std::endl;
+     }
+        void computeEnd(){
+          std::cout << "spirv compute start()" << std::endl;
+        }
 
     long compileProgram(int len, char *source) {
         std::cout << "spirv compileProgram()" << std::endl;

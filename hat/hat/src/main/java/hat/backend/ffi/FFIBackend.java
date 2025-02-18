@@ -84,6 +84,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
 
 
         boolean interpret = false;
+        computeStart();
         if (interpret) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op(), args);
         } else {
@@ -97,6 +98,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 throw new RuntimeException(e);
             }
         }
+        computeEnd();
     }
 
     static void wrapInvoke(InvokeOpWrapper iow, Block.Builder bldr, ComputeContext.WRAPPER wrapper, Value cc, Value iface) {

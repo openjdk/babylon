@@ -436,7 +436,16 @@ int OpenCLBackend::getMaxComputeUnits() {
     return value;
 
 }
-
+void OpenCLBackend::computeStart() {
+  if (openclConfig.trace){
+  std::cout <<"compute start" <<std::endl;
+  }
+}
+void OpenCLBackend::computeEnd() {
+ if (openclConfig.trace){
+ std::cout <<"compute end" <<std::endl;
+ }
+}
 void OpenCLBackend::info() {
     cl_int status;
     fprintf(stderr, "platform{\n");

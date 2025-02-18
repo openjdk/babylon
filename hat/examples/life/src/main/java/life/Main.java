@@ -129,7 +129,7 @@ public class Main {
 
         @CodeReflection
         static public void compute(final ComputeContext cc, Viewer viewer, Control ctrl, CellGrid grid) {
-            while (viewer.isVisible()) {
+          //  while (viewer.isVisible()) {
                 cc.dispatchKernel(
                         grid.width() * grid.height(),
                         kc -> Compute.life(kc, ctrl, grid)
@@ -138,7 +138,7 @@ public class Main {
                 if (viewer.isReadyForUpdate()) {
                     viewer.update(grid, to);
                 }
-            }
+         //   }
         }
     }
 
@@ -164,7 +164,9 @@ public class Main {
         final Viewer viewer = new Viewer("Life", control, cellGrid);
         viewer.update(cellGrid, 0);
         viewer.waitForStart();
-        accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
+        while (viewer.isVisible()) {
+            accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
+        }
 
     }
 }
