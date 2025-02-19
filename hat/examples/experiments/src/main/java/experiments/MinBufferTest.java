@@ -27,42 +27,43 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.backend.DebugBackend;
 import hat.backend.ffi.OpenCLBackend;
-import hat.buffer.Buffer;
 import hat.buffer.S32Array;
-import hat.buffer.S32Array2D;
-import hat.ifacemapper.BoundSchema;
 import jdk.incubator.code.CodeReflection;
 
-import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.MethodHandles;
 
-public class MinBufferTest implements Buffer {
+public class MinBufferTest {
 
-    @CodeReflection
-    public static void inc(KernelContext kc, S32Array s32Array, int len) {
-        if (kc.x<kc.maxX){
-            s32Array.array(kc.x, s32Array.array(kc.x)+1);
+
+    public static class Compute {
+        @CodeReflection
+        public static void inc(KernelContext kc, S32Array s32Array, int len) {
+            if (kc.x < kc.maxX) {
+                s32Array.array(kc.x, s32Array.array(kc.x) + 1);
+            }
         }
-    }
-    @CodeReflection
-    public static void multiply(ComputeContext cc, S32Array s32Array, int len,  int n) {
-        cc.dispatchKernel(len,kc->MinBufferTest.inc(kc,  s32Array, len));
+
+        @CodeReflection
+        public static void multiply(ComputeContext cc, S32Array s32Array, int len, int n) {
+            for (int i = 0; i < n; i++) {
+                cc.dispatchKernel(len, kc -> inc(kc, s32Array, len));
+            }
+        }
     }
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new OpenCLBackend());
-        int len = 1000;
-        int mul = 1;
-        S32Array s32Array  = S32Array.create(accelerator, len);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new OpenCLBackend());
+        int len = 1000000;
+        int mul = 10;
+        S32Array s32Array = S32Array.create(accelerator, len);
         for (int i = 0; i < len; i++) {
-            s32Array.array(i,i);
+            s32Array.array(i, i);
         }
-        accelerator.compute(cc->MinBufferTest.multiply(cc,s32Array,len,mul));
+        accelerator.compute(
+                cc -> Compute.multiply(cc, s32Array, len, mul));
         for (int i = 0; i < 20; i++) {
-            System.out.println(i+"="+s32Array.array(i));
+            System.out.println(i + "=" + s32Array.array(i));
         }
         /*
         GroupLayout groupLayout = (GroupLayout) Buffer.getLayout(s32Array);
