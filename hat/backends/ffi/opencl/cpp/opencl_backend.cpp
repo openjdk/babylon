@@ -23,6 +23,7 @@
  * questions.
  */
 #include "opencl_backend.h"
+//#include <iomanip>
 #ifdef __APPLE__
     #define LongUnsignedNewline "%llu\n"
     #define Size_tNewline "%lu\n"
@@ -70,30 +71,19 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
     int sample = 0;
     cl_ulong min;
     cl_ulong max;
+    cl_profiling_info profiling_info_arr[]={CL_PROFILING_COMMAND_QUEUED,CL_PROFILING_COMMAND_SUBMIT,CL_PROFILING_COMMAND_START,CL_PROFILING_COMMAND_END} ;
+    const char* profiling_info_name_arr[]={"CL_PROFILING_COMMAND_QUEUED","CL_PROFILING_COMMAND_SUBMIT","CL_PROFILING_COMMAND_START","CL_PROFILING_COMMAND_END"} ;
+
     for (int event = 0; event < eventc; event++) {
         for (int type = 0; type < 4; type++) {
-            cl_profiling_info info;
-            switch (type) {
-                case 0:
-                    info = CL_PROFILING_COMMAND_QUEUED;
-                    break;
-                case 1:
-                    info = CL_PROFILING_COMMAND_SUBMIT;
-                    break;
-                case 2:
-                    info = CL_PROFILING_COMMAND_START;
-                    break;
-                case 3:
-                    info = CL_PROFILING_COMMAND_END;
-                    break;
-            }
-
-            if ((clGetEventProfilingInfo(events[event], info, sizeof(samples[sample]), &samples[sample], NULL)) !=
+            if ((clGetEventProfilingInfo(events[event], profiling_info_arr[type], sizeof(samples[sample]), &samples[sample], NULL)) !=
                 CL_SUCCESS) {
-                std::cerr << "failed to get profile info " << info << std::endl;
+                std::cerr << "failed to get profile info " << profiling_info_name_arr[type] << std::endl;
             }
             if (sample == 0) {
-                min = max = samples[sample];
+                if (type == 0){
+                   min = max = samples[sample];
+                }
             } else {
                 if (samples[sample] < min) {
                     min = samples[sample];
@@ -108,32 +98,37 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
     sample = 0;
     int range = (max - min);
     int scale = range / width;  // range per char
-    std::cout << "Range: " << range << "(ns)" << std::endl;
-    std::cout << "Scale: " << scale << " range (ns) per char" << std::endl;
+    std::cout << "Range: " <<min<< "-" <<max<< "("<< range << "ns)"
+        <<  "  (" << scale << "ns) per char"
+        << " +:submitted, #:started, =:end  "<< std::endl;
 
     for (int event = 0; event < eventc; event++) {
+    cl_command_type command_type;
+        clGetEventInfo(events[event],CL_EVENT_COMMAND_TYPE,sizeof(command_type), &command_type, nullptr);
+        switch (command_type){
+        case CL_COMMAND_NDRANGE_KERNEL: std::cout <<   "kernel "; break;
+          case CL_COMMAND_READ_BUFFER: std::cout <<    "  read "; break;
+            case CL_COMMAND_WRITE_BUFFER: std::cout << " write "; break;
+              default: std::cout <<                    " other "; break;
+        }
+        long eventStart=samples[sample];
         cl_ulong queue = (samples[sample++] - min) / scale;
         cl_ulong submit = (samples[sample++] - min) / scale;
         cl_ulong start = (samples[sample++] - min) / scale;
+        long eventEnd=samples[sample];
         cl_ulong end = (samples[sample++] - min) / scale;
+
+        std::cout << std::setw(10)<< (eventEnd-eventStart) << "(ns) ";
         for (int c = 0; c < width; c++) {
-            if (c > queue) {
-                if (c > submit) {
-                    if (c > start) {
-                        if (c > end) {
-                            std::cout << " ";
-                        } else {
-                            std::cout << "=";
-                        }
-                    } else {
-                        std::cout << "#";
-                    }
-                } else {
-                    std::cout << "+";
-                }
-            } else {
-                std::cout << " ";
+            char ch = ' ';
+            if (c >= queue && c<submit) {
+                ch = '+';
+            }else if (c>= submit && c<start){
+                ch = '#';
+            }else if (c>= start && c<end){
+                ch = '=';
             }
+            std::cout << ch;
         }
         std::cout << std::endl;
 
@@ -148,7 +143,7 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
        }
  }
   void OpenCLBackend::OpenCLQueue::release(){
-      // showEvents(120);
+    //   showEvents(120);
           cl_int status = CL_SUCCESS;
 
              for (int i = 0; i < eventc; i++) {
@@ -506,7 +501,7 @@ void OpenCLBackend::computeStart() {
   }
 }
 void OpenCLBackend::computeEnd() {
- //openclQueue.showEvents(100);
+ openclQueue.showEvents(100);
  openclQueue.release();
  if (openclConfig.trace){
  std::cout <<"compute end" <<std::endl;
