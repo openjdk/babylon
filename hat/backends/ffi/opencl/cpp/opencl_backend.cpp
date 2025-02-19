@@ -50,7 +50,7 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
        trace((mode&TRACE_BIT)==TRACE_BIT),
        profile((mode&PROFILE_BIT)==PROFILE_BIT){
        printf("native gpu %d\n",gpu);
-       printf("native cpu %d\n",gpu);
+       printf("native cpu %d\n",cpu);
        printf("native minimizeCopies %d\n", minimizeCopies);
        printf("native trace %d\n", trace);
        printf("native profile %d\n",profile);

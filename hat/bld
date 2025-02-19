@@ -267,7 +267,11 @@ void main(String[] args) {
         jar(hatJarOptions, jar -> jar
                 .jarFile(jarFile)
                 .maven_style_root(example)
-                .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile, openclCapability.jarFile(buildDir), openglCapability.jarFile(buildDir)))
+                .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile, 
+                            buildDir.jarFile("wrap.jar"),
+                            buildDir.jarFile("clwrap.jar"),
+                            buildDir.jarFile("glwrap.jar"),
+                            openclCapability.jarFile(buildDir), openglCapability.jarFile(buildDir)))
         );
     }
 

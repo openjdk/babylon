@@ -79,7 +79,7 @@ void main(String[] argv) {
            if (examples.dir(exampleName) instanceof DirEntry example && example.exists()) { haveBackend
               .class_path(buildDir.jarFile("hat-example-" + exampleName + "-1.0.jar"))
               .when(jextractedOpenCLJar.exists() && jextractedOpenGLJar.exists() && exampleName.equals("nbody"), _->{ haveBackend
-                  .class_path(jextractedOpenCLJar,jextractedOpenGLJar)
+                  .class_path(jextractedOpenCLJar,jextractedOpenGLJar, wrapJar, clwrapJar, glwrapJar )
                   .start_on_first_thread();
               })
               .main_class(exampleName + ".Main")

@@ -27,6 +27,7 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.backend.ffi.OpenCLBackend;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 import hat.backend.DebugBackend;
@@ -58,9 +59,9 @@ public class Mesh {
 
         }
 
-        int points();
+       int points();
 
-        void points(int points);
+      //  void points(int points);
 
         Point3D point(long idx);
 
@@ -77,7 +78,7 @@ public class Mesh {
 
         int vertices();
 
-        void vertices(int vertices);
+       // void vertices(int vertices);
 
         Vertex3D vertex(long idx);
 
@@ -136,10 +137,12 @@ public class Mesh {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),new DebugBackend(
-                DebugBackend.HowToRunCompute.REFLECT,
-                DebugBackend.HowToRunKernel.BABYLON_INTERPRETER));
-        MeshData.schema.toText(t -> System.out.print(t));
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup()
+                ,new OpenCLBackend(OpenCLBackend.Mode.PROFILE_GPU_TRACE));
+                //,new DebugBackend(
+                //DebugBackend.HowToRunCompute.REFLECT,
+                //DebugBackend.HowToRunKernel.BABYLON_INTERPRETER));
+      //  MeshData.schema.toText(t -> System.out.print(t));
 
         var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
         var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);
@@ -148,9 +151,7 @@ public class Mesh {
         String layoutNew = Buffer.getLayout(meshDataNew).toString();
         String layoutOld = Buffer.getLayout(meshDataOld).toString();
         if (layoutOld.equals(layoutNew)) {
-            MeshData meshData = meshDataNew;
-            meshData.points(100);
-            meshData.vertices(10);
+            MeshData meshData = MeshData.create(accelerator);
             Random random = new Random(System.currentTimeMillis());
             for (int p = 0; p < meshData.points(); p++) {
                 var point3D = meshData.point(p);
