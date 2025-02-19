@@ -45,11 +45,15 @@
 OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
        mode(mode),
        gpu((mode&GPU_BIT)==GPU_BIT),
+       cpu((mode&CPU_BIT)==CPU_BIT),
        minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
-       trace((mode&TRACE_BIT)==TRACE_BIT){
+       trace((mode&TRACE_BIT)==TRACE_BIT),
+       profile((mode&PROFILE_BIT)==PROFILE_BIT){
        printf("native gpu %d\n",gpu);
-        printf("native minimizeCopies %d\n", minimizeCopies);
-        printf("native trace %d\n", trace);
+       printf("native cpu %d\n",gpu);
+       printf("native minimizeCopies %d\n", minimizeCopies);
+       printf("native trace %d\n", trace);
+       printf("native profile %d\n",profile);
  }
  OpenCLBackend::OpenCLConfig::~OpenCLConfig(){
  }
@@ -103,13 +107,13 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
         << " +:submitted, #:started, =:end  "<< std::endl;
 
     for (int event = 0; event < eventc; event++) {
-    cl_command_type command_type;
+        cl_command_type command_type;
         clGetEventInfo(events[event],CL_EVENT_COMMAND_TYPE,sizeof(command_type), &command_type, nullptr);
         switch (command_type){
-        case CL_COMMAND_NDRANGE_KERNEL: std::cout <<   "kernel "; break;
+          case CL_COMMAND_NDRANGE_KERNEL: std::cout <<   "kernel "; break;
           case CL_COMMAND_READ_BUFFER: std::cout <<    "  read "; break;
-            case CL_COMMAND_WRITE_BUFFER: std::cout << " write "; break;
-              default: std::cout <<                    " other "; break;
+          case CL_COMMAND_WRITE_BUFFER: std::cout << " write "; break;
+          default: std::cout <<                    " other "; break;
         }
         long eventStart=samples[sample];
         cl_ulong queue = (samples[sample++] - min) / scale;
@@ -118,7 +122,7 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
         long eventEnd=samples[sample];
         cl_ulong end = (samples[sample++] - min) / scale;
 
-        std::cout << std::setw(10)<< (eventEnd-eventStart) << "(ns) ";
+        std::cout << std::setw(8)<< (eventEnd-eventStart) << "(ns) ";
         for (int c = 0; c < width; c++) {
             char ch = ' ';
             if (c >= queue && c<submit) {
@@ -131,7 +135,6 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
             std::cout << ch;
         }
         std::cout << std::endl;
-
     }
     delete[] samples;
 }
@@ -143,7 +146,6 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
        }
  }
   void OpenCLBackend::OpenCLQueue::release(){
-    //   showEvents(120);
           cl_int status = CL_SUCCESS;
 
              for (int i = 0; i < eventc; i++) {
@@ -493,18 +495,19 @@ int OpenCLBackend::getMaxComputeUnits() {
         exit(1);
     }
     return value;
-
 }
 void OpenCLBackend::computeStart() {
   if (openclConfig.trace){
-  std::cout <<"compute start" <<std::endl;
+     std::cout <<"compute start" <<std::endl;
   }
 }
 void OpenCLBackend::computeEnd() {
- openclQueue.showEvents(100);
+ if (openclConfig.profile){
+     openclQueue.showEvents(100);
+ }
  openclQueue.release();
  if (openclConfig.trace){
- std::cout <<"compute end" <<std::endl;
+     std::cout <<"compute end" <<std::endl;
  }
 }
 
@@ -539,46 +542,43 @@ static char *str(cl_device_id device_id, cl_device_info device_info){
      status = clGetDeviceInfo(device_id, device_info, sz, ptr,nullptr);
      return ptr;
 }
- // char *versionName;
- // char *vendorName;
- // char *name;
-  cl_device_type type;
-    char *deviceType;
 
-  DeviceInfo(cl_device_id device_id){
-       cl_device_type device_type;
-       clGetDeviceInfo(device_id, CL_DEVICE_TYPE, sizeof(device_type), &device_type, NULL);
-       type = device_type;
-       char deviceTypeString[512];
-       deviceTypeString[0]='\0';
-        if (device_type & CL_DEVICE_TYPE_DEFAULT) {
-               device_type &= ~CL_DEVICE_TYPE_DEFAULT;
-               std::strcat(deviceTypeString, "Default ");
-           }
-           if (device_type & CL_DEVICE_TYPE_CPU) {
-               device_type &= ~CL_DEVICE_TYPE_CPU;
-                std::strcat(deviceTypeString, "CPU ");
+static cl_int cl_int_info(cl_device_id device_id, cl_device_info device_info){
+    cl_uint v;
+    cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
+    return v;
+}
 
-           }
-           if (device_type & CL_DEVICE_TYPE_GPU) {
-               device_type &= ~CL_DEVICE_TYPE_GPU;
-                 std::strcat(deviceTypeString, "GPU ");
+static cl_ulong cl_ulong_info(cl_device_id device_id, cl_device_info device_info){
+    cl_ulong v;
+    cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
+    return v;
+}
+  cl_int maxComputeUnits;
+  cl_int maxWorkItemDimensions;
+  cl_device_type deviceType;
+  char *deviceTypeStr;
 
-           }
-           if (device_type & CL_DEVICE_TYPE_ACCELERATOR) {
-               device_type &= ~CL_DEVICE_TYPE_ACCELERATOR;
-                 std::strcat(deviceTypeString, "ACC ");
-           }
-           deviceType = new char[std::strlen(deviceTypeString)];
-           std::strcpy(deviceType, deviceTypeString);
-    // versionName(str(platform_id, CL_PLATFORM_VERSION)),
-   //  vendorName(str(platform_id, CL_PLATFORM_VENDOR)),
-     //name(str(platform_id, CL_PLATFORM_NAME)){
+  DeviceInfo(cl_device_id device_id):
+       maxComputeUnits(cl_int_info(device_id, CL_DEVICE_MAX_COMPUTE_UNITS)),
+        maxWorkItemDimensions(cl_int_info(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS)) {
+       clGetDeviceInfo(device_id, CL_DEVICE_TYPE, sizeof(deviceType), &deviceType, NULL);
+       char buf[512];
+       buf[0]='\0';
+       if (CL_DEVICE_TYPE_CPU == (deviceType & CL_DEVICE_TYPE_CPU)) {
+          std::strcat(buf, "CPU ");
+       }
+       if (CL_DEVICE_TYPE_GPU == (deviceType & CL_DEVICE_TYPE_GPU)) {
+          std::strcat(buf, "GPU ");
+       }
+       if (CL_DEVICE_TYPE_ACCELERATOR == (deviceType & CL_DEVICE_TYPE_ACCELERATOR)) {
+          std::strcat(buf, "ACC ");
+       }
+       deviceTypeStr = new char[std::strlen(buf)];
+       std::strcpy(deviceTypeStr, buf);
   }
   ~DeviceInfo(){
-     delete [] deviceType;
-    // delete [] vendorName;
-    // delete [] name;
+     delete [] deviceTypeStr;
   }
 };
 void OpenCLBackend::info() {
@@ -588,24 +588,16 @@ void OpenCLBackend::info() {
     fprintf(stderr, "   CL_PLATFORM_VENDOR..\"%s\"\n", platformInfo.vendorName);
     fprintf(stderr, "   CL_PLATFORM_VERSION.\"%s\"\n", platformInfo.versionName);
     fprintf(stderr, "   CL_PLATFORM_NAME....\"%s\"\n", platformInfo.name);
-
     DeviceInfo deviceInfo(device_id);
-    fprintf(stderr, "         CL_DEVICE_TYPE..................... %s ", deviceInfo.deviceType);
-    fprintf(stderr, LongHexNewline, deviceInfo.type);
+    fprintf(stderr, "         CL_DEVICE_TYPE..................... %s ", deviceInfo.deviceTypeStr);
+    fprintf(stderr, LongHexNewline, deviceInfo.deviceType);
+    fprintf(stderr, "         CL_DEVICE_MAX_COMPUTE_UNITS........ %u\n", deviceInfo.maxComputeUnits);
+    fprintf(stderr, "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. %u\n", deviceInfo.maxWorkItemDimensions);
 
-    cl_uint maxComputeUnits;
-    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxComputeUnits), &maxComputeUnits, NULL);
-    fprintf(stderr, "         CL_DEVICE_MAX_COMPUTE_UNITS........ %u\n", maxComputeUnits);
-
-    cl_uint maxWorkItemDimensions;
-    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(maxWorkItemDimensions),
-                             &maxWorkItemDimensions, NULL);
-    fprintf(stderr, "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. %u\n", maxWorkItemDimensions);
-
-    size_t *maxWorkItemSizes = new size_t[maxWorkItemDimensions];
-    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * maxWorkItemDimensions,
+    size_t *maxWorkItemSizes = new size_t[deviceInfo.maxWorkItemDimensions];
+    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * deviceInfo.maxWorkItemDimensions,
                              maxWorkItemSizes, NULL);
-    for (unsigned dimIdx = 0; dimIdx < maxWorkItemDimensions; dimIdx++) {
+    for (unsigned dimIdx = 0; dimIdx < deviceInfo.maxWorkItemDimensions; dimIdx++) {
         fprintf(stderr, "             dim[%d] = %ld\n", dimIdx, maxWorkItemSizes[dimIdx]);
     }
 

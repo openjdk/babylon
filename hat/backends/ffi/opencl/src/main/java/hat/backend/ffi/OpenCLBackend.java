@@ -36,6 +36,34 @@ import java.lang.invoke.MethodHandle;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
+    public static final int GPU_BIT =1<<1;
+    public static final int CPU_BIT =1<<2;
+    public static final int MINIMIZE_COPIES_BIT =1<<3;
+    public static final int TRACE_BIT =1<<4;
+    public static final int PROFILE_BIT =1<<5;
+    public enum Mode{
+        GPU(GPU_BIT),
+        CPU(CPU_BIT),
+        PROFILE_GPU(PROFILE_BIT|GPU_BIT),
+        PROFILE_CPU(PROFILE_BIT|CPU_BIT),
+        GPU_TRACE(GPU_BIT|TRACE_BIT),
+        CPU_TRACE(CPU_BIT|TRACE_BIT),
+        PROFILE_GPU_TRACE(PROFILE_BIT|GPU_BIT|TRACE_BIT),
+        PROFILE_CPU_TRACE(PROFILE_BIT|CPU_BIT|TRACE_BIT),
+        GPU_TRACE_MINIMIZE_COPIES(GPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
+        CPU_TRACE_MINIMIZE_COPIES(CPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
+        PROFILE_GPU_TRACE_MINIMIZE_COPIES(PROFILE_BIT|GPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
+        PROFILE_CPU_TRACE_MINIMIZE_COPIES(PROFILE_BIT|CPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
+        GPU_MINIMIZE_COPIES(GPU_BIT|MINIMIZE_COPIES_BIT),
+        CPU_MINIMIZE_COPIES(CPU_BIT|MINIMIZE_COPIES_BIT),
+        PROFILE_GPU_MINIMIZE_COPIES(PROFILE_BIT|GPU_BIT|MINIMIZE_COPIES_BIT),
+        PROFILE_CPU_MINIMIZE_COPIES(PROFILE_BIT|CPU_BIT|MINIMIZE_COPIES_BIT);
+        public final int value;
+        Mode(int value) {
+            this.value=value;
+        }
+    }
+
     final MethodHandle getBackend_MH;
     public long getBackend(int mode, int platform, int device, int unused) {
         try {
@@ -48,7 +76,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     public OpenCLBackend() {
         super("opencl_backend");
-        Mode mode = Mode.valueOf(System.getProperty("Mode", Mode.GPU.toString()));
+        Mode mode = Mode.valueOf(System.getProperty("Mode", Mode.PROFILE_GPU.toString()));
         getBackend_MH  =  nativeLibrary.longFunc("getOpenCLBackend",JAVA_INT,JAVA_INT, JAVA_INT, JAVA_INT);
         getBackend(mode.value,0, 0, 0 );
         info();

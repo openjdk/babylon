@@ -45,10 +45,13 @@ public:
         const static  int CPU_BIT =1<<2;
         const static  int MINIMIZE_COPIES_BIT =1<<3;
         const static  int TRACE_BIT =1<<4;
+        const static  int PROFILE_BIT =1<<5;
         int mode;
         bool gpu;
+        bool cpu;
         bool minimizeCopies;
         bool trace;
+        bool profile;
         OpenCLConfig(int mode);
         virtual ~OpenCLConfig();
     };
