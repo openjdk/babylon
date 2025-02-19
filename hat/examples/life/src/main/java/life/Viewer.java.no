@@ -24,14 +24,13 @@
  */
 package life;
 
+import javax.swing.Box;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
 import javax.swing.JTextField;
-import javax.swing.JToggleButton;
 import javax.swing.WindowConstants;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -50,15 +49,13 @@ import java.awt.image.DataBufferByte;
 
 public class Viewer extends JFrame {
 
+
     private final Object doorBell = new Object();
     final Controls controls;
     final MainPanel mainPanel;
     volatile private boolean started=false;
 
     static final public class MainPanel extends JComponent {
-        enum State {Scheduled, Done};
-        public  volatile State state = State.Done;
-
         final double IN = 1.1;
         final double OUT = 1/IN;
         private final BufferedImage image;
@@ -156,77 +153,36 @@ public class Viewer extends JFrame {
             g2.setColor(Color.BLACK);
             g2.fillRect(0-5000, 0-5000, image.getWidth()+10000, image.getHeight()+10000);
             g2.drawImage(image, 0,0, image.getWidth(), image.getHeight(), 0, 0, image.getWidth(), image.getHeight(), this);
-            state = State.Done;
         }
     }
     public static class Controls{
-        private JTextField generationTextField;
-        private  JTextField generationsPerSecondTextField;
-        private  JButton startButton;
-        private  JToggleButton useGPUToggleButton;
-        private  JToggleButton alwaysCopyToggleButton;
-        private  JComboBox<String> generationsPerFrameComboBox;
-        public volatile boolean updated = false;
-        Controls(JMenuBar menuBar){
+        JTextField generation;
+        JTextField generationsPerSecond;
+
+        JButton start;
+        JMenuBar menuBar;
+        Controls(){
+            menuBar = new JMenuBar();
             ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
-            this.startButton = (JButton) menuBar.add(new JButton("Start"));
-            this.useGPUToggleButton =addToggle(menuBar, "Java", "GPU");
-            this.alwaysCopyToggleButton = addToggle(menuBar,"Minimize Moves","Always Copy");
-         //   this.generationsPerFrameComboBox = (JComboBox<String>) menuBar.add(new JComboBox<String>(
-           //         new String[]{"1", "10", "20"})
-           // );
-            generationTextField = addLabelledTextField(menuBar,"Gen");
-            generationsPerSecondTextField = addLabelledTextField(menuBar,"Gen/Sec");
+            this.start = (JButton) menuBar.add(new JButton("Start"));
+            menuBar.add(Box.createHorizontalStrut(40));
+            generation = create ("Gen");
+            generationsPerSecond = create ("Gen/Sec");
         }
-
-        JToggleButton addToggle(JMenuBar menuBar,String def, String alt) {
-            var toggleButton = (JToggleButton) menuBar.add(new JToggleButton(def));
-            toggleButton.addChangeListener(event -> {
-                if (((JToggleButton)event.getSource()).isSelected()){
-                    ((JToggleButton)event.getSource()).setText(alt);
-                } else {
-                    ((JToggleButton)event.getSource()).setText(def);
-                }
-                updated = true;
-            });
-            return toggleButton;
-        }
-
-        JTextField addLabelledTextField(JMenuBar menuBar, String name){
+        JTextField create (String name){
             menuBar.add(new JLabel(name));
             JTextField textField = (JTextField) menuBar.add(new JTextField("",5));
             textField.setEditable(false);
-            menuBar.add(textField);
             return textField;
-        }
-
-        public boolean alwaysCopy() {
-            return alwaysCopyToggleButton.isSelected();
-        }
-
-        public boolean useGPU() {
-            return useGPUToggleButton.isSelected();
-        }
-
-        public void updateGenerationCounter(long generationCounter, long frameCounter, long msPerFrame) {
-            generationTextField.setText(String.format("%8d", generationCounter));
-            if (generationCounter>0 && frameCounter>0) {
-                generationsPerSecondTextField.setText(
-                        String.format("%5.2f", (generationCounter * 1000f) / (frameCounter * msPerFrame))
-                );
-            }else{
-                generationsPerSecondTextField.setText("...");
-            }
         }
     }
 
-    Viewer(String title, Main.CellGrid cellGrid) {
+    Viewer(String title, Main.Control control,Main.CellGrid cellGrid) {
         super(title);
         this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
-        JMenuBar menuBar = new JMenuBar();
-        this.controls = new Controls(menuBar);
-        setJMenuBar(menuBar);
-        controls.startButton.addActionListener(_ -> {started=true;synchronized (doorBell) {doorBell.notify();}});
+        this.controls = new Controls();
+        setJMenuBar(controls.menuBar);
+        controls.start.addActionListener(_ -> {started=true;synchronized (doorBell) {doorBell.notify();}});
         this.getContentPane().add(this.mainPanel);
         this.setLocationRelativeTo(null);
         this.pack();
@@ -245,5 +201,26 @@ public class Viewer extends JFrame {
             }
         }
     }
+     long start=0L;
+    int generationCounter=0;
+    public boolean isVisible(){
+        return true;
+    }
+    public boolean isReadyForUpdate(){
+        if (start==0L) {
+            start = System.currentTimeMillis();
+        }else {
+            this.controls.generation.setText(String.format("%8d", ++generationCounter));
+            this.controls.generationsPerSecond.setText(
+                    String.format("%5.2f", (generationCounter * 1000f) / (System.currentTimeMillis() - start))
+            );
+            mainPanel.repaint();
+        }
+        return true;
+    }
 
+    public void update(Main.CellGrid cellGrid, int to) {
+        cellGrid.copySliceTo(mainPanel.rasterData, to);
+        mainPanel.repaint();
+    }
 }

@@ -50,6 +50,10 @@ void main(String[] argv) {
   var buildDir = hatDir.existingBuildDir("build");
   var jextractedOpenCLJar = buildDir.jarFile("opencl.jar");
   var jextractedOpenGLJar = buildDir.jarFile("opengl.jar");
+  var wrapJar = buildDir.jarFile("wrap.jar");
+  var clwrapJar = buildDir.jarFile("clwrap.jar");
+  var glwrapJar = buildDir.jarFile("glwrap.jar");
+
   var args = new ArrayList<>(List.of(argv));
   java(java -> java
      .enable_preview()
@@ -65,6 +69,9 @@ void main(String[] argv) {
         var backendName = args.removeFirst();
         if (backends.dir(backendName.replace('-','/')) instanceof DirEntry backend && backend.exists()) {
            haveBackend.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
+           if (backendName.equals("ffi-opencl")){
+               haveBackend.class_path(wrapJar, clwrapJar, jextractedOpenCLJar);
+           }
         } else {
            throw new RuntimeException("No such backend " + backendName);
         }

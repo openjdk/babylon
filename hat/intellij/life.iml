@@ -12,5 +12,7 @@
     <orderEntry type="module" module-name="backend_opencl" />
     <orderEntry type="module" module-name="backend_cuda" />
     <orderEntry type="module" module-name="backend_spirv" />
+    <orderEntry type="module" module-name="wrap" />
+    <orderEntry type="module" module-name="clwrap" />
   </component>
 </module>

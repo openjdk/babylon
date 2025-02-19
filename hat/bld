@@ -249,12 +249,16 @@ void main(String[] args) {
                 jar(hatJarOptions, jar -> jar
                         .jarFile(jarFile)
                         .maven_style_root(example)
-                        .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile))
+                        .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile,  openclCapability.jarFile(buildDir),
+                            buildDir.jarFile("wrap.jar"),
+                            buildDir.jarFile("clwrap.jar")))
                         .manifest(manifest -> manifest
                                 .main_class(example.fileName() + ".Main")
                         )
                 );
             });
+
+    
 
     if (jextractCapability.available() && openclCapability.available() && openglCapability.available()) {
         var example = examples.dir("nbody");

@@ -14,6 +14,7 @@
       <module name="heal" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
       <module name="life" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
       <module name="mandel" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
+      <module name="nbody" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
       <module name="violajones" options="--add-modules=jdk.incubator.code,java.desktop,java.xml --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
     </option>
   </component>
