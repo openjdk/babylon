@@ -46,12 +46,18 @@ public:
         const static  int MINIMIZE_COPIES_BIT =1<<3;
         const static  int TRACE_BIT =1<<4;
         const static  int PROFILE_BIT =1<<5;
+        const static  int SHOW_CODE_BIT = 1 << 6;
+        const static  int SHOW_KERNEL_MODEL_BIT = 1 << 7;
+        const static  int SHOW_COMPUTE_MODEL_BIT = 1 <<8;
+        const static  int INFO_BIT = 1 <<9;
         int mode;
         bool gpu;
         bool cpu;
         bool minimizeCopies;
         bool trace;
         bool profile;
+        bool showCode;
+        bool info;
         OpenCLConfig(int mode);
         virtual ~OpenCLConfig();
     };

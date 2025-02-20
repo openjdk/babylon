@@ -45,17 +45,11 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         private static final int MINIMIZE_COPIES_BIT = 1 << 3;
         private static final int TRACE_BIT = 1 << 4;
         private static final int PROFILE_BIT = 1 << 5;
+        private static final int SHOW_CODE_BIT = 1 << 6;
+        private static final int SHOW_KERNEL_MODEL_BIT = 1 << 7;
+        private static final int SHOW_COMPUTE_MODEL_BIT = 1 <<8;
+        private static final int INFO_BIT = 1 <<9;
 
-        public static Mode of(String name) {
-            return switch (name){
-                case "GPU" -> GPU();
-                case "CPU" -> CPU();
-                case "MINIMIZE_COPIES" -> MINIMIZE_COPIES();
-                case "TRACE" -> TRACE();
-                case "PROFILE" -> PROFILE();
-                default -> Mode.of(0);
-            };
-        }
         public static Mode of() {
             List<Mode> modes = new ArrayList<>();
             if (( ((System.getenv("HAT") instanceof String e)?e:"")+
@@ -63,21 +57,6 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
                 Arrays.stream(opts.split(",")).forEach(opt ->
                         modes.add(of(opt))
                 );
-            }
-            if (System.getenv("HAT_GPU") != null || System.getProperty("HAT_GPU") != null) {
-                modes.add(GPU());
-            }
-            if (System.getenv("HAT_CPU") != null || System.getProperty("HAT_CPU") != null) {
-                modes.add(CPU());
-            }
-            if (System.getenv("HAT_TRACE") != null || System.getProperty("HAT_TRACE") != null) {
-                modes.add(TRACE());
-            }
-            if (System.getenv("HAT_PROFILE") != null || System.getProperty("HAT_PROFILE") != null) {
-                modes.add(PROFILE());
-            }
-            if (System.getenv("HAT_MINIMIZE_COPIES") != null || System.getProperty("HAT_PROFILE") !=null) {
-                modes.add(MINIMIZE_COPIES());
             }
            return of(modes);
         }
@@ -100,6 +79,29 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         }
         public Mode or(Mode ...modes) {
             return Mode.of(Mode.of(List.of(modes)).bits|bits);
+        }
+        public static Mode of(String name) {
+            return switch (name){
+                case "GPU" -> GPU();
+                case "CPU" -> CPU();
+                case "MINIMIZE_COPIES" -> MINIMIZE_COPIES();
+                case "TRACE" -> TRACE();
+                case "SHOW_CODE" -> SHOW_CODE();
+                case "SHOW_KERNEL_MODEL" -> SHOW_KERNEL_MODEL();
+                case "SHOW_COMPUTE_MODEL" -> SHOW_COMPUTE_MODEL();
+                case "PROFILE" -> PROFILE();
+                case "INFO" -> INFO();
+                default -> {
+                    System.out.println("Unexpected opt '"+name+"'");
+                    yield Mode.of(0);
+                }
+            };
+        }
+        public static Mode INFO() {
+            return new Mode(INFO_BIT);
+        }
+        public boolean isINFO() {
+            return (bits&INFO_BIT)==INFO_BIT;
         }
         public static Mode CPU() {
             return new Mode(CPU_BIT);
@@ -131,10 +133,34 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         public boolean isMINIMIZE_COPIES() {
             return (bits&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT;
         }
+        public static Mode SHOW_CODE() {
+            return new Mode(SHOW_CODE_BIT);
+        }
+        public boolean isSHOW_CODE() {
+            return (bits&SHOW_CODE_BIT)==SHOW_CODE_BIT;
+        }
+        public static Mode SHOW_KERNEL_MODEL() {
+            return new Mode(SHOW_KERNEL_MODEL_BIT);
+        }
+        public boolean isSHOW_KERNEL_MODEL() {
+            return (bits&SHOW_KERNEL_MODEL_BIT)==SHOW_KERNEL_MODEL_BIT;
+        }
+        public static Mode SHOW_COMPUTE_MODEL() {
+            return new Mode(SHOW_COMPUTE_MODEL_BIT);
+        }
+        public boolean isSHOW_COMPUTE_MODEL() {
+            return (bits&SHOW_COMPUTE_MODEL_BIT)==SHOW_COMPUTE_MODEL_BIT;
+        }
 
         @Override
         public String toString() {
             StringBuilder builder = new StringBuilder();
+            if (isINFO()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("INFO");
+            }
             if (isCPU()) {
                 if (!builder.isEmpty()){
                     builder.append("|");
@@ -165,10 +191,36 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
                 }
                 builder.append("MINIMIZE_COPIES");
             }
+            if (isSHOW_CODE()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("SHOW_CODE");
+            }
+            if (isSHOW_COMPUTE_MODEL()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("SHOW_COMPUTE_MODEL");
+            }
+            if (isSHOW_KERNEL_MODEL()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("SHOW_KERNEL_MODEL");
+            }
+            if (isMINIMIZE_COPIES()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("MINIMIZE_COPIES");
+            }
 
             return builder.toString();
         }
     }
+
+    final Mode mode;
 
     final MethodHandle getBackend_MH;
     public long getBackend(int mode, int platform, int device, int unused) {
@@ -181,10 +233,13 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
     }
     public OpenCLBackend(Mode mode) {
         super("opencl_backend");
-        System.out.println(mode);
+        this.mode = mode;
         getBackend_MH  =  nativeLibrary.longFunc("getOpenCLBackend",JAVA_INT,JAVA_INT, JAVA_INT, JAVA_INT);
         getBackend(mode.bits,0, 0, 0 );
-        info();
+        if (mode.isINFO()) {
+            System.out.println(mode);
+            info();
+        }
     }
 
     public OpenCLBackend() {
@@ -195,15 +250,17 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("OpenCL backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, mode.isSHOW_COMPUTE_MODEL());
     }
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
-            System.out.println(code);
+            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args, mode.isSHOW_KERNEL_MODEL());
+            if (mode.isSHOW_CODE()) {
+                System.out.println(code);
+            }
             long programHandle = compileProgram(code);
             if (programOK(programHandle)) {
                 long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());

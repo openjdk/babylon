@@ -48,12 +48,18 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
        cpu((mode&CPU_BIT)==CPU_BIT),
        minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
        trace((mode&TRACE_BIT)==TRACE_BIT),
+       info((mode&INFO_BIT)==INFO_BIT),
+       showCode((mode&SHOW_CODE_BIT)==SHOW_CODE_BIT),
        profile((mode&PROFILE_BIT)==PROFILE_BIT){
-       printf("native gpu %d\n",gpu);
-       printf("native cpu %d\n",cpu);
-       printf("native minimizeCopies %d\n", minimizeCopies);
-       printf("native trace %d\n", trace);
-       printf("native profile %d\n",profile);
+       if (info){
+          printf("native show_code %d\n",showCode);
+          printf("native info %d\n",info);
+          printf("native gpu %d\n",gpu);
+          printf("native cpu %d\n",cpu);
+          printf("native minimizeCopies %d\n", minimizeCopies);
+          printf("native trace %d\n", trace);
+          printf("native profile %d\n",profile);
+       }
  }
  OpenCLBackend::OpenCLConfig::~OpenCLConfig(){
  }

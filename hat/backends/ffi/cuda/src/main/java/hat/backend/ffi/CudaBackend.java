@@ -54,7 +54,7 @@ public class CudaBackend extends C99FFIBackend {
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("Cuda backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
 
     }
 
@@ -62,7 +62,7 @@ public class CudaBackend extends C99FFIBackend {
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         // System.out.println("Cuda backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createCode(kernelCallGraph, new CudaHatKernelBuilder(), args);
+            String code = createCode(kernelCallGraph, new CudaHatKernelBuilder(), args, true);
             long programHandle = compileProgram(code);
             if (programOK(programHandle)) {
                 long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());

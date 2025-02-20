@@ -59,14 +59,14 @@ public class OpenCLBackend extends C99FFIBackend {
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("OpenCL backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
     }
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
+            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args, true);
             System.out.println(code);
             long programHandle = compileProgram(code);
             if (programOK(programHandle)) {
