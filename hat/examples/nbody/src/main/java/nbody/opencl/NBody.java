@@ -3,7 +3,7 @@ package nbody.opencl;
 
 import nbody.NBodyGLWindow;
 import wrap.clwrap.CLPlatform;
-import wrap.clwrap.ComputeContext;
+import wrap.clwrap.CLWrapComputeContext;
 import wrap.glwrap.GLTexture;
 
 import java.io.IOException;
@@ -12,16 +12,16 @@ import java.lang.foreign.Arena;
 public class NBody {
     public static class CLNBodyGLWindow extends NBodyGLWindow {
         final CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel;
-        final ComputeContext computeContext;
-        final ComputeContext.MemorySegmentState vel;
-        final ComputeContext.MemorySegmentState pos;
+        final CLWrapComputeContext CLWrapComputeContext;
+        final CLWrapComputeContext.MemorySegmentState vel;
+        final CLWrapComputeContext.MemorySegmentState pos;
 
 
         public CLNBodyGLWindow( Arena arena, int width, int height, GLTexture particle, int bodyCount, Mode mode) {
             super( arena, width, height, particle, bodyCount, mode);
-            this.computeContext = new ComputeContext(arena, 20);
-            this.vel = computeContext.register(xyzVelFloatArr.ptr());
-            this.pos = computeContext.register(xyzPosFloatArr.ptr());
+            this.CLWrapComputeContext = new CLWrapComputeContext(arena, 20);
+            this.vel = CLWrapComputeContext.register(xyzVelFloatArr.ptr());
+            this.pos = CLWrapComputeContext.register(xyzPosFloatArr.ptr());
 
             var platforms = CLPlatform.platforms(arena);
             System.out.println("platforms " + platforms.size());
@@ -121,7 +121,7 @@ public class NBody {
                 vel.copyFromDevice = false;
                 pos.copyFromDevice = true;
 
-                kernel.run(computeContext, bodyCount, pos, vel, mass, delT, espSqr);
+                kernel.run(CLWrapComputeContext, bodyCount, pos, vel, mass, delT, espSqr);
             } else {
                 super.moveBodies();
             }

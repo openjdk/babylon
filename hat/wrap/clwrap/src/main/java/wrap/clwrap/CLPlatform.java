@@ -189,12 +189,12 @@ public class CLPlatform implements ArenaHolder {
                     }
 
 
-                    public void run(ComputeContext computeContext, int range, Object... args) {
+                    public void run(CLWrapComputeContext clWrapComputeContext, int range, Object... args) {
                         var status = CLStatusPtr.of(arena());
                         for (int i = 0; i < args.length; i++) {
-                            if (args[i] instanceof ComputeContext.MemorySegmentState memorySegmentState) {
+                            if (args[i] instanceof CLWrapComputeContext.MemorySegmentState memorySegmentState) {
                                 if (memorySegmentState.clMemPtr == null) {
-                                    memorySegmentState.clMemPtr = ComputeContext.ClMemPtr.of(arena(),opencl_h.clCreateBuffer(program.context.context,
+                                    memorySegmentState.clMemPtr = CLWrapComputeContext.ClMemPtr.of(arena(),opencl_h.clCreateBuffer(program.context.context,
                                             CL_MEM_USE_HOST_PTR() | CL_MEM_READ_WRITE(),
                                             memorySegmentState.memorySegment.byteSize(),
                                             memorySegmentState.memorySegment,
@@ -206,13 +206,13 @@ public class CLPlatform implements ArenaHolder {
                                 if (memorySegmentState.copyToDevice) {
                                     status.set(opencl_h.clEnqueueWriteBuffer(program.context.queue,
                                             memorySegmentState.clMemPtr.get(),
-                                            computeContext.blockInt(),
+                                            clWrapComputeContext.blockInt(),
                                             0,
                                             memorySegmentState.memorySegment.byteSize(),
                                             memorySegmentState.memorySegment,
-                                            computeContext.eventc(),
-                                            computeContext.eventsPtr(),
-                                            computeContext.nextEventPtrSlot()
+                                            clWrapComputeContext.eventc(),
+                                            clWrapComputeContext.eventsPtr(),
+                                            clWrapComputeContext.nextEventPtrSlot()
                                     ));
                                     if (!status.isOK()) {
                                         System.out.println("failed to enqueue write " + status);
@@ -246,31 +246,31 @@ public class CLPlatform implements ArenaHolder {
                                         NULL,
                                         globalSize.ptr(),
                                         NULL,
-                                        computeContext.eventc(),
-                                        computeContext.eventsPtr(),
-                                        computeContext.nextEventPtrSlot()
+                                clWrapComputeContext.eventc(),
+                                clWrapComputeContext.eventsPtr(),
+                                clWrapComputeContext.nextEventPtrSlot()
                                 )
                         );
                         if (!status.isOK()) {
                             System.out.println("failed to enqueue NDRange " + status);
                         }
 
-                        if (computeContext.alwaysBlock) {
+                        if (clWrapComputeContext.alwaysBlock) {
                             opencl_h.clFlush(program.context.queue);
                         }
 
                         for (int i = 0; i < args.length; i++) {
-                            if (args[i] instanceof ComputeContext.MemorySegmentState memorySegmentState) {
+                            if (args[i] instanceof CLWrapComputeContext.MemorySegmentState memorySegmentState) {
                                 if (memorySegmentState.copyFromDevice) {
                                     status.set(opencl_h.clEnqueueReadBuffer(program.context.queue,
                                             memorySegmentState.clMemPtr.get(),
-                                            computeContext.blockInt(),
+                                            clWrapComputeContext.blockInt(),
                                             0,
                                             memorySegmentState.memorySegment.byteSize(),
                                             memorySegmentState.memorySegment,
-                                            computeContext.eventc(),
-                                            computeContext.eventsPtr(),
-                                            computeContext.nextEventPtrSlot()
+                                            clWrapComputeContext.eventc(),
+                                            clWrapComputeContext.eventsPtr(),
+                                            clWrapComputeContext.nextEventPtrSlot()
                                     ));
                                     if (!status.isOK()) {
                                         System.out.println("failed to enqueue read " + status);
@@ -279,7 +279,7 @@ public class CLPlatform implements ArenaHolder {
                             }
                         }
                         // if (!computeContext.alwaysBlock) {
-                        computeContext.waitForEvents();
+                        clWrapComputeContext.waitForEvents();
                         //  }
                     }
                 }

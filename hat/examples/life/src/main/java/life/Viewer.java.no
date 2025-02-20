@@ -177,9 +177,9 @@ public class Viewer extends JFrame {
         }
     }
 
-    Viewer(String title, Main.Control control,Main.CellGrid cellGrid) {
+    Viewer(String title, Main.Control CLWrapControl,Main.CellGrid CLWrapCellGrid) {
         super(title);
-        this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
+        this.mainPanel = new MainPanel(new BufferedImage(CLWrapCellGrid.width(), CLWrapCellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
         this.controls = new Controls();
         setJMenuBar(controls.menuBar);
         controls.start.addActionListener(_ -> {started=true;synchronized (doorBell) {doorBell.notify();}});
@@ -219,8 +219,8 @@ public class Viewer extends JFrame {
         return true;
     }
 
-    public void update(Main.CellGrid cellGrid, int to) {
-        cellGrid.copySliceTo(mainPanel.rasterData, to);
+    public void update(Main.CellGrid CLWrapCellGrid, int to) {
+        CLWrapCellGrid.copySliceTo(mainPanel.rasterData, to);
         mainPanel.repaint();
     }
 }

@@ -82,9 +82,9 @@ public class Main {
 
         Schema<Control> schema = Schema.of(Control.class, lifeSupport -> lifeSupport.fields("from", "to"));
 
-        static Control create(Accelerator accelerator, CellGrid cellGrid) {
+        static Control create(Accelerator accelerator, CellGrid CLWrapCellGrid) {
             var instance = schema.allocate(accelerator);
-            instance.to(cellGrid.width() * cellGrid.height());
+            instance.to(CLWrapCellGrid.width() * CLWrapCellGrid.height());
             instance.from(0);
             return instance;
         }
@@ -101,28 +101,28 @@ public class Main {
         }
 
         @CodeReflection
-        public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
+        public static void life(@RO KernelContext kc, @RO Control CLWrapControl, @RW CellGrid CLWrapCellGrid) {
             if (kc.x < kc.maxX) {
-                int w = cellGrid.width();
-                int h = cellGrid.height();
-                int from = control.from();
-                int to = control.to();
+                int w = CLWrapCellGrid.width();
+                int h = CLWrapCellGrid.height();
+                int from = CLWrapControl.from();
+                int to = CLWrapControl.to();
                 int x = kc.x % w;
                 int y = kc.x / w;
-                byte cell = cellGrid.cell(kc.x + from);
+                byte cell = CLWrapCellGrid.cell(kc.x + from);
                 if (x>0 && x<(w-1) && y>0 && y<(h-1)) { // passports please
                     int count =
-                            val(cellGrid,from,w,x-1,y-1)
-                            +val(cellGrid,from,w,x-1,y+0)
-                            +val(cellGrid,from,w,x-1,y+1)
-                            +val(cellGrid,from,w,x+0,y-1)
-                            +val(cellGrid,from,w,x+0,y+1)
-                            +val(cellGrid,from,w,x+1,y+0)
-                            +val(cellGrid,from,w,x+1,y-1)
-                            +val(cellGrid,from,w,x+1,y+1);
+                            val(CLWrapCellGrid,from,w,x-1,y-1)
+                            +val(CLWrapCellGrid,from,w,x-1,y+0)
+                            +val(CLWrapCellGrid,from,w,x-1,y+1)
+                            +val(CLWrapCellGrid,from,w,x+0,y-1)
+                            +val(CLWrapCellGrid,from,w,x+0,y+1)
+                            +val(CLWrapCellGrid,from,w,x+1,y+0)
+                            +val(CLWrapCellGrid,from,w,x+1,y-1)
+                            +val(CLWrapCellGrid,from,w,x+1,y+1);
                     cell =  ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
                 }
-                cellGrid.cell(kc.x + to, cell);
+                CLWrapCellGrid.cell(kc.x + to, cell);
             }
         }
 
@@ -151,21 +151,21 @@ public class Main {
         PatternData patternData = RleParser.readPatternData(
                 Main.class.getClassLoader().getResourceAsStream("orig.rle")
         );
-        CellGrid cellGrid = CellGrid.create(accelerator,
+        CellGrid CLWrapCellGrid = CellGrid.create(accelerator,
                   patternData.getMetaData().getWidth() + 2,
                 patternData.getMetaData().getHeight() + 2
 
         );
         patternData.getLiveCells().getCoordinates().stream().forEach(c ->
-                cellGrid.cell((1 + c.getX()) + (1 + c.getY()) * cellGrid.width(), ALIVE)
+                CLWrapCellGrid.cell((1 + c.getX()) + (1 + c.getY()) * CLWrapCellGrid.width(), ALIVE)
         );
 
-        Control control = Control.create(accelerator, cellGrid);
-        final Viewer viewer = new Viewer("Life", control, cellGrid);
-        viewer.update(cellGrid, 0);
+        Control CLWrapControl = Control.create(accelerator, CLWrapCellGrid);
+        final Viewer viewer = new Viewer("Life", CLWrapControl, CLWrapCellGrid);
+        viewer.update(CLWrapCellGrid, 0);
         viewer.waitForStart();
         while (viewer.isVisible()) {
-            accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
+            accelerator.compute(cc -> Compute.compute(cc, viewer, CLWrapControl, CLWrapCellGrid));
         }
 
     }

@@ -220,9 +220,9 @@ public class Viewer extends JFrame {
         }
     }
 
-    Viewer(String title, Main.CellGrid cellGrid) {
+    Viewer(String title, Main.CLWrapCellGrid CLWrapCellGrid) {
         super(title);
-        this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
+        this.mainPanel = new MainPanel(new BufferedImage(CLWrapCellGrid.width(), CLWrapCellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
         JMenuBar menuBar = new JMenuBar();
         this.controls = new Controls(menuBar);
         setJMenuBar(menuBar);

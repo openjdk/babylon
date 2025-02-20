@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLBackend;
+import hat.backend.java.JavaMultiThreadedBackend;
 import hat.buffer.S32Array;
 import jdk.incubator.code.CodeReflection;
 
@@ -53,9 +54,9 @@ public class MinBufferTest {
     }
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new OpenCLBackend());
-        int len = 1000000;
-        int mul = 10;
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new JavaMultiThreadedBackend());// new OpenCLBackend());
+        int len = 10000000;
+        int mul = 100;
         S32Array s32Array = S32Array.create(accelerator, len);
         for (int i = 0; i < len; i++) {
             s32Array.array(i, i);
