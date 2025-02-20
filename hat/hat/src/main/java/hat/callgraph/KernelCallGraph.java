@@ -88,13 +88,13 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
          *    b) setters (return void)
          * 3) calls on the NDRange id
          */
-        kernelReachableResolvedMethodCall.funcOpWrapper().selectAssignments(varOpWrapper -> {
+     /*   kernelReachableResolvedMethodCall.funcOpWrapper().selectAssignments(varOpWrapper -> {
             if (varOpWrapper.isIfaceAssignment()){
                 // We might be aliasing a buffer which is 'frowned upon'
                 System.out.println("Kernel appears to be aliasing a buffer  " + varOpWrapper.javaType() + " name " + varOpWrapper.varName());
                 System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Yep");
             }
-        });
+        }); */
         kernelReachableResolvedMethodCall.funcOpWrapper().selectCalls(invokeOpWrapper -> {
             MethodRef methodRef = invokeOpWrapper.methodRef();
             Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();

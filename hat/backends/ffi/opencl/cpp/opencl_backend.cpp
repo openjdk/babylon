@@ -23,7 +23,6 @@
  * questions.
  */
 #include "opencl_backend.h"
-//#include <iomanip>
 #ifdef __APPLE__
     #define LongUnsignedNewline "%llu\n"
     #define Size_tNewline "%lu\n"
@@ -48,6 +47,7 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
        cpu((mode&CPU_BIT)==CPU_BIT),
        minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
        trace((mode&TRACE_BIT)==TRACE_BIT),
+       traceCopies((mode&TRACE_COPIES_BIT)==TRACE_COPIES_BIT),
        info((mode&INFO_BIT)==INFO_BIT),
        showCode((mode&SHOW_CODE_BIT)==SHOW_CODE_BIT),
        profile((mode&PROFILE_BIT)==PROFILE_BIT){
@@ -58,6 +58,7 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
           printf("native cpu %d\n",cpu);
           printf("native minimizeCopies %d\n", minimizeCopies);
           printf("native trace %d\n", trace);
+          printf("native traceCopies %d\n", traceCopies);
           printf("native profile %d\n",profile);
        }
  }
@@ -229,7 +230,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
         exit(1);
     }
 
-    if(openclBackend->openclConfig.trace){
+    if(openclBackend->openclConfig.traceCopies){
         std::cout << "enqueued buffer copyToDevice " << std::endl;
     }
 }
@@ -253,7 +254,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    if(openclBackend->openclConfig.trace){
+    if(openclBackend->openclConfig.traceCopies){
        std::cout << "enqueued buffer copyFromDevice " << std::endl;
     }
 }
@@ -303,11 +304,33 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                 if (arg->idx == 0){
                     ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
                 }
-                if (!openclBackend->openclConfig.minimizeCopies){
-                    openclBuffer->copyToDevice();
-                    if (openclBackend->openclConfig.trace){
+                if (openclBackend->openclConfig.minimizeCopies){
+                   // is the buffer GPU dirty. If so we should not need to copy
+
+                     if (bufferState->isDeviceDirty() && bufferState->isHostDirty()){
+                           std::cerr <<" WHY is buffer host and device dirty for arg " << arg->idx << "  This should not happen!"<< std::endl;
+                           exit(1);
+                        }
+
+
+                    if (bufferState->isHostDirty()){
+                       if (openclBackend->openclConfig.traceCopies){
+                          std::cout << "HOST is dirty (java side changed code) so copying arg " << arg->idx <<" to device "<< std::endl;
+                       }
+                       bufferState->clearHostDirty();
+                       openclBuffer->copyToDevice();
+
+                    }else{
+                       if (openclBackend->openclConfig.traceCopies){
+                           std::cout << "HOST is not dirty (java side has not changed code) so not copying arg " << arg->idx <<" to device "<< std::endl;
+                       }
+                    }
+
+                }else{
+                    if (openclBackend->openclConfig.traceCopies){
                         std::cout << "copying arg " << arg->idx <<" to device "<< std::endl;
                     }
+                    openclBuffer->copyToDevice();
                 }
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
                 if (status != CL_SUCCESS) {
@@ -368,19 +391,20 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
        std::cout << "enqueued dispatch  " << std::endl;
        std::cout <<  " globalSize=" << globalSize << " " << std::endl;
     }
-
-    for (int i = 1; i < argSled.argc(); i++) { // We don't need to copy back the KernelContext
-        Arg_s *arg = argSled.arg(i);
-        if (arg->variant == '&') {
-            BufferState_s * bufferState = BufferState_s::of(arg );
-            if (!openclBackend->openclConfig.minimizeCopies){
-               static_cast<OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
-               if (openclBackend->openclConfig.trace){
+   if (openclBackend->openclConfig.minimizeCopies){
+   }else{
+       for (int i = 1; i < argSled.argc(); i++) { // note i = 1... we don't need to copy back the KernelContext
+          Arg_s *arg = argSled.arg(i);
+          if (arg->variant == '&') {
+             BufferState_s * bufferState = BufferState_s::of(arg );
+             static_cast<OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
+             if (openclBackend->openclConfig.traceCopies){
                 std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
-                  bufferState->dump("After copy from device");
-               }
-            }
-        }
+                bufferState->dump("After copy from device");
+             }
+             bufferState->setDeviceDirty();
+          }
+       }
     }
     openclBackend->openclQueue.wait();
    // openclBackend->openclQueue.release(); release in computeEnd
@@ -541,7 +565,7 @@ static char *str(cl_platform_id platform_id,cl_platform_info platform_info){
 };
 
 struct DeviceInfo{
-static char *str(cl_device_id device_id, cl_device_info device_info){
+static char *strInfo(cl_device_id device_id, cl_device_info device_info){
      size_t sz;
      cl_int  status = clGetDeviceInfo(device_id, device_info, 0, nullptr,  &sz);
      char *ptr = new char[sz+1];
@@ -554,20 +578,51 @@ static cl_int cl_int_info(cl_device_id device_id, cl_device_info device_info){
     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
     return v;
 }
-
 static cl_ulong cl_ulong_info(cl_device_id device_id, cl_device_info device_info){
     cl_ulong v;
+    cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
+    return v;
+}
+static size_t size_t_info(cl_device_id device_id, cl_device_info device_info){
+    size_t v;
     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
     return v;
 }
   cl_int maxComputeUnits;
   cl_int maxWorkItemDimensions;
   cl_device_type deviceType;
+  size_t  maxWorkGroupSize;
+     cl_ulong globalMemSize;
+      cl_ulong localMemSize;
+   cl_ulong maxMemAllocSize;
+  char *profile;
+  char *deviceVersion;
+    size_t *maxWorkItemSizes ;
+   char *driverVersion;
+  char *cVersion;
+  char *name;
+  char *extensions;
+  char *builtInKernels;
   char *deviceTypeStr;
 
   DeviceInfo(cl_device_id device_id):
        maxComputeUnits(cl_int_info(device_id, CL_DEVICE_MAX_COMPUTE_UNITS)),
-        maxWorkItemDimensions(cl_int_info(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS)) {
+        maxWorkItemDimensions(cl_int_info(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS)),
+        maxWorkGroupSize(size_t_info(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE)),
+        maxWorkItemSizes( new size_t[maxWorkItemDimensions]),
+        maxMemAllocSize(cl_ulong_info(device_id, CL_DEVICE_MAX_MEM_ALLOC_SIZE)),
+         globalMemSize(cl_ulong_info(device_id, CL_DEVICE_GLOBAL_MEM_SIZE)),
+         localMemSize(cl_ulong_info(device_id, CL_DEVICE_LOCAL_MEM_SIZE)),
+         profile(strInfo(device_id, CL_DEVICE_PROFILE)),
+         deviceVersion(strInfo(device_id,  CL_DEVICE_VERSION)),
+           driverVersion(strInfo(device_id,  CL_DRIVER_VERSION)),
+         cVersion(strInfo(device_id,  CL_DEVICE_OPENCL_C_VERSION)),
+          name(strInfo(device_id,  CL_DEVICE_NAME)),
+           extensions(strInfo(device_id,  CL_DEVICE_EXTENSIONS)),
+            builtInKernels(strInfo(device_id,  CL_DEVICE_BUILT_IN_KERNELS))
+        {
+
+       clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * maxWorkItemDimensions, maxWorkItemSizes, NULL);
        clGetDeviceInfo(device_id, CL_DEVICE_TYPE, sizeof(deviceType), &deviceType, NULL);
        char buf[512];
        buf[0]='\0';
@@ -585,78 +640,43 @@ static cl_ulong cl_ulong_info(cl_device_id device_id, cl_device_info device_info
   }
   ~DeviceInfo(){
      delete [] deviceTypeStr;
+     delete [] profile;
+     delete [] deviceVersion;
+     delete [] driverVersion;
+     delete [] cVersion;
+     delete [] name;
+     delete [] extensions;
+     delete [] builtInKernels;
+        delete [] maxWorkItemSizes;
   }
 };
 void OpenCLBackend::info() {
     PlatformInfo platformInfo(platform_id);
+    DeviceInfo deviceInfo(device_id);
     cl_int status;
     fprintf(stderr, "platform{\n");
     fprintf(stderr, "   CL_PLATFORM_VENDOR..\"%s\"\n", platformInfo.vendorName);
     fprintf(stderr, "   CL_PLATFORM_VERSION.\"%s\"\n", platformInfo.versionName);
     fprintf(stderr, "   CL_PLATFORM_NAME....\"%s\"\n", platformInfo.name);
-    DeviceInfo deviceInfo(device_id);
-    fprintf(stderr, "         CL_DEVICE_TYPE..................... %s ", deviceInfo.deviceTypeStr);
-    fprintf(stderr, LongHexNewline, deviceInfo.deviceType);
+    fprintf(stderr, "         CL_DEVICE_TYPE..................... %s "  LongHexNewline, deviceInfo.deviceTypeStr, deviceInfo.deviceType);
     fprintf(stderr, "         CL_DEVICE_MAX_COMPUTE_UNITS........ %u\n", deviceInfo.maxComputeUnits);
-    fprintf(stderr, "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. %u\n", deviceInfo.maxWorkItemDimensions);
-
-    size_t *maxWorkItemSizes = new size_t[deviceInfo.maxWorkItemDimensions];
-    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * deviceInfo.maxWorkItemDimensions,
-                             maxWorkItemSizes, NULL);
+    fprintf(stderr, "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. %u {", deviceInfo.maxWorkItemDimensions);
     for (unsigned dimIdx = 0; dimIdx < deviceInfo.maxWorkItemDimensions; dimIdx++) {
-        fprintf(stderr, "             dim[%d] = %ld\n", dimIdx, maxWorkItemSizes[dimIdx]);
+        fprintf(stderr, "%ld ", deviceInfo.maxWorkItemSizes[dimIdx]);
     }
-
-    size_t maxWorkGroupSize;
-    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxWorkGroupSize), &maxWorkGroupSize,
-                             NULL);
-
-    fprintf(stderr, "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... "
-    Size_tNewline, maxWorkGroupSize);
-
-
-    cl_ulong maxMemAllocSize;
-    status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(maxMemAllocSize), &maxMemAllocSize, NULL);
-    fprintf(stderr, "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... "
-    LongUnsignedNewline, maxMemAllocSize);
-
-    cl_ulong globalMemSize;
-    status = clGetDeviceInfo(device_id, CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(globalMemSize), &globalMemSize, NULL);
-    fprintf(stderr, "         CL_DEVICE_GLOBAL_MEM_SIZE.......... "
-    LongUnsignedNewline, globalMemSize);
-
-    cl_ulong localMemSize;
-    status = clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(localMemSize), &localMemSize, NULL);
-    fprintf(stderr, "         CL_DEVICE_LOCAL_MEM_SIZE........... "
-    LongUnsignedNewline, localMemSize);
-
-    char profile[2048];
-    status = clGetDeviceInfo(device_id, CL_DEVICE_PROFILE, sizeof(profile), &profile, NULL);
-    fprintf(stderr, "         CL_DEVICE_PROFILE.................. %s\n", profile);
-
-    char deviceVersion[2048];
-    status = clGetDeviceInfo(device_id, CL_DEVICE_VERSION, sizeof(deviceVersion), &deviceVersion, NULL);
-    fprintf(stderr, "         CL_DEVICE_VERSION.................. %s\n", deviceVersion);
-
-    char driverVersion[2048];
-    status = clGetDeviceInfo(device_id, CL_DRIVER_VERSION, sizeof(driverVersion), &driverVersion, NULL);
-    fprintf(stderr, "         CL_DRIVER_VERSION.................. %s\n", driverVersion);
-
-    char cVersion[2048];
-    status = clGetDeviceInfo(device_id, CL_DEVICE_OPENCL_C_VERSION, sizeof(cVersion), &cVersion, NULL);
-    fprintf(stderr, "         CL_DEVICE_OPENCL_C_VERSION......... %s\n", cVersion);
-
-    char name[2048];
-    status = clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(name), &name, NULL);
-    fprintf(stderr, "         CL_DEVICE_NAME..................... %s\n", name);
-    char extensions[2048];
-    status = clGetDeviceInfo(device_id, CL_DEVICE_EXTENSIONS, sizeof(extensions), &extensions, NULL);
-    fprintf(stderr, "         CL_DEVICE_EXTENSIONS............... %s\n", extensions);
-    char builtInKernels[2048];
-    status = clGetDeviceInfo(device_id, CL_DEVICE_BUILT_IN_KERNELS, sizeof(builtInKernels), &builtInKernels, NULL);
-    fprintf(stderr, "         CL_DEVICE_BUILT_IN_KERNELS......... %s\n", builtInKernels);
-
-    fprintf(stderr, "      }\n");
+    fprintf(stderr, "}\n");
+    fprintf(stderr, "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... " Size_tNewline, deviceInfo.maxWorkGroupSize);
+    fprintf(stderr, "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... " LongUnsignedNewline, deviceInfo.maxMemAllocSize);
+    fprintf(stderr, "         CL_DEVICE_GLOBAL_MEM_SIZE.......... "  LongUnsignedNewline, deviceInfo.globalMemSize);
+    fprintf(stderr, "         CL_DEVICE_LOCAL_MEM_SIZE........... "  LongUnsignedNewline, deviceInfo.localMemSize);
+    fprintf(stderr, "         CL_DEVICE_PROFILE.................. %s\n", deviceInfo.profile);
+    fprintf(stderr, "         CL_DEVICE_VERSION.................. %s\n", deviceInfo.deviceVersion);
+    fprintf(stderr, "         CL_DRIVER_VERSION.................. %s\n", deviceInfo.driverVersion);
+    fprintf(stderr, "         CL_DEVICE_OPENCL_C_VERSION......... %s\n", deviceInfo.cVersion);
+    fprintf(stderr, "         CL_DEVICE_NAME..................... %s\n", deviceInfo.name);
+    fprintf(stderr, "         CL_DEVICE_EXTENSIONS............... %s\n", deviceInfo.extensions);
+    fprintf(stderr, "         CL_DEVICE_BUILT_IN_KERNELS......... %s\n", deviceInfo.builtInKernels);
+    fprintf(stderr, "}\n");
 }
 
 long OpenCLBackend::compileProgram(int len, char *source) {

@@ -140,39 +140,51 @@ extern void hexdump(void *ptr, int buflen);
       return ((magic1 == MAGIC) && (magic2 == MAGIC));
    }
 
-         void assignBits(int bitBits) {
-            bits=bitBits;
-        }
-         void setBits(int bitBits) {
-            bits|=bitBits;
-        }
-        void  resetBits(int bitsToReset) {
-             // say bits = 0b0111 (7) and bitz = 0b0100 (4)
-            int xored = bits^bitsToReset;  // xored = 0b0011 (3)
-            bits =  xored;
-        }
-         int getBits() {
-            return bits;
-        }
-         bool areBitsSet(int bitBits) {
-            return (bits&bitBits)==bitBits;
-        }
-
-
+   void assignBits(int bitBits) {
+      bits=bitBits;
+   }
+   void setBits(int bitBits) {
+      bits|=bitBits;
+   }
+   void  resetBits(int bitsToReset) {
+      // say bits = 0b0111 (7) and bitz = 0b0100 (4)
+      int xored = bits^bitsToReset;  // xored = 0b0011 (3)
+      bits =  xored;
+   }
+   int getBits() {
+      return bits;
+   }
+   bool areBitsSet(int bitBits) {
+      return (bits&bitBits)==bitBits;
+   }
+   void setHostDirty(){
+      setBits(BIT_HOST_DIRTY);
+   }
    bool isHostDirty(){
       return  areBitsSet(BIT_HOST_DIRTY);
+   }
+   void clearHostDirty(){
+      resetBits(BIT_HOST_DIRTY);
    }
    bool isHostNew(){
       return  areBitsSet(BIT_HOST_NEW);
    }
-    void clearHostNew(){
-         resetBits(BIT_HOST_NEW);
-      }
-     bool isHostNewOrDirty() {
-               return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
-           }
+   void clearHostNew(){
+      resetBits(BIT_HOST_NEW);
+   }
+   bool isHostNewOrDirty() {
+      return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
+   }
+
+   void setDeviceDirty(){
+      setBits(BIT_DEVICE_DIRTY);
+   }
+
    bool isDeviceDirty(){
       return areBitsSet(BIT_DEVICE_DIRTY);
+   }
+   void clearDeviceDirty(){
+      resetBits(BIT_DEVICE_DIRTY);
    }
 
 

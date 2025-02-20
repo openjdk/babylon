@@ -50,6 +50,7 @@ public:
         const static  int SHOW_KERNEL_MODEL_BIT = 1 << 7;
         const static  int SHOW_COMPUTE_MODEL_BIT = 1 <<8;
         const static  int INFO_BIT = 1 <<9;
+         const static  int TRACE_COPIES_BIT = 1 <<10;
         int mode;
         bool gpu;
         bool cpu;
@@ -58,6 +59,7 @@ public:
         bool profile;
         bool showCode;
         bool info;
+        bool traceCopies;
         OpenCLConfig(int mode);
         virtual ~OpenCLConfig();
     };
