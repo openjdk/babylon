@@ -2,11 +2,11 @@ package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.ObjIntConsumer;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
@@ -259,40 +259,34 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         return (T)this;
     }
 
+    @SuppressWarnings("unchecked")
+    <P> T repeat(int ntimes, ObjIntConsumer<T> cons) {
+        for (int i = 0; i < ntimes; i++) {
+            cons.accept((T)this, i);
+        }
+        return (T)this;
+    }
+
+
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 21;
 
     // @@@ tensors only
-    static ByteBuffer buildOpModel(OnnxOp.OnnxSchema schema, List<java.util.Optional<ElementType>> inputElementTypes, List<Object> attributes) {
+    static ByteBuffer buildOpModel(String opName, List<ElementType> inputTypes, int numOutputs, java.util.Map<String, Object> attributes) {
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
-                        .forEach(schema.inputs(), (g, i) -> {
-                            if (inputElementTypes.get(i.ordinal()).isPresent()) {
-                                g.input(new ValueInfoProto()
-                                    .name(i.name())
-                                    .type(new TypeProto()
-                                            // inputValues match schema inputs by OnnxParameter::ordinal
-                                            .tensor_type(new Tensor().elem_type(inputElementTypes.get(i.ordinal()).get().id))));
-                            }
-                        })
+                        .repeat(inputTypes.size(), (g, i) -> g
+                                .input(new ValueInfoProto()
+                                        .name("i" + i)
+                                        .type(new TypeProto().tensor_type(new Tensor().elem_type(inputTypes.get(i).id)))))
                         .node(new NodeProto()
-                            .forEach(schema.inputs(), (n, i) -> n.input(i.name()))
-                            .forEach(schema.outputs(), (n, o) -> n.output(o.name()))
-                            .op_type(schema.name())
-                            .forEach(schema.attributes(), (n, a) -> {
-                                // attributes match schema by OnnxAttribute::ordinal
-                                var attrValue = attributes.get(a.ordinal());
-                                if (a.isOptional()) {
-                                    if (attrValue instanceof java.util.Optional o && o.isPresent()) {
-                                        n.attribute(buildAttribute(a.name(), o.get()));
-                                    }
-                                } else {
-                                    n.attribute(buildAttribute(a.name(), attrValue));
-                                }
-                            }))
-                        .forEach(schema.outputs(), (g, o) -> g.output(new ValueInfoProto()
-                                .name(o.name()))))
+                            .repeat(inputTypes.size(), (n, i) -> n.input("i" + i))
+                            .repeat(numOutputs, (n, o) -> n.output("o" + o))
+                            .op_type(opName)
+                            .forEach(attributes.entrySet(), (n, attr) -> n
+                                    .attribute(buildAttribute(attr.getKey(), attr.getValue()))))
+                        .repeat(numOutputs, (g, o) -> g.output(new ValueInfoProto().name("o" + o))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
@@ -340,9 +334,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                             }
                         })
                         .output(new ValueInfoProto()
-                                .name(indexer.getName(entryBlock.terminatingOp().operands().getFirst()))
-                                .type(new TypeProto()
-                                        .tensor_type(new Tensor().elem_type(((OnnxType.TensorType)model.body().yieldType()).eType().id())))))
+                                .name(indexer.getName(entryBlock.terminatingOp().operands().getFirst()))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
 //        OnnxProtoPrinter.printModel(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN));

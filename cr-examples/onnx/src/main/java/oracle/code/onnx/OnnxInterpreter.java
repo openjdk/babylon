@@ -25,25 +25,45 @@
 
 package oracle.code.onnx;
 
+import java.lang.foreign.MemorySegment;
+import java.util.LinkedHashMap;
 import oracle.code.onnx.ir.OnnxOp;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.SequencedMap;
 
 public class OnnxInterpreter {
+
+    static List<MemorySegment> toTensors(List<Object> inputs) {
+        return inputs.stream().takeWhile(i -> !(i instanceof Optional o && o.isEmpty()))
+                              .map(i -> ((Tensor)(i instanceof Optional o ? o.get() : i)).tensorAddr)
+                              .toList();
+    }
+
     public static Object interpret(Class<? extends OnnxOp> opClass,
                                    List<Object> inputs,
                                    List<Object> attributes) {
         try {
             // @@@ assuming tensor inputs and outputs
+            var schema = (OnnxOp.OnnxSchema)opClass.getDeclaredField("SCHEMA").get(null);
+            var attrSchema = schema.attributes();
+            var attributeMap = new LinkedHashMap<String, Object>(attributes.size());
+            for (int i = 0; i < attributes.size(); i++) {
+                var a = attributes.get(i);
+                if (a instanceof Optional o) {
+                    if (o.isPresent()) {
+                        attributeMap.put(attrSchema.get(i).name(), o.get());
+                    }
+                } else {
+                    attributeMap.put(attrSchema.get(i).name(), a);
+                }
+            }
             var outTensors = OnnxRuntime.getInstance().runOp(
-                    (OnnxOp.OnnxSchema)opClass.getDeclaredField("SCHEMA").get(null),
-                    inputs.stream().map(o -> Optional.ofNullable(switch (o) {
-                        case Tensor t -> t.tensorAddr;
-                        case Optional ot when ot.isPresent() && ot.get() instanceof Tensor t -> t.tensorAddr;
-                        default -> null;
-                    })).toList(),
-                    attributes);
+                    schema.name(),
+                    toTensors(inputs),
+                    schema.outputs().size(),
+                    attributeMap);
             if (outTensors.size() == 1) {
                 return new Tensor(outTensors.getFirst());
             } else {

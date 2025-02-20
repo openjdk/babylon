@@ -14,9 +14,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
+import java.util.Map;
 import jdk.incubator.code.op.CoreOp;
-import oracle.code.onnx.ir.OnnxOp;
 
 import static java.lang.foreign.ValueLayout.*;
 
@@ -161,18 +160,14 @@ public final class OnnxRuntime {
         return mh.asType(mh.type().changeReturnType(Object.class));
     }
 
-    private List<Optional<Tensor.ElementType>> toElementTypes(List<Optional<MemorySegment>> values) {
-        return values.stream().map(ot -> ot.map(this::tensorElementType)).toList();
-    }
-
-    public List<MemorySegment> runOp(OnnxOp.OnnxSchema schema, List<Optional<MemorySegment>> inputValues, List<Object> attributes) {
-        var protoModel = OnnxProtoBuilder.buildOpModel(schema, toElementTypes(inputValues), attributes);
+    public List<MemorySegment> runOp(String opName, List<MemorySegment> inputValues, int numOutputs, Map<String, Object> attributes) {
+        var protoModel = OnnxProtoBuilder.buildOpModel(opName, inputValues.stream().map(this::tensorElementType).toList(), numOutputs, attributes);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
         }
     }
 
-    public List<MemorySegment> runFunc(CoreOp.FuncOp model, List<Optional<MemorySegment>> inputValues) {
+    public List<MemorySegment> runFunc(CoreOp.FuncOp model, List<MemorySegment> inputValues) {
         var protoModel = OnnxProtoBuilder.buildFuncModel(model);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
@@ -244,7 +239,7 @@ public final class OnnxRuntime {
         }
 
         // @@@ only tensors are supported yet
-        public List<MemorySegment> run(List<Optional<MemorySegment>> inputValues) {
+        public List<MemorySegment> run(List<MemorySegment> inputValues) {
             var runOptions = MemorySegment.NULL;
             int inputLen = getNumberOfInputs();
             int outputLen = getNumberOfOutputs();
@@ -252,10 +247,8 @@ public final class OnnxRuntime {
             var inputs = arena.allocate(ADDRESS, inputLen);
             long index = 0;
             for (int i = 0; i < inputLen; i++) {
-                if (inputValues.get(i).isPresent()) {
-                    inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(getInputName(i)));
-                    inputs.setAtIndex(ADDRESS, index++, inputValues.get(i).get());
-                }
+                inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(getInputName(i)));
+                inputs.setAtIndex(ADDRESS, index++, inputValues.get(i));
             }
             var outputNames = arena.allocate(ADDRESS, outputLen);
             var outputs = arena.allocate(ADDRESS, outputLen);
@@ -278,7 +271,7 @@ public final class OnnxRuntime {
         @Override
         public void close() {
             try {
-                checkStatus(releaseSession.invokeExact(runtimeAddress, sessionAddress));
+                Object o = releaseSession.invokeExact(runtimeAddress, sessionAddress);
             } catch (Throwable t) {
                 throw wrap(t);
             }
