@@ -654,29 +654,29 @@ void OpenCLBackend::info() {
     PlatformInfo platformInfo(platform_id);
     DeviceInfo deviceInfo(device_id);
     cl_int status;
-    fprintf(stderr, "platform{\n");
-    fprintf(stderr, "   CL_PLATFORM_VENDOR..\"%s\"\n", platformInfo.vendorName);
-    fprintf(stderr, "   CL_PLATFORM_VERSION.\"%s\"\n", platformInfo.versionName);
-    fprintf(stderr, "   CL_PLATFORM_NAME....\"%s\"\n", platformInfo.name);
-    fprintf(stderr, "         CL_DEVICE_TYPE..................... %s "  LongHexNewline, deviceInfo.deviceTypeStr, deviceInfo.deviceType);
-    fprintf(stderr, "         CL_DEVICE_MAX_COMPUTE_UNITS........ %u\n", deviceInfo.maxComputeUnits);
-    fprintf(stderr, "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. %u {", deviceInfo.maxWorkItemDimensions);
+    std::cerr << "platform{" <<std::endl;
+    std::cerr << "   CL_PLATFORM_VENDOR..\"" << platformInfo.vendorName <<"\""<<std::endl;
+    std::cerr << "   CL_PLATFORM_VERSION.\"" << platformInfo.versionName <<"\""<<std::endl;
+    std::cerr << "   CL_PLATFORM_NAME....\"" << platformInfo.name <<"\""<<std::endl;
+    std::cerr << "         CL_DEVICE_TYPE..................... " << deviceInfo.deviceTypeStr << " "<< deviceInfo.deviceType<<std::endl;
+    std::cerr << "         CL_DEVICE_MAX_COMPUTE_UNITS........ " << deviceInfo.maxComputeUnits<<std::endl;
+    std::cerr << "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. " << deviceInfo.maxWorkItemDimensions << " {";
     for (unsigned dimIdx = 0; dimIdx < deviceInfo.maxWorkItemDimensions; dimIdx++) {
-        fprintf(stderr, "%ld ", deviceInfo.maxWorkItemSizes[dimIdx]);
+        std::cerr<< deviceInfo.maxWorkItemSizes[dimIdx] << " ";
     }
-    fprintf(stderr, "}\n");
-    fprintf(stderr, "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... " Size_tNewline, deviceInfo.maxWorkGroupSize);
-    fprintf(stderr, "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... " LongUnsignedNewline, deviceInfo.maxMemAllocSize);
-    fprintf(stderr, "         CL_DEVICE_GLOBAL_MEM_SIZE.......... "  LongUnsignedNewline, deviceInfo.globalMemSize);
-    fprintf(stderr, "         CL_DEVICE_LOCAL_MEM_SIZE........... "  LongUnsignedNewline, deviceInfo.localMemSize);
-    fprintf(stderr, "         CL_DEVICE_PROFILE.................. %s\n", deviceInfo.profile);
-    fprintf(stderr, "         CL_DEVICE_VERSION.................. %s\n", deviceInfo.deviceVersion);
-    fprintf(stderr, "         CL_DRIVER_VERSION.................. %s\n", deviceInfo.driverVersion);
-    fprintf(stderr, "         CL_DEVICE_OPENCL_C_VERSION......... %s\n", deviceInfo.cVersion);
-    fprintf(stderr, "         CL_DEVICE_NAME..................... %s\n", deviceInfo.name);
-    fprintf(stderr, "         CL_DEVICE_EXTENSIONS............... %s\n", deviceInfo.extensions);
-    fprintf(stderr, "         CL_DEVICE_BUILT_IN_KERNELS......... %s\n", deviceInfo.builtInKernels);
-    fprintf(stderr, "}\n");
+    std::cerr<< "}"<<std::endl;
+     std::cerr <<  "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... "<< deviceInfo.maxWorkGroupSize<<std::endl;
+     std::cerr <<  "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... "<< deviceInfo.maxMemAllocSize<<std::endl;
+     std::cerr <<  "         CL_DEVICE_GLOBAL_MEM_SIZE.......... "<< deviceInfo.globalMemSize<<std::endl;
+     std::cerr <<  "         CL_DEVICE_LOCAL_MEM_SIZE........... "<< deviceInfo.localMemSize<<std::endl;
+     std::cerr <<  "         CL_DEVICE_PROFILE.................. "<< deviceInfo.profile<<std::endl;
+     std::cerr <<  "         CL_DEVICE_VERSION.................. "<< deviceInfo.deviceVersion<<std::endl;
+     std::cerr <<  "         CL_DRIVER_VERSION.................. "<< deviceInfo.driverVersion<<std::endl;
+     std::cerr <<  "         CL_DEVICE_OPENCL_C_VERSION......... "<< deviceInfo.cVersion<<std::endl;
+     std::cerr <<  "         CL_DEVICE_NAME..................... "<< deviceInfo.name<<std::endl;
+     std::cerr <<  "         CL_DEVICE_EXTENSIONS............... "<< deviceInfo.extensions<<std::endl;
+     std::cerr <<  "         CL_DEVICE_BUILT_IN_KERNELS......... "<< deviceInfo.builtInKernels<<std::endl;
+     std::cerr <<  "}"<<std::endl;
 }
 
 long OpenCLBackend::compileProgram(int len, char *source) {
