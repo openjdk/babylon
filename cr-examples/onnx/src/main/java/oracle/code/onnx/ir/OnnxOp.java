@@ -37,8 +37,6 @@ public abstract class OnnxOp extends ExternalizableOp {
     public interface OnnxAttribute {
         String name();
 
-        int ordinal();
-
         Class<?> type();
 
         Object defaultValue();
@@ -145,8 +143,6 @@ public abstract class OnnxOp extends ExternalizableOp {
         }
 
         String name();
-
-        int ordinal();
 
         OnnxType type();
 
