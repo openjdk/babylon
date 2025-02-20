@@ -32,35 +32,141 @@ import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
 
 import java.lang.invoke.MethodHandle;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
-    public static final int GPU_BIT =1<<1;
-    public static final int CPU_BIT =1<<2;
-    public static final int MINIMIZE_COPIES_BIT =1<<3;
-    public static final int TRACE_BIT =1<<4;
-    public static final int PROFILE_BIT =1<<5;
-    public enum Mode{
-        GPU(GPU_BIT),
-        CPU(CPU_BIT),
-        PROFILE_GPU(PROFILE_BIT|GPU_BIT),
-        PROFILE_CPU(PROFILE_BIT|CPU_BIT),
-        GPU_TRACE(GPU_BIT|TRACE_BIT),
-        CPU_TRACE(CPU_BIT|TRACE_BIT),
-        PROFILE_GPU_TRACE(PROFILE_BIT|GPU_BIT|TRACE_BIT),
-        PROFILE_CPU_TRACE(PROFILE_BIT|CPU_BIT|TRACE_BIT),
-        GPU_TRACE_MINIMIZE_COPIES(GPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
-        CPU_TRACE_MINIMIZE_COPIES(CPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
-        PROFILE_GPU_TRACE_MINIMIZE_COPIES(PROFILE_BIT|GPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
-        PROFILE_CPU_TRACE_MINIMIZE_COPIES(PROFILE_BIT|CPU_BIT|TRACE_BIT|MINIMIZE_COPIES_BIT),
-        GPU_MINIMIZE_COPIES(GPU_BIT|MINIMIZE_COPIES_BIT),
-        CPU_MINIMIZE_COPIES(CPU_BIT|MINIMIZE_COPIES_BIT),
-        PROFILE_GPU_MINIMIZE_COPIES(PROFILE_BIT|GPU_BIT|MINIMIZE_COPIES_BIT),
-        PROFILE_CPU_MINIMIZE_COPIES(PROFILE_BIT|CPU_BIT|MINIMIZE_COPIES_BIT);
-        public final int value;
-        Mode(int value) {
-            this.value=value;
+    public record Mode(int bits) {
+        private static final int GPU_BIT = 1 << 1;
+        private static final int CPU_BIT = 1 << 2;
+        private static final int MINIMIZE_COPIES_BIT = 1 << 3;
+        private static final int TRACE_BIT = 1 << 4;
+        private static final int PROFILE_BIT = 1 << 5;
+
+        public static Mode of(String name) {
+            return switch (name){
+                case "GPU" -> GPU();
+                case "CPU" -> CPU();
+                case "MINIMIZE_COPIES" -> MINIMIZE_COPIES();
+                case "TRACE" -> TRACE();
+                case "PROFILE" -> PROFILE();
+                default -> Mode.of(0);
+            };
+        }
+        public static Mode of() {
+            List<Mode> modes = new ArrayList<>();
+            if (( ((System.getenv("HAT") instanceof String e)?e:"")+
+                    ((System.getProperty("HAT") instanceof String p)?p:"")) instanceof String opts) {
+                Arrays.stream(opts.split(",")).forEach(opt ->
+                        modes.add(of(opt))
+                );
+            }
+            if (System.getenv("HAT_GPU") != null || System.getProperty("HAT_GPU") != null) {
+                modes.add(GPU());
+            }
+            if (System.getenv("HAT_CPU") != null || System.getProperty("HAT_CPU") != null) {
+                modes.add(CPU());
+            }
+            if (System.getenv("HAT_TRACE") != null || System.getProperty("HAT_TRACE") != null) {
+                modes.add(TRACE());
+            }
+            if (System.getenv("HAT_PROFILE") != null || System.getProperty("HAT_PROFILE") != null) {
+                modes.add(PROFILE());
+            }
+            if (System.getenv("HAT_MINIMIZE_COPIES") != null || System.getProperty("HAT_PROFILE") !=null) {
+                modes.add(MINIMIZE_COPIES());
+            }
+           return of(modes);
+        }
+        public static Mode of(int bits) {
+
+            return new Mode(bits);
+        }
+        public static Mode of(List<Mode> modes) {
+            int allBits = 0;
+            for (Mode mode : modes) {
+                allBits |= mode.bits;
+            }
+            return new Mode(allBits);
+        }
+        public static Mode of(Mode ...modes) {
+           return of(List.of(modes));
+        }
+        public Mode and(Mode ...modes) {
+            return Mode.of(Mode.of(List.of(modes)).bits&bits);
+        }
+        public Mode or(Mode ...modes) {
+            return Mode.of(Mode.of(List.of(modes)).bits|bits);
+        }
+        public static Mode CPU() {
+            return new Mode(CPU_BIT);
+        }
+        public boolean isCPU() {
+            return (bits&CPU_BIT)==CPU_BIT;
+        }
+        public static Mode GPU() {
+            return new Mode(GPU_BIT);
+        }
+        public boolean isGPU() {
+            return (bits&GPU_BIT)==GPU_BIT;
+        }
+        public static Mode PROFILE() {
+            return new Mode(PROFILE_BIT);
+        }
+        public boolean isPROFILE() {
+            return (bits&PROFILE_BIT)==PROFILE_BIT;
+        }
+        public static Mode TRACE() {
+            return new Mode(TRACE_BIT);
+        }
+        public boolean isTRACE() {
+            return (bits&TRACE_BIT)==TRACE_BIT;
+        }
+        public static Mode MINIMIZE_COPIES() {
+            return new Mode(MINIMIZE_COPIES_BIT);
+        }
+        public boolean isMINIMIZE_COPIES() {
+            return (bits&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            if (isCPU()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("CPU");
+            }
+            if (isGPU()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("GPU");
+            }
+            if (isTRACE()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("TRACE");
+            }
+            if (isPROFILE()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("PROFILE");
+            }
+            if (isMINIMIZE_COPIES()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("MINIMIZE_COPIES");
+            }
+
+            return builder.toString();
         }
     }
 
@@ -75,13 +181,14 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
     }
     public OpenCLBackend(Mode mode) {
         super("opencl_backend");
+        System.out.println(mode);
         getBackend_MH  =  nativeLibrary.longFunc("getOpenCLBackend",JAVA_INT,JAVA_INT, JAVA_INT, JAVA_INT);
-        getBackend(mode.value,0, 0, 0 );
+        getBackend(mode.bits,0, 0, 0 );
         info();
     }
 
     public OpenCLBackend() {
-        this(Mode.valueOf(System.getProperty("Mode", Mode.PROFILE_GPU.toString())));
+        this(Mode.of().or(Mode.GPU()));
     }
 
 

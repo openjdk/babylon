@@ -34,6 +34,8 @@ import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
 
+import static hat.backend.ffi.OpenCLBackend.Mode.*;
+
 public class MinBufferTest {
 
 
@@ -54,7 +56,7 @@ public class MinBufferTest {
     }
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new JavaMultiThreadedBackend());// new OpenCLBackend());
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),  new OpenCLBackend(of(PROFILE(), GPU())));
         int len = 10000000;
         int mul = 100;
         S32Array s32Array = S32Array.create(accelerator, len);

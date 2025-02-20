@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLBackend;
+import static hat.backend.ffi.OpenCLBackend.Mode.*;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 import hat.backend.DebugBackend;
@@ -138,7 +139,7 @@ public class Mesh {
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup()
-                ,new OpenCLBackend(OpenCLBackend.Mode.PROFILE_GPU_TRACE));
+                ,new OpenCLBackend(of(PROFILE(), GPU(), TRACE())));
                 //,new DebugBackend(
                 //DebugBackend.HowToRunCompute.REFLECT,
                 //DebugBackend.HowToRunKernel.BABYLON_INTERPRETER));
