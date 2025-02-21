@@ -6,12 +6,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.ObjIntConsumer;
+import java.util.stream.IntStream;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
 import oracle.code.onnx.ir.OnnxOp;
-import oracle.code.onnx.Tensor.ElementType;
 import oracle.code.onnx.ir.OnnxType;
 
 // Generated from onnx.proto3
@@ -259,35 +258,8 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         return (T)this;
     }
 
-    @SuppressWarnings("unchecked")
-    <P> T repeat(int ntimes, ObjIntConsumer<T> cons) {
-        for (int i = 0; i < ntimes; i++) {
-            cons.accept((T)this, i);
-        }
-        return (T)this;
-    }
-
-
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 21;
-
-    // @@@ tensors only
-    static ByteBuffer buildOpModel(String opName, List<ElementType> inputTypes, int numOutputs, java.util.Map<String, Object> attributes) {
-        var bytes = new ModelProto()
-                .ir_version(IR_VERSION)
-                .graph(new GraphProto()
-                        .repeat(inputTypes.size(), (g, i) -> g.input(new ValueInfoProto().name("i" + i)
-                                .type(new TypeProto().tensor_type(new Tensor().elem_type(inputTypes.get(i).id)))))
-                        .node(new NodeProto()
-                                .repeat(inputTypes.size(), (n, i) -> n.input("i" + i))
-                                .repeat(numOutputs, (n, o) -> n.output("o" + o))
-                                .op_type(opName)
-                                .forEach(attributes.entrySet(), (n, attr) -> n.attribute(buildAttribute(attr.getKey(), attr.getValue()))))
-                        .repeat(numOutputs, (g, o) -> g.output(new ValueInfoProto().name("o" + o))))
-                .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
-                .buf.toByteArray();
-        return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
-    }
 
     // @@@ unchecked constraints:
     //         tensor FuncOp parameters and single tensor return type
@@ -304,30 +276,43 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 return name;
             }
         };
-        var entryBlock = model.body().entryBlock();
+        return buildModel(
+                model.body().entryBlock().parameters().stream().map(v -> new Input(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
+                model.body().entryBlock().ops().stream().<OpNode>mapMulti((op, opNodes) -> {
+                    switch (op) {
+                        case OnnxOp onnxOp ->
+                            opNodes.accept(new OpNode(
+                                    onnxOp.opName(),
+                                    onnxOp.operands().stream().map(v -> indexer.getName(v)).toList(),
+                                    IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(onnxOp.result(), o)).toList(),
+                                    onnxOp.onnxAttributes()));
+                        case CoreOp.ReturnOp _ -> { // skip
+                        }
+                        case CoreOp.TupleLoadOp tlo ->
+                            indexer.put(tlo.result(), indexer.getName(tlo.operands().getFirst(), tlo.index()));
+                        default ->
+                            throw new UnsupportedOperationException(op.toText());
+                    }
+                }).toList(),
+                List.of(indexer.getName(model.body().entryBlock().terminatingOp().operands().getFirst())));
+    }
+
+    record Input(String name, int tensorElementType) {}
+    record OpNode(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {}
+
+    static ByteBuffer buildModel(List<Input> inputs, List<OpNode> ops, List<String> outputNames) {
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
-                        .forEach(entryBlock.parameters(), (g, p) -> g.input(new ValueInfoProto().name(indexer.getName(p))
-                                .type(new TypeProto().tensor_type(new Tensor().elem_type(((OnnxType.TensorType)p.type()).eType().id())))))
-                        .forEach(entryBlock.ops(), (g, op) -> {
-                            switch (op) {
-                                case OnnxOp onnxOp ->
-                                    g.node(new NodeProto()
-                                            .forEach(op.operands(), (n, i) -> n.input(indexer.getName(i)))
-                                            .repeat(onnxOp.onnxOutputs().size(), (n, o) -> n.output(indexer.getName(op.result(), o)))
-                                            .op_type(op.opName())
-                                            .forEach(onnxOp.onnxAttributes().entrySet(), (n, ae) -> n.attribute(buildAttribute(ae.getKey(), ae.getValue()))));
-                                case CoreOp.ReturnOp _ -> { // skip
-                                }
-                                case CoreOp.TupleLoadOp tlo ->
-                                    indexer.put(op.result(), indexer.getName(op.operands().getFirst(), tlo.index()));
-                                default ->
-                                    throw new UnsupportedOperationException(op.toText());
-                            }
-                        })
-                        .output(new ValueInfoProto()
-                                .name(indexer.getName(entryBlock.terminatingOp().operands().getFirst()))))
+                        .forEach(inputs, (g, input) -> g
+                                .input(new ValueInfoProto().name(input.name())
+                                        .type(new TypeProto().tensor_type(new Tensor().elem_type(input.tensorElementType())))))
+                        .forEach(ops, (g, op) -> g.node(new NodeProto()
+                                .forEach(op.inputNames(), (n, iName) -> n.input(iName))
+                                .forEach(op.outputNames(), (n, oName) -> n.output(oName))
+                                .op_type(op.opName())
+                                .forEach(op.attributes().entrySet(), (n, ae) -> n.attribute(buildAttribute(ae.getKey(), ae.getValue())))))
+                        .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
 //        OnnxProtoPrinter.printModel(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN));

@@ -13,8 +13,14 @@ public class RuntimeTest {
     @Test
     public void test() throws Exception {
         var ort = OnnxRuntime.getInstance();
-        try (var absOp = ort.createSession(OnnxProtoBuilder.buildOpModel("Abs", List.of(FLOAT), 1, Map.of()));
-             var addOp = ort.createSession(OnnxProtoBuilder.buildOpModel("Add", List.of(FLOAT, FLOAT), 1, Map.of()))) {
+        try (var absOp = ort.createSession(OnnxProtoBuilder.buildModel(
+                List.of(new OnnxProtoBuilder.Input("x", FLOAT.id)),
+                List.of(new OnnxProtoBuilder.OpNode("Abs", List.of("x"), List.of("y"), Map.of())),
+                List.of("y")));
+             var addOp = ort.createSession(OnnxProtoBuilder.buildModel(
+                List.of(new OnnxProtoBuilder.Input("a", FLOAT.id), new OnnxProtoBuilder.Input("b", FLOAT.id)),
+                List.of(new OnnxProtoBuilder.OpNode("Add", List.of("a", "b"), List.of("y"), Map.of())),
+                List.of("y")))) {
 
             assertEquals(1, absOp.getNumberOfInputs());
             assertEquals(1, absOp.getNumberOfOutputs());

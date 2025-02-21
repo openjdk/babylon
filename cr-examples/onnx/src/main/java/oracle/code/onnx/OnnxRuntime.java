@@ -15,6 +15,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.IntStream;
 import jdk.incubator.code.op.CoreOp;
 
 import static java.lang.foreign.ValueLayout.*;
@@ -161,7 +162,15 @@ public final class OnnxRuntime {
     }
 
     public List<MemorySegment> runOp(String opName, List<MemorySegment> inputValues, int numOutputs, Map<String, Object> attributes) {
-        var protoModel = OnnxProtoBuilder.buildOpModel(opName, inputValues.stream().map(this::tensorElementType).toList(), numOutputs, attributes);
+        var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
+        var protoModel = OnnxProtoBuilder.buildModel(
+                IntStream.range(0, inputValues.size()).mapToObj(i -> new OnnxProtoBuilder.Input("i" + i, tensorElementType(inputValues.get(i)).id)).toList(),
+                List.of(new OnnxProtoBuilder.OpNode(
+                        opName,
+                        IntStream.range(0, inputValues.size()).mapToObj(i -> "i" + i).toList(),
+                        outputNames,
+                        attributes)),
+                outputNames);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
         }
