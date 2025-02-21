@@ -50,7 +50,7 @@ public:
         const static  int SHOW_KERNEL_MODEL_BIT = 1 << 7;
         const static  int SHOW_COMPUTE_MODEL_BIT = 1 <<8;
         const static  int INFO_BIT = 1 <<9;
-         const static  int TRACE_COPIES_BIT = 1 <<10;
+        const static  int TRACE_COPIES_BIT = 1 <<10;
         int mode;
         bool gpu;
         bool cpu;
@@ -75,6 +75,9 @@ public:
        void showEvents(int width);
        void wait();
        void release();
+       void computeStart();
+       void computeEnd();
+       void inc();
        virtual ~OpenCLQueue();
     };
 
@@ -109,6 +112,7 @@ public:
     };
 
 public:
+
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
@@ -124,7 +128,11 @@ public:
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
     long compileProgram(int len, char *source);
-
+    char *strInfo(cl_device_info device_info);
+    cl_int cl_int_info( cl_device_info device_info);
+    cl_ulong cl_ulong_info( cl_device_info device_info);
+    size_t size_t_info( cl_device_info device_info);
+    char *strPlatformInfo(cl_platform_info platform_info);
 public:
     static const char *errorMsg(cl_int status);
 };

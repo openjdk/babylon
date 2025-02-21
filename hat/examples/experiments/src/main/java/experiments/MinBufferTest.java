@@ -56,7 +56,7 @@ public class MinBufferTest {
     }
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),  new OpenCLBackend(of(PROFILE(), GPU())));
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),  new OpenCLBackend(of(PROFILE(), TRACE_COPIES(), GPU(),MINIMIZE_COPIES())));
         int len = 10000000;
         int mul = 100;
         S32Array s32Array = S32Array.create(accelerator, len);

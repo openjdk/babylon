@@ -152,23 +152,33 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
         exit(1);
        }
  }
-  void OpenCLBackend::OpenCLQueue::release(){
-          cl_int status = CL_SUCCESS;
+ void OpenCLBackend::OpenCLQueue::computeStart(){
+ }
+ void OpenCLBackend::OpenCLQueue::computeEnd(){
+ }
+ void OpenCLBackend::OpenCLQueue::inc(){
+    if (eventc+1 >= eventMax){
+       std::cerr << "OpenCLBackend::OpenCLQueue event list overflowed!!" << std::endl;
+    }
+    eventc++;
+ }
 
-             for (int i = 0; i < eventc; i++) {
-                 status = clReleaseEvent(events[i]);
-                 if (status != CL_SUCCESS) {
-                     std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-                     exit(1);
-                 }
-             }
-                eventc = 0;
-             }
+ void OpenCLBackend::OpenCLQueue::release(){
+     cl_int status = CL_SUCCESS;
+     for (int i = 0; i < eventc; i++) {
+         status = clReleaseEvent(events[i]);
+         if (status != CL_SUCCESS) {
+             std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+             exit(1);
+         }
+     }
+     eventc = 0;
+ }
 
-     OpenCLBackend::OpenCLQueue::~OpenCLQueue(){
-              clReleaseCommandQueue(command_queue);
-              delete []events;
-             }
+ OpenCLBackend::OpenCLQueue::~OpenCLQueue(){
+     clReleaseCommandQueue(command_queue);
+     delete []events;
+ }
 
 /*
   OpenCLBuffer
@@ -176,86 +186,76 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg)
         : Backend::Program::Kernel::Buffer(kernel, arg) {
-    /*
-     *   (void *) arg->value.buffer.memorySegment,
-     *   (size_t) arg->value.buffer.sizeInBytes);
-     */
     cl_int status;
-    auto openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
-    clMem = clCreateBuffer(openclBackend->context,
-                           CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
-                           arg->value.buffer.sizeInBytes,
-                           arg->value.buffer.memorySegment,
-                           &status);
+    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
+    clMem = clCreateBuffer(
+        openclBackend->context,
+        CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
+        arg->value.buffer.sizeInBytes,
+        arg->value.buffer.memorySegment,
+        &status);
+
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
 
     BufferState_s * bufferState = BufferState_s::of(arg);
-    if (openclBackend->openclConfig.trace){
-       bufferState->dump("on allocation before assign");
-    }
-    bufferState->vendorPtr =  static_cast<void *>(this);
-    if (openclBackend->openclConfig.trace){
-        bufferState->dump("after assign ");
-        std::cout << "created buffer " << std::endl;
+     bufferState->vendorPtr =  static_cast<void *>(this);
+    if (openclBackend->openclConfig.traceCopies){
+        std::cout << "created buffer for arg idx "<< arg->idx << std::endl;
     }
 
 }
 
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
-
-    /*
-     *   (void *) arg->value.buffer.memorySegment,
-     *   (size_t) arg->value.buffer.sizeInBytes);
-     */
-    auto openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
-    auto openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
-    cl_int status = clEnqueueWriteBuffer( openclBackend->openclQueue.command_queue,
-                                         clMem,
-                                         CL_FALSE,
-                                         0,
-                                         arg->value.buffer.sizeInBytes,
-                                         arg->value.buffer.memorySegment,
-                                         openclBackend->openclQueue.eventc,
-                                         openclBackend->openclQueue.eventListPtr(),
-                                         openclBackend->openclQueue.nextEventPtr()
-                                       );
-    openclBackend->openclQueue.eventc++;
+    OpenCLKernel *openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
+    OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
+    cl_int status = clEnqueueWriteBuffer(
+       openclBackend->openclQueue.command_queue,
+       clMem,
+       CL_FALSE,
+       0,
+       arg->value.buffer.sizeInBytes,
+       arg->value.buffer.memorySegment,
+       openclBackend->openclQueue.eventc,
+       openclBackend->openclQueue.eventListPtr(),
+       openclBackend->openclQueue.nextEventPtr()
+    );
+    openclBackend->openclQueue.inc();
 
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-
     if(openclBackend->openclConfig.traceCopies){
-        std::cout << "enqueued buffer copyToDevice " << std::endl;
+        std::cout << "enqueued buffer for arg idx " << arg->idx << " in OpenCLBuffer::copyToDevice()" << std::endl;
     }
 }
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
-    auto openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
-    auto openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
+    OpenCLKernel * openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
+    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
 
-    cl_int status = clEnqueueReadBuffer( openclBackend->openclQueue.command_queue,
-                                        clMem,
-                                        CL_FALSE,
-                                        0,
-                                        arg->value.buffer.sizeInBytes,
-                                        arg->value.buffer.memorySegment,
-                                        openclBackend->openclQueue.eventc,
-                                        openclBackend->openclQueue.eventListPtr(),
-                                        openclBackend->openclQueue.nextEventPtr()
-                                        );
-    openclBackend->openclQueue.eventc++;
+    cl_int status = clEnqueueReadBuffer(
+       openclBackend->openclQueue.command_queue,
+       clMem,
+       CL_FALSE,
+       0,
+       arg->value.buffer.sizeInBytes,
+       arg->value.buffer.memorySegment,
+       openclBackend->openclQueue.eventc,
+       openclBackend->openclQueue.eventListPtr(),
+       openclBackend->openclQueue.nextEventPtr()
+    );
+    openclBackend->openclQueue.inc();
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
     if(openclBackend->openclConfig.traceCopies){
-       std::cout << "enqueued buffer copyFromDevice " << std::endl;
+       std::cout << "enqueued buffer for arg idx " << arg->idx << " in OpenCLBuffer::copyFromDevice()" << std::endl;
     }
 }
 
@@ -268,7 +268,7 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
   */
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::Program *program, char* name, cl_kernel kernel)
-        : Backend::Program::Kernel(program, name), kernel(kernel){
+    : Backend::Program::Kernel(program, name), kernel(kernel){
 }
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
@@ -382,16 +382,16 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
             openclBackend->openclQueue.eventc,
             openclBackend->openclQueue.eventListPtr(),
             openclBackend->openclQueue.nextEventPtr());
-    openclBackend->openclQueue.eventc++;
+    openclBackend->openclQueue.inc();
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
     if (openclBackend->openclConfig.trace){
-       std::cout << "enqueued dispatch  " << std::endl;
-       std::cout <<  " globalSize=" << globalSize << " " << std::endl;
+       std::cout << "enqueued kernel dispatch globalSize=" << globalSize << std::endl;
     }
    if (openclBackend->openclConfig.minimizeCopies){
+     openclBackend->openclQueue.wait();
    }else{
        for (int i = 1; i < argSled.argc(); i++) { // note i = 1... we don't need to copy back the KernelContext
           Arg_s *arg = argSled.arg(i);
@@ -405,11 +405,8 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
              bufferState->setDeviceDirty();
           }
        }
+         openclBackend->openclQueue.wait();
     }
-    openclBackend->openclQueue.wait();
-   // openclBackend->openclQueue.release(); release in computeEnd
-
-    /* NOte that we have leaked a clmem in the OpenCLBuffer attached to the Arg. **/
     return 0;
 }
 
@@ -417,7 +414,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
   OpenCLProgram
   */
 OpenCLBackend::OpenCLProgram::OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program)
-        : Backend::Program(backend, buildInfo), program(program) {
+    : Backend::Program(backend, buildInfo), program(program) {
 }
 
 OpenCLBackend::OpenCLProgram::~OpenCLProgram() {
@@ -427,6 +424,9 @@ OpenCLBackend::OpenCLProgram::~OpenCLProgram() {
 long OpenCLBackend::OpenCLProgram::getKernel(int nameLen, char *name) {
     cl_int status;
     cl_kernel kernel = clCreateKernel(program, name, &status);
+    if (status != CL_SUCCESS){
+       std::cerr << "Failed to get kernel "<<name<<" "<<errorMsg(status)<<std::endl;
+    }
     return (long) new OpenCLKernel(this,name, kernel);
 }
 
@@ -451,8 +451,6 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
 
 OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
         : Backend(mode), openclConfig(mode), openclQueue() {
-
-
     if (openclConfig.trace){
         std::cout << "openclConfig->gpu" << (openclConfig.gpu ? "true" : "false") << std::endl;
         std::cout << "openclConfig->minimizeCopies" << (openclConfig.minimizeCopies ? "true" : "false") << std::endl;
@@ -462,10 +460,16 @@ OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
     cl_int status;
     cl_uint platformc = 0;
     if ((status = clGetPlatformIDs(0, NULL, &platformc)) != CL_SUCCESS) {
+        if (status != CL_SUCCESS){
+           std::cerr << "clGetPlatformIDs (to get count) failed " << errorMsg(status)<<std::endl;
+        }
         return;
     }
     cl_platform_id *platforms = new cl_platform_id[platformc];
     if ((status = clGetPlatformIDs(platformc, platforms, NULL)) != CL_SUCCESS) {
+         if (status != CL_SUCCESS){
+            std::cerr << "clGetPlatformIDs failed " << errorMsg(status)<<std::endl;
+         }
         return;
     }
 
@@ -473,21 +477,28 @@ OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
     for (unsigned int i = 0; devicec == 0 && i < platformc; ++i) {
         platform_id = platforms[i];
         if ((status = clGetDeviceIDs(platform_id, requestedType, 0, NULL, &devicec)) != CL_SUCCESS) {
+            if (status != CL_SUCCESS){
+               std::cerr << "clGetDeviceIDs (to get count) failed " << errorMsg(status)<<std::endl;
+            }
             delete[] platforms;
             return;
         }
     }
     if (devicec == 0) {
         status = CL_DEVICE_NOT_AVAILABLE;
+        std::cerr << "No device available " << errorMsg(status)<<std::endl;
         return;
     }
     cl_device_id *device_ids = new cl_device_id[devicec];             // compute device id
     if ((status = clGetDeviceIDs(platform_id, requestedType, devicec, device_ids, NULL)) != CL_SUCCESS) {
+
+        std::cerr << "clGetDeviceIDs failed " << errorMsg(status)<<std::endl;
         delete[] platforms;
         delete[] device_ids;
         return;
     }
     if ((context = clCreateContext(0, 1, device_ids, NULL, NULL, &status)) == NULL || status != CL_SUCCESS) {
+        std::cerr << "clCreateContext failed " << errorMsg(status)<<std::endl;
         delete[] platforms;
         delete[] device_ids;
         return;
@@ -497,6 +508,7 @@ OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
 
     if ((openclQueue.command_queue = clCreateCommandQueue(context, device_ids[0], queue_props, &status)) == NULL ||
         status != CL_SUCCESS) {
+        std::cerr << "clCreateCommandQueue failed " << errorMsg(status)<<std::endl;
         clReleaseContext(context);
         delete[] platforms;
         delete[] device_ids;
@@ -512,26 +524,80 @@ OpenCLBackend::~OpenCLBackend() {
     clReleaseContext(context);
 
 }
+/*
+  static char *strInfo(cl_device_id device_id, cl_device_info device_info){
+     size_t sz;
+     cl_int  status = clGetDeviceInfo(device_id, device_info, 0, nullptr,  &sz);
+     char *ptr = new char[sz+1];
+     status = clGetDeviceInfo(device_id, device_info, sz, ptr,nullptr);
+     return ptr;
+  }
 
+  static cl_int cl_int_info(cl_device_id device_id, cl_device_info device_info){
+     cl_uint v;
+     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
+     return v;
+  }
+  static cl_ulong cl_ulong_info(cl_device_id device_id, cl_device_info device_info){
+     cl_ulong v;
+     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
+     return v;
+  }
+  static size_t size_t_info(cl_device_id device_id, cl_device_info device_info){
+     size_t v;
+     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
+     return v;
+  }
 
-int OpenCLBackend::getMaxComputeUnits() {
-    if (openclConfig.trace){
-       std::cout << "getMaxComputeUnits()" << std::endl;
-    }
-    cl_uint value;
-    cl_int status = clGetDeviceInfo(device_id, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(value), &value, nullptr);
-    if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-        exit(1);
-    }
-    return value;
-}
+  static char *strInfo(cl_platform_id platform_id,cl_platform_info platform_info){
+       size_t sz;
+       cl_int  status = clGetPlatformInfo(platform_id, platform_info, 0, nullptr,  &sz);
+       char *ptr = new char[sz+1];
+       status = clGetPlatformInfo(platform_id, platform_info, sz, ptr,nullptr);
+       return ptr;
+  }
+  */
+   char *OpenCLBackend::strInfo( cl_device_info device_info){
+     size_t sz;
+     cl_int  status = clGetDeviceInfo(device_id, device_info, 0, nullptr,  &sz);
+     char *ptr = new char[sz+1];
+     status = clGetDeviceInfo(device_id, device_info, sz, ptr,nullptr);
+     return ptr;
+  }
+
+   cl_int OpenCLBackend::cl_int_info( cl_device_info device_info){
+     cl_uint v;
+     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
+     return v;
+  }
+   cl_ulong OpenCLBackend::cl_ulong_info( cl_device_info device_info){
+     cl_ulong v;
+     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
+     return v;
+  }
+   size_t OpenCLBackend::size_t_info( cl_device_info device_info){
+     size_t v;
+     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
+     return v;
+  }
+
+  char *OpenCLBackend::strPlatformInfo(cl_platform_info platform_info){
+       size_t sz;
+       cl_int  status = clGetPlatformInfo(platform_id, platform_info, 0, nullptr,  &sz);
+       char *ptr = new char[sz+1];
+       status = clGetPlatformInfo(platform_id, platform_info, sz, ptr,nullptr);
+       return ptr;
+  }
+
 void OpenCLBackend::computeStart() {
   if (openclConfig.trace){
      std::cout <<"compute start" <<std::endl;
   }
+  openclQueue.computeStart();
 }
 void OpenCLBackend::computeEnd() {
+ openclQueue.wait();
+  openclQueue.computeEnd();
  if (openclConfig.profile){
      openclQueue.showEvents(100);
  }
@@ -542,88 +608,49 @@ void OpenCLBackend::computeEnd() {
 }
 
 struct PlatformInfo{
-static char *str(cl_platform_id platform_id,cl_platform_info platform_info){
-     size_t sz;
-     cl_int  status = clGetPlatformInfo(platform_id, platform_info, 0, nullptr,  &sz);
-     char *ptr = new char[sz+1];
-     status = clGetPlatformInfo(platform_id, platform_info, sz, ptr,nullptr);
-     return ptr;
-}
+  OpenCLBackend *openclBackend;
   char *versionName;
   char *vendorName;
   char *name;
-  PlatformInfo(cl_platform_id platform_id):
-     versionName(str(platform_id, CL_PLATFORM_VERSION)),
-     vendorName(str(platform_id, CL_PLATFORM_VENDOR)),
-     name(str(platform_id, CL_PLATFORM_NAME)){
-  }
-  ~PlatformInfo(){
-     delete [] versionName;
-     delete [] vendorName;
-     delete [] name;
-  }
-};
 
 struct DeviceInfo{
-static char *strInfo(cl_device_id device_id, cl_device_info device_info){
-     size_t sz;
-     cl_int  status = clGetDeviceInfo(device_id, device_info, 0, nullptr,  &sz);
-     char *ptr = new char[sz+1];
-     status = clGetDeviceInfo(device_id, device_info, sz, ptr,nullptr);
-     return ptr;
-}
-
-static cl_int cl_int_info(cl_device_id device_id, cl_device_info device_info){
-    cl_uint v;
-    cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
-    return v;
-}
-static cl_ulong cl_ulong_info(cl_device_id device_id, cl_device_info device_info){
-    cl_ulong v;
-    cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
-    return v;
-}
-static size_t size_t_info(cl_device_id device_id, cl_device_info device_info){
-    size_t v;
-    cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
-    return v;
-}
+  OpenCLBackend *openclBackend;
   cl_int maxComputeUnits;
   cl_int maxWorkItemDimensions;
   cl_device_type deviceType;
-  size_t  maxWorkGroupSize;
-     cl_ulong globalMemSize;
-      cl_ulong localMemSize;
-   cl_ulong maxMemAllocSize;
+  size_t maxWorkGroupSize;
+  cl_ulong globalMemSize;
+  cl_ulong localMemSize;
+  cl_ulong maxMemAllocSize;
   char *profile;
   char *deviceVersion;
-    size_t *maxWorkItemSizes ;
-   char *driverVersion;
+  size_t *maxWorkItemSizes ;
+  char *driverVersion;
   char *cVersion;
   char *name;
   char *extensions;
   char *builtInKernels;
   char *deviceTypeStr;
 
-  DeviceInfo(cl_device_id device_id):
-       maxComputeUnits(cl_int_info(device_id, CL_DEVICE_MAX_COMPUTE_UNITS)),
-        maxWorkItemDimensions(cl_int_info(device_id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS)),
-        maxWorkGroupSize(size_t_info(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE)),
-        maxWorkItemSizes( new size_t[maxWorkItemDimensions]),
-        maxMemAllocSize(cl_ulong_info(device_id, CL_DEVICE_MAX_MEM_ALLOC_SIZE)),
-         globalMemSize(cl_ulong_info(device_id, CL_DEVICE_GLOBAL_MEM_SIZE)),
-         localMemSize(cl_ulong_info(device_id, CL_DEVICE_LOCAL_MEM_SIZE)),
-         profile(strInfo(device_id, CL_DEVICE_PROFILE)),
-         deviceVersion(strInfo(device_id,  CL_DEVICE_VERSION)),
-           driverVersion(strInfo(device_id,  CL_DRIVER_VERSION)),
-         cVersion(strInfo(device_id,  CL_DEVICE_OPENCL_C_VERSION)),
-          name(strInfo(device_id,  CL_DEVICE_NAME)),
-           extensions(strInfo(device_id,  CL_DEVICE_EXTENSIONS)),
-            builtInKernels(strInfo(device_id,  CL_DEVICE_BUILT_IN_KERNELS))
-        {
+  DeviceInfo(OpenCLBackend *openclBackend):
+       openclBackend(openclBackend),
+       maxComputeUnits(openclBackend->cl_int_info( CL_DEVICE_MAX_COMPUTE_UNITS)),
+       maxWorkItemDimensions(openclBackend->cl_int_info( CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS)),
+       maxWorkGroupSize(openclBackend->size_t_info( CL_DEVICE_MAX_WORK_GROUP_SIZE)),
+       maxWorkItemSizes( new size_t[maxWorkItemDimensions]),
+       maxMemAllocSize(openclBackend->cl_ulong_info(CL_DEVICE_MAX_MEM_ALLOC_SIZE)),
+       globalMemSize(openclBackend->cl_ulong_info( CL_DEVICE_GLOBAL_MEM_SIZE)),
+       localMemSize(openclBackend->cl_ulong_info( CL_DEVICE_LOCAL_MEM_SIZE)),
+       profile(openclBackend->strInfo( CL_DEVICE_PROFILE)),
+       deviceVersion(openclBackend->strInfo(  CL_DEVICE_VERSION)),
+       driverVersion(openclBackend->strInfo(  CL_DRIVER_VERSION)),
+       cVersion(openclBackend->strInfo(  CL_DEVICE_OPENCL_C_VERSION)),
+       name(openclBackend->strInfo(  CL_DEVICE_NAME)),
+       extensions(openclBackend->strInfo(  CL_DEVICE_EXTENSIONS)),
+       builtInKernels(openclBackend->strInfo( CL_DEVICE_BUILT_IN_KERNELS)){
 
-       clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * maxWorkItemDimensions, maxWorkItemSizes, NULL);
-       clGetDeviceInfo(device_id, CL_DEVICE_TYPE, sizeof(deviceType), &deviceType, NULL);
+       clGetDeviceInfo(openclBackend->device_id, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(size_t) * maxWorkItemDimensions, maxWorkItemSizes, NULL);
+       clGetDeviceInfo(openclBackend->device_id, CL_DEVICE_TYPE, sizeof(deviceType), &deviceType, NULL);
        char buf[512];
        buf[0]='\0';
        if (CL_DEVICE_TYPE_CPU == (deviceType & CL_DEVICE_TYPE_CPU)) {
@@ -647,38 +674,56 @@ static size_t size_t_info(cl_device_id device_id, cl_device_info device_info){
      delete [] name;
      delete [] extensions;
      delete [] builtInKernels;
-        delete [] maxWorkItemSizes;
+     delete [] maxWorkItemSizes;
   }
 };
+  DeviceInfo deviceInfo;
+  PlatformInfo(OpenCLBackend *openclBackend):
+     openclBackend(openclBackend),
+     versionName(openclBackend->strPlatformInfo(CL_PLATFORM_VERSION)),
+     vendorName(openclBackend->strPlatformInfo(CL_PLATFORM_VENDOR)),
+     name(openclBackend->strPlatformInfo(CL_PLATFORM_NAME)),
+     deviceInfo(openclBackend){
+  }
+  ~PlatformInfo(){
+     delete [] versionName;
+     delete [] vendorName;
+     delete [] name;
+  }
+};
+
 void OpenCLBackend::info() {
-    PlatformInfo platformInfo(platform_id);
-    DeviceInfo deviceInfo(device_id);
+    PlatformInfo platformInfo(this);
     cl_int status;
     std::cerr << "platform{" <<std::endl;
     std::cerr << "   CL_PLATFORM_VENDOR..\"" << platformInfo.vendorName <<"\""<<std::endl;
     std::cerr << "   CL_PLATFORM_VERSION.\"" << platformInfo.versionName <<"\""<<std::endl;
     std::cerr << "   CL_PLATFORM_NAME....\"" << platformInfo.name <<"\""<<std::endl;
-    std::cerr << "         CL_DEVICE_TYPE..................... " << deviceInfo.deviceTypeStr << " "<< deviceInfo.deviceType<<std::endl;
-    std::cerr << "         CL_DEVICE_MAX_COMPUTE_UNITS........ " << deviceInfo.maxComputeUnits<<std::endl;
-    std::cerr << "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. " << deviceInfo.maxWorkItemDimensions << " {";
-    for (unsigned dimIdx = 0; dimIdx < deviceInfo.maxWorkItemDimensions; dimIdx++) {
-        std::cerr<< deviceInfo.maxWorkItemSizes[dimIdx] << " ";
+    std::cerr << "         CL_DEVICE_TYPE..................... " <<  platformInfo.deviceInfo.deviceTypeStr << " "<<  platformInfo.deviceInfo.deviceType<<std::endl;
+    std::cerr << "         CL_DEVICE_MAX_COMPUTE_UNITS........ " <<  platformInfo.deviceInfo.maxComputeUnits<<std::endl;
+    std::cerr << "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. " <<  platformInfo.deviceInfo.maxWorkItemDimensions << " {";
+    for (unsigned dimIdx = 0; dimIdx <  platformInfo.deviceInfo.maxWorkItemDimensions; dimIdx++) {
+        std::cerr<<  platformInfo.deviceInfo.maxWorkItemSizes[dimIdx] << " ";
     }
     std::cerr<< "}"<<std::endl;
-     std::cerr <<  "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... "<< deviceInfo.maxWorkGroupSize<<std::endl;
-     std::cerr <<  "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... "<< deviceInfo.maxMemAllocSize<<std::endl;
-     std::cerr <<  "         CL_DEVICE_GLOBAL_MEM_SIZE.......... "<< deviceInfo.globalMemSize<<std::endl;
-     std::cerr <<  "         CL_DEVICE_LOCAL_MEM_SIZE........... "<< deviceInfo.localMemSize<<std::endl;
-     std::cerr <<  "         CL_DEVICE_PROFILE.................. "<< deviceInfo.profile<<std::endl;
-     std::cerr <<  "         CL_DEVICE_VERSION.................. "<< deviceInfo.deviceVersion<<std::endl;
-     std::cerr <<  "         CL_DRIVER_VERSION.................. "<< deviceInfo.driverVersion<<std::endl;
-     std::cerr <<  "         CL_DEVICE_OPENCL_C_VERSION......... "<< deviceInfo.cVersion<<std::endl;
-     std::cerr <<  "         CL_DEVICE_NAME..................... "<< deviceInfo.name<<std::endl;
-     std::cerr <<  "         CL_DEVICE_EXTENSIONS............... "<< deviceInfo.extensions<<std::endl;
-     std::cerr <<  "         CL_DEVICE_BUILT_IN_KERNELS......... "<< deviceInfo.builtInKernels<<std::endl;
+     std::cerr <<  "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... "<<  platformInfo.deviceInfo.maxWorkGroupSize<<std::endl;
+     std::cerr <<  "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... "<<  platformInfo.deviceInfo.maxMemAllocSize<<std::endl;
+     std::cerr <<  "         CL_DEVICE_GLOBAL_MEM_SIZE.......... "<<  platformInfo.deviceInfo.globalMemSize<<std::endl;
+     std::cerr <<  "         CL_DEVICE_LOCAL_MEM_SIZE........... "<<  platformInfo.deviceInfo.localMemSize<<std::endl;
+     std::cerr <<  "         CL_DEVICE_PROFILE.................. "<<  platformInfo.deviceInfo.profile<<std::endl;
+     std::cerr <<  "         CL_DEVICE_VERSION.................. "<<  platformInfo.deviceInfo.deviceVersion<<std::endl;
+     std::cerr <<  "         CL_DRIVER_VERSION.................. "<<  platformInfo.deviceInfo.driverVersion<<std::endl;
+     std::cerr <<  "         CL_DEVICE_OPENCL_C_VERSION......... "<<  platformInfo.deviceInfo.cVersion<<std::endl;
+     std::cerr <<  "         CL_DEVICE_NAME..................... "<<  platformInfo.deviceInfo.name<<std::endl;
+     std::cerr <<  "         CL_DEVICE_EXTENSIONS............... "<<  platformInfo.deviceInfo.extensions<<std::endl;
+     std::cerr <<  "         CL_DEVICE_BUILT_IN_KERNELS......... "<<  platformInfo.deviceInfo.builtInKernels<<std::endl;
      std::cerr <<  "}"<<std::endl;
 }
 
+int OpenCLBackend::getMaxComputeUnits() {
+    PlatformInfo platformInfo(this);
+    return platformInfo.deviceInfo.maxComputeUnits;
+}
 long OpenCLBackend::compileProgram(int len, char *source) {
     size_t srcLen = ::strlen(source);
     char *src = new char[srcLen + 1];
@@ -804,7 +849,7 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
 
 
 long getOpenCLBackend(int mode, int platform, int device, int unused) {
-  std::cerr << "Opencl Driver mode=" << mode << " platform=" << platform << " device=" << device << std::endl;
+ // std::cerr << "Opencl Driver mode=" << mode << " platform=" << platform << " device=" << device << std::endl;
 
     return reinterpret_cast<long>(new OpenCLBackend(mode, platform, device));
 }
