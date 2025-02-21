@@ -52,14 +52,14 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
        showCode((mode&SHOW_CODE_BIT)==SHOW_CODE_BIT),
        profile((mode&PROFILE_BIT)==PROFILE_BIT){
        if (info){
-          printf("native show_code %d\n",showCode);
-          printf("native info %d\n",info);
-          printf("native gpu %d\n",gpu);
-          printf("native cpu %d\n",cpu);
-          printf("native minimizeCopies %d\n", minimizeCopies);
-          printf("native trace %d\n", trace);
-          printf("native traceCopies %d\n", traceCopies);
-          printf("native profile %d\n",profile);
+          std::cout << "native show_code " << showCode <<std::endl;
+          std::cout <<  "native info " << info<<std::endl;
+          std::cout << "native gpu " << gpu<<std::endl;
+          std::cout << "native cpu " << cpu<<std::endl;
+          std::cout << "native minimizeCopies " << minimizeCopies<<std::endl;
+          std::cout << "native trace " << trace<<std::endl;
+          std::cout << "native traceCopies " << traceCopies<<std::endl;
+          std::cout << "native profile " << profile<<std::endl;
        }
  }
  OpenCLBackend::OpenCLConfig::~OpenCLConfig(){
@@ -798,7 +798,7 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
      #else
         snprintf
      #endif
-     (unknown, sizeof(unknown), "unmapped string for  error %d", status); 
+     (unknown, sizeof(unknown), "unmapped string for  error %d", status);
     return unknown;
 }
 
