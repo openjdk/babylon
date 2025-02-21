@@ -66,6 +66,8 @@ public:
     class OpenCLQueue {
     public:
        size_t eventMax;
+      // cl_event start_marker_event;
+      // cl_event end_marker_event;
        cl_event *events;
        size_t eventc;
        cl_command_queue command_queue;

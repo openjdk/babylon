@@ -77,16 +77,16 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
  }
 
 void OpenCLBackend::OpenCLQueue::showEvents(int width) {
-
-    cl_ulong *samples = new cl_ulong[4 * eventc]; // queued, submit, start, end
+    const int  SAMPLE_TYPES=4;
+    cl_ulong *samples = new cl_ulong[SAMPLE_TYPES * eventc]; // queued, submit, start, end, complete
     int sample = 0;
     cl_ulong min;
     cl_ulong max;
     cl_profiling_info profiling_info_arr[]={CL_PROFILING_COMMAND_QUEUED,CL_PROFILING_COMMAND_SUBMIT,CL_PROFILING_COMMAND_START,CL_PROFILING_COMMAND_END} ;
-    const char* profiling_info_name_arr[]={"CL_PROFILING_COMMAND_QUEUED","CL_PROFILING_COMMAND_SUBMIT","CL_PROFILING_COMMAND_START","CL_PROFILING_COMMAND_END"} ;
+    const char* profiling_info_name_arr[]={"CL_PROFILING_COMMAND_QUEUED","CL_PROFILING_COMMAND_SUBMIT","CL_PROFILING_COMMAND_START","CL_PROFILING_COMMAND_END" } ;
 
     for (int event = 0; event < eventc; event++) {
-        for (int type = 0; type < 4; type++) {
+        for (int type = 0; type < SAMPLE_TYPES; type++) {
             if ((clGetEventProfilingInfo(events[event], profiling_info_arr[type], sizeof(samples[sample]), &samples[sample], NULL)) !=
                 CL_SUCCESS) {
                 std::cerr << "failed to get profile info " << profiling_info_name_arr[type] << std::endl;
@@ -111,7 +111,7 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
     int scale = range / width;  // range per char
     std::cout << "Range: " <<min<< "-" <<max<< "("<< range << "ns)"
         <<  "  (" << scale << "ns) per char"
-        << " +:submitted, #:started, =:end  "<< std::endl;
+        << " +:submitted, .:started, =:end  "<< std::endl;
 
     for (int event = 0; event < eventc; event++) {
         cl_command_type command_type;
@@ -122,21 +122,21 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
           case CL_COMMAND_WRITE_BUFFER: std::cout << " write "; break;
           default: std::cout <<                    " other "; break;
         }
-        long eventStart=samples[sample];
+       // long eventStart=samples[sample];
         cl_ulong queue = (samples[sample++] - min) / scale;
         cl_ulong submit = (samples[sample++] - min) / scale;
         cl_ulong start = (samples[sample++] - min) / scale;
-        long eventEnd=samples[sample];
+      //  long eventComplete=samples[sample];
         cl_ulong end = (samples[sample++] - min) / scale;
 
-        std::cout << std::setw(8)<< (eventEnd-eventStart) << "(ns) ";
+        std::cout << std::setw(8)<< (queue-end) << "(ns) ";
         for (int c = 0; c < width; c++) {
             char ch = ' ';
-            if (c >= queue && c<submit) {
+            if (c >= queue && c<=submit) {
                 ch = '+';
-            }else if (c>= submit && c<start){
-                ch = '#';
-            }else if (c>= start && c<end){
+            }else if (c>submit && c<start){
+                ch = '.';
+            }else if (c>=start && c<end){
                 ch = '=';
             }
             std::cout << ch;
@@ -153,6 +153,24 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
        }
  }
  void OpenCLBackend::OpenCLQueue::computeStart(){
+ /* maybe
+ cl_int clEnqueueNativeKernel(
+     cl_command_queue command_queue,
+     void (CL_CALLBACK* user_func)(void*),
+     void* args,
+     size_t cb_args,
+     cl_uint num_mem_objects,
+     const cl_mem* mem_list,
+     const void** args_mem_loc,
+     cl_uint num_events_in_wait_list,
+     const cl_event* event_wait_list,
+     cl_event* event); */
+// cl_int status = clEnqueueMarker(command_queue, cl_event* event);
+    // openclBackend->openclQueue.eventc,
+     //   openclBackend->openclQueue.eventListPtr(),
+      //  openclBackend->openclQueue.nextEventPtr()
+    // );
+   //  openclBackend->openclQueue.inc();
  }
  void OpenCLBackend::OpenCLQueue::computeEnd(){
  }
