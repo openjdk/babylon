@@ -786,21 +786,19 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
             {-9999,                              "enqueueNdRangeKernel Illegal read or write to a buffer",},
             {0,                                  NULL},
     };
-    static char unknown[256];
-    int ii;
-
-    for (ii = 0; error_table[ii].msg != NULL; ii++) {
-        if (error_table[ii].code == status) {
-            //std::cerr << " clerror '" << error_table[ii].msg << "'" << std::endl;
-            return error_table[ii].msg;
+    for (int i = 0; error_table[i].msg != NULL; i++) {
+        if (error_table[i].code == status) {
+            //std::cerr << " clerror '" << error_table[i].msg << "'" << std::endl;
+            return error_table[i].msg;
         }
     }
+    static char unknown[256];
      #if defined (_WIN32)
         _snprintf
      #else
         snprintf
      #endif
-     (unknown, sizeof(unknown), "unmapped string for  error %d", status);
+     (unknown, sizeof(unknown), "unmapped string for  error %d", status); 
     return unknown;
 }
 
