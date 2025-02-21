@@ -345,13 +345,13 @@ public class Main {
                      int to;
                      long generation;
                  }control_t;
-                
+
                  typedef struct cellGrid_s{
                      int width;
                      int height;
                      signed char cellArray[0];
                  }cellGrid_t;
-                
+
                  inline int val(__global cellGrid_t *CLWrapCellGrid, int from, int w, int x, int y) {
                      return CLWrapCellGrid->cellArray[((y * w) + x + from)] & 1;
                  }
