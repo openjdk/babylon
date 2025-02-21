@@ -40,7 +40,7 @@ import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 
 public interface Buffer extends MappableIface {
 
-    default boolean isDeviceDevice(){
+    default boolean isDeviceDirty(){
         return SegmentMapper.BufferState.of(this).isDeviceDirty();
     }
 

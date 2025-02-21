@@ -113,6 +113,20 @@ extern "C" void info(long backendHandle) {
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
     backend->info();
 }
+extern "C" void computeStart(long backendHandle) {
+    if (INFO){
+       std::cout << "trampolining through backendHandle to backend.computeStart()" << std::endl;
+    }
+    auto *backend = reinterpret_cast<Backend*>(backendHandle);
+    backend->computeStart();
+}
+extern "C" void computeEnd(long backendHandle) {
+    if (INFO){
+       std::cout << "trampolining through backendHandle to backend.computeEnd()" << std::endl;
+    }
+    auto *backend = reinterpret_cast<Backend*>(backendHandle);
+    backend->computeEnd();
+}
 extern "C" void releaseBackend(long backendHandle) {
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
     delete backend;

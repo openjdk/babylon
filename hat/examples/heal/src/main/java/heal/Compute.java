@@ -53,6 +53,8 @@ import hat.buffer.S32Array2D;
 
 import javax.swing.JTextField;
 import java.awt.Point;
+
+import static hat.ifacemapper.MappableIface.*;
 import jdk.incubator.code.CodeReflection;
 import java.util.stream.IntStream;
 
@@ -103,7 +105,7 @@ public class Compute {
         });
 
         maskTB.setText(Long.toString(System.currentTimeMillis() - start));
-        /*   TODO .. Implement lapclacian
+        /*   TODO .. Implement laplacian
          * int[] stencil = new int[]{-1, 1, -mask.width, mask.width};
          *
          * int[] laplaced = new int[dest.length];
@@ -188,11 +190,11 @@ public class Compute {
 
     @CodeReflection
     public static void bestFitCore(int id,
-                                  S32Array2D s32Array2D,
-                                  Box searchArea,
-                                  Box selBox,
-                                  XYRGBList xyrgbList,
-                                  F32Array sumArray) {
+                                   @RO S32Array2D s32Array2D,
+                                   @RO Box searchArea,
+                                   @RO Box selBox,
+                                   @RO XYRGBList xyrgbList,
+                                   @RW F32Array sumArray) {
         int x = searchArea.x1() + id % searchArea.width();
         int y = searchArea.y1() + id / searchArea.width();
         float sum = 0;
@@ -227,18 +229,22 @@ public class Compute {
     }
 
     @CodeReflection
-    public static void bestFitKernel(KernelContext kc,
-                                  S32Array2D s32Array2D,
-                                  Box searchArea,
-                                  Box selectionBox,
-                                  XYRGBList xyrgbList,
-                                  F32Array sumArray) {
+    public static void bestFitKernel(@RO KernelContext kc,
+                                     @RO S32Array2D s32Array2D,
+                                     @RO Box searchArea,
+                                     @RO Box selectionBox,
+                                     @RO XYRGBList xyrgbList,
+                                     @RO F32Array sumArray) {
         bestFitCore(kc.x, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
     }
 
     @CodeReflection
-    public static void  bestFitCompute(ComputeContext cc,
-             Point bestMatchOffset, S32Array2D s32Array2D, Box searchArea, Box selectionBox, XYRGBList xyrgbList){
+    public static void  bestFitCompute(@RO ComputeContext cc,
+                                       @WO Point bestMatchOffset,
+                                       @RO S32Array2D s32Array2D,
+                                       @RO Box searchArea,
+                                       @RO Box selectionBox,
+                                       @RO XYRGBList xyrgbList){
 
         F32Array sumArrayF32 = F32Array.create(cc.accelerator, searchArea.area());
 

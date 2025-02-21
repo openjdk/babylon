@@ -57,11 +57,11 @@ public class Squares {
             for (int i = 0; i < 512; i++) {
                 in.set(i,i);
             }
-            ComputeContext computeContext = new ComputeContext(arena,20);
-            var inMem = computeContext.register(in.ptr());
-            var outMem = computeContext.register(out.ptr());
+            CLWrapComputeContext CLWrapComputeContext = new CLWrapComputeContext(arena,20);
+            var inMem = CLWrapComputeContext.register(in.ptr());
+            var outMem = CLWrapComputeContext.register(out.ptr());
 
-            kernel.run(computeContext,512, inMem, outMem);
+            kernel.run(CLWrapComputeContext,512, inMem, outMem);
             for (int i = 0; i < 512; i++) {
                 System.out.println(i + " " + out.get(i));
             }

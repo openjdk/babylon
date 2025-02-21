@@ -46,7 +46,7 @@ public class Main {
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));
         String imageName = (args.length>2 && args[1].equals("--image"))?args[2]:System.getProperty("image", "Nasa1996");
-        System.out.println("Using image "+imageName+".jpg");
+      //  System.out.println("Using image "+imageName+".jpg");
         BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream("/images/"+imageName+".jpg"));
                //"/images/team.jpg"
               // "/images/eggheads.jpg"
@@ -65,24 +65,21 @@ public class Main {
         S08x3RGBImage rgbImage = S08x3RGBImage.create(accelerator, nasa1996.getWidth(),nasa1996.getHeight());
         rgbImage.syncFromRaster(nasa1996);
         ResultTable resultTable = ResultTable.create(accelerator,1000);
-        System.out.println("result table layout "+Buffer.getLayout(resultTable));
-        HaarViewer harViz = null;
+       // System.out.println("result table layout "+Buffer.getLayout(resultTable));
+        HaarViewer haarViewer = null;
         if (!headless){
-            harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
+            haarViewer = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
         }
 
         ScaleTable scaleTable = ScaleTable.createFrom(accelerator,new ScaleTable.Constraints(cascade,rgbImage.width(),rgbImage.height()));
 
-
         for (int i = 0; i < 10; i++) {
             resultTable.atomicResultTableCount(0);
-            accelerator.compute(cc ->
-                    ViolaJonesCoreCompute.compute(cc, cascade, nasa1996, rgbImage, resultTable,scaleTable)
-            );
+            accelerator.compute(cc -> ViolaJonesCoreCompute.compute(cc, cascade, rgbImage, resultTable,scaleTable));
             System.out.println(resultTable.atomicResultTableCount()+ "faces found");
         }
-        if (harViz != null) {
-            harViz.showResults(resultTable, null, null);
+        if (haarViewer != null) {
+            haarViewer.showResults(resultTable, null, null);
         }
     }
 }

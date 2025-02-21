@@ -75,7 +75,7 @@ public abstract class C99FFIBackend extends FFIBackend {
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
+    public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args, boolean show) {
         builder.defines().pragmas().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -97,11 +97,12 @@ public abstract class C99FFIBackend extends FFIBackend {
 
         builder.nl().kernelEntrypoint(kernelCallGraph.entrypoint, args).nl();
 
-        System.out.println("Original");
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
-        System.out.println("Lowered");
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
-
+        if (show) {
+            System.out.println("Original");
+            System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
+            System.out.println("Lowered");
+            System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
+        }
         return builder.toString();
     }
 }

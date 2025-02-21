@@ -26,22 +26,13 @@
 
 class MockBackend : public Backend {
 public:
-    class MockConfig : public Backend::Config {
-    public :
-     MockConfig(int mode):Backend::Config(mode){}
-            virtual ~MockConfig(){}
-    };
-
     class MockProgram : public Backend::Program {
         class MockKernel : public Backend::Program::Kernel {
         public:
             MockKernel(Backend::Program *program, char *name)
                     : Backend::Program::Kernel(program, name) {
             }
-
-            ~MockKernel() {
-            }
-
+            ~MockKernel() {}
             long ndrange(void *argArray) {
                 std::cout << "mock ndrange() " << std::endl;
                 return 0;
@@ -67,18 +58,14 @@ public:
 
 public:
 
-    MockBackend(int mode, int platform, int device)
-            : Backend(mode, platform, device,   new MockBackend::MockConfig(mode)) {
-
-            std::cout << "mockConfig != null" << std::endl;
-
+    MockBackend(int mode): Backend(mode) {
     }
 
     ~MockBackend() {
     }
 
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
-        std::cout << "attempting  to get buffer from Mockackend "<<std::endl;
+        std::cout << "attempting  to get buffer from Mockbackend "<<std::endl;
         return false;
     }
 
@@ -90,6 +77,12 @@ public:
     void info() {
         std::cout << "mock info()" << std::endl;
     }
+     void computeStart(){
+           std::cout << "mock compute start()" << std::endl;
+         }
+            void computeEnd(){
+              std::cout << "mock compute start()" << std::endl;
+            }
 
     long compileProgram(int len, char *source) {
         std::cout << "mock compileProgram()" << std::endl;
@@ -102,7 +95,6 @@ public:
     }
 };
 
-long getBackend(int mode, int platform, int device) {
-
-    return (long) new MockBackend(mode, platform, device);
+long getMockBackend(int mode) {
+    return (long) new MockBackend(mode);
 }

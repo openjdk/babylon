@@ -36,7 +36,7 @@ import java.util.Map;
 
 import static java.lang.foreign.MemorySegment.NULL;
 
-public class ComputeContext {
+public class CLWrapComputeContext {
 
     public MemorySegmentState register(MemorySegment segment) {
         return memorySegmentToStateMap.computeIfAbsent(segment, MemorySegmentState::new);
@@ -119,7 +119,7 @@ public class ComputeContext {
     final boolean alwaysBlock;
     final Arena arena;
 
-    public ComputeContext(Arena arena, int maxEvents) {
+    public CLWrapComputeContext(Arena arena, int maxEvents) {
         this.arena = arena;
         this.maxEvents = maxEvents;
         this.eventc = 0;
