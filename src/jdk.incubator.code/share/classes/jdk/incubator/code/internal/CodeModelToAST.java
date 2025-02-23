@@ -245,6 +245,8 @@ public class CodeModelToAST {
                 var M_BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op", Op.Result.class, Op.class);
                 // we introduce VarOp to hold an opr that's used multiple times
                 // or to mark that an InvokeOp must be mapped to a Statement
+                // specifically call to Bloc.Builder#op, we want this call to map to a statement so that it get added
+                // to the opMethod body immediately to ensure correct order of operations
                 var isBlockOpInvocation = op instanceof CoreOp.InvokeOp invokeOp && M_BLOCK_BUILDER_OP.equals(invokeOp.invokeDescriptor());
                 if (!(op instanceof CoreOp.VarOp) && (op.result().uses().size() > 1 || isBlockOpInvocation)) {
                     var varOpRes = b.op(CoreOp.var("_$" + varCounter.getAndIncrement(), opr));
