@@ -40,8 +40,10 @@ import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.op.CoreOp.FuncOp;
+import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.type.TypeElementFactory;
 import jdk.incubator.code.writer.OpWriter;
 import jdk.internal.access.SharedSecrets;
 
@@ -526,17 +528,25 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
                 case '.', ';', '[', '/': sig[i] = '$';
             }
         }
-        String opMethodName = "op$" + new String(sig);
+        String opMethodName = new String(sig);
         Method opMethod;
+        Object[] args;
         try {
             // @@@ Use method handle with full power mode
             opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
+            args = new Object[] {};
         } catch (NoSuchMethodException e) {
-            return Optional.empty();
+            try {
+                opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName, OpFactory.class,
+                        TypeElementFactory.class);
+                args = new Object[] {ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY};
+            } catch (NoSuchMethodException e2) {
+                return Optional.empty();
+            }
         }
         opMethod.setAccessible(true);
         try {
-            FuncOp funcOp = (FuncOp) opMethod.invoke(null);
+            FuncOp funcOp = (FuncOp) opMethod.invoke(null, args);
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

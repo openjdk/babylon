@@ -45,7 +45,8 @@ public class CodeModelToAST {
         Class<?>[] crTypes = {Body.Builder.class, TypeElement.ExternalizedTypeElement.class, TypeElement.class,
                 FunctionType.class, Block.Builder.class, Value.class, Block.Reference.class, Op.Result.class,
                 Op.class, TypeElementFactory.class, OpFactory.class, ExternalizableOp.ExternalizedOp.class,
-                MethodRef.class, Block.Parameter.class
+                MethodRef.class, Block.Parameter.class, FieldRef.class, CoreOp.InvokeOp.InvokeKind.class,
+                ExternalizableOp.class, RecordTypeRef.class
         };
         for (Class<?> crType : crTypes) {
             JavaType jt = JavaType.type(crType.describeConstable().get());
@@ -74,10 +75,6 @@ public class CodeModelToAST {
     }
 
     private Type typeElementToType(TypeElement te) {
-//        if (te != null) {
-//            System.out.println(te.externalize().toString());
-//        }
-//        Assert.check(te instanceof JavaType, te.getClass().getName() + "not a java type");
         JavaType jt = (JavaType) te;
         return switch (jt) {
             case ClassType ct when ct.hasTypeArguments() -> {
@@ -100,46 +97,23 @@ public class CodeModelToAST {
                 yield jtToType.get(te);
             }
         };
-        // what about List<Value>
-        // how a type like List<Value> is represented in AST ? debug to know
-        // it's represeneted as TypeApply
     }
-    // we have two modules, java.base and jdk.incubator.code
-    // we can use the same method as in CodeReflectionSymbols
-//    private Type typeElementToType(TypeElement te) {
-//        // @@@ TODO TypeElement -> Type
-//        // te is JavaType
-//        // look at reverse
-//        if (te instanceof ArrayType arrayType) {
-//            return new Type.ArrayType(typeElementToType(((ArrayType) te).componentType()), syms.arraysType.tsym);
-//        }
-//        String s = te.externalize().toString();
-//        Symbol.ModuleSymbol moduleSymbol;
-//        if (s.startsWith(names.jdk_incubator_code.toString())) {
-//            moduleSymbol = syms.enterModule(names.jdk_incubator_code);
-//        } else { // java.base module
-//            moduleSymbol = syms.enterModule(names.java_base);
-//        }
-//        return syms.enterClass(moduleSymbol, s);
-//    }
 
-    private JCTree.JCMethodInvocation invokeOpToJCMethodInvocation(CoreOp.InvokeOp invokeOp) {
+    private JCTree invokeOpToJCMethodInvocation(CoreOp.InvokeOp invokeOp) {
         Method method;
         try {
             method = invokeOp.invokeDescriptor().resolveToDirectMethod(MethodHandles.lookup());
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-        var flags = method.getModifiers();
+        long flags = method.getModifiers();
         var name = names.fromString(invokeOp.invokeDescriptor().name());
         Value receiver = invokeOp.invokeKind() == CoreOp.InvokeOp.InvokeKind.INSTANCE ? invokeOp.operands().get(0) : null;
         List<Value> arguments = invokeOp.operands().stream().skip(receiver == null ? 0 : 1).collect(List.collector());
-        var argTypes = new ListBuffer<Type>();
-        for (Value operand : arguments) {
-            argTypes.add(typeElementToType(operand.type()));
-        }
+        var paramTypes = invokeOp.invokeDescriptor().type().parameterTypes().stream().map(this::typeElementToType)
+                .collect(List.collector());
         var restype = typeElementToType(invokeOp.resultType());
-        var type = new Type.MethodType(argTypes.toList(), restype, List.nil(), syms.methodClass);
+        var type = new Type.MethodType(paramTypes, restype, List.nil(), syms.methodClass);
         var methodSym = new Symbol.MethodSymbol(flags, name, type,
                 typeElementToType(invokeOp.invokeDescriptor().refType()).tsym);
         var meth = receiver == null ? treeMaker.Ident(methodSym) : treeMaker.Select((JCTree.JCExpression) valueToTree.get(receiver), methodSym);
@@ -147,53 +121,18 @@ public class CodeModelToAST {
         for (Value operand : arguments) {
             args.add((JCTree.JCExpression) valueToTree.get(operand));
         }
-        return treeMaker.App(meth, args.toList());
+        var methodInvocation = treeMaker.App(meth, args.toList());
+        if (invokeOp.isVarArgs()) {
+            var lastParam = invokeOp.invokeDescriptor().type().parameterTypes().getLast();
+            Assert.check(lastParam instanceof ArrayType);
+            methodInvocation.varargsElement = typeElementToType(((ArrayType) lastParam).componentType());
+        }
+        if (invokeOp.result().uses().isEmpty()) {
+            return treeMaker.Exec(methodInvocation);
+        }
+        return methodInvocation;
     }
 
-//    private JCTree.JCExpression valueToTree(Value v) {
-//        if (valueToTree.containsKey(v)) {
-//            return valueToTree.get(v);
-//        }
-//        if (v instanceof Op.Result opr) {
-//            Op op = opr.op();
-//            JCTree.JCExpression t = switch (op) {
-////                case CoreOp.ConstantOp constantOp when constantOp.value() != null -> treeMaker.Literal(constantOp.value());
-//                case CoreOp.ConstantOp constantOp -> treeMaker.Literal(typeElementToType(constantOp.resultType()).getTag(),
-//                        constantOp.value());
-//                case CoreOp.InvokeOp invokeOp -> invokeOpToJCMethodInvocation(invokeOp);
-//                case CoreOp.NewOp newOp -> {
-//                    var constructorType = typeElementToType(newOp.constructorType().returnType());
-//                    var clazz = treeMaker.Ident(constructorType.tsym);
-//                    var typeArgs = new ListBuffer<JCTree.JCExpression>();
-//                    if (newOp.resultType() instanceof ClassType ct) {
-//                        for (JavaType typeArgument : ct.typeArguments()) {
-//                            typeArgs.add(treeMaker.Ident(typeElementToType(typeArgument).tsym));
-//                        }
-//                    }
-//                    var args = new ListBuffer<JCTree.JCExpression>();
-//                    for (Value operand : newOp.operands()) {
-//                        args.add(valueToTree(operand));
-//                    }
-//                    // @@@ JCNewClass I create has constructorType and constructor null, why ?
-//                    // ask Maurizio
-//                    yield treeMaker.NewClass(null, typeArgs.toList(), clazz, args.toList(),null);
-//                }
-//                default -> throw new IllegalStateException("Op -> JCTree not supported for :" + op.getClass().getName());
-//            };
-//            valueToTree.put(v, t);
-//            return t;
-//        } else if (v instanceof Block.Parameter p) {
-//            Assert.check(valueToTree.containsKey(v));
-//            return valueToTree.get(p);
-//        } else {
-//            throw new IllegalStateException();
-//        }
-//    }
-
-    // opr : op operands
-    // operands are results of previous operations
-    // because block params are first wrapped in vars and they are not used directely
-    // before their uses, we first do var.load then use the result of that
     private JCTree opToTree(Op op) {
         JCTree tree = switch (op) {
             case CoreOp.ConstantOp constantOp when constantOp.value() == null ->
@@ -219,15 +158,32 @@ public class CodeModelToAST {
             }
             case CoreOp.ReturnOp returnOp ->
                     treeMaker.Return((JCTree.JCExpression) valueToTree.get(returnOp.returnValue()));
+            case CoreOp.VarOp varOp when varOp.initOperand() instanceof Block.Parameter p -> valueToTree.get(p);
             case CoreOp.VarOp varOp -> {
                 var name = names.fromString(varOp.varName());
                 var type = typeElementToType(varOp.varValueType());
-                var init = valueToTree.get(varOp.initOperand());
-                var v = new Symbol.VarSymbol(0, name, type, ms);
-                yield treeMaker.VarDef(v, (JCTree.JCExpression) init);
+                var v = new Symbol.VarSymbol(LocalVarFlags, name, type, ms);
+                yield treeMaker.VarDef(v, (JCTree.JCExpression) valueToTree.get(varOp.initOperand()));
             }
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                    when varLoadOp.varOp().initOperand() instanceof Block.Parameter p2 -> valueToTree.get(p2);
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
                     treeMaker.Ident((JCTree.JCVariableDecl) valueToTree.get(varLoadOp.varOperand()));
+            case CoreOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
+                // Type.fieldName
+                // if instance field we will use the same thechnique as in invokeOpToTree
+                int flags;
+                try {
+                    flags = fieldLoadOp.fieldDescriptor().resolveToMember(MethodHandles.lookup()).getModifiers();
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(e);
+                }
+                var name = names.fromString(fieldLoadOp.fieldDescriptor().name());
+                var type = typeElementToType(fieldLoadOp.resultType());
+                var owner = typeElementToType(fieldLoadOp.fieldDescriptor().refType());
+                var sym = new Symbol.VarSymbol(flags, name, type, owner.tsym);
+                yield treeMaker.Select(treeMaker.Ident(owner.tsym), sym);
+            }
             default -> throw new IllegalStateException("Op -> JCTree not supported for :" + op.getClass().getName());
         };
         valueToTree.put(op.result(), tree);
@@ -244,6 +200,9 @@ public class CodeModelToAST {
 
         // TODO add VarOps in OpBuilder
         funcOp = addVarsWhenNecessary(funcOp);
+        for (int i = 0; i < funcOp.parameters().size(); i++) {
+            valueToTree.put(funcOp.parameters().get(i), treeMaker.Ident(ms.params().get(i)));
+        }
 
         var stats = new ListBuffer<JCTree.JCStatement>();
         for (Op op : funcOp.body().entryBlock().ops()) {
@@ -256,17 +215,6 @@ public class CodeModelToAST {
 
         return treeMaker.MethodDef(ms, mb);
     }
-
-    // we are doing it wrong
-    // e.g. m = new Map; m.put...; return m;
-    // m.put... will be ignored
-
-    // if an opr is used more than once, it should be in a var
-    // (no need for the below case)
-    // for cases like: m = new Map...; m.put...; foo(m); m is used more than once
-    // else if an opr comes form NewOp and used with InvokeOp as receiver, it should be in a var
-    // to deal with cases like: m = new Map; m.put...;
-    // note that for cases like: m = new Map; foo(m); is equivalent to foo(new Map) and the var isn't necessary
 
     public static CoreOp.FuncOp addVarsWhenNecessary(CoreOp.FuncOp funcOp) {
         // using cc only is not possible
@@ -294,7 +242,11 @@ public class CodeModelToAST {
                     }
                 }
                 var opr = b.op(op);
-                if (!(op instanceof CoreOp.VarOp) && op.result().uses().size() > 1) {
+                var M_BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op", Op.Result.class, Op.class);
+                // we introduce VarOp to hold an opr that's used multiple times
+                // or to mark that an InvokeOp must be mapped to a Statement
+                var isBlockOpInvocation = op instanceof CoreOp.InvokeOp invokeOp && M_BLOCK_BUILDER_OP.equals(invokeOp.invokeDescriptor());
+                if (!(op instanceof CoreOp.VarOp) && (op.result().uses().size() > 1 || isBlockOpInvocation)) {
                     var varOpRes = b.op(CoreOp.var("_$" + varCounter.getAndIncrement(), opr));
                     valueToVar.put(op.result(), ((CoreOp.VarOp) varOpRes.op()));
                 }

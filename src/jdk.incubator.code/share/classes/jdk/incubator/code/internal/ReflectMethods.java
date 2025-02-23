@@ -396,7 +396,7 @@ public class ReflectMethods extends TreeTranslator {
 
         public static CodeModelStorageOption parse(String s) {
             if (s == null) {
-                return CodeModelStorageOption.TEXT;
+                return CodeModelStorageOption.CODE_BUILDER;
             }
             return CodeModelStorageOption.valueOf(s);
         }
@@ -407,8 +407,7 @@ public class ReflectMethods extends TreeTranslator {
             case TEXT -> {
                 var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
                         com.sun.tools.javac.util.List.nil(), syms.methodClass);
-                var mn = names.fromString("op$").append(methodName);
-                var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
+                var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
                 currentClassSym.members().enter(ms);
                 var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
                         com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
@@ -418,7 +417,6 @@ public class ReflectMethods extends TreeTranslator {
             }
             case CODE_BUILDER -> {
                 var opBuilder = OpBuilder.createBuilderFunction(op);
-                opBuilder.writeTo(System.out);
                 var cmToASTTransformer = new CodeModelToAST(make, names, syms, currentClassSym, crSyms);
                 return cmToASTTransformer.transformFuncOpToAST(opBuilder, methodName);
             }
