@@ -56,26 +56,22 @@ public class RuntimeTest {
     public void testIf() throws Exception {
         var ort = OnnxRuntime.getInstance();
         try (var ifOp = ort.createSession(OnnxProtoBuilder.buildModel(
-                List.of(new OnnxProtoBuilder.Input("cond", BOOL.id)),
+                List.of(new OnnxProtoBuilder.Input("cond", BOOL.id), new OnnxProtoBuilder.Input("a", INT64.id), new OnnxProtoBuilder.Input("b", INT64.id)),
                 List.of(new OnnxProtoBuilder.OpNode("If", List.of("cond"), List.of("y"), Map.of(
                         "then_branch", new OnnxProtoBuilder.Subgraph(
                                 List.of(),
-                                List.of(new OnnxProtoBuilder.OpNode("Constant",
-                                        List.of(),
-                                        List.of("y"),
-                                        Map.of("value_int", 1l))),
+                                List.of(new OnnxProtoBuilder.OpNode("Identity", List.of("a"), List.of("y"), Map.of())),
                                 List.of("y")),
                         "else_branch", new OnnxProtoBuilder.Subgraph(
                                 List.of(),
-                                List.of(new OnnxProtoBuilder.OpNode("Constant",
-                                        List.of(),
-                                        List.of("y"),
-                                        Map.of("value_int", 2l))),
+                                List.of(new OnnxProtoBuilder.OpNode("Identity", List.of("b"), List.of("y"), Map.of())),
                                 List.of("y"))))),
                 List.of("y")))) {
 
-            SimpleTest.assertEquals(Tensor.ofScalar(1l), new Tensor(ifOp.run(List.of(Tensor.ofScalar(true).tensorAddr)).getFirst()));
-            SimpleTest.assertEquals(Tensor.ofScalar(2l), new Tensor(ifOp.run(List.of(Tensor.ofScalar(false).tensorAddr)).getFirst()));
+            var a = Tensor.ofScalar(1l);
+            var b = Tensor.ofScalar(2l);
+            SimpleTest.assertEquals(a, new Tensor(ifOp.run(List.of(Tensor.ofScalar(true).tensorAddr, a.tensorAddr, b.tensorAddr)).getFirst()));
+            SimpleTest.assertEquals(b, new Tensor(ifOp.run(List.of(Tensor.ofScalar(false).tensorAddr, a.tensorAddr, b.tensorAddr)).getFirst()));
         }
     }
 }
