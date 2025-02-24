@@ -110,6 +110,7 @@ public class MNISTDemo {
     static final int IMAGE_SIZE = 28;
     static final int DRAW_AREA_SIZE = 600;
     static final int PEN_SIZE = 20;
+    static final String[] COLORS = {"1034a6", "412f88", "722b6a", "a2264b", "d3212d", "f62d2d"};
 
     public static void main(String[] args) throws Exception {
         var frame = new JFrame("CNN MNIST Demo - Handwritten Digit Classification");
@@ -161,7 +162,9 @@ public class MNISTDemo {
                     FloatBuffer result = OnnxRuntime.getInstance().tensorBuffer(modelRuntimeSession.run(inputArguments).getFirst()).asFloatBuffer();
                     var msg = new StringBuilder("<html>");
                     for (int i = 0; i < 10; i++) {
-                        msg.append("&nbsp;<font size=\"%d\">%d</font>&nbsp;(%.1f%%)&nbsp;<br><br><br>".formatted((int)(20 * result.get(i) + 3), i, 100 * result.get(i)));
+                        var w = result.get(i);
+                        msg.append("&nbsp;<font size=\"%d\" color=\"#%s\">%d</font>&nbsp;(%.1f%%)&nbsp;<br><br><br>"
+                                .formatted((int)(20 * w) + 3, COLORS[(int)(5.99 * w)], i, 100 * w));
                     }
                     results.setText(msg.toString());
                     cleanFlag.set(true);
