@@ -45,7 +45,6 @@ public interface ArgArray extends Buffer {
                 byte access();
                 void access(byte access);
             }
-
             boolean z1();
 
             void z1(boolean z1);
@@ -92,10 +91,10 @@ public interface ArgArray extends Buffer {
         int idx();
         void idx(int idx);
 
-         byte variant();
+        byte variant();
         void variant(byte variant);
 
-       Value value();
+        Value value();
 
         default String asString() {
             switch (variant()) {
@@ -208,10 +207,6 @@ public interface ArgArray extends Buffer {
 
     Arg arg(long idx);
 
-
-    //MemorySegment vendorPtr();
-    //void vendorPtr(MemorySegment vendorPtr);
-
     int schemaLen();
 
     byte schemaBytes(long idx);
@@ -219,7 +214,7 @@ public interface ArgArray extends Buffer {
 
     Schema<ArgArray> schema = Schema.of(ArgArray.class, s->s
             .arrayLen("argc").pad(12).array("arg", arg->arg
-                            .fields("idx","variant")
+                            .fields("idx", "variant")
                             .pad(11/*(int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize())*/)
                             .field("value", value->value
                                             .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")

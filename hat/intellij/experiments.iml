@@ -12,5 +12,6 @@
     <orderEntry type="module" module-name="backend_opencl" />
     <orderEntry type="module" module-name="backend_ptx" />
     <orderEntry type="module" module-name="backend_mock" />
+    <orderEntry type="module" module-name="backend_ffi_opencl" />
   </component>
 </module>

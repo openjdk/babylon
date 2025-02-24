@@ -28,5 +28,8 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="module" module-name="wrap" />
+    <orderEntry type="module" module-name="glwrap" />
+    <orderEntry type="module" module-name="clwrap" />
   </component>
 </module>

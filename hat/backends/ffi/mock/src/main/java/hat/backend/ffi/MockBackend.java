@@ -31,20 +31,33 @@ import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
-public class MockBackend extends FFIBackend {
+import java.lang.invoke.MethodHandle;
 
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
+public class MockBackend extends FFIBackend {
+    final MethodHandle getBackend_MH;
+    public long getBackend(int mode) {
+        try {
+            backendHandle = (long) getBackend_MH.invoke(mode);
+        } catch (Throwable throwable) {
+            throw new IllegalStateException(throwable);
+        }
+        return backendHandle;
+    }
 
 
     public MockBackend() {
         super("mock_backend");
-        getBackend(0,0, 0);
+        getBackend_MH  =  nativeLibrary.longFunc("getMockBackend",JAVA_INT);
+        getBackend(0);
     }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Mock backend recieved closed closure");
         System.out.println("Mock backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
     }
 
     @Override

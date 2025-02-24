@@ -140,39 +140,51 @@ extern void hexdump(void *ptr, int buflen);
       return ((magic1 == MAGIC) && (magic2 == MAGIC));
    }
 
-         void assignBits(int bitBits) {
-            bits=bitBits;
-        }
-         void setBits(int bitBits) {
-            bits|=bitBits;
-        }
-        void  resetBits(int bitsToReset) {
-             // say bits = 0b0111 (7) and bitz = 0b0100 (4)
-            int xored = bits^bitsToReset;  // xored = 0b0011 (3)
-            bits =  xored;
-        }
-         int getBits() {
-            return bits;
-        }
-         bool areBitsSet(int bitBits) {
-            return (bits&bitBits)==bitBits;
-        }
-
-
+   void assignBits(int bitBits) {
+      bits=bitBits;
+   }
+   void setBits(int bitBits) {
+      bits|=bitBits;
+   }
+   void  resetBits(int bitsToReset) {
+      // say bits = 0b0111 (7) and bitz = 0b0100 (4)
+      int xored = bits^bitsToReset;  // xored = 0b0011 (3)
+      bits =  xored;
+   }
+   int getBits() {
+      return bits;
+   }
+   bool areBitsSet(int bitBits) {
+      return (bits&bitBits)==bitBits;
+   }
+   void setHostDirty(){
+      setBits(BIT_HOST_DIRTY);
+   }
    bool isHostDirty(){
       return  areBitsSet(BIT_HOST_DIRTY);
+   }
+   void clearHostDirty(){
+      resetBits(BIT_HOST_DIRTY);
    }
    bool isHostNew(){
       return  areBitsSet(BIT_HOST_NEW);
    }
-    void clearHostNew(){
-         resetBits(BIT_HOST_NEW);
-      }
-     bool isHostNewOrDirty() {
-               return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
-           }
+   void clearHostNew(){
+      resetBits(BIT_HOST_NEW);
+   }
+   bool isHostNewOrDirty() {
+      return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
+   }
+
+   void setDeviceDirty(){
+      setBits(BIT_DEVICE_DIRTY);
+   }
+
    bool isDeviceDirty(){
       return areBitsSet(BIT_DEVICE_DIRTY);
+   }
+   void clearDeviceDirty(){
+      resetBits(BIT_DEVICE_DIRTY);
    }
 
 
@@ -343,12 +355,6 @@ public:
 
 class Backend {
 public:
-    class Config {
-    public:
-      Config(int mode){}
-      virtual ~Config(){}
-    };
-
 
     class Program {
     public:
@@ -413,14 +419,14 @@ public:
 
     };
     int mode;
-    int platform;
-    int device;
-    Config *config;
 
-    Backend(int mode, int platform, int device, Config *config)
-            : mode(mode), platform(platform), device(device), config(config){}
+    Backend(int mode)
+            : mode(mode){}
 
     virtual void info() = 0;
+
+     virtual void computeStart() = 0;
+      virtual void computeEnd() = 0;
 
     virtual int getMaxComputeUnits() = 0;
 
@@ -431,7 +437,6 @@ public:
     virtual ~Backend() {};
 };
 
-extern "C" long getBackend(int mode, int platform, int device);
 extern "C" void info(long backendHandle);
 extern "C" int getMaxComputeUnits(long backendHandle);
 extern "C" long compileProgram(long backendHandle, int len, char *source);
@@ -441,5 +446,7 @@ extern "C" void releaseProgram(long programHandle);
 extern "C" bool programOK(long programHandle);
 extern "C" void releaseKernel(long kernelHandle);
 extern "C" long ndrange(long kernelHandle, void *argArray);
+extern "C" void computeStart(long backendHandle);
+extern "C" void computeEnd(long backendHandle);
 extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength);
 

@@ -104,8 +104,6 @@ public class Accelerator implements BufferAllocator, BufferTracker {
         this(lookup, Backend.getBackend(backendPredicate));
     }
 
-
-
     @Override
     public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundShema) {
         return backend.allocate(segmentMapper, boundShema);

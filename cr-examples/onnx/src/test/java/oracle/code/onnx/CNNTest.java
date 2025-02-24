@@ -390,7 +390,7 @@ public class CNNTest {
         test(inputImage -> new Tensor(OnnxRuntime.getInstance().runFunc(
                     OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")),
                     Stream.concat(weights.stream(), Stream.of(inputImage))
-                            .map(t -> Optional.of(t.tensorAddr)).toList()).getFirst()));
+                            .map(t -> t.tensorAddr).toList()).getFirst()));
     }
 
     private void test(Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {

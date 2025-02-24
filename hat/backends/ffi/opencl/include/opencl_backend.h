@@ -26,28 +26,9 @@
 #define CL_TARGET_OPENCL_VERSION 120
 
 #ifdef __APPLE__
-#include <opencl/opencl.h>
-#define LongUnsignedNewline "%llu\n"
-#define Size_tNewline "%lu\n"
-#define LongHexNewline "(0x%llx)\n"
-#define alignedMalloc(size, alignment) memalign(alignment, size)
-#define SNPRINTF snprintf
+   #include <opencl/opencl.h>
 #else
-
-#include <CL/cl.h>
-#include <malloc.h>
-
-#define LongHexNewline "(0x%lx)\n"
-#define LongUnsignedNewline "%lu\n"
-#define Size_tNewline "%lu\n"
-#if defined (_WIN32)
-#include "windows.h"
-#define alignedMalloc(size, alignment) _aligned_malloc(size, alignment)
-#define SNPRINTF _snprintf
-#else
-#define alignedMalloc(size, alignment) memalign(alignment, size)
-#define SNPRINTF  snprintf
-#endif
+   #include <CL/cl.h>
 #endif
 
 #include "shared.h"
@@ -58,70 +39,48 @@ extern void __checkOpenclErrors(cl_int status, const char *file, const int line)
 
 class OpenCLBackend : public Backend {
 public:
-    class OpenCLConfig : public Backend::Config {
+    class OpenCLConfig{
     public:
         const static  int GPU_BIT =1<<1;
         const static  int CPU_BIT =1<<2;
         const static  int MINIMIZE_COPIES_BIT =1<<3;
         const static  int TRACE_BIT =1<<4;
+        const static  int PROFILE_BIT =1<<5;
+        const static  int SHOW_CODE_BIT = 1 << 6;
+        const static  int SHOW_KERNEL_MODEL_BIT = 1 << 7;
+        const static  int SHOW_COMPUTE_MODEL_BIT = 1 <<8;
+        const static  int INFO_BIT = 1 <<9;
+        const static  int TRACE_COPIES_BIT = 1 <<10;
+        int mode;
         bool gpu;
+        bool cpu;
         bool minimizeCopies;
         bool trace;
-        OpenCLConfig(int mode):
-           Backend::Config(mode),
-           gpu((mode&GPU_BIT)==GPU_BIT),
-           minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
-           trace((mode&TRACE_BIT)==TRACE_BIT){
-           printf("native gpu %d\n",gpu);
-           printf("native minimizeCopies %d\n", minimizeCopies);
-           printf("native trace %d\n", trace);
-        }
-        virtual ~OpenCLConfig(){}
+        bool profile;
+        bool showCode;
+        bool info;
+        bool traceCopies;
+        OpenCLConfig(int mode);
+        virtual ~OpenCLConfig();
     };
     class OpenCLQueue {
     public:
        size_t eventMax;
+      // cl_event start_marker_event;
+      // cl_event end_marker_event;
        cl_event *events;
        size_t eventc;
        cl_command_queue command_queue;
-       OpenCLQueue()
-          : eventMax(256), events(new cl_event[eventMax]), eventc(0){
-       }
-       cl_event *eventListPtr(){
-          return (eventc == 0) ? nullptr : events;
-       }
-        cl_event *nextEventPtr(){
-            return &events[eventc];
-        }
-        void showEvents(int width);
-         void wait(){
-                 cl_int status = clWaitForEvents(eventc, events);
-
-                    if (status != CL_SUCCESS) {
-                        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-                        exit(1);
-                    }
-        }
-        void release(){
-         cl_int status = CL_SUCCESS;
-
-            for (int i = 0; i < eventc; i++) {
-                status = clReleaseEvent(events[i]);
-                if (status != CL_SUCCESS) {
-                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-                    exit(1);
-                }
-            }
-               eventc = 0;
-            }
-
-
-
-
-       virtual ~OpenCLQueue(){
-        clReleaseCommandQueue(command_queue);
-        delete []events;
-       }
+       OpenCLQueue();
+       cl_event *eventListPtr();
+       cl_event *nextEventPtr();
+       void showEvents(int width);
+       void wait();
+       void release();
+       void computeStart();
+       void computeEnd();
+       void inc();
+       virtual ~OpenCLQueue();
     };
 
     class OpenCLProgram : public Backend::Program {
@@ -155,19 +114,28 @@ public:
     };
 
 public:
+
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
-     OpenCLQueue openclQueue;
+    OpenCLConfig openclConfig;
+    OpenCLQueue openclQueue;
     OpenCLBackend(int mode, int platform, int device);
     ~OpenCLBackend();
     int getMaxComputeUnits();
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
     void info();
+    void computeStart();
+    void computeEnd();
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
     long compileProgram(int len, char *source);
-
+    char *strInfo(cl_device_info device_info);
+    cl_int cl_int_info( cl_device_info device_info);
+    cl_ulong cl_ulong_info( cl_device_info device_info);
+    size_t size_t_info( cl_device_info device_info);
+    char *strPlatformInfo(cl_platform_info platform_info);
 public:
     static const char *errorMsg(cl_int status);
 };
+extern "C" long getOpenCLBackend(int mode, int platform, int device, int unused);
