@@ -115,6 +115,7 @@ public class MNISTDemo {
         var frame = new JFrame("CNN MNIST Demo - Handwritten Digit Classification");
         var drawPane = new JPanel(false);
         var statusBar = new JLabel("   Hold SHIFT key to draw with trackpad or mouse, click ENTER to run digit classification.");
+        var results = new JLabel();
         var cleanFlag = new AtomicBoolean(true);
         var modelRuntimeSession = OnnxRuntime.getInstance().createSession(
                 OnnxProtoBuilder.buildFuncModel(
@@ -127,6 +128,8 @@ public class MNISTDemo {
         var scaledImageDataBuffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
         var inputArguments = List.of(new Tensor(MemorySegment.ofBuffer(scaledImageDataBuffer), FLOAT, 1, 1, IMAGE_SIZE, IMAGE_SIZE).tensorAddr);
         var sampleArray = new float[IMAGE_SIZE * IMAGE_SIZE];
+
+        results.setPreferredSize(new Dimension(100, 0));
 
         drawPane.setPreferredSize(new Dimension(DRAW_AREA_SIZE, DRAW_AREA_SIZE));
         drawPane.addMouseMotionListener(new MouseAdapter() {
@@ -145,6 +148,7 @@ public class MNISTDemo {
 
         frame.setLayout(new BorderLayout());
         frame.add(drawPane, BorderLayout.CENTER);
+        frame.add(results, BorderLayout.EAST);
         frame.add(statusBar, BorderLayout.SOUTH);
         frame.pack();
         frame.setResizable(false);
@@ -155,17 +159,11 @@ public class MNISTDemo {
                     scaledGraphics.drawImage(drawAreaImage.getScaledInstance(IMAGE_SIZE, IMAGE_SIZE, Image.SCALE_SMOOTH), 0, 0, null);
                     scaledImageDataBuffer.put(0, scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, sampleArray));
                     FloatBuffer result = OnnxRuntime.getInstance().tensorBuffer(modelRuntimeSession.run(inputArguments).getFirst()).asFloatBuffer();
-                    int max = 0;
-                    for (int i = 1; i < 10; i++) {
-                        if (result.get(i) > result.get(max)) max = i;
-                    }
-                    var msg = new StringBuilder("<html>&nbsp;");
+                    var msg = new StringBuilder("<html>");
                     for (int i = 0; i < 10; i++) {
-                        msg.append((max == i ? "&nbsp;&nbsp;<b><u>%d:&nbsp;%.1f%%</u></b>"
-                                             : "&nbsp;&nbsp;%d:&nbsp;%.1f%%")
-                                .formatted(i, 100 * result.get(i)));
+                        msg.append("&nbsp;<font size=\"%d\">%d</font>&nbsp;(%.1f%%)&nbsp;<br><br><br>".formatted((int)(20 * result.get(i) + 3), i, 100 * result.get(i)));
                     }
-                    statusBar.setText(msg.toString());
+                    results.setText(msg.toString());
                     cleanFlag.set(true);
                 }
             }
