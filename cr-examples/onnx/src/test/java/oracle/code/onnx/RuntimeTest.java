@@ -51,4 +51,31 @@ public class RuntimeTest {
             SimpleTest.assertEquals(addExpectedTensor, addOutputTensor);
         }
     }
+
+    @Test
+    public void testIf() throws Exception {
+        var ort = OnnxRuntime.getInstance();
+        try (var ifOp = ort.createSession(OnnxProtoBuilder.buildModel(
+                List.of(new OnnxProtoBuilder.Input("cond", BOOL.id)),
+                List.of(new OnnxProtoBuilder.OpNode("If", List.of("cond"), List.of("y"), Map.of(
+                        "then_branch", new OnnxProtoBuilder.Subgraph(
+                                List.of(),
+                                List.of(new OnnxProtoBuilder.OpNode("Constant",
+                                        List.of(),
+                                        List.of("y"),
+                                        Map.of("value_int", 1l))),
+                                List.of("y")),
+                        "else_branch", new OnnxProtoBuilder.Subgraph(
+                                List.of(),
+                                List.of(new OnnxProtoBuilder.OpNode("Constant",
+                                        List.of(),
+                                        List.of("y"),
+                                        Map.of("value_int", 2l))),
+                                List.of("y"))))),
+                List.of("y")))) {
+
+            SimpleTest.assertEquals(Tensor.ofScalar(1l), new Tensor(ifOp.run(List.of(Tensor.ofScalar(true).tensorAddr)).getFirst()));
+            SimpleTest.assertEquals(Tensor.ofScalar(2l), new Tensor(ifOp.run(List.of(Tensor.ofScalar(false).tensorAddr)).getFirst()));
+        }
+    }
 }

@@ -66,6 +66,11 @@ public class Tensor<T> extends OnnxNumber {
 
     public static final long[] SCALAR_SHAPE = new long[0];
 
+    public static Tensor<Boolean> ofScalar(boolean b) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, b ? (byte)1 : 0);
+        return new Tensor(data, ElementType.BOOL, SCALAR_SHAPE);
+    }
+
     public static Tensor<Byte> ofScalar(byte b) {
         return ofShape(SCALAR_SHAPE, b);
     }

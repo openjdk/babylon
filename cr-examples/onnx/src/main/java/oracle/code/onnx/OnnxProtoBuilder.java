@@ -299,6 +299,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
 
     record Input(String name, int tensorElementType) {}
     record OpNode(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {}
+    record Subgraph(List<String> inputNames, List<OpNode> ops, List<String> outputNames) {}
 
     static ByteBuffer buildModel(List<Input> inputs, List<OpNode> ops, List<String> outputNames) {
         var bytes = new ModelProto()
@@ -319,6 +320,18 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
     }
 
+    static GraphProto buildSubGraph(String graphName, List<String> inputNames, List<OpNode> ops, List<String> outputNames) {
+        return new GraphProto()
+                .name(graphName)
+                .forEach(inputNames, (g, iName) -> g.input(new ValueInfoProto().name(iName)))
+                .forEach(ops, (g, op) -> g.node(new NodeProto()
+                        .forEach(op.inputNames(), (n, iName) -> n.input(iName))
+                        .forEach(op.outputNames(), (n, oName) -> n.output(oName))
+                        .op_type(op.opName())
+                        .forEach(op.attributes().entrySet(), (n, ae) -> n.attribute(buildAttribute(ae.getKey(), ae.getValue())))))
+                .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName)));
+    }
+
     static Attribute buildAttribute(String name, Object value) {
         var attr = new Attribute().name(name);
         switch (value) {
@@ -327,6 +340,9 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
             }
             case Long l -> {
                 attr.type(2).i(l);
+            }
+            case Subgraph g -> {
+                attr.type(5).g(buildSubGraph(name, g.inputNames(), g.ops(), g.outputNames()));
             }
             case float[] floats -> {
                 attr.type(6);
