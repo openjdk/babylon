@@ -17,7 +17,6 @@ import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
 import oracle.code.onnx.ir.OnnxOp;
 
-import static java.lang.foreign.ValueLayout.*;
 import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
 public final class OnnxRuntime {
@@ -55,9 +54,6 @@ public final class OnnxRuntime {
         return INSTANCE;
     }
 
-    private static final AddressLayout ADDR_WITH_ADDR = ADDRESS.withTargetLayout(ADDRESS);
-    private static final AddressLayout ADDR_WITH_STRING = ADDRESS.withTargetLayout(MemoryLayout.sequenceLayout(Long.MAX_VALUE, JAVA_BYTE));
-
     private static OnnxRuntime INSTANCE;
 
     private final Arena         arena;
@@ -65,7 +61,7 @@ public final class OnnxRuntime {
 
     private OnnxRuntime() {
         arena = Arena.ofAuto();
-        ret = arena.allocate(ADDR_WITH_ADDR);
+        ret = arena.allocate(C_POINTER);
         //  const OrtApi* ortPtr = OrtGetApiBase()->GetApi((uint32_t)apiVersion);
         var apiBase = OrtApiBase.reinterpret(OrtGetApiBase(), arena, null);
         runtimeAddress = OrtApi.reinterpret(OrtApiBase.GetApi(apiBase, ORT_API_VERSION()), arena, null);
@@ -139,25 +135,26 @@ public final class OnnxRuntime {
             var runOptions = MemorySegment.NULL;
             int inputLen = getNumberOfInputs();
             int outputLen = getNumberOfOutputs();
-            var inputNames = arena.allocate(ADDRESS, inputLen);
-            var inputs = arena.allocate(ADDRESS, inputLen);
+            var inputNames = arena.allocate(C_POINTER, inputLen);
+            var inputs = arena.allocate(C_POINTER, inputLen);
             long index = 0;
             for (int i = 0; i < inputLen; i++) {
                 if (inputValues.get(i).isPresent()) {
-                    inputNames.setAtIndex(ADDRESS, index, arena.allocateFrom(getInputName(i)));
-                    inputs.setAtIndex(ADDRESS, index++, inputValues.get(i).get());
+                    inputNames.setAtIndex(C_POINTER, index, arena.allocateFrom(getInputName(i)));
+                    inputs.setAtIndex(C_POINTER, index++, inputValues.get(i).get());
                 }
             }
-            var outputNames = arena.allocate(ADDRESS, outputLen);
-            var outputs = arena.allocate(ADDRESS, outputLen);
+            var outputNames = arena.allocate(C_POINTER, outputLen);
+            var outputs = arena.allocate(C_POINTER, outputLen);
             for (int i = 0; i < outputLen; i++) {
-                outputNames.setAtIndex(ADDRESS, i, arena.allocateFrom(getOutputName(i)));
-                outputs.setAtIndex(ADDRESS, i, MemorySegment.NULL);
+                outputNames.setAtIndex(C_POINTER, i, arena.allocateFrom(getOutputName(i)));
+                outputs.setAtIndex(C_POINTER, i, MemorySegment.NULL);
             }
             checkStatus(OrtApi.Run(runtimeAddress, sessionAddress, runOptions, inputNames, inputs, (long)inputLen, outputNames, (long)outputLen, outputs));
             var retArr = new MemorySegment[outputLen];
             for (int i = 0; i < outputLen; i++) {
-                retArr[i] = outputs.getAtIndex(ADDRESS, i);
+                retArr[i] = outputs.getAtIndex(C_POINTER, i)
+                        .reinterpret(arena, null);
             }
             return List.of(retArr);
         }
@@ -170,7 +167,7 @@ public final class OnnxRuntime {
 
     public MemorySegment createTensor(MemorySegment flatData, Tensor.ElementType elementType, long[] shape) {
         var allocatorInfo = retAddr(OrtApi.AllocatorGetInfo(runtimeAddress, defaultAllocatorAddress, ret));
-        var shapeAddr = shape.length == 0 ? MemorySegment.NULL : arena.allocateFrom(JAVA_LONG, shape);
+        var shapeAddr = shape.length == 0 ? MemorySegment.NULL : arena.allocateFrom(C_LONG_LONG, shape);
         return retAddr(OrtApi.CreateTensorWithDataAsOrtValue(runtimeAddress, allocatorInfo, flatData, flatData.byteSize(), shapeAddr, shape.length, elementType.id, ret));
     }
 
@@ -182,9 +179,9 @@ public final class OnnxRuntime {
     public long[] tensorShape(MemorySegment tensorAddr) {
         var infoAddr = retAddr(OrtApi.GetTensorTypeAndShape(runtimeAddress, tensorAddr, ret));
         long dims = retLong(OrtApi.GetDimensionsCount(runtimeAddress, infoAddr, ret));
-        var shape = arena.allocate(JAVA_LONG, dims);
+        var shape = arena.allocate(C_LONG_LONG, dims);
         checkStatus(OrtApi.GetDimensions(runtimeAddress, infoAddr, shape, dims));
-        return shape.toArray(JAVA_LONG);
+        return shape.toArray(C_LONG_LONG);
     }
 
     public ByteBuffer tensorBuffer(MemorySegment tensorAddr) {
@@ -216,29 +213,30 @@ public final class OnnxRuntime {
 
     private MemorySegment retAddr(MemorySegment res) {
         checkStatus(res);
-        return ret.get(ADDR_WITH_ADDR, 0);
+        return ret.get(C_POINTER, 0)
+                .reinterpret(arena, null);
     }
 
     private int retInt(MemorySegment res) {
         checkStatus(res);
-        return ret.get(JAVA_INT, 0);
+        return ret.get(C_INT, 0);
     }
 
     private long retLong(MemorySegment res) {
         checkStatus(res);
-        return ret.get(JAVA_LONG, 0);
+        return ret.get(C_LONG_LONG, 0);
     }
 
     private String retString(MemorySegment res) {
-        checkStatus(res);
-        return ret.get(ADDR_WITH_STRING, 0).getString(0);
+        return retAddr(res).reinterpret(Long.MAX_VALUE)
+                .getString(0);
     }
 
     private void checkStatus(MemorySegment status) {
         if (!status.equals(MemorySegment.NULL)) {
             status = status.reinterpret(Long.MAX_VALUE);
-            if (status.get(JAVA_INT, 0) != 0) {
-                throw new RuntimeException(status.getString(JAVA_INT.byteSize()));
+            if (status.get(C_INT, 0) != 0) {
+                throw new RuntimeException(status.getString(C_INT.byteSize()));
             }
         }
     }
