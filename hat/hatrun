@@ -23,8 +23,7 @@
  * questions.
  */
 
-import static bldr.Bldr.*;           // all the helpers are here 
-//import static java.nio.file.Files.*; // so we can use isDirectory(path);
+import static bldr.Bldr.*;  
  
 
 void main(String[] argv) {
@@ -38,16 +37,23 @@ void main(String[] argv) {
       class name is assumed to be package.Main  (i.e. mandel.main) 
 
       examples:
-         java @bldr/args opencl mandel
-         java @bldr/args headless opencl mandel
+         java @bldr/args ffi-opencl mandel
+         java @bldr/args java-opencl mandel
+         java @bldr/args headless ffi-opencl mandel
+         java @bldr/args ffi-opencl life
+         java @bldr/args java-opencl life
   """;
 
   var hatDir =  DirEntry.current();
   var backends = hatDir.existingDir("backends");
   var examples = hatDir.dir("examples");
   var buildDir = hatDir.existingBuildDir("build");
-  var jextractedOpenCLJar = buildDir.jarFile("jextracted-opencl.jar");
-  var jextractedOpenGLJar = buildDir.jarFile("jextracted-opengl.jar");
+  var jextractedOpenCLJar = buildDir.jarFile("opencl.jar");
+  var jextractedOpenGLJar = buildDir.jarFile("opengl.jar");
+  var wrapJar = buildDir.jarFile("wrap.jar");
+  var clwrapJar = buildDir.jarFile("clwrap.jar");
+  var glwrapJar = buildDir.jarFile("glwrap.jar");
+
   var args = new ArrayList<>(List.of(argv));
   java(java -> java
      .enable_preview()
@@ -63,6 +69,9 @@ void main(String[] argv) {
         var backendName = args.removeFirst();
         if (backends.dir(backendName.replace('-','/')) instanceof DirEntry backend && backend.exists()) {
            haveBackend.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
+           if (backendName.equals("ffi-opencl")){
+               haveBackend.class_path(wrapJar, clwrapJar, jextractedOpenCLJar);
+           }
         } else {
            throw new RuntimeException("No such backend " + backendName);
         }
@@ -70,7 +79,7 @@ void main(String[] argv) {
            if (examples.dir(exampleName) instanceof DirEntry example && example.exists()) { haveBackend
               .class_path(buildDir.jarFile("hat-example-" + exampleName + "-1.0.jar"))
               .when(jextractedOpenCLJar.exists() && jextractedOpenGLJar.exists() && exampleName.equals("nbody"), _->{ haveBackend
-                  .class_path(jextractedOpenCLJar,jextractedOpenGLJar)
+                  .class_path(jextractedOpenCLJar,jextractedOpenGLJar, wrapJar, clwrapJar, glwrapJar )
                   .start_on_first_thread();
               })
               .main_class(exampleName + ".Main")

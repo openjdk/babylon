@@ -74,10 +74,6 @@ public:
 
 class PtxBackend : public Backend {
 public:
-    class PtxConfig : public Backend::Config {
-    public:
-        boolean gpu;
-    };
 
     class PtxProgram : public Backend::Program {
         class PtxKernel : public Backend::Program::Kernel {
@@ -124,9 +120,7 @@ private:
     CUcontext context;
 public:
 
-    PtxBackend(PtxConfig *config, int configSchemaLen, char *configSchema);
-
-    PtxBackend();
+    PtxBackend(int mode);
 
     ~PtxBackend();
 
@@ -135,6 +129,8 @@ public:
     void info();
 
     long compileProgram(int len, char *source);
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
 
 };
+extern "C" long getPtxBackend(int mode);
 

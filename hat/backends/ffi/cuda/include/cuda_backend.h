@@ -78,11 +78,6 @@ public:
 
 class CudaBackend : public Backend {
 public:
-    class CudaConfig : public Backend::Config {
-    public:
-        boolean gpu;
-    };
-
     class CudaProgram : public Backend::Program {
         class CudaKernel : public Backend::Program::Kernel {
             class CudaBuffer : public Backend::Program::Kernel::Buffer {
@@ -128,7 +123,7 @@ private:
     CUcontext context;
 public:
 
-    CudaBackend(CudaConfig *config, int configSchemaLen, char *configSchema);
+    CudaBackend(int mode);
 
     CudaBackend();
 
@@ -140,7 +135,6 @@ public:
 
     long compileProgram(int len, char *source);
 
-    //static const char *errorMsg(CUresult status);
-
 };
+extern "C" long getCudaBackend(int mode);
 

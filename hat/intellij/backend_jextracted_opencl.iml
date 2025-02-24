@@ -10,10 +10,11 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="hat" />
     <orderEntry type="module" module-name="backend_jextracted_shared" />
+    <orderEntry type="module" module-name="clwrap" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/jextracted-opencl.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/opencl.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

@@ -38,9 +38,10 @@ public class Bad {
         }
 
         public void compute(AcceleratorProxy.QuotableComputeConsumer cqr) {
-            Quoted quoted = cqr.quoted();
-            Op op = quoted.op();
-            System.out.println(op.toText());
+           // Quoted quoted = cqr.quoted();
+            //Op op = quoted.op();
+            //System.out.println(op.toText());
+            throw new IllegalStateException("Fix this");
         }
 
     }

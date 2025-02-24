@@ -2,6 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/wrap.iml" filepath="$PROJECT_DIR$/wrap.iml" />
+      <module fileurl="file://$PROJECT_DIR$/glwrap.iml" filepath="$PROJECT_DIR$/glwrap.iml" />
+      <module fileurl="file://$PROJECT_DIR$/clwrap.iml" filepath="$PROJECT_DIR$/clwrap.iml" />
+      <module fileurl="file://$PROJECT_DIR$/cuwrap.iml" filepath="$PROJECT_DIR$/cuwrap.iml" />
       <module fileurl="file://$PROJECT_DIR$/hat.iml" filepath="$PROJECT_DIR$/hat.iml" />
       <module fileurl="file://$PROJECT_DIR$/bldr.iml" filepath="$PROJECT_DIR$/bldr.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_cuda.iml" filepath="$PROJECT_DIR$/backend_ffi_cuda.iml" />

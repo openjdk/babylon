@@ -29,17 +29,32 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 
+import java.lang.invoke.MethodHandle;
+
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
 public class CudaBackend extends C99FFIBackend {
+
+    final MethodHandle getBackend_MH;
+    public long getBackend(int mode, int platform, int device) {
+        try {
+            backendHandle = (long) getBackend_MH.invoke(mode, platform, device);
+        } catch (Throwable throwable) {
+            throw new IllegalStateException(throwable);
+        }
+        return backendHandle;
+    }
     public CudaBackend() {
         super("cuda_backend");
-        getBackend(null);
+        getBackend_MH  =  nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
+        getBackend(0,0, 0 );
         info();
     }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("Cuda backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
 
     }
 
@@ -47,7 +62,7 @@ public class CudaBackend extends C99FFIBackend {
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         // System.out.println("Cuda backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createCode(kernelCallGraph, new CudaHatKernelBuilder(), args);
+            String code = createCode(kernelCallGraph, new CudaHatKernelBuilder(), args, true);
             long programHandle = compileProgram(code);
             if (programOK(programHandle)) {
                 long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());

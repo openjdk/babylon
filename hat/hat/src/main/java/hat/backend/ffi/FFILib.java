@@ -38,7 +38,6 @@ public class FFILib {
     final public String name;
     public final boolean available;
 
-
     final public Linker nativeLinker;
 
     final public SymbolLookup loaderLookup;

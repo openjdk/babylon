@@ -26,32 +26,21 @@ package hat;
 
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
+import hat.buffer.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.LambdaOpWrapper;
-import hat.optools.ModuleOpWrapper;
 import hat.optools.OpWrapper;
-
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.MethodRef;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+
+import java.lang.reflect.Method;
 import java.util.function.Consumer;
 
 /**
@@ -73,10 +62,7 @@ import java.util.function.Consumer;
  *
  * @author Gary Frost
  */
-public class ComputeContext implements BufferAllocator {
-
-
-
+public class ComputeContext implements BufferAllocator, BufferTracker {
 
 
     public enum WRAPPER {
@@ -120,9 +106,9 @@ public class ComputeContext implements BufferAllocator {
     protected ComputeContext(Accelerator accelerator, Method computeMethod) {
         this.accelerator = accelerator;
 
-     //   ModuleOpWrapper module = ModuleOpWrapper.createTransitiveInvokeModule(accelerator.lookup, computeMethod);
+        //   ModuleOpWrapper module = ModuleOpWrapper.createTransitiveInvokeModule(accelerator.lookup, computeMethod);
 
-       // System.out.println(module.op().toText());
+        // System.out.println(module.op().toText());
 
         FuncOpWrapper funcOpWrapper = OpWrapper.wrap(Op.ofMethod(computeMethod).orElseThrow());
 
@@ -140,7 +126,7 @@ public class ComputeContext implements BufferAllocator {
      */
 
     public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        Quoted quoted = quotableKernelContextConsumer.quoted();
+        Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op());
         MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
@@ -155,50 +141,48 @@ public class ComputeContext implements BufferAllocator {
         }
     }
 
-    public void clearRuntimeInfo() {
-        runtimeInfo = new RuntimeInfo();
-    }
-
-    public static class RuntimeInfo {
-        public Set<Buffer> javaDirty = new HashSet<>();
-        Set<Buffer> gpuDirty = new HashSet<>();
-    }
-
-    public RuntimeInfo runtimeInfo = null;
-
     public void preMutate(Buffer b) {
-        // System.out.println("preMutate " + b);
-        if (runtimeInfo.gpuDirty.contains(b)) {
-            throw new IllegalStateException("We want to mutate a buffer on the java side but it is marked as gpu dirty.");
+        if (accelerator.backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.preMutate(b);
         }
     }
 
+    @Override
     public void postMutate(Buffer b) {
-        // System.out.println("postMutate " + b);
-        runtimeInfo.javaDirty.add(b);
+        if (accelerator.backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.postMutate(b);
+        }
+
     }
 
+    @Override
     public void preAccess(Buffer b) {
-        // System.out.println("preAccess " + b);
-        if (runtimeInfo.gpuDirty.contains(b)) {
-            throw new IllegalStateException("We want to access a buffer on the java side but it is marked as gpu dirty.");
+        if (accelerator.backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.preAccess(b);
         }
+
     }
 
+    @Override
     public void postAccess(Buffer b) {
-        // System.out.println("postAccess " + b);
+        if (accelerator.backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.postAccess(b);
+        }
+
     }
 
+    @Override
     public void preEscape(Buffer b) {
-        // System.out.println("preEscape " + b);
-        if (runtimeInfo.gpuDirty.contains(b)) {
-            throw new IllegalStateException("We called a method which escapes a buffer on the java side but it is marked as gpu dirty.");
+        if (accelerator.backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.preEscape(b);
         }
     }
 
+    @Override
     public void postEscape(Buffer b) {
-        // System.out.println("postEscape " + b);
-        runtimeInfo.javaDirty.add(b);
+        if (accelerator.backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.postEscape(b);
+        }
     }
 
     @Override

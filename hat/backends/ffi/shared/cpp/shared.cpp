@@ -26,28 +26,6 @@
 
 #define INFO 0
 
-/*
-extern void dump(FILE *file, size_t len, void *ptr) {
-    for (int i = 0; i < len; i++) {
-        if (i % 16 == 0) {
-            if (i != 0) {
-                fprintf(file, "\n");
-            }
-            fprintf(file, "%lx :", ((unsigned long) ptr) + i);
-        }
-        fprintf(file, " %02x", ((int) (((unsigned char *) ptr)[i]) & 0xff));
-    }
-}
-
-*/
-/*extern "C" void dumpArgArray(void *ptr) {
-    ArgSled argSled((ArgArray_t *) ptr);
-    std::cout << "ArgArray->argc = " << argSled.argc() << std::endl;
-    for (int i = 0; i < argSled.argc(); i++) {
-        argSled.dumpArg(i);
-    }
-    std::cout << "schema = " << argSled.schema() << std::endl;
-}*/
 
 void hexdump(void *ptr, int buflen) {
     unsigned char *buf = (unsigned char *) ptr;
@@ -109,7 +87,7 @@ void Sled::show(std::ostream &out, void *argArray) {
                 break;
             }
             default: {
-                std::cerr << "unexpected variant '" << (char) arg->variant << "'" << std::endl;
+                std::cerr << "unexpected variant (shared.cpp) '" << (char) arg->variant << "'" << std::endl;
                 exit(1);
             }
         }
@@ -134,6 +112,20 @@ extern "C" void info(long backendHandle) {
     }
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
     backend->info();
+}
+extern "C" void computeStart(long backendHandle) {
+    if (INFO){
+       std::cout << "trampolining through backendHandle to backend.computeStart()" << std::endl;
+    }
+    auto *backend = reinterpret_cast<Backend*>(backendHandle);
+    backend->computeStart();
+}
+extern "C" void computeEnd(long backendHandle) {
+    if (INFO){
+       std::cout << "trampolining through backendHandle to backend.computeEnd()" << std::endl;
+    }
+    auto *backend = reinterpret_cast<Backend*>(backendHandle);
+    backend->computeEnd();
 }
 extern "C" void releaseBackend(long backendHandle) {
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
@@ -189,6 +181,15 @@ extern "C" bool programOK(long programHandle) {
     }
     auto program = reinterpret_cast<Backend::Program *>(programHandle);
     return program->programOK();
+}
+
+extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength) {
+    if (INFO){
+       std::cout << "trampolining through to getBuffer " << std::endl;
+    }
+    auto backend = reinterpret_cast<Backend *>(backendHandle);
+    auto memorySegment = reinterpret_cast<void *>(memorySegmentHandle);
+    return backend->getBufferFromDeviceIfDirty(memorySegment, memorySegmentLength);
 }
 
 

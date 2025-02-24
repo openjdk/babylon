@@ -171,14 +171,14 @@ The ComputeContext and the captured args are then passed to the backend for exec
 
 
                 ----------------------------------->
-                    computeContextHandoff(computeContext)
+                    computeContextHandoff(CLWrapComputeContext)
                                                     ------->
                                                              ------->
                                                          compileKernels()
                                                              <------
                                                       mutateComputeModels
                                                     <-------
-                    dispatchCompute(computeContext, args)
+                    dispatchCompute(CLWrapComputeContext, args)
                                                     ------->
                                                         dispatchCompute(...)
                                                             --------->
@@ -207,7 +207,7 @@ Here is how we extract the 'target' from such a lambda
 
 ```java
  public void  compute(QuotableComputeContextConsumer qccc) {
-   Quoted quoted = qccc.quoted();
+   Quoted quoted = Op.ofQuotable(qccc).orElseThrow();
    LambdaOpWrapper lambda = OpTools.wrap((CoreOps.LambdaOp)quoted.op());
 
    Method method = lambda.getQuotableComputeContextTargetMethod();
@@ -222,8 +222,8 @@ Here is how we extract the 'target' from such a lambda
            new ComputeContext(this/*Accelerator*/, method)
    );
 
-   // Here we get the captured args from the Quotable and 'jam' in the computeContext in slot[0]
-   Object[] args = lambda.getQuotableComputeContextArgs(quoted, method, computeContext);
-   this.compute(computeContext, args);
+   // Here we get the captured args from the Quotable and 'jam' in the CLWrapComputeContext in slot[0]
+   Object[] args = lambda.getQuotableComputeContextArgs(quoted, method, CLWrapComputeContext);
+   this.compute(CLWrapComputeContext, args);
 }
 ```

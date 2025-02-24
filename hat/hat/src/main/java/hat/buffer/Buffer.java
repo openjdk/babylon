@@ -27,6 +27,7 @@ package hat.buffer;
 
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
+import hat.ifacemapper.SegmentMapper;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
@@ -38,6 +39,18 @@ import static hat.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
 import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 
 public interface Buffer extends MappableIface {
+
+    default boolean isDeviceDirty(){
+        return SegmentMapper.BufferState.of(this).isDeviceDirty();
+    }
+
+    default void clearDeviceDirty(){
+         SegmentMapper.BufferState.of(this).clearDeviceDirty();
+    }
+
+    default void setHostDirty(){
+        SegmentMapper.BufferState.of(this).setHostDirty();
+    }
 
     interface Union extends MappableIface {
     }
@@ -53,7 +66,7 @@ public interface Buffer extends MappableIface {
         }
     }
 
-    static <T extends Buffer> BoundSchema getBoundSchema(T buffer) {
+    static <T extends Buffer> BoundSchema<?> getBoundSchema(T buffer) {
         try {
             return (BoundSchema<?>) buffer.getClass().getDeclaredMethod(SECRET_BOUND_SCHEMA_METHOD_NAME).invoke(buffer);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {

@@ -33,11 +33,14 @@ import hat.buffer.S32Array2D;
 
 import java.awt.Color;
 import java.lang.invoke.MethodHandles;
+
+import hat.ifacemapper.SegmentMapper;
 import jdk.incubator.code.CodeReflection;
+import static hat.ifacemapper.MappableIface.*;
 
 public class Main {
     @CodeReflection
-    public static void mandel(KernelContext kc, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
+    public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
         if (kc.x < kc.maxX) {
             float width = s32Array2D.width();
             float height = s32Array2D.height();
@@ -81,6 +84,10 @@ public class Main {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
         S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
+        //var s32Array2DState = SegmentMapper.BufferState.of(s32Array2D);
+        //System.out.println(s32Array2DState);
+
+
 
         int[] palletteArray = new int[maxIterations];
 

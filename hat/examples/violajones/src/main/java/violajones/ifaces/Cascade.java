@@ -25,15 +25,9 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
-import hat.buffer.After;
-import hat.buffer.BoundBy;
-import hat.buffer.BufferAllocator;
-import hat.buffer.Length;
-import hat.buffer.SelectedBy;
+
 import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;
-
-import java.lang.invoke.MethodHandles;
 
 public interface Cascade extends Buffer {
     interface Feature extends Struct {
@@ -75,7 +69,7 @@ public interface Cascade extends Buffer {
             boolean hasValue();
             void hasValue(boolean hasValue);
 
-            @SelectedBy("hasValue")
+
             Feature.LinkOrValue.Anon anon();
         }
         int id();
@@ -93,7 +87,7 @@ public interface Cascade extends Buffer {
 
         Feature.LinkOrValue right();
 
-        @Length(3)
+
         Feature.Rect rect(long idx);
     }
 
@@ -130,31 +124,23 @@ public interface Cascade extends Buffer {
 
     void width(int width);
 
-    @After("width")
+
     int height();
 
     void height(int height);
 
-    @After("height")
+
     int featureCount();
 
- //  void featureCount(int featureCount);
-
-    @BoundBy("featureCount")
     Feature feature(long idx);
 
     int stageCount();
 
-  //  void stageCount(int stageCount);
-
-    @BoundBy("stageCount")
     Stage stage(long idx);
 
     int treeCount();
 
-//void treeCount(int treeCount);
 
-    @BoundBy("treeCount")
     Tree tree(long idx);
 
 

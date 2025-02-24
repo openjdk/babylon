@@ -28,47 +28,36 @@ package hat.backend.ffi;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.buffer.BackendConfig;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
+import java.lang.invoke.MethodHandle;
+
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
 public class MockBackend extends FFIBackend {
-
-    interface MockConfig extends BackendConfig {
-        // See backends/mock/include/mock_backend.h
-        //  class MockConfig{
-        //       public:
-        //         boolean gpu;
-        //         boolean junk;
-        //   };
-        boolean gpu();
-
-        void gpu(boolean gpu);
-
-        boolean junk();
-
-        void junk(boolean junk);
-
-        Schema<MockConfig> schema = Schema.of(MockConfig.class, s->s.fields("gpu", "junk"));
-        static MockConfig create(Accelerator accelerator, boolean gpu) {
-            MockConfig config =schema.allocate(accelerator);
-            config.gpu(gpu);
-            return config;
+    final MethodHandle getBackend_MH;
+    public long getBackend(int mode) {
+        try {
+            backendHandle = (long) getBackend_MH.invoke(mode);
+        } catch (Throwable throwable) {
+            throw new IllegalStateException(throwable);
         }
-
-
+        return backendHandle;
     }
+
 
     public MockBackend() {
         super("mock_backend");
-        getBackend(null);//MockConfig.create(MethodHandles.lookup(),this,  true));
+        getBackend_MH  =  nativeLibrary.longFunc("getMockBackend",JAVA_INT);
+        getBackend(0);
     }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Mock backend recieved closed closure");
         System.out.println("Mock backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
     }
 
     @Override

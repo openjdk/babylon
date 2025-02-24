@@ -65,7 +65,7 @@ public abstract class JExtractedBackend extends FFIBackendDriver {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
             computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
         }
-        computeContext.clearRuntimeInfo();
+
 
         boolean interpret = false;
         if (interpret) {

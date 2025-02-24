@@ -64,9 +64,10 @@ public abstract class FFIBackend extends FFIBackendDriver {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
             computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
         }
-        computeContext.clearRuntimeInfo();
+
 
         boolean interpret = false;
+        computeStart();
         if (interpret) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op(), args);
         } else {
@@ -80,6 +81,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 throw new RuntimeException(e);
             }
         }
+        computeEnd();
     }
 
     static void wrapInvoke(InvokeOpWrapper iow, Block.Builder bldr, ComputeContext.WRAPPER wrapper, Value cc, Value iface) {
@@ -88,13 +90,15 @@ public abstract class FFIBackend extends FFIBackendDriver {
         bldr.op(CoreOp.invoke(wrapper.post, cc, iface));
     }
 
-    protected static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
+    protected static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod, boolean show) {
         FuncOpWrapper prevFOW = computeMethod.funcOpWrapper();
         FuncOpWrapper returnFOW = prevFOW;
         boolean transform = true;
         if (transform) {
-            System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
-            returnFOW.op().writeTo(System.out);
+            if (show) {
+                System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
+                returnFOW.op().writeTo(System.out);
+            }
             returnFOW = prevFOW.transformInvokes((bldr, invokeOW) -> {
                 CopyContext bldrCntxt = bldr.context();
                 //Map compute method's first param (computeContext) value to transformed model
@@ -126,8 +130,10 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 return bldr;
             });
-            System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
-            returnFOW.op().writeTo(System.out);
+            if (show) {
+                System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
+                returnFOW.op().writeTo(System.out);
+            }
         }
         computeMethod.funcOpWrapper(returnFOW);
         return returnFOW;

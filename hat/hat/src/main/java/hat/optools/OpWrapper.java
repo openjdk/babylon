@@ -26,6 +26,7 @@ package hat.optools;
 
 import hat.buffer.Buffer;
 
+import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
@@ -35,6 +36,9 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.type.ClassType;
 import jdk.incubator.code.type.JavaType;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -130,6 +134,14 @@ public class OpWrapper<T extends Op> {
         this.op.traverse(null, (map, op) -> {
             if (op instanceof CoreOp.InvokeOp invokeOp) {
                 consumer.accept(wrap(invokeOp));
+            }
+            return map;
+        });
+    }
+    public void selectAssignments(Consumer<VarOpWrapper> consumer) {
+        this.op.traverse(null, (map, op) -> {
+            if (op instanceof CoreOp.VarOp varOp) {
+                consumer.accept(wrap(varOp));
             }
             return map;
         });
@@ -238,19 +250,25 @@ public class OpWrapper<T extends Op> {
     }
 
     public static boolean isIface(JavaType javaType){
-        return  (isAssignable(javaType, Buffer.class, Buffer.Struct.class, Buffer.Union.class));
+        return  (isAssignable(javaType, MappableIface.class));
+    }
+    public static Type classTypeToType(ClassType classType){
+        Type javaTypeClass = null;
+        try {
+            javaTypeClass = classType.resolve(MethodHandles.lookup());
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+        return javaTypeClass;
+
     }
     public static boolean isAssignable(JavaType javaType, Class<?> ... classes) {
         if (javaType instanceof ClassType classType) {
-            try {
-                Class<?> javaTypeClass = Class.forName(classType.toString());
-                for (Class<?> clazz : classes) {
-                    if (clazz.isAssignableFrom(javaTypeClass)) {
+            Type type = classTypeToType(classType);
+            for (Class<?> clazz : classes) {
+                if (clazz.isAssignableFrom((Class<?>) type)) {
                         return true;
-                    }
                 }
-            } catch (ClassNotFoundException _) {
-
             }
         }
         return false;

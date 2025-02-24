@@ -41,6 +41,8 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend {
+
+
     public C99FFIBackend(String libName) {
         super(libName);
     }
@@ -60,20 +62,20 @@ public abstract class C99FFIBackend extends FFIBackend {
             this.kernelHandle = kernelHandle;
             this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator, 0, 0);
             ndRangeAndArgs[0] = this.kernelContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, kernelCallGraph.computeContext.runtimeInfo, ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,  ndRangeAndArgs);
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
             kernelContext.maxX(ndRange.kid.maxX);
             args[0] = this.kernelContext;
-            ArgArray.update(argArray, kernelCallGraph.computeContext.runtimeInfo, args);
+            ArgArray.update(argArray, args);
             c99FFIBackend.ndRange(kernelHandle, this.argArray);
         }
     }
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
+    public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args, boolean show) {
         builder.defines().pragmas().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -95,11 +97,12 @@ public abstract class C99FFIBackend extends FFIBackend {
 
         builder.nl().kernelEntrypoint(kernelCallGraph.entrypoint, args).nl();
 
-        System.out.println("Original");
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
-        System.out.println("Lowered");
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
-
+        if (show) {
+            System.out.println("Original");
+            System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
+            System.out.println("Lowered");
+            System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
+        }
         return builder.toString();
     }
 }

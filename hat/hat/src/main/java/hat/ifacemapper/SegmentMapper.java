@@ -35,6 +35,7 @@ import java.lang.foreign.StructLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -332,37 +333,207 @@ public interface SegmentMapper<T> {
      * @param arena from which to {@linkplain Arena#allocate(MemoryLayout) allocate} an
      *              internal memory segment.
      * @throws IllegalStateException     if the {@linkplain MemorySegment#scope() scope}
-     *                                   associated with the provided segment is not
-     *                                   {@linkplain MemorySegment.Scope#isAlive() alive}
+     * associated with the provided segment is not
+     * {@linkplain MemorySegment.Scope#isAlive() alive}
      * @throws WrongThreadException      if this method is called from a thread {@code T},
-     *                                   such that {@code isAccessibleBy(T) == false}
+     * such that {@code isAccessibleBy(T) == false}
      * @throws IllegalArgumentException  if the access operation is
-     *                                   <a href="MemorySegment.html#segment-alignment">incompatible with the alignment constraint</a>
-     *                                   of the {@link #layout()}
+     * <a href="MemorySegment.html#segment-alignment">incompatible with the alignment constraint</a>
+     * of the {@link #layout()}
      * @throws IndexOutOfBoundsException if
-     *                                   {@code layout().byteSize() > segment.byteSize()}
+     * {@code layout().byteSize() > segment.byteSize()}
      */
 
-    default T allocate(Arena arena, BoundSchema<?> boundSchema) {
-if (boundSchema == null) {
-    throw new IllegalStateException("we must have a bound schema");
-}
-        // To help debug we add a tail marker
-        // We add 16 bytes and then pad to the next 16 bytes
-        // and request alignment on 16 byte boundary
-        long byteSize = layout().byteSize();
-        long extendedByteSize = byteSize+16;
-        long byteSizePad = extendedByteSize%16;
-        if (byteSizePad != 0){
-            byteSizePad = 16-byteSizePad;
+
+
+        /*
+
+
+         See backend_ffi_shared/include/shared.h
+
+         Make sure the final static values below match the #defines
+          // hat iface buffer bitz
+        // hat iface bffa   bitz
+        // 4a7 1face bffa   b175
+
+
+
+        struct state{
+           long magic1; // MAGIC
+           int bits;
+           int mode;
+           void * vendorPtr; // In OpenCL this points to native OpenCL::Buffer
+           long magic2; // MAGIC
         }
-        long extendedByteSizePaddedTo16Bytes = extendedByteSize+byteSizePad;
-        //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
-        var segment = arena.allocate(extendedByteSizePaddedTo16Bytes, 16);
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-16,0x1face00000facadeL);
-        segment.set(ValueLayout.JAVA_LONG, extendedByteSizePaddedTo16Bytes-8, 0x1face00000facadeL);
-        return get(segment, layout(), boundSchema);
+         */
+
+    record BufferState(MemorySegment segment, long paddedSize) {
+        public static final long alignment = ValueLayout.JAVA_LONG.byteSize();
+        // hat iface buffer bitz
+        // hat iface bffa   bitz
+        // 4a7 1face bffa   b175
+        public static final long MAGIC = 0x4a71facebffab175L;
+        public static int BIT_HOST_NEW = 0x00000004;
+        public static int BIT_DEVICE_NEW = 0x00000008;
+        public static int BIT_HOST_DIRTY = 0x00000001;
+        public static int BIT_DEVICE_DIRTY = 0x00000002;
+
+
+        static final MemoryLayout stateMemoryLayout = MemoryLayout.structLayout(
+                ValueLayout.JAVA_LONG.withName("magic1"),
+                        ValueLayout.JAVA_INT.withName("bits"),
+                        ValueLayout.JAVA_INT.withName("unused"),
+                        ValueLayout.ADDRESS.withName("vendorPtr"),
+                ValueLayout.JAVA_LONG.withName("magic2")
+        ).withName("state");
+
+        static long byteSize(){
+            return stateMemoryLayout.byteSize();
+        }
+
+        static final VarHandle magic1 = stateMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("magic1")
+        );
+        static final VarHandle bits = stateMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("bits")
+        );
+
+        static final VarHandle magic2 = stateMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("magic2")
+        );
+
+        public static long getLayoutSizeAfterPadding(GroupLayout layout) {
+            return layout.byteSize() +
+                    ((layout.byteSize() % BufferState.alignment) == 0 ? 0 : BufferState.alignment - (layout.byteSize() % BufferState.alignment));
+        }
+
+        public static <T> BufferState of(T t) {
+            Buffer buffer = (Buffer) Objects.requireNonNull(t);
+            MemorySegment s = Buffer.getMemorySegment(buffer);
+            return new BufferState(s,s.byteSize()- BufferState.byteSize());
+        }
+
+
+        BufferState setMagic(){
+            BufferState.magic1.set(segment, paddedSize, MAGIC);
+            BufferState.magic2.set(segment, paddedSize, MAGIC);
+            return this;
+        }
+
+        public BufferState assignBits(int bits) {
+            BufferState.bits.set(segment, paddedSize, bits);
+            return this;
+        }
+        public BufferState orBits(int bits) {
+            BufferState.bits.set(segment, paddedSize, getBits()|bits);
+            return this;
+        }
+        public BufferState resetBits(int bits) {
+            int bitz = getBits();   // say bits = 0b0111 (7) and bitz = 0b0100 (4)
+            int xored = bits^bitz;  // xored = 0b0011 (3)
+            BufferState.bits.set(segment, paddedSize, xored);
+            return this;
+        }
+
+        public int getBits() {
+            return (Integer) BufferState.bits.get(segment, paddedSize);
+        }
+        public boolean testAllBitsAreSet(int bits) {
+            return (getBits()&bits)==bits;
+        }
+        public boolean testAnyBitsAreSet(int bits) {
+            return (getBits()&bits)!=0;
+        }
+
+        public boolean isHostNew() {
+            return testAllBitsAreSet(BIT_HOST_NEW);
+        }
+        public boolean isHostDirty() {
+            return testAllBitsAreSet(BIT_HOST_DIRTY);
+        }
+        public boolean isHostNewOrDirty() {
+            return testAllBitsAreSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
+        }
+        public boolean isDeviceDirty() {
+            return testAllBitsAreSet(BIT_DEVICE_DIRTY);
+        }
+        public BufferState clearDeviceDirty() {
+            return resetBits(BIT_DEVICE_DIRTY);
+        }
+        public BufferState resetHostDirty() {
+            return resetBits(BIT_HOST_DIRTY);
+        }
+        public BufferState resetHostNew() {
+            return resetBits(BIT_HOST_NEW);
+        }
+
+
+        public long magic1() {
+            return (Long) BufferState.magic1.get(segment, paddedSize);
+        }
+
+        public long magic2() {
+            return (Long) BufferState.magic2.get(segment, paddedSize);
+        }
+
+        public boolean ok() {
+            return MAGIC == magic1() && MAGIC == magic2();
+        }
+
+        static String paddedString(int bits) {
+            String s = Integer.toBinaryString(bits);
+            String s32 = "                                  ";
+            return s32.substring(0,s32.length()-s.length())+s;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            if (ok()){
+                builder.append("State:ok").append("\n");
+                builder.append("State:Bits:").append(paddedString(getBits()));
+                if (testAllBitsAreSet(BIT_HOST_DIRTY)){
+                    builder.append(",").append("HOST_DIRTY");
+                }
+                if (testAllBitsAreSet(BIT_DEVICE_DIRTY)){
+                    builder.append(",").append("DEVICE_DIRTY");
+                }
+                if (testAllBitsAreSet(BIT_HOST_NEW)){
+                    builder.append(",").append("HOST_NEW");
+                }
+                builder.append("\n");
+
+
+            }else{
+                builder.append("State: not ok").append("\n");
+            }
+            return builder.toString();
+        }
+
+        public void setHostDirty() {
+        }
     }
+
+    default T allocate(Arena arena, BoundSchema<?> boundSchema) {
+        if (boundSchema == null) {
+            throw new IllegalStateException("No bound Schema provided");
+        }
+        //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
+        var segment = arena.allocate(BufferState.getLayoutSizeAfterPadding(layout()) + BufferState.byteSize(), BufferState.alignment);
+        new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout())).setMagic().assignBits(BufferState.BIT_HOST_NEW| BufferState.BIT_HOST_DIRTY);
+        T returnValue=  get(segment, layout(), boundSchema);
+        // Uncomment if you want to check the State
+        /*
+        State state = State.of(returnValue);
+        if (state.ok() &&!state.isDeviceDirty() &&!state.isJavaDirty()){
+            System.out.println("OK");
+        }else{
+            throw new IllegalArgumentException("BAD TAIL");
+        }
+         */
+        return returnValue;
+    }
+
     /**
      * {@return a new instance of type T projected at the provided
      * external {@code segment} at offset zero}
@@ -455,7 +626,7 @@ if (boundSchema == null) {
     default T get(MemorySegment segment, GroupLayout layout, BoundSchema<?> boundSchema, long offset) {
         try {
             return (T) getHandle()
-                    .invokeExact(segment, layout, boundSchema,offset);
+                    .invokeExact(segment, layout, boundSchema, offset);
         } catch (NullPointerException |
                  IndexOutOfBoundsException |
                  WrongThreadException |
@@ -532,9 +703,9 @@ if (boundSchema == null) {
      *                                       {@linkplain SequenceLayout#elementCount() element count} of a sequence layout
      * @throws NullPointerException          if a required parameter is {@code null}
      */
-   // default void setAtIndex(MemorySegment segment, long index, T t) {
+    // default void setAtIndex(MemorySegment segment, long index, T t) {
     //    set(segment, layout().byteSize() * index, t);
-  //  }
+    //  }
 
     /**
      * Writes the provided instance {@code t} of type T into the provided {@code segment}
@@ -709,7 +880,7 @@ if (boundSchema == null) {
         Objects.requireNonNull(lookup);
         MapperUtil.requireImplementableInterfaceType(type);
         Objects.requireNonNull(layout);
-        return SegmentInterfaceMapper.create(lookup,  type, layout, boundSchema);
+        return SegmentInterfaceMapper.create(lookup, type, layout, boundSchema);
 
     }
 
@@ -718,7 +889,7 @@ if (boundSchema == null) {
                                    Class<T> type,
                                    MemoryLayout... elements) {
 
-       StructLayout structlayout = MemoryLayout.structLayout(elements).withName(type.getSimpleName());
+        StructLayout structlayout = MemoryLayout.structLayout(elements).withName(type.getSimpleName());
         return of(lookup, type, structlayout);
     }
 
@@ -734,10 +905,12 @@ if (boundSchema == null) {
          * {@return the backing segment of this instance}
          */
         MemorySegment segment();
+
         /**
          * {@return the backing segment of this instance}
          */
         MemoryLayout layout();
+
         /**
          * {@return the offset in the backing segment of this instance}
          */

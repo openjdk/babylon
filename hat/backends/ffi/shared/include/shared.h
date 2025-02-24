@@ -74,13 +74,15 @@ typedef long s64_t;
 typedef unsigned long u64_t;
 
 extern void hexdump(void *ptr, int buflen);
+ // hat iface buffer bits
+ // hat iface bffa   bits
+ // 4a7 1face bffa   b175
+
 
  struct Buffer_s {
     void *memorySegment;   // Address of a Buffer/MemorySegment
     long sizeInBytes;     // The size of the memory segment in bytes
-    void *vendorPtr;       // The vendor side can reference vendor into
     u8_t access;          // 0=??/1=RO/2=WO/3=RW if this is a buffer
-    u8_t state;           // 0=UNKNOWN/1=GPUDIRTY/2=JAVADIRTY
 } ;
 
  union Value_u {
@@ -104,15 +106,114 @@ extern void hexdump(void *ptr, int buflen);
     u8_t pad8[8];
     Value_u value;
     u8_t pad6[6];
+    size_t size(){
+       size_t sz;
+       switch(variant){
+          case 'I': case'F':sz= sizeof(u32_t);break;
+          case 'S': case 'C':sz= sizeof(u16_t);break;
+          case 'D':case 'J':return sizeof(u64_t);break;
+          case 'B':return sizeof (u8_t);break;
+        default:
+           std::cerr <<"Bad variant " <<variant << "arg::size" << std::endl;
+           exit(1);
+
+      }
+
+      return sz;
+      }
+};
+
+ struct BufferState_s{
+   static const long  MAGIC =0x4a71facebffab175;
+   static const int   BIT_HOST_NEW =0x00000004;
+   static const int   BIT_DEVICE_NEW =0x00000008;
+   static const int   BIT_HOST_DIRTY =0x00000001;
+   static const int   BIT_DEVICE_DIRTY =0x00000002;
+
+
+   long magic1;
+   int bits;
+   int unused;
+   void *vendorPtr;
+   long magic2;
+   bool ok(){
+      return ((magic1 == MAGIC) && (magic2 == MAGIC));
+   }
+
+   void assignBits(int bitBits) {
+      bits=bitBits;
+   }
+   void setBits(int bitBits) {
+      bits|=bitBits;
+   }
+   void  resetBits(int bitsToReset) {
+      // say bits = 0b0111 (7) and bitz = 0b0100 (4)
+      int xored = bits^bitsToReset;  // xored = 0b0011 (3)
+      bits =  xored;
+   }
+   int getBits() {
+      return bits;
+   }
+   bool areBitsSet(int bitBits) {
+      return (bits&bitBits)==bitBits;
+   }
+   void setHostDirty(){
+      setBits(BIT_HOST_DIRTY);
+   }
+   bool isHostDirty(){
+      return  areBitsSet(BIT_HOST_DIRTY);
+   }
+   void clearHostDirty(){
+      resetBits(BIT_HOST_DIRTY);
+   }
+   bool isHostNew(){
+      return  areBitsSet(BIT_HOST_NEW);
+   }
+   void clearHostNew(){
+      resetBits(BIT_HOST_NEW);
+   }
+   bool isHostNewOrDirty() {
+      return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
+   }
+
+   void setDeviceDirty(){
+      setBits(BIT_DEVICE_DIRTY);
+   }
+
+   bool isDeviceDirty(){
+      return areBitsSet(BIT_DEVICE_DIRTY);
+   }
+   void clearDeviceDirty(){
+      resetBits(BIT_DEVICE_DIRTY);
+   }
+
+
+   void dump(const char *msg){
+     if (ok()){
+        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}\n", msg, bits, unused, (long)vendorPtr);
+     }else{
+        printf("%s bad magic \n", msg);
+        printf("(magic1:%016lx,", magic1);
+        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}", msg, bits, unused, (long)vendorPtr);
+        printf("magic2:%016lx)\n", magic2);
+     }
+   }
+   static BufferState_s* of(void *ptr, size_t sizeInBytes){
+      return (BufferState_s*) (((char*)ptr)+sizeInBytes-sizeof(BufferState_s));
+   }
+
+     static BufferState_s* of(Arg_s *arg){
+        return BufferState_s::of(
+           arg->value.buffer.memorySegment,
+           arg->value.buffer.sizeInBytes
+           );
+      }
 };
 
 struct ArgArray_s {
     u32_t argc;
     u8_t pad12[12];
     Arg_s argv[0/*argc*/];
-    // void * vendorPtr;
-    // int schemaLen
-    // char schema[schemaLen]
 };
 
 class ArgSled {
@@ -171,13 +272,13 @@ public:
         }
     }
 
-    void *vendorPtrPtr() {
+    void *afterArgsPtrPtr() {
         Arg_s *a = arg(argc());
         return (void *) a;
-    }
+   }
 
     int *schemaLenPtr() {
-        int *schemaLenP = (int *) ((char *) vendorPtrPtr() + sizeof(void *));
+        int *schemaLenP = (int *) ((char *) afterArgsPtrPtr() /*+ sizeof(void *) */);
         return schemaLenP;
     }
 
@@ -186,7 +287,7 @@ public:
     }
 
     char *schema() {
-        int *schemaLenP = ((int *) ((char *) vendorPtrPtr() + sizeof(void *)) + 1);
+        int *schemaLenP = ((int *) ((char *) afterArgsPtrPtr() /*+ sizeof(void *)*/) + 1);
         return (char *) schemaLenP;
     }
 
@@ -254,9 +355,6 @@ public:
 
 class Backend {
 public:
-    class Config {
-    public:
-    };
 
     class Program {
     public:
@@ -320,26 +418,25 @@ public:
         };
 
     };
+    int mode;
 
-    Config *config;
-    int configSchemaLen;
-    char *configSchema;
-
-    Backend(Config *config, int configSchemaLen, char *configSchema)
-            : config(config), configSchemaLen(configSchemaLen), configSchema(configSchema) {}
-
-    virtual ~Backend() {};
+    Backend(int mode)
+            : mode(mode){}
 
     virtual void info() = 0;
+
+     virtual void computeStart() = 0;
+      virtual void computeEnd() = 0;
 
     virtual int getMaxComputeUnits() = 0;
 
     virtual long compileProgram(int len, char *source) = 0;
 
+    virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength)=0;
 
+    virtual ~Backend() {};
 };
 
-extern "C" long getBackend(void *config, int configSchemaLen, char *configSchema);
 extern "C" void info(long backendHandle);
 extern "C" int getMaxComputeUnits(long backendHandle);
 extern "C" long compileProgram(long backendHandle, int len, char *source);
@@ -349,4 +446,7 @@ extern "C" void releaseProgram(long programHandle);
 extern "C" bool programOK(long programHandle);
 extern "C" void releaseKernel(long kernelHandle);
 extern "C" long ndrange(long kernelHandle, void *argArray);
+extern "C" void computeStart(long backendHandle);
+extern "C" void computeEnd(long backendHandle);
+extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength);
 

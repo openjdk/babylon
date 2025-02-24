@@ -29,29 +29,29 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.backend.ffi.C99FFIBackend;
-import hat.buffer.BackendConfig;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
+import java.lang.invoke.MethodHandle;
+
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
 public class OpenCLBackend extends C99FFIBackend {
 
-    interface OpenCLConfig extends BackendConfig {
-        boolean gpu();
-
-        void gpu(boolean gpu);
-
-        Schema<OpenCLConfig> schema = Schema.of(OpenCLConfig.class, s->s.fields("gpu"));
-
-        static OpenCLConfig create(Accelerator accelerator, boolean gpu, boolean verbose) {
-            OpenCLConfig config =schema.allocate(accelerator);
-            config.gpu(gpu);
-            return config;
+    final MethodHandle getBackend_MH;
+    public long getBackend(int mode, int platform, int device) {
+        try {
+            backendHandle = (long) getBackend_MH.invoke(mode, platform, device);
+        } catch (Throwable throwable) {
+            throw new IllegalStateException(throwable);
         }
+        return backendHandle;
     }
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend(null);//OpenCLConfig.create( MethodHandles.lookup(),this, true, true));
+        getBackend_MH  =  nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
+        getBackend(0,0,0);
         info();
     }
 
@@ -59,14 +59,14 @@ public class OpenCLBackend extends C99FFIBackend {
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("OpenCL backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
     }
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
+            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args, true);
             System.out.println(code);
             long programHandle = compileProgram(code);
             if (programOK(programHandle)) {

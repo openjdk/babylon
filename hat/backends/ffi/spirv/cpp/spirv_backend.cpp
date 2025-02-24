@@ -26,10 +26,6 @@
 
 class SpirvBackend : public Backend {
 public:
-    class SpirvConfig : public Backend::Config {
-    public :
-    };
-
     class SpirvProgram : public Backend::Program {
         class SpirvKernel : public Backend::Program::Kernel {
         public:
@@ -64,19 +60,15 @@ public:
     };
 
 public:
-
-    SpirvBackend(SpirvConfig *spirvConfig, int spirvConfigSchemeLen, char *spirvBackendSchema)
-            : Backend(spirvConfig, spirvConfigSchemeLen, spirvBackendSchema) {
-        if (spirvConfig == nullptr) {
-            std::cout << "spirvConfig == null" << std::endl;
-        } else {
-            std::cout << "spirvConfig != null" << std::endl;
-        }
+    SpirvBackend(int mode): Backend(mode) {
     }
 
     ~SpirvBackend() {
     }
-
+bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
+    std::cout << "attempting  to get buffer from SpirvBackend "<<std::endl;
+    return false;
+}
     int getMaxComputeUnits() {
         std::cout << "spirv getMaxComputeUnits()" << std::endl;
         return 0;
@@ -85,6 +77,12 @@ public:
     void info() {
         std::cout << "spirv info()" << std::endl;
     }
+     void computeStart(){
+       std::cout << "spirv compute start()" << std::endl;
+     }
+        void computeEnd(){
+          std::cout << "spirv compute start()" << std::endl;
+        }
 
     long compileProgram(int len, char *source) {
         std::cout << "spirv compileProgram()" << std::endl;
@@ -97,7 +95,6 @@ public:
     }
 };
 
-long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    SpirvBackend::SpirvConfig *spirvConfig = (SpirvBackend::SpirvConfig *) config;
-    return (long) new SpirvBackend(spirvConfig, configSchemaLen, configSchema);
+long getSpirvBackend(int mode) {
+    return (long) new SpirvBackend(mode);
 }

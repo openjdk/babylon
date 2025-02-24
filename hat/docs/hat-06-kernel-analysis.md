@@ -283,7 +283,7 @@ There are a lot opportunities for catching such bugs.
 ## Flipping Generations
 
 Many algorithms require us to process data from generations. Consider
-Convolutions or Game Of Life style problems where we have an image or game state and
+Convolutions or Game Of Life style problems where we have an image or game bufferState and
 we need to calculate the result of applying rules to cells in the image or game.
 
 It is important that when we process the next generation (either in parallel or sequentially) we
@@ -420,16 +420,16 @@ Here is a transformation for that
                         // Get the buffer receiver value in the output model
                         Value receiver = cc.getValue(invoke.operand(0)); // The buffer we are mutatibg or accessing
                         if (invoke.isIfaceMutator()) {
-                            // inject computeContext.preMutate(buffer);
+                            // inject CLWrapComputeContext.preMutate(buffer);
                             builder.op(CoreOps.invoke(ComputeClosure.M_CC_PRE_MUTATE, computeClosure, receiver));
                             builder.op(invoke.op());
-                           // inject computeContext.postMutate(buffer);
+                           // inject CLWrapComputeContext.postMutate(buffer);
                             builder.op(CoreOps.invoke(ComputeClosure.M_CC_POST_MUTATE, computeClosure, receiver));
                         } else if ( invoke.isIfaceAccessor()) {
-                           // inject computeContext.preAccess(buffer);
+                           // inject CLWrapComputeContext.preAccess(buffer);
                             builder.op(CoreOps.invoke(ComputeClosure.M_CC_PRE_ACCESS, computeClosure, receiver));
                             builder.op(invoke.op());
-                            // inject computeContext.postAccess(buffer);
+                            // inject CLWrapComputeContext.postAccess(buffer);
                             builder.op(CoreOps.invoke(ComputeClosure.M_CC_POST_ACCESS, computeClosure, receiver));
                         } else {
                             builder.op(invoke.op());
@@ -453,9 +453,9 @@ So in our `OpenCLBackend` for example
     }
 
     @Override
-    public void computeContextClosed(ComputeContext computeContext){
+    public void computeContextClosed(ComputeContext CLWrapComputeContext){
         var codeBuilder = new OpenCLKernelBuilder();
-        C99Code kernelCode = createKernelCode(computeContext, codeBuilder);
+        C99Code kernelCode = createKernelCode(CLWrapComputeContext, codeBuilder);
         System.out.println(codeBuilder);
     }
 ```
@@ -473,12 +473,12 @@ I hacked the Mandle example. So the compute accessed and mutated it's arrays.
     }
 
     @CodeReflection
-    static public void compute(final ComputeContext computeContext, S32Array2D s32Array2D, float x, float y, float scale) {
+    static public void compute(final ComputeContext CLWrapComputeContext, S32Array2D s32Array2D, float x, float y, float scale) {
         scale = scaleUp(scale);
-        var range = computeContext.accelerator.range(s32Array2D.size());
+        var range = CLWrapComputeContext.accelerator.range(s32Array2D.size());
         int i = s32Array2D.get(10,10);
         s32Array2D.set(10,10,i);
-        computeContext.dispatchKernel(MandelCompute::kernel, range, s32Array2D, pallette, x, y, scale);
+        CLWrapComputeContext.dispatchKernel(MandelCompute::kernel, range, s32Array2D, pallette, x, y, scale);
     }
 ```
 So here is the transformation being applied to the above compute
@@ -486,7 +486,7 @@ So here is the transformation being applied to the above compute
 BEFORE (note the !'s indicating accesses through ifacebuffers)
 ```
 func @"compute" (%0 : hat.ComputeContext, %1 : hat.buffer.S32Array2D, %2 : float, %3 : float, %4 : float)void -> {
-    %5 : Var<hat.ComputeContext> = var %0 @"computeContext";
+    %5 : Var<hat.ComputeContext> = var %0 @"CLWrapComputeContext";
     %6 : Var<hat.buffer.S32Array2D> = var %1 @"s32Array2D";
     %7 : Var<float> = var %2 @"x";
     %8 : Var<float> = var %3 @"y";
@@ -516,7 +516,7 @@ func @"compute" (%0 : hat.ComputeContext, %1 : hat.buffer.S32Array2D, %2 : float
 AFTER
 ```
 func @"compute" (%0 : hat.ComputeContext, %1 : hat.buffer.S32Array2D, %2 : float, %3 : float, %4 : float)void -> {
-    %5 : Var<hat.ComputeContext> = var %0 @"computeContext";
+    %5 : Var<hat.ComputeContext> = var %0 @"CLWrapComputeContext";
     %6 : Var<hat.buffer.S32Array2D> = var %1 @"s32Array2D";
     %7 : Var<float> = var %2 @"x";
     %8 : Var<float> = var %3 @"y";
