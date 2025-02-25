@@ -29,6 +29,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import jdk.incubator.code.CodeReflection;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -47,10 +48,9 @@ import static oracle.code.onnx.OnnxOperators.*;
 import static oracle.code.onnx.Tensor.ElementType.*;
 
 public class MNISTDemo {
-
     private static float[] loadConstant(String resource) throws IOException {
-        var bb = ByteBuffer.wrap(MNISTDemo.class.getResourceAsStream(resource).readAllBytes()).order(ByteOrder.LITTLE_ENDIAN);
-        return FloatBuffer.allocate(bb.capacity() / 4).put(bb.asFloatBuffer()).array();
+        return MemorySegment.ofArray(MNISTDemo.class.getResourceAsStream(resource).readAllBytes())
+                .toArray(ValueLayout.JAVA_FLOAT_UNALIGNED);
     }
 
     @CodeReflection
