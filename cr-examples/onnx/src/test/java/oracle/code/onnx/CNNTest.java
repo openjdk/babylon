@@ -338,7 +338,7 @@ public class CNNTest {
         }
     }
 
-    static List<Tensor<Float>> loadWeights() throws IOException {
+    static List<Tensor> loadWeights() throws IOException {
         return List.of(floatTensor("conv1-weight-float-le", 6, 1, 5, 5),
                        floatTensor("conv1-bias-float-le", 6),
                        floatTensor("conv2-weight-float-le", 16, 6, 5, 5),
@@ -387,10 +387,9 @@ public class CNNTest {
     @Test
     public void testProtobufModel() throws Exception {
         var weights = loadWeights();
-        test(inputImage -> new Tensor(OnnxRuntime.getInstance().runFunc(
+        test(inputImage -> OnnxRuntime.getInstance().runFunc(
                     OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")),
-                    Stream.concat(weights.stream(), Stream.of(inputImage))
-                            .map(t -> t.tensorAddr).toList()).getFirst()));
+                    Stream.concat(weights.stream(), Stream.of(inputImage)).toList()).getFirst());
     }
 
     private void test(Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {

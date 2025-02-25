@@ -1,7 +1,6 @@
 package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -265,7 +264,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         tensor FuncOp parameters and single tensor return type
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
-    static ByteBuffer buildFuncModel(FuncOp model) {
+    static byte[] buildFuncModel(FuncOp model) {
         var indexer = new IdentityHashMap<Value, String>() {
             String getName(Value v) {
                 return computeIfAbsent(v, _ -> "#" + size());
@@ -299,10 +298,10 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
 
     record Input(String name, int tensorElementType) {}
     record OpNode(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {}
-    record Subgraph(List<String> inputNames, List<OpNode> ops, List<String> outputNames) {}
+    record Subgraph(List<Input> inputs, List<OpNode> ops, List<String> outputNames) {}
 
-    static ByteBuffer buildModel(List<Input> inputs, List<OpNode> ops, List<String> outputNames) {
-        var bytes = new ModelProto()
+    static byte[] buildModel(List<Input> inputs, List<OpNode> ops, List<String> outputNames) {
+        return new ModelProto()
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
                         .forEach(inputs, (g, input) -> g
@@ -316,14 +315,12 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                         .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName))))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
-//        OnnxProtoPrinter.printModel(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN));
-        return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
     }
 
-    static GraphProto buildSubGraph(String graphName, List<String> inputNames, List<OpNode> ops, List<String> outputNames) {
+    static GraphProto buildSubGraph(String graphName, List<Input> inputs, List<OpNode> ops, List<String> outputNames) {
         return new GraphProto()
                 .name(graphName)
-                .forEach(inputNames, (g, iName) -> g.input(new ValueInfoProto().name(iName)))
+                .forEach(inputs, (g, i) -> g.input(new ValueInfoProto().name(i.name()).type(new TypeProto().tensor_type(new Tensor().elem_type(i.tensorElementType()).shape(new TensorShapeProto().dim(new Dimension().dim_value(1)))))))
                 .forEach(ops, (g, op) -> g.node(new NodeProto()
                         .forEach(op.inputNames(), (n, iName) -> n.input(iName))
                         .forEach(op.outputNames(), (n, oName) -> n.output(oName))
@@ -342,7 +339,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 attr.type(2).i(l);
             }
             case Subgraph g -> {
-                attr.type(5).g(buildSubGraph(name, g.inputNames(), g.ops(), g.outputNames()));
+                attr.type(5).g(buildSubGraph(name, g.inputs(), g.ops(), g.outputNames()));
             }
             case float[] floats -> {
                 attr.type(6);

@@ -3,21 +3,17 @@ package oracle.code.onnx;
 import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.IntStream;
 
 import jdk.incubator.code.op.CoreOp;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
-import oracle.code.onnx.ir.OnnxOp;
 
 import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
@@ -74,10 +70,10 @@ public final class OnnxRuntime {
         }));
     }
 
-    public List<MemorySegment> runOp(String opName, List<MemorySegment> inputValues, int numOutputs, Map<String, Object> attributes) {
+    public List<Tensor> runOp(String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
         var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
         var protoModel = OnnxProtoBuilder.buildModel(
-                IntStream.range(0, inputValues.size()).mapToObj(i -> new OnnxProtoBuilder.Input("i" + i, tensorElementType(inputValues.get(i)).id)).toList(),
+                IntStream.range(0, inputValues.size()).mapToObj(i -> new OnnxProtoBuilder.Input("i" + i, inputValues.get(i).elementType().id)).toList(),
                 List.of(new OnnxProtoBuilder.OpNode(
                         opName,
                         IntStream.range(0, inputValues.size()).mapToObj(i -> "i" + i).toList(),
@@ -89,7 +85,7 @@ public final class OnnxRuntime {
         }
     }
 
-    public List<MemorySegment> runFunc(CoreOp.FuncOp model, List<MemorySegment> inputValues) {
+    public List<Tensor> runFunc(CoreOp.FuncOp model, List<Tensor> inputValues) {
         var protoModel = OnnxProtoBuilder.buildFuncModel(model);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
@@ -104,12 +100,12 @@ public final class OnnxRuntime {
         return new Session(retAddr(OrtApi.CreateSession(runtimeAddress, envAddress, arena.allocateFrom(modelPath), options.sessionOptionsAddress, ret)));
     }
 
-    public Session createSession(ByteBuffer model) {
+    public Session createSession(byte[] model) {
         return createSession(model, createSessionOptions());
     }
 
-    private Session createSession(ByteBuffer model, SessionOptions options) {
-        return new Session(retAddr(OrtApi.CreateSessionFromArray(runtimeAddress, envAddress, MemorySegment.ofBuffer(model.rewind()), model.limit(), options.sessionOptionsAddress, ret)));
+    private Session createSession(byte[] model, SessionOptions options) {
+        return new Session(retAddr(OrtApi.CreateSessionFromArray(runtimeAddress, envAddress, arena.allocateFrom(ValueLayout.JAVA_BYTE, model), model.length, options.sessionOptionsAddress, ret)));
     }
 
     public final class Session implements AutoCloseable {
@@ -137,7 +133,7 @@ public final class OnnxRuntime {
         }
 
         // @@@ only tensors are supported yet
-        public List<MemorySegment> run(List<MemorySegment> inputValues) {
+        public List<Tensor> run(List<Tensor> inputValues) {
             var runOptions = MemorySegment.NULL;
             int inputLen = getNumberOfInputs();
             int outputLen = getNumberOfOutputs();
@@ -146,7 +142,7 @@ public final class OnnxRuntime {
             long index = 0;
             for (int i = 0; i < inputLen; i++) {
                 inputNames.setAtIndex(C_POINTER, index, arena.allocateFrom(getInputName(i)));
-                inputs.setAtIndex(C_POINTER, index++, inputValues.get(i));
+                inputs.setAtIndex(C_POINTER, index++, inputValues.get(i).tensorAddr);
             }
             var outputNames = arena.allocate(C_POINTER, outputLen);
             var outputs = arena.allocate(C_POINTER, outputLen);
@@ -155,10 +151,10 @@ public final class OnnxRuntime {
                 outputs.setAtIndex(C_POINTER, i, MemorySegment.NULL);
             }
             checkStatus(OrtApi.Run(runtimeAddress, sessionAddress, runOptions, inputNames, inputs, (long)inputLen, outputNames, (long)outputLen, outputs));
-            var retArr = new MemorySegment[outputLen];
+            var retArr = new Tensor[outputLen];
             for (int i = 0; i < outputLen; i++) {
-                retArr[i] = outputs.getAtIndex(C_POINTER, i)
-                        .reinterpret(arena, null);
+                retArr[i] = new Tensor(outputs.getAtIndex(C_POINTER, i)
+                        .reinterpret(arena, null));
             }
             return List.of(retArr);
         }
@@ -188,13 +184,12 @@ public final class OnnxRuntime {
         return shape.toArray(C_LONG_LONG);
     }
 
-    public ByteBuffer tensorBuffer(MemorySegment tensorAddr) {
+    public MemorySegment tensorData(MemorySegment tensorAddr) {
         var infoAddr = retAddr(OrtApi.GetTensorTypeAndShape(runtimeAddress, tensorAddr, ret));
         long size = retLong(OrtApi.GetTensorShapeElementCount(runtimeAddress, infoAddr, ret))
                 * Tensor.ElementType.fromOnnxId(retInt(OrtApi.GetTensorElementType(runtimeAddress, infoAddr, ret))).size();
         return retAddr(OrtApi.GetTensorMutableData(runtimeAddress, tensorAddr, ret))
-                .reinterpret(size)
-                .asByteBuffer().order(ByteOrder.nativeOrder());
+                .reinterpret(size);
     }
 
     public SessionOptions createSessionOptions() {

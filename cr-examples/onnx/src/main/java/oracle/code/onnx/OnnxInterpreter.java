@@ -54,14 +54,14 @@ public class OnnxInterpreter {
             var outTensors = OnnxRuntime.getInstance().runOp(
                     schema.name(),
                     inputs.stream().takeWhile(i -> !(i instanceof Optional o && o.isEmpty())) // @@@ assuming gaps in the optional inputs are not allowed
-                              .map(i -> ((Tensor)(i instanceof Optional o ? o.get() : i)).tensorAddr)
+                              .map(i -> (Tensor)(i instanceof Optional o ? o.get() : i))
                               .toList(),
                     schema.outputs().size(),
                     attributeMap);
             if (outTensors.size() == 1) {
-                return new Tensor(outTensors.getFirst());
+                return outTensors.getFirst();
             } else {
-                return outTensors.stream().map(Tensor::new).toArray();
+                return outTensors.toArray();
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);

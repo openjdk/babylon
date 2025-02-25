@@ -32,19 +32,19 @@ public class RuntimeTest {
 
             var absExpectedTensor = Tensor.ofFlat(1f, 2, 3, 4, 5, 6);
 
-            var absResult = absOp.run(List.of(inputTensor.tensorAddr));
+            var absResult = absOp.run(List.of(inputTensor));
 
             assertEquals(1, absResult.size());
 
-            var absOutputTensor = new Tensor(absResult.getFirst());
+            var absOutputTensor = absResult.getFirst();
 
             SimpleTest.assertEquals(absExpectedTensor, absOutputTensor);
 
-            var addResult = addOp.run(List.of(inputTensor.tensorAddr, absOutputTensor.tensorAddr));
+            var addResult = addOp.run(List.of(inputTensor, absOutputTensor));
 
             assertEquals(1, addResult.size());
 
-            var addOutputTensor = new Tensor(addResult.getFirst());
+            var addOutputTensor = addResult.getFirst();
 
             var addExpectedTensor = Tensor.ofFlat(0f, 4, 0, 8, 0, 12);
 
@@ -70,8 +70,25 @@ public class RuntimeTest {
 
             var a = Tensor.ofScalar(1l);
             var b = Tensor.ofScalar(2l);
-            SimpleTest.assertEquals(a, new Tensor(ifOp.run(List.of(Tensor.ofScalar(true).tensorAddr, a.tensorAddr, b.tensorAddr)).getFirst()));
-            SimpleTest.assertEquals(b, new Tensor(ifOp.run(List.of(Tensor.ofScalar(false).tensorAddr, a.tensorAddr, b.tensorAddr)).getFirst()));
+            SimpleTest.assertEquals(a, ifOp.run(List.of(Tensor.ofScalar(true), a, b)).getFirst());
+            SimpleTest.assertEquals(b, ifOp.run(List.of(Tensor.ofScalar(false), a, b)).getFirst());
         }
     }
+
+//    @Test
+//    public void testFor() throws Exception {
+//        var ort = OnnxRuntime.getInstance();
+//        try (var forOp = ort.createSession(OnnxProtoBuilder.buildModel(
+//                List.of(new OnnxProtoBuilder.Input("max", INT64.id), new OnnxProtoBuilder.Input("cond", BOOL.id), new OnnxProtoBuilder.Input("a", INT64.id)),
+//                List.of(new OnnxProtoBuilder.OpNode("Loop", List.of("max", "cond", "a"), List.of("y"), Map.of(
+//                        "body", new OnnxProtoBuilder.Subgraph(
+//                                List.of(new OnnxProtoBuilder.Input("i", INT64.id), new OnnxProtoBuilder.Input("cond_in", BOOL.id), new OnnxProtoBuilder.Input("a_in", INT64.id)),
+//                                List.of(new OnnxProtoBuilder.OpNode("Mul", List.of("a_in", "a_in"), List.of("a_out"), Map.of())),
+//                                List.of("cond_in", "a_out"))))),
+//                List.of("y")))) {
+//
+//            var a = Tensor.ofScalar(2l);
+//            SimpleTest.assertEquals(Tensor.ofScalar(65536l), new Tensor(forOp.run(List.of(Tensor.ofScalar(16l).tensorAddr, Tensor.ofScalar(true).tensorAddr, Tensor.ofScalar(16l).tensorAddr)).getFirst()));
+//        }
+//    }
 }

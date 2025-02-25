@@ -127,7 +127,7 @@ public class MNISTDemo {
         var scaledImage = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_BYTE_GRAY);
         var scaledGraphics = scaledImage.createGraphics();
         var scaledImageDataBuffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
-        var inputArguments = List.of(new Tensor(MemorySegment.ofBuffer(scaledImageDataBuffer), FLOAT, 1, 1, IMAGE_SIZE, IMAGE_SIZE).tensorAddr);
+        var inputArguments = List.of(new Tensor(MemorySegment.ofBuffer(scaledImageDataBuffer), FLOAT, 1, 1, IMAGE_SIZE, IMAGE_SIZE));
         var sampleArray = new float[IMAGE_SIZE * IMAGE_SIZE];
 
         results.setPreferredSize(new Dimension(100, 0));
@@ -159,7 +159,7 @@ public class MNISTDemo {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     scaledGraphics.drawImage(drawAreaImage.getScaledInstance(IMAGE_SIZE, IMAGE_SIZE, Image.SCALE_SMOOTH), 0, 0, null);
                     scaledImageDataBuffer.put(0, scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, sampleArray));
-                    FloatBuffer result = OnnxRuntime.getInstance().tensorBuffer(modelRuntimeSession.run(inputArguments).getFirst()).asFloatBuffer();
+                    FloatBuffer result = modelRuntimeSession.run(inputArguments).getFirst().asByteBuffer().asFloatBuffer();
                     var msg = new StringBuilder("<html>");
                     for (int i = 0; i < 10; i++) {
                         var w = result.get(i);
