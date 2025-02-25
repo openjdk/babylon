@@ -323,12 +323,12 @@ public class CNNTest {
         });
     }
 
-    static void printImage(int imageIndex, MemorySegment bb) {
+    static void printImage(int imageIndex, MemorySegment ms) {
         System.out.println("Image #" + imageIndex + " :");
         int offset = imageIndex * 28 * 28;
         for (int y = 0; y < 28; y++) {
             for (int x = 0; x < 28; x++) {
-                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & bb.get(ValueLayout.JAVA_BYTE, offset + y * 28 + x)) / 256));
+                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & ms.get(ValueLayout.JAVA_BYTE, offset + y * 28 + x)) / 256));
             }
             System.out.println();
         }
