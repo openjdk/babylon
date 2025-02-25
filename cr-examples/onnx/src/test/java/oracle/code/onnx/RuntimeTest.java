@@ -13,13 +13,13 @@ public class RuntimeTest {
     @Test
     public void test() throws Exception {
         var ort = OnnxRuntime.getInstance();
-        try (var absOp = ort.createSession(OnnxProtoBuilder.buildModel(
-                List.of(new OnnxProtoBuilder.Input("x", FLOAT.id)),
-                List.of(new OnnxProtoBuilder.OpNode("Abs", List.of("x"), List.of("y"), Map.of())),
+        try (var absOp = ort.createSession(OnnxProtoBuilder.build(
+                List.of(OnnxProtoBuilder.valueInfo("x", FLOAT.id)),
+                List.of(OnnxProtoBuilder.node("Abs", List.of("x"), List.of("y"), Map.of())),
                 List.of("y")));
-             var addOp = ort.createSession(OnnxProtoBuilder.buildModel(
-                List.of(new OnnxProtoBuilder.Input("a", FLOAT.id), new OnnxProtoBuilder.Input("b", FLOAT.id)),
-                List.of(new OnnxProtoBuilder.OpNode("Add", List.of("a", "b"), List.of("y"), Map.of())),
+             var addOp = ort.createSession(OnnxProtoBuilder.build(
+                List.of(OnnxProtoBuilder.valueInfo("a", FLOAT.id), OnnxProtoBuilder.valueInfo("b", FLOAT.id)),
+                List.of(OnnxProtoBuilder.node("Add", List.of("a", "b"), List.of("y"), Map.of())),
                 List.of("y")))) {
 
             assertEquals(1, absOp.getNumberOfInputs());
@@ -55,16 +55,16 @@ public class RuntimeTest {
     @Test
     public void testIf() throws Exception {
         var ort = OnnxRuntime.getInstance();
-        try (var ifOp = ort.createSession(OnnxProtoBuilder.buildModel(
-                List.of(new OnnxProtoBuilder.Input("cond", BOOL.id), new OnnxProtoBuilder.Input("a", INT64.id), new OnnxProtoBuilder.Input("b", INT64.id)),
-                List.of(new OnnxProtoBuilder.OpNode("If", List.of("cond"), List.of("y"), Map.of(
-                        "then_branch", new OnnxProtoBuilder.Subgraph(
+        try (var ifOp = ort.createSession(OnnxProtoBuilder.build(
+                List.of(OnnxProtoBuilder.valueInfo("cond", BOOL.id), OnnxProtoBuilder.valueInfo("a", INT64.id), OnnxProtoBuilder.valueInfo("b", INT64.id)),
+                List.of(OnnxProtoBuilder.node("If", List.of("cond"), List.of("y"), Map.of(
+                        "then_branch", OnnxProtoBuilder.graph(
                                 List.of(),
-                                List.of(new OnnxProtoBuilder.OpNode("Identity", List.of("a"), List.of("y"), Map.of())),
+                                List.of(OnnxProtoBuilder.node("Identity", List.of("a"), List.of("y"), Map.of())),
                                 List.of("y")),
-                        "else_branch", new OnnxProtoBuilder.Subgraph(
+                        "else_branch", OnnxProtoBuilder.graph(
                                 List.of(),
-                                List.of(new OnnxProtoBuilder.OpNode("Identity", List.of("b"), List.of("y"), Map.of())),
+                                List.of(OnnxProtoBuilder.node("Identity", List.of("b"), List.of("y"), Map.of())),
                                 List.of("y"))))),
                 List.of("y")))) {
 
@@ -78,7 +78,7 @@ public class RuntimeTest {
 //    @Test
 //    public void testFor() throws Exception {
 //        var ort = OnnxRuntime.getInstance();
-//        try (var forOp = ort.createSession(OnnxProtoBuilder.buildModel(
+//        try (var forOp = ort.createSession(OnnxProtoBuilder.build(
 //                List.of(new OnnxProtoBuilder.Input("max", INT64.id), new OnnxProtoBuilder.Input("cond", BOOL.id), new OnnxProtoBuilder.Input("a", INT64.id)),
 //                List.of(new OnnxProtoBuilder.OpNode("Loop", List.of("max", "cond", "a"), List.of("y"), Map.of(
 //                        "body", new OnnxProtoBuilder.Subgraph(

@@ -119,7 +119,7 @@ public class MNISTDemo {
         var results = new JLabel();
         var cleanFlag = new AtomicBoolean(true);
         var modelRuntimeSession = OnnxRuntime.getInstance().createSession(
-                OnnxProtoBuilder.buildFuncModel(
+                OnnxProtoBuilder.build(
                         OnnxTransformer.transform(MethodHandles.lookup(),
                                 Op.ofMethod(MNISTDemo.class.getDeclaredMethod("cnn", Tensor.class)).get())));
         var drawAreaImage = new BufferedImage(DRAW_AREA_SIZE, DRAW_AREA_SIZE, BufferedImage.TYPE_BYTE_GRAY);

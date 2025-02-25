@@ -72,9 +72,9 @@ public final class OnnxRuntime {
 
     public List<Tensor> runOp(String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
         var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
-        var protoModel = OnnxProtoBuilder.buildModel(
-                IntStream.range(0, inputValues.size()).mapToObj(i -> new OnnxProtoBuilder.Input("i" + i, inputValues.get(i).elementType().id)).toList(),
-                List.of(new OnnxProtoBuilder.OpNode(
+        var protoModel = OnnxProtoBuilder.build(
+                IntStream.range(0, inputValues.size()).mapToObj(i -> OnnxProtoBuilder.valueInfo("i" + i, inputValues.get(i).elementType().id)).toList(),
+                List.of(OnnxProtoBuilder.node(
                         opName,
                         IntStream.range(0, inputValues.size()).mapToObj(i -> "i" + i).toList(),
                         outputNames,
@@ -86,7 +86,7 @@ public final class OnnxRuntime {
     }
 
     public List<Tensor> runFunc(CoreOp.FuncOp model, List<Tensor> inputValues) {
-        var protoModel = OnnxProtoBuilder.buildFuncModel(model);
+        var protoModel = OnnxProtoBuilder.build(model);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
         }
