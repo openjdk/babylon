@@ -1,10 +1,10 @@
 package oracle.code.onnx;
 
-import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandles;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import jdk.incubator.code.CodeReflection;
@@ -111,9 +111,7 @@ public class SimpleTest {
     }
 
     private static Tensor runModel(String name, Tensor... params) throws NoSuchMethodException {
-        return new Tensor(OnnxRuntime.getInstance().runFunc(
-                getOnnxModel(name),
-                Stream.of(params).map(t -> t.tensorAddr).toList()).getFirst());
+        return OnnxRuntime.getInstance().runFunc(getOnnxModel(name), List.of(params)).getFirst();
     }
 
     private static CoreOp.FuncOp getOnnxModel(String name) throws NoSuchMethodException {
@@ -122,34 +120,21 @@ public class SimpleTest {
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
-        assertEquals(expected.tensorAddr, actual.tensorAddr);
-    }
 
-    static void assertEquals(MemorySegment expectedTensorAddr, MemorySegment actualTensorAddr) {
+        var expectedType = expected.elementType();
+        Assertions.assertSame(expectedType, actual.elementType());
 
-        var rt = OnnxRuntime.getInstance();
+        Assertions.assertArrayEquals(expected.shape(), actual.shape());
 
-        var expectedType = rt.tensorElementType(expectedTensorAddr);
-        var expectedShape = rt.tensorShape(expectedTensorAddr);
-        var expectedBB = rt.tensorBuffer(expectedTensorAddr);
-
-        var actualType = rt.tensorElementType(actualTensorAddr);
-        var actualShape = rt.tensorShape(actualTensorAddr);
-        var actualBB = rt.tensorBuffer(actualTensorAddr);
-
-        Assertions.assertSame(expectedType, actualType);
-
-        Assertions.assertArrayEquals(expectedShape, actualShape);
-
-        switch (actualType) {
+        switch (expectedType) {
             case UINT8, INT8, UINT16, INT16, INT32, INT64, STRING, BOOL, UINT32, UINT64, UINT4, INT4 ->
-                assertEquals(expectedBB, actualBB);
+                assertEquals(expected.asByteBuffer(), actual.asByteBuffer());
             case FLOAT ->
-                assertEquals(expectedBB.asFloatBuffer(), actualBB.asFloatBuffer());
+                assertEquals(expected.asByteBuffer().asFloatBuffer(), actual.asByteBuffer().asFloatBuffer());
             case DOUBLE ->
-                assertEquals(expectedBB.asDoubleBuffer(), actualBB.asDoubleBuffer());
+                assertEquals(expected.asByteBuffer().asDoubleBuffer(), actual.asByteBuffer().asDoubleBuffer());
             default ->
-                throw new UnsupportedOperationException("Unsupported tensor element type " + actualType);
+                throw new UnsupportedOperationException("Unsupported tensor element type " + expectedType);
         }
     }
 

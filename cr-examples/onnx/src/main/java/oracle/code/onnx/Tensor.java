@@ -29,6 +29,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
     /*
 class DataType(enum.IntEnum):
@@ -65,6 +66,11 @@ class DataType(enum.IntEnum):
 public class Tensor<T> extends OnnxNumber {
 
     public static final long[] SCALAR_SHAPE = new long[0];
+
+    public static Tensor<Boolean> ofScalar(boolean b) {
+        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, b ? (byte)1 : 0);
+        return new Tensor(data, ElementType.BOOL, SCALAR_SHAPE);
+    }
 
     public static Tensor<Byte> ofScalar(byte b) {
         return ofShape(SCALAR_SHAPE, b);
@@ -115,7 +121,7 @@ public class Tensor<T> extends OnnxNumber {
     }
 
     public Tensor(MemorySegment tensorAddr) {
-        this(null, tensorAddr);
+        this(OnnxRuntime.getInstance().tensorData(tensorAddr), tensorAddr);
     }
 
     Tensor(MemorySegment dataAddr, MemorySegment tensorAddr) {
@@ -123,8 +129,16 @@ public class Tensor<T> extends OnnxNumber {
         this.tensorAddr = tensorAddr;
     }
 
+    public ElementType elementType() {
+        return OnnxRuntime.getInstance().tensorElementType(tensorAddr);
+    }
+
+    public long[] shape() {
+        return OnnxRuntime.getInstance().tensorShape(tensorAddr);
+    }
+
     public ByteBuffer asByteBuffer() {
-        return OnnxRuntime.getInstance().tensorBuffer(tensorAddr);
+        return dataAddr.asByteBuffer().order(ByteOrder.nativeOrder());
     }
 
     public enum ElementType {
