@@ -41,6 +41,8 @@ import com.sun.tools.javac.util.Context;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.op.CoreOp.FuncOp;
 import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.op.OpFactory;
+import jdk.incubator.code.type.CoreTypeFactory;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.TypeElementFactory;
