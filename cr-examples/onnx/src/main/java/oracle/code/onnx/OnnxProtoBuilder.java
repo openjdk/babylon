@@ -276,7 +276,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
             }
         };
         return build(
-                model.body().entryBlock().parameters().stream().map(v -> valueInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
+                model.body().entryBlock().parameters().stream().map(v -> tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
                 model.body().entryBlock().ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
                         case OnnxOp onnxOp ->
@@ -319,12 +319,21 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 .forEach(attributes.entrySet(), (n, ae) -> n.attribute(attribute(ae.getKey(), ae.getValue())));
     }
 
-    static ValueInfoProto valueInfo(String name, int tensorElementType) {
+    static ValueInfoProto tensorInfo(String name, int tensorElementType) {
         return new ValueInfoProto()
                 .name(name)
                 .type(new TypeProto()
                         .tensor_type(new Tensor()
                                 .elem_type(tensorElementType)));
+    }
+
+    static ValueInfoProto scalarInfo(String name, int tensorElementType) {
+        return new ValueInfoProto()
+                .name(name)
+                .type(new TypeProto()
+                        .tensor_type(new Tensor()
+                                .elem_type(tensorElementType)
+                                .shape(new TensorShapeProto())));
     }
 
     static Attribute attribute(String name, Object value) {

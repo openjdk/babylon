@@ -73,7 +73,7 @@ public final class OnnxRuntime {
     public List<Tensor> runOp(String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
         var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
         var protoModel = OnnxProtoBuilder.build(
-                IntStream.range(0, inputValues.size()).mapToObj(i -> OnnxProtoBuilder.valueInfo("i" + i, inputValues.get(i).elementType().id)).toList(),
+                IntStream.range(0, inputValues.size()).mapToObj(i -> OnnxProtoBuilder.tensorInfo("i" + i, inputValues.get(i).elementType().id)).toList(),
                 List.of(OnnxProtoBuilder.node(
                         opName,
                         IntStream.range(0, inputValues.size()).mapToObj(i -> "i" + i).toList(),
