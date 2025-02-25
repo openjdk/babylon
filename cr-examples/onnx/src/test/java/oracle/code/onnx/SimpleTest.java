@@ -1,10 +1,8 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import java.nio.ByteBuffer;
-import java.nio.DoubleBuffer;
-import java.nio.FloatBuffer;
 import java.util.Optional;
 import java.util.stream.Stream;
 import jdk.incubator.code.CodeReflection;
@@ -131,11 +129,11 @@ public class SimpleTest {
 
         var expectedType = rt.tensorElementType(expectedTensorAddr);
         var expectedShape = rt.tensorShape(expectedTensorAddr);
-        var expectedBB = rt.tensorBuffer(expectedTensorAddr);
+        var expectedData = rt.tensorData(expectedTensorAddr);
 
         var actualType = rt.tensorElementType(actualTensorAddr);
         var actualShape = rt.tensorShape(actualTensorAddr);
-        var actualBB = rt.tensorBuffer(actualTensorAddr);
+        var actualData = rt.tensorData(actualTensorAddr);
 
         Assertions.assertSame(expectedType, actualType);
 
@@ -143,34 +141,35 @@ public class SimpleTest {
 
         switch (actualType) {
             case UINT8, INT8, UINT16, INT16, INT32, INT64, STRING, BOOL, UINT32, UINT64, UINT4, INT4 ->
-                assertEquals(expectedBB, actualBB);
+                assertEquals(ValueLayout.JAVA_BYTE, expectedData, actualData);
             case FLOAT ->
-                assertEquals(expectedBB.asFloatBuffer(), actualBB.asFloatBuffer());
+                assertEquals(ValueLayout.JAVA_FLOAT_UNALIGNED, expectedData, actualData);
             case DOUBLE ->
-                assertEquals(expectedBB.asDoubleBuffer(), actualBB.asDoubleBuffer());
+                assertEquals(ValueLayout.JAVA_DOUBLE_UNALIGNED, expectedData, actualData);
             default ->
                 throw new UnsupportedOperationException("Unsupported tensor element type " + actualType);
         }
     }
 
-    static void assertEquals(ByteBuffer expectedData, ByteBuffer actualData) {
-        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
-        for (int i = 0; i < expectedData.capacity(); i++) {
-            Assertions.assertEquals(expectedData.get(i), actualData.get(i));
-        }
-    }
-
-    static void assertEquals(FloatBuffer expectedData, FloatBuffer actualData) {
-        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
-        for (int i = 0; i < expectedData.capacity(); i++) {
-            Assertions.assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
-        }
-    }
-
-    static void assertEquals(DoubleBuffer expectedData, DoubleBuffer actualData) {
-        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
-        for (int i = 0; i < expectedData.capacity(); i++) {
-            Assertions.assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
+    static void assertEquals(ValueLayout l, MemorySegment expectedData, MemorySegment actualData) {
+        Assertions.assertEquals(expectedData.byteSize(), actualData.byteSize());
+        switch (l) {
+            case ValueLayout.OfByte ofByte -> {
+                for (int i = 0; i < expectedData.byteSize(); i++) {
+                    Assertions.assertEquals(expectedData.get(ofByte, i), actualData.get(ofByte, i));
+                }
+            }
+            case ValueLayout.OfDouble ofDouble -> {
+                for (int i = 0; i < expectedData.byteSize() / ofDouble.byteSize(); i++) {
+                    Assertions.assertEquals(expectedData.getAtIndex(ofDouble, i), actualData.getAtIndex(ofDouble, i), 1e-6f);
+                }
+            }
+            case ValueLayout.OfFloat ofFloat -> {
+                for (int i = 0; i < expectedData.byteSize() / ofFloat.byteSize(); i++) {
+                    Assertions.assertEquals(expectedData.getAtIndex(ofFloat, i), actualData.getAtIndex(ofFloat, i), 1e-6f);
+                }
+            }
+            default -> throw new UnsupportedOperationException(l.toString());
         }
     }
 }
