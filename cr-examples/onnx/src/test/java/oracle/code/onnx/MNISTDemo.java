@@ -28,12 +28,11 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import jdk.incubator.code.CodeReflection;
+
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.JFrame;
@@ -49,8 +48,10 @@ import static oracle.code.onnx.Tensor.ElementType.*;
 
 public class MNISTDemo {
     private static float[] loadConstant(String resource) throws IOException {
-        return MemorySegment.ofArray(MNISTDemo.class.getResourceAsStream(resource).readAllBytes())
-                .toArray(ValueLayout.JAVA_FLOAT_UNALIGNED);
+        try (InputStream in = MNISTDemo.class.getResourceAsStream(resource)) {
+            return MemorySegment.ofArray(in.readAllBytes())
+                    .toArray(ValueLayout.JAVA_FLOAT_UNALIGNED);
+        }
     }
 
     @CodeReflection
@@ -121,13 +122,13 @@ public class MNISTDemo {
         var modelRuntimeSession = OnnxRuntime.getInstance().createSession(
                 OnnxProtoBuilder.buildFuncModel(
                         OnnxTransformer.transform(MethodHandles.lookup(),
-                                Op.ofMethod(MNISTDemo.class.getDeclaredMethod("cnn", Tensor.class)).get())));
+                                Op.ofMethod(MNISTDemo.class.getDeclaredMethod("cnn", Tensor.class)).orElseThrow())));
         var drawAreaImage = new BufferedImage(DRAW_AREA_SIZE, DRAW_AREA_SIZE, BufferedImage.TYPE_BYTE_GRAY);
         var drawGraphics = drawAreaImage.createGraphics();
         var scaledImage = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_BYTE_GRAY);
         var scaledGraphics = scaledImage.createGraphics();
-        var scaledImageDataBuffer = ByteBuffer.allocateDirect(IMAGE_SIZE * IMAGE_SIZE * 4).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer();
-        var inputArguments = List.of(new Tensor(MemorySegment.ofBuffer(scaledImageDataBuffer), FLOAT, 1, 1, IMAGE_SIZE, IMAGE_SIZE).tensorAddr);
+        var scaledImageData = Arena.ofAuto().allocate(IMAGE_SIZE * IMAGE_SIZE * 4);
+        var inputArguments = List.of(new Tensor<Float>(scaledImageData, FLOAT, 1, 1, IMAGE_SIZE, IMAGE_SIZE).tensorAddr);
         var sampleArray = new float[IMAGE_SIZE * IMAGE_SIZE];
 
         results.setPreferredSize(new Dimension(100, 0));
@@ -158,11 +159,11 @@ public class MNISTDemo {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     scaledGraphics.drawImage(drawAreaImage.getScaledInstance(IMAGE_SIZE, IMAGE_SIZE, Image.SCALE_SMOOTH), 0, 0, null);
-                    scaledImageDataBuffer.put(0, scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, sampleArray));
-                    FloatBuffer result = OnnxRuntime.getInstance().tensorBuffer(modelRuntimeSession.run(inputArguments).getFirst()).asFloatBuffer();
+                    scaledImageData.copyFrom(MemorySegment.ofArray(scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, sampleArray)));
+                    MemorySegment result = OnnxRuntime.getInstance().tensorData(modelRuntimeSession.run(inputArguments).getFirst());
                     var msg = new StringBuilder("<html>");
                     for (int i = 0; i < 10; i++) {
-                        var w = result.get(i);
+                        var w = result.getAtIndex(ValueLayout.JAVA_FLOAT_UNALIGNED, i);
                         msg.append("&nbsp;<font size=\"%d\" color=\"#%s\">%d</font>&nbsp;(%.1f%%)&nbsp;<br><br><br>"
                                 .formatted((int)(20 * w) + 3, COLORS[(int)(5.99 * w)], i, 100 * w));
                     }

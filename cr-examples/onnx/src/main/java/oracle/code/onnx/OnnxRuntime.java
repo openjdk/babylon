@@ -3,21 +3,17 @@ package oracle.code.onnx;
 import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.IntStream;
 
 import jdk.incubator.code.op.CoreOp;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
-import oracle.code.onnx.ir.OnnxOp;
 
 import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
@@ -104,12 +100,12 @@ public final class OnnxRuntime {
         return new Session(retAddr(OrtApi.CreateSession(runtimeAddress, envAddress, arena.allocateFrom(modelPath), options.sessionOptionsAddress, ret)));
     }
 
-    public Session createSession(ByteBuffer model) {
+    public Session createSession(MemorySegment model) {
         return createSession(model, createSessionOptions());
     }
 
-    private Session createSession(ByteBuffer model, SessionOptions options) {
-        return new Session(retAddr(OrtApi.CreateSessionFromArray(runtimeAddress, envAddress, MemorySegment.ofBuffer(model.rewind()), model.limit(), options.sessionOptionsAddress, ret)));
+    private Session createSession(MemorySegment model, SessionOptions options) {
+        return new Session(retAddr(OrtApi.CreateSessionFromArray(runtimeAddress, envAddress, model, model.byteSize(), options.sessionOptionsAddress, ret)));
     }
 
     public final class Session implements AutoCloseable {
@@ -188,13 +184,12 @@ public final class OnnxRuntime {
         return shape.toArray(C_LONG_LONG);
     }
 
-    public ByteBuffer tensorBuffer(MemorySegment tensorAddr) {
+    public MemorySegment tensorData(MemorySegment tensorAddr) {
         var infoAddr = retAddr(OrtApi.GetTensorTypeAndShape(runtimeAddress, tensorAddr, ret));
         long size = retLong(OrtApi.GetTensorShapeElementCount(runtimeAddress, infoAddr, ret))
                 * Tensor.ElementType.fromOnnxId(retInt(OrtApi.GetTensorElementType(runtimeAddress, infoAddr, ret))).size();
         return retAddr(OrtApi.GetTensorMutableData(runtimeAddress, tensorAddr, ret))
-                .reinterpret(size)
-                .asByteBuffer().order(ByteOrder.nativeOrder());
+                .reinterpret(size);
     }
 
     public SessionOptions createSessionOptions() {

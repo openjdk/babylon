@@ -28,7 +28,6 @@ package oracle.code.onnx;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.nio.ByteBuffer;
 
     /*
 class DataType(enum.IntEnum):
@@ -93,20 +92,20 @@ public class Tensor<T> extends OnnxNumber {
 
     public static Tensor<Byte> ofShape(long[] shape, byte... values) {
         var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, values);
-        return new Tensor(data, ElementType.UINT8, shape);
+        return new Tensor<>(data, ElementType.UINT8, shape);
     }
 
     public static Tensor<Long> ofShape(long[] shape, long... values) {
         var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, values);
-        return new Tensor(data, ElementType.INT64, shape);
+        return new Tensor<>(data, ElementType.INT64, shape);
     }
 
     public static Tensor<Float> ofShape(long[] shape, float... values) {
         var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_FLOAT, values);
-        return new Tensor(data, ElementType.FLOAT, shape);
+        return new Tensor<>(data, ElementType.FLOAT, shape);
     }
 
-    // Mandatory reference to dataAddr to avoid its garbage colletion
+    // Mandatory reference to dataAddr to avoid its garbage collection
     private final MemorySegment dataAddr;
     final MemorySegment tensorAddr;
 
@@ -123,8 +122,8 @@ public class Tensor<T> extends OnnxNumber {
         this.tensorAddr = tensorAddr;
     }
 
-    public ByteBuffer asByteBuffer() {
-        return OnnxRuntime.getInstance().tensorBuffer(tensorAddr);
+    public MemorySegment data() {
+        return OnnxRuntime.getInstance().tensorData(tensorAddr);
     }
 
     public enum ElementType {

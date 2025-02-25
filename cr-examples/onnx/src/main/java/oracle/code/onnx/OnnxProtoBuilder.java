@@ -1,7 +1,8 @@
 package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
 import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -265,7 +266,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         tensor FuncOp parameters and single tensor return type
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
-    static ByteBuffer buildFuncModel(FuncOp model) {
+    static MemorySegment buildFuncModel(FuncOp model) {
         var indexer = new IdentityHashMap<Value, String>() {
             String getName(Value v) {
                 return computeIfAbsent(v, _ -> "#" + size());
@@ -300,7 +301,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     record Input(String name, int tensorElementType) {}
     record OpNode(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {}
 
-    static ByteBuffer buildModel(List<Input> inputs, List<OpNode> ops, List<String> outputNames) {
+    static MemorySegment buildModel(List<Input> inputs, List<OpNode> ops, List<String> outputNames) {
         var bytes = new ModelProto()
                 .ir_version(IR_VERSION)
                 .graph(new GraphProto()
@@ -316,7 +317,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
 //        OnnxProtoPrinter.printModel(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN));
-        return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
+        return Arena.ofAuto().allocate(bytes.length).copyFrom(MemorySegment.ofArray(bytes)).asReadOnly();
     }
 
     static Attribute buildAttribute(String name, Object value) {
