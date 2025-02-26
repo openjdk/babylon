@@ -45,7 +45,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.function.Function;
@@ -321,12 +320,12 @@ public class CNNTest {
         });
     }
 
-    static void printImage(int imageIndex, ByteBuffer bb) {
+    static void printImage(int imageIndex, MemorySegment data) {
         System.out.println("Image #" + imageIndex + " :");
         int offset = imageIndex * 28 * 28;
         for (int y = 0; y < 28; y++) {
             for (int x = 0; x < 28; x++) {
-                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & bb.get(offset + y * 28 + x)) / 256));
+                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & data.get(ValueLayout.JAVA_BYTE, offset + y * 28 + x)) / 256));
             }
             System.out.println();
         }
@@ -383,22 +382,23 @@ public class CNNTest {
         try (RandomAccessFile imagesF = new RandomAccessFile(IMAGES_PATH, "r");
              RandomAccessFile labelsF = new RandomAccessFile(LABELS_PATH, "r")) {
 
-            ByteBuffer imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE);
-            ByteBuffer labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE);
+            MemorySegment imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE, ARENA);
+            MemorySegment labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE, ARENA);
 
-            Tensor<Byte> inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
+            Tensor<Byte> inputImage = new Tensor(imagesIn, Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
 
-            var result = executor.apply(inputImage).data().toArray(ValueLayout.JAVA_FLOAT);
+            MemorySegment result = executor.apply(inputImage).data();
 
             int matched = 0, mismatched = 0;
             int i = 0;
-            while (i < result.length) {
-                int expected = labelsIn.get();
+            int resultSize = (int)result.byteSize() / 4;
+            while (i < resultSize) {
+                int expected = labelsIn.get(ValueLayout.JAVA_BYTE, i / 10);
 
                 int actual = 0;
-                float maxW = result[i++];
+                float maxW = result.getAtIndex(ValueLayout.JAVA_FLOAT, i++);
                 for (int j = 1; j < 10; j++) {
-                    float w = result[i++];
+                    float w = result.getAtIndex(ValueLayout.JAVA_FLOAT, i++);
                     if (w > maxW) {
                         maxW = w;
                         actual = j;
@@ -408,7 +408,7 @@ public class CNNTest {
                 if (expected == actual) {
                     matched++;
                 } else {
-                    int imageIndex = labelsIn.position() - 1;
+                    int imageIndex = i / 10 - 1;
                     printImage(imageIndex, imagesIn);
                     System.out.println("expected: " + expected + " actual: " + actual);
                     System.out.println("-".repeat(28));

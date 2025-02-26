@@ -2,9 +2,6 @@ package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import java.nio.ByteBuffer;
-import java.nio.DoubleBuffer;
-import java.nio.FloatBuffer;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -150,27 +147,6 @@ public class SimpleTest {
                                              actual.data().toArray(ValueLayout.JAVA_DOUBLE));
             default ->
                 throw new UnsupportedOperationException("Unsupported tensor element type " + expectedType);
-        }
-    }
-
-    static void assertEquals(ByteBuffer expectedData, ByteBuffer actualData) {
-        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
-        for (int i = 0; i < expectedData.capacity(); i++) {
-            Assertions.assertEquals(expectedData.get(i), actualData.get(i));
-        }
-    }
-
-    static void assertEquals(FloatBuffer expectedData, FloatBuffer actualData) {
-        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
-        for (int i = 0; i < expectedData.capacity(); i++) {
-            Assertions.assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
-        }
-    }
-
-    static void assertEquals(DoubleBuffer expectedData, DoubleBuffer actualData) {
-        Assertions.assertEquals(expectedData.capacity(), actualData.capacity());
-        for (int i = 0; i < expectedData.capacity(); i++) {
-            Assertions.assertEquals(expectedData.get(i), actualData.get(i), 1e-6f);
         }
     }
 }
