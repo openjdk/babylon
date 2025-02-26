@@ -44,8 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
+import java.lang.foreign.ValueLayout;
 import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.function.Function;
@@ -321,12 +320,12 @@ public class CNNTest {
         });
     }
 
-    static void printImage(int imageIndex, ByteBuffer bb) {
+    static void printImage(int imageIndex, MemorySegment data) {
         System.out.println("Image #" + imageIndex + " :");
         int offset = imageIndex * 28 * 28;
         for (int y = 0; y < 28; y++) {
             for (int x = 0; x < 28; x++) {
-                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & bb.get(offset + y * 28 + x)) / 256));
+                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & data.get(ValueLayout.JAVA_BYTE, offset + y * 28 + x)) / 256));
             }
             System.out.println();
         }
@@ -338,7 +337,7 @@ public class CNNTest {
         }
     }
 
-    static List<Tensor<Float>> loadWeights() throws IOException {
+    static List<Tensor> loadWeights() throws IOException {
         return List.of(floatTensor("conv1-weight-float-le", 6, 1, 5, 5),
                        floatTensor("conv1-bias-float-le", 6),
                        floatTensor("conv2-weight-float-le", 16, 6, 5, 5),
@@ -349,19 +348,6 @@ public class CNNTest {
                        floatTensor("fc2-bias-float-le", 84),
                        floatTensor("fc3-weight-float-le", 10, 84),
                        floatTensor("fc3-bias-float-le", 10));
-    }
-
-    static int nextBestMatch(FloatBuffer fb) {
-        float maxW = fb.get();
-        int maxI = 0;
-        for (int i = 1; i < 10; i++) {
-            float w = fb.get();
-            if (w > maxW) {
-                maxW = w;
-                maxI = i;
-            }
-        }
-        return maxI;
     }
 
     @Test
@@ -387,31 +373,42 @@ public class CNNTest {
     @Test
     public void testProtobufModel() throws Exception {
         var weights = loadWeights();
-        test(inputImage -> new Tensor(OnnxRuntime.getInstance().runFunc(
-                    OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")),
-                    Stream.concat(weights.stream(), Stream.of(inputImage))
-                            .map(t -> t.tensorAddr).toList()).getFirst()));
+        test(inputImage -> OnnxRuntime.getInstance().run(
+                    OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")).body().entryBlock(),
+                    Stream.concat(weights.stream(), Stream.of(inputImage)).toList()).getFirst());
     }
 
     private void test(Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {
         try (RandomAccessFile imagesF = new RandomAccessFile(IMAGES_PATH, "r");
              RandomAccessFile labelsF = new RandomAccessFile(LABELS_PATH, "r")) {
 
-            ByteBuffer imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE);
-            ByteBuffer labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE);
+            MemorySegment imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE, ARENA);
+            MemorySegment labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE, ARENA);
 
-            Tensor<Byte> inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
+            Tensor<Byte> inputImage = new Tensor(imagesIn, Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
 
-            FloatBuffer result = executor.apply(inputImage).asByteBuffer().asFloatBuffer();
+            MemorySegment result = executor.apply(inputImage).data();
 
             int matched = 0, mismatched = 0;
-            while (result.remaining() > 0) {
-                int expected = labelsIn.get();
-                int actual = nextBestMatch(result);
+            int i = 0;
+            int resultSize = (int)result.byteSize() / 4;
+            while (i < resultSize) {
+                int expected = labelsIn.get(ValueLayout.JAVA_BYTE, i / 10);
+
+                int actual = 0;
+                float maxW = result.getAtIndex(ValueLayout.JAVA_FLOAT, i++);
+                for (int j = 1; j < 10; j++) {
+                    float w = result.getAtIndex(ValueLayout.JAVA_FLOAT, i++);
+                    if (w > maxW) {
+                        maxW = w;
+                        actual = j;
+                    }
+                }
+
                 if (expected == actual) {
                     matched++;
                 } else {
-                    int imageIndex = labelsIn.position() - 1;
+                    int imageIndex = i / 10 - 1;
                     printImage(imageIndex, imagesIn);
                     System.out.println("expected: " + expected + " actual: " + actual);
                     System.out.println("-".repeat(28));

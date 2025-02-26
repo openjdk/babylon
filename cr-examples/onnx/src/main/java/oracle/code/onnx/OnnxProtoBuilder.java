@@ -1,12 +1,12 @@
 package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
@@ -265,7 +265,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         tensor FuncOp parameters and single tensor return type
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
-    static ByteBuffer buildFuncModel(FuncOp model) {
+    static byte[] build(Block block) {
         var indexer = new IdentityHashMap<Value, String>() {
             String getName(Value v) {
                 return computeIfAbsent(v, _ -> "#" + size());
@@ -276,12 +276,12 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 return name;
             }
         };
-        return buildModel(
-                model.body().entryBlock().parameters().stream().map(v -> new Input(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
-                model.body().entryBlock().ops().stream().<OpNode>mapMulti((op, opNodes) -> {
+        return build(
+                block.parameters().stream().map(v -> tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
+                block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
                         case OnnxOp onnxOp ->
-                            opNodes.accept(new OpNode(
+                            opNodes.accept(node(
                                     onnxOp.opName(),
                                     onnxOp.operands().stream().map(v -> indexer.getName(v)).toList(),
                                     IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(onnxOp.result(), o)).toList(),
@@ -294,32 +294,50 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                             throw new UnsupportedOperationException(op.toText());
                     }
                 }).toList(),
-                List.of(indexer.getName(model.body().entryBlock().terminatingOp().operands().getFirst())));
+                List.of(indexer.getName(block.terminatingOp().operands().getFirst())));
     }
 
-    record Input(String name, int tensorElementType) {}
-    record OpNode(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {}
-
-    static ByteBuffer buildModel(List<Input> inputs, List<OpNode> ops, List<String> outputNames) {
-        var bytes = new ModelProto()
+    static byte[] build(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+        return new ModelProto()
                 .ir_version(IR_VERSION)
-                .graph(new GraphProto()
-                        .forEach(inputs, (g, input) -> g
-                                .input(new ValueInfoProto().name(input.name())
-                                        .type(new TypeProto().tensor_type(new Tensor().elem_type(input.tensorElementType())))))
-                        .forEach(ops, (g, op) -> g.node(new NodeProto()
-                                .forEach(op.inputNames(), (n, iName) -> n.input(iName))
-                                .forEach(op.outputNames(), (n, oName) -> n.output(oName))
-                                .op_type(op.opName())
-                                .forEach(op.attributes().entrySet(), (n, ae) -> n.attribute(buildAttribute(ae.getKey(), ae.getValue())))))
-                        .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName))))
+                .graph(graph(inputs, ops, outputNames))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
-//        OnnxProtoPrinter.printModel(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN));
-        return ByteBuffer.allocateDirect(bytes.length).put(bytes).asReadOnlyBuffer();
     }
 
-    static Attribute buildAttribute(String name, Object value) {
+    static GraphProto graph(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+        return new GraphProto()
+                .forEach(inputs, (g, i) -> g.input(i))
+                .forEach(ops, (g, op) -> g.node(op))
+                .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName)));
+    }
+
+    static NodeProto node(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
+        return new NodeProto()
+                .forEach(inputNames, (n, iName) -> n.input(iName))
+                .forEach(outputNames, (n, oName) -> n.output(oName))
+                .op_type(opName)
+                .forEach(attributes.entrySet(), (n, ae) -> n.attribute(attribute(ae.getKey(), ae.getValue())));
+    }
+
+    static ValueInfoProto tensorInfo(String name, int tensorElementType) {
+        return new ValueInfoProto()
+                .name(name)
+                .type(new TypeProto()
+                        .tensor_type(new Tensor()
+                                .elem_type(tensorElementType)));
+    }
+
+    static ValueInfoProto scalarInfo(String name, int tensorElementType) {
+        return new ValueInfoProto()
+                .name(name)
+                .type(new TypeProto()
+                        .tensor_type(new Tensor()
+                                .elem_type(tensorElementType)
+                                .shape(new TensorShapeProto())));
+    }
+
+    static Attribute attribute(String name, Object value) {
         var attr = new Attribute().name(name);
         switch (value) {
             case Float f -> {
@@ -327,6 +345,9 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
             }
             case Long l -> {
                 attr.type(2).i(l);
+            }
+            case GraphProto g -> {
+                attr.type(5).g(g.name(name));
             }
             case float[] floats -> {
                 attr.type(6);
