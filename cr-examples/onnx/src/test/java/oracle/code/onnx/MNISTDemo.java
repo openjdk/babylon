@@ -40,8 +40,8 @@ import static oracle.code.onnx.OnnxOperators.*;
 
 public class MNISTDemo {
     public static float[] loadConstant(String resource) {
-        try {
-            return MemorySegment.ofArray(MNISTDemo.class.getResourceAsStream(resource).readAllBytes())
+        try (var in = MNISTDemo.class.getResourceAsStream(resource)) {
+            return MemorySegment.ofArray(in.readAllBytes())
                     .toArray(ValueLayout.JAVA_FLOAT_UNALIGNED);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
