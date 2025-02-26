@@ -28,8 +28,6 @@ package oracle.code.onnx;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
     /*
 class DataType(enum.IntEnum):
@@ -135,10 +133,6 @@ public class Tensor<T> extends OnnxNumber {
 
     public long[] shape() {
         return OnnxRuntime.getInstance().tensorShape(tensorAddr);
-    }
-
-    public ByteBuffer asByteBuffer() {
-        return dataAddr.asByteBuffer().order(ByteOrder.nativeOrder());
     }
 
     public MemorySegment data() {

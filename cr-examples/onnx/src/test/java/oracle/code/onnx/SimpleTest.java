@@ -1,5 +1,6 @@
 package oracle.code.onnx;
 
+import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
@@ -127,12 +128,26 @@ public class SimpleTest {
         Assertions.assertArrayEquals(expected.shape(), actual.shape());
 
         switch (expectedType) {
-            case UINT8, INT8, UINT16, INT16, INT32, INT64, STRING, BOOL, UINT32, UINT64, UINT4, INT4 ->
-                assertEquals(expected.asByteBuffer(), actual.asByteBuffer());
+            case UINT8, INT8, BOOL, UINT4, INT4 ->
+                Assertions.assertArrayEquals(expected.data().toArray(ValueLayout.JAVA_BYTE),
+                                             actual.data().toArray(ValueLayout.JAVA_BYTE));
+            case UINT16, INT16 ->
+                Assertions.assertArrayEquals(expected.data().toArray(ValueLayout.JAVA_SHORT),
+                                             actual.data().toArray(ValueLayout.JAVA_SHORT));
+            case INT32, UINT32 ->
+                Assertions.assertArrayEquals(expected.data().toArray(ValueLayout.JAVA_INT),
+                                             actual.data().toArray(ValueLayout.JAVA_INT));
+            case INT64, UINT64 ->
+                Assertions.assertArrayEquals(expected.data().toArray(ValueLayout.JAVA_LONG),
+                                             actual.data().toArray(ValueLayout.JAVA_LONG));
+            case STRING ->
+                Assertions.assertEquals(expected.data().getString(0), actual.data().getString(0));
             case FLOAT ->
-                assertEquals(expected.asByteBuffer().asFloatBuffer(), actual.asByteBuffer().asFloatBuffer());
+                Assertions.assertArrayEquals(expected.data().toArray(ValueLayout.JAVA_FLOAT),
+                                             actual.data().toArray(ValueLayout.JAVA_FLOAT));
             case DOUBLE ->
-                assertEquals(expected.asByteBuffer().asDoubleBuffer(), actual.asByteBuffer().asDoubleBuffer());
+                Assertions.assertArrayEquals(expected.data().toArray(ValueLayout.JAVA_DOUBLE),
+                                             actual.data().toArray(ValueLayout.JAVA_DOUBLE));
             default ->
                 throw new UnsupportedOperationException("Unsupported tensor element type " + expectedType);
         }

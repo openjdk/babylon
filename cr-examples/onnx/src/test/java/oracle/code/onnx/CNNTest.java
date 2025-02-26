@@ -44,8 +44,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.function.Function;
@@ -351,19 +351,6 @@ public class CNNTest {
                        floatTensor("fc3-bias-float-le", 10));
     }
 
-    static int nextBestMatch(FloatBuffer fb) {
-        float maxW = fb.get();
-        int maxI = 0;
-        for (int i = 1; i < 10; i++) {
-            float w = fb.get();
-            if (w > maxW) {
-                maxW = w;
-                maxI = i;
-            }
-        }
-        return maxI;
-    }
-
     @Test
     public void testModels() {
         CoreOp.FuncOp f = getFuncOp("cnn");
@@ -401,12 +388,23 @@ public class CNNTest {
 
             Tensor<Byte> inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
 
-            FloatBuffer result = executor.apply(inputImage).asByteBuffer().asFloatBuffer();
+            var result = executor.apply(inputImage).data().toArray(ValueLayout.JAVA_FLOAT);
 
             int matched = 0, mismatched = 0;
-            while (result.remaining() > 0) {
+            int i = 0;
+            while (i < result.length) {
                 int expected = labelsIn.get();
-                int actual = nextBestMatch(result);
+
+                int actual = 0;
+                float maxW = result[i++];
+                for (int j = 1; j < 10; j++) {
+                    float w = result[i++];
+                    if (w > maxW) {
+                        maxW = w;
+                        actual = j;
+                    }
+                }
+
                 if (expected == actual) {
                     matched++;
                 } else {
