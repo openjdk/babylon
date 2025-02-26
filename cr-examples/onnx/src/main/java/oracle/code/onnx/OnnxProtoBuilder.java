@@ -6,6 +6,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
@@ -264,7 +265,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         tensor FuncOp parameters and single tensor return type
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
-    static byte[] build(FuncOp model) {
+    static byte[] build(Block block) {
         var indexer = new IdentityHashMap<Value, String>() {
             String getName(Value v) {
                 return computeIfAbsent(v, _ -> "#" + size());
@@ -276,8 +277,8 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
             }
         };
         return build(
-                model.body().entryBlock().parameters().stream().map(v -> tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
-                model.body().entryBlock().ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
+                block.parameters().stream().map(v -> tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
+                block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
                         case OnnxOp onnxOp ->
                             opNodes.accept(node(
@@ -293,7 +294,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                             throw new UnsupportedOperationException(op.toText());
                     }
                 }).toList(),
-                List.of(indexer.getName(model.body().entryBlock().terminatingOp().operands().getFirst())));
+                List.of(indexer.getName(block.terminatingOp().operands().getFirst())));
     }
 
     static byte[] build(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {

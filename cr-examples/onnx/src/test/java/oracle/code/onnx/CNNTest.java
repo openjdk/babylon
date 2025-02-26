@@ -387,8 +387,8 @@ public class CNNTest {
     @Test
     public void testProtobufModel() throws Exception {
         var weights = loadWeights();
-        test(inputImage -> OnnxRuntime.getInstance().runFunc(
-                    OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")),
+        test(inputImage -> OnnxRuntime.getInstance().run(
+                    OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")).body().entryBlock(),
                     Stream.concat(weights.stream(), Stream.of(inputImage)).toList()).getFirst());
     }
 

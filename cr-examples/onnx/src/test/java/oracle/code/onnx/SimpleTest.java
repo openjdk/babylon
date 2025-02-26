@@ -111,7 +111,7 @@ public class SimpleTest {
     }
 
     private static Tensor runModel(String name, Tensor... params) throws NoSuchMethodException {
-        return OnnxRuntime.getInstance().runFunc(getOnnxModel(name), List.of(params)).getFirst();
+        return OnnxRuntime.getInstance().run(getOnnxModel(name).body().entryBlock(), List.of(params)).getFirst();
     }
 
     private static CoreOp.FuncOp getOnnxModel(String name) throws NoSuchMethodException {

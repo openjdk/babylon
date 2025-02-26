@@ -141,6 +141,10 @@ public class Tensor<T> extends OnnxNumber {
         return dataAddr.asByteBuffer().order(ByteOrder.nativeOrder());
     }
 
+    public MemorySegment data() {
+        return dataAddr;
+    }
+
     public enum ElementType {
         FLOAT(1, float.class),
         UINT8(2, byte.class),

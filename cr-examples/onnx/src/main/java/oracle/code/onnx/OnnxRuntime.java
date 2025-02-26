@@ -3,15 +3,21 @@ package oracle.code.onnx;
 import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.*;
+import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import jdk.incubator.code.*;
 
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.VarType;
+import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
 
@@ -43,7 +49,28 @@ public final class OnnxRuntime {
         }
     }
 
-    private static final String LOG_ID = "onnx-ffm-java";
+    public static <T, U extends Quotable & Supplier<Tensor<T>>> Tensor<T> execute(U codeLambda) {
+        var quotable = Op.ofQuotable(codeLambda).orElseThrow();
+        var lambda = (CoreOp.LambdaOp) quotable.op();
+        var capturedValues = lambda.capturedValues();
+        var onnxFunc = OnnxTransformer.transform(MethodHandles.lookup(), CoreOp.func("onnxCode", FunctionType.functionType(
+                lambda.invokableType().returnType(),
+                capturedValues.stream().map(Value::type).map(t -> t instanceof VarType vt ? vt.valueType() : t).toList()))
+                .body(bb -> {
+                    bb.context().mapValues(capturedValues, bb.parameters());
+                    for (Op op : lambda.body().entryBlock().ops()) {
+                        int i;
+                        if (op instanceof CoreOp.VarAccessOp.VarLoadOp load && (i = capturedValues.indexOf(load.varOp().result())) >= 0) {
+                            bb.context().mapValue(op.result(), bb.parameters().get(i)); // remap var load result to block param
+                        } else {
+                            bb.apply(op);
+                        }
+                    }
+                }));
+        try (var session = getInstance().createSession(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()))) {
+            return session.run(quotable.capturedValues().values().stream().map(val -> (Tensor)(val instanceof CoreOp.Var v ? v.value() : val)).toList()).getFirst();
+        }
+    }
 
     public static OnnxRuntime getInstance() {
         if (INSTANCE == null) {
@@ -52,6 +79,7 @@ public final class OnnxRuntime {
         return INSTANCE;
     }
 
+    private static final String LOG_ID = "onnx-ffm-java";
     private static OnnxRuntime INSTANCE;
 
     private final Arena         arena;
@@ -85,8 +113,8 @@ public final class OnnxRuntime {
         }
     }
 
-    public List<Tensor> runFunc(CoreOp.FuncOp model, List<Tensor> inputValues) {
-        var protoModel = OnnxProtoBuilder.build(model);
+    public List<Tensor> run(Block block, List<Tensor> inputValues) {
+        var protoModel = OnnxProtoBuilder.build(block);
         try (var session = createSession(protoModel)) {
             return session.run(inputValues);
         }
