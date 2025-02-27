@@ -60,8 +60,10 @@ public final class OnnxRuntime {
         var lambda = (CoreOp.LambdaOp) quotable.op();
 
         CoreOp.FuncOp onnxFunc;
+        List<Tensor> arguments;
         // Shortcut for lambda expressions that call just one method
-        if (singleMethodInvocation(lambda) instanceof CoreOp.InvokeOp iop) {
+        if (singleMethodInvocation(lambda) instanceof
+                SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping)) {
             Method m;
             try {
                 m = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
@@ -71,6 +73,13 @@ public final class OnnxRuntime {
 
             CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
             onnxFunc = OnnxTransformer.transform(l, f);
+
+            arguments = iop.operands().stream().toList().stream()
+                    .map(valueMapping::get)
+                    .map(v -> quotable.capturedValues().get(v))
+                    .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
+                    .map(val -> (Tensor) val)
+                    .toList();
         } else {
             var capturedValues = lambda.capturedValues();
             var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
@@ -89,18 +98,20 @@ public final class OnnxRuntime {
                             }
                         }
                     }));
-        }
 
-        try (var session = getInstance().createSession(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()))) {
-            List<Tensor> arguments = quotable.capturedValues().values().stream()
+            arguments = quotable.capturedValues().values().stream()
                     .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
                     .map(val -> (Tensor) val)
                     .toList();
+        }
+
+        try (var session = getInstance().createSession(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()))) {
             return session.run(arguments).getFirst();
         }
     }
 
-    static CoreOp.InvokeOp singleMethodInvocation(CoreOp.LambdaOp lop) {
+    record SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping) {}
+    static SingleMethod singleMethodInvocation(CoreOp.LambdaOp lop) {
         // Single block
         if (lop.body().blocks().size() > 1) {
             return null;
@@ -112,7 +123,7 @@ public final class OnnxRuntime {
             return null;
         }
 
-        return methodRefInvokeOp;
+        return new SingleMethod(methodRefInvokeOp, valueMapping);
     }
 
     static CoreOp.InvokeOp extractMethodInvoke(Map<Value, Value> valueMapping, List<Op> ops) {
@@ -125,7 +136,7 @@ public final class OnnxRuntime {
                     }
                 }
                 case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
-                    Value v = varLoadOp.varOp().operands().getFirst();
+                    Value v = varLoadOp.varOp().result();
                     valueMapping.put(varLoadOp.result(), valueMapping.getOrDefault(v, v));
                 }
                 case CoreOp.InvokeOp iop when isBoxOrUnboxInvocation(iop) -> {
