@@ -2,13 +2,8 @@ package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
-import oracle.code.onnx.compiler.OnnxTransformer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +20,7 @@ public class SimpleTest {
         var b = Tensor.ofFlat(6f, 5, 4);
         assertEquals(
                 add(a, b),
-                runModel("add", a, b));
+                OnnxRuntime.execute(MethodHandles.lookup(), () -> add(a, b)));
     }
 
     @CodeReflection
@@ -38,7 +33,7 @@ public class SimpleTest {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1f);
         assertEquals(expected, fconstant());
-        assertEquals(expected, runModel("fconstant"));
+        assertEquals(expected, OnnxRuntime.execute(MethodHandles.lookup(), () -> fconstant()));
     }
 
     @CodeReflection
@@ -51,7 +46,7 @@ public class SimpleTest {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
         assertEquals(expected, fconstants());
-        assertEquals(expected, runModel("fconstants"));
+        assertEquals(expected, OnnxRuntime.execute(MethodHandles.lookup(), () -> fconstants()));
     }
 
     @CodeReflection
@@ -64,7 +59,7 @@ public class SimpleTest {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1l);
         assertEquals(expected, lconstant());
-        assertEquals(expected, runModel("lconstant"));
+        assertEquals(expected, OnnxRuntime.execute(MethodHandles.lookup(), () -> lconstant()));
     }
 
     @CodeReflection
@@ -77,7 +72,7 @@ public class SimpleTest {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
         assertEquals(expected, lconstants());
-        assertEquals(expected, runModel("lconstants"));
+        assertEquals(expected, OnnxRuntime.execute(MethodHandles.lookup(), () -> lconstants()));
     }
 
     @CodeReflection
@@ -91,7 +86,7 @@ public class SimpleTest {
         var shape = Tensor.ofFlat(2l, 2, 2);
         assertEquals(
                 reshapeAndShape(data, shape),
-                runModel("reshapeAndShape", data, shape));
+                OnnxRuntime.execute(MethodHandles.lookup(), () -> reshapeAndShape(data, shape)));
     }
 
     @CodeReflection
@@ -105,16 +100,7 @@ public class SimpleTest {
         var x = Tensor.ofShape(new long[]{2, 2, 2}, 1f, 2, 3, 4, 5, 6, 7, 8);
         assertEquals(
                 indicesOfMaxPool(x),
-                runModel("indicesOfMaxPool", x));
-    }
-
-    private static Tensor runModel(String name, Tensor... params) throws NoSuchMethodException {
-        return OnnxRuntime.getInstance().run(getOnnxModel(name).body().entryBlock(), List.of(params)).getFirst();
-    }
-
-    private static CoreOp.FuncOp getOnnxModel(String name) throws NoSuchMethodException {
-        return OnnxTransformer.transform(MethodHandles.lookup(),
-                Op.ofMethod(Stream.of(SimpleTest.class.getDeclaredMethods()).filter(m -> m.getName().equals(name)).findFirst().get()).get());
+                OnnxRuntime.execute(MethodHandles.lookup(), () -> indicesOfMaxPool(x)));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
