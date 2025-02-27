@@ -89,12 +89,6 @@ public final class OnnxRuntime {
                     operandsMapping[i] = captured.indexOf(valueMapping.get(operands.get(i)));
                 }
 
-//            arguments = .stream().toList().stream()
-//                    .map(valueMapping::get)
-//                    .map(v -> quotable.capturedValues().get(v))
-//                    .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
-//                    .map(val -> (Tensor) val)
-//                    .toList();
             } else {
                 var capturedValues = lambda.capturedValues();
                 var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
