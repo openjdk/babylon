@@ -202,8 +202,8 @@ public enum OnnxProtoPrinter {
         }
     }
 
-    public static void printModel(ByteBuffer model) {
-        ModelProto.print(0, model);
+    public static void printModel(byte[] model) {
+        ModelProto.print(0, ByteBuffer.wrap(model));
     }
 
     public static void main(String... args) throws Exception {

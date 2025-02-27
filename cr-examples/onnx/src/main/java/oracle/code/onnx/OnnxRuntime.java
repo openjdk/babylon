@@ -55,7 +55,9 @@ public final class OnnxRuntime {
     public interface OnnxFunction<T> extends Supplier<T>, Quotable {
     }
 
-    private static final WeakHashMap<Class<?>, byte[]> MODEL_CACHE = WeakHashMap.newWeakHashMap(10);
+    record CachedModel(byte[] protoModel, int[] operandsMapping) {}
+
+    private static final WeakHashMap<Class<?>, CachedModel> MODEL_CACHE = WeakHashMap.newWeakHashMap(10);
 
     public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
         var quotable = Op.ofQuotable(codeLambda).orElseThrow();
@@ -65,6 +67,7 @@ public final class OnnxRuntime {
             var lambda = (CoreOp.LambdaOp) quotable.op();
 
             CoreOp.FuncOp onnxFunc;
+            int[] operandsMapping;
 
             // Shortcut for lambda expressions that call just one method
             if (singleMethodInvocation(lambda) instanceof
@@ -79,9 +82,14 @@ public final class OnnxRuntime {
                 CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
                 onnxFunc = OnnxTransformer.transform(l, f);
 
-                // @@@ turn valueMapping into a static shuffle map of captured values indexes
+                var operands = iop.operands();
+                var captured = List.of(quotable.capturedValues().sequencedKeySet().toArray());
+                operandsMapping = new int[iop.operands().size()];
+                for (int i = 0; i < operandsMapping.length; i++) {
+                    operandsMapping[i] = captured.indexOf(valueMapping.get(operands.get(i)));
+                }
 
-//            arguments = iop.operands().stream().toList().stream()
+//            arguments = .stream().toList().stream()
 //                    .map(valueMapping::get)
 //                    .map(v -> quotable.capturedValues().get(v))
 //                    .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
@@ -106,18 +114,26 @@ public final class OnnxRuntime {
                             }
                         }));
 
+                operandsMapping = new int[capturedValues.size()];
+                for (int i = 0; i < operandsMapping.length; i++) {
+                    operandsMapping[i] = i;
+                }
             }
-            return OnnxProtoBuilder.build(onnxFunc.body().entryBlock());
+            return new CachedModel(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()), operandsMapping);
         });
 
-        // @@@ shuffle captured values according to the above created static map
-        List<Tensor> arguments = quotable.capturedValues().values().stream()
+        var captured = quotable.capturedValues().sequencedValues().toArray();
+        List<Tensor> arguments = IntStream.of(model.operandsMapping())
+                .mapToObj(i -> captured[i])
                 .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
                 .map(val -> (Tensor) val)
                 .toList();
 
-        try (var session = getInstance().createSession(model)) {
+        try (var session = getInstance().createSession(model.protoModel())) {
             return session.run(arguments).getFirst();
+        } catch (RuntimeException e) {
+            OnnxProtoPrinter.printModel(model.protoModel());
+            throw e;
         }
     }
 

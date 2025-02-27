@@ -17,10 +17,23 @@ public class SimpleTest {
     @Test
     public void testAdd() throws Exception {
         var a = Tensor.ofFlat(1f, 2, 3);
-        var b = Tensor.ofFlat(6f, 5, 4);
         assertEquals(
-                add(a, b),
-                OnnxRuntime.execute(MethodHandles.lookup(), () -> add(a, b)));
+                add(a, a),
+                OnnxRuntime.execute(MethodHandles.lookup(), () -> add(a, a)));
+    }
+
+    @CodeReflection
+    public static Tensor<Float> sub(Tensor<Float> a, Tensor<Float> b) {
+        return OnnxOperators.Sub(a, b);
+    }
+
+    @Test
+    public void testSub() throws Exception {
+        var b = Tensor.ofFlat(6f, 5, 4);
+        var a = Tensor.ofFlat(1f, 2, 3);
+        assertEquals(
+                sub(a, b),
+                OnnxRuntime.execute(MethodHandles.lookup(), () -> sub(a, b)));
     }
 
     @CodeReflection
