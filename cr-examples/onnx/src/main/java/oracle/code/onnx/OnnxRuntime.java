@@ -55,17 +55,12 @@ public final class OnnxRuntime {
     public interface OnnxFunction<T> extends Supplier<T>, Quotable {
     }
 
-    private static Class<?> lambdaClass;
-    private static Session session;
+    private static final WeakHashMap<Class<?>, byte[]> MODEL_CACHE = WeakHashMap.newWeakHashMap(10);
 
     public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
         var quotable = Op.ofQuotable(codeLambda).orElseThrow();
 
-        if (lambdaClass != codeLambda.getClass()) {
-            if (session != null) {
-                session.close();
-            }
-            lambdaClass = codeLambda.getClass();
+        var model = MODEL_CACHE.computeIfAbsent(codeLambda.getClass(), _ -> {
 
             var lambda = (CoreOp.LambdaOp) quotable.op();
 
@@ -112,8 +107,8 @@ public final class OnnxRuntime {
                         }));
 
             }
-            session = getInstance().createSession(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()));
-        }
+            return OnnxProtoBuilder.build(onnxFunc.body().entryBlock());
+        });
 
         // @@@ shuffle captured values according to the above created static map
         List<Tensor> arguments = quotable.capturedValues().values().stream()
@@ -121,7 +116,9 @@ public final class OnnxRuntime {
                 .map(val -> (Tensor) val)
                 .toList();
 
-        return session.run(arguments).getFirst();
+        try (var session = getInstance().createSession(model)) {
+            return session.run(arguments).getFirst();
+        }
     }
 
     record SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping) {}
