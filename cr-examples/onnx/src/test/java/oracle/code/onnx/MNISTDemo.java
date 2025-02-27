@@ -23,12 +23,15 @@
 
 package oracle.code.onnx;
 
+import jdk.incubator.code.CodeReflection;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandles;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -48,58 +51,57 @@ public class MNISTDemo {
         }
     }
 
+    @CodeReflection
     public static Tensor<Float> cnn(Tensor<Float> inputImage) {
-        return OnnxRuntime.execute(() -> {
-            // Scaling to 0-1
-            var scaledInput = Div(inputImage, Constant(255f));
+        // Scaling to 0-1
+        var scaledInput = Div(inputImage, Constant(255f));
 
-            // First conv layer
-            var conv1Weights = Reshape(Constant(loadConstant("conv1-weight-float-le")), Constant(new long[]{6, 1, 5, 5}), empty());
-            var conv1Biases = Reshape(Constant(loadConstant("conv1-bias-float-le")), Constant(new long[]{6}), empty());
-            var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), of(new long[4]),
-                    of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
-                    of(1L), of(new long[]{5,5}));
-            var relu1 = Relu(conv1);
+        // First conv layer
+        var conv1Weights = Reshape(Constant(loadConstant("conv1-weight-float-le")), Constant(new long[]{6, 1, 5, 5}), empty());
+        var conv1Biases = Reshape(Constant(loadConstant("conv1-bias-float-le")), Constant(new long[]{6}), empty());
+        var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), of(new long[4]),
+                of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
+                of(1L), of(new long[]{5,5}));
+        var relu1 = Relu(conv1);
 
-            // First pooling layer
-            var pool1 = MaxPool(relu1, of(new long[4]), of(new long[]{1,1}), empty(),
-                    of(0L), empty(), of(new long[]{2, 2}), new long[]{2, 2});
+        // First pooling layer
+        var pool1 = MaxPool(relu1, of(new long[4]), of(new long[]{1,1}), empty(),
+                of(0L), empty(), of(new long[]{2, 2}), new long[]{2, 2});
 
-            // Second conv layer
-            var conv2Weights = Reshape(Constant(loadConstant("conv2-weight-float-le")), Constant(new long[]{16, 6, 5, 5}), empty());
-            var conv2Biases = Reshape(Constant(loadConstant("conv2-bias-float-le")), Constant(new long[]{16}), empty());
-            var conv2 = Conv(pool1.Y(), conv2Weights, of(conv2Biases), of(new long[4]),
-                    of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
-                    of(1L), of(new long[]{5,5}));
-            var relu2 = Relu(conv2);
+        // Second conv layer
+        var conv2Weights = Reshape(Constant(loadConstant("conv2-weight-float-le")), Constant(new long[]{16, 6, 5, 5}), empty());
+        var conv2Biases = Reshape(Constant(loadConstant("conv2-bias-float-le")), Constant(new long[]{16}), empty());
+        var conv2 = Conv(pool1.Y(), conv2Weights, of(conv2Biases), of(new long[4]),
+                of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
+                of(1L), of(new long[]{5,5}));
+        var relu2 = Relu(conv2);
 
-            // Second pooling layer
-            var pool2 = MaxPool(relu2, of(new long[4]), of(new long[]{1,1}), empty(),
-                    of(0L), empty(), of(new long[]{2, 2}), new long[]{2, 2});
+        // Second pooling layer
+        var pool2 = MaxPool(relu2, of(new long[4]), of(new long[]{1,1}), empty(),
+                of(0L), empty(), of(new long[]{2, 2}), new long[]{2, 2});
 
-            // Flatten inputs
-            var flatten = Flatten(pool2.Y(), of(1L));
+        // Flatten inputs
+        var flatten = Flatten(pool2.Y(), of(1L));
 
-            // First fully connected layer
-            var fc1Weights = Reshape(Constant(loadConstant("fc1-weight-float-le")), Constant(new long[]{120, 256}), empty());
-            var fc1Biases = Reshape(Constant(loadConstant("fc1-bias-float-le")), Constant(new long[]{120}), empty());
-            var fc1 = Gemm(flatten, fc1Weights, of(fc1Biases), of(1f), of(1L), of(1f), empty());
-            var relu3 = Relu(fc1);
+        // First fully connected layer
+        var fc1Weights = Reshape(Constant(loadConstant("fc1-weight-float-le")), Constant(new long[]{120, 256}), empty());
+        var fc1Biases = Reshape(Constant(loadConstant("fc1-bias-float-le")), Constant(new long[]{120}), empty());
+        var fc1 = Gemm(flatten, fc1Weights, of(fc1Biases), of(1f), of(1L), of(1f), empty());
+        var relu3 = Relu(fc1);
 
-            // Second fully connected layer
-            var fc2Weights = Reshape(Constant(loadConstant("fc2-weight-float-le")), Constant(new long[]{84, 120}), empty());
-            var fc2Biases = Reshape(Constant(loadConstant("fc2-bias-float-le")), Constant(new long[]{84}), empty());
-            var fc2 = Gemm(relu3, fc2Weights, of(fc2Biases), of(1f), of(1L), of(1f), empty());
-            var relu4 = Relu(fc2);
+        // Second fully connected layer
+        var fc2Weights = Reshape(Constant(loadConstant("fc2-weight-float-le")), Constant(new long[]{84, 120}), empty());
+        var fc2Biases = Reshape(Constant(loadConstant("fc2-bias-float-le")), Constant(new long[]{84}), empty());
+        var fc2 = Gemm(relu3, fc2Weights, of(fc2Biases), of(1f), of(1L), of(1f), empty());
+        var relu4 = Relu(fc2);
 
-            // Softmax layer
-            var fc3Weights = Reshape(Constant(loadConstant("fc3-weight-float-le")), Constant(new long[]{10, 84}), empty());
-            var fc3Biases = Reshape(Constant(loadConstant("fc3-bias-float-le")), Constant(new long[]{10}), empty());
-            var fc3 = Gemm(relu4, fc3Weights, of(fc3Biases), of(1f), of(1L), of(1f), empty());
-            var prediction = Softmax(fc3, of(1L));
+        // Softmax layer
+        var fc3Weights = Reshape(Constant(loadConstant("fc3-weight-float-le")), Constant(new long[]{10, 84}), empty());
+        var fc3Biases = Reshape(Constant(loadConstant("fc3-bias-float-le")), Constant(new long[]{10}), empty());
+        var fc3 = Gemm(relu4, fc3Weights, of(fc3Biases), of(1f), of(1L), of(1f), empty());
+        var prediction = Softmax(fc3, of(1L));
 
-            return prediction;
-        });
+        return prediction;
     }
 
     static final int IMAGE_SIZE = 28;
@@ -144,7 +146,11 @@ public class MNISTDemo {
                     var imageData = new float[IMAGE_SIZE * IMAGE_SIZE];
                     scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, imageData);
                     var imageTensor = Tensor.ofShape(new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
-                    var result = cnn(imageTensor).data().toArray(ValueLayout.JAVA_FLOAT);
+
+                    var prediction = OnnxRuntime.execute(MethodHandles.lookup(),
+                            () -> cnn(imageTensor));
+
+                    var result = prediction.data().toArray(ValueLayout.JAVA_FLOAT);
                     var report = new StringBuilder("<html>");
                     for (int i = 0; i < result.length; i++) {
                         var w = result[i];
