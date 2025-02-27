@@ -9,7 +9,6 @@ import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.CoreOp.FuncOp;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxType;
 
@@ -277,6 +276,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
             }
         };
         return build(
+                List.of(),
                 block.parameters().stream().map(v -> tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
                 block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
@@ -297,16 +297,17 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 List.of(indexer.getName(block.terminatingOp().operands().getFirst())));
     }
 
-    static byte[] build(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+    static byte[] build(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
         return new ModelProto()
                 .ir_version(IR_VERSION)
-                .graph(graph(inputs, ops, outputNames))
+                .graph(graph(initializers, inputs, ops, outputNames))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
     }
 
-    static GraphProto graph(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+    static GraphProto graph(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
         return new GraphProto()
+                .forEach(initializers, (g, init) -> g.initializer(init))
                 .forEach(inputs, (g, i) -> g.input(i))
                 .forEach(ops, (g, op) -> g.node(op))
                 .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName)));
@@ -335,6 +336,17 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                         .tensor_type(new Tensor()
                                 .elem_type(tensorElementType)
                                 .shape(new TensorShapeProto())));
+    }
+
+    static TensorProto tensorFlat(String name, float... data) {
+        var tp = new TensorProto()
+                .name(name)
+                .dims(data.length)
+                .data_type(1);
+        for (float f : data) {
+            tp.float_data(f);
+        }
+        return tp;
     }
 
     static Attribute attribute(String name, Object value) {

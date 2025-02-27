@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -105,7 +106,9 @@ public final class OnnxRuntime {
                     .toList();
         }
 
-        try (var session = getInstance().createSession(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()))) {
+        var model = OnnxProtoBuilder.build(onnxFunc.body().entryBlock());
+        OnnxProtoPrinter.printModel(model);
+        try (var session = getInstance().createSession(model)) {
             return session.run(arguments).getFirst();
         }
     }
@@ -230,6 +233,7 @@ public final class OnnxRuntime {
     public List<Tensor> runOp(String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
         var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
         var protoModel = OnnxProtoBuilder.build(
+                List.of(),
                 IntStream.range(0, inputValues.size()).mapToObj(i -> OnnxProtoBuilder.tensorInfo("i" + i, inputValues.get(i).elementType().id)).toList(),
                 List.of(OnnxProtoBuilder.node(
                         opName,

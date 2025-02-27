@@ -15,10 +15,12 @@ public class RuntimeTest {
     public void test() throws Exception {
         var ort = OnnxRuntime.getInstance();
         try (var absOp = ort.createSession(build(
+                List.of(),
                 List.of(tensorInfo("x", FLOAT.id)),
                 List.of(node("Abs", List.of("x"), List.of("y"), Map.of())),
                 List.of("y")));
              var addOp = ort.createSession(build(
+                List.of(),
                 List.of(tensorInfo("a", FLOAT.id), tensorInfo("b", FLOAT.id)),
                 List.of(node("Add", List.of("a", "b"), List.of("y"), Map.of())),
                 List.of("y")))) {
@@ -57,13 +59,16 @@ public class RuntimeTest {
     public void testIf() throws Exception {
         var ort = OnnxRuntime.getInstance();
         try (var ifOp = ort.createSession(build(
+                List.of(),
                 List.of(tensorInfo("cond", BOOL.id), tensorInfo("a", INT64.id), tensorInfo("b", INT64.id)),
                 List.of(node("If", List.of("cond"), List.of("y"), Map.of(
                         "then_branch", graph(
                                 List.of(),
+                                List.of(),
                                 List.of(node("Identity", List.of("a"), List.of("y"), Map.of())),
                                 List.of("y")),
                         "else_branch", graph(
+                                List.of(),
                                 List.of(),
                                 List.of(node("Identity", List.of("b"), List.of("y"), Map.of())),
                                 List.of("y"))))),
@@ -80,9 +85,11 @@ public class RuntimeTest {
     public void testLoop() throws Exception {
         var ort = OnnxRuntime.getInstance();
         try (var forOp = ort.createSession(build(
+                List.of(),
                 List.of(tensorInfo("max", INT64.id), tensorInfo("cond", BOOL.id), tensorInfo("a", INT64.id)),
                 List.of(node("Loop", List.of("max", "cond", "a"), List.of("a_out"), Map.of(
                         "body", graph(
+                                List.of(),
                                 List.of(scalarInfo("i", INT64.id), scalarInfo("cond_in", BOOL.id), tensorInfo("a_in", INT64.id)),
                                 List.of(node("Identity", List.of("cond_in"), List.of("cond_out"), Map.of()),
                                         node("Add", List.of("a_in", "a_in"), List.of("a_out"), Map.of())),
@@ -90,6 +97,21 @@ public class RuntimeTest {
                 List.of("a_out")))) {
 
             SimpleTest.assertEquals(Tensor.ofScalar(65536l), forOp.run(List.of(Tensor.ofScalar(15l), Tensor.ofScalar(true), Tensor.ofScalar(2l))).getFirst());
+        }
+    }
+
+    @Test
+    public void testInitializers() throws Exception {
+        var ort = OnnxRuntime.getInstance();
+        try (var initOp = ort.createSession(build(
+                List.of(tensorFlat("a", 1f, 2, 3, 4, 5, 6), tensorFlat("b", 0f, 1, 2, 3, 4, 5)),
+                List.of(),
+                List.of(node("Add", List.of("a", "b"), List.of("y"), Map.of())),
+                List.of("y")))) {
+
+            SimpleTest.assertEquals(
+                    Tensor.ofFlat(1f, 3, 5, 7, 9, 11),
+                    initOp.run(List.of()).getFirst());
         }
     }
 }
