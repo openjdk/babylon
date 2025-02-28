@@ -379,7 +379,7 @@ public class OpBuilder {
 
 
     Value buildArray(JavaType elementType, List<Value> elements) {
-        Value array = builder.op(newArray(elementType,
+        Value array = builder.op(newArray(JavaType.array(elementType),
                 builder.op(constant(INT, elements.size()))));
         for (int i = 0; i < elements.size(); i++) {
             builder.op(arrayStoreOp(array, elements.get(i),
