@@ -57,14 +57,26 @@ public final class OnnxRuntime {
 
     record CachedModel(byte[] protoModel, int[] operandsMapping) {}
 
-    private static final WeakHashMap<Class<?>, CachedModel> MODEL_CACHE = WeakHashMap.newWeakHashMap(10);
+    static class CachedModelClassValue extends ClassValue<CachedModel> {
 
-    public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
-        var quotable = Op.ofQuotable(codeLambda).orElseThrow();
+        private MethodHandles.Lookup l;
+        private Quoted q;
 
-        var model = MODEL_CACHE.computeIfAbsent(codeLambda.getClass(), _ -> {
+        CachedModel computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
+            try {
+                this.l = l;
+                this.q = q;
+                // not very nice way to pass additional arguments to computeValue method
+                return get(lambdaClass);
+            } finally {
+                this.l = null;
+                this.q = null;
+            }
+        }
 
-            var lambda = (CoreOp.LambdaOp) quotable.op();
+        @Override
+        protected CachedModel computeValue(Class<?> type) {
+            var lambda = (CoreOp.LambdaOp) q.op();
 
             CoreOp.FuncOp onnxFunc;
             int[] operandsMapping;
@@ -83,7 +95,7 @@ public final class OnnxRuntime {
                 onnxFunc = OnnxTransformer.transform(l, f);
 
                 var operands = iop.operands();
-                var captured = List.of(quotable.capturedValues().sequencedKeySet().toArray());
+                var captured = q.capturedValues().sequencedKeySet().stream().toList();
                 operandsMapping = new int[iop.operands().size()];
                 for (int i = 0; i < operandsMapping.length; i++) {
                     operandsMapping[i] = captured.indexOf(valueMapping.get(operands.get(i)));
@@ -114,9 +126,17 @@ public final class OnnxRuntime {
                 }
             }
             return new CachedModel(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()), operandsMapping);
-        });
+        }
+    }
 
-        var captured = quotable.capturedValues().sequencedValues().toArray();
+    private static final CachedModelClassValue MODEL_CACHE = new CachedModelClassValue();
+
+    public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
+        var q = Op.ofQuotable(codeLambda).orElseThrow();
+
+        var model = MODEL_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
+
+        var captured = q.capturedValues().sequencedValues().toArray();
         List<Tensor> arguments = IntStream.of(model.operandsMapping())
                 .mapToObj(i -> captured[i])
                 .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
