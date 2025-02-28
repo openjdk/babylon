@@ -25,6 +25,7 @@
 
 package oracle.code.onnx;
 
+import java.lang.foreign.Arena;
 import java.util.LinkedHashMap;
 import oracle.code.onnx.ir.OnnxOp;
 
@@ -57,7 +58,7 @@ public class OnnxInterpreter {
                               .map(i -> (Tensor)(i instanceof Optional o ? o.get() : i))
                               .toList(),
                     schema.outputs().size(),
-                    attributeMap);
+                    attributeMap, Arena.ofConfined());
             if (outTensors.size() == 1) {
                 return outTensors.getFirst();
             } else {
