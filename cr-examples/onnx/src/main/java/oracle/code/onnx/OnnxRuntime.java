@@ -55,58 +55,99 @@ public final class OnnxRuntime {
     public interface OnnxFunction<T> extends Supplier<T>, Quotable {
     }
 
-    public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
-        var quotable = Op.ofQuotable(codeLambda).orElseThrow();
-        var lambda = (CoreOp.LambdaOp) quotable.op();
+    record CachedModel(byte[] protoModel, int[] operandsMapping) {}
 
-        CoreOp.FuncOp onnxFunc;
-        List<Tensor> arguments;
-        // Shortcut for lambda expressions that call just one method
-        if (singleMethodInvocation(lambda) instanceof
-                SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping)) {
-            Method m;
+    static class CachedModelClassValue extends ClassValue<CachedModel> {
+
+        private MethodHandles.Lookup l;
+        private Quoted q;
+
+        CachedModel computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
             try {
-                m = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
+                this.l = l;
+                this.q = q;
+                // not very nice way to pass additional arguments to computeValue method
+                return get(lambdaClass);
+            } finally {
+                this.l = null;
+                this.q = null;
             }
-
-            CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
-            onnxFunc = OnnxTransformer.transform(l, f);
-
-            arguments = iop.operands().stream().toList().stream()
-                    .map(valueMapping::get)
-                    .map(v -> quotable.capturedValues().get(v))
-                    .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
-                    .map(val -> (Tensor) val)
-                    .toList();
-        } else {
-            var capturedValues = lambda.capturedValues();
-            var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
-                    capturedValues.stream().map(Value::type)
-                            .map(t -> t instanceof VarType vt ? vt.valueType() : t).toList());
-            onnxFunc = OnnxTransformer.transform(l, CoreOp.func("onnxCode", functionType)
-                    .body(bb -> {
-                        bb.context().mapValues(capturedValues, bb.parameters());
-                        for (Op op : lambda.body().entryBlock().ops()) {
-                            int i;
-                            if (op instanceof CoreOp.VarAccessOp.VarLoadOp load &&
-                                    (i = capturedValues.indexOf(load.varOp().result())) >= 0) {
-                                bb.context().mapValue(op.result(), bb.parameters().get(i)); // remap var load result to block param
-                            } else {
-                                bb.apply(op);
-                            }
-                        }
-                    }));
-
-            arguments = quotable.capturedValues().values().stream()
-                    .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
-                    .map(val -> (Tensor) val)
-                    .toList();
         }
 
-        try (var session = getInstance().createSession(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()))) {
+        @Override
+        protected CachedModel computeValue(Class<?> type) {
+            var lambda = (CoreOp.LambdaOp) q.op();
+
+            CoreOp.FuncOp onnxFunc;
+            int[] operandsMapping;
+
+            // Shortcut for lambda expressions that call just one method
+            if (singleMethodInvocation(lambda) instanceof
+                    SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping)) {
+                Method m;
+                try {
+                    m = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(e);
+                }
+
+                CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
+                onnxFunc = OnnxTransformer.transform(l, f);
+
+                var operands = iop.operands();
+                var captured = q.capturedValues().sequencedKeySet().stream().toList();
+                operandsMapping = new int[iop.operands().size()];
+                for (int i = 0; i < operandsMapping.length; i++) {
+                    operandsMapping[i] = captured.indexOf(valueMapping.get(operands.get(i)));
+                }
+
+            } else {
+                var capturedValues = lambda.capturedValues();
+                var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
+                        capturedValues.stream().map(Value::type)
+                                .map(t -> t instanceof VarType vt ? vt.valueType() : t).toList());
+                onnxFunc = OnnxTransformer.transform(l, CoreOp.func("onnxCode", functionType)
+                        .body(bb -> {
+                            bb.context().mapValues(capturedValues, bb.parameters());
+                            for (Op op : lambda.body().entryBlock().ops()) {
+                                int i;
+                                if (op instanceof CoreOp.VarAccessOp.VarLoadOp load &&
+                                        (i = capturedValues.indexOf(load.varOp().result())) >= 0) {
+                                    bb.context().mapValue(op.result(), bb.parameters().get(i)); // remap var load result to block param
+                                } else {
+                                    bb.apply(op);
+                                }
+                            }
+                        }));
+
+                operandsMapping = new int[capturedValues.size()];
+                for (int i = 0; i < operandsMapping.length; i++) {
+                    operandsMapping[i] = i;
+                }
+            }
+            return new CachedModel(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()), operandsMapping);
+        }
+    }
+
+    private static final CachedModelClassValue MODEL_CACHE = new CachedModelClassValue();
+
+    public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
+        var q = Op.ofQuotable(codeLambda).orElseThrow();
+
+        var model = MODEL_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
+
+        var captured = q.capturedValues().sequencedValues().toArray();
+        List<Tensor> arguments = IntStream.of(model.operandsMapping())
+                .mapToObj(i -> captured[i])
+                .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
+                .map(val -> (Tensor) val)
+                .toList();
+
+        try (var session = getInstance().createSession(model.protoModel())) {
             return session.run(arguments).getFirst();
+        } catch (RuntimeException e) {
+            OnnxProtoPrinter.printModel(model.protoModel());
+            throw e;
         }
     }
 

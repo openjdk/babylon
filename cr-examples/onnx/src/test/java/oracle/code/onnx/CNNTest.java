@@ -46,7 +46,6 @@ import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.channels.FileChannel;
-import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Optional.empty;
@@ -337,19 +336,6 @@ public class CNNTest {
         }
     }
 
-    static List<Tensor> loadWeights() throws IOException {
-        return List.of(floatTensor("conv1-weight-float-le", 6, 1, 5, 5),
-                       floatTensor("conv1-bias-float-le", 6),
-                       floatTensor("conv2-weight-float-le", 16, 6, 5, 5),
-                       floatTensor("conv2-bias-float-le", 16),
-                       floatTensor("fc1-weight-float-le", 120, 256),
-                       floatTensor("fc1-bias-float-le", 120),
-                       floatTensor("fc2-weight-float-le", 84, 120),
-                       floatTensor("fc2-bias-float-le", 84),
-                       floatTensor("fc3-weight-float-le", 10, 84),
-                       floatTensor("fc3-bias-float-le", 10));
-    }
-
     @Test
     public void testModels() {
         CoreOp.FuncOp f = getFuncOp("cnn");
@@ -364,18 +350,37 @@ public class CNNTest {
 
     @Test
     public void testInterpreter() throws Exception {
-        var weights = loadWeights();
-        test(inputImage -> cnn(weights.get(0), weights.get(1), weights.get(2), weights.get(3), weights.get(4),
-                               weights.get(5), weights.get(6), weights.get(7), weights.get(8), weights.get(9),
+        var conv1Weight = floatTensor("conv1-weight-float-le", 6, 1, 5, 5);
+        var conv1Bias = floatTensor("conv1-bias-float-le", 6);
+        var conv2Weight = floatTensor("conv2-weight-float-le", 16, 6, 5, 5);
+        var conv2Bias = floatTensor("conv2-bias-float-le", 16);
+        var fc1Weight = floatTensor("fc1-weight-float-le", 120, 256);
+        var fc1Bias = floatTensor("fc1-bias-float-le", 120);
+        var fc2Weight = floatTensor("fc2-weight-float-le", 84, 120);
+        var fc2Bias = floatTensor("fc2-bias-float-le", 84);
+        var fc3Weight = floatTensor("fc3-weight-float-le", 10, 84);
+        var fc3Bias = floatTensor("fc3-bias-float-le", 10);
+        test(inputImage -> cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
+                               fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
                                inputImage));
     }
 
     @Test
     public void testProtobufModel() throws Exception {
-        var weights = loadWeights();
-        test(inputImage -> OnnxRuntime.getInstance().run(
-                    OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")).body().entryBlock(),
-                    Stream.concat(weights.stream(), Stream.of(inputImage)).toList()).getFirst());
+        var conv1Weight = floatTensor("conv1-weight-float-le", 6, 1, 5, 5);
+        var conv1Bias = floatTensor("conv1-bias-float-le", 6);
+        var conv2Weight = floatTensor("conv2-weight-float-le", 16, 6, 5, 5);
+        var conv2Bias = floatTensor("conv2-bias-float-le", 16);
+        var fc1Weight = floatTensor("fc1-weight-float-le", 120, 256);
+        var fc1Bias = floatTensor("fc1-bias-float-le", 120);
+        var fc2Weight = floatTensor("fc2-weight-float-le", 84, 120);
+        var fc2Bias = floatTensor("fc2-bias-float-le", 84);
+        var fc3Weight = floatTensor("fc3-weight-float-le", 10, 84);
+        var fc3Bias = floatTensor("fc3-bias-float-le", 10);
+        test(inputImage -> OnnxRuntime.execute(MethodHandles.lookup(), () ->
+                cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
+                    fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
+                    inputImage)));
     }
 
     private void test(Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {
