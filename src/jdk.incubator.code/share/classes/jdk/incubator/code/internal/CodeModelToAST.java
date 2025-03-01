@@ -140,6 +140,14 @@ public class CodeModelToAST {
             case CoreOp.ConstantOp constantOp -> treeMaker.Literal(constantOp.value());
             case CoreOp.InvokeOp invokeOp -> invokeOpToJCMethodInvocation(invokeOp);
             case CoreOp.NewOp newOp -> {
+                if (newOp.resultType() instanceof ArrayType at) {
+                    var elemType = treeMaker.Ident(typeElementToType(at.componentType()).tsym);
+                    // @@@ we assume one dimension
+                    var dims = List.of((JCTree.JCExpression) valueToTree.get(newOp.operands().getFirst()));
+                    var na = treeMaker.NewArray(elemType, dims, null);
+                    na.type = typeElementToType(at);
+                    yield na;
+                }
                 var ownerType = typeElementToType(newOp.constructorType().returnType());
                 var clazz = treeMaker.Ident(ownerType.tsym);
                 var args = new ListBuffer<JCTree.JCExpression>();
@@ -184,6 +192,17 @@ public class CodeModelToAST {
                 var sym = new Symbol.VarSymbol(flags, name, type, owner.tsym);
                 yield treeMaker.Select(treeMaker.Ident(owner.tsym), sym);
             }
+            case CoreOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
+                var array = arrayStoreOp.operands().get(0);
+                var val = arrayStoreOp.operands().get(1);
+                var index = arrayStoreOp.operands().get(2);
+                var as = treeMaker.Assign(
+                        treeMaker.Indexed((JCTree.JCExpression) valueToTree.get(array), (JCTree.JCExpression) valueToTree.get(index)),
+                        (JCTree.JCExpression) valueToTree.get(val)
+                );
+                yield treeMaker.Exec(as);
+                // body builder are created but never passed when creating the op, why ?
+            }
             default -> throw new IllegalStateException("Op -> JCTree not supported for :" + op.getClass().getName());
         };
         valueToTree.put(op.result(), tree);
@@ -200,6 +219,7 @@ public class CodeModelToAST {
 
         // TODO add VarOps in OpBuilder
         funcOp = addVarsWhenNecessary(funcOp);
+        funcOp.writeTo(System.out);
         for (int i = 0; i < funcOp.parameters().size(); i++) {
             valueToTree.put(funcOp.parameters().get(i), treeMaker.Ident(ms.params().get(i)));
         }

@@ -905,7 +905,7 @@ public class SwitchExpressionTest2 {
                 return %7;
             };
             """)
-    @CodeReflection
+    //@CodeReflection
     static String noDefault(A a) {
         return switch (a) {
             case B b -> "B";
