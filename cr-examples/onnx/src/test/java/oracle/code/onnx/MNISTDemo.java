@@ -25,23 +25,19 @@ package oracle.code.onnx;
 
 import jdk.incubator.code.CodeReflection;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import java.util.concurrent.atomic.AtomicBoolean;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static oracle.code.onnx.OnnxOperators.*;
 
 public class MNISTDemo {
+
+    static final int IMAGE_SIZE = 28;
+
     public static float[] loadConstant(String resource) {
         try (var in = MNISTDemo.class.getResourceAsStream(resource)) {
             return MemorySegment.ofArray(in.readAllBytes())
@@ -104,66 +100,12 @@ public class MNISTDemo {
         return prediction;
     }
 
-    static final int IMAGE_SIZE = 28;
-    static final int DRAW_AREA_SIZE = 600;
-    static final int PEN_SIZE = 20;
-    static final String[] COLORS = {"1034a6", "412f88", "722b6a", "a2264b", "d3212d", "f62d2d"};
+    public static float[] classify(float[] imageData) {
+        var imageTensor = Tensor.ofShape(new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
 
-    public static void main(String[] args) throws Exception {
-        var frame = new JFrame("CNN MNIST Demo - Handwritten Digit Classification");
-        var drawPane = new JPanel(false);
-        var results = new JLabel();
-        var cleanFlag = new AtomicBoolean(true);
-        var drawImage = new BufferedImage(DRAW_AREA_SIZE, DRAW_AREA_SIZE, BufferedImage.TYPE_BYTE_GRAY);
+        var predictionTensor = OnnxRuntime.execute(MethodHandles.lookup(),
+                () -> cnn(imageTensor));
 
-        results.setPreferredSize(new Dimension(100, 0));
-        drawPane.setPreferredSize(new Dimension(DRAW_AREA_SIZE, DRAW_AREA_SIZE));
-        drawPane.addMouseMotionListener(new MouseAdapter() {
-            @Override
-            public void mouseMoved(MouseEvent e) {
-                if ((e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) != 0) {
-                    if (cleanFlag.getAndSet(false)) {
-                        drawImage.getGraphics().clearRect(0, 0, DRAW_AREA_SIZE, DRAW_AREA_SIZE);
-                        drawPane.getGraphics().clearRect(0, 0, DRAW_AREA_SIZE, DRAW_AREA_SIZE);
-                    }
-                    drawImage.getGraphics().fillOval(e.getX(), e.getY(), PEN_SIZE, PEN_SIZE);
-                    drawPane.getGraphics().fillOval(e.getX(), e.getY(), PEN_SIZE, PEN_SIZE);
-                }
-            }
-        });
-        frame.setLayout(new BorderLayout());
-        frame.add(drawPane, BorderLayout.CENTER);
-        frame.add(results, BorderLayout.EAST);
-        frame.add(new JLabel("   Hold SHIFT key to draw with trackpad or mouse, click ENTER to run digit classification."), BorderLayout.SOUTH);
-        frame.pack();
-        frame.setResizable(false);
-        frame.addKeyListener(new KeyAdapter(){
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    var scaledImage = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_BYTE_GRAY);
-                    scaledImage.createGraphics().drawImage(drawImage.getScaledInstance(IMAGE_SIZE, IMAGE_SIZE, Image.SCALE_SMOOTH), 0, 0, null);
-                    var imageData = new float[IMAGE_SIZE * IMAGE_SIZE];
-                    scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, imageData);
-                    var imageTensor = Tensor.ofShape(new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
-
-                    var prediction = OnnxRuntime.execute(MethodHandles.lookup(),
-                            () -> cnn(imageTensor));
-
-                    var result = prediction.data().toArray(ValueLayout.JAVA_FLOAT);
-                    var report = new StringBuilder("<html>");
-                    for (int i = 0; i < result.length; i++) {
-                        var w = result[i];
-                        report.append("&nbsp;<font size=\"%d\" color=\"#%s\">%d</font>&nbsp;(%.1f%%)&nbsp;<br><br><br>"
-                                .formatted((int)(20 * w) + 3, COLORS[(int)(5.99 * w)], i, 100 * w));
-                    }
-                    results.setText(report.toString());
-                    cleanFlag.set(true);
-                }
-            }
-        });
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+        return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);
     }
 }
