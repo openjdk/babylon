@@ -21,7 +21,7 @@
  * questions.
  */
 
-package oracle.code.onnx;
+package oracle.code.onnx.mnist;
 
 
 import java.awt.*;
@@ -32,7 +32,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import static oracle.code.onnx.MNISTDemo.IMAGE_SIZE;
+import static oracle.code.onnx.mnist.MNISTDemo.IMAGE_SIZE;
 
 public class MNISTDemoUI {
 

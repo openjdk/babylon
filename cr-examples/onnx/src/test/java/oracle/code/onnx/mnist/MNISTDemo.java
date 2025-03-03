@@ -21,7 +21,7 @@
  * questions.
  */
 
-package oracle.code.onnx;
+package oracle.code.onnx.mnist;
 
 import jdk.incubator.code.CodeReflection;
 
@@ -29,6 +29,8 @@ import java.io.*;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
+import oracle.code.onnx.OnnxRuntime;
+import oracle.code.onnx.Tensor;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
