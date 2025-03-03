@@ -266,7 +266,7 @@ public class OpBuilder {
     }
 
     Value buildType(TypeElement t) {
-        Value typeString = builder.op(constant(J_L_STRING, t.toString()));
+        Value typeString = builder.op(constant(J_L_STRING, t.externalize().toString()));
         Value exTypeElem = builder.op(invoke(EX_TYPE_ELEMENT_OF_STRING, typeString));
         return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, exTypeElem));
     }
