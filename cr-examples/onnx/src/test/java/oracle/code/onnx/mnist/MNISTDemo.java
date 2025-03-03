@@ -111,7 +111,7 @@ public class MNISTDemo {
             var imageTensor = Tensor.ofShape(new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
 
             var predictionTensor = OnnxRuntime.execute(MethodHandles.lookup(),
-                    () -> cnn(imageTensor));
+                    () -> cnn(imageTensor), arena);
 
             return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);
         }
