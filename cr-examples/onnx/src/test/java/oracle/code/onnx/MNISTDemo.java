@@ -148,9 +148,9 @@ public class MNISTDemo {
                     scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, imageData);
                     var imageTensor = Tensor.ofShape(new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
 
-                    try (Arena onnxSession = Arena.ofConfined()) {
+                    try (Arena arena = Arena.ofConfined()) {
                         var prediction = OnnxRuntime.execute(MethodHandles.lookup(),
-                                () -> cnn(imageTensor), onnxSession);
+                                () -> cnn(imageTensor), arena);
 
                         var result = prediction.data().toArray(ValueLayout.JAVA_FLOAT);
                         var report = new StringBuilder("<html>");
