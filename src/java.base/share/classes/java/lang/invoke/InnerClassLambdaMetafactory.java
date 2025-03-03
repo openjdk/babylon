@@ -449,7 +449,15 @@ import sun.invoke.util.Wrapper;
         if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
             mtype = mtype.insertParameterTypes(0, implClass);
         }
+//        ExtendedOp.FACTORY;
+        cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.EXTENDED_OP_CLASS.describeConstable().get(),
+                "FACTORY", CodeReflectionSupport.OP_FACTORY_CLASS.describeConstable().get());
+//        CoreTypeFactory.CORE_TYPE_FACTORY
+        cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.CORE_TYPE_FACTORY_CLASS.describeConstable().get(),
+                "CORE_TYPE_FACTORY",
+                CodeReflectionSupport.TYPE_ELEMENT_FACTORY_CLASS.describeConstable().get());
         cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get());
+        cob.checkcast(CodeReflectionSupport.FUNC_OP_CLASS.describeConstable().get());
 
         // load captured args in array
 
@@ -476,6 +484,11 @@ import sun.invoke.util.Wrapper;
         static final Class<?> QUOTED_CLASS;
         static final Class<?> QUOTABLE_CLASS;
         static final MethodHandle HANDLE_MAKE_QUOTED;
+        static final Class<?> EXTENDED_OP_CLASS;
+        static final Class<?> OP_FACTORY_CLASS;
+        static final Class<?> CORE_TYPE_FACTORY_CLASS;
+        static final Class<?> TYPE_ELEMENT_FACTORY_CLASS;
+        static final Class<?> FUNC_OP_CLASS;
 
         static {
             try {
@@ -484,10 +497,14 @@ import sun.invoke.util.Wrapper;
                 QUOTED_CLASS = cl.loadClass("jdk.incubator.code.Quoted");
                 QUOTABLE_CLASS = cl.loadClass("jdk.incubator.code.Quotable");
                 Class<?> quotedHelper = cl.loadClass("jdk.incubator.code.internal.QuotedHelper");
-                Class<?> funcOp = cl.loadClass("jdk.incubator.code.op.CoreOp$FuncOp");
+                FUNC_OP_CLASS = cl.loadClass("jdk.incubator.code.op.CoreOp$FuncOp");
                 MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
-                        MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, funcOp, Object[].class));
+                        MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, FUNC_OP_CLASS, Object[].class));
                 HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
+                EXTENDED_OP_CLASS = cl.loadClass("jdk.incubator.code.op.ExtendedOp");
+                OP_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.op.OpFactory");
+                CORE_TYPE_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.type.CoreTypeFactory");
+                TYPE_ELEMENT_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.type.TypeElementFactory");
             } catch (Throwable ex) {
                 throw new ExceptionInInitializerError(ex);
             }
