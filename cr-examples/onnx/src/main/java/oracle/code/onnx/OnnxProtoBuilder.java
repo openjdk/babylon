@@ -9,7 +9,6 @@ import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.CoreOp.FuncOp;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxType;
 

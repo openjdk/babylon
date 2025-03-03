@@ -350,16 +350,16 @@ public class CNNTest {
 
     @Test
     public void testInterpreter() throws Exception {
-        var conv1Weight = floatTensor("conv1-weight-float-le", 6, 1, 5, 5);
-        var conv1Bias = floatTensor("conv1-bias-float-le", 6);
-        var conv2Weight = floatTensor("conv2-weight-float-le", 16, 6, 5, 5);
-        var conv2Bias = floatTensor("conv2-bias-float-le", 16);
-        var fc1Weight = floatTensor("fc1-weight-float-le", 120, 256);
-        var fc1Bias = floatTensor("fc1-bias-float-le", 120);
-        var fc2Weight = floatTensor("fc2-weight-float-le", 84, 120);
-        var fc2Bias = floatTensor("fc2-bias-float-le", 84);
-        var fc3Weight = floatTensor("fc3-weight-float-le", 10, 84);
-        var fc3Bias = floatTensor("fc3-bias-float-le", 10);
+        var conv1Weight = floatTensor("mnist/conv1-weight-float-le", 6, 1, 5, 5);
+        var conv1Bias = floatTensor("mnist/conv1-bias-float-le", 6);
+        var conv2Weight = floatTensor("mnist/conv2-weight-float-le", 16, 6, 5, 5);
+        var conv2Bias = floatTensor("mnist/conv2-bias-float-le", 16);
+        var fc1Weight = floatTensor("mnist/fc1-weight-float-le", 120, 256);
+        var fc1Bias = floatTensor("mnist/fc1-bias-float-le", 120);
+        var fc2Weight = floatTensor("mnist/fc2-weight-float-le", 84, 120);
+        var fc2Bias = floatTensor("mnist/fc2-bias-float-le", 84);
+        var fc3Weight = floatTensor("mnist/fc3-weight-float-le", 10, 84);
+        var fc3Bias = floatTensor("mnist/fc3-bias-float-le", 10);
         test(inputImage -> cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
                                fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
                                inputImage));
@@ -367,16 +367,16 @@ public class CNNTest {
 
     @Test
     public void testProtobufModel() throws Exception {
-        var conv1Weight = floatTensor("conv1-weight-float-le", 6, 1, 5, 5);
-        var conv1Bias = floatTensor("conv1-bias-float-le", 6);
-        var conv2Weight = floatTensor("conv2-weight-float-le", 16, 6, 5, 5);
-        var conv2Bias = floatTensor("conv2-bias-float-le", 16);
-        var fc1Weight = floatTensor("fc1-weight-float-le", 120, 256);
-        var fc1Bias = floatTensor("fc1-bias-float-le", 120);
-        var fc2Weight = floatTensor("fc2-weight-float-le", 84, 120);
-        var fc2Bias = floatTensor("fc2-bias-float-le", 84);
-        var fc3Weight = floatTensor("fc3-weight-float-le", 10, 84);
-        var fc3Bias = floatTensor("fc3-bias-float-le", 10);
+        var conv1Weight = floatTensor("mnist/conv1-weight-float-le", 6, 1, 5, 5);
+        var conv1Bias = floatTensor("mnist/conv1-bias-float-le", 6);
+        var conv2Weight = floatTensor("mnist/conv2-weight-float-le", 16, 6, 5, 5);
+        var conv2Bias = floatTensor("mnist/conv2-bias-float-le", 16);
+        var fc1Weight = floatTensor("mnist/fc1-weight-float-le", 120, 256);
+        var fc1Bias = floatTensor("mnist/fc1-bias-float-le", 120);
+        var fc2Weight = floatTensor("mnist/fc2-weight-float-le", 84, 120);
+        var fc2Bias = floatTensor("mnist/fc2-bias-float-le", 84);
+        var fc3Weight = floatTensor("mnist/fc3-weight-float-le", 10, 84);
+        var fc3Bias = floatTensor("mnist/fc3-bias-float-le", 10);
         test(inputImage -> OnnxRuntime.execute(MethodHandles.lookup(), () ->
                 cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
                     fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
