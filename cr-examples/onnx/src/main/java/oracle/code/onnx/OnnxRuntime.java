@@ -368,6 +368,10 @@ public final class OnnxRuntime {
         return retAddr(OrtApi.CreateTensorWithDataAsOrtValue(runtimeAddress, allocatorInfo, flatData, flatData.byteSize(), shape, shape.byteSize() / 8, elementType.id, ret));
     }
 
+    public void releaseValue(MemorySegment value) {
+        OrtApi.ReleaseValue(runtimeAddress, value);
+    }
+
     public Tensor.ElementType tensorElementType(MemorySegment tensorAddr) {
         var infoAddr = retAddr(OrtApi.GetTensorTypeAndShape(runtimeAddress, tensorAddr, ret));
         return Tensor.ElementType.fromOnnxId(retInt(OrtApi.GetTensorElementType(runtimeAddress, infoAddr, ret)));
