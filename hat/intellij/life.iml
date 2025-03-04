@@ -14,5 +14,6 @@
     <orderEntry type="module" module-name="backend_spirv" />
     <orderEntry type="module" module-name="wrap" />
     <orderEntry type="module" module-name="clwrap" />
+    <orderEntry type="module" module-name="backend_ffi_opencl" />
   </component>
 </module>

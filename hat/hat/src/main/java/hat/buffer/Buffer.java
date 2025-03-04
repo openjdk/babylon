@@ -49,7 +49,7 @@ public interface Buffer extends MappableIface {
     }
 
     default void setHostDirty(){
-        SegmentMapper.BufferState.of(this).setHostDirty();
+        SegmentMapper.BufferState.of(this).setHostDirty(true);
     }
 
     interface Union extends MappableIface {

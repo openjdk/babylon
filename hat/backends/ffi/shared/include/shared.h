@@ -146,11 +146,16 @@ extern void hexdump(void *ptr, int buflen);
    void setBits(int bitBits) {
       bits|=bitBits;
    }
-   void  resetBits(int bitsToReset) {
+   void  xorBits(int bitsToReset) {
       // say bits = 0b0111 (7) and bitz = 0b0100 (4)
       int xored = bits^bitsToReset;  // xored = 0b0011 (3)
       bits =  xored;
    }
+    void  resetBits(int bitsToReset) {
+         // say bits = 0b0111 (7) and bitz = 0b0100 (4)
+         bits = bits&~bitsToReset;  // xored = 0b0011 (3)
+         //bits =  xored;
+      }
    int getBits() {
       return bits;
    }
