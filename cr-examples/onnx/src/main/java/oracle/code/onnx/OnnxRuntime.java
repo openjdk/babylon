@@ -132,10 +132,10 @@ public final class OnnxRuntime {
     private static final CachedModelClassValue MODEL_CACHE = new CachedModelClassValue();
 
     public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
-        return execute(l, codeLambda, Arena.ofAuto());
+        return execute(l, Arena.ofAuto(), codeLambda);
     }
 
-    public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda, Arena sessionArena) {
+    public static <T> Tensor<T> execute(MethodHandles.Lookup l, Arena sessionArena, OnnxFunction<Tensor<T>> codeLambda) {
         var q = Op.ofQuotable(codeLambda).orElseThrow();
 
         var model = MODEL_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
