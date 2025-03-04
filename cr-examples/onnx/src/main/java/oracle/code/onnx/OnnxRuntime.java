@@ -55,14 +55,14 @@ public final class OnnxRuntime {
     public interface OnnxFunction<T> extends Supplier<T>, Quotable {
     }
 
-    record CachedModel(byte[] protoModel, int[] operandsMapping) {}
+    record CachedSession(Session session, int[] operandsMapping) {}
 
-    static class CachedModelClassValue extends ClassValue<CachedModel> {
+    static class CachedSessionClassValue extends ClassValue<CachedSession> {
 
         private MethodHandles.Lookup l;
         private Quoted q;
 
-        CachedModel computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
+        CachedSession computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
             try {
                 this.l = l;
                 this.q = q;
@@ -75,7 +75,7 @@ public final class OnnxRuntime {
         }
 
         @Override
-        protected CachedModel computeValue(Class<?> type) {
+        protected CachedSession computeValue(Class<?> type) {
             var lambda = (CoreOp.LambdaOp) q.op();
 
             CoreOp.FuncOp onnxFunc;
@@ -125,11 +125,13 @@ public final class OnnxRuntime {
                     operandsMapping[i] = i;
                 }
             }
-            return new CachedModel(OnnxProtoBuilder.build(onnxFunc.body().entryBlock()), operandsMapping);
+            return new CachedSession(getInstance().createSession(
+                    Arena.ofAuto(), // cached session must be created under its own auto arena
+                    OnnxProtoBuilder.build(onnxFunc.body().entryBlock())), operandsMapping);
         }
     }
 
-    private static final CachedModelClassValue MODEL_CACHE = new CachedModelClassValue();
+    private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
 
     public static <T> Tensor<T> execute(MethodHandles.Lookup lookup, OnnxFunction<Tensor<T>> codeLambda) {
         return execute(Arena.ofAuto(), lookup, codeLambda);
@@ -138,7 +140,7 @@ public final class OnnxRuntime {
     public static <T> Tensor<T> execute(Arena arena, MethodHandles.Lookup lookup, OnnxFunction<Tensor<T>> codeLambda) {
         var q = Op.ofQuotable(codeLambda).orElseThrow();
 
-        var model = MODEL_CACHE.computeIfAbsent(codeLambda.getClass(), lookup, q);
+        var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), lookup, q);
 
         var captured = q.capturedValues().sequencedValues().toArray();
         List<Tensor> arguments = IntStream.of(model.operandsMapping())
@@ -147,13 +149,7 @@ public final class OnnxRuntime {
                 .map(val -> (Tensor) val)
                 .toList();
 
-        try {
-            var session = getInstance().createSession(arena, model.protoModel());
-            return session.run(arena, arguments).getFirst();
-        } catch (RuntimeException e) {
-            OnnxProtoPrinter.printModel(model.protoModel());
-            throw e;
-        }
+        return model.session.run(arena, arguments).getFirst();
     }
 
     record SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping) {}
