@@ -77,7 +77,7 @@ public class CNNTest {
 //    static final int LABELS_HEADER_SIZE = 8;
 
     private static final String GREY_SCALE = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-    private static final Arena ARENA = Arena.ofAuto();
+    private Arena arena;
 
     private static final int PIXEL_DEPTH = 255;
     private static final int NUM_CHANNELS = 1;
@@ -330,67 +330,73 @@ public class CNNTest {
         }
     }
 
-    private static Tensor<Float> floatTensor(String resource, long... shape) throws IOException {
+    private Tensor<Float> floatTensor(String resource, long... shape) throws IOException {
         try (var file = new RandomAccessFile(CNNTest.class.getResource(resource).getPath(), "r")) {
-            return new Tensor(ARENA, file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length(), ARENA), Tensor.ElementType.FLOAT, shape);
+            return new Tensor(arena, file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length(), arena), Tensor.ElementType.FLOAT, shape);
         }
     }
 
     @Test
     public void testModels() {
-        CoreOp.FuncOp f = getFuncOp("cnn");
-        CoreOp.FuncOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
-        System.out.println(onnxModel.toText());
+        try (var _ = this.arena = Arena.ofConfined()) {
+            CoreOp.FuncOp f = getFuncOp("cnn");
+            CoreOp.FuncOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
+            System.out.println(onnxModel.toText());
 
-        CoreOp.FuncOp expectedOnnxModel = cnnModel();
-        System.out.println(expectedOnnxModel.toText());
+            CoreOp.FuncOp expectedOnnxModel = cnnModel();
+            System.out.println(expectedOnnxModel.toText());
 
-        Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
+            Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
+        }
     }
 
     @Test
     public void testInterpreter() throws Exception {
-        var conv1Weight = floatTensor("mnist/conv1-weight-float-le", 6, 1, 5, 5);
-        var conv1Bias = floatTensor("mnist/conv1-bias-float-le", 6);
-        var conv2Weight = floatTensor("mnist/conv2-weight-float-le", 16, 6, 5, 5);
-        var conv2Bias = floatTensor("mnist/conv2-bias-float-le", 16);
-        var fc1Weight = floatTensor("mnist/fc1-weight-float-le", 120, 256);
-        var fc1Bias = floatTensor("mnist/fc1-bias-float-le", 120);
-        var fc2Weight = floatTensor("mnist/fc2-weight-float-le", 84, 120);
-        var fc2Bias = floatTensor("mnist/fc2-bias-float-le", 84);
-        var fc3Weight = floatTensor("mnist/fc3-weight-float-le", 10, 84);
-        var fc3Bias = floatTensor("mnist/fc3-bias-float-le", 10);
-        test(inputImage -> cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
-                               fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
-                               inputImage));
+        try (var _ = this.arena = Arena.ofConfined()) {
+            var conv1Weight = floatTensor("mnist/conv1-weight-float-le", 6, 1, 5, 5);
+            var conv1Bias = floatTensor("mnist/conv1-bias-float-le", 6);
+            var conv2Weight = floatTensor("mnist/conv2-weight-float-le", 16, 6, 5, 5);
+            var conv2Bias = floatTensor("mnist/conv2-bias-float-le", 16);
+            var fc1Weight = floatTensor("mnist/fc1-weight-float-le", 120, 256);
+            var fc1Bias = floatTensor("mnist/fc1-bias-float-le", 120);
+            var fc2Weight = floatTensor("mnist/fc2-weight-float-le", 84, 120);
+            var fc2Bias = floatTensor("mnist/fc2-bias-float-le", 84);
+            var fc3Weight = floatTensor("mnist/fc3-weight-float-le", 10, 84);
+            var fc3Bias = floatTensor("mnist/fc3-bias-float-le", 10);
+            test(inputImage -> cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
+                                   fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
+                                   inputImage));
+        }
     }
 
     @Test
     public void testProtobufModel() throws Exception {
-        var conv1Weight = floatTensor("mnist/conv1-weight-float-le", 6, 1, 5, 5);
-        var conv1Bias = floatTensor("mnist/conv1-bias-float-le", 6);
-        var conv2Weight = floatTensor("mnist/conv2-weight-float-le", 16, 6, 5, 5);
-        var conv2Bias = floatTensor("mnist/conv2-bias-float-le", 16);
-        var fc1Weight = floatTensor("mnist/fc1-weight-float-le", 120, 256);
-        var fc1Bias = floatTensor("mnist/fc1-bias-float-le", 120);
-        var fc2Weight = floatTensor("mnist/fc2-weight-float-le", 84, 120);
-        var fc2Bias = floatTensor("mnist/fc2-bias-float-le", 84);
-        var fc3Weight = floatTensor("mnist/fc3-weight-float-le", 10, 84);
-        var fc3Bias = floatTensor("mnist/fc3-bias-float-le", 10);
-        test(inputImage -> OnnxRuntime.execute(MethodHandles.lookup(), () ->
-                cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
-                    fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
-                    inputImage)));
+        try (var _ = this.arena = Arena.ofConfined()) {
+            var conv1Weight = floatTensor("mnist/conv1-weight-float-le", 6, 1, 5, 5);
+            var conv1Bias = floatTensor("mnist/conv1-bias-float-le", 6);
+            var conv2Weight = floatTensor("mnist/conv2-weight-float-le", 16, 6, 5, 5);
+            var conv2Bias = floatTensor("mnist/conv2-bias-float-le", 16);
+            var fc1Weight = floatTensor("mnist/fc1-weight-float-le", 120, 256);
+            var fc1Bias = floatTensor("mnist/fc1-bias-float-le", 120);
+            var fc2Weight = floatTensor("mnist/fc2-weight-float-le", 84, 120);
+            var fc2Bias = floatTensor("mnist/fc2-bias-float-le", 84);
+            var fc3Weight = floatTensor("mnist/fc3-weight-float-le", 10, 84);
+            var fc3Bias = floatTensor("mnist/fc3-bias-float-le", 10);
+            test(inputImage -> OnnxRuntime.execute(MethodHandles.lookup(), () ->
+                    cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
+                        fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
+                        inputImage)));
+        }
     }
 
     private void test(Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {
         try (RandomAccessFile imagesF = new RandomAccessFile(IMAGES_PATH, "r");
              RandomAccessFile labelsF = new RandomAccessFile(LABELS_PATH, "r")) {
 
-            MemorySegment imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE, ARENA);
-            MemorySegment labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE, ARENA);
+            MemorySegment imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE, arena);
+            MemorySegment labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE, arena);
 
-            Tensor<Byte> inputImage = new Tensor(ARENA, imagesIn, Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
+            Tensor<Byte> inputImage = new Tensor(arena, imagesIn, Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
 
             MemorySegment result = executor.apply(inputImage).data();
 
