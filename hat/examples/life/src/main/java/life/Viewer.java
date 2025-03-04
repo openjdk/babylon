@@ -49,14 +49,14 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 
 public class Viewer extends JFrame {
-
+    boolean useHat = false;
     private final Object doorBell = new Object();
     final Controls controls;
     final MainPanel mainPanel;
     volatile private boolean started=false;
 
     static final public class MainPanel extends JComponent {
-        enum State {Scheduled, Done};
+        public enum State {Scheduled, Done};
         public  volatile State state = State.Done;
 
         final double IN = 1.1;
@@ -67,20 +67,13 @@ public class Viewer extends JFrame {
         private double zoomFactor;
         private double prevZoomFactor;
         private boolean zooming;
-        private boolean released;
+        private boolean mouseReleased;
         private double xOffset = 0;
         private double yOffset = 0;
         private Point startPoint;
 
 
-        class Drag{
-            public int xDiff;
-            public int yDiff;
-            Drag(int xDiff, int yDiff) {
-                this.xDiff = xDiff;
-                this.yDiff = yDiff;
-            }
-        }
+        record Drag(int xDiff, int yDiff){ }
         Drag drag = null;
 
         @Override
@@ -115,13 +108,13 @@ public class Viewer extends JFrame {
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    released = false;
+                    mouseReleased = false;
                     startPoint = MouseInfo.getPointerInfo().getLocation();
+                    repaint();
                 }
-
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                    released = true;
+                    mouseReleased = true;
                     repaint();
                 }
             });
@@ -131,50 +124,55 @@ public class Viewer extends JFrame {
         public void paint(Graphics g) {
             super.paint(g);
             Graphics2D g2 = (Graphics2D) g;
-            AffineTransform at = new AffineTransform();
+            AffineTransform affineTransform = new AffineTransform();
             if (zooming) {
                 double xRel = MouseInfo.getPointerInfo().getLocation().getX() - getLocationOnScreen().getX();
                 double yRel = MouseInfo.getPointerInfo().getLocation().getY() - getLocationOnScreen().getY();
                 double zoomDiv = zoomFactor / prevZoomFactor;
                 xOffset = (zoomDiv) * (xOffset) + (1 - zoomDiv) * xRel;
                 yOffset = (zoomDiv) * (yOffset) + (1 - zoomDiv) * yRel;
-                at.translate(xOffset, yOffset);
+                affineTransform.translate(xOffset, yOffset);
                 prevZoomFactor = zoomFactor;
                 zooming = false;
             } else if (drag!= null) {
-                at.translate(xOffset +drag.xDiff, yOffset + drag.yDiff);
-                if (released) {
+                affineTransform.translate(xOffset +drag.xDiff, yOffset + drag.yDiff);
+                if (mouseReleased) {
                     xOffset += drag.xDiff;
                     yOffset += drag.yDiff;
                     drag = null;
                 }
             } else{
-                at.translate(xOffset, yOffset);
+                affineTransform.translate(xOffset, yOffset);
             }
-            at.scale(zoomFactor, zoomFactor);
-            g2.transform(at);
-            g2.setColor(Color.BLACK);
-            g2.fillRect(0-5000, 0-5000, image.getWidth()+10000, image.getHeight()+10000);
+            affineTransform.scale(zoomFactor, zoomFactor);
+            g2.transform(affineTransform);
+            g2.setColor(Color.DARK_GRAY);
+            g2.fillRect(-image.getWidth(),-image.getHeight(), image.getWidth()*3, image.getHeight()*3);
             g2.drawImage(image, 0,0, image.getWidth(), image.getHeight(), 0, 0, image.getWidth(), image.getHeight(), this);
             state = State.Done;
         }
     }
     public static class Controls{
+        private boolean useHat;
         private JTextField generationTextField;
-        private  JTextField generationsPerSecondTextField;
-        private  JButton startButton;
-        private  JToggleButton useGPUToggleButton;
-        private  JToggleButton alwaysCopyToggleButton;
-        private  JComboBox<String> generationsPerFrameComboBox;
+        private JTextField generationsPerSecondTextField;
+        private JButton startButton;
+        private JToggleButton useGPUToggleButton;
+        private JToggleButton minimizeCopiesToggleButton;
+        private JComboBox<String> generationsPerFrameComboBox;
         public volatile boolean updated = false;
-        Controls(JMenuBar menuBar){
+        Controls(JMenuBar menuBar, boolean useHat){
+            this.useHat = useHat;
             ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
             this.startButton = (JButton) menuBar.add(new JButton("Start"));
-            this.useGPUToggleButton =addToggle(menuBar, "Java", "GPU");
-            this.alwaysCopyToggleButton = addToggle(menuBar,"Minimize Moves","Always Copy");
-         //   this.generationsPerFrameComboBox = (JComboBox<String>) menuBar.add(new JComboBox<String>(
-           //         new String[]{"1", "10", "20"})
-           // );
+            if (!useHat) {
+                this.useGPUToggleButton = addToggle(menuBar, "Java", "GPU");
+                this.minimizeCopiesToggleButton = addToggle(menuBar, "Always Copy", "Minimize Moves");
+                this.minimizeCopiesToggleButton.setEnabled(false);
+                useGPUToggleButton.addChangeListener(event->{
+                    this.minimizeCopiesToggleButton.setEnabled(useGPUToggleButton.isSelected());
+                });
+            }
             generationTextField = addLabelledTextField(menuBar,"Gen");
             generationsPerSecondTextField = addLabelledTextField(menuBar,"Gen/Sec");
         }
@@ -200,8 +198,8 @@ public class Viewer extends JFrame {
             return textField;
         }
 
-        public boolean alwaysCopy() {
-            return alwaysCopyToggleButton.isSelected();
+        public boolean minimizeCopies() {
+            return minimizeCopiesToggleButton.isSelected();
         }
 
         public boolean useGPU() {
@@ -220,11 +218,12 @@ public class Viewer extends JFrame {
         }
     }
 
-    Viewer(String title, Main.CLWrapCellGrid CLWrapCellGrid) {
+    Viewer(String title, Main.CellGrid cellGrid, boolean useHat) {
         super(title);
-        this.mainPanel = new MainPanel(new BufferedImage(CLWrapCellGrid.width(), CLWrapCellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
+        this.useHat = useHat;
+        this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
         JMenuBar menuBar = new JMenuBar();
-        this.controls = new Controls(menuBar);
+        this.controls = new Controls(menuBar, useHat);
         setJMenuBar(menuBar);
         controls.startButton.addActionListener(_ -> {started=true;synchronized (doorBell) {doorBell.notify();}});
         this.getContentPane().add(this.mainPanel);

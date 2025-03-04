@@ -51,36 +51,36 @@ public record Sequence(String name, MemorySegment memorySegment,
 
     }
 
-    public Object get(int idx) {
-        return varHandle.get(memorySegment, 0, (long) idx);
+    public Object get(long idx) {
+        return varHandle.get(memorySegment, 0,  idx);
     }
 
-    public byte i8(int idx) {
+    public byte i8(long idx) {
         return (byte) get(idx);
     }
 
-    public short i16(int idx) {
+    public short i16(long idx ) {
         return (short) get(idx);
     }
 
-    public int i32(int idx) {
+    public int i32(long idx ) {
         return (int) get(idx);
     }
 
-    public long i64(int idx) {
+    public long i64(long idx ) {
         return (long) get(idx);
     }
 
-    public float f32(int idx) {
+    public float f32(long idx ) {
         return (float) get(idx);
     }
 
-    public double f64(int idx) {
+    public double f64(long idx ) {
         return (double) get(idx);
     }
 
-    public Sequence set(int idx, byte v) {
-        varHandle.set(memorySegment, 0, (long) idx, v);
+    public Sequence set(long idx , byte v) {
+        varHandle.set(memorySegment, 0,  idx, v);
         return this;
     }
 }
