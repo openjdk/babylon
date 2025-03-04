@@ -287,7 +287,7 @@ public class Main {
 
         var program = context.buildProgram(Compute.codeHeader +Compute.codeVal + Compute.codeLifePerIdx);
         CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel = program.getKernel("life");
-        boolean useHat = true;
+        boolean useHat = false;
         boolean useBufferBitz = false;
         Viewer viewer = new Viewer("Life", cellGrid, useHat);
         cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.to());

@@ -55,7 +55,7 @@ import static opengl.opengl_h.glutBitmapTimesRoman24$segment;
 import static opengl.opengl_h.glutSwapBuffers;
 
 
-public class NBodyGLWindow extends GLWindow {
+public abstract class NBodyGLWindow extends GLWindow {
     protected final float delT = .1f;
 
     protected final float espSqr = 0.1f;
@@ -179,8 +179,6 @@ public class NBodyGLWindow extends GLWindow {
     protected static float dz = -.5f;
 
 
-
-
     @Override
     public void display() {
         moveBodies();
@@ -188,13 +186,12 @@ public class NBodyGLWindow extends GLWindow {
         glClear(GL_COLOR_BUFFER_BIT() | GL_DEPTH_BUFFER_BIT());
         glEnable(GL_TEXTURE_2D()); // Annoyingly important,
         glBindTexture(GL_TEXTURE_2D(), textureBuf.get(particle.idx));
-
         glPushMatrix1(() -> {
             glScalef(.01f, .01f, .01f);
             glColor3f(1f, 1f, 1f);
             glQuads(() -> {
-    for (int bodyIdx = 0; bodyIdx < bodyCount; bodyIdx++) {
-        var bodyf4 = xyzPosFloatArr.get(bodyIdx);
+                for (int bodyIdx = 0; bodyIdx < bodyCount; bodyIdx++) {
+                    var bodyf4 = xyzPosFloatArr.get(bodyIdx);
 
                             /*
                              * Textures are mapped to a quad by defining the vertices in
@@ -209,32 +206,26 @@ public class NBodyGLWindow extends GLWindow {
                              * Ideally we need to rotate this to point to the camera (see billboarding)
                              */
 
-        glTexCoord2f(WEST, SOUTH);
-        glVertex3f(bodyf4.x() + WEST + dx, bodyf4.y() + SOUTH + dy, bodyf4.z() + dz);
-        glTexCoord2f(WEST, NORTH);
-        glVertex3f(bodyf4.x() + WEST + dx, bodyf4.y() + NORTH + dy, bodyf4.z() + dz);
-        glTexCoord2f(EAST, NORTH);
-        glVertex3f(bodyf4.x() + EAST + dx, bodyf4.y() + NORTH + dy, bodyf4.z() + dz);
-        glTexCoord2f(EAST, SOUTH);
-        glVertex3f(bodyf4.x() + EAST + dx, bodyf4.y() + SOUTH + dy, bodyf4.z() + dz);
+                    glTexCoord2f(WEST, SOUTH);
+                    glVertex3f(bodyf4.x() + WEST + dx, bodyf4.y() + SOUTH + dy, bodyf4.z() + dz);
+                    glTexCoord2f(WEST, NORTH);
+                    glVertex3f(bodyf4.x() + WEST + dx, bodyf4.y() + NORTH + dy, bodyf4.z() + dz);
+                    glTexCoord2f(EAST, NORTH);
+                    glVertex3f(bodyf4.x() + EAST + dx, bodyf4.y() + NORTH + dy, bodyf4.z() + dz);
+                    glTexCoord2f(EAST, SOUTH);
+                    glVertex3f(bodyf4.x() + EAST + dx, bodyf4.y() + SOUTH + dy, bodyf4.z() + dz);
 
-}
+                }
             });
         });
-
         glDisable(GL_TEXTURE_2D()); // Annoyingly important .. took two days to work that out
-        //glUseProgram(0);
         glMatrixMode(GL_MODELVIEW());
         glPushMatrix1(() -> {
             glColor3f(0.0f, 1.0f, 0.0f);
             var font = glutBitmapTimesRoman24$segment();
             long elapsed = System.currentTimeMillis() - startTime;
             float secs = elapsed / 1000f;
-            var FPS = "Mode: "+mode.toString()+" Bodies "+bodyCount+" FPS: "+((frameCount / secs));
-          // System.out.print(" gw "+glutGet(GLUT_SCREEN_WIDTH())+" gh "+glutGet(GLUT_SCREEN_HEIGHT()));
-           // System.out.print(" a "+aspect+",s "+size);
-            // System.out.println(" w "+width+" h"+height);
-
+            var FPS = "Mode: " + mode.toString() + " Bodies " + bodyCount + " FPS: " + ((frameCount / secs));
             glRasterPos2f(-.8f, .7f);
             for (int c : FPS.getBytes()) {
                 glutBitmapCharacter(font, c);
@@ -242,43 +233,12 @@ public class NBodyGLWindow extends GLWindow {
         });
         glutSwapBuffers();
         frameCount++;
-
     }
 
     @Override
     public void onIdle() {
         // rot += 1f;
         super.onIdle();
-    }
-
-
-
-    public enum Mode  {
-        HAT,OpenCL, Cuda, OpenCL4, Cuda4, JavaSeq, JavaMT, JavaSeq4, JavaMT4;
-
-        public static Mode of(String s) {
-            return switch (s) {
-                case "HAT" -> Mode.HAT;
-                case "OpenCL" -> Mode.OpenCL;
-                case "Cuda" -> Mode.Cuda;
-                case "JavaSeq" -> Mode.JavaSeq;
-                case "JavaMT" -> Mode.JavaMT;
-                case "JavaSeq4" -> Mode.JavaSeq4;
-                case "JavaMT4" -> Mode.JavaMT4;
-                case "OpenCL4" -> Mode.OpenCL4;
-                case "Cuda4" -> Mode.Cuda4;
-                default -> throw new IllegalStateException("No mode " + s);
-            };
-        }
-    }
-    public static void main(String[] args) throws IOException {
-        int particleCount = args.length > 2 ? Integer.parseInt(args[2]) : 32768/2/2;
-        Mode mode = Mode.of(args.length>3?args[3]: Mode.HAT.toString());
-        System.out.println("mode" + mode);
-        try (var arena = mode.equals(Mode.JavaMT)||mode.equals(Mode.JavaMT4) ? Arena.ofShared() : Arena.ofConfined()) {
-            var particleTexture = new GLTexture(arena, NBodyGLWindow.class.getResourceAsStream("/particle.png"));
-            new NBodyGLWindow(arena, 1000, 1000, particleTexture, particleCount, mode).bindEvents().mainLoop();
-        }
     }
 }
 

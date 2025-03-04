@@ -163,17 +163,21 @@ public class CLPlatform implements ArenaHolder {
                     } else {
                         var deviceIdList = ptrArr(context.device.deviceId);
                         if ((status.set(opencl_h.clBuildProgram(program, 1, deviceIdList.ptr(), NULL, NULL, NULL))) != CL_SUCCESS()) {
-                            System.out.println("failed to build" + status);
+                            System.err.println("failed to build program " + status);
+                            System.err.println("Source "+source);
+                           // System.exit(1);
                         }
                         var logLen = longPtr(1L);
                         if ((status.set(opencl_h.clGetProgramBuildInfo(program, context.device.deviceId, CL_PROGRAM_BUILD_LOG(), 0, NULL, logLen.ptr()))) != CL_SUCCESS()) {
-                            System.out.println("failed to get log build " + status.get());
+                            System.err.println("failed to get log build " + status.get());
+                            System.exit(1);
                         } else {
                             var logPtr = cstr(1 + logLen.get());
                             if ((status.set(opencl_h.clGetProgramBuildInfo(program, context.device.deviceId, opencl_h.CL_PROGRAM_BUILD_LOG(), logLen.get(), logPtr.ptr(), NULL))) != opencl_h.CL_SUCCESS()) {
-                                System.out.println("clGetBuildInfo (getting log) failed");
+                                System.out.println("clGetBuildInfo (getting log) failed ");
                             } else {
                                 log = logPtr.get();
+                                System.out.println("log\n" +log);
                             }
                         }
                     }
@@ -196,7 +200,7 @@ public class CLPlatform implements ArenaHolder {
                         var status = program.context.device.platform.status;
                         kernel = opencl_h.clCreateKernel(program.program, kernelNameCStr.ptr(), status.ptr());
                         if (!status.isOK()) {
-                            System.out.println("failed to create kernel " + status);
+                            System.out.println("failed to create kernel '"+kernelName+"'" + status);
                         }
                     }
 
@@ -212,7 +216,7 @@ public class CLPlatform implements ArenaHolder {
                                             memorySegmentState.memorySegment,
                                             status.ptr()));
                                     if (!status.isOK()) {
-                                        throw new RuntimeException("failed to create memory buffer " + status.get());
+                                        throw new RuntimeException("failed to create memory buffer for arg["+i+" " + status.get());
                                     }
                                 }
                                 if (memorySegmentState.copyToDevice) {
@@ -227,13 +231,15 @@ public class CLPlatform implements ArenaHolder {
                                             clWrapComputeContext.nextEventPtrSlot()
                                     ));
                                     if (!status.isOK()) {
-                                        System.out.println("failed to enqueue write " + status);
+                                        System.err.println("failed to enqueue write for arg["+i+" " + status);
+                                        System.exit(1);
                                     }
                                 }
 
                                 status.set(opencl_h.clSetKernelArg(kernel, i, memorySegmentState.clMemPtr.sizeof(), memorySegmentState.clMemPtr.ptr()));
                                 if (!status.isOK()) {
-                                    System.out.println("failed to set arg " + status);
+                                    System.err.println("failed to set arg["+i+" " + status);
+                                    System.exit(1);
                                 }
                             } else if (args[i] instanceof Buffer buffer) {
                                 //  System.out.println("Arg "+i+" is a buffer so checking if we need to write");
@@ -263,7 +269,8 @@ public class CLPlatform implements ArenaHolder {
                                             clWrapComputeContext.nextEventPtrSlot()
                                     ));
                                     if (!status.isOK()) {
-                                        System.out.println("failed to enqueue write " + status);
+                                        System.err.println("failed to enqueue write for arg["+i+" " + status);
+                                        System.exit(1);
                                     }
                                 } else {
 
@@ -272,7 +279,8 @@ public class CLPlatform implements ArenaHolder {
                                 //     System.out.println("After possible write "+ bufferState);
                                 status.set(opencl_h.clSetKernelArg(kernel, i, clmem.sizeof(), clmem.ptr()));
                                 if (!status.isOK()) {
-                                    System.out.println("failed to set arg " + status);
+                                    System.err.println("failed to set arg["+i+"]" + status);
+                                    System.exit(1);
                                 }
 
                             } else {
@@ -283,7 +291,9 @@ public class CLPlatform implements ArenaHolder {
                                 };
                                 status.set(opencl_h.clSetKernelArg(kernel, i, ptr.sizeof(), ptr.ptr()));
                                 if (!status.isOK()) {
-                                    System.out.println("failed to set arg " + status);
+                                    System.err.println("failed to set arg["+i+"] " + status);
+
+                                    System.exit(1);
                                 }
 
                             }
