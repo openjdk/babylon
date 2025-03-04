@@ -402,6 +402,10 @@ public interface SegmentMapper<T> {
                 MemoryLayout.PathElement.groupElement("magic2")
         );
 
+        static final VarHandle vendorPtr = stateMemoryLayout.varHandle(
+                MemoryLayout.PathElement.groupElement("vendorPtr")
+        );
+
         public static long getLayoutSizeAfterPadding(GroupLayout layout) {
             return layout.byteSize() +
                     ((layout.byteSize() % BufferState.alignment) == 0 ? 0 : BufferState.alignment - (layout.byteSize() % BufferState.alignment));
@@ -424,49 +428,78 @@ public interface SegmentMapper<T> {
             BufferState.bits.set(segment, paddedSize, bits);
             return this;
         }
-        public BufferState orBits(int bits) {
-            BufferState.bits.set(segment, paddedSize, getBits()|bits);
+        public BufferState and(int bitz) {
+            BufferState.bits.set(segment, paddedSize, getBits()&bitz);
             return this;
         }
-        public BufferState resetBits(int bits) {
-            int bitz = getBits();   // say bits = 0b0111 (7) and bitz = 0b0100 (4)
-            int xored = bits^bitz;  // xored = 0b0011 (3)
-            BufferState.bits.set(segment, paddedSize, xored);
+        public BufferState or(int bitz) {
+            BufferState.bits.set(segment, paddedSize, getBits()|bitz);
             return this;
         }
+
+        public BufferState xor(int bitz) {
+             // if getBits() = 0b0111 (7) and bitz = 0b0100 (4) xored = 0x0011 3
+             // if getBits() = 0b0011 (3) and bitz = 0b0100 (4) xored = 0x0111 7
+            BufferState.bits.set(segment, paddedSize, getBits()^bitz);
+            return this;
+        }
+
+        public BufferState andNot(int bitz) {
+            // if getBits() = 0b0111 (7) and bitz = 0b0100 (4) andNot = 0b0111 & 0b1011 = 0x0011 3
+            // if getBits() = 0b0011 (3) and bitz = 0b0100 (4) andNot = 0b0011 & 0b1011 = 0x0011 3
+            BufferState.bits.set(segment, paddedSize, getBits()&~bitz);
+            return this;
+        }
+
 
         public int getBits() {
             return (Integer) BufferState.bits.get(segment, paddedSize);
         }
-        public boolean testAllBitsAreSet(int bits) {
-            return (getBits()&bits)==bits;
+        public MemorySegment getVendorPtr(){return (MemorySegment) BufferState.vendorPtr.get(segment, paddedSize);}
+        public void setVendorPtr(MemorySegment vendorPtr){BufferState.vendorPtr.set(segment, paddedSize,vendorPtr);}
+        public boolean all(int bitz) {
+            return (getBits()&bitz)==bitz;
         }
-        public boolean testAnyBitsAreSet(int bits) {
-            return (getBits()&bits)!=0;
+        public boolean any(int bitz) {
+            return (getBits()&bitz)!=0;
         }
-
+        public BufferState setHostDirty(boolean dirty) {
+            if (dirty){
+                or(BIT_HOST_DIRTY);
+            }else{
+                andNot(BIT_HOST_DIRTY);
+            }
+            return this;
+        }
+        public BufferState setDeviceDirty(boolean dirty) {
+            if (dirty){
+                or(BIT_DEVICE_DIRTY);
+            }else{
+                andNot(BIT_DEVICE_DIRTY); // this is wrong we want bits&=!BIT_DEVICE_DIRTY
+            }
+            return this;
+        }
         public boolean isHostNew() {
-            return testAllBitsAreSet(BIT_HOST_NEW);
+            return all(BIT_HOST_NEW);
         }
         public boolean isHostDirty() {
-            return testAllBitsAreSet(BIT_HOST_DIRTY);
+            return all(BIT_HOST_DIRTY);
         }
         public boolean isHostNewOrDirty() {
-            return testAllBitsAreSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
+            return all(BIT_HOST_NEW|BIT_HOST_DIRTY);
         }
         public boolean isDeviceDirty() {
-            return testAllBitsAreSet(BIT_DEVICE_DIRTY);
+            return all(BIT_DEVICE_DIRTY);
         }
         public BufferState clearDeviceDirty() {
-            return resetBits(BIT_DEVICE_DIRTY);
+            return xor(BIT_DEVICE_DIRTY);
         }
         public BufferState resetHostDirty() {
-            return resetBits(BIT_HOST_DIRTY);
+            return xor(BIT_HOST_DIRTY);
         }
         public BufferState resetHostNew() {
-            return resetBits(BIT_HOST_NEW);
+            return xor(BIT_HOST_NEW);
         }
-
 
         public long magic1() {
             return (Long) BufferState.magic1.get(segment, paddedSize);
@@ -492,15 +525,17 @@ public interface SegmentMapper<T> {
             if (ok()){
                 builder.append("State:ok").append("\n");
                 builder.append("State:Bits:").append(paddedString(getBits()));
-                if (testAllBitsAreSet(BIT_HOST_DIRTY)){
+                if (all(BIT_HOST_DIRTY)){
                     builder.append(",").append("HOST_DIRTY");
                 }
-                if (testAllBitsAreSet(BIT_DEVICE_DIRTY)){
+                if (all(BIT_DEVICE_DIRTY)){
                     builder.append(",").append("DEVICE_DIRTY");
                 }
-                if (testAllBitsAreSet(BIT_HOST_NEW)){
+                if (all(BIT_HOST_NEW)){
                     builder.append(",").append("HOST_NEW");
                 }
+                var vendorPtr = getVendorPtr();
+                builder.append(",").append("VENDOR_PTR:").append(Long.toHexString(vendorPtr.address()));
                 builder.append("\n");
 
 
@@ -510,8 +545,7 @@ public interface SegmentMapper<T> {
             return builder.toString();
         }
 
-        public void setHostDirty() {
-        }
+
     }
 
     default T allocate(Arena arena, BoundSchema<?> boundSchema) {

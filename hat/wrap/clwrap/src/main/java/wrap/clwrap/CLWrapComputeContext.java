@@ -92,6 +92,7 @@ public class CLWrapComputeContext {
         public static ClMemPtr of(Arena arena, MemorySegment clmem){
             return new ClMemPtr(arena.allocateFrom(AddressLayout.ADDRESS,clmem));
         }
+
         MemorySegment get(){
             return ptr.get(ValueLayout.ADDRESS,0);
         }
@@ -128,4 +129,6 @@ public class CLWrapComputeContext {
     }
 
     private final Map<MemorySegment, MemorySegmentState> memorySegmentToStateMap = new HashMap<>();
+    public final Map<MemorySegment, CLWrapComputeContext.ClMemPtr> clMemMap = new HashMap<>();
+
 }

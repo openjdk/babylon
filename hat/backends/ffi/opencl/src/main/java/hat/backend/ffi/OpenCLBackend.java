@@ -50,15 +50,17 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         private static final int SHOW_COMPUTE_MODEL_BIT = 1 <<8;
         private static final int INFO_BIT = 1 <<9;
         private static final int TRACE_COPIES_BIT = 1 << 10;
+
+
         public static Mode of() {
-            List<Mode> modes = new ArrayList<>();
+          //  List<Mode> modes = new ArrayList<>();
             if (( ((System.getenv("HAT") instanceof String e)?e:"")+
                     ((System.getProperty("HAT") instanceof String p)?p:"")) instanceof String opts) {
-                Arrays.stream(opts.split(",")).forEach(opt ->
-                        modes.add(of(opt))
-                );
+           //     Arrays.stream(opts.split(",")).forEach(opt ->
+                        return of(opts);
+             //   );
             }
-           return of(modes);
+           return of();
         }
         public static Mode of(int bits) {
 
@@ -93,8 +95,16 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
                 case "PROFILE" -> PROFILE();
                 case "INFO" -> INFO();
                 default -> {
-                    System.out.println("Unexpected opt '"+name+"'");
-                    yield Mode.of(0);
+                    if (name.contains(",")) {
+                        List<Mode> modes = new ArrayList<>();
+                        Arrays.stream(name.split(",")).forEach(opt ->
+                                modes.add(of(opt))
+                        );
+                        yield of(modes);
+                    } else {
+                        System.out.println("Unexpected opt '" + name + "'");
+                        yield Mode.of(0);
+                    }
                 }
             };
         }
@@ -244,6 +254,9 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         }
         return backendHandle;
     }
+    public OpenCLBackend(String spec) {
+        this(Mode.of(spec));
+    }
     public OpenCLBackend(Mode mode) {
         super("opencl_backend");
         this.mode = mode;
@@ -254,6 +267,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
             info();
         }
     }
+
 
     public OpenCLBackend() {
         this(Mode.of().or(Mode.GPU()));

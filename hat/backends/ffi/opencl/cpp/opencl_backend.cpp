@@ -66,7 +66,7 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
  }
 
  OpenCLBackend::OpenCLQueue::OpenCLQueue()
-  : eventMax(256), events(new cl_event[eventMax]), eventc(0){
+  : eventMax(10000), events(new cl_event[eventMax]), eventc(0){
  }
 
  cl_event *OpenCLBackend::OpenCLQueue::eventListPtr(){

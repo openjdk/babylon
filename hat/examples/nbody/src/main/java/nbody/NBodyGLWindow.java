@@ -62,13 +62,13 @@ public class NBodyGLWindow extends GLWindow {
 
     protected final float mass = .5f;
 
-    final GLTexture particle;
+    protected final GLTexture particle;
     protected final Wrap.Float4Arr xyzPosFloatArr;
     protected final Wrap.Float4Arr xyzVelFloatArr;
 
     protected int bodyCount;
     protected int frameCount = 0;
-    final long startTime = System.currentTimeMillis();
+    protected final long startTime = System.currentTimeMillis();
 
     protected final Mode mode;
 
@@ -170,13 +170,13 @@ public class NBodyGLWindow extends GLWindow {
         }
     }
 
-    static final float WEST = 0;
-    static final float EAST = 1;
-    static final float NORTH = 0;
-    static final float SOUTH = 1;
-    static float dx = -.5f;
-    static float dy = -.5f;
-    static float dz = -.5f;
+    protected static final float WEST = 0;
+    protected static final float EAST = 1;
+    protected static final float NORTH = 0;
+    protected static final float SOUTH = 1;
+    protected static float dx = -.5f;
+    protected static float dy = -.5f;
+    protected static float dz = -.5f;
 
 
 
@@ -193,9 +193,8 @@ public class NBodyGLWindow extends GLWindow {
             glScalef(.01f, .01f, .01f);
             glColor3f(1f, 1f, 1f);
             glQuads(() -> {
-
-                for (int bodyIdx = 0; bodyIdx < bodyCount; bodyIdx++) {
-                    var bodyf4 = xyzPosFloatArr.get(bodyIdx);
+    for (int bodyIdx = 0; bodyIdx < bodyCount; bodyIdx++) {
+        var bodyf4 = xyzPosFloatArr.get(bodyIdx);
 
                             /*
                              * Textures are mapped to a quad by defining the vertices in
@@ -210,15 +209,16 @@ public class NBodyGLWindow extends GLWindow {
                              * Ideally we need to rotate this to point to the camera (see billboarding)
                              */
 
-                    glTexCoord2f(WEST, SOUTH);
-                    glVertex3f(bodyf4.x() + WEST + dx, bodyf4.y() + SOUTH + dy, bodyf4.z() + dz);
-                    glTexCoord2f(WEST, NORTH);
-                    glVertex3f(bodyf4.x() + WEST + dx, bodyf4.y() + NORTH + dy, bodyf4.z() + dz);
-                    glTexCoord2f(EAST, NORTH);
-                    glVertex3f(bodyf4.x() + EAST + dx, bodyf4.y() + NORTH + dy, bodyf4.z() + dz);
-                    glTexCoord2f(EAST, SOUTH);
-                    glVertex3f(bodyf4.x() + EAST + dx, bodyf4.y() + SOUTH + dy, bodyf4.z() + dz);
-                }
+        glTexCoord2f(WEST, SOUTH);
+        glVertex3f(bodyf4.x() + WEST + dx, bodyf4.y() + SOUTH + dy, bodyf4.z() + dz);
+        glTexCoord2f(WEST, NORTH);
+        glVertex3f(bodyf4.x() + WEST + dx, bodyf4.y() + NORTH + dy, bodyf4.z() + dz);
+        glTexCoord2f(EAST, NORTH);
+        glVertex3f(bodyf4.x() + EAST + dx, bodyf4.y() + NORTH + dy, bodyf4.z() + dz);
+        glTexCoord2f(EAST, SOUTH);
+        glVertex3f(bodyf4.x() + EAST + dx, bodyf4.y() + SOUTH + dy, bodyf4.z() + dz);
+
+}
             });
         });
 
@@ -254,10 +254,11 @@ public class NBodyGLWindow extends GLWindow {
 
 
     public enum Mode  {
-        OpenCL, Cuda, OpenCL4, Cuda4, JavaSeq, JavaMT, JavaSeq4, JavaMT4;
+        HAT,OpenCL, Cuda, OpenCL4, Cuda4, JavaSeq, JavaMT, JavaSeq4, JavaMT4;
 
         public static Mode of(String s) {
             return switch (s) {
+                case "HAT" -> Mode.HAT;
                 case "OpenCL" -> Mode.OpenCL;
                 case "Cuda" -> Mode.Cuda;
                 case "JavaSeq" -> Mode.JavaSeq;
@@ -272,7 +273,7 @@ public class NBodyGLWindow extends GLWindow {
     }
     public static void main(String[] args) throws IOException {
         int particleCount = args.length > 2 ? Integer.parseInt(args[2]) : 32768/2/2;
-        Mode mode = Mode.of(args.length>3?args[3]: Mode.JavaMT.toString());
+        Mode mode = Mode.of(args.length>3?args[3]: Mode.HAT.toString());
         System.out.println("mode" + mode);
         try (var arena = mode.equals(Mode.JavaMT)||mode.equals(Mode.JavaMT4) ? Arena.ofShared() : Arena.ofConfined()) {
             var particleTexture = new GLTexture(arena, NBodyGLWindow.class.getResourceAsStream("/particle.png"));
