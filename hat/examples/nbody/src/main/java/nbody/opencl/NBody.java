@@ -227,7 +227,7 @@ final Universe universe;
                                 int bodyStrideX = bodyStride+Xidx;
                                 int bodyStrideY = bodyStride+Yidx;
                                 int bodyStrideZ = bodyStride+Zidx;
-                            
+
                                 float accx = 0.0;
                                 float accy = 0.0;
                                 float accz = 0.0;
@@ -251,11 +251,11 @@ final Universe universe;
                                 xyzPos[bodyStrideX] = myPosx + (xyzVel[bodyStrideX] * delT) + (accx * 0.5 * delT);
                                 xyzPos[bodyStrideY] = myPosy + (xyzVel[bodyStrideY] * delT) + (accy * 0.5 * delT);
                                 xyzPos[bodyStrideZ] = myPosz + (xyzVel[bodyStrideZ] * delT) + (accz * 0.5 * delT);
-                            
+
                                 xyzVel[bodyStrideX] = xyzVel[bodyStrideX] + accx;
                                 xyzVel[bodyStrideY] = xyzVel[bodyStrideY] + accy;
                                 xyzVel[bodyStrideZ] = xyzVel[bodyStrideZ] + accz;
-                            
+
                             }
                             """;
                    /* case Mode.OpenCL4 -> """
@@ -293,7 +293,7 @@ final Universe universe;
                                 myVel = myVel + acc;
                                 xyzPos[get_global_id(0)] = myPos;
                                 xyzVel[get_global_id(0)] = myVel;
-                            
+
                             }
                             """;
                     default -> throw new IllegalStateException();
