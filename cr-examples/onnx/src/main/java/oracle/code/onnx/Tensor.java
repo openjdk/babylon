@@ -96,17 +96,29 @@ public class Tensor<T> extends OnnxNumber {
     }
 
     public static Tensor<Byte> ofShape(long[] shape, byte... values) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, values);
-        return new Tensor(data, ElementType.UINT8, shape);
+        return ofShape(Arena.ofAuto(), shape, values);
     }
 
     public static Tensor<Long> ofShape(long[] shape, long... values) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, values);
-        return new Tensor(data, ElementType.INT64, shape);
+        return ofShape(Arena.ofAuto(), shape, values);
     }
 
     public static Tensor<Float> ofShape(long[] shape, float... values) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_FLOAT, values);
+        return ofShape(Arena.ofAuto(), shape, values);
+    }
+
+    public static Tensor<Byte> ofShape(Arena arena, long[] shape, byte... values) {
+        var data = arena.allocateFrom(ValueLayout.JAVA_BYTE, values);
+        return new Tensor(data, ElementType.UINT8, shape);
+    }
+
+    public static Tensor<Long> ofShape(Arena arena, long[] shape, long... values) {
+        var data = arena.allocateFrom(ValueLayout.JAVA_LONG, values);
+        return new Tensor(data, ElementType.INT64, shape);
+    }
+
+    public static Tensor<Float> ofShape(Arena arena, long[] shape, float... values) {
+        var data = arena.allocateFrom(ValueLayout.JAVA_FLOAT, values);
         return new Tensor(data, ElementType.FLOAT, shape);
     }
 
