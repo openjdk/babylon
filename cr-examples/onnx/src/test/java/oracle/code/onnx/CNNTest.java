@@ -332,7 +332,7 @@ public class CNNTest {
 
     private static Tensor<Float> floatTensor(String resource, long... shape) throws IOException {
         try (var file = new RandomAccessFile(CNNTest.class.getResource(resource).getPath(), "r")) {
-            return new Tensor(file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length(), ARENA), Tensor.ElementType.FLOAT, shape);
+            return new Tensor(ARENA, file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length(), ARENA), Tensor.ElementType.FLOAT, shape);
         }
     }
 
@@ -390,7 +390,7 @@ public class CNNTest {
             MemorySegment imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE, ARENA);
             MemorySegment labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE, ARENA);
 
-            Tensor<Byte> inputImage = new Tensor(imagesIn, Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
+            Tensor<Byte> inputImage = new Tensor(ARENA, imagesIn, Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
 
             MemorySegment result = executor.apply(inputImage).data();
 
