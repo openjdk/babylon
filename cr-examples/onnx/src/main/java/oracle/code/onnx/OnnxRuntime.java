@@ -363,13 +363,15 @@ public final class OnnxRuntime {
         }
     }
 
-    public MemorySegment createTensor(MemorySegment flatData, Tensor.ElementType elementType, MemorySegment shape) {
+    public MemorySegment createTensor(Arena arena, MemorySegment flatData, Tensor.ElementType elementType, long[] shape) {
         var allocatorInfo = retAddr(OrtApi.AllocatorGetInfo(runtimeAddress, defaultAllocatorAddress, ret));
-        return retAddr(OrtApi.CreateTensorWithDataAsOrtValue(runtimeAddress, allocatorInfo, flatData, flatData.byteSize(), shape, shape.byteSize() / 8, elementType.id, ret));
-    }
-
-    public void releaseValue(MemorySegment value) {
-        OrtApi.ReleaseValue(runtimeAddress, value);
+        return retAddr(OrtApi.CreateTensorWithDataAsOrtValue(
+                runtimeAddress,
+                allocatorInfo,
+                flatData, flatData.byteSize(),
+                shape.length == 0 ? MemorySegment.NULL : arena.allocateFrom(C_LONG_LONG, shape), (long)shape.length,
+                elementType.id,
+                ret)).reinterpret(arena, value -> OrtApi.ReleaseValue(runtimeAddress, value));
     }
 
     public Tensor.ElementType tensorElementType(MemorySegment tensorAddr) {

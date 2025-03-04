@@ -28,9 +28,6 @@ package oracle.code.onnx;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import oracle.code.onnx.foreign.OrtApi;
-
-import static oracle.code.onnx.foreign.onnxruntime_c_api_h.C_LONG_LONG;
 
     /*
 class DataType(enum.IntEnum):
@@ -154,8 +151,7 @@ public class Tensor<T> extends OnnxNumber {
     final MemorySegment tensorAddr;
 
     public Tensor(Arena arena, MemorySegment dataAddr, ElementType type, long[] shape) {
-        this(dataAddr, OnnxRuntime.getInstance().createTensor(dataAddr, type, shape.length == 0 ? MemorySegment.NULL : arena.allocateFrom(C_LONG_LONG, shape))
-                .reinterpret(arena, value -> OnnxRuntime.getInstance().releaseValue(value)));
+        this(dataAddr, OnnxRuntime.getInstance().createTensor(arena, dataAddr, type, shape));
     }
 
     Tensor(MemorySegment dataAddr, MemorySegment tensorAddr) {
