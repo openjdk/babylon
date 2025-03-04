@@ -32,9 +32,9 @@ public class RuntimeTest {
             assertEquals(2, addOp.getNumberOfInputs());
             assertEquals(1, addOp.getNumberOfOutputs());
 
-            var inputTensor = Tensor.ofFlat(-1f, 2, -3, 4, -5, 6);
+            var inputTensor = Tensor.ofFlat(arena, -1f, 2, -3, 4, -5, 6);
 
-            var absExpectedTensor = Tensor.ofFlat(1f, 2, 3, 4, 5, 6);
+            var absExpectedTensor = Tensor.ofFlat(arena, 1f, 2, 3, 4, 5, 6);
 
             var absResult = absOp.run(arena, List.of(inputTensor));
 
@@ -50,7 +50,7 @@ public class RuntimeTest {
 
             var addOutputTensor = addResult.getFirst();
 
-            var addExpectedTensor = Tensor.ofFlat(0f, 4, 0, 8, 0, 12);
+            var addExpectedTensor = Tensor.ofFlat(arena, 0f, 4, 0, 8, 0, 12);
 
             SimpleTest.assertEquals(addExpectedTensor, addOutputTensor);
         }
