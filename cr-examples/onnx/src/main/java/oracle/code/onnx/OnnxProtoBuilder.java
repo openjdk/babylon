@@ -10,6 +10,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import oracle.code.onnx.ir.OnnxOp;
+import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 
 // Generated from onnx.proto3
@@ -260,25 +261,51 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 21;
 
+    private static final class Indexer extends IdentityHashMap<Value, String> {
+        String getName(Value v) {
+            return computeIfAbsent(v, _ -> "#" + size());
+        }
+        String getName(Value v, int subIndex) {
+            var name = getName(v);
+            if (subIndex != 0) name += "." + subIndex;
+            return name;
+        }
+    }
+
     // @@@ unchecked constraints:
     //         tensor FuncOp parameters and single tensor return type
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
     static byte[] build(Block block) {
-        var indexer = new IdentityHashMap<Value, String>() {
-            String getName(Value v) {
-                return computeIfAbsent(v, _ -> "#" + size());
-            }
-            String getName(Value v, int subIndex) {
-                var name = getName(v);
-                if (subIndex != 0) name += "." + subIndex;
-                return name;
-            }
-        };
-        return build(
+        var indexer = new Indexer();
+        return build(graph(indexer, block));
+    }
+
+    static byte[] build(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+        return build(graph(inputs, ops, outputNames));
+    }
+
+    static byte[] build(GraphProto graph) {
+        return new ModelProto()
+                .ir_version(IR_VERSION)
+                .graph(graph)
+                .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
+                .buf.toByteArray();
+    }
+
+    static GraphProto graph(Indexer indexer, Block block) {
+        return graph(
                 block.parameters().stream().map(v -> tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
                 block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
+                        case OnnxOps.If ifOp ->
+                            opNodes.accept(node(
+                                    ifOp.opName(),
+                                    List.of(indexer.getName(ifOp.operands().getFirst())),
+                                    IntStream.range(0, ifOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(ifOp.result(), o)).toList(),
+                                    java.util.Map.of(
+                                            "else_branch", graph(indexer, ifOp.elseBranch().entryBlock()),
+                                            "then_branch", graph(indexer, ifOp.thenBranch().entryBlock()))));
                         case OnnxOp onnxOp ->
                             opNodes.accept(node(
                                     onnxOp.opName(),
@@ -294,14 +321,6 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                     }
                 }).toList(),
                 List.of(indexer.getName(block.terminatingOp().operands().getFirst())));
-    }
-
-    static byte[] build(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
-        return new ModelProto()
-                .ir_version(IR_VERSION)
-                .graph(graph(inputs, ops, outputNames))
-                .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
-                .buf.toByteArray();
     }
 
     static GraphProto graph(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {

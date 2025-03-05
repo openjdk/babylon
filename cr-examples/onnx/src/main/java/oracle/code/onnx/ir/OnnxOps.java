@@ -36,6 +36,139 @@ public final class OnnxOps {
 
     private OnnxOps() {}
 
+    @OpFactory.OpDeclaration(If.NAME)
+    public static final class If extends OnnxOp {
+        public static final String NAME = "If";
+
+        final Body elseBranch, thenBranch;
+
+        public enum Attribute implements OnnxAttribute.None { }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            V(new OnnxType.TypeVariable("V", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.bool())))),
+            B(new OnnxType.TypeVariable("B", List.of(OnnxType.tensor(OnnxType.bool())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            cond(TypeConstraint.B.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            output(TypeConstraint.V.typeVariable(), Quantifier.VARIADIC),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public If(ExternalizedOp def) {
+            super(SCHEMA, def);
+
+            this.elseBranch = def.bodyDefinitions().get(0).build(this);
+            this.thenBranch = def.bodyDefinitions().get(1).build(this);
+        }
+
+        If(If that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            this.elseBranch = that.elseBranch.transform(cc, ot).build(this);
+            this.thenBranch = that.thenBranch.transform(cc, ot).build(this);
+        }
+
+        @Override
+        public If transform(CopyContext cc, OpTransformer ot) {
+            return new If(this, cc, ot);
+        }
+
+        If(TypeElement resultType, Value cond, Body.Builder elseBranch, Body.Builder thenBranch) {
+            super(SCHEMA, resultType, Set.of(), List.of(cond), List.of());
+
+            this.elseBranch = elseBranch.build(this);
+            this.thenBranch = thenBranch.build(this);
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(cond()));
+        }
+
+        public Value cond() {
+            return operands().get(0);
+        }
+
+        public Body elseBranch() {
+            return elseBranch;
+        }
+
+        public Body thenBranch() {
+            return thenBranch;
+        }
+    }
+
+    public static If If(TypeElement resultType, Value cond, Body.Builder elseBody, Body.Builder thenBody) {
+        return new If(resultType, cond, elseBody, thenBody);
+    }
+
     @OpFactory.OpDeclaration(Abs.NAME)
     public static final class Abs extends OnnxOp {
         public static final String NAME = "Abs";

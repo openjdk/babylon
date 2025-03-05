@@ -1,9 +1,16 @@
 package oracle.code.onnx;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
+import java.util.List;
 import java.util.Optional;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.FunctionType;
+import oracle.code.onnx.ir.OnnxOps;
+import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -114,6 +121,39 @@ public class SimpleTest {
         assertEquals(
                 indicesOfMaxPool(x),
                 OnnxRuntime.execute(MethodHandles.lookup(), () -> indicesOfMaxPool(x)));
+    }
+
+    static CoreOp.FuncOp ifConstModel() {
+        return CoreOp.func("ifConst", FunctionType.functionType(OnnxType.TENSOR_FLOAT32, OnnxType.TENSOR_BOOL)).body(b -> {
+
+            var elseBody = Body.Builder.of(b.parentBody(), FunctionType.functionType(OnnxType.TENSOR_FLOAT32));
+            elseBody.entryBlock().op(
+                    CoreOp._return(elseBody.entryBlock().op(
+                            OnnxOps.Constant(OnnxType.TENSOR_FLOAT32, Optional.empty(), Optional.empty(), Optional.empty(),
+                                    Optional.of((float) -1), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()))));
+
+            var thenBody = Body.Builder.of(b.parentBody(), FunctionType.functionType(OnnxType.TENSOR_FLOAT32));
+            thenBody.entryBlock().op(
+                    CoreOp._return(thenBody.entryBlock().op(
+                            OnnxOps.Constant(OnnxType.TENSOR_FLOAT32, Optional.empty(), Optional.empty(), Optional.empty(),
+                                    Optional.of((float) 1), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()))));
+
+            b.op(CoreOp._return(
+                    b.op(OnnxOps.If(OnnxType.TENSOR_FLOAT32, b.parameters().getFirst(), elseBody, thenBody))));
+        });
+    }
+
+    @Test
+    public void testIfConstModel() throws Exception {
+        var model = ifConstModel().body().entryBlock();
+        try (var arena = Arena.ofConfined()) {
+            assertEquals(Tensor.ofScalar(1f),
+                         OnnxRuntime.getInstance().run(arena, model,
+                                 List.of(Tensor.ofScalar(true))).getFirst());
+            assertEquals(Tensor.ofScalar(-1f),
+                         OnnxRuntime.getInstance().run(arena, model,
+                                 List.of(Tensor.ofScalar(false))).getFirst());
+        }
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
