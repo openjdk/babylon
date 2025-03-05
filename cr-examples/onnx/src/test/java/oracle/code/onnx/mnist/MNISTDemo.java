@@ -25,9 +25,6 @@ package oracle.code.onnx.mnist;
 
 import jdk.incubator.code.CodeReflection;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -43,6 +40,7 @@ import static oracle.code.onnx.OnnxOperators.*;
 public class MNISTDemo {
 
     static final int IMAGE_SIZE = 28;
+    static final long[] IMAGE_SHAPE = new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE};
 
     public static float[] loadConstant(String resource) {
         try (var in = MNISTDemo.class.getResourceAsStream(resource)) {
@@ -108,9 +106,9 @@ public class MNISTDemo {
 
     public static float[] classify(float[] imageData) {
         try (Arena arena = Arena.ofConfined()) {
-            var imageTensor = Tensor.ofShape(new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
+            var imageTensor = Tensor.ofShape(arena, IMAGE_SHAPE, imageData);
 
-            var predictionTensor = OnnxRuntime.execute(MethodHandles.lookup(), arena,
+            var predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(),
                     () -> cnn(imageTensor));
 
             return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);

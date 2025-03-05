@@ -52,13 +52,12 @@ public class OnnxInterpreter {
                     attributeMap.put(attrSchema.get(i).name(), a);
                 }
             }
-            var outTensors = OnnxRuntime.getInstance().runOp(
-                    schema.name(),
+            var outTensors = OnnxRuntime.getInstance().runOp(Arena.ofAuto(), schema.name(),
                     inputs.stream().takeWhile(i -> !(i instanceof Optional o && o.isEmpty())) // @@@ assuming gaps in the optional inputs are not allowed
                               .map(i -> (Tensor)(i instanceof Optional o ? o.get() : i))
                               .toList(),
                     schema.outputs().size(),
-                    attributeMap, Arena.ofAuto());
+                    attributeMap);
             if (outTensors.size() == 1) {
                 return outTensors.getFirst();
             } else {
