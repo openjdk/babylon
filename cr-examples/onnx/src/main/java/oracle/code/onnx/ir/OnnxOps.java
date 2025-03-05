@@ -40,8 +40,9 @@ public final class OnnxOps {
     public static final class If extends OnnxOp {
         public static final String NAME = "If";
 
-        final Body elseBranch, thenBranch;
+        final Body elseBody, thenBody;
 
+        // @@@ make or fake elseBody as "else_branch" attribute and thenBody as "then_branch" attribute
         public enum Attribute implements OnnxAttribute.None { }
 
         public enum TypeConstraint implements OnnxTypeConstraint {
@@ -119,15 +120,15 @@ public final class OnnxOps {
         public If(ExternalizedOp def) {
             super(SCHEMA, def);
 
-            this.elseBranch = def.bodyDefinitions().get(0).build(this);
-            this.thenBranch = def.bodyDefinitions().get(1).build(this);
+            this.elseBody = def.bodyDefinitions().get(0).build(this);
+            this.thenBody = def.bodyDefinitions().get(1).build(this);
         }
 
         If(If that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
 
-            this.elseBranch = that.elseBranch.transform(cc, ot).build(this);
-            this.thenBranch = that.thenBranch.transform(cc, ot).build(this);
+            this.elseBody = that.elseBody.transform(cc, ot).build(this);
+            this.thenBody = that.thenBody.transform(cc, ot).build(this);
         }
 
         @Override
@@ -138,8 +139,8 @@ public final class OnnxOps {
         If(TypeElement resultType, Value cond, Body.Builder elseBranch, Body.Builder thenBranch) {
             super(SCHEMA, resultType, Set.of(), List.of(cond), List.of());
 
-            this.elseBranch = elseBranch.build(this);
-            this.thenBranch = thenBranch.build(this);
+            this.elseBody = elseBranch.build(this);
+            this.thenBody = thenBranch.build(this);
         }
 
         @Override
@@ -157,11 +158,11 @@ public final class OnnxOps {
         }
 
         public Body elseBranch() {
-            return elseBranch;
+            return elseBody;
         }
 
         public Body thenBranch() {
-            return thenBranch;
+            return thenBody;
         }
     }
 
