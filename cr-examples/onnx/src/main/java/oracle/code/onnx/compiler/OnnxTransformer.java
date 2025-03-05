@@ -102,7 +102,6 @@ public class OnnxTransformer {
                         try {
                             onnxOp = (OnnxOp) opMethod.invoke(null, opArgs.toArray());
                         } catch (ReflectiveOperationException | RuntimeException e) {
-                            System.out.println(opArgs);
                             throw new RuntimeException(e);
                         }
                         Op.Result result = bb.op(onnxOp);
