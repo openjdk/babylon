@@ -37,6 +37,7 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import oracle.code.onnx.LambdaToFunc;
 
 final class OnnxPartialEvaluator {
 
@@ -311,6 +312,12 @@ final class OnnxPartialEvaluator {
                     }
                 }
                 evaluatedAttributes.put(io, attrs);
+            } else if (opClass == OnnxOps.If.class) {
+                // @@@ hard-coded 2 extra undeclared attributes
+                List<Object> attrs = o.operands().subList(inputs.size(), inputs.size() + 2).stream()
+                        .map(oc::getValue)
+                        .toList();
+                evaluatedAttributes.put(io, attrs);
             } else {
                 for (int i = 0; i < attributes.size(); i++) {
                     assert oc.isValueDefined(o.operands().get(inputs.size() + i)) : operatorName;
@@ -466,6 +473,10 @@ final class OnnxPartialEvaluator {
                         .map(oc::getValue)
                         .map(String::valueOf)
                         .collect(Collectors.joining());
+            }
+            case CoreOp.LambdaOp lambdaOp -> {
+                // @@@ handle captured values
+                return LambdaToFunc.fromLambda(l, lambdaOp).func().body().copy(CopyContext.create());
             }
             case null, default -> throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));

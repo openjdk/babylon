@@ -1,9 +1,16 @@
 package oracle.code.onnx;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
+import java.util.List;
 import java.util.Optional;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.FunctionType;
+import oracle.code.onnx.ir.OnnxOps;
+import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -114,6 +121,25 @@ public class SimpleTest {
         assertEquals(
                 indicesOfMaxPool(x),
                 OnnxRuntime.execute(MethodHandles.lookup(), () -> indicesOfMaxPool(x)));
+    }
+
+    @CodeReflection
+    public static Tensor<Float> ifConst(Tensor<Boolean> cond, Tensor<Float> trueValue) {
+        return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Identity(trueValue));
+    }
+
+    @Test
+    public void testIfConst() throws Exception {
+        var condFalse = Tensor.ofScalar(false);
+        var expFalse = Tensor.ofScalar(-1f);
+        var condTrue = Tensor.ofScalar(true);
+        var expTrue = Tensor.ofScalar(1f);
+
+        assertEquals(expFalse, ifConst(condFalse, expTrue));
+        assertEquals(expFalse, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifConst(condFalse, expTrue)));
+
+        assertEquals(expTrue, ifConst(condTrue, expTrue));
+        assertEquals(expTrue, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifConst(condTrue, expTrue)));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
