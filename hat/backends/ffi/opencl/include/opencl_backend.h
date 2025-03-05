@@ -29,6 +29,10 @@
    #include <opencl/opencl.h>
 #else
    #include <CL/cl.h>
+   #include <malloc.h>
+   #if defined (_WIN32)
+       #include "windows.h"
+   #endif
 #endif
 
 #include "shared.h"
@@ -66,8 +70,6 @@ public:
     class OpenCLQueue {
     public:
        size_t eventMax;
-      // cl_event start_marker_event;
-      // cl_event end_marker_event;
        cl_event *events;
        size_t eventc;
        cl_command_queue command_queue;
@@ -93,20 +95,16 @@ public:
                 OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
                 virtual ~OpenCLBuffer();
             };
-
         private:
             cl_kernel kernel;
-
         public:
             OpenCLKernel(Backend::Program *program, char* name,cl_kernel kernel);
             ~OpenCLKernel();
             long ndrange( void *argArray);
         };
-
     private:
         cl_program program;
     public:
-
         OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program);
         ~OpenCLProgram();
         long getKernel(int nameLen, char *name);

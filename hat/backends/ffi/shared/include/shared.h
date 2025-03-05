@@ -38,27 +38,17 @@
 #include <stack>
 
 #ifdef __APPLE__
-#define LongUnsignedNewline "%llu\n"
-#define Size_tNewline "%lu\n"
-#define LongHexNewline "(0x%llx)\n"
-#define alignedMalloc(size, alignment) memalign(alignment, size)
-#define SNPRINTF snprintf
+   #define SNPRINTF snprintf
 #else
-
-#include <malloc.h>
-
-#define LongHexNewline "(0x%lx)\n"
-#define LongUnsignedNewline "%lu\n"
-#define Size_tNewline "%lu\n"
-#if defined (_WIN32)
-#include "windows.h"
-#define alignedMalloc(size, alignment) _aligned_malloc(size, alignment)
-#define SNPRINTF _snprintf
-#else
-#define alignedMalloc(size, alignment) memalign(alignment, size)
-#define SNPRINTF  snprintf
+   #include <malloc.h>
+   #if defined (_WIN32)
+      #include "windows.h"
+      #define SNPRINTF _snprintf
+   #else
+      #define SNPRINTF  snprintf
+   #endif
 #endif
-#endif
+
 typedef char s8_t;
 typedef char byte;
 typedef char boolean;
