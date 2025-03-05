@@ -305,6 +305,23 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         Arg_s *arg = argSled.arg(i);
         switch (arg->variant) {
             case '&': {
+               if (openclBackend->openclConfig.trace){
+                  std::cout << "arg["<<i<<"] = "<< std::hex << (int)(arg->value.buffer.access);
+                  switch (arg->value.buffer.access){
+                      case RO_BYTE: std::cout << " RO";break;
+                      case WO_BYTE: std::cout << " WO";break;
+                      case RW_BYTE: std::cout << " RW";break;
+                      default: std::cout << "JUNK!!!!"; break;
+                  }
+                  std::cout << std::endl;
+               }
+               if ((arg->value.buffer.access == RO_BYTE ) || (arg->value.buffer.access == RW_BYTE ) ||(arg->value.buffer.access == WO_BYTE )){
+                 // OK
+               }else{
+                  std::cerr << "arg["<<i<<"] = "<< std::hex << (int)(arg->value.buffer.access) << std::endl;
+                  std::exit(1);
+               }
+
                BufferState_s * bufferState = BufferState_s::of(arg);
                OpenCLBuffer * openclBuffer =nullptr;
                if (bufferState->isHostNew()){
