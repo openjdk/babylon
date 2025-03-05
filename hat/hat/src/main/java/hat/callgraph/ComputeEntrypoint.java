@@ -36,4 +36,8 @@ public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolved
     public ComputeEntrypoint(CallGraph<ComputeEntrypoint> callGraph, Method method, FuncOpWrapper funcOpWrapper) {
         super(callGraph, null, method, funcOpWrapper);
     }
+    @Override
+    public Method getMethod() {
+        return  this.method;
+    }
 }

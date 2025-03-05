@@ -24,6 +24,14 @@
  */
 package hat.callgraph;
 
-public interface Entrypoint {
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Method;
+import java.util.List;
 
+public interface Entrypoint {
+     Method getMethod();
+     default Annotation[][] getParamaterAnnotations(){
+         return getMethod().getParameterAnnotations();
+     }
 }

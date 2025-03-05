@@ -78,11 +78,15 @@ extern void hexdump(void *ptr, int buflen);
  // hat iface bffa   bits
  // 4a7 1face bffa   b175
 
+ #define UNKNOWN_BYTE 0
+ #define RO_BYTE (1<<1)
+ #define WO_BYTE (1<<2)
+ #define RW_BYTE (RO_BYTE|WO_BYTE)
 
  struct Buffer_s {
     void *memorySegment;   // Address of a Buffer/MemorySegment
     long sizeInBytes;     // The size of the memory segment in bytes
-    u8_t access;          // 0=??/1=RO/2=WO/3=RW if this is a buffer
+    u8_t access;          // see hat/buffer/ArgArray.java  UNKNOWN_BYTE=0, RO_BYTE =1<<1,WO_BYTE =1<<2,RW_BYTE =RO_BYTE|WO_BYTE;
 } ;
 
  union Value_u {
@@ -207,7 +211,7 @@ extern void hexdump(void *ptr, int buflen);
       return (BufferState_s*) (((char*)ptr)+sizeInBytes-sizeof(BufferState_s));
    }
 
-     static BufferState_s* of(Arg_s *arg){
+     static BufferState_s* of(Arg_s *arg){ // access?
         return BufferState_s::of(
            arg->value.buffer.memorySegment,
            arg->value.buffer.sizeInBytes
@@ -269,6 +273,7 @@ public:
                 std::cout << " buffer {"
                           << " void *address = 0x" << std::hex << (long) a->value.buffer.memorySegment << std::dec
                           << ", long bytesSize= 0x" << std::hex << (long) a->value.buffer.sizeInBytes << std::dec
+                          << ", char access= 0x" << std::hex << (unsigned char) a->value.buffer.access << std::dec
                           << "}" << std::endl;
                 break;
             default:

@@ -9,8 +9,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="hat" />
-    <orderEntry type="module" module-name="backend_opencl" />
-    <orderEntry type="module" module-name="backend_cuda" />
-    <orderEntry type="module" module-name="backend_spirv" />
+    <orderEntry type="module" module-name="backend_ffi_opencl" />
   </component>
 </module>

@@ -26,11 +26,16 @@ package hat.buffer;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
+
+import java.lang.annotation.Annotation;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.nio.ByteOrder;
+
+import static hat.buffer.ArgArray.Arg.Value.Buf.UNKNOWN_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
@@ -38,6 +43,10 @@ public interface ArgArray extends Buffer {
     interface Arg extends Buffer.Struct{
         interface Value extends Buffer.Union{
             interface Buf extends Buffer.Struct{
+                 byte UNKNOWN_BYTE=(byte)0;
+                 byte RO_BYTE =(byte)1<<1;
+                 byte WO_BYTE =(byte)1<<2;
+                 byte RW_BYTE =RO_BYTE|WO_BYTE;
                 MemorySegment address();
                 void address(MemorySegment address);
                 long bytes();
@@ -244,7 +253,7 @@ public interface ArgArray extends Buffer {
         return (valueLayout.order().equals(ByteOrder.LITTLE_ENDIAN)) ? schema.toLowerCase() : schema;
     }
 
-    static ArgArray create(Accelerator accelerator, Object... args) {
+    static ArgArray create(Accelerator accelerator, KernelCallGraph kernelCallGraph, Object... args) {
         String[] schemas = new String[args.length];
         StringBuilder argSchema = new StringBuilder();
         argSchema.append(args.length);
@@ -274,14 +283,15 @@ public interface ArgArray extends Buffer {
             argArray.schemaBytes(i, schemaStrBytes[i]);
         }
         argArray.schemaBytes(schemaStrBytes.length, (byte) 0);
-        update(argArray,args);
+        update(argArray,kernelCallGraph,args);
         return argArray;
     }
 
-    static void update(ArgArray argArray,  Object... args) {
+    static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
+        Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.getMethod().getParameterAnnotations();
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
-            Arg arg = argArray.arg(i);
+            Arg arg = argArray.arg(i); // this should be invariant, but if we are called from create it will be 0 for all
             arg.idx(i);
             switch (argObject) {
                 case Boolean z1 -> arg.z1(z1);
@@ -293,12 +303,27 @@ public interface ArgArray extends Buffer {
                 case Long s64 -> arg.s64(s64);
                 case Double f64 -> arg.f64(f64);
                 case Buffer buffer -> {
+                    Annotation[] annotations = parameterAnnotations[i];
+                    byte accessByte = UNKNOWN_BYTE;
+                    if (annotations.length > 0) {
+                        for (Annotation annotation : annotations) {
+                            accessByte = switch (annotation) {
+                                case RO ro-> Arg.Value.Buf.RO_BYTE;
+                                case RW rw -> Arg.Value.Buf.RW_BYTE;
+                                case WO wo -> Arg.Value.Buf.WO_BYTE;
+                                default -> throw new IllegalStateException("Unexpected value: " + annotation);
+                            };
+                        }
+                    }else{
+                        throw new IllegalArgumentException("Argument " + i + " has no access annotations");
+                    }
                     MemorySegment segment = Buffer.getMemorySegment(buffer);
                     arg.variant((byte) '&');
                     Arg.Value value = arg.value();
                     Arg.Value.Buf buf = value.buf();
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
+                    buf.access(accessByte);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }
