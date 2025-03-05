@@ -26,16 +26,22 @@
 
 package oracle.code.onnx;
 
+import java.lang.foreign.ValueLayout;
 import oracle.code.onnx.ir.OnnxOps;
 
 import java.util.Optional;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @SuppressWarnings({"unchecked", "OptionalUsedAsFieldOrParameterType"})
 public final class OnnxOperators extends ExplicitOnnxOperators {
 
     private OnnxOperators() {}
+
+    public static <T> Tensor<T> If(Tensor<Boolean> cond, Supplier<Tensor<T>> elseBody, Supplier<Tensor<T>> thenBody) {
+        return cond.data().get(ValueLayout.JAVA_BOOLEAN, 0) ? thenBody.get() : elseBody.get();
+    }
 
     public static <T> Tensor<T> Abs(Tensor<T> X) {
         Object result = OnnxInterpreter.interpret(OnnxOps.Abs.class, List.of(X), List.of());

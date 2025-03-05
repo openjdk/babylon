@@ -311,6 +311,12 @@ final class OnnxPartialEvaluator {
                     }
                 }
                 evaluatedAttributes.put(io, attrs);
+            } else if (opClass == OnnxOps.If.class) {
+                // @@@ hard-coded 2 extra undeclared attributes
+                List<Object> attrs = o.operands().subList(inputs.size(), inputs.size() + 2).stream()
+                        .map(oc::getValue)
+                        .toList();
+                evaluatedAttributes.put(io, attrs);
             } else {
                 for (int i = 0; i < attributes.size(); i++) {
                     assert oc.isValueDefined(o.operands().get(inputs.size() + i)) : operatorName;
@@ -466,6 +472,27 @@ final class OnnxPartialEvaluator {
                         .map(oc::getValue)
                         .map(String::valueOf)
                         .collect(Collectors.joining());
+            }
+            case CoreOp.LambdaOp lambdaOp -> {
+                // @@@ share with runtime
+                // @@@ handle captured values
+                var capturedValues = lambdaOp.capturedValues();
+                var functionType = FunctionType.functionType(lambdaOp.invokableType().returnType(),
+                        capturedValues.stream().map(Value::type)
+                                .map(t -> t instanceof VarType vt ? vt.valueType() : t).toList());
+                return OnnxTransformer.transform(l, CoreOp.func("onnxCode", functionType)
+                        .body(bb -> {
+                            bb.context().mapValues(capturedValues, bb.parameters());
+                            for (Op op : lambdaOp.body().entryBlock().ops()) {
+                                int i;
+                                if (op instanceof CoreOp.VarAccessOp.VarLoadOp load &&
+                                        (i = capturedValues.indexOf(load.varOp().result())) >= 0) {
+                                    bb.context().mapValue(op.result(), bb.parameters().get(i)); // remap var load result to block param
+                                } else {
+                                    bb.apply(op);
+                                }
+                            }
+                        })).body().copy(CopyContext.create());
             }
             case null, default -> throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));

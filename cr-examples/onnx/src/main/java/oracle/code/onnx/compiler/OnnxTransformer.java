@@ -102,6 +102,7 @@ public class OnnxTransformer {
                         try {
                             onnxOp = (OnnxOp) opMethod.invoke(null, opArgs.toArray());
                         } catch (ReflectiveOperationException | RuntimeException e) {
+                            System.out.println(opArgs);
                             throw new RuntimeException(e);
                         }
                         Op.Result result = bb.op(onnxOp);
@@ -223,6 +224,8 @@ public class OnnxTransformer {
                 return OnnxType.TENSOR_INT64;
             } else if (elementType.equals(JavaType.J_L_BYTE)) {
                 return OnnxType.TENSOR_UINT8;
+            } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
+                return OnnxType.TENSOR_BOOL;
             }
         }
         throw new UnsupportedOperationException("Unknown type: " + type);

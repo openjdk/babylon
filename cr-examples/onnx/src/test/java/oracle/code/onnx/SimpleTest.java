@@ -123,37 +123,22 @@ public class SimpleTest {
                 OnnxRuntime.execute(MethodHandles.lookup(), () -> indicesOfMaxPool(x)));
     }
 
-    static CoreOp.FuncOp ifConstModel() {
-        return CoreOp.func("ifConst", FunctionType.functionType(OnnxType.TENSOR_FLOAT32, OnnxType.TENSOR_BOOL)).body(b -> {
-
-            var elseBody = Body.Builder.of(b.parentBody(), FunctionType.functionType(OnnxType.TENSOR_FLOAT32));
-            elseBody.entryBlock().op(
-                    CoreOp._return(elseBody.entryBlock().op(
-                            OnnxOps.Constant(OnnxType.TENSOR_FLOAT32, Optional.empty(), Optional.empty(), Optional.empty(),
-                                    Optional.of((float) -1), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()))));
-
-            var thenBody = Body.Builder.of(b.parentBody(), FunctionType.functionType(OnnxType.TENSOR_FLOAT32));
-            thenBody.entryBlock().op(
-                    CoreOp._return(thenBody.entryBlock().op(
-                            OnnxOps.Constant(OnnxType.TENSOR_FLOAT32, Optional.empty(), Optional.empty(), Optional.empty(),
-                                    Optional.of((float) 1), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()))));
-
-            b.op(CoreOp._return(
-                    b.op(OnnxOps.If(OnnxType.TENSOR_FLOAT32, b.parameters().getFirst(), elseBody, thenBody))));
-        });
+    @CodeReflection
+    public static Tensor<Float> ifConst(Tensor<Boolean> cond) {
+        return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Constant(1f));
     }
 
     @Test
-    public void testIfConstModel() throws Exception {
-        var model = ifConstModel().body().entryBlock();
-        try (var arena = Arena.ofConfined()) {
-            assertEquals(Tensor.ofScalar(1f),
-                         OnnxRuntime.getInstance().run(arena, model,
-                                 List.of(Tensor.ofScalar(true))).getFirst());
-            assertEquals(Tensor.ofScalar(-1f),
-                         OnnxRuntime.getInstance().run(arena, model,
-                                 List.of(Tensor.ofScalar(false))).getFirst());
-        }
+    public void testIfConst() throws Exception {
+        var condFalse = Tensor.ofScalar(false);
+        var expFalse = Tensor.ofScalar(-1f);
+        assertEquals(expFalse, ifConst(condFalse));
+        assertEquals(expFalse, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifConst(condFalse)));
+
+        var condTrue = Tensor.ofScalar(true);
+        var expTrue = Tensor.ofScalar(1f);
+        assertEquals(expTrue, ifConst(condTrue));
+        assertEquals(expTrue, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifConst(condTrue)));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
