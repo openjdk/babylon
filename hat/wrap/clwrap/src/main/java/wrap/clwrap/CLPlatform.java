@@ -287,6 +287,9 @@ public class CLPlatform implements ArenaHolder {
                                 Wrap.Ptr ptr = switch (args[i]) {
                                     case Integer intArg -> intPtr(intArg);
                                     case Float floatArg -> floatPtr(floatArg);
+                                    case Double doubleArg -> doublePtr(doubleArg);
+                                    case Long longArg -> longPtr(longArg);
+                                    case Short shortArg -> shortPtr(shortArg);
                                     default -> throw new IllegalStateException("Unexpected value: " + args[i]);
                                 };
                                 status.set(opencl_h.clSetKernelArg(kernel, i, ptr.sizeof(), ptr.ptr()));
