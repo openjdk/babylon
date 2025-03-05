@@ -278,7 +278,9 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         entry block only
     static byte[] build(Block block) {
         var indexer = new Indexer();
-        return build(graph(indexer, block));
+        var model = build(graph(indexer, block));
+        OnnxProtoPrinter.printModel(model);
+        return model;
     }
 
     static byte[] build(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
@@ -303,7 +305,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                     ifOp.opName(),
                                     List.of(indexer.getName(ifOp.operands().getFirst())),
                                     IntStream.range(0, ifOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(ifOp.result(), o)).toList(),
-                                    java.util.Map.of(
+                                    java.util.Map.of( // @@@ wrong mapping of captured inputs
                                             "else_branch", graph(indexer, ifOp.elseBranch().entryBlock()),
                                             "then_branch", graph(indexer, ifOp.thenBranch().entryBlock()))));
                         case OnnxOp onnxOp ->

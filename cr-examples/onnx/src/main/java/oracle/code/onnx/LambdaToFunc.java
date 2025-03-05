@@ -19,9 +19,6 @@ import oracle.code.onnx.compiler.OnnxTransformer;
 public record LambdaToFunc(CoreOp.FuncOp func, int[] operandsMapping) {
 
     public static LambdaToFunc fromLambda(MethodHandles.Lookup l, CoreOp.LambdaOp lambda) {
-        CoreOp.FuncOp onnxFunc;
-        int[] operandsMapping;
-
         // Shortcut for lambda expressions that call just one method
         if (singleMethodInvocation(lambda) instanceof
                 SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping)) {
@@ -32,39 +29,41 @@ public record LambdaToFunc(CoreOp.FuncOp func, int[] operandsMapping) {
                 throw new RuntimeException(e);
             }
 
-            CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
-            onnxFunc = OnnxTransformer.transform(l, f);
+            var fOpt = Op.ofMethod(m);
+            if (fOpt.isPresent()) {
+                CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
+                CoreOp.FuncOp onnxFunc = OnnxTransformer.transform(l, f);
 
-            var operands = iop.operands();
-            var captured = lambda.capturedValues();
-            operandsMapping = new int[iop.operands().size()];
-            for (int i = 0; i < operandsMapping.length; i++) {
-                operandsMapping[i] = captured.indexOf(valueMapping.get(operands.get(i)));
+                var operands = iop.operands();
+                var captured = lambda.capturedValues();
+                var operandsMapping = new int[iop.operands().size()];
+                for (int i = 0; i < operandsMapping.length; i++) {
+                    operandsMapping[i] = captured.indexOf(valueMapping.get(operands.get(i)));
+                }
+                return new LambdaToFunc(onnxFunc, operandsMapping);
             }
-
-        } else {
-            var capturedValues = lambda.capturedValues();
-            var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
-                    capturedValues.stream().map(Value::type)
-                            .map(t -> t instanceof VarType vt ? vt.valueType() : t).toList());
-            onnxFunc = OnnxTransformer.transform(l, CoreOp.func("onnxCode", functionType)
-                    .body(bb -> {
-                        bb.context().mapValues(capturedValues, bb.parameters());
-                        for (Op op : lambda.body().entryBlock().ops()) {
-                            int i;
-                            if (op instanceof CoreOp.VarAccessOp.VarLoadOp load &&
-                                    (i = capturedValues.indexOf(load.varOp().result())) >= 0) {
-                                bb.context().mapValue(op.result(), bb.parameters().get(i)); // remap var load result to block param
-                            } else {
-                                bb.apply(op);
-                            }
+        }
+        var capturedValues = lambda.capturedValues();
+        var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
+                capturedValues.stream().map(Value::type)
+                        .map(t -> t instanceof VarType vt ? vt.valueType() : t).toList());
+        CoreOp.FuncOp onnxFunc = OnnxTransformer.transform(l, CoreOp.func("onnxCode", functionType)
+                .body(bb -> {
+                    bb.context().mapValues(capturedValues, bb.parameters());
+                    for (Op op : lambda.body().entryBlock().ops()) {
+                        int i;
+                        if (op instanceof CoreOp.VarAccessOp.VarLoadOp load &&
+                                (i = capturedValues.indexOf(load.varOp().result())) >= 0) {
+                            bb.context().mapValue(op.result(), bb.parameters().get(i)); // remap var load result to block param
+                        } else {
+                            bb.apply(op);
                         }
-                    }));
+                    }
+                }));
 
-            operandsMapping = new int[capturedValues.size()];
-            for (int i = 0; i < operandsMapping.length; i++) {
-                operandsMapping[i] = i;
-            }
+        var operandsMapping = new int[capturedValues.size()];
+        for (int i = 0; i < operandsMapping.length; i++) {
+            operandsMapping[i] = i;
         }
         return new LambdaToFunc(onnxFunc, operandsMapping);
     }
