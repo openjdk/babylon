@@ -33,7 +33,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.op.OpFactory;
 
-public class ExplicitOnnxOps {
+public sealed class ExplicitOnnxOps permits OnnxOps {
 
     @OpFactory.OpDeclaration(If.NAME)
     public static final class If extends OnnxOp {
