@@ -299,6 +299,17 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                         } catch (Throwable e) {
                             throw new UndeclaredThrowableException(e);
                         }
+                    } else if (op instanceof CoreOp.FieldAccessOp.FieldLoadOp co && co.resultType() instanceof JavaType jt
+                                                                                 && jt.erasure().equals(TENSOR_CLASS)) {
+                        try {
+                            opNodes.accept(tensorProto(
+                                    indexer.getName(op.result()),
+                                    (oracle.code.onnx.Tensor)co.fieldDescriptor()
+                                            .resolveToHandle(lookup)
+                                            .get()));
+                        } catch (ReflectiveOperationException e) {
+                            throw new UndeclaredThrowableException(e);
+                        }
                     }
                 }).toList(),
                 block.parameters().stream().map(v -> tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
@@ -310,7 +321,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                     onnxOp.operands().stream().map(v -> indexer.getName(v)).toList(),
                                     IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(onnxOp.result(), o)).toList(),
                                     onnxOp.onnxAttributes()));
-                        case CoreOp.ReturnOp _, CoreOp.InvokeOp _ -> { // skip
+                        case CoreOp.ReturnOp _, CoreOp.InvokeOp _, CoreOp.FieldAccessOp.FieldLoadOp _ -> { // skip
                         }
                         case CoreOp.TupleLoadOp tlo ->
                             indexer.put(tlo.result(), indexer.getName(tlo.operands().getFirst(), tlo.index()));

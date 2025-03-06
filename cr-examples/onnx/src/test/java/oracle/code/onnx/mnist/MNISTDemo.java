@@ -51,45 +51,17 @@ public class MNISTDemo {
         }
     }
 
-    static Tensor<Float> conv1Weights() {
-        return initialize("conv1-weight-float-le", 6, 1, 5, 5);
-    }
-
-    static Tensor<Float> conv1Biases() {
-        return initialize("conv1-bias-float-le", 6);
-    }
-
-    static Tensor<Float> conv2Weights() {
-        return initialize("conv2-weight-float-le", 16, 6, 5, 5);
-    }
-
-    static Tensor<Float> conv2Biases() {
-        return initialize("conv2-bias-float-le", 16);
-    }
-
-    static Tensor<Float> fc1Weights() {
-        return initialize("fc1-weight-float-le", 120, 256);
-    }
-
-    static Tensor<Float> fc1Biases() {
-        return initialize("fc1-bias-float-le", 120);
-    }
-
-    static Tensor<Float> fc2Weights() {
-        return initialize("fc2-weight-float-le", 84, 120);
-    }
-
-    static Tensor<Float> fc2Biases() {
-        return initialize("fc2-bias-float-le", 84);
-    }
-
-    static Tensor<Float> fc3Weights() {
-        return initialize("fc3-weight-float-le", 10, 84);
-    }
-
-    static Tensor<Float> fc3Biases() {
-        return initialize("fc3-bias-float-le", 10);
-    }
+    static final Tensor<Float>
+            conv1Weights = initialize("conv1-weight-float-le", 6, 1, 5, 5),
+            conv1Biases = initialize("conv1-bias-float-le", 6),
+            conv2Weights = initialize("conv2-weight-float-le", 16, 6, 5, 5),
+            conv2Biases = initialize("conv2-bias-float-le", 16),
+            fc1Weights = initialize("fc1-weight-float-le", 120, 256),
+            fc1Biases = initialize("fc1-bias-float-le", 120),
+            fc2Weights = initialize("fc2-weight-float-le", 84, 120),
+            fc2Biases = initialize("fc2-bias-float-le", 84),
+            fc3Weights = initialize("fc3-weight-float-le", 10, 84),
+            fc3Biases = initialize("fc3-bias-float-le", 10);
 
     @CodeReflection
     public static Tensor<Float> cnn(Tensor<Float> inputImage) {
@@ -97,7 +69,7 @@ public class MNISTDemo {
         var scaledInput = Div(inputImage, Constant(255f));
 
         // First conv layer
-        var conv1 = Conv(scaledInput, conv1Weights(), of(conv1Biases()), of(new long[4]),
+        var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), of(new long[4]),
                 of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
                 of(1L), of(new long[]{5,5}));
         var relu1 = Relu(conv1);
@@ -107,7 +79,7 @@ public class MNISTDemo {
                 of(0L), empty(), of(new long[]{2, 2}), new long[]{2, 2});
 
         // Second conv layer
-        var conv2 = Conv(pool1.Y(), conv2Weights(), of(conv2Biases()), of(new long[4]),
+        var conv2 = Conv(pool1.Y(), conv2Weights, of(conv2Biases), of(new long[4]),
                 of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
                 of(1L), of(new long[]{5,5}));
         var relu2 = Relu(conv2);
@@ -120,15 +92,15 @@ public class MNISTDemo {
         var flatten = Flatten(pool2.Y(), of(1L));
 
         // First fully connected layer
-        var fc1 = Gemm(flatten, fc1Weights(), of(fc1Biases()), of(1f), of(1L), of(1f), empty());
+        var fc1 = Gemm(flatten, fc1Weights, of(fc1Biases), of(1f), of(1L), of(1f), empty());
         var relu3 = Relu(fc1);
 
         // Second fully connected layer
-        var fc2 = Gemm(relu3, fc2Weights(), of(fc2Biases()), of(1f), of(1L), of(1f), empty());
+        var fc2 = Gemm(relu3, fc2Weights, of(fc2Biases), of(1f), of(1L), of(1f), empty());
         var relu4 = Relu(fc2);
 
         // Softmax layer
-        var fc3 = Gemm(relu4, fc3Weights(), of(fc3Biases()), of(1f), of(1L), of(1f), empty());
+        var fc3 = Gemm(relu4, fc3Weights, of(fc3Biases), of(1f), of(1L), of(1f), empty());
         var prediction = Softmax(fc3, of(1L));
 
         return prediction;

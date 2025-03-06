@@ -332,6 +332,11 @@ final class OnnxPartialEvaluator {
             // @@@ static no-arg method calls returning Tensor are passed as initializers
             unevaluatedOperations.add(o);
             return null;
+        } else if (o instanceof CoreOp.FieldAccessOp.FieldLoadOp co && co.fieldDescriptor().type() instanceof JavaType jt
+                                                                    && jt.erasure().equals(TENSOR_CLASS)) {
+            // @@@ Tensor fields are passed as initializers
+            unevaluatedOperations.add(o);
+            return null;
         } else if (!o.operands().stream().allMatch(oc::isValueDefined)) {
             // Ignore operation if any value is undefined, meaning it is not part of the attribute value space
             unevaluatedOperations.add(o);
