@@ -270,8 +270,12 @@ public class ReflectMethods extends TreeTranslator {
                         // @@@ Could probably use MethodHandles.publicLookup()
                         JCMethodInvocation lookup = make.App(make.Ident(crSyms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
                         interpreterArgs.append(lookup);
-                        // Deserialize the func operation
-                        JCMethodInvocation op = make.App(opMethodId);
+                        // Get the func operation
+                        JCFieldAccess opFactory = make.Select(make.Ident(crSyms.extendedOpType.tsym),
+                                crSyms.extendedOpFactorySym);
+                        JCFieldAccess typeFactory = make.Select(make.Ident(crSyms.coreTypeFactoryType.tsym),
+                                crSyms.coreTypeFactorySym);
+                        JCMethodInvocation op = make.App(opMethodId, com.sun.tools.javac.util.List.of(opFactory, typeFactory));
                         interpreterArgs.append(op);
                         // Append captured vars
                         ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);

@@ -442,17 +442,16 @@ import sun.invoke.util.Wrapper;
         NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
         // push the receiver on the stack for operand of put field instruction
         cob.aload(0)
+        // load class data: CodeReflectionSupport.HANDLE_MAKE_QUOTED and quotableOpGetter
            .ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(2))), natMH))
-        // load op string from field
            .ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(1))), natMH));
         MethodType mtype = quotableOpGetterInfo.getMethodType();
         if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
             mtype = mtype.insertParameterTypes(0, implClass);
         }
-//        ExtendedOp.FACTORY;
+        // load arguments to quotableOpGetter: ExtendedOp.FACTORY and CORE_TYPE_FACTORY
         cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.EXTENDED_OP_CLASS.describeConstable().get(),
                 "FACTORY", CodeReflectionSupport.OP_FACTORY_CLASS.describeConstable().get());
-//        CoreTypeFactory.CORE_TYPE_FACTORY
         cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.CORE_TYPE_FACTORY_CLASS.describeConstable().get(),
                 "CORE_TYPE_FACTORY",
                 CodeReflectionSupport.TYPE_ELEMENT_FACTORY_CLASS.describeConstable().get());

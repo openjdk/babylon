@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.internal;
 
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.ModuleSymbol;
 import com.sun.tools.javac.code.Symtab;
@@ -50,6 +51,10 @@ public class CodeReflectionSymbols {
     public final Type funcOpType;
     public final Type opFactoryType;
     public final Type typeElementFactoryType;
+    public final Type extendedOpType;
+    public final Type coreTypeFactoryType;
+    public final Symbol.VarSymbol extendedOpFactorySym;
+    public final Symbol.VarSymbol coreTypeFactorySym;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -81,7 +86,11 @@ public class CodeReflectionSymbols {
         syms.synthesizeEmptyInterfaceIfMissing(quotableType);
         opFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.op.OpFactory");
         typeElementFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.type.TypeElementFactory");
-
-
+        extendedOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.op.ExtendedOp");
+        coreTypeFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.type.CoreTypeFactory");
+        extendedOpFactorySym = new Symbol.VarSymbol(PUBLIC | STATIC, names.fromString("FACTORY"), opFactoryType,
+                extendedOpType.tsym);
+        coreTypeFactorySym = new Symbol.VarSymbol(PUBLIC | STATIC, names.fromString("CORE_TYPE_FACTORY"), typeElementFactoryType,
+                coreTypeFactoryType.tsym);
     }
 }
