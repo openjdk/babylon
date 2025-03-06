@@ -449,12 +449,15 @@ import sun.invoke.util.Wrapper;
         if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
             mtype = mtype.insertParameterTypes(0, implClass);
         }
-        // load arguments to quotableOpGetter: ExtendedOp.FACTORY and CORE_TYPE_FACTORY
-        cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.EXTENDED_OP_CLASS.describeConstable().get(),
-                "FACTORY", CodeReflectionSupport.OP_FACTORY_CLASS.describeConstable().get());
-        cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.CORE_TYPE_FACTORY_CLASS.describeConstable().get(),
-                "CORE_TYPE_FACTORY",
-                CodeReflectionSupport.TYPE_ELEMENT_FACTORY_CLASS.describeConstable().get());
+        if (quotableOpGetterInfo.getMethodType().parameterList().equals(List.of(CodeReflectionSupport.OP_FACTORY_CLASS,
+                CodeReflectionSupport.TYPE_ELEMENT_FACTORY_CLASS))) {
+            // load arguments to quotableOpGetter: ExtendedOp.FACTORY and CORE_TYPE_FACTORY
+            cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.EXTENDED_OP_CLASS.describeConstable().get(),
+                    "FACTORY", CodeReflectionSupport.OP_FACTORY_CLASS.describeConstable().get());
+            cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.CORE_TYPE_FACTORY_CLASS.describeConstable().get(),
+                    "CORE_TYPE_FACTORY",
+                    CodeReflectionSupport.TYPE_ELEMENT_FACTORY_CLASS.describeConstable().get());
+        }
         cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get());
         cob.checkcast(CodeReflectionSupport.FUNC_OP_CLASS.describeConstable().get());
 
