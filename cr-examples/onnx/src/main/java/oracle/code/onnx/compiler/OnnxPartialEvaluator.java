@@ -37,10 +37,12 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import oracle.code.onnx.Tensor;
 
 final class OnnxPartialEvaluator {
 
     static final JavaType ONNX_OPERATORS_CLASS = JavaType.type(OnnxOperators.class);
+    static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
 
     // Map from ONNX operator invocation to evaluated attributes
     Map<CoreOp.InvokeOp, List<Object>> evaluatedAttributes;
@@ -297,7 +299,7 @@ final class OnnxPartialEvaluator {
             OnnxOp.OnnxSchema schema = schemaFromOnnxOpClass(opClass);
 
             List<OnnxOp.OnnxParameter> inputs = schema.inputs();
-            assert o.operands().subList(0, inputs.size()).stream().noneMatch(oc::isValueDefined);
+//            assert o.operands().subList(0, inputs.size()).stream().noneMatch(oc::isValueDefined);
             List<OnnxOp.OnnxAttribute> attributes = schema.attributes();
 
             if (opClass == OnnxOps.Constant.class && o.operands().size() == 1) {
@@ -321,6 +323,13 @@ final class OnnxPartialEvaluator {
                 evaluatedAttributes.put(io, attrs);
             }
 
+            unevaluatedOperations.add(o);
+            return null;
+        } else if (o instanceof CoreOp.InvokeOp co && co.invokeKind() == CoreOp.InvokeOp.InvokeKind.STATIC
+                                                   && co.invokeDescriptor().type().parameterTypes().isEmpty()
+                                                   && co.invokeDescriptor().type().returnType() instanceof JavaType jt
+                                                   && jt.erasure().equals(TENSOR_CLASS)) {
+            // @@@ static no-arg method calls returning Tensor are passed as initializers
             unevaluatedOperations.add(o);
             return null;
         } else if (!o.operands().stream().allMatch(oc::isValueDefined)) {

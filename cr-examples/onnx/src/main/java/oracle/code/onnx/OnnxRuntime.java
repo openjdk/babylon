@@ -127,7 +127,7 @@ public final class OnnxRuntime {
             }
             return new CachedSession(getInstance().createSession(
                     Arena.ofAuto(), // cached session must be created under its own auto arena
-                    OnnxProtoBuilder.build(onnxFunc.body().entryBlock())), operandsMapping);
+                    OnnxProtoBuilder.build(l, onnxFunc.body().entryBlock())), operandsMapping);
         }
     }
 
@@ -271,6 +271,7 @@ public final class OnnxRuntime {
     public List<Tensor> runOp(Arena arena, String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
         var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
         var protoModel = OnnxProtoBuilder.build(
+                List.of(),
                 IntStream.range(0, inputValues.size()).mapToObj(i -> OnnxProtoBuilder.tensorInfo("i" + i, inputValues.get(i).elementType().id)).toList(),
                 List.of(OnnxProtoBuilder.node(
                         opName,
@@ -282,8 +283,8 @@ public final class OnnxRuntime {
                 .run(arena, inputValues);
     }
 
-    public List<Tensor> run(Arena arena, Block block, List<Tensor> inputValues) {
-        var protoModel = OnnxProtoBuilder.build(block);
+    public List<Tensor> run(Arena arena, MethodHandles.Lookup lookup, Block block, List<Tensor> inputValues) {
+        var protoModel = OnnxProtoBuilder.build(lookup, block);
         return createSession(arena, protoModel)
                 .run(arena, inputValues);
     }

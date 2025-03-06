@@ -116,6 +116,25 @@ public class SimpleTest {
                 OnnxRuntime.execute(MethodHandles.lookup(), () -> indicesOfMaxPool(x)));
     }
 
+    static Tensor<Float> constantOf42f() {
+        return Tensor.ofScalar(42f);
+    }
+
+    @CodeReflection
+    public static Tensor<Float> identityOfInitializer() {
+        return OnnxOperators.Identity(constantOf42f());
+    }
+
+    @Test
+    public void testIdentityOfInitializer() {
+        assertEquals(
+                constantOf42f(),
+                identityOfInitializer());
+        assertEquals(
+                constantOf42f(),
+                OnnxRuntime.execute(MethodHandles.lookup(), () -> identityOfInitializer()));
+    }
+
     static void assertEquals(Tensor expected, Tensor actual) {
 
         var expectedType = expected.elementType();

@@ -1,14 +1,19 @@
 package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
+import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxType;
 
@@ -259,12 +264,13 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
 
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 21;
+    static final JavaType TENSOR_CLASS = JavaType.type(oracle.code.onnx.Tensor.class);
 
     // @@@ unchecked constraints:
     //         tensor FuncOp parameters and single tensor return type
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
-    static byte[] build(Block block) {
+    static byte[] build(MethodHandles.Lookup lookup, Block block) {
         var indexer = new IdentityHashMap<Value, String>() {
             String getName(Value v) {
                 return computeIfAbsent(v, _ -> "#" + size());
@@ -276,6 +282,25 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
             }
         };
         return build(
+                block.ops().stream().<TensorProto>mapMulti((op, opNodes) -> {
+                    // @@@ initializers
+                    if (op instanceof CoreOp.InvokeOp co && co.invokeKind() == CoreOp.InvokeOp.InvokeKind.STATIC
+                                                         && co.invokeDescriptor().type().parameterTypes().isEmpty()
+                                                         && co.invokeDescriptor().type().returnType() instanceof JavaType jt
+                                                         && jt.erasure().equals(TENSOR_CLASS)) {
+                        try {
+                            opNodes.accept(tensorProto(
+                                    indexer.getName(op.result()),
+                                    (oracle.code.onnx.Tensor)co.invokeDescriptor()
+                                            .resolveToHandle(lookup, CoreOp.InvokeOp.InvokeKind.STATIC)
+                                            .invokeExact()));
+                        } catch (RuntimeException | Error e) {
+                            throw e;
+                        } catch (Throwable e) {
+                            throw new UndeclaredThrowableException(e);
+                        }
+                    }
+                }).toList(),
                 block.parameters().stream().map(v -> tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
                 block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
@@ -285,7 +310,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                     onnxOp.operands().stream().map(v -> indexer.getName(v)).toList(),
                                     IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(onnxOp.result(), o)).toList(),
                                     onnxOp.onnxAttributes()));
-                        case CoreOp.ReturnOp _ -> { // skip
+                        case CoreOp.ReturnOp _, CoreOp.InvokeOp _ -> { // skip
                         }
                         case CoreOp.TupleLoadOp tlo ->
                             indexer.put(tlo.result(), indexer.getName(tlo.operands().getFirst(), tlo.index()));
@@ -296,16 +321,17 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 List.of(indexer.getName(block.terminatingOp().operands().getFirst())));
     }
 
-    static byte[] build(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+    static byte[] build(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
         return new ModelProto()
                 .ir_version(IR_VERSION)
-                .graph(graph(inputs, ops, outputNames))
+                .graph(graph(initializers, inputs, ops, outputNames))
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
                 .buf.toByteArray();
     }
 
-    static GraphProto graph(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+    static GraphProto graph(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
         return new GraphProto()
+                .forEach(initializers, (g, i) -> g.initializer(i))
                 .forEach(inputs, (g, i) -> g.input(i))
                 .forEach(ops, (g, op) -> g.node(op))
                 .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName)));
@@ -334,6 +360,14 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                         .tensor_type(new Tensor()
                                 .elem_type(tensorElementType)
                                 .shape(new TensorShapeProto())));
+    }
+
+    static TensorProto tensorProto(String name, oracle.code.onnx.Tensor t) {
+        return new TensorProto()
+                .name(name)
+                .data_type(t.elementType().id)
+                .forEach(LongStream.of(t.shape()).boxed().toList(), (tp, d) -> tp.dims(d))
+                .raw_data(t.data().toArray(ValueLayout.JAVA_BYTE));
     }
 
     static Attribute attribute(String name, Object value) {
