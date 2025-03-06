@@ -125,7 +125,7 @@ public class SimpleTest {
 
     @CodeReflection
     public static Tensor<Float> ifConst(Tensor<Boolean> cond, Tensor<Float> trueValue) {
-        return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Identity(trueValue));
+        return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Constant(1f));//OnnxOperators.Identity(trueValue));
     }
 
     @Test

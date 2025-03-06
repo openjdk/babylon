@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import oracle.code.onnx.LambdaToFunc;
+import oracle.code.onnx.ir.ExplicitOnnxOps;
 
 final class OnnxPartialEvaluator {
 
@@ -274,6 +275,9 @@ final class OnnxPartialEvaluator {
         try {
             return (Class) Class.forName(OnnxOps.class.getName() + "$" + operatorName);
         } catch (ClassNotFoundException e) {
+            try {
+                return (Class) Class.forName(ExplicitOnnxOps.class.getName() + "$" + operatorName);
+            } catch (ClassNotFoundException _) {}
             throw new InternalError(e);
         }
     }
@@ -312,7 +316,7 @@ final class OnnxPartialEvaluator {
                     }
                 }
                 evaluatedAttributes.put(io, attrs);
-            } else if (opClass == OnnxOps.If.class) {
+            } else if (opClass == ExplicitOnnxOps.If.class) {
                 // @@@ hard-coded 2 extra undeclared attributes
                 List<Object> attrs = o.operands().subList(inputs.size(), inputs.size() + 2).stream()
                         .map(oc::getValue)

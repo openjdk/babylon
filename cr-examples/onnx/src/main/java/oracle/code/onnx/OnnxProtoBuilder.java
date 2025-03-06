@@ -2,7 +2,7 @@ package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
@@ -261,7 +261,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 21;
 
-    private static final class Indexer extends IdentityHashMap<Value, String> {
+    private static final class Indexer extends HashMap<Value, String> {
         String getName(Value v) {
             return computeIfAbsent(v, _ -> "#" + size());
         }
@@ -304,7 +304,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                             opNodes.accept(node(
                                     ifOp.opName(),
                                     List.of(indexer.getName(ifOp.operands().getFirst())),
-                                    IntStream.range(0, ifOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(ifOp.result(), o)).toList(),
+                                    List.of(indexer.getName(ifOp.result())),
                                     java.util.Map.of( // @@@ wrong mapping of captured inputs
                                             "else_branch", graph(indexer, ifOp.elseBranch().entryBlock()),
                                             "then_branch", graph(indexer, ifOp.thenBranch().entryBlock()))));

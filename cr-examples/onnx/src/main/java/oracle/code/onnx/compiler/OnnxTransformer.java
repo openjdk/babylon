@@ -17,6 +17,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import oracle.code.onnx.ir.ExplicitOnnxOps;
 
 // Transform the Java code model of an ONNX function to an ONNX code model
 public class OnnxTransformer {
@@ -135,6 +136,9 @@ public class OnnxTransformer {
         try {
             return (Class) Class.forName(OnnxOps.class.getName() + "$" + operatorName);
         } catch (ClassNotFoundException e) {
+            try {
+                return (Class) Class.forName(ExplicitOnnxOps.class.getName() + "$" + operatorName);
+            } catch (ClassNotFoundException _) {}
             throw new InternalError(e);
         }
     }
