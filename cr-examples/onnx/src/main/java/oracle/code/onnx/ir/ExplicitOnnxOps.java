@@ -30,13 +30,14 @@ import java.util.SequencedMap;
 import java.util.SequencedSet;
 import java.util.Set;
 import jdk.incubator.code.*;
+import jdk.incubator.code.Op.Nested;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.op.OpFactory;
 
 public sealed class ExplicitOnnxOps permits OnnxOps {
 
     @OpFactory.OpDeclaration(If.NAME)
-    public static final class If extends OnnxOp {
+    public static final class If extends OnnxOp implements Nested {
         public static final String NAME = "If";
 
         final Body elseBody, thenBody;
@@ -140,6 +141,11 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
 
             this.elseBody = elseBranch.build(this);
             this.thenBody = thenBranch.build(this);
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return List.of(elseBody, thenBody);
         }
 
         @Override

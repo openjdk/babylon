@@ -61,9 +61,9 @@ final class OnnxPartialEvaluator {
         Map<Value, Object> evaluatedValues = new HashMap<>();
         interpretEntryBlock(l, op.body().entryBlock(), new OpContext(), evaluatedValues);
 
-        evaluatedAttributes.forEach((invokeOp, objects) -> {
-            System.out.println(invokeOp.invokeDescriptor().name() + " -> " + objects);
-        });
+//        evaluatedAttributes.forEach((invokeOp, objects) -> {
+//            System.out.println(invokeOp.invokeDescriptor().name() + " -> " + objects);
+//        });
     }
 
 
@@ -479,8 +479,7 @@ final class OnnxPartialEvaluator {
                         .collect(Collectors.joining());
             }
             case CoreOp.LambdaOp lambdaOp -> {
-                // @@@ handle captured values
-                return LambdaToFunc.fromLambda(l, lambdaOp).func().body().copy(CopyContext.create());
+                return lambdaOp;
             }
             case null, default -> throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));

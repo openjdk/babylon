@@ -124,8 +124,9 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Float> ifConst(Tensor<Boolean> cond, Tensor<Float> trueValue) {
-        return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Constant(1f));//OnnxOperators.Identity(trueValue));
+    public static Tensor<Float> ifConst(Tensor<Boolean> cond) {
+        var trueValue = OnnxOperators.Constant(1f);
+        return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Identity(trueValue));
     }
 
     @Test
@@ -135,11 +136,11 @@ public class SimpleTest {
         var condTrue = Tensor.ofScalar(true);
         var expTrue = Tensor.ofScalar(1f);
 
-        assertEquals(expFalse, ifConst(condFalse, expTrue));
-        assertEquals(expFalse, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifConst(condFalse, expTrue)));
+        assertEquals(expFalse, ifConst(condFalse));
+        assertEquals(expFalse, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifConst(condFalse)));
 
-        assertEquals(expTrue, ifConst(condTrue, expTrue));
-        assertEquals(expTrue, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifConst(condTrue, expTrue)));
+        assertEquals(expTrue, ifConst(condTrue));
+        assertEquals(expTrue, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifConst(condTrue)));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {

@@ -17,6 +17,8 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import jdk.incubator.code.*;
+import oracle.code.onnx.LambdaToFunc;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
 
 // Transform the Java code model of an ONNX function to an ONNX code model
@@ -35,7 +37,7 @@ public class OnnxTransformer {
                 type(in.invokableType().returnType()),
                 in.invokableType().parameterTypes().stream().map(OnnxTransformer::type).toList()
         );
-
+        System.out.println(in.body().entryBlock().ops().stream().map(Op::result).toList());
         CoreOp.FuncOp onnxModel = CoreOp.func(in.funcName(), ft).body(b -> {
             b.transformBody(in.body(), b.parameters(), (bb, op) -> {
                 if (!pe.unevaluatedOperations.contains(op)) {
@@ -97,7 +99,23 @@ public class OnnxTransformer {
                                 }
                             }
                         }
-                        opArgs.addAll(attributes);
+                        opArgs.addAll(attributes.stream().map(a -> {
+                            if (a instanceof CoreOp.LambdaOp lo) {
+                                var ltf = LambdaToFunc.fromLambda(l, lo);
+                                var cc = bb.context();
+                                var lbb = Body.Builder.of(bb.parentBody(), lo.invokableType(), cc);
+                                var eb = lbb.entryBlock();
+                                var params = ltf.func().body().entryBlock().parameters();
+                                var captured = lo.capturedValues();
+                                for (int i = 0; i < params.size(); i++) {
+                                    var param = params.get(i);
+                                    cc.mapValue(param, eb.op(OnnxOps.Identity(param.type(), cc.getValue(traverseUp(captured.get(i))))));
+                                }
+                                ltf.func().body().entryBlock().ops().forEach(eb::apply);
+                                return lbb;
+                            }
+                            return a;
+                        }).toList());
 
                         OnnxOp onnxOp;
                         try {
@@ -128,6 +146,11 @@ public class OnnxTransformer {
             }
             return b;
         });
+    }
+
+    static Value traverseUp(Value v) {
+        // @@@ when captured value is a VaroOp
+        return v instanceof Op.Result or && or.op() instanceof CoreOp.VarOp vo && !vo.isUninitialized()? vo.initOperand() : v;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
