@@ -37,7 +37,6 @@ public class OnnxTransformer {
                 type(in.invokableType().returnType()),
                 in.invokableType().parameterTypes().stream().map(OnnxTransformer::type).toList()
         );
-        System.out.println(in.body().entryBlock().ops().stream().map(Op::result).toList());
         CoreOp.FuncOp onnxModel = CoreOp.func(in.funcName(), ft).body(b -> {
             b.transformBody(in.body(), b.parameters(), (bb, op) -> {
                 if (!pe.unevaluatedOperations.contains(op)) {
