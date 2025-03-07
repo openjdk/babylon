@@ -319,7 +319,7 @@ public class CNNTest {
         }
     }
 
-//    @Test
+    @Test
     public void testModels() {
         try (var arena = Arena.ofConfined()) {
             CoreOp.FuncOp f = getFuncOp("cnn");
@@ -333,7 +333,7 @@ public class CNNTest {
         }
     }
 
-//    @Test
+    @Test
     public void testInterpreter() throws Exception {
         try (var arena = Arena.ofConfined()) {
             var conv1Weight = floatTensor(arena, "mnist/conv1-weight-float-le", 6, 1, 5, 5);
@@ -433,7 +433,7 @@ public class CNNTest {
         return Op.ofMethod(m).get();
     }
 
-//    @Test
+    @Test
     public void testInitializedWeights() throws Exception {
         try (var arena = Arena.ofConfined()) {
             testIdentity(arena, floatTensor(arena, "mnist/conv1-weight-float-le", 6, 1, 5, 5));
