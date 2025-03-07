@@ -46,7 +46,6 @@ import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.channels.FileChannel;
-import java.util.Arrays;
 import java.util.function.Function;
 
 import static java.util.Optional.empty;
@@ -57,7 +56,6 @@ import static oracle.code.onnx.OnnxOperators.Conv;
 import static oracle.code.onnx.OnnxOperators.Div;
 import static oracle.code.onnx.OnnxOperators.Flatten;
 import static oracle.code.onnx.OnnxOperators.Gemm;
-import static oracle.code.onnx.OnnxOperators.Identity;
 import static oracle.code.onnx.OnnxOperators.MaxPool;
 import static oracle.code.onnx.OnnxOperators.Relu;
 import static oracle.code.onnx.OnnxOperators.Softmax;

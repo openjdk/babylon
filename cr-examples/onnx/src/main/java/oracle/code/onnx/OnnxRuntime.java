@@ -155,7 +155,6 @@ public final class OnnxRuntime {
     }
 
     public List<Tensor> run(Arena arena, Block block, List<Tensor> inputValues, int initializers) {
-        // @@@ split on initializers
         var protoModel = OnnxProtoBuilder.build(block, inputValues.subList(0, initializers));
         return createSession(arena, protoModel)
                 .run(arena, inputValues.subList(initializers, inputValues.size()));

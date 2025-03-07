@@ -1,16 +1,9 @@
 package oracle.code.onnx;
 
-import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import java.util.List;
 import java.util.Optional;
-import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.FunctionType;
-import oracle.code.onnx.ir.OnnxOps;
-import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
