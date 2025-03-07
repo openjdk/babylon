@@ -35,6 +35,7 @@ if(OPENCL_FOUND)
     add_library(opencl_backend SHARED
         ${SHARED_BACKEND}/cpp/shared.cpp
         ${OPENCL_BACKEND}/cpp/opencl_backend.cpp
+        ${OPENCL_BACKEND}/cpp/opencl_backend_queue.cpp
     )
 
     target_link_libraries(opencl_backend

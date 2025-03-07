@@ -23,23 +23,6 @@
  * questions.
  */
 #include "opencl_backend.h"
-#ifdef __APPLE__
-    #define LongUnsignedNewline "%llu\n"
-    #define Size_tNewline "%lu\n"
-    #define LongHexNewline "(0x%llx)\n"
- //  #define alignedMalloc(size, alignment) memalign(alignment, size)
-#else
-    #include <malloc.h>
-    #define LongHexNewline "(0x%lx)\n"
-    #define LongUnsignedNewline "%lu\n"
-    #define Size_tNewline "%lu\n"
-    #if defined (_WIN32)
-        #include "windows.h"
-     //   #define alignedMalloc(size, alignment) _aligned_malloc(size, alignment)
-    #else
-     //  #define alignedMalloc(size, alignment) memalign(alignment, size)
-    #endif
-#endif
 
 OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
        mode(mode),
@@ -65,138 +48,6 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
  OpenCLBackend::OpenCLConfig::~OpenCLConfig(){
  }
 
- OpenCLBackend::OpenCLQueue::OpenCLQueue()
-  : eventMax(10000), events(new cl_event[eventMax]), eventc(0){
- }
-
- cl_event *OpenCLBackend::OpenCLQueue::eventListPtr(){
-   return (eventc == 0) ? nullptr : events;
-  }
- cl_event *OpenCLBackend::OpenCLQueue::nextEventPtr(){
-              return &events[eventc];
- }
-
-void OpenCLBackend::OpenCLQueue::showEvents(int width) {
-    const int  SAMPLE_TYPES=4;
-    cl_ulong *samples = new cl_ulong[SAMPLE_TYPES * eventc]; // queued, submit, start, end, complete
-    int sample = 0;
-    cl_ulong min;
-    cl_ulong max;
-    cl_profiling_info profiling_info_arr[]={CL_PROFILING_COMMAND_QUEUED,CL_PROFILING_COMMAND_SUBMIT,CL_PROFILING_COMMAND_START,CL_PROFILING_COMMAND_END} ;
-    const char* profiling_info_name_arr[]={"CL_PROFILING_COMMAND_QUEUED","CL_PROFILING_COMMAND_SUBMIT","CL_PROFILING_COMMAND_START","CL_PROFILING_COMMAND_END" } ;
-
-    for (int event = 0; event < eventc; event++) {
-        for (int type = 0; type < SAMPLE_TYPES; type++) {
-            if ((clGetEventProfilingInfo(events[event], profiling_info_arr[type], sizeof(samples[sample]), &samples[sample], NULL)) !=
-                CL_SUCCESS) {
-                std::cerr << "failed to get profile info " << profiling_info_name_arr[type] << std::endl;
-            }
-            if (sample == 0) {
-                if (type == 0){
-                   min = max = samples[sample];
-                }
-            } else {
-                if (samples[sample] < min) {
-                    min = samples[sample];
-                }
-                if (samples[sample] > max) {
-                    max = samples[sample];
-                }
-            }
-            sample++;
-        }
-    }
-    sample = 0;
-    int range = (max - min);
-    int scale = range / width;  // range per char
-    std::cout << "Range: " <<min<< "-" <<max<< "("<< range << "ns)"
-        <<  "  (" << scale << "ns) per char"
-        << " +:submitted, .:started, =:end  "<< std::endl;
-
-    for (int event = 0; event < eventc; event++) {
-        cl_command_type command_type;
-        clGetEventInfo(events[event],CL_EVENT_COMMAND_TYPE,sizeof(command_type), &command_type, nullptr);
-        switch (command_type){
-          case CL_COMMAND_NDRANGE_KERNEL: std::cout <<   "kernel "; break;
-          case CL_COMMAND_READ_BUFFER: std::cout <<    "  read "; break;
-          case CL_COMMAND_WRITE_BUFFER: std::cout << " write "; break;
-          default: std::cout <<                    " other "; break;
-        }
-       // long eventStart=samples[sample];
-        cl_ulong queue = (samples[sample++] - min) / scale;
-        cl_ulong submit = (samples[sample++] - min) / scale;
-        cl_ulong start = (samples[sample++] - min) / scale;
-      //  long eventComplete=samples[sample];
-        cl_ulong end = (samples[sample++] - min) / scale;
-
-        std::cout << std::setw(8)<< (queue-end) << "(ns) ";
-        for (int c = 0; c < width; c++) {
-            char ch = ' ';
-            if (c >= queue && c<=submit) {
-                ch = '+';
-            }else if (c>submit && c<start){
-                ch = '.';
-            }else if (c>=start && c<end){
-                ch = '=';
-            }
-            std::cout << ch;
-        }
-        std::cout << std::endl;
-    }
-    delete[] samples;
-}
- void OpenCLBackend::OpenCLQueue::wait(){
-     cl_int status = clWaitForEvents(eventc, events);
-      if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-        exit(1);
-       }
- }
- void OpenCLBackend::OpenCLQueue::computeStart(){
- /* maybe
- cl_int clEnqueueNativeKernel(
-     cl_command_queue command_queue,
-     void (CL_CALLBACK* user_func)(void*),
-     void* args,
-     size_t cb_args,
-     cl_uint num_mem_objects,
-     const cl_mem* mem_list,
-     const void** args_mem_loc,
-     cl_uint num_events_in_wait_list,
-     const cl_event* event_wait_list,
-     cl_event* event); */
-// cl_int status = clEnqueueMarker(command_queue, cl_event* event);
-    // openclBackend->openclQueue.eventc,
-     //   openclBackend->openclQueue.eventListPtr(),
-      //  openclBackend->openclQueue.nextEventPtr()
-    // );
-   //  openclBackend->openclQueue.inc();
- }
- void OpenCLBackend::OpenCLQueue::computeEnd(){
- }
- void OpenCLBackend::OpenCLQueue::inc(){
-    if (eventc+1 >= eventMax){
-       std::cerr << "OpenCLBackend::OpenCLQueue event list overflowed!!" << std::endl;
-    }
-    eventc++;
- }
-
- void OpenCLBackend::OpenCLQueue::release(){
-     cl_int status = CL_SUCCESS;
-     for (int i = 0; i < eventc; i++) {
-         status = clReleaseEvent(events[i]);
-         if (status != CL_SUCCESS) {
-             std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-             exit(1);
-         }
-     }
-     eventc = 0;
- }
-
- OpenCLBackend::OpenCLQueue::~OpenCLQueue(){
-     clReleaseCommandQueue(command_queue);
-     delete []events;
- }
 
 /*
   OpenCLBuffer
@@ -241,7 +92,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
        openclBackend->openclQueue.eventListPtr(),
        openclBackend->openclQueue.nextEventPtr()
     );
-    openclBackend->openclQueue.inc();
+    openclBackend->openclQueue.markAsCopyToDeviceAndInc();
 
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
@@ -267,7 +118,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
        openclBackend->openclQueue.eventListPtr(),
        openclBackend->openclQueue.nextEventPtr()
     );
-    openclBackend->openclQueue.inc();
+    openclBackend->openclQueue.markAsCopyFromDeviceAndInc();
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
@@ -294,9 +145,11 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 }
 
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
+
    // std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
     OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(program->backend);
+    openclBackend->openclQueue.marker(openclBackend->openclQueue.EnterKernelDispatchBits);
     if (openclBackend->openclConfig.trace){
        Sled::show(std::cout, argArray);
     }
@@ -305,6 +158,23 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         Arg_s *arg = argSled.arg(i);
         switch (arg->variant) {
             case '&': {
+               if (openclBackend->openclConfig.trace){
+                  std::cout << "arg["<<i<<"] = "<< std::hex << (int)(arg->value.buffer.access);
+                  switch (arg->value.buffer.access){
+                      case RO_BYTE: std::cout << " RO";break;
+                      case WO_BYTE: std::cout << " WO";break;
+                      case RW_BYTE: std::cout << " RW";break;
+                      default: std::cout << "JUNK!!!!"; break;
+                  }
+                  std::cout << std::endl;
+               }
+               if ((arg->value.buffer.access == RO_BYTE ) || (arg->value.buffer.access == RW_BYTE ) ||(arg->value.buffer.access == WO_BYTE )){
+                 // OK
+               }else{
+                  std::cerr << "arg["<<i<<"] = "<< std::hex << (int)(arg->value.buffer.access) << std::endl;
+                  std::exit(1);
+               }
+
                BufferState_s * bufferState = BufferState_s::of(arg);
                OpenCLBuffer * openclBuffer =nullptr;
                if (bufferState->isHostNew()){
@@ -400,7 +270,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
             openclBackend->openclQueue.eventc,
             openclBackend->openclQueue.eventListPtr(),
             openclBackend->openclQueue.nextEventPtr());
-    openclBackend->openclQueue.inc();
+    openclBackend->openclQueue.markAsNDRangeAndInc();
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
@@ -425,6 +295,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
        }
          openclBackend->openclQueue.wait();
     }
+      openclBackend->openclQueue.marker(openclBackend->openclQueue.LeaveKernelDispatchBits);
     return 0;
 }
 
@@ -468,7 +339,7 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
 }
 
 OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
-        : Backend(mode), openclConfig(mode), openclQueue() {
+        : Backend(mode), openclConfig(mode), openclQueue(this) {
     if (openclConfig.trace){
         std::cout << "openclConfig->gpu" << (openclConfig.gpu ? "true" : "false") << std::endl;
         std::cout << "openclConfig->minimizeCopies" << (openclConfig.minimizeCopies ? "true" : "false") << std::endl;
@@ -614,8 +485,9 @@ void OpenCLBackend::computeStart() {
   openclQueue.computeStart();
 }
 void OpenCLBackend::computeEnd() {
- openclQueue.wait();
   openclQueue.computeEnd();
+ openclQueue.wait();
+
  if (openclConfig.profile){
      openclQueue.showEvents(100);
  }

@@ -29,6 +29,10 @@
    #include <opencl/opencl.h>
 #else
    #include <CL/cl.h>
+   #include <malloc.h>
+   #if defined (_WIN32)
+       #include "windows.h"
+   #endif
 #endif
 
 #include "shared.h"
@@ -65,13 +69,21 @@ public:
     };
     class OpenCLQueue {
     public:
+       static const int CopyToDeviceBits= 1<<0;
+       static const int CopyFromDeviceBits= 1<<1;
+       static const int NDRangeBits =1<<2;
+       static const int StartComputeBits= 1<<3;
+       static const int EndComputeBits= 1<<4;
+       static const int EnterKernelDispatchBits= 1<<5;
+       static const int LeaveKernelDispatchBits= 1<<6;
+       OpenCLBackend *openclBackend;
        size_t eventMax;
-      // cl_event start_marker_event;
-      // cl_event end_marker_event;
        cl_event *events;
+       int *eventInfoBits;
        size_t eventc;
        cl_command_queue command_queue;
-       OpenCLQueue();
+
+       OpenCLQueue(OpenCLBackend *openclBackend);
        cl_event *eventListPtr();
        cl_event *nextEventPtr();
        void showEvents(int width);
@@ -79,7 +91,15 @@ public:
        void release();
        void computeStart();
        void computeEnd();
-       void inc();
+       void inc(int bits);
+       void marker(int bits);
+       void markAsCopyToDeviceAndInc();
+       void markAsCopyFromDeviceAndInc();
+       void markAsNDRangeAndInc();
+       void markAsStartComputeAndInc();
+       void markAsEndComputeAndInc();
+        void markAsEnterKernelDispatchAndInc();
+         void markAsLeaveKernelDispatchAndInc();
        virtual ~OpenCLQueue();
     };
 
@@ -93,20 +113,16 @@ public:
                 OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
                 virtual ~OpenCLBuffer();
             };
-
         private:
             cl_kernel kernel;
-
         public:
             OpenCLKernel(Backend::Program *program, char* name,cl_kernel kernel);
             ~OpenCLKernel();
             long ndrange( void *argArray);
         };
-
     private:
         cl_program program;
     public:
-
         OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program);
         ~OpenCLProgram();
         long getKernel(int nameLen, char *name);

@@ -187,6 +187,8 @@ void main(String[] args) {
             out.println("This platform does not have CUDA");
         }
     }
+
+    var backendJars = new ArrayList<bldr.Bldr.JarFile>();
    
 
     // Here we create all ffi-backend jars.
@@ -195,6 +197,7 @@ void main(String[] args) {
             .filter(backend -> backend.failsToMatch("^.*(spirv|hip|shared|target|.idea)$"))
             .forEach(backend -> {
                 var ffiBackendJarFile = buildDir.jarFile("hat-backend-ffi-" + backend.fileName() + "-1.0.jar");
+                backendJars.add(ffiBackendJarFile);
                 out.println(ffiBackendJarFile.fileName());
                 jar(hatJarOptions, jar -> jar
                         .jarFile(ffiBackendJarFile)
@@ -207,8 +210,10 @@ void main(String[] args) {
     var jextractedBackends = backends.existingDir("jextracted");
     var jextractedBackendSharedDir = jextractedBackends.dir("shared");
     out.println("Shared jextracted "+jextractedBackendSharedDir.path());
+    var jextractedSharedBackendJar=buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar");
+    backendJars.add(jextractedSharedBackendJar);
     var jextractedBackendSharedResult = jar(hatJarOptions, jar -> jar
-          .jarFile(buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar"))
+          .jarFile(jextractedSharedBackendJar)
           .maven_style_root(jextractedBackendSharedDir)
           .javac(hatJavacOpts, javac -> javac.verbose(verbose)
               .class_path(hatJar)
@@ -218,8 +223,10 @@ void main(String[] args) {
     if (openclCapability.available()){
        var jextractedBackendOpenCLDir = jextractedBackends.dir("opencl");
        out.println("OpenCL jextracted "+jextractedBackendOpenCLDir.path());
+       var jextractedOpenCLBackendJar = buildDir.jarFile("hat-backend-jextracted-opencl-1.0.jar");
+       backendJars.add(jextractedOpenCLBackendJar);
        jar(hatJarOptions, jar -> jar
-          .jarFile(buildDir.jarFile("hat-backend-jextracted-opencl-1.0.jar"))
+          .jarFile(jextractedOpenCLBackendJar)
           .maven_style_root(jextractedBackendOpenCLDir)
           .javac(hatJavacOpts, javac -> javac.verbose(verbose)
               .class_path(hatJar, openclCapability.jarFile(buildDir), jextractedBackendSharedResult )
@@ -233,13 +240,16 @@ void main(String[] args) {
             .subDirs()
             .filter(backend -> backend.failsToMatch("^.*(target|.idea)$"))
             .forEach(backend -> {
-                var backendJarFile = buildDir.jarFile("hat-backend-java-" + backend.fileName() + "-1.0.jar");
-                out.println(backendJarFile.fileName());
+                var backendJavaJar = buildDir.jarFile("hat-backend-java-" + backend.fileName() + "-1.0.jar");
+                out.println(backendJavaJar.fileName());
+                backendJars.add(backendJavaJar);
                 jar(hatJarOptions, jar -> jar
-                        .jarFile(backendJarFile)
+                        .jarFile(backendJavaJar)
                         .dir_list(backend.dir("src/main/resources"))
                 );
             });
+
+    backendJars.forEach(j->out.println(" backend "+j.path()));
 
 
     // here we create the example jars

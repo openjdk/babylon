@@ -33,4 +33,8 @@ public class KernelEntrypoint extends KernelCallGraph.KernelReachableResolvedMet
     public KernelEntrypoint(CallGraph<KernelEntrypoint> callGraph, MethodRef targetMethodRef, Method method, FuncOpWrapper funcOpWrapper) {
         super(callGraph, targetMethodRef, method, funcOpWrapper);
     }
+    @Override
+    public Method getMethod() {
+       return  this.method;
+    }
 }

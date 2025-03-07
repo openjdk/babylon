@@ -22,22 +22,68 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.callgraph;
+package nbody;
 
-import hat.optools.FuncOpWrapper;
+import hat.Accelerator;
+import hat.buffer.Buffer;
+import hat.ifacemapper.Schema;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.reflect.Method;
+public interface Universe extends Buffer {
+    int length();
 
-public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolvedMethodCall implements Entrypoint {
-    public FuncOpWrapper lowered;
-    public MethodHandle mh;
+    interface Body extends Struct {
+        float x();
 
-    public ComputeEntrypoint(CallGraph<ComputeEntrypoint> callGraph, Method method, FuncOpWrapper funcOpWrapper) {
-        super(callGraph, null, method, funcOpWrapper);
+        float y();
+
+        float z();
+
+        float vx();
+
+        float vy();
+
+        float vz();
+
+        void x(float x);
+
+        void y(float y);
+
+        void z(float z);
+
+        void vx(float vx);
+
+        void vy(float vy);
+
+        void vz(float vz);
     }
-    @Override
-    public Method getMethod() {
-        return  this.method;
+
+    Body body(long idx);
+
+    /*
+    typedef struct Body_s{
+        float x;
+        float y;
+        float y;
+        float vx;
+        float vy;
+        float y;
+    } Body_t;
+
+    typedef struct Universe_s{
+       int length;
+       Body_t body[1];
+    }Universe_t;
+
+     */
+    Schema<Universe> schema = Schema.of(Universe.class, resultTable -> resultTable
+
+            .arrayLen("length").array("body", array -> array
+                    .fields("x", "y", "z", "vx", "vy", "vz")
+            )
+    );
+
+    static Universe create(Accelerator accelerator, int length) {
+        return schema.allocate(accelerator, length);
     }
+
 }
