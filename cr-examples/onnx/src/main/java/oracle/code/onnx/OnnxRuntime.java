@@ -62,7 +62,9 @@ public final class OnnxRuntime {
                 this.q = q;
                 this.in = initializers;
                 // not very nice way to pass additional arguments to computeValue method
-                return get(lambdaClass);
+                // @@@ temporary disabled caching, initializers must be included in the key
+                return computeValue(lambdaClass);
+//                return get(lambdaClass);
             } finally {
                 this.l = null;
                 this.q = null;
@@ -91,7 +93,11 @@ public final class OnnxRuntime {
     private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
 
     public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
-        return execute(Arena.ofAuto(), l, 0, codeLambda);
+        return execute(l, 0, codeLambda);
+    }
+
+    public static <T> Tensor<T> execute(MethodHandles.Lookup l, int initializers, OnnxFunction<Tensor<T>> codeLambda) {
+        return execute(Arena.ofAuto(), l, initializers, codeLambda);
     }
 
     public static <T> Tensor<T> execute(Arena arena, MethodHandles.Lookup l, int initializers, OnnxFunction<Tensor<T>> codeLambda) {
@@ -100,8 +106,9 @@ public final class OnnxRuntime {
         var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q, initializers);
 
         var captured = q.capturedValues().sequencedValues().toArray();
-        List<Tensor> arguments = IntStream.of(model.operandsMapping())
-                .mapToObj(i -> captured[i])
+        var mapping = model.operandsMapping();
+        List<Tensor> arguments = IntStream.range(initializers, mapping.length)
+                .mapToObj(i -> captured[mapping[i]])
                 .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
                 .map(val -> (Tensor) val)
                 .toList();
@@ -153,7 +160,7 @@ public final class OnnxRuntime {
         // @@@ split on initializers
         var protoModel = OnnxProtoBuilder.build(block, inputValues.subList(0, initializers));
         return createSession(arena, protoModel)
-                .run(arena, inputValues);
+                .run(arena, inputValues.subList(initializers, inputValues.size()));
     }
 
     public Session createSession(Arena arena, String modelPath) {

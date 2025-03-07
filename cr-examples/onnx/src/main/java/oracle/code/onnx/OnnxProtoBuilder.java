@@ -281,7 +281,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static byte[] build(Block block, List<oracle.code.onnx.Tensor> initializers) {
         var indexer = new Indexer();
         var model = build(graph(indexer, block, initializers));
-//        OnnxProtoPrinter.printModel(model);
+        OnnxProtoPrinter.printModel(model);
         return model;
     }
 
@@ -365,10 +365,10 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
 
     static TensorProto tensorProto(String name, oracle.code.onnx.Tensor tensor) {
         return new TensorProto()
-                .name(name)
-                .data_type(tensor.elementType().id)
                 .forEach(LongStream.of(tensor.shape()).boxed().toList(), (tp, d) -> tp.dims(d))
-                .raw_data(tensor.data().toArray(ValueLayout.JAVA_BYTE));
+                .data_type(tensor.elementType().id)
+                .raw_data(tensor.data().toArray(ValueLayout.JAVA_BYTE))
+                .name(name);
     }
 
     static Attribute attribute(String name, Object value) {

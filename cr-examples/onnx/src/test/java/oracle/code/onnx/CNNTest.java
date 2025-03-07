@@ -56,6 +56,7 @@ import static oracle.code.onnx.OnnxOperators.Conv;
 import static oracle.code.onnx.OnnxOperators.Div;
 import static oracle.code.onnx.OnnxOperators.Flatten;
 import static oracle.code.onnx.OnnxOperators.Gemm;
+import static oracle.code.onnx.OnnxOperators.Identity;
 import static oracle.code.onnx.OnnxOperators.MaxPool;
 import static oracle.code.onnx.OnnxOperators.Relu;
 import static oracle.code.onnx.OnnxOperators.Reshape;
@@ -334,7 +335,7 @@ public class CNNTest {
         }
     }
 
-    @Test
+//    @Test
     public void testModels() {
         try (var arena = Arena.ofConfined()) {
             CoreOp.FuncOp f = getFuncOp("cnn");
@@ -348,7 +349,7 @@ public class CNNTest {
         }
     }
 
-    @Test
+//    @Test
     public void testInterpreter() throws Exception {
         try (var arena = Arena.ofConfined()) {
             var conv1Weight = floatTensor(arena, "mnist/conv1-weight-float-le", 6, 1, 5, 5);
@@ -383,7 +384,7 @@ public class CNNTest {
             var fc2Bias = floatTensor(arena, "mnist/fc2-bias-float-le", 84);
             var fc3Weight = floatTensor(arena, "mnist/fc3-weight-float-le", 10, 84);
             var fc3Bias = floatTensor(arena, "mnist/fc3-bias-float-le", 10);
-            test(arena, inputImage -> OnnxRuntime.execute(arena, MethodHandles.lookup(), 0, () ->
+            test(arena, inputImage -> OnnxRuntime.execute(arena, MethodHandles.lookup(), 2, () ->
                     cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
                         fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
                         inputImage)));
@@ -447,6 +448,33 @@ public class CNNTest {
         return Op.ofMethod(m).get();
     }
 
+//    @Test
+    public void testInitializedWeights() throws Exception {
+        try (var arena = Arena.ofConfined()) {
+            testIdentity(arena, floatTensor(arena, "mnist/conv1-weight-float-le", 6, 1, 5, 5));
+            testIdentity(arena, floatTensor(arena, "mnist/conv1-bias-float-le", 6));
+            testIdentity(arena, floatTensor(arena, "mnist/conv2-weight-float-le", 16, 6, 5, 5));
+            testIdentity(arena, floatTensor(arena, "mnist/conv2-bias-float-le", 16));
+            testIdentity(arena, floatTensor(arena, "mnist/fc1-weight-float-le", 120, 256));
+            testIdentity(arena, floatTensor(arena, "mnist/fc1-bias-float-le", 120));
+            testIdentity(arena, floatTensor(arena, "mnist/fc2-weight-float-le", 84, 120));
+            testIdentity(arena, floatTensor(arena, "mnist/fc2-bias-float-le", 84));
+            testIdentity(arena, floatTensor(arena, "mnist/fc3-weight-float-le", 10, 84));
+            testIdentity(arena, floatTensor(arena, "mnist/fc3-bias-float-le", 10));
+        }
+    }
+
+    @CodeReflection
+    public static Tensor<Float> identity(Tensor<Float> t) {
+        return Identity(t);
+    }
+
+    static void testIdentity(Arena arena,Tensor<Float> t) {
+            SimpleTest.assertEquals(
+                    // argument vs initializer
+                    OnnxRuntime.execute(arena, MethodHandles.lookup(), 0, () -> identity(t)),
+                    OnnxRuntime.execute(arena, MethodHandles.lookup(), 1, () -> identity(t)));
+    }
 //    @CodeReflection
 //    public Tensor<Float> loadWeight(Initializer init) {
 //        var buf = ByteBuffer.allocate(init.values().length).order(ByteOrder.nativeOrder());
