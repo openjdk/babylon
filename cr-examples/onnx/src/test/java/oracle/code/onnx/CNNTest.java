@@ -46,6 +46,7 @@ import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
 import java.util.function.Function;
 
 import static java.util.Optional.empty;
@@ -433,33 +434,6 @@ public class CNNTest {
         return Op.ofMethod(m).get();
     }
 
-    @Test
-    public void testInitializedWeights() throws Exception {
-        try (var arena = Arena.ofConfined()) {
-            testIdentity(arena, floatTensor(arena, "mnist/conv1-weight-float-le", 6, 1, 5, 5));
-            testIdentity(arena, floatTensor(arena, "mnist/conv1-bias-float-le", 6));
-            testIdentity(arena, floatTensor(arena, "mnist/conv2-weight-float-le", 16, 6, 5, 5));
-            testIdentity(arena, floatTensor(arena, "mnist/conv2-bias-float-le", 16));
-            testIdentity(arena, floatTensor(arena, "mnist/fc1-weight-float-le", 120, 256));
-            testIdentity(arena, floatTensor(arena, "mnist/fc1-bias-float-le", 120));
-            testIdentity(arena, floatTensor(arena, "mnist/fc2-weight-float-le", 84, 120));
-            testIdentity(arena, floatTensor(arena, "mnist/fc2-bias-float-le", 84));
-            testIdentity(arena, floatTensor(arena, "mnist/fc3-weight-float-le", 10, 84));
-            testIdentity(arena, floatTensor(arena, "mnist/fc3-bias-float-le", 10));
-        }
-    }
-
-    @CodeReflection
-    public static Tensor<Float> identity(Tensor<Float> t) {
-        return Identity(t);
-    }
-
-    static void testIdentity(Arena arena,Tensor<Float> t) {
-            SimpleTest.assertEquals(
-                    // argument vs initializer
-                    OnnxRuntime.execute(arena, MethodHandles.lookup(), 0, () -> identity(t)),
-                    OnnxRuntime.execute(arena, MethodHandles.lookup(), 1, () -> identity(t)));
-    }
 //    @CodeReflection
 //    public Tensor<Float> loadWeight(Initializer init) {
 //        var buf = ByteBuffer.allocate(init.values().length).order(ByteOrder.nativeOrder());

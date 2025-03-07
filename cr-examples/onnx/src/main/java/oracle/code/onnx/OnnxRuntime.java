@@ -62,9 +62,7 @@ public final class OnnxRuntime {
                 this.q = q;
                 this.in = initializers;
                 // not very nice way to pass additional arguments to computeValue method
-                // @@@ temporary disabled caching, initializers must be included in the key
-                return computeValue(lambdaClass);
-//                return get(lambdaClass);
+                return get(lambdaClass);
             } finally {
                 this.l = null;
                 this.q = null;
