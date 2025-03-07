@@ -92,7 +92,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
        openclBackend->openclQueue.eventListPtr(),
        openclBackend->openclQueue.nextEventPtr()
     );
-    openclBackend->openclQueue.inc();
+    openclBackend->openclQueue.markAsCopyToDeviceAndInc();
 
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
@@ -118,7 +118,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
        openclBackend->openclQueue.eventListPtr(),
        openclBackend->openclQueue.nextEventPtr()
     );
-    openclBackend->openclQueue.inc();
+    openclBackend->openclQueue.markAsCopyFromDeviceAndInc();
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
@@ -145,9 +145,11 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 }
 
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
+
    // std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
     OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(program->backend);
+    openclBackend->openclQueue.marker(openclBackend->openclQueue.EnterKernelDispatchBits);
     if (openclBackend->openclConfig.trace){
        Sled::show(std::cout, argArray);
     }
@@ -268,7 +270,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
             openclBackend->openclQueue.eventc,
             openclBackend->openclQueue.eventListPtr(),
             openclBackend->openclQueue.nextEventPtr());
-    openclBackend->openclQueue.inc();
+    openclBackend->openclQueue.markAsNDRangeAndInc();
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
@@ -293,6 +295,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
        }
          openclBackend->openclQueue.wait();
     }
+      openclBackend->openclQueue.marker(openclBackend->openclQueue.LeaveKernelDispatchBits);
     return 0;
 }
 
@@ -336,7 +339,7 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
 }
 
 OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
-        : Backend(mode), openclConfig(mode), openclQueue() {
+        : Backend(mode), openclConfig(mode), openclQueue(this) {
     if (openclConfig.trace){
         std::cout << "openclConfig->gpu" << (openclConfig.gpu ? "true" : "false") << std::endl;
         std::cout << "openclConfig->minimizeCopies" << (openclConfig.minimizeCopies ? "true" : "false") << std::endl;
