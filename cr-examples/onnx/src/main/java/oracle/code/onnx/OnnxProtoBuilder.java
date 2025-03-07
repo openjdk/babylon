@@ -281,7 +281,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static byte[] build(Block block, List<oracle.code.onnx.Tensor> initializers) {
         var indexer = new Indexer();
         var model = build(graph(indexer, block, initializers));
-        OnnxProtoPrinter.printModel(model);
+//        OnnxProtoPrinter.printModel(model);
         return model;
     }
 
