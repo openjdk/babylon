@@ -163,7 +163,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
                           float vy;
                           float vz;
                      } Body_t;
-                    
+
                      typedef struct Universe_s{
                        int length;
                        Body_t body[0];
@@ -196,7 +196,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
                             me->vx = me->vx+accx;
                             me->vy = me->vy+accy;
                             me->vz = me->vz+accz;
-                        
+
                         }
                         """;
                    /* case Mode.OpenCL4 -> """
@@ -234,7 +234,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
                             myVel = myVel + acc;
                             xyzPos[get_global_id(0)] = myPos;
                             xyzVel[get_global_id(0)] = myVel;
-                        
+
                         }
                         """;
                 default -> throw new IllegalStateException();
