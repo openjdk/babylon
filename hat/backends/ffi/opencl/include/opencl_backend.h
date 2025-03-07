@@ -69,17 +69,20 @@ public:
     };
     class OpenCLQueue {
     public:
-       static const int CopyToDeviceBits= 1<<0;
-       static const int CopyFromDeviceBits= 1<<1;
-       static const int NDRangeBits =1<<2;
-       static const int StartComputeBits= 1<<3;
-       static const int EndComputeBits= 1<<4;
-       static const int EnterKernelDispatchBits= 1<<5;
-       static const int LeaveKernelDispatchBits= 1<<6;
+       static const int CopyToDeviceBits= 1<<20;
+       static const int CopyFromDeviceBits= 1<<21;
+       static const int NDRangeBits =1<<22;
+       static const int StartComputeBits= 1<<23;
+       static const int EndComputeBits= 1<<24;
+       static const int EnterKernelDispatchBits= 1<<25;
+       static const int LeaveKernelDispatchBits= 1<<26;
+       static const int HasConstCharPtrArgBits = 1<<27;
+       static const int hasIntArgBits = 1<<28;
        OpenCLBackend *openclBackend;
        size_t eventMax;
        cl_event *events;
        int *eventInfoBits;
+       const char **eventInfoConstCharPtrArgs;
        size_t eventc;
        cl_command_queue command_queue;
 
@@ -92,14 +95,18 @@ public:
        void computeStart();
        void computeEnd();
        void inc(int bits);
+       void inc(int bits, const char *arg);
+       void inc(int bits, int arg);
        void marker(int bits);
-       void markAsCopyToDeviceAndInc();
-       void markAsCopyFromDeviceAndInc();
+       void marker(int bits, const char *arg);
+       void marker(int bits, int arg);
+       void markAsCopyToDeviceAndInc(int argn);
+       void markAsCopyFromDeviceAndInc(int argn);
        void markAsNDRangeAndInc();
        void markAsStartComputeAndInc();
        void markAsEndComputeAndInc();
-        void markAsEnterKernelDispatchAndInc();
-         void markAsLeaveKernelDispatchAndInc();
+       void markAsEnterKernelDispatchAndInc();
+       void markAsLeaveKernelDispatchAndInc();
        virtual ~OpenCLQueue();
     };
 
@@ -114,6 +121,7 @@ public:
                 virtual ~OpenCLBuffer();
             };
         private:
+            const char *name;
             cl_kernel kernel;
         public:
             OpenCLKernel(Backend::Program *program, char* name,cl_kernel kernel);

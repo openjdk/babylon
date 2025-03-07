@@ -29,7 +29,12 @@ While based on OpenCL's event list, I think we need to use a MOD eventMax queue.
 So
 */
  OpenCLBackend::OpenCLQueue::OpenCLQueue(OpenCLBackend *openclBackend)
-    :openclBackend(openclBackend), eventMax(10000), events(new cl_event[eventMax]), eventInfoBits(new int[eventMax]), eventc(0){
+    :openclBackend(openclBackend),
+     eventMax(10000),
+     events(new cl_event[eventMax]),
+     eventInfoBits(new int[eventMax]),
+      eventInfoConstCharPtrArgs(new const char *[eventMax]),
+      eventc(0){
  }
 
  cl_event *OpenCLBackend::OpenCLQueue::eventListPtr(){
@@ -89,25 +94,35 @@ void OpenCLBackend::OpenCLQueue::showEvents(int width) {
         } */
         int bits = eventInfoBits[event];
         if ((bits&CopyToDeviceBits)==CopyToDeviceBits){
-           std::cout <<   "  write ";
+           std::cout <<   "  write "<<(bits&0xffff)<<" " ;
         }
         if ((bits&CopyFromDeviceBits)==CopyFromDeviceBits){
-           std::cout <<   "   read ";
+           std::cout <<   "   read "<<(bits&0xffff)<<" ";
         }
         if ((bits&StartComputeBits)==StartComputeBits){
-           std::cout <<   "  start ";
+           std::cout <<   "  start    ";
         }
         if ((bits&EndComputeBits)==EndComputeBits){
-           std::cout <<   "    end ";
+           std::cout <<   "    end    ";
         }
         if ((bits&NDRangeBits)==NDRangeBits){
-           std::cout <<   " kernel ";
+           std::cout <<   " kernel    ";
         }
         if ((bits&EnterKernelDispatchBits)==EnterKernelDispatchBits){
-           std::cout <<   "  enter ";
+
+           if ((bits&HasConstCharPtrArgBits)==HasConstCharPtrArgBits){
+               std::cout<< eventInfoConstCharPtrArgs[event]<<std::endl;
+           }
+           std::cout <<   "  enter{   ";
+
         }
         if ((bits&LeaveKernelDispatchBits)==LeaveKernelDispatchBits){
-           std::cout <<   "  leave ";
+          // std::cout <<   "  leave    ";
+            if ((bits&HasConstCharPtrArgBits)==HasConstCharPtrArgBits){
+                          std::cout<< eventInfoConstCharPtrArgs[event] <<std::endl;
+                      }
+                          std::cout <<   " }leave    ";
+
         }
 
 
@@ -144,6 +159,7 @@ void OpenCLBackend::OpenCLQueue::wait(){
  void clCallback(void *){
       std::cerr<<"start of compute"<<std::endl;
  }
+
   void OpenCLBackend::OpenCLQueue::marker(int bits){
   cl_int status = clEnqueueMarkerWithWaitList(
       command_queue,
@@ -155,6 +171,28 @@ void OpenCLBackend::OpenCLQueue::wait(){
          }
       inc(bits);
   }
+    void OpenCLBackend::OpenCLQueue::marker(int bits, const char* arg){
+    cl_int status = clEnqueueMarkerWithWaitList(
+        command_queue,
+        this->eventc, this->eventListPtr(),this->nextEventPtr()
+        );
+          if (status != CL_SUCCESS){
+               std::cerr << "failed to clEnqueueMarkerWithWaitList "<<errorMsg(status)<< std::endl;
+               std::exit(1);
+           }
+        inc(bits, arg);
+    }
+      void OpenCLBackend::OpenCLQueue::marker(int bits, int arg){
+        cl_int status = clEnqueueMarkerWithWaitList(
+            command_queue,
+            this->eventc, this->eventListPtr(),this->nextEventPtr()
+            );
+              if (status != CL_SUCCESS){
+                   std::cerr << "failed to clEnqueueMarkerWithWaitList "<<errorMsg(status)<< std::endl;
+                   std::exit(1);
+               }
+            inc(bits, arg);
+        }
 
  void OpenCLBackend::OpenCLQueue::computeStart(){
    wait(); // should be no-op
@@ -176,6 +214,23 @@ void OpenCLBackend::OpenCLQueue::wait(){
     }
     eventc++;
  }
+ void OpenCLBackend::OpenCLQueue::inc(int bits, const char *arg){
+     if (eventc+1 >= eventMax){
+        std::cerr << "OpenCLBackend::OpenCLQueue event list overflowed!!" << std::endl;
+     }else{
+         eventInfoBits[eventc]=bits|HasConstCharPtrArgBits;
+         eventInfoConstCharPtrArgs[eventc]=arg;
+     }
+     eventc++;
+  }
+  void OpenCLBackend::OpenCLQueue::inc(int bits, int arg){
+      if (eventc+1 >= eventMax){
+         std::cerr << "OpenCLBackend::OpenCLQueue event list overflowed!!" << std::endl;
+      }else{
+          eventInfoBits[eventc]=bits|arg|hasIntArgBits;
+      }
+      eventc++;
+   }
 
  void OpenCLBackend::OpenCLQueue::markAsEndComputeAndInc(){
      inc(EndComputeBits);
@@ -186,11 +241,11 @@ void OpenCLBackend::OpenCLQueue::wait(){
  void OpenCLBackend::OpenCLQueue::markAsNDRangeAndInc(){
      inc(NDRangeBits);
  }
- void OpenCLBackend::OpenCLQueue::markAsCopyToDeviceAndInc(){
-     inc(CopyToDeviceBits);
+ void OpenCLBackend::OpenCLQueue::markAsCopyToDeviceAndInc(int argn){
+     inc(CopyToDeviceBits, argn);
  }
- void OpenCLBackend::OpenCLQueue::markAsCopyFromDeviceAndInc(){
-     inc(CopyFromDeviceBits);
+ void OpenCLBackend::OpenCLQueue::markAsCopyFromDeviceAndInc(int argn){
+     inc(CopyFromDeviceBits, argn);
  }
  void OpenCLBackend::OpenCLQueue::markAsEnterKernelDispatchAndInc(){
      inc(EnterKernelDispatchBits);
@@ -215,4 +270,5 @@ void OpenCLBackend::OpenCLQueue::wait(){
      clReleaseCommandQueue(command_queue);
      delete []events;
      delete []eventInfoBits;
+     delete []eventInfoConstCharPtrArgs;
  }
