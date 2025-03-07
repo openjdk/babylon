@@ -90,37 +90,61 @@ public class MNISTDemo {
         return prediction;
     }
 
-    public static float[] classify(float[] imageData) {
-        try (Arena arena = Arena.ofConfined()) {
-            var conv1Weights = initialize("conv1-weight-float-le", 6, 1, 5, 5);
-            var conv1Biases = initialize("conv1-bias-float-le", 6);
-            var conv2Weights = initialize("conv2-weight-float-le", 16, 6, 5, 5);
-            var conv2Biases = initialize("conv2-bias-float-le", 16);
-            var fc1Weights = initialize("fc1-weight-float-le", 120, 256);
-            var fc1Biases = initialize("fc1-bias-float-le", 120);
-            var fc2Weights = initialize("fc2-weight-float-le", 84, 120);
-            var fc2Biases = initialize("fc2-bias-float-le", 84);
-            var fc3Weights = initialize("fc3-weight-float-le", 10, 84);
-            var fc3Biases = initialize("fc3-bias-float-le", 10);
-            var imageTensor = Tensor.ofShape(arena, IMAGE_SHAPE, imageData);
-
-            var predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(), 10,
-                    () -> cnn(conv1Weights, conv1Biases,
-                              conv2Weights, conv2Biases,
-                              fc1Weights, fc1Biases,
-                              fc2Weights, fc2Biases,
-                              fc3Weights, fc3Biases,
-                              imageTensor));
-
-            return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);
-        }
-    }
-
     private static Tensor<Float> initialize(String resource, long... shape) {
         try (var in = MNISTDemo.class.getResourceAsStream(resource)) {
             return Tensor.ofShape(shape, MemorySegment.ofArray(in.readAllBytes()).toArray(ValueLayout.JAVA_FLOAT_UNALIGNED));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    private final Tensor<Float> conv1Weights, conv1Biases,
+                                conv2Weights, conv2Biases,
+                                fc1Weights, fc1Biases,
+                                fc2Weights, fc2Biases,
+                                fc3Weights, fc3Biases;
+
+    public MNISTDemo() {
+        conv1Weights = initialize("conv1-weight-float-le", 6, 1, 5, 5);
+        conv1Biases = initialize("conv1-bias-float-le", 6);
+        conv2Weights = initialize("conv2-weight-float-le", 16, 6, 5, 5);
+        conv2Biases = initialize("conv2-bias-float-le", 16);
+        fc1Weights = initialize("fc1-weight-float-le", 120, 256);
+        fc1Biases = initialize("fc1-bias-float-le", 120);
+        fc2Weights = initialize("fc2-weight-float-le", 84, 120);
+        fc2Biases = initialize("fc2-bias-float-le", 84);
+        fc3Weights = initialize("fc3-weight-float-le", 10, 84);
+        fc3Biases = initialize("fc3-bias-float-le", 10);
+    }
+
+    public float[] classify(float[] imageData) {
+
+        return classify(conv1Weights, conv1Biases,
+                        conv2Weights, conv2Biases,
+                        fc1Weights, fc1Biases,
+                        fc2Weights, fc2Biases,
+                        fc3Weights, fc3Biases,
+                        imageData);
+    }
+
+    float[] classify(Tensor<Float> conv1Weights, Tensor<Float> conv1Biases,
+                     Tensor<Float> conv2Weights, Tensor<Float> conv2Biases,
+                     Tensor<Float> fc1Weights, Tensor<Float> fc1Biases,
+                     Tensor<Float> fc2Weights, Tensor<Float> fc2Biases,
+                     Tensor<Float> fc3Weights, Tensor<Float> fc3Biases,
+                     float[] imageData) {
+
+        try (var arena = Arena.ofConfined()) {
+
+            Tensor<Float> imageTensor = Tensor.ofShape(arena, IMAGE_SHAPE, imageData);
+
+            return OnnxRuntime.execute(arena, MethodHandles.lookup(), 10,
+                    () -> cnn(conv1Weights, conv1Biases,
+                              conv2Weights, conv2Biases,
+                              fc1Weights, fc1Biases,
+                              fc2Weights, fc2Biases,
+                              fc3Weights, fc3Biases,
+                              imageTensor)).data().toArray(ValueLayout.JAVA_FLOAT);
         }
     }
 }

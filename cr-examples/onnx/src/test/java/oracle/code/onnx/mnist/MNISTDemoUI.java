@@ -46,6 +46,7 @@ public class MNISTDemoUI {
         var resultsBoard = new JLabel();
         var cleanFlag = new AtomicBoolean(true);
         var drawImage = new BufferedImage(DRAW_AREA_SIZE, DRAW_AREA_SIZE, BufferedImage.TYPE_BYTE_GRAY);
+        var mnist = new MNISTDemo();
 
         resultsBoard.setPreferredSize(new Dimension(100, 0));
         drawPane.setPreferredSize(new Dimension(DRAW_AREA_SIZE, DRAW_AREA_SIZE));
@@ -77,7 +78,7 @@ public class MNISTDemoUI {
                     var imageData = new float[IMAGE_SIZE * IMAGE_SIZE];
                     scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, imageData);
 
-                    var results = MNISTDemo.classify(imageData);
+                    var results = mnist.classify(imageData);
 
                     var report = new StringBuilder("<html>");
                     for (int i = 0; i < results.length; i++) {
