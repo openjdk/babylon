@@ -1,11 +1,13 @@
 package oracle.code.onnx;
 
 import java.io.ByteArrayOutputStream;
+import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
@@ -276,15 +278,15 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         tensor FuncOp parameters and single tensor return type
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
-    static byte[] build(Block block) {
+    static byte[] build(Block block, List<oracle.code.onnx.Tensor> initializers) {
         var indexer = new Indexer();
-        var model = build(graph(indexer, block));
+        var model = build(graph(indexer, block, initializers));
 //        OnnxProtoPrinter.printModel(model);
         return model;
     }
 
-    static byte[] build(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
-        return build(graph(inputs, ops, outputNames));
+    static byte[] build(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+        return build(graph(initializers, inputs, ops, outputNames));
     }
 
     static byte[] build(GraphProto graph) {
@@ -295,9 +297,12 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 .buf.toByteArray();
     }
 
-    static GraphProto graph(Indexer indexer, Block block) {
+    static GraphProto graph(Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers) {
+        var params = block.parameters();
         return graph(
-                block.parameters().stream().map(v -> tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
+                IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.getName(params.get(i)), initializers.get(i))).toList(),
+                params.subList(initializers.size(), params.size()).stream().map(v ->
+                        tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
                 block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
                         case OnnxOps.If ifOp ->
@@ -306,8 +311,8 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                     List.of(indexer.getName(ifOp.operands().getFirst())),
                                     List.of(indexer.getName(ifOp.result())),
                                     java.util.Map.of( // @@@ wrong mapping of captured inputs
-                                            "else_branch", graph(indexer, ifOp.elseBranch().entryBlock()),
-                                            "then_branch", graph(indexer, ifOp.thenBranch().entryBlock()))));
+                                            "else_branch", graph(indexer, ifOp.elseBranch().entryBlock(), List.of()),
+                                            "then_branch", graph(indexer, ifOp.thenBranch().entryBlock(), List.of()))));
                         case OnnxOp onnxOp ->
                             opNodes.accept(node(
                                     onnxOp.opName(),
@@ -325,8 +330,9 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 List.of(indexer.getName(block.terminatingOp().operands().getFirst())));
     }
 
-    static GraphProto graph(List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+    static GraphProto graph(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
         return new GraphProto()
+                .forEach(initializers, (g, i) -> g.initializer(i))
                 .forEach(inputs, (g, i) -> g.input(i))
                 .forEach(ops, (g, op) -> g.node(op))
                 .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName)));
@@ -355,6 +361,14 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                         .tensor_type(new Tensor()
                                 .elem_type(tensorElementType)
                                 .shape(new TensorShapeProto())));
+    }
+
+    static TensorProto tensorProto(String name, oracle.code.onnx.Tensor tensor) {
+        return new TensorProto()
+                .name(name)
+                .data_type(tensor.elementType().id)
+                .forEach(LongStream.of(tensor.shape()).boxed().toList(), (tp, d) -> tp.dims(d))
+                .raw_data(tensor.data().toArray(ValueLayout.JAVA_BYTE));
     }
 
     static Attribute attribute(String name, Object value) {

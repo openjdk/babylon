@@ -383,7 +383,7 @@ public class CNNTest {
             var fc2Bias = floatTensor(arena, "mnist/fc2-bias-float-le", 84);
             var fc3Weight = floatTensor(arena, "mnist/fc3-weight-float-le", 10, 84);
             var fc3Bias = floatTensor(arena, "mnist/fc3-bias-float-le", 10);
-            test(arena, inputImage -> OnnxRuntime.execute(arena, MethodHandles.lookup(), () ->
+            test(arena, inputImage -> OnnxRuntime.execute(arena, MethodHandles.lookup(), 0, () ->
                     cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
                         fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
                         inputImage)));

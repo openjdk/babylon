@@ -108,7 +108,7 @@ public class MNISTDemo {
         try (Arena arena = Arena.ofConfined()) {
             var imageTensor = Tensor.ofShape(arena, IMAGE_SHAPE, imageData);
 
-            var predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(),
+            var predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(), 0,
                     () -> cnn(imageTensor));
 
             return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);
