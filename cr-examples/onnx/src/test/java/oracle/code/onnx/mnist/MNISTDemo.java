@@ -42,23 +42,17 @@ public class MNISTDemo {
     static final int IMAGE_SIZE = 28;
     static final long[] IMAGE_SHAPE = new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE};
 
-    public static float[] loadConstant(String resource) {
-        try (var in = MNISTDemo.class.getResourceAsStream(resource)) {
-            return MemorySegment.ofArray(in.readAllBytes())
-                    .toArray(ValueLayout.JAVA_FLOAT_UNALIGNED);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
     @CodeReflection
-    public static Tensor<Float> cnn(Tensor<Float> inputImage) {
+    public static Tensor<Float> cnn(Tensor<Float> conv1Weights, Tensor<Float> conv1Biases,
+                                    Tensor<Float> conv2Weights, Tensor<Float> conv2Biases,
+                                    Tensor<Float> fc1Weights, Tensor<Float> fc1Biases,
+                                    Tensor<Float> fc2Weights, Tensor<Float> fc2Biases,
+                                    Tensor<Float> fc3Weights, Tensor<Float> fc3Biases,
+                                    Tensor<Float> inputImage) {
         // Scaling to 0-1
         var scaledInput = Div(inputImage, Constant(255f));
 
         // First conv layer
-        var conv1Weights = Reshape(Constant(loadConstant("conv1-weight-float-le")), Constant(new long[]{6, 1, 5, 5}), empty());
-        var conv1Biases = Reshape(Constant(loadConstant("conv1-bias-float-le")), Constant(new long[]{6}), empty());
         var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), of(new long[4]),
                 of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
                 of(1L), of(new long[]{5,5}));
@@ -69,8 +63,6 @@ public class MNISTDemo {
                 of(0L), empty(), of(new long[]{2, 2}), new long[]{2, 2});
 
         // Second conv layer
-        var conv2Weights = Reshape(Constant(loadConstant("conv2-weight-float-le")), Constant(new long[]{16, 6, 5, 5}), empty());
-        var conv2Biases = Reshape(Constant(loadConstant("conv2-bias-float-le")), Constant(new long[]{16}), empty());
         var conv2 = Conv(pool1.Y(), conv2Weights, of(conv2Biases), of(new long[4]),
                 of(new long[]{1,1}), empty(), of(new long[]{1, 1, 1, 1}),
                 of(1L), of(new long[]{5,5}));
@@ -84,20 +76,14 @@ public class MNISTDemo {
         var flatten = Flatten(pool2.Y(), of(1L));
 
         // First fully connected layer
-        var fc1Weights = Reshape(Constant(loadConstant("fc1-weight-float-le")), Constant(new long[]{120, 256}), empty());
-        var fc1Biases = Reshape(Constant(loadConstant("fc1-bias-float-le")), Constant(new long[]{120}), empty());
         var fc1 = Gemm(flatten, fc1Weights, of(fc1Biases), of(1f), of(1L), of(1f), empty());
         var relu3 = Relu(fc1);
 
         // Second fully connected layer
-        var fc2Weights = Reshape(Constant(loadConstant("fc2-weight-float-le")), Constant(new long[]{84, 120}), empty());
-        var fc2Biases = Reshape(Constant(loadConstant("fc2-bias-float-le")), Constant(new long[]{84}), empty());
         var fc2 = Gemm(relu3, fc2Weights, of(fc2Biases), of(1f), of(1L), of(1f), empty());
         var relu4 = Relu(fc2);
 
         // Softmax layer
-        var fc3Weights = Reshape(Constant(loadConstant("fc3-weight-float-le")), Constant(new long[]{10, 84}), empty());
-        var fc3Biases = Reshape(Constant(loadConstant("fc3-bias-float-le")), Constant(new long[]{10}), empty());
         var fc3 = Gemm(relu4, fc3Weights, of(fc3Biases), of(1f), of(1L), of(1f), empty());
         var prediction = Softmax(fc3, of(1L));
 
@@ -106,12 +92,35 @@ public class MNISTDemo {
 
     public static float[] classify(float[] imageData) {
         try (Arena arena = Arena.ofConfined()) {
+            var conv1Weights = initialize("conv1-weight-float-le", 6, 1, 5, 5);
+            var conv1Biases = initialize("conv1-bias-float-le", 6);
+            var conv2Weights = initialize("conv2-weight-float-le", 16, 6, 5, 5);
+            var conv2Biases = initialize("conv2-bias-float-le", 16);
+            var fc1Weights = initialize("fc1-weight-float-le", 120, 256);
+            var fc1Biases = initialize("fc1-bias-float-le", 120);
+            var fc2Weights = initialize("fc2-weight-float-le", 84, 120);
+            var fc2Biases = initialize("fc2-bias-float-le", 84);
+            var fc3Weights = initialize("fc3-weight-float-le", 10, 84);
+            var fc3Biases = initialize("fc3-bias-float-le", 10);
             var imageTensor = Tensor.ofShape(arena, IMAGE_SHAPE, imageData);
 
-            var predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(), 0,
-                    () -> cnn(imageTensor));
+            var predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(), 10,
+                    () -> cnn(conv1Weights, conv1Biases,
+                              conv2Weights, conv2Biases,
+                              fc1Weights, fc1Biases,
+                              fc2Weights, fc2Biases,
+                              fc3Weights, fc3Biases,
+                              imageTensor));
 
             return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);
+        }
+    }
+
+    private static Tensor<Float> initialize(String resource, long... shape) {
+        try (var in = MNISTDemo.class.getResourceAsStream(resource)) {
+            return Tensor.ofShape(shape, MemorySegment.ofArray(in.readAllBytes()).toArray(ValueLayout.JAVA_FLOAT_UNALIGNED));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 }
