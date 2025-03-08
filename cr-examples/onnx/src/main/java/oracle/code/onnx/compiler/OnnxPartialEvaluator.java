@@ -37,6 +37,8 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import oracle.code.onnx.LambdaToFunc;
+import oracle.code.onnx.ir.ExplicitOnnxOps;
 
 final class OnnxPartialEvaluator {
 
@@ -59,9 +61,9 @@ final class OnnxPartialEvaluator {
         Map<Value, Object> evaluatedValues = new HashMap<>();
         interpretEntryBlock(l, op.body().entryBlock(), new OpContext(), evaluatedValues);
 
-        evaluatedAttributes.forEach((invokeOp, objects) -> {
-            System.out.println(invokeOp.invokeDescriptor().name() + " -> " + objects);
-        });
+//        evaluatedAttributes.forEach((invokeOp, objects) -> {
+//            System.out.println(invokeOp.invokeDescriptor().name() + " -> " + objects);
+//        });
     }
 
 
@@ -273,6 +275,9 @@ final class OnnxPartialEvaluator {
         try {
             return (Class) Class.forName(OnnxOps.class.getName() + "$" + operatorName);
         } catch (ClassNotFoundException e) {
+            try {
+                return (Class) Class.forName(ExplicitOnnxOps.class.getName() + "$" + operatorName);
+            } catch (ClassNotFoundException _) {}
             throw new InternalError(e);
         }
     }
@@ -310,6 +315,12 @@ final class OnnxPartialEvaluator {
                         attrs.add(Optional.empty());
                     }
                 }
+                evaluatedAttributes.put(io, attrs);
+            } else if (opClass == ExplicitOnnxOps.If.class) {
+                // @@@ hard-coded 2 extra undeclared attributes
+                List<Object> attrs = o.operands().subList(inputs.size(), inputs.size() + 2).stream()
+                        .map(oc::getValue)
+                        .toList();
                 evaluatedAttributes.put(io, attrs);
             } else {
                 for (int i = 0; i < attributes.size(); i++) {
@@ -466,6 +477,9 @@ final class OnnxPartialEvaluator {
                         .map(oc::getValue)
                         .map(String::valueOf)
                         .collect(Collectors.joining());
+            }
+            case CoreOp.LambdaOp lambdaOp -> {
+                return lambdaOp;
             }
             case null, default -> throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));
