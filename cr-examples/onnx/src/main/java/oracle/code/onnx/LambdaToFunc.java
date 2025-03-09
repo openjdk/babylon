@@ -16,7 +16,7 @@ import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.VarType;
 import oracle.code.onnx.compiler.OnnxTransformer;
 
-public record LambdaToFunc(CoreOp.FuncOp func, int[] operandsMapping) {
+public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMapping) {
 
     public static LambdaToFunc fromLambda(MethodHandles.Lookup l, CoreOp.LambdaOp lambda) {
         // Shortcut for lambda expressions that call just one method
@@ -32,7 +32,7 @@ public record LambdaToFunc(CoreOp.FuncOp func, int[] operandsMapping) {
             var fOpt = Op.ofMethod(m);
             if (fOpt.isPresent()) {
                 CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
-                CoreOp.FuncOp onnxFunc = OnnxTransformer.transform(l, f);
+                OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, f);
 
                 var operands = iop.operands();
                 var captured = lambda.capturedValues();
@@ -47,7 +47,7 @@ public record LambdaToFunc(CoreOp.FuncOp func, int[] operandsMapping) {
         var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
                 capturedValues.stream().map(Value::type)
                         .map(t -> t instanceof VarType vt ? vt.valueType() : t).toList());
-        CoreOp.FuncOp onnxFunc = OnnxTransformer.transform(l, CoreOp.func("onnxCode", functionType)
+        OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, CoreOp.func("onnxCode", functionType)
                 .body(bb -> {
                     bb.context().mapValues(capturedValues, bb.parameters());
                     for (Op op : lambda.body().entryBlock().ops()) {

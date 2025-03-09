@@ -155,16 +155,6 @@ public class SimpleTest {
         assertEquals(expTrue, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifCapture(condTrue, expTrue)));
     }
 
-    @Test
-    public void testInitializer() throws Exception {
-        var a = Tensor.ofFlat(1f, 2, 3, 4);
-        var b = Tensor.ofFlat(5f, 6, 7, 8);
-        var c = Tensor.ofFlat(6f, 8, 10, 12);
-        assertEquals(c, OnnxRuntime.execute(MethodHandles.lookup(), 0, () -> add(a, b)));
-        assertEquals(c, OnnxRuntime.execute(MethodHandles.lookup(), 1, () -> add(a, b)));
-        assertEquals(c, OnnxRuntime.execute(MethodHandles.lookup(), 2, () -> add(a, b)));
-    }
-
     static void assertEquals(Tensor expected, Tensor actual) {
 
         var expectedType = expected.elementType();

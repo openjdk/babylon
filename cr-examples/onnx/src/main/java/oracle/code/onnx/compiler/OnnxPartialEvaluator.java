@@ -35,14 +35,17 @@ import oracle.code.onnx.ir.OnnxOps;
 import java.lang.invoke.*;
 import java.lang.reflect.Array;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import oracle.code.onnx.LambdaToFunc;
+import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
 
 final class OnnxPartialEvaluator {
 
     static final JavaType ONNX_OPERATORS_CLASS = JavaType.type(OnnxOperators.class);
+    static final TypeElement TENSOR_RAW_CLASS = JavaType.type(Tensor.class);
 
     // Map from ONNX operator invocation to evaluated attributes
     Map<CoreOp.InvokeOp, List<Object>> evaluatedAttributes;
@@ -51,9 +54,12 @@ final class OnnxPartialEvaluator {
     // The operations' results are not evaluated
     Set<Op> unevaluatedOperations;
 
+    List<Object> initializers;
+
     public OnnxPartialEvaluator() {
         this.evaluatedAttributes = new HashMap<>();
         this.unevaluatedOperations = new HashSet<>();
+        this.initializers = new ArrayList<>();
     }
 
     public <T extends Op & Op.Invokable>
@@ -332,6 +338,14 @@ final class OnnxPartialEvaluator {
                 evaluatedAttributes.put(io, attrs);
             }
 
+            unevaluatedOperations.add(o);
+            return null;
+        } else if (o instanceof CoreOp.FieldAccessOp.FieldLoadOp fo && fo.fieldDescriptor().type() instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS)) {
+            try {
+                initializers.add(fo.fieldDescriptor().resolveToHandle(l).get());
+            } catch (ReflectiveOperationException ex) {
+                throw interpreterException(ex);
+            }
             unevaluatedOperations.add(o);
             return null;
         } else if (!o.operands().stream().allMatch(oc::isValueDefined)) {

@@ -29,7 +29,9 @@ public class OnnxTransformer {
     private OnnxTransformer() {
     }
 
-    public static CoreOp.FuncOp transform(MethodHandles.Lookup l, CoreOp.FuncOp in) {
+    public record OnnxFuncOp(CoreOp.FuncOp func, List<Object> initializers) {}
+
+    public static OnnxFuncOp transform(MethodHandles.Lookup l, CoreOp.FuncOp in) {
         OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
         pe.evaluate(l, in);
 
@@ -104,13 +106,13 @@ public class OnnxTransformer {
                                 var cc = bb.context();
                                 var lbb = Body.Builder.of(bb.parentBody(), lo.invokableType(), cc);
                                 var eb = lbb.entryBlock();
-                                var params = ltf.func().body().entryBlock().parameters();
+                                var params = ltf.func().func().body().entryBlock().parameters();
                                 var captured = lo.capturedValues();
                                 for (int i = 0; i < params.size(); i++) {
                                     var param = params.get(i);
                                     cc.mapValue(param, eb.op(OnnxOps.Identity(param.type(), cc.getValue(traverseUp(captured.get(i))))));
                                 }
-                                ltf.func().body().entryBlock().ops().forEach(eb::apply);
+                                ltf.func().func().body().entryBlock().ops().forEach(eb::apply);
                                 return lbb;
                             }
                             return a;
@@ -131,6 +133,9 @@ public class OnnxTransformer {
                         Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                         bb.context().mapValue(io.result(), result);
                     }
+                    case CoreOp.FieldAccessOp.FieldLoadOp fo when fo.fieldDescriptor().type() instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS) -> {
+                        bb.context().mapValue(fo.result(), b.parameter(type(fo.resultType())));
+                    }
                     // Copy remaining operations, which may be removed later transformations
                     default -> bb.op(op);
                 }
@@ -138,13 +143,13 @@ public class OnnxTransformer {
             });
         });
 
-        return SSA.transform(onnxModel).transform((b, op) -> {
+        return new OnnxFuncOp(SSA.transform(onnxModel).transform((b, op) -> {
             // Drop any non-terminating operation whose result is not used
             if (op instanceof Op.Terminating || !op.result().uses().isEmpty()) {
                 b.op(op);
             }
             return b;
-        });
+        }), pe.initializers);
     }
 
     static Value traverseUp(Value v) {

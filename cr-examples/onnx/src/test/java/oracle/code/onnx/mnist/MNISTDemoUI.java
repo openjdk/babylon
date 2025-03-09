@@ -32,7 +32,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import static oracle.code.onnx.mnist.MNISTDemo.IMAGE_SIZE;
+import static oracle.code.onnx.mnist.MNISTModel.IMAGE_SIZE;
 
 public class MNISTDemoUI {
 
@@ -46,7 +46,7 @@ public class MNISTDemoUI {
         var resultsBoard = new JLabel();
         var cleanFlag = new AtomicBoolean(true);
         var drawImage = new BufferedImage(DRAW_AREA_SIZE, DRAW_AREA_SIZE, BufferedImage.TYPE_BYTE_GRAY);
-        var mnist = new MNISTDemo();
+        var mnist = new MNISTModel();
 
         resultsBoard.setPreferredSize(new Dimension(100, 0));
         drawPane.setPreferredSize(new Dimension(DRAW_AREA_SIZE, DRAW_AREA_SIZE));

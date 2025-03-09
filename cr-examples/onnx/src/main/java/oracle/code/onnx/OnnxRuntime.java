@@ -54,19 +54,16 @@ public final class OnnxRuntime {
 
         private MethodHandles.Lookup l;
         private Quoted q;
-        private int in;
 
-        CachedSession computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q, int initializers) {
+        CachedSession computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
             try {
                 this.l = l;
                 this.q = q;
-                this.in = initializers;
                 // not very nice way to pass additional arguments to computeValue method
                 return get(lambdaClass);
             } finally {
                 this.l = null;
                 this.q = null;
-                this.in = 0;
             }
         }
 
@@ -74,39 +71,29 @@ public final class OnnxRuntime {
         protected CachedSession computeValue(Class<?> type) {
             var mf = LambdaToFunc.fromLambda(l, (CoreOp.LambdaOp)q.op());
 
-            var captured = q.capturedValues().sequencedValues().toArray();
-            List<Tensor> initializers = IntStream.range(0, in)
-                    .map(i -> mf.operandsMapping()[i])
-                    .mapToObj(i -> captured[i])
-                    .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
-                    .map(val -> (Tensor) val)
-                    .toList();
+            List<Tensor> initializers = mf.func().initializers().stream().map(val -> (Tensor) val).toList();
 
             return new CachedSession(getInstance().createSession(
                     Arena.ofAuto(), // cached session must be created under its own auto arena
-                    OnnxProtoBuilder.build(mf.func().body().entryBlock(), initializers)), mf.operandsMapping());
+                    OnnxProtoBuilder.build(mf.func().func().body().entryBlock(), initializers)), mf.operandsMapping());
         }
     }
 
     private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
 
     public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
-        return execute(l, 0, codeLambda);
+        return execute(Arena.ofAuto(), l, codeLambda);
     }
 
-    public static <T> Tensor<T> execute(MethodHandles.Lookup l, int initializers, OnnxFunction<Tensor<T>> codeLambda) {
-        return execute(Arena.ofAuto(), l, initializers, codeLambda);
-    }
 
-    public static <T> Tensor<T> execute(Arena arena, MethodHandles.Lookup l, int initializers, OnnxFunction<Tensor<T>> codeLambda) {
+    public static <T> Tensor<T> execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
         var q = Op.ofQuotable(codeLambda).orElseThrow();
 
-        var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q, initializers);
+        var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
 
         var captured = q.capturedValues().sequencedValues().toArray();
-        var mapping = model.operandsMapping();
-        List<Tensor> arguments = IntStream.range(initializers, mapping.length)
-                .mapToObj(i -> captured[mapping[i]])
+        List<Tensor> arguments = IntStream.of(model.operandsMapping())
+                .mapToObj(i -> captured[i])
                 .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
                 .map(val -> (Tensor) val)
                 .toList();
