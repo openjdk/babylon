@@ -58,7 +58,6 @@ import static oracle.code.onnx.OnnxOperators.Flatten;
 import static oracle.code.onnx.OnnxOperators.Gemm;
 import static oracle.code.onnx.OnnxOperators.MaxPool;
 import static oracle.code.onnx.OnnxOperators.Relu;
-import static oracle.code.onnx.OnnxOperators.Reshape;
 import static oracle.code.onnx.OnnxOperators.Softmax;
 
 // A rough CNN implementation which expects a input [batch_size, 1, 28, 28].
@@ -109,12 +108,9 @@ public class CNNTest {
 
         Tensor<Float> inputImage = Cast(ubyteImage, empty(), Tensor.ElementType.FLOAT.id);
 
-        var shape = Constant(new long[]{-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE});
-        var inputReshaped = Reshape(inputImage, shape, empty());
-
         // Scaling the features to 0-1
         var scalingFactor = Constant((float) PIXEL_DEPTH);
-        var scaledInput = Div(inputReshaped, scalingFactor);
+        var scaledInput = Div(inputImage, scalingFactor);
 
         // First conv layer
         var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), of(new long[4]),
@@ -191,18 +187,6 @@ public class CNNTest {
                     empty(),
                     OnnxType.TENSOR_FLOAT32.eType().id()));
 
-            var shape = b.op(OnnxOps.Constant(OnnxType.TENSOR_INT64,
-                    empty(),
-                    empty(),
-                    empty(),
-                    empty(),
-                    empty(),
-                    of(new long[]{-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE}),
-                    empty(),
-                    empty()));
-            var inputReshaped = b.op(OnnxOps.Reshape(inputImage.type(),
-                    inputImage, shape, empty()));
-
             // Scaling the features
             var scalingFactor = b.op(OnnxOps.Constant(OnnxType.TENSOR_FLOAT32,
                     empty(),
@@ -213,7 +197,7 @@ public class CNNTest {
                     empty(),
                     empty(),
                     empty()));
-            var scaledInput = b.op(OnnxOps.Div(inputReshaped.type(), inputReshaped, scalingFactor));
+            var scaledInput = b.op(OnnxOps.Div(inputImage.type(), inputImage, scalingFactor));
 
             // First conv layer
             var conv1 = b.op(OnnxOps.Conv(scaledInput.type(),
@@ -338,13 +322,13 @@ public class CNNTest {
     public void testModels() {
         try (var arena = Arena.ofConfined()) {
             CoreOp.FuncOp f = getFuncOp("cnn");
-            CoreOp.FuncOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
-            System.out.println(onnxModel.toText());
+            var onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
+            System.out.println(onnxModel.func().toText());
 
             CoreOp.FuncOp expectedOnnxModel = cnnModel();
             System.out.println(expectedOnnxModel.toText());
 
-            Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
+            Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel.func()));
         }
     }
 
@@ -397,7 +381,8 @@ public class CNNTest {
             MemorySegment imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE, arena);
             MemorySegment labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE, arena);
 
-            Tensor<Byte> inputImage = new Tensor(arena, imagesIn, Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
+            long size = imagesF.length() - IMAGES_HEADER_SIZE;
+            Tensor<Byte> inputImage = new Tensor(arena, imagesIn, Tensor.ElementType.UINT8, new long[]{size / (28 * 28), 1, 28, 28});
 
             MemorySegment result = executor.apply(inputImage).data();
 
