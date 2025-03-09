@@ -132,13 +132,13 @@ public class Main {
                      int to;
                      long generation;
                  }control_t;
-                
+
                  typedef struct cellGrid_s{
                      int width;
                      int height;
                      signed char cellArray[0];
                  }cellGrid_t;
-                
+
                 """;
 
         final static String codeVal = """
