@@ -23,24 +23,13 @@ We initially used maven and cmake to build hat.  If you feel more comfortable
 with maven consider [building with maven and cmake](hat-01-03-building-hat-with-maven.md)
 but it is possible that maven support will be removed if the `Bldr` approach takes off.
 
-## Setting environment variables JAVA_HOME and PATH
+## Dependencies
 
-To build HAT we need to ensure that `JAVA_HOME` is set
-to point to our babylon jdk (the one we built [here](hat-01-02-building-babylon.md))
+Before we start to build HAT we will need `cmake` and `jextract` installed.
 
-It simplifes our tasks going forward if we
-add `${JAVA_HOME}/bin` to our PATH (before any other JAVA installs).
+You can download jextract from [here](https://jdk.java.net/jextract/)
 
-Thankfully just sourcing the top level `env.bash` script will perform these tasks
-
-It should detect the arch type (AARCH64 or X86_46) and
-select the correct relative parent dir and inject that dir in your PATH.
-
-We also need to include jextract in our PATH.
-
-Download jextract from [here](https://jdk.java.net/jextract/) and add it to your PATH as shown below.
-
-You will also need cmake
+Use `sudo apt` on Linux or `brew install`.
 
 ```bash
 sudo apt install cmake
@@ -48,24 +37,55 @@ sudo apt install cmake
 ```
 
 ```bash
+brew install cmake
+```
+
+
+You will also need a Babylon JDK built (the one we built [here](hat-01-02-building-babylon.md))
+
+
+## Setting your PATH variable
+
+To build HAT we will need `JAVA_HOME` to point to our prebuilt babylon jdk
+
+I suggest you also create a `JEXTRACT_HOME` var to point to the location where you placed JEXTRACT)
+
+In my case
+```
+export JEXTRACT_HOME=/Users/me/jextract-22
+```
+
+Make sure also that `cmake` in in your PATH
+
+## ./env.bash
+
+Thankfully just sourcing the top level `env.bash` script should then be able to set up your PATH for you.
+
+It should detect the arch type (AARCH64 or X86_46) and
+select the correct relative parent dir for your BABYLON_JDK and inject that dir in your PATH.
+
+It should also add jextract to your PATH (based on the value you set above for JEXTRACT_HOME)
+
+
+
+```bash
 cd hat
+export JEXTRACT_HOME=/Users/me/jextract-22
 . ./env.bash
-export PATH=${PATH}:/your/path/to/jextract/bin
 echo ${JAVA_HOME}
-/Users/ME/github/babylon/hat/../build/macosx-aarch64-server-release/jdk
+/Users/me/github/babylon/hat/../build/macosx-aarch64-server-release/jdk
 echo ${PATH}
-/Users/ME/github/babylon/hat/../build/macosx-aarch64-server-release/jdk/bin:/usr/local/bin:......
+/Users/me/github/babylon/hat/../build/macosx-aarch64-server-release/jdk/bin:/Users/me/jextract-22/bin:/usr/local/bin:......
 ```
 
 ## Building using bld
 
-To build hat (+ backends and examples)
-
+To build hat artifacts (hat jar + backends and examples)
 ```bash
-java @bldr/args bld
+java @bldr/bld
 ```
 
-This places build artifacts in `build` dir
+This places build artifacts in the `build` and `stages` dirs
 
 ```bash
 cd hat
@@ -77,8 +97,10 @@ hat-backend-ffi-cuda-1.0.jar        hat-example-mandel-1.0.jar      libspirv_bac
 hat-backend-ffi-mock-1.0.jar        hat-example-squares-1.0.jar     mock_info
 hat-backend-ffi-opencl-1.0.jar      hat-example-view-1.0.jar        opencl_info
 hat-backend-ffi-ptx-1.0.jar         hat-example-violajones-1.0.jar  ptx_info
-hat-backend-ffi-spirv-1.0.jar           libmock_backend.dylib           spirv_info
+hat-backend-ffi-spirv-1.0.jar       libmock_backend.dylib           spirv_info
 hat-example-experiments-1.0.jar     libopencl_backend.dylib
+ls stage
+opencl_jextracted    opengl_jextracted
 ```
 
 `bld` relies on cmake to build native code for backends, so if cmake finds OpenCL libs/headers, you will see libopencl_backend (.so or .dylib) in the build dir, if cmake finds CUDA you will see libcuda_backend(.so or .dylib)

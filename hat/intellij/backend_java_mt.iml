@@ -8,7 +8,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="hat" />
+    <orderEntry type="module" module-name="hat-core" />
     <orderEntry type="module" module-name="backend_native_shared" />
   </component>
 </module>

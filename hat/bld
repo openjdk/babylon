@@ -42,7 +42,7 @@ void main(String[] args) {
      *    |    |    +--opengl
      *    |    |    +--cuda
      *    |
-     *    +--hat                        * Note maven style layout
+     *    +--hat-core                        * Note maven style layout
      *    |    +--src/main/java
      *    |    |    +--hat/
      *    |    |
@@ -73,7 +73,7 @@ void main(String[] args) {
      */
 
     var dir = DirEntry.current();
-    var hatCoreDir = dir.existingDir("hat");
+    var hatCoreDir = dir.existingDir("hat-core");
     var backends = dir.existingDir("backends");
     var examples = dir.existingDir("examples");
     var wrapsDir = dir.existingDir("wrap");

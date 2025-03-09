@@ -92,7 +92,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
        openclBackend->openclQueue.eventListPtr(),
        openclBackend->openclQueue.nextEventPtr()
     );
-    openclBackend->openclQueue.markAsCopyToDeviceAndInc();
+    openclBackend->openclQueue.markAsCopyToDeviceAndInc(arg->idx);
 
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
@@ -118,7 +118,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
        openclBackend->openclQueue.eventListPtr(),
        openclBackend->openclQueue.nextEventPtr()
     );
-    openclBackend->openclQueue.markAsCopyFromDeviceAndInc();
+    openclBackend->openclQueue.markAsCopyFromDeviceAndInc(arg->idx);
     if (status != CL_SUCCESS) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
@@ -149,7 +149,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
    // std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
     OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(program->backend);
-    openclBackend->openclQueue.marker(openclBackend->openclQueue.EnterKernelDispatchBits);
+  //  std::cout << "Kernel name '"<< (dynamic_cast<Backend::Program::Kernel*>(this))->name<<"'"<<std::endl;
+    openclBackend->openclQueue.marker(openclBackend->openclQueue.EnterKernelDispatchBits,
+     (dynamic_cast<Backend::Program::Kernel*>(this))->name);
     if (openclBackend->openclConfig.trace){
        Sled::show(std::cout, argArray);
     }
@@ -295,7 +297,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
        }
          openclBackend->openclQueue.wait();
     }
-      openclBackend->openclQueue.marker(openclBackend->openclQueue.LeaveKernelDispatchBits);
+      openclBackend->openclQueue.marker(openclBackend->openclQueue.LeaveKernelDispatchBits,
+           (dynamic_cast<Backend::Program::Kernel*>(this))->name
+      );
     return 0;
 }
 
