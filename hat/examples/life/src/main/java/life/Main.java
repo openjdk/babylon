@@ -37,6 +37,11 @@ import jdk.incubator.code.CodeReflection;
 import wrap.clwrap.CLPlatform;
 import wrap.clwrap.CLWrapComputeContext;
 
+import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Polygon;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -97,7 +102,6 @@ public class Main {
          * struct Control{
          *     int from;
          *     int to;
-         *     long generation
          *  }
          */
         int from();
@@ -108,31 +112,22 @@ public class Main {
 
         void to(int to);
 
-        long generation();
-
-        void generation(long generation);
-        void requiredFrameRate(long requiredFrameRate);
-        long requiredFrameRate();
-        void  maxGenerations(long maxGenerations);
-        long maxGenerations();
-
         Schema<Control> schema = Schema.of(
                 Control.class, control ->
-                        control.fields("from", "to", "generation", "requiredFrameRate", "maxGenerations"));
+                        control.fields("from", "to"));//, "generation", "requiredFrameRate", "maxGenerations"));
 
         static Control create(Accelerator accelerator, CellGrid cellGrid) {
             var instance = schema.allocate(accelerator);
             instance.from(cellGrid.width() * cellGrid.height());
             instance.to(0);
-            instance.generation(0);
             return instance;
         }
-
-
     }
 
+
+
     public static class Compute {
-        public static final String codeHeader=  """
+        public static final String codeHeader = """
                 #define ALIVE -1
                 #define DEAD 0
                  typedef struct control_s{
@@ -140,14 +135,14 @@ public class Main {
                      int to;
                      long generation;
                  }control_t;
-
+                
                  typedef struct cellGrid_s{
                      int width;
                      int height;
                      signed char cellArray[0];
                  }cellGrid_t;
-
-                 """;
+                
+                """;
 
         final static String codeVal = """
                  inline int val(__global cellGrid_t *CLWrapCellGrid, int from, int w, int x, int y) {
@@ -162,29 +157,29 @@ public class Main {
         }
 
         final static String codeLifePerIdx = """
-         __kernel void life( __global  cellGrid_t *CLWrapCellGrid ,__global control_t *CLWrapControl ){
-            int kcx = get_global_id(0);
-            int w = CLWrapCellGrid->width;
-            int h = CLWrapCellGrid->height;
-            int from = CLWrapControl->from;
-            int to = CLWrapControl->to;
-            int x = kcx % w;
-            int y = kcx / w;
-            signed char cell = CLWrapCellGrid->cellArray[kcx + from];
-            if (x > 0 && x < (w - 1) && y > 0 && y < (h - 1)) { // passports please
-                int count =
-                        val(CLWrapCellGrid, from, w, x - 1, y - 1)
-                                + val(CLWrapCellGrid, from, w, x - 1, y + 0)
-                                + val(CLWrapCellGrid, from, w, x - 1, y + 1)
-                                + val(CLWrapCellGrid, from, w, x + 0, y - 1)
-                                + val(CLWrapCellGrid, from, w, x + 0, y + 1)
-                                + val(CLWrapCellGrid, from, w, x + 1, y + 0)
-                                + val(CLWrapCellGrid, from, w, x + 1, y - 1)
-                                + val(CLWrapCellGrid, from, w, x + 1, y + 1);
-                cell = ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
-            }
-            CLWrapCellGrid->cellArray[kcx + to]=  cell;
-        }
+                 __kernel void life( __global  cellGrid_t *CLWrapCellGrid ,__global control_t *CLWrapControl ){
+                    int kcx = get_global_id(0);
+                    int w = CLWrapCellGrid->width;
+                    int h = CLWrapCellGrid->height;
+                    int from = CLWrapControl->from;
+                    int to = CLWrapControl->to;
+                    int x = kcx % w;
+                    int y = kcx / w;
+                    signed char cell = CLWrapCellGrid->cellArray[kcx + from];
+                    if (x > 0 && x < (w - 1) && y > 0 && y < (h - 1)) { // passports please
+                        int count =
+                                val(CLWrapCellGrid, from, w, x - 1, y - 1)
+                                        + val(CLWrapCellGrid, from, w, x - 1, y + 0)
+                                        + val(CLWrapCellGrid, from, w, x - 1, y + 1)
+                                        + val(CLWrapCellGrid, from, w, x + 0, y - 1)
+                                        + val(CLWrapCellGrid, from, w, x + 0, y + 1)
+                                        + val(CLWrapCellGrid, from, w, x + 1, y + 0)
+                                        + val(CLWrapCellGrid, from, w, x + 1, y - 1)
+                                        + val(CLWrapCellGrid, from, w, x + 1, y + 1);
+                        cell = ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
+                    }
+                    CLWrapCellGrid->cellArray[kcx + to]=  cell;
+                }
                 """;
 
         @CodeReflection
@@ -221,32 +216,24 @@ public class Main {
 
 
         @CodeReflection
-        static public void compute(final ComputeContext cc, Viewer viewer, Control ctrl, CellGrid cellGrid) {
-            long framesSinceLastChange = 0;
-            long lastFrame = System.currentTimeMillis();
-            while (ctrl.generation() < ctrl.maxGenerations()) {
-                final long now = System.currentTimeMillis();
-                cc.dispatchKernel(
-                        cellGrid.width() * cellGrid.height(),
-                        kc -> Compute.life(kc, ctrl, cellGrid)
-                );
+        static public void compute(final @RO ComputeContext cc,
+                                   Viewer viewer, @RO Control ctrl, @RW CellGrid cellGrid) {
+            viewer.state.framesSinceLastChange = 0;
+            while (viewer.state.generation < viewer.state.maxGenerations) {
+                cc.dispatchKernel(cellGrid.width() * cellGrid.height(), kc -> Compute.life(kc, ctrl, cellGrid));
                 int to = ctrl.from();
                 ctrl.from(ctrl.to());
                 ctrl.to(to);
-                boolean displayThisGeneration =
-                        viewer.mainPanel.state.equals(Viewer.MainPanel.State.Done)
-                                && (now - lastFrame >= ( 1000 /  ctrl.requiredFrameRate()));
-                if (displayThisGeneration) {
-                    lastFrame = now;
-                    viewer.controls.updateGenerationCounter(ctrl.generation(), framesSinceLastChange,
-                            (1000 / ctrl.requiredFrameRate()));
-
+                long now = System.currentTimeMillis();
+                if (viewer.needsUpdating(now)) {
+                    viewer.state.lastFrame = now;
+                    viewer.controls.updateGenerationCounter();
                     cellGrid.copySliceTo(viewer.mainPanel.rasterData, ctrl.from());
-                    viewer.mainPanel.state = Viewer.MainPanel.State.Scheduled;
+                    viewer.state.redrawState = Viewer.State.RedrawState.RepaintRequested;
                     viewer.mainPanel.repaint();
                 }
-                framesSinceLastChange++;
-                ctrl.generation(ctrl.generation()+1);
+                viewer.state.framesSinceLastChange++;
+                viewer.state.generation++;
             }
         }
     }
@@ -259,8 +246,8 @@ public class Main {
         PatternData patternData = RleParser.readPatternData(
                 Main.class.getClassLoader().getResourceAsStream("orig.rle")
         );
-        // We oversize the grid by adding 1 to n,e,w and s
 
+        // We oversize the grid by adding 1 to n,e,w and s
         CellGrid cellGrid = CellGrid.create(accelerator,
                 patternData.getMetaData().getWidth() + 2,
                 patternData.getMetaData().getHeight() + 2);
@@ -272,72 +259,35 @@ public class Main {
         );
 
         Control control = Control.create(accelerator, cellGrid);
-
-
         CLWrapComputeContext clWrapComputeContext = new CLWrapComputeContext(arena, 20);
         List<CLPlatform> platforms = CLPlatform.platforms(arena);
-       // System.out.println("platforms " + platforms.size());
         CLPlatform platform = platforms.get(0);
         CLPlatform.CLDevice device = platform.devices.get(0);
-       // System.out.println("   Compute Units     " + device.computeUnits());
-       // System.out.println("   Device Name       " + device.deviceName());
-      //  System.out.println("   Device Vendor       " + device.deviceVendor());
-       // System.out.println("   Built In Kernels  " + device.builtInKernels());
         CLPlatform.CLDevice.CLContext context = device.createContext();
 
-        var program = context.buildProgram(Compute.codeHeader +Compute.codeVal + Compute.codeLifePerIdx);
+        var program = context.buildProgram(Compute.codeHeader + Compute.codeVal + Compute.codeLifePerIdx);
         CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel = program.getKernel("life");
         boolean useHat = false;
-        boolean useBufferBitz = false;
         Viewer viewer = new Viewer("Life", cellGrid, useHat);
-        cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.to());
         var tempFrom = control.from();
         control.from(control.to());
         control.to(tempFrom);
         viewer.mainPanel.repaint();
-        control.requiredFrameRate(10);
-        control.maxGenerations(1000000);
         viewer.waitForStart();
-        if (useHat){
-            accelerator.compute(cc->Compute.compute(cc, viewer, control, cellGrid ));
-        }else {
-            CLWrapComputeContext.MemorySegmentState cellGridState = useBufferBitz?null:clWrapComputeContext.register(Buffer.getMemorySegment((CellGrid) cellGrid));
-            CLWrapComputeContext.MemorySegmentState controlState = useBufferBitz?null:clWrapComputeContext.register(Buffer.getMemorySegment(control));
+        if (useHat) {
+            accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
+        } else {
 
-            long start = System.currentTimeMillis();
-            long generationsSinceLastChange = 0;
-            long framesSinceLastChange = 0;
-            long lastFrame = start;
-            if (!useBufferBitz) {
-                controlState.copyToDevice = true;
-                controlState.copyFromDevice = true;
-                cellGridState.copyToDevice = true;
-            }else{
-              //  System.out.println("At start control"+SegmentMapper.BufferState.of(control).setHostDirty(true));
+            while (viewer.state.generation < viewer.state.maxGenerations) {
+                boolean alwaysCopy = !viewer.state.minimizingCopies;
+                long now = System.currentTimeMillis();
+                boolean displayThisGeneration = viewer.needsUpdating(now);
 
-              //  System.out.println("At start cellgrid "+SegmentMapper.BufferState.of(cellGrid).setHostDirty(true).setDeviceDirty(true));
-            }
-            viewer.mainPanel.state = Viewer.MainPanel.State.Done;
-            while (control.generation() < control.maxGenerations()) {
-                boolean alwaysCopy = !viewer.controls.minimizeCopies();
-                final long now = System.currentTimeMillis();
-                boolean displayThisGeneration =
-                        viewer.mainPanel.state.equals(Viewer.MainPanel.State.Done)
-                                && (now - lastFrame >= ( 1000 /  control.requiredFrameRate()));
-
-
-                if (viewer.controls.useGPU()) {
-                    if (useBufferBitz){
-                        SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(cellGrid);
-                        bufferState.setHostDirty(alwaysCopy || (control.generation() == 0)); // only first
-                        bufferState.setDeviceDirty(alwaysCopy || displayThisGeneration);
-                       // System.out.println("displayThisGeneration: "+displayThisGeneration + " useBufferBitz == true so "+bufferState);
-                        kernel.run(clWrapComputeContext, cellGrid.wxh(), cellGrid, control);
-                    }else {
-                        cellGridState.copyToDevice = alwaysCopy || control.generation() == 0; // only first
-                        cellGridState.copyFromDevice = alwaysCopy || displayThisGeneration;
-                        kernel.run(clWrapComputeContext, cellGrid.wxh(), cellGridState, controlState);
-                    }
+                if (viewer.state.usingGPU) {
+                    SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(cellGrid);
+                    bufferState.setHostDirty(alwaysCopy || (viewer.state.generation == 0)); // only first
+                    bufferState.setDeviceDirty(alwaysCopy || displayThisGeneration);
+                    kernel.run(clWrapComputeContext, cellGrid.wxh(), cellGrid, control);
                 } else {
                     IntStream.range(0, cellGrid.wxh()).parallel().forEach(kcx ->
                             Compute.lifePerIdx(kcx, control, cellGrid)
@@ -346,23 +296,21 @@ public class Main {
                 tempFrom = control.from();
                 control.from(control.to());
                 control.to(tempFrom);
-                control.generation(control.generation() + 1);
-
-                ++generationsSinceLastChange;
+                viewer.state.generation++;
+                ++viewer.state.generationsSinceLastChange;
                 if (displayThisGeneration) {
-                    if (viewer.controls.updated) {
+                    if (viewer.state.updated) {
                         // When the user changes something we have to update FPS
-                        generationsSinceLastChange = 0;
-                        framesSinceLastChange = 0;
-                        viewer.controls.updated = false;
+                        viewer.state.generationsSinceLastChange = 0;
+                        viewer.state.framesSinceLastChange = 0;
+                        viewer.state.updated = false;
                     }
-                    viewer.controls.updateGenerationCounter(generationsSinceLastChange, framesSinceLastChange,
-                            ( 1000 /  control.requiredFrameRate()));
+                    viewer.controls.updateGenerationCounter();
                     cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
-                    viewer.mainPanel.state = Viewer.MainPanel.State.Scheduled;
+                    viewer.state.redrawState = Viewer.State.RedrawState.RepaintRequested;
                     viewer.mainPanel.repaint();
-                    lastFrame = now;
-                    framesSinceLastChange++;
+                    viewer.state.lastFrame = now;
+                    viewer.state.framesSinceLastChange++;
                 }
             }
         }
