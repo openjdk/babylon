@@ -28,6 +28,8 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLBackend;
+import hat.backend.java.JavaMultiThreadedBackend;
+import hat.backend.java.JavaSequentialBackend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
 import hat.ifacemapper.SegmentMapper;
@@ -37,11 +39,6 @@ import jdk.incubator.code.CodeReflection;
 import wrap.clwrap.CLPlatform;
 import wrap.clwrap.CLWrapComputeContext;
 
-import javax.swing.JPanel;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Polygon;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -217,30 +214,39 @@ public class Main {
 
         @CodeReflection
         static public void compute(final @RO ComputeContext cc,
-                                   Viewer viewer, @RO Control ctrl, @RW CellGrid cellGrid) {
-            viewer.state.framesSinceLastChange = 0;
+                                   Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
+            viewer.state.timeOfLastChange = System.currentTimeMillis();
             while (viewer.state.generation < viewer.state.maxGenerations) {
-                cc.dispatchKernel(cellGrid.width() * cellGrid.height(), kc -> Compute.life(kc, ctrl, cellGrid));
-                int to = ctrl.from();
-                ctrl.from(ctrl.to());
-                ctrl.to(to);
                 long now = System.currentTimeMillis();
-                if (viewer.needsUpdating(now)) {
-                    viewer.state.lastFrame = now;
-                    viewer.controls.updateGenerationCounter();
-                    cellGrid.copySliceTo(viewer.mainPanel.rasterData, ctrl.from());
+                boolean displayThisGeneration =  viewer.state.redrawState.equals(Viewer.State.RedrawState.RepaintCompleted)
+                        && ((now - viewer.state.timeOfLastFrame) >= viewer.state.msPerFrame);
+
+                cc.dispatchKernel(cellGrid.width() * cellGrid.height(), kc -> Compute.life(kc, control, cellGrid));
+                int to = control.from();
+                control.from(control.to());
+                control.to(to);
+                viewer.state.generation++;
+                viewer.state.generationsSinceLastChange++;
+
+                if (displayThisGeneration) {
+                    viewer.controls.updateCounters(now);
+                    cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
                     viewer.state.redrawState = Viewer.State.RedrawState.RepaintRequested;
                     viewer.mainPanel.repaint();
+                    viewer.state.timeOfLastFrame = now;
                 }
-                viewer.state.framesSinceLastChange++;
-                viewer.state.generation++;
             }
         }
     }
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new OpenCLBackend("GPU,MINIMIZE_COPIES"));
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
+                new OpenCLBackend("GPU,MINIMIZE_COPIES")
+               // new OpenCLBackend("GPU")
+                //new JavaMultiThreadedBackend()
+               // new JavaSequentialBackend()
+        );
 
         Arena arena = Arena.global();
         PatternData patternData = RleParser.readPatternData(
@@ -267,26 +273,28 @@ public class Main {
 
         var program = context.buildProgram(Compute.codeHeader + Compute.codeVal + Compute.codeLifePerIdx);
         CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel = program.getKernel("life");
-        boolean useHat = false;
-        Viewer viewer = new Viewer("Life", cellGrid, useHat);
+        Viewer.State state = new Viewer.State(true);
+        Viewer viewer = new Viewer("Life", cellGrid, state);
         var tempFrom = control.from();
         control.from(control.to());
         control.to(tempFrom);
         viewer.mainPanel.repaint();
         viewer.waitForStart();
-        if (useHat) {
+        if (state.useHat) {
+
             accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
         } else {
 
-            while (viewer.state.generation < viewer.state.maxGenerations) {
-                boolean alwaysCopy = !viewer.state.minimizingCopies;
-                long now = System.currentTimeMillis();
-                boolean displayThisGeneration = viewer.needsUpdating(now);
+            while (state.generation < state.maxGenerations) {
 
-                if (viewer.state.usingGPU) {
+                long now = System.currentTimeMillis();
+                boolean displayThisGeneration = state.redrawState.equals(Viewer.State.RedrawState.RepaintCompleted)
+                        && ((now - state.timeOfLastFrame) >= state.msPerFrame);
+
+                if (state.usingGPU) {
                     SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(cellGrid);
-                    bufferState.setHostDirty(alwaysCopy || (viewer.state.generation == 0)); // only first
-                    bufferState.setDeviceDirty(alwaysCopy || displayThisGeneration);
+                    bufferState.setHostDirty(!state.minimizingCopies || (state.generation == 0)); // only first
+                    bufferState.setDeviceDirty(!state.minimizingCopies || displayThisGeneration);
                     kernel.run(clWrapComputeContext, cellGrid.wxh(), cellGrid, control);
                 } else {
                     IntStream.range(0, cellGrid.wxh()).parallel().forEach(kcx ->
@@ -296,21 +304,21 @@ public class Main {
                 tempFrom = control.from();
                 control.from(control.to());
                 control.to(tempFrom);
-                viewer.state.generation++;
-                ++viewer.state.generationsSinceLastChange;
+
+                state.generation++;
+                state.generationsSinceLastChange++;
+
                 if (displayThisGeneration) {
-                    if (viewer.state.updated) {
-                        // When the user changes something we have to update FPS
-                        viewer.state.generationsSinceLastChange = 0;
-                        viewer.state.framesSinceLastChange = 0;
-                        viewer.state.updated = false;
+                    if (state.updated) {
+                        state.generationsSinceLastChange = 0;
+                        state.timeOfLastChange = now;
+                        state.updated = false;
                     }
-                    viewer.controls.updateGenerationCounter();
+                    viewer.controls.updateCounters(now);
                     cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
-                    viewer.state.redrawState = Viewer.State.RedrawState.RepaintRequested;
+                    state.redrawState = Viewer.State.RedrawState.RepaintRequested;
                     viewer.mainPanel.repaint();
-                    viewer.state.lastFrame = now;
-                    viewer.state.framesSinceLastChange++;
+                    state.timeOfLastFrame = now;
                 }
             }
         }

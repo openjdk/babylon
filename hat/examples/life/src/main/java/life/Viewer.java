@@ -29,7 +29,6 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
-import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.WindowConstants;
 import java.awt.Color;
@@ -54,16 +53,22 @@ public class Viewer extends JFrame {
 
     public static class State {
         public final long requiredFrameRate = 10;
+        public final long msPerFrame = 1000/requiredFrameRate;
         public final long maxGenerations = 1000000;
         private final Object doorBell = new Object();
         public long generation = 0;
+
         public volatile boolean minimizingCopies = false;
         public volatile boolean usingGPU = false;
         volatile private boolean started = false;
-        public long start = System.currentTimeMillis();
+
+        // public long start = System.currentTimeMillis();
         public long generationsSinceLastChange = 0;
-        public long framesSinceLastChange = 0;
-        public long lastFrame = start;
+        public long timeOfLastChange = 0;
+     //   public long framesSinceLastChange = 0;
+        public long timeOfLastFrame;
+
+
 
         public enum RedrawState {RepaintRequested, RepaintCompleted}
 
@@ -162,10 +167,17 @@ public class Viewer extends JFrame {
 
         public void set(int n) {
             Arrays.fill(digits, blankDigit);
-            int pos = digits.length-1;
-            while (n>0){
-                digits[pos--]=digits0to9[n%10];
-                n/=10;
+            int pos = digits.length - 1;
+            if (n>0) {
+                while (n > 0) {
+                    if (pos<0){
+                        throw new IllegalArgumentException("too many digits");
+                    }
+                    digits[pos--] = digits0to9[n % 10];
+                    n /= 10;
+                }
+            }else if (n==0){
+                digits[pos] = digits0to9[0];
             }
             repaint();
         }
@@ -194,10 +206,7 @@ public class Viewer extends JFrame {
 
     public final State state;
 
-    public boolean needsUpdating(long now) {
-        return state.redrawState.equals(State.RedrawState.RepaintCompleted)
-                && ((now - state.lastFrame) >= (1000 / state.requiredFrameRate));
-    }
+
 
     static final public class MainPanel extends JComponent implements ImageObserver {
         final double IN = 1.1;
@@ -316,11 +325,11 @@ public class Viewer extends JFrame {
 
         private State state;
 
-        Controls(JMenuBar menuBar, State state, boolean useHat) {
+        Controls(JMenuBar menuBar, State state) {
             this.state = state;
             ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
             this.startButton = (JButton) menuBar.add(new JButton("Start"));
-             if (!useHat) {
+             if (!state.useHat) {
                 this.useGPUToggleButton = addToggle(menuBar, "Java", "GPU");
                 this.minimizeCopiesToggleButton = addToggle(menuBar, "Always Copy", "Minimize Moves");
                 this.minimizeCopiesToggleButton.setEnabled(state.minimizingCopies);
@@ -343,7 +352,7 @@ public class Viewer extends JFrame {
 
             menuBar.add(new JLabel("Gen/Sec"));
             this.generationsPerSecondSevenSegment = (SevenSegmentDigitDisplay)
-                    menuBar.add(new SevenSegmentDigitDisplay(4,30));
+                    menuBar.add(new SevenSegmentDigitDisplay(6,30));
 
         }
 
@@ -360,24 +369,26 @@ public class Viewer extends JFrame {
             return toggleButton;
         }
 
-        public void updateGenerationCounter() {
+        public void updateCounters(long now) {
             generationSevenSegment.set((int)state.generationsSinceLastChange);
-            if (state.generationsSinceLastChange > 0 && state.framesSinceLastChange > 0) {
-                long msPerFrame = (1000 / state.requiredFrameRate);
-                float gps = (state.generationsSinceLastChange * 1000f) / (state.framesSinceLastChange * msPerFrame);
-                  generationsPerSecondSevenSegment.set((int) gps);
-            } else {
-                //generationsPerSecondTextField.setText("...");
+            long interval= (now -state.timeOfLastChange);
+            if (state.generationsSinceLastChange > 0 && interval>0) { // no div/0
+                int gps = (int)((1000*state.generationsSinceLastChange)/interval);
+               /* System.out.println("gps "+(int)gps
+                        + " interval="+interval
+                        + " state.generationsSinceLastChange="+state.generationsSinceLastChange
+                        + " state.timeOfLastChange="+state.timeOfLastChange);*/
+
+                    generationsPerSecondSevenSegment.set( gps);
             }
         }
     }
-
-    Viewer(String title, Main.CellGrid cellGrid, boolean useHat) {
+    Viewer(String title, Main.CellGrid cellGrid, State state) {
         super(title);
-        this.state = new State(useHat);
+        this.state = state;
         this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY), state);
         JMenuBar menuBar = new JMenuBar();
-        this.controls = new Controls(menuBar, state, useHat);
+        this.controls = new Controls(menuBar, state);
         setJMenuBar(menuBar);
         controls.startButton.addActionListener(_ -> {
             state.started = true;
