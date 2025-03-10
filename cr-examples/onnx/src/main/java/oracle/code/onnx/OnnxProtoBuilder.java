@@ -300,9 +300,10 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static GraphProto graph(Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers) {
         var params = block.parameters();
         int first = params.size() - initializers.size();
+        var args = params.isEmpty() || params.getFirst().type() instanceof OnnxType.TensorType ? params : params.subList(1, params.size());
         return graph(
                 IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.getName(params.get(i + first)), initializers.get(i))).toList(),
-                params.stream().map(v ->
+                args.stream().map(v ->
                         tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
                 block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {

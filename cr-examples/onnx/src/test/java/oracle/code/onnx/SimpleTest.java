@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 public class SimpleTest {
 
     @CodeReflection
-    public static Tensor<Float> add(Tensor<Float> a, Tensor<Float> b) {
+    public Tensor<Float> add(Tensor<Float> a, Tensor<Float> b) {
         return OnnxOperators.Add(a, b);
     }
 
@@ -23,7 +23,7 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Float> sub(Tensor<Float> a, Tensor<Float> b) {
+    public Tensor<Float> sub(Tensor<Float> a, Tensor<Float> b) {
         return OnnxOperators.Sub(a, b);
     }
 
@@ -37,7 +37,7 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Float> fconstant() {
+    public Tensor<Float> fconstant() {
         return OnnxOperators.Constant(-1f);
     }
 
@@ -50,7 +50,7 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Float> fconstants() {
+    public Tensor<Float> fconstants() {
         return OnnxOperators.Constant(new float[]{-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE});
     }
 
@@ -63,7 +63,7 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Long> lconstant() {
+    public Tensor<Long> lconstant() {
         return OnnxOperators.Constant(-1l);
     }
 
@@ -76,7 +76,7 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Long> lconstants() {
+    public Tensor<Long> lconstants() {
         return OnnxOperators.Constant(new long[]{-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE});
     }
 
@@ -89,7 +89,7 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Long> reshapeAndShape(Tensor<Float> data, Tensor<Long> shape) {
+    public Tensor<Long> reshapeAndShape(Tensor<Float> data, Tensor<Long> shape) {
         return OnnxOperators.Shape(OnnxOperators.Reshape(data, shape, Optional.empty()), Optional.empty(), Optional.empty());
     }
 
@@ -103,7 +103,7 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Long> indicesOfMaxPool(Tensor<Float> x) {
+    public Tensor<Long> indicesOfMaxPool(Tensor<Float> x) {
         // testing secondary output
         return OnnxOperators.MaxPool(x, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),  new long[]{2}).Indices();
     }
@@ -117,7 +117,7 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Float> ifConst(Tensor<Boolean> cond) {
+    public Tensor<Float> ifConst(Tensor<Boolean> cond) {
         return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Constant(1f));
     }
 
@@ -136,7 +136,7 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public static Tensor<Float> ifCapture(Tensor<Boolean> cond, Tensor<Float> trueValue) {
+    public Tensor<Float> ifCapture(Tensor<Boolean> cond, Tensor<Float> trueValue) {
         var falseValue = OnnxOperators.Constant(-1f);
         return OnnxOperators.If(cond, () -> OnnxOperators.Identity(falseValue), () -> trueValue);
     }
@@ -153,6 +153,20 @@ public class SimpleTest {
 
         assertEquals(expTrue, ifCapture(condTrue, expTrue));
         assertEquals(expTrue, OnnxRuntime.execute(MethodHandles.lookup(), () -> ifCapture(condTrue, expTrue)));
+    }
+
+    final Tensor<Float> initialized = Tensor.ofFlat(42f);
+
+    @CodeReflection
+    public Tensor<Float> initialized() {
+        return OnnxOperators.Identity(initialized);
+    }
+
+    @Test
+    public void testInitialized() throws Exception {
+
+        assertEquals(initialized(),
+                     OnnxRuntime.execute(MethodHandles.lookup(), () -> initialized()));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {

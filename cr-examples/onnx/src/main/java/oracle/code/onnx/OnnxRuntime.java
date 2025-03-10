@@ -69,7 +69,7 @@ public final class OnnxRuntime {
 
         @Override
         protected CachedSession computeValue(Class<?> type) {
-            var mf = LambdaToFunc.fromLambda(l, (CoreOp.LambdaOp)q.op());
+            var mf = LambdaToFunc.fromLambda(l, (CoreOp.LambdaOp)q.op(), q.capturedValues());
 
             List<Tensor> initializers = mf.func().initializers().stream().map(val -> (Tensor) val).toList();
 
@@ -95,7 +95,11 @@ public final class OnnxRuntime {
         List<Tensor> arguments = IntStream.of(model.operandsMapping())
                 .mapToObj(i -> captured[i])
                 .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
-                .map(val -> (Tensor) val)
+                .<Tensor>mapMulti((val, args) -> {
+                    if (val instanceof Tensor t) {
+                        args.accept(t);
+                    }
+                })
                 .toList();
 
         return model.session.run(arena, arguments).getFirst();

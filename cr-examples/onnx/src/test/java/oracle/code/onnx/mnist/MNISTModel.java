@@ -50,18 +50,18 @@ public class MNISTModel {
         }
     }
 
-    static final Tensor<Float> conv1Weights;
-    static final Tensor<Float> conv1Biases;
-    static final Tensor<Float> conv2Weights;
-    static final Tensor<Float> conv2Biases;
-    static final Tensor<Float> fc1Weights;
-    static final Tensor<Float> fc1Biases;
-    static final Tensor<Float> fc2Weights;
-    static final Tensor<Float> fc2Biases;
-    static final Tensor<Float> fc3Weights;
-    static final Tensor<Float> fc3Biases;
+    final Tensor<Float> conv1Weights;
+    final Tensor<Float> conv1Biases;
+    final Tensor<Float> conv2Weights;
+    final Tensor<Float> conv2Biases;
+    final Tensor<Float> fc1Weights;
+    final Tensor<Float> fc1Biases;
+    final Tensor<Float> fc2Weights;
+    final Tensor<Float> fc2Biases;
+    final Tensor<Float> fc3Weights;
+    final Tensor<Float> fc3Biases;
 
-    static {
+    MNISTModel() {
         conv1Weights = initialize("conv1-weight-float-le", 6, 1, 5, 5);
         conv1Biases = initialize("conv1-bias-float-le", 6);
         conv2Weights = initialize("conv2-weight-float-le", 16, 6, 5, 5);
@@ -75,7 +75,7 @@ public class MNISTModel {
     }
 
     @CodeReflection
-    public static Tensor<Float> cnn(Tensor<Float> inputImage) {
+    public Tensor<Float> cnn(Tensor<Float> inputImage) {
         // Scaling to 0-1
         var scaledInput = Div(inputImage, Constant(255f));
 
@@ -117,7 +117,7 @@ public class MNISTModel {
         return prediction;
     }
 
-    public static float[] classify(float[] imageData) {
+    public float[] classify(float[] imageData) {
         try (Arena arena = Arena.ofConfined()) {
             var imageTensor = Tensor.ofShape(arena, IMAGE_SHAPE, imageData);
 

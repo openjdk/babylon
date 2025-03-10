@@ -31,9 +31,9 @@ public class OnnxTransformer {
 
     public record OnnxFuncOp(CoreOp.FuncOp func, List<Object> initializers) {}
 
-    public static OnnxFuncOp transform(MethodHandles.Lookup l, CoreOp.FuncOp in) {
+    public static OnnxFuncOp transform(MethodHandles.Lookup l, Map<Value, Object> evaluatedValues, CoreOp.FuncOp in) {
         OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
-        pe.evaluate(l, in);
+        pe.evaluate(l, in, evaluatedValues);
 
         FunctionType ft = FunctionType.functionType(
                 type(in.invokableType().returnType()),
@@ -102,7 +102,7 @@ public class OnnxTransformer {
                         }
                         opArgs.addAll(attributes.stream().map(a -> {
                             if (a instanceof CoreOp.LambdaOp lo) {
-                                var ltf = LambdaToFunc.fromLambda(l, lo);
+                                var ltf = LambdaToFunc.fromLambda(l, lo, evaluatedValues);
                                 var cc = bb.context();
                                 var lbb = Body.Builder.of(bb.parentBody(), lo.invokableType(), cc);
                                 var eb = lbb.entryBlock();
@@ -243,7 +243,7 @@ public class OnnxTransformer {
 
     // @@@ Map of Java tensor types to ONNX tensor types
     // @@@ Shape??
-    static OnnxType type(TypeElement type) {
+    static TypeElement type(TypeElement type) {
         if (type instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS)) {
             JavaType elementType = ct.typeArguments().getFirst();
             if (elementType.equals(JavaType.J_L_INTEGER)) {
@@ -258,7 +258,8 @@ public class OnnxTransformer {
                 return OnnxType.TENSOR_BOOL;
             }
         }
-        throw new UnsupportedOperationException("Unknown type: " + type);
+        return type;
+//        throw new UnsupportedOperationException("Unknown type: " + type);
     }
 
 }

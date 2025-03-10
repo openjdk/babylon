@@ -18,7 +18,8 @@ import oracle.code.onnx.compiler.OnnxTransformer;
 
 public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMapping) {
 
-    public static LambdaToFunc fromLambda(MethodHandles.Lookup l, CoreOp.LambdaOp lambda) {
+    public static LambdaToFunc fromLambda(MethodHandles.Lookup l, CoreOp.LambdaOp lambda, Map<Value, Object> evaluatedValues) {
+        evaluatedValues = new HashMap<>(evaluatedValues);
         // Shortcut for lambda expressions that call just one method
         if (singleMethodInvocation(lambda) instanceof
                 SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping)) {
@@ -32,14 +33,25 @@ public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMappin
             var fOpt = Op.ofMethod(m);
             if (fOpt.isPresent()) {
                 CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
-                OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, f);
-
                 var operands = iop.operands();
                 var captured = lambda.capturedValues();
                 var operandsMapping = new int[iop.operands().size()];
+                var fParams = f.parameters();
                 for (int i = 0; i < operandsMapping.length; i++) {
-                    operandsMapping[i] = captured.indexOf(valueMapping.get(operands.get(i)));
+                    var opValue = valueMapping.get(operands.get(i));
+                    operandsMapping[i] = captured.indexOf(opValue);
+                    if (i == 0) {
+                        var value = evaluatedValues.get(opValue);
+                        if (value instanceof CoreOp.Var v) {
+                            value = v.value();
+                        }
+                        if (value != null && !(value instanceof Tensor)) {
+                            // @@@ probably a receiver
+                            evaluatedValues.put(fParams.get(i), value);
+                        }
+                    }
                 }
+                OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, evaluatedValues, f);
                 return new LambdaToFunc(onnxFunc, operandsMapping);
             }
         }
@@ -47,7 +59,7 @@ public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMappin
         var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
                 capturedValues.stream().map(Value::type)
                         .map(t -> t instanceof VarType vt ? vt.valueType() : t).toList());
-        OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, CoreOp.func("onnxCode", functionType)
+        OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, evaluatedValues, CoreOp.func("onnxCode", functionType)
                 .body(bb -> {
                     bb.context().mapValues(capturedValues, bb.parameters());
                     for (Op op : lambda.body().entryBlock().ops()) {

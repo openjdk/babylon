@@ -35,8 +35,6 @@ import oracle.code.onnx.ir.OnnxOps;
 import java.lang.invoke.*;
 import java.lang.reflect.Array;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import oracle.code.onnx.Tensor;
@@ -63,9 +61,10 @@ final class OnnxPartialEvaluator {
     }
 
     public <T extends Op & Op.Invokable>
-    void evaluate(MethodHandles.Lookup l, T op) {
-        Map<Value, Object> evaluatedValues = new HashMap<>();
-        interpretEntryBlock(l, op.body().entryBlock(), new OpContext(), evaluatedValues);
+    void evaluate(MethodHandles.Lookup l, T op, Map<Value, Object> evaluatedValues) {
+        var ev = new HashMap(evaluatedValues);
+
+        interpretEntryBlock(l, op.body().entryBlock(), new OpContext(), ev);
 
 //        evaluatedAttributes.forEach((invokeOp, objects) -> {
 //            System.out.println(invokeOp.invokeDescriptor().name() + " -> " + objects);
@@ -308,7 +307,7 @@ final class OnnxPartialEvaluator {
             OnnxOp.OnnxSchema schema = schemaFromOnnxOpClass(opClass);
 
             List<OnnxOp.OnnxParameter> inputs = schema.inputs();
-            assert o.operands().subList(0, inputs.size()).stream().noneMatch(oc::isValueDefined);
+//            assert o.operands().subList(0, inputs.size()).stream().noneMatch(oc::isValueDefined);
             List<OnnxOp.OnnxAttribute> attributes = schema.attributes();
 
             if (opClass == OnnxOps.Constant.class && o.operands().size() == 1) {
@@ -342,7 +341,11 @@ final class OnnxPartialEvaluator {
             return null;
         } else if (o instanceof CoreOp.FieldAccessOp.FieldLoadOp fo && fo.fieldDescriptor().type() instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS)) {
             try {
-                initializers.add(fo.fieldDescriptor().resolveToHandle(l).get());
+                if (fo.operands().isEmpty()) {
+                    initializers.add(fo.fieldDescriptor().resolveToHandle(l).get());
+                } else {
+                    initializers.add(fo.fieldDescriptor().resolveToHandle(l).get(oc.getValue(fo.operands().getFirst())));
+                }
             } catch (ReflectiveOperationException ex) {
                 throw interpreterException(ex);
             }
