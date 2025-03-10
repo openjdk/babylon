@@ -57,7 +57,7 @@ public class MNISTModel {
     final Tensor<Float> fc3Weights;
     final Tensor<Float> fc3Biases;
 
-    MNISTModel() throws IOException {
+    public MNISTModel() throws IOException {
         conv1Weights = initialize("conv1-weight-float-le", 6, 1, 5, 5);
         conv1Biases = initialize("conv1-bias-float-le", 6);
         conv2Weights = initialize("conv2-weight-float-le", 16, 6, 5, 5);
