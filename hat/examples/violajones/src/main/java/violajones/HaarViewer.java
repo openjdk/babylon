@@ -26,17 +26,19 @@ package violajones;
 
 
 import hat.Accelerator;
-import hat.buffer.BufferAllocator;
 import hat.buffer.F32Array2D;
 import hat.buffer.S32Array;
 import hat.buffer.U16GreyImage;
 import hat.buffer.S08x3RGBImage;
+import hat.util.ui.SevenSegmentDisplay;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.WindowConstants;
 import java.awt.BasicStroke;
@@ -48,13 +50,13 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.lang.invoke.MethodHandles;
 
 public class HaarViewer extends JFrame {
    final Accelerator accelerator;
      final BufferedImage image;
     final S08x3RGBImage s08X3RGBImage;
-
+    private final SevenSegmentDisplay foundCountSevenSegment;
+    private final SevenSegmentDisplay timeSevenSegment;
 
     public static class IntegralWindow {
         final double integralScale = .25;
@@ -156,10 +158,11 @@ public class HaarViewer extends JFrame {
     S32Array resultIds;
     ScaleTable scaleTable;
 
-    public void showResults(ResultTable resultTable, ScaleTable scaleTable, S32Array resultIds) {
+    public void showResults(ResultTable resultTable, ScaleTable scaleTable, S32Array resultIds, long ms) {
         this.resultTable = resultTable;
         this.scaleTable = scaleTable;
         this.resultIds = resultIds;
+        this.timeSevenSegment.set((int)ms);
         this.imageView.repaint();
     }
 
@@ -196,7 +199,9 @@ public class HaarViewer extends JFrame {
                 if (resultTable != null && resultTable.atomicResultTableCount() > 0) {
                     g2.setStroke(new BasicStroke(2f));
                     g2.setColor(Color.red);
-                    for (int i = 0; i < resultTable.atomicResultTableCount(); i++) {
+                    var facesFound = resultTable.atomicResultTableCount();
+                    foundCountSevenSegment.set(facesFound);
+                    for (int i = 0; i < facesFound; i++) {
                         if (i < resultTable.length()) {
                             ResultTable.Result result = resultTable.result(i);
                             g2.drawString(Integer.toString(i), result.x() - 10, result.y() - 5);
@@ -244,6 +249,15 @@ public class HaarViewer extends JFrame {
                         (int) (HaarViewer.this.image.getHeight() * imageScale));
             }
         };
+        JMenuBar menuBar = new JMenuBar();
+        menuBar.add(new JLabel("Found"));
+        this.foundCountSevenSegment = (SevenSegmentDisplay)
+                menuBar.add(new SevenSegmentDisplay(6,30));
+        menuBar.add(new JLabel(" faces in "));
+        this.timeSevenSegment = (SevenSegmentDisplay)
+                menuBar.add(new SevenSegmentDisplay(6,30));
+        menuBar.add(new JLabel("ms"));
+        setJMenuBar(menuBar);
         JPanel gridPanel = new JPanel();
         JPanel imagePanel = new JPanel();
         gridPanel.add(imageView);
