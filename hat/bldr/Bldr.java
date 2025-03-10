@@ -2517,7 +2517,7 @@ public class Bldr {
             }
 
             default JarFile jarFile(BuildDir buildDir) {
-                return buildDir.jarFile(packageName() + ".jar");
+                return buildDir.jarFile("hat-jextracted-"+packageName() + "-1.0.jar");
             }
 
             void inversionOfControl(JExtractBuilder jextractBuilder);

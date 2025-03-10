@@ -98,11 +98,11 @@ void main(String[] args) {
     out.println();
 
     var verbose = false;
-    var wrapJar= buildDir.jarFile("wrap.jar");
-    var clWrapJar= buildDir.jarFile("clwrap.jar");
-    var glWrapJar= buildDir.jarFile("glwrap.jar");
-    var cuWrapJar= buildDir.jarFile("cuwrap.jar");
-    var hatJar = buildDir.jarFile("hat-1.0.jar");
+    var wrapJar= buildDir.jarFile("hat-wrap-1.0.jar");
+    var clWrapJar= buildDir.jarFile("hat-clwrap-1.0.jar");
+    var glWrapJar= buildDir.jarFile("hat-glwrap-1.0.jar");
+    var cuWrapJar= buildDir.jarFile("hat-cuwrap-1.0.jar");
+    var hatJar = buildDir.jarFile("hat-core-1.0.jar");
 
  var hatJavacOpts = javacBuilder($ -> $
             .enable_preview()

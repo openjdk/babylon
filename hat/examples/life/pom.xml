@@ -36,7 +36,22 @@ questions.
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat</artifactId>
+            <artifactId>hat-core</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-backend-ffi-opencl</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-clwrap</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-jextracted-opencl</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
@@ -55,7 +70,7 @@ questions.
                         </goals>
                         <configuration>
                             <target>
-                                <copy file="target/hat-example-life-1.0.jar" toDir="${hat.build}"/>
+                                <copy file="target/${project.artifactId}-${project.version}.jar" toDir="${hat.build}"/>
                             </target>
                         </configuration>
                     </execution>

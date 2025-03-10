@@ -54,7 +54,7 @@ void main(String[] argv) {
       """;
 
   var hatDir = DirEntry.current();
-  var hatCore = hatDir.existingDir("hat");
+  var hatCore = hatDir.existingDir("hat-core");
   var backends = hatDir.existingDir("backends");
   var examples = hatDir.existingDir("examples");
   var extractions = hatDir.existingDir("extractions");
