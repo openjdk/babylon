@@ -82,9 +82,7 @@ public final class OnnxRuntime {
                     var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
                     Files.write(export, protobufModel);
                     System.out.println("Onnx model exported to: " + export.toAbsolutePath());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                } catch (IOException _) {}
             }
 
             return new CachedSession(getInstance().createSession(
