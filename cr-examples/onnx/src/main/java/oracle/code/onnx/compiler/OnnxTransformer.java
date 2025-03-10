@@ -17,6 +17,9 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import jdk.incubator.code.*;
+import oracle.code.onnx.LambdaToFunc;
+import oracle.code.onnx.ir.ExplicitOnnxOps;
 
 // Transform the Java code model of an ONNX function to an ONNX code model
 public class OnnxTransformer {
@@ -26,15 +29,16 @@ public class OnnxTransformer {
     private OnnxTransformer() {
     }
 
-    public static CoreOp.FuncOp transform(MethodHandles.Lookup l, CoreOp.FuncOp in) {
+    public record OnnxFuncOp(CoreOp.FuncOp func, List<Object> initializers) {}
+
+    public static OnnxFuncOp transform(MethodHandles.Lookup l, Map<Value, Object> evaluatedValues, CoreOp.FuncOp in) {
         OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
-        pe.evaluate(l, in);
+        pe.evaluate(l, in, evaluatedValues);
 
         FunctionType ft = FunctionType.functionType(
                 type(in.invokableType().returnType()),
                 in.invokableType().parameterTypes().stream().map(OnnxTransformer::type).toList()
         );
-
         CoreOp.FuncOp onnxModel = CoreOp.func(in.funcName(), ft).body(b -> {
             b.transformBody(in.body(), b.parameters(), (bb, op) -> {
                 if (!pe.unevaluatedOperations.contains(op)) {
@@ -96,7 +100,23 @@ public class OnnxTransformer {
                                 }
                             }
                         }
-                        opArgs.addAll(attributes);
+                        opArgs.addAll(attributes.stream().map(a -> {
+                            if (a instanceof CoreOp.LambdaOp lo) {
+                                var ltf = LambdaToFunc.fromLambda(l, lo, evaluatedValues);
+                                var cc = bb.context();
+                                var lbb = Body.Builder.of(bb.parentBody(), lo.invokableType(), cc);
+                                var eb = lbb.entryBlock();
+                                var params = ltf.func().func().body().entryBlock().parameters();
+                                var captured = lo.capturedValues();
+                                for (int i = 0; i < params.size(); i++) {
+                                    var param = params.get(i);
+                                    cc.mapValue(param, eb.op(OnnxOps.Identity(param.type(), cc.getValue(traverseUp(captured.get(i))))));
+                                }
+                                ltf.func().func().body().entryBlock().ops().forEach(eb::apply);
+                                return lbb;
+                            }
+                            return a;
+                        }).toList());
 
                         OnnxOp onnxOp;
                         try {
@@ -113,6 +133,9 @@ public class OnnxTransformer {
                         Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                         bb.context().mapValue(io.result(), result);
                     }
+                    case CoreOp.FieldAccessOp.FieldLoadOp fo when fo.fieldDescriptor().type() instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS) -> {
+                        bb.context().mapValue(fo.result(), b.parameter(type(fo.resultType())));
+                    }
                     // Copy remaining operations, which may be removed later transformations
                     default -> bb.op(op);
                 }
@@ -120,13 +143,18 @@ public class OnnxTransformer {
             });
         });
 
-        return SSA.transform(onnxModel).transform((b, op) -> {
+        return new OnnxFuncOp(SSA.transform(onnxModel).transform((b, op) -> {
             // Drop any non-terminating operation whose result is not used
             if (op instanceof Op.Terminating || !op.result().uses().isEmpty()) {
                 b.op(op);
             }
             return b;
-        });
+        }), pe.initializers);
+    }
+
+    static Value traverseUp(Value v) {
+        // @@@ when captured value is a VaroOp
+        return v instanceof Op.Result or && or.op() instanceof CoreOp.VarOp vo && !vo.isUninitialized()? vo.initOperand() : v;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -135,6 +163,9 @@ public class OnnxTransformer {
         try {
             return (Class) Class.forName(OnnxOps.class.getName() + "$" + operatorName);
         } catch (ClassNotFoundException e) {
+            try {
+                return (Class) Class.forName(ExplicitOnnxOps.class.getName() + "$" + operatorName);
+            } catch (ClassNotFoundException _) {}
             throw new InternalError(e);
         }
     }
@@ -212,7 +243,7 @@ public class OnnxTransformer {
 
     // @@@ Map of Java tensor types to ONNX tensor types
     // @@@ Shape??
-    static OnnxType type(TypeElement type) {
+    static TypeElement type(TypeElement type) {
         if (type instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS)) {
             JavaType elementType = ct.typeArguments().getFirst();
             if (elementType.equals(JavaType.J_L_INTEGER)) {
@@ -223,9 +254,12 @@ public class OnnxTransformer {
                 return OnnxType.TENSOR_INT64;
             } else if (elementType.equals(JavaType.J_L_BYTE)) {
                 return OnnxType.TENSOR_UINT8;
+            } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
+                return OnnxType.TENSOR_BOOL;
             }
         }
-        throw new UnsupportedOperationException("Unknown type: " + type);
+        return type;
+//        throw new UnsupportedOperationException("Unknown type: " + type);
     }
 
 }

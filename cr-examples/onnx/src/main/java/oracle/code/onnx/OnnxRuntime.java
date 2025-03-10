@@ -4,28 +4,23 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.VarType;
-import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
 
 import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
 public final class OnnxRuntime {
+
+    static boolean DEBUG = true;
 
     static {
         String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";
@@ -76,171 +71,50 @@ public final class OnnxRuntime {
 
         @Override
         protected CachedSession computeValue(Class<?> type) {
-            var lambda = (CoreOp.LambdaOp) q.op();
+            var mf = LambdaToFunc.fromLambda(l, (CoreOp.LambdaOp)q.op(), q.capturedValues());
 
-            CoreOp.FuncOp onnxFunc;
-            int[] operandsMapping;
+            List<Tensor> initializers = mf.func().initializers().stream().map(val -> (Tensor) val).toList();
+            byte[] protobufModel = OnnxProtoBuilder.build(mf.func().func().body().entryBlock(), initializers);
 
-            // Shortcut for lambda expressions that call just one method
-            if (singleMethodInvocation(lambda) instanceof
-                    SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping)) {
-                Method m;
+            if (DEBUG) {
+                System.out.println(mf.func().func().toText());
                 try {
-                    m = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
-                }
-
-                CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
-                onnxFunc = OnnxTransformer.transform(l, f);
-
-                var operands = iop.operands();
-                var captured = q.capturedValues().sequencedKeySet().stream().toList();
-                operandsMapping = new int[iop.operands().size()];
-                for (int i = 0; i < operandsMapping.length; i++) {
-                    operandsMapping[i] = captured.indexOf(valueMapping.get(operands.get(i)));
-                }
-
-            } else {
-                var capturedValues = lambda.capturedValues();
-                var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
-                        capturedValues.stream().map(Value::type)
-                                .map(t -> t instanceof VarType vt ? vt.valueType() : t).toList());
-                onnxFunc = OnnxTransformer.transform(l, CoreOp.func("onnxCode", functionType)
-                        .body(bb -> {
-                            bb.context().mapValues(capturedValues, bb.parameters());
-                            for (Op op : lambda.body().entryBlock().ops()) {
-                                int i;
-                                if (op instanceof CoreOp.VarAccessOp.VarLoadOp load &&
-                                        (i = capturedValues.indexOf(load.varOp().result())) >= 0) {
-                                    bb.context().mapValue(op.result(), bb.parameters().get(i)); // remap var load result to block param
-                                } else {
-                                    bb.apply(op);
-                                }
-                            }
-                        }));
-
-                operandsMapping = new int[capturedValues.size()];
-                for (int i = 0; i < operandsMapping.length; i++) {
-                    operandsMapping[i] = i;
-                }
+                    var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
+                    Files.write(export, protobufModel);
+                    System.out.println("Onnx model exported to: " + export.toAbsolutePath());
+                } catch (IOException _) {}
             }
+
             return new CachedSession(getInstance().createSession(
                     Arena.ofAuto(), // cached session must be created under its own auto arena
-                    OnnxProtoBuilder.build(onnxFunc.body().entryBlock())), operandsMapping);
+                    protobufModel), mf.operandsMapping());
         }
     }
 
     private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
 
-    public static <T> Tensor<T> execute(MethodHandles.Lookup lookup, OnnxFunction<Tensor<T>> codeLambda) {
-        return execute(Arena.ofAuto(), lookup, codeLambda);
+    public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
+        return execute(Arena.ofAuto(), l, codeLambda);
     }
 
-    public static <T> Tensor<T> execute(Arena arena, MethodHandles.Lookup lookup, OnnxFunction<Tensor<T>> codeLambda) {
+
+    public static <T> Tensor<T> execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
         var q = Op.ofQuotable(codeLambda).orElseThrow();
 
-        var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), lookup, q);
+        var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
 
         var captured = q.capturedValues().sequencedValues().toArray();
         List<Tensor> arguments = IntStream.of(model.operandsMapping())
                 .mapToObj(i -> captured[i])
                 .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
-                .map(val -> (Tensor) val)
+                .<Tensor>mapMulti((val, args) -> {
+                    if (val instanceof Tensor t) {
+                        args.accept(t);
+                    }
+                })
                 .toList();
 
         return model.session.run(arena, arguments).getFirst();
-    }
-
-    record SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping) {}
-    static SingleMethod singleMethodInvocation(CoreOp.LambdaOp lop) {
-        // Single block
-        if (lop.body().blocks().size() > 1) {
-            return null;
-        }
-
-        Map<Value, Value> valueMapping = new HashMap<>();
-        CoreOp.InvokeOp methodRefInvokeOp = extractMethodInvoke(valueMapping, lop.body().entryBlock().ops());
-        if (methodRefInvokeOp == null) {
-            return null;
-        }
-
-        return new SingleMethod(methodRefInvokeOp, valueMapping);
-    }
-
-    static CoreOp.InvokeOp extractMethodInvoke(Map<Value, Value> valueMapping, List<Op> ops) {
-        CoreOp.InvokeOp methodRefInvokeOp = null;
-        for (Op op : ops) {
-            switch (op) {
-                case CoreOp.VarOp varOp -> {
-                    if (isValueUsedWithOp(varOp.result(), o -> o instanceof CoreOp.VarAccessOp.VarStoreOp)) {
-                        return null;
-                    }
-                }
-                case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
-                    Value v = varLoadOp.varOp().result();
-                    valueMapping.put(varLoadOp.result(), valueMapping.getOrDefault(v, v));
-                }
-                case CoreOp.InvokeOp iop when isBoxOrUnboxInvocation(iop) -> {
-                    Value v = iop.operands().getFirst();
-                    valueMapping.put(iop.result(), valueMapping.getOrDefault(v, v));
-                }
-                case CoreOp.InvokeOp iop -> {
-                    if (methodRefInvokeOp != null) {
-                        return null;
-                    }
-
-                    for (Value o : iop.operands()) {
-                        valueMapping.put(o, valueMapping.getOrDefault(o, o));
-                    }
-                    methodRefInvokeOp = iop;
-                }
-                case CoreOp.ReturnOp rop -> {
-                    if (methodRefInvokeOp == null) {
-                        return null;
-                    }
-                    Value r = rop.returnValue();
-                    if (!(valueMapping.getOrDefault(r, r) instanceof Op.Result invokeResult)) {
-                        return null;
-                    }
-                    if (invokeResult.op() != methodRefInvokeOp) {
-                        return null;
-                    }
-                    assert methodRefInvokeOp.result().uses().size() == 1;
-                }
-                default -> {
-                    return null;
-                }
-            }
-        }
-
-        return methodRefInvokeOp;
-    }
-
-    private static boolean isValueUsedWithOp(Value value, Predicate<Op> opPredicate) {
-        for (Op.Result user : value.uses()) {
-            if (opPredicate.test(user.op())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // @@@ Move to functionality on JavaType(s)
-    static final Set<String> UNBOX_NAMES = Set.of(
-            "byteValue",
-            "shortValue",
-            "charValue",
-            "intValue",
-            "longValue",
-            "floatValue",
-            "doubleValue",
-            "booleanValue");
-
-    private static boolean isBoxOrUnboxInvocation(CoreOp.InvokeOp iop) {
-        MethodRef mr = iop.invokeDescriptor();
-        return mr.refType() instanceof ClassType ct && ct.unbox().isPresent() &&
-                (UNBOX_NAMES.contains(mr.name()) || mr.name().equals("valueOf"));
     }
 
     public static OnnxRuntime getInstance() {
@@ -271,6 +145,7 @@ public final class OnnxRuntime {
     public List<Tensor> runOp(Arena arena, String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
         var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
         var protoModel = OnnxProtoBuilder.build(
+                List.of(),
                 IntStream.range(0, inputValues.size()).mapToObj(i -> OnnxProtoBuilder.tensorInfo("i" + i, inputValues.get(i).elementType().id)).toList(),
                 List.of(OnnxProtoBuilder.node(
                         opName,
@@ -282,10 +157,10 @@ public final class OnnxRuntime {
                 .run(arena, inputValues);
     }
 
-    public List<Tensor> run(Arena arena, Block block, List<Tensor> inputValues) {
-        var protoModel = OnnxProtoBuilder.build(block);
+    public List<Tensor> run(Arena arena, Block block, List<Tensor> inputValues, int initializers) {
+        var protoModel = OnnxProtoBuilder.build(block, inputValues.subList(0, initializers));
         return createSession(arena, protoModel)
-                .run(arena, inputValues);
+                .run(arena, inputValues.subList(initializers, inputValues.size()));
     }
 
     public Session createSession(Arena arena, String modelPath) {
