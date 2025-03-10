@@ -23,13 +23,11 @@
 
 package oracle.code.onnx.mnist;
 
-import jdk.incubator.code.CodeReflection;
-
-import java.io.*;
+import java.io.IOException;
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
+import jdk.incubator.code.CodeReflection;
 import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.Tensor;
 
@@ -42,11 +40,9 @@ public class MNISTModel {
     static final int IMAGE_SIZE = 28;
     static final long[] IMAGE_SHAPE = new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE};
 
-    private static Tensor<Float> initialize(String resource, long... shape) {
+    private static Tensor<Float> initialize(String resource, long... shape) throws IOException {
         try (var in = MNISTModel.class.getResourceAsStream(resource)) {
-            return Tensor.ofShape(shape, MemorySegment.ofArray(in.readAllBytes()).toArray(ValueLayout.JAVA_FLOAT_UNALIGNED));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            return Tensor.ofShape(shape, in.readAllBytes(), Tensor.ElementType.FLOAT);
         }
     }
 
@@ -61,7 +57,7 @@ public class MNISTModel {
     final Tensor<Float> fc3Weights;
     final Tensor<Float> fc3Biases;
 
-    MNISTModel() {
+    MNISTModel() throws IOException {
         conv1Weights = initialize("conv1-weight-float-le", 6, 1, 5, 5);
         conv1Biases = initialize("conv1-bias-float-le", 6);
         conv2Weights = initialize("conv2-weight-float-le", 16, 6, 5, 5);

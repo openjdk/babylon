@@ -146,6 +146,14 @@ public class Tensor<T> extends OnnxNumber {
         return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_FLOAT, values), ElementType.FLOAT, shape);
     }
 
+    public static <T> Tensor<T> ofShape(long[] shape, byte[] rawData, ElementType elementType) {
+        return ofShape(Arena.ofAuto(), shape, rawData, elementType);
+    }
+
+    public static <T> Tensor<T> ofShape(Arena arena, long[] shape, byte[] rawData, ElementType elementType) {
+        return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_BYTE, rawData), elementType, shape);
+    }
+
     // Mandatory reference to dataAddr to avoid its garbage colletion
     private final MemorySegment dataAddr;
     final MemorySegment tensorAddr;
