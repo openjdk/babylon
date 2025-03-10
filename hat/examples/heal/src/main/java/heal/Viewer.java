@@ -234,7 +234,8 @@ public  class Viewer extends JFrame {
             ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
             menuBar.add(Box.createHorizontalStrut(40));
             menuBar.add(new JLabel("Search"));
-            sevenSegmentDisplay = (SevenSegmentDisplay) menuBar.add(new SevenSegmentDisplay(4,20));
+            sevenSegmentDisplay = (SevenSegmentDisplay) menuBar.add(
+                    new SevenSegmentDisplay(4,20, menuBar.getForeground(),menuBar.getBackground()));
           // search = create ("Search ms");
            // mask = create ("Mask ms");
            // heal = create ("Heal ms");

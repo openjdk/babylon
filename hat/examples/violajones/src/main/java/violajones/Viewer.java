@@ -35,6 +35,9 @@ import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -51,7 +54,7 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 
-public class HaarViewer extends JFrame {
+public class Viewer extends JFrame {
    final Accelerator accelerator;
      final BufferedImage image;
     final S08x3RGBImage s08X3RGBImage;
@@ -175,12 +178,12 @@ public class HaarViewer extends JFrame {
     final double imageScale = .5;
 
 
-    public HaarViewer(Accelerator accelerator,
-                      BufferedImage image,
-                      S08x3RGBImage s08X3RGBImage,
-                      Cascade cascade,
-                      F32Array2D integralImageF32,
-                      F32Array2D integralSqImageF32
+    public Viewer(Accelerator accelerator,
+                  BufferedImage image,
+                  S08x3RGBImage s08X3RGBImage,
+                  Cascade cascade,
+                  F32Array2D integralImageF32,
+                  F32Array2D integralSqImageF32
     ) {
         super("HaarViz");
         this.accelerator = accelerator;
@@ -194,7 +197,7 @@ public class HaarViewer extends JFrame {
             public void paint(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
                 g2.scale(imageScale, imageScale);
-                g2.drawImage(HaarViewer.this.image, 0, 0, null);
+                g2.drawImage(Viewer.this.image, 0, 0, null);
 
                 if (resultTable != null && resultTable.atomicResultTableCount() > 0) {
                     g2.setStroke(new BasicStroke(2f));
@@ -245,19 +248,27 @@ public class HaarViewer extends JFrame {
 
             @Override
             public Dimension getPreferredSize() {
-                return new Dimension((int) (HaarViewer.this.image.getWidth() * imageScale),
-                        (int) (HaarViewer.this.image.getHeight() * imageScale));
+                return new Dimension((int) (Viewer.this.image.getWidth() * imageScale),
+                        (int) (Viewer.this.image.getHeight() * imageScale));
             }
         };
-        JMenuBar menuBar = new JMenuBar();
-        menuBar.add(new JLabel("Found"));
+        JMenuBar toolBar = new JMenuBar();
+        JPanel panel= new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        ((JButton) panel.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
+
+        panel.add(new JLabel("Found"));
         this.foundCountSevenSegment = (SevenSegmentDisplay)
-                menuBar.add(new SevenSegmentDisplay(6,30));
-        menuBar.add(new JLabel(" faces in "));
+                panel.add(new SevenSegmentDisplay(6,30, panel.getForeground(),panel.getBackground()));
+        panel.add(new JLabel(" faces in "));
         this.timeSevenSegment = (SevenSegmentDisplay)
-                menuBar.add(new SevenSegmentDisplay(6,30));
-        menuBar.add(new JLabel("ms"));
-        setJMenuBar(menuBar);
+                panel.add(new SevenSegmentDisplay(6,30, panel.getForeground(),panel.getBackground()));
+        panel.add(new JLabel("ms"));
+
+        panel.add(Box.createHorizontalStrut(700));
+        toolBar.add(panel);
+        setJMenuBar(toolBar);
+
         JPanel gridPanel = new JPanel();
         JPanel imagePanel = new JPanel();
         gridPanel.add(imageView);

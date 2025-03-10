@@ -14,7 +14,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/opencl.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/hat-jextracted-opencl-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

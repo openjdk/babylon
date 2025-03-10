@@ -242,8 +242,8 @@ public class Main {
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
-                new OpenCLBackend("GPU,MINIMIZE_COPIES")
-               // new OpenCLBackend("GPU")
+               // new OpenCLBackend("GPU,MINIMIZE_COPIES")
+                new OpenCLBackend("GPU")
                 //new JavaMultiThreadedBackend()
                // new JavaSequentialBackend()
         );
@@ -273,7 +273,8 @@ public class Main {
 
         var program = context.buildProgram(Compute.codeHeader + Compute.codeVal + Compute.codeLifePerIdx);
         CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel = program.getKernel("life");
-        Viewer.State state = new Viewer.State(true);
+        // Set following true to use HAT
+        Viewer.State state = new Viewer.State(false);
         Viewer viewer = new Viewer("Life", cellGrid, state);
         var tempFrom = control.from();
         control.from(control.to());

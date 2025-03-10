@@ -36,6 +36,9 @@ public class SevenSegmentDisplay extends JComponent {
 
     private static final boolean OFF = false;
     private static final boolean ON = true;
+    private final Color digitColor;
+    private final Color backgroundColor;
+
     record Digit(boolean[] segments) {
         /*
             <  a  >
@@ -97,22 +100,25 @@ public class SevenSegmentDisplay extends JComponent {
     private final Digit[] digits;
     private final float digitScale;
 
-    public SevenSegmentDisplay(int digitCount, int digitWidth) {
+    public SevenSegmentDisplay(int digitCount, int digitWidth, Color digitColor, Color backgroundColor) {
         digitScale = (float)digitWidth/defaultDigitSize.width;
         digitSize = new Dimension(digitWidth, (int) (defaultDigitSize.height*digitScale));
+        this.digitColor = digitColor;
+        this.backgroundColor = backgroundColor;
         var preferredSize = new Dimension(digitSize.width*digitCount,digitSize.height);
         setPreferredSize(preferredSize);
         setSize(preferredSize);
+
         setOpaque(true);
-        setBackground(Color.black);
+        setBackground(backgroundColor );
         this.digits = new Digit[digitCount];
         Arrays.fill(digits, blankDigit);
         digits[digitCount-1]=digits0to9[0];
         repaint();
     }
 
-    public SevenSegmentDisplay(int digitCount) {
-        this(digitCount, defaultDigitSize.width);
+    public SevenSegmentDisplay(int digitCount, Color digitColor, Color backgroundColor) {
+        this(digitCount, defaultDigitSize.width,  digitColor, backgroundColor);
     }
 
     public void set(int n) {
@@ -136,8 +142,8 @@ public class SevenSegmentDisplay extends JComponent {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        final Color off = Color.green.darker().darker().darker().darker();
-        final Color on = Color.green.brighter().brighter().brighter().brighter().brighter();
+        final Color off = this.getBackground();
+        final Color on = Color.black.brighter().brighter();
         ((Graphics2D)g).scale(digitScale,digitScale);
         for (int x=0; x<digits.length; x++) {
             for (int i = 0; i < segments.length; i++) {

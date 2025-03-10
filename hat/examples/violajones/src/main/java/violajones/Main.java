@@ -26,7 +26,6 @@ package violajones;
 
 import hat.Accelerator;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
 import violajones.attic.ViolaJonesRaw;
@@ -66,9 +65,9 @@ public class Main {
         rgbImage.syncFromRaster(nasa1996);
         ResultTable resultTable = ResultTable.create(accelerator,1000);
        // System.out.println("result table layout "+Buffer.getLayout(resultTable));
-        HaarViewer haarViewer = null;
+        Viewer viewer = null;
         if (!headless){
-            haarViewer = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
+            viewer = new Viewer(accelerator, nasa1996, rgbImage, cascade, null, null);
         }
 
         ScaleTable scaleTable = ScaleTable.createFrom(accelerator,new ScaleTable.Constraints(cascade,rgbImage.width(),rgbImage.height()));
@@ -82,8 +81,8 @@ public class Main {
                 System.out.print(resultTable.atomicResultTableCount() + "faces found in");
                 System.out.println((System.currentTimeMillis() - start)+"ms");
             }else{
-                if (haarViewer != null) {
-                    haarViewer.showResults(resultTable, null, null, (System.currentTimeMillis() - start));
+                if (viewer != null) {
+                    viewer.showResults(resultTable, null, null, (System.currentTimeMillis() - start));
                 }
             }
         }
