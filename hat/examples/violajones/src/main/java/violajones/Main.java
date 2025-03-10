@@ -75,11 +75,18 @@ public class Main {
 
         for (int i = 0; i < 10; i++) {
             resultTable.atomicResultTableCount(0);
+            long start = System.currentTimeMillis();
+
             accelerator.compute(cc -> ViolaJonesCoreCompute.compute(cc, cascade, rgbImage, resultTable,scaleTable));
-            System.out.println(resultTable.atomicResultTableCount()+ "faces found");
+            if (headless) {
+                System.out.print(resultTable.atomicResultTableCount() + "faces found in");
+                System.out.println((System.currentTimeMillis() - start)+"ms");
+            }else{
+                if (haarViewer != null) {
+                    haarViewer.showResults(resultTable, null, null, (System.currentTimeMillis() - start));
+                }
+            }
         }
-        if (haarViewer != null) {
-            haarViewer.showResults(resultTable, null, null);
-        }
+
     }
 }

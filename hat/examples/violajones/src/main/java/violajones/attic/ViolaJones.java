@@ -339,8 +339,9 @@ public class ViolaJones {
                                 scaleTable,
                                 resultTable);
                     });
-            System.out.println("done " + (System.currentTimeMillis() - start) + "ms");
-            harViz.showResults(resultTable, null, null);
+            long ms = (System.currentTimeMillis() - start);
+            System.out.println("done " + ms + "ms");
+            harViz.showResults(resultTable, null, null, ms);
         }
         //   } else if (mode.equals("javaSegments")) {
 

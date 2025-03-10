@@ -46,6 +46,7 @@ package heal;
 
 import hat.Accelerator;
 import hat.buffer.S32Array2D;
+import hat.util.ui.SevenSegmentDisplay;
 
 import javax.swing.Box;
 import javax.swing.JButton;
@@ -104,8 +105,8 @@ public  class Viewer extends JFrame {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        bestMatchOffset = Compute.getBestMatchOffset(accelerator, s32Array2D, selection.close(), controls.search);
-                        Compute.heal(accelerator, s32Array2D, selection, bestMatchOffset, controls.mask, controls.heal);
+                        bestMatchOffset = Compute.getBestMatchOffset(accelerator, s32Array2D, selection.close(), controls.sevenSegmentDisplay);
+                        Compute.heal(accelerator, s32Array2D, selection, bestMatchOffset);
                         Timer t = new Timer(1000, new ActionListener() {
                             @Override
                             public void actionPerformed(ActionEvent e) {
@@ -224,23 +225,26 @@ public  class Viewer extends JFrame {
     }
     public static class Controls{
         JTextField search;
-        JTextField mask;
-        JTextField heal;
+       // JTextField mask;
+       // JTextField heal;
         JMenuBar menuBar;
+        SevenSegmentDisplay sevenSegmentDisplay;
         Controls(){
             menuBar = new JMenuBar();
             ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
             menuBar.add(Box.createHorizontalStrut(40));
-            search = create ("Search ms");
-            mask = create ("Mask ms");
-            heal = create ("Heal ms");
+            menuBar.add(new JLabel("Search"));
+            sevenSegmentDisplay = (SevenSegmentDisplay) menuBar.add(new SevenSegmentDisplay(4,20));
+          // search = create ("Search ms");
+           // mask = create ("Mask ms");
+           // heal = create ("Heal ms");
         }
-         JTextField create (String name){
+        /* JTextField create (String name){
              menuBar.add(new JLabel(name));
              JTextField textField = (JTextField) menuBar.add(new JTextField("",5));
              textField.setEditable(false);
              return textField;
-         }
+         } */
     }
 
     Viewer(Accelerator accelerator, BufferedImage image) {
