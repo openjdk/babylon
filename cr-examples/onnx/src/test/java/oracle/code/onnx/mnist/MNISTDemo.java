@@ -34,7 +34,7 @@ import javax.swing.JPanel;
 
 import static oracle.code.onnx.mnist.MNISTModel.IMAGE_SIZE;
 
-public class MNISTDemoUI {
+public class MNISTDemo {
 
     static final int DRAW_AREA_SIZE = 600;
     static final int PEN_SIZE = 20;
@@ -46,7 +46,7 @@ public class MNISTDemoUI {
         var resultsBoard = new JLabel();
         var cleanFlag = new AtomicBoolean(true);
         var drawImage = new BufferedImage(DRAW_AREA_SIZE, DRAW_AREA_SIZE, BufferedImage.TYPE_BYTE_GRAY);
-        var mnist = new MNISTModel();
+        var mnistModel = new MNISTModel();
 
         resultsBoard.setPreferredSize(new Dimension(100, 0));
         drawPane.setPreferredSize(new Dimension(DRAW_AREA_SIZE, DRAW_AREA_SIZE));
@@ -78,7 +78,7 @@ public class MNISTDemoUI {
                     var imageData = new float[IMAGE_SIZE * IMAGE_SIZE];
                     scaledImage.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, imageData);
 
-                    var results = mnist.classify(imageData);
+                    var results = mnistModel.classify(imageData);
 
                     var report = new StringBuilder("<html>");
                     for (int i = 0; i < results.length; i++) {
