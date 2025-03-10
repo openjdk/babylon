@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
-import java.util.stream.LongStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
@@ -30,8 +29,8 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         Attribute g(GraphProto g) {return _f(6, g);}
         Attribute sparse_tensor(SparseTensorProto sparse_tensor) {return _f(22, sparse_tensor);}
         Attribute tp(TypeProto tp) {return _f(14, tp);}
-        Attribute floats(float floats) {return _f(7, floats);}
-        Attribute ints(long ints) {return _f(8, ints);}
+        Attribute floats(float... floats) {return _f(7, floats);}
+        Attribute ints(long... ints) {return _f(8, ints);}
         Attribute strings(byte[] strings) {return _f(9, strings);}
         Attribute tensors(TensorProto tensors) {return _f(10, tensors);}
         Attribute graphs(GraphProto graphs) {return _f(11, graphs);}
@@ -103,20 +102,20 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     }
 
     static final class TensorProto extends OnnxProtoBuilder<TensorProto> {
-        TensorProto dims(long dims) {return _f(1, dims);}
+        TensorProto dims(long... dims) {return _f(1, dims);}
         TensorProto data_type(int data_type) {return _f(2, data_type);}
         TensorProto segment(Segment segment) {return _f(3, segment);}
-        TensorProto float_data(float float_data) {return _f(4, float_data);}
-        TensorProto int32_data(int int32_data) {return _f(5, int32_data);}
+        TensorProto float_data(float... float_data) {return _f(4, float_data);}
+        TensorProto int32_data(int... int32_data) {return _f(5, int32_data);}
         TensorProto string_data(byte[] string_data) {return _f(6, string_data);}
-        TensorProto int64_data(long int64_data) {return _f(7, int64_data);}
+        TensorProto int64_data(long... int64_data) {return _f(7, int64_data);}
         TensorProto name(String name) {return _f(8, name);}
         TensorProto doc_string(String doc_string) {return _f(12, doc_string);}
         TensorProto raw_data(byte[] raw_data) {return _f(9, raw_data);}
         TensorProto external_data(StringStringEntryProto external_data) {return _f(13, external_data);}
         TensorProto data_location(int data_location) {return _f(14, data_location);}
-        TensorProto double_data(double double_data) {return _f(10, double_data);}
-        TensorProto uint64_data(long uint64_data) {return _f(11, uint64_data);}
+        TensorProto double_data(double... double_data) {return _f(10, double_data);}
+        TensorProto uint64_data(long... uint64_data) {return _f(11, uint64_data);}
         TensorProto metadata_props(StringStringEntryProto metadata_props) {return _f(16, metadata_props);}
     }
 
@@ -128,7 +127,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static final class SparseTensorProto extends OnnxProtoBuilder<SparseTensorProto> {
         SparseTensorProto values(TensorProto values) {return _f(1, values);}
         SparseTensorProto indices(TensorProto indices) {return _f(2, indices);}
-        SparseTensorProto dims(long dims) {return _f(3, dims);}
+        SparseTensorProto dims(long... dims) {return _f(3, dims);}
     }
 
     static final class TensorShapeProto extends OnnxProtoBuilder<TensorShapeProto> {
@@ -203,6 +202,26 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         buf.write((int)number & 0x7f);
     }
 
+    void _encode(float value) {
+        int bits =  Float.floatToRawIntBits(value);
+        buf.write((byte)bits);
+        buf.write((byte)(bits >> 8));
+        buf.write((byte)(bits >> 16));
+        buf.write((byte)(bits >> 24));
+    }
+
+    void _encode(double value) {
+        long bits =  Double.doubleToRawLongBits(value);
+        buf.write((byte)bits);
+        buf.write((byte)(bits >> 8));
+        buf.write((byte)(bits >> 16));
+        buf.write((byte)(bits >> 24));
+        buf.write((byte)(bits >> 32));
+        buf.write((byte)(bits >> 40));
+        buf.write((byte)(bits >> 48));
+        buf.write((byte)(bits >> 56));
+    }
+
     @SuppressWarnings("unchecked")
     T _f(int fieldIndex, String value) {
         return _f(fieldIndex, value.getBytes(StandardCharsets.UTF_8));
@@ -219,26 +238,36 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     @SuppressWarnings("unchecked")
     T _f(int fieldIndex, float value) {
         _encode(fieldIndex << 3 | 5);
-        int bits =  Float.floatToRawIntBits(value);
-        buf.write((byte)bits);
-        buf.write((byte)(bits >> 8));
-        buf.write((byte)(bits >> 16));
-        buf.write((byte)(bits >> 24));
+        _encode(value);
+        return (T)this;
+    }
+
+    @SuppressWarnings("unchecked")
+    T _f(int fieldIndex, float... values) {
+        if (values.length == 1) {
+            return _f(fieldIndex, values[0]);
+        }
+        var b = new OnnxProtoBuilder();
+        for (var v : values) b._encode(v);
+        _f(fieldIndex, b);
         return (T)this;
     }
 
     @SuppressWarnings("unchecked")
     T _f(int fieldIndex, double value) {
         _encode(fieldIndex << 3 | 1);
-        long bits =  Double.doubleToRawLongBits(value);
-        buf.write((byte)bits);
-        buf.write((byte)(bits >> 8));
-        buf.write((byte)(bits >> 16));
-        buf.write((byte)(bits >> 24));
-        buf.write((byte)(bits >> 32));
-        buf.write((byte)(bits >> 40));
-        buf.write((byte)(bits >> 48));
-        buf.write((byte)(bits >> 56));
+        _encode(value);
+        return (T)this;
+    }
+
+    @SuppressWarnings("unchecked")
+    T _f(int fieldIndex, double... values) {
+        if (values.length == 1) {
+            return _f(fieldIndex, values[0]);
+        }
+        var b = new OnnxProtoBuilder();
+        for (var v : values) b._encode(v);
+        _f(fieldIndex, b);
         return (T)this;
     }
 
@@ -250,7 +279,28 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     }
 
     @SuppressWarnings("unchecked")
-    T _f(int fieldIndex, OnnxProtoBuilder value) {
+    T _f(int fieldIndex, long... values) {
+        if (values.length == 1) {
+            return _f(fieldIndex, values[0]);
+        }
+        var b = new OnnxProtoBuilder();
+        for (var v : values) b._encode(v);
+        _f(fieldIndex, b);
+        return (T)this;
+    }
+
+    @SuppressWarnings("unchecked")
+    T _f(int fieldIndex, int... values) {
+        if (values.length == 1) {
+            return _f(fieldIndex, values[0]);
+        }
+        var b = new OnnxProtoBuilder();
+        for (var v : values) b._encode(v);
+        _f(fieldIndex, b);
+        return (T)this;
+    }
+
+    @SuppressWarnings("unchecked")   T _f(int fieldIndex, OnnxProtoBuilder value) {
         return _f(fieldIndex, value.buf.toByteArray());
     }
 
@@ -367,7 +417,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
 
     static TensorProto tensorProto(String name, oracle.code.onnx.Tensor tensor) {
         return new TensorProto()
-                .forEach(LongStream.of(tensor.shape()).boxed().toList(), (tp, d) -> tp.dims(d))
+                .dims(tensor.shape())
                 .data_type(tensor.elementType().id)
                 .raw_data(tensor.data().toArray(ValueLayout.JAVA_BYTE))
                 .name(name);
@@ -387,11 +437,11 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
             }
             case float[] floats -> {
                 attr.type(6);
-                for (float f : floats) attr.floats(f);
+                attr.floats(floats);
             }
             case long[] longs -> {
                 attr.type(7);
-                for (long l : longs) attr.ints(l);
+                attr.ints(longs);
             }
             default -> {
                 throw new UnsupportedOperationException(value.getClass().toString()); // @@@ ToDo
