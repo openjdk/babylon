@@ -20,6 +20,8 @@ import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
 public final class OnnxRuntime {
 
+    static boolean DEBUG = true;
+
     static {
         String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";
         String os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
@@ -72,10 +74,22 @@ public final class OnnxRuntime {
             var mf = LambdaToFunc.fromLambda(l, (CoreOp.LambdaOp)q.op(), q.capturedValues());
 
             List<Tensor> initializers = mf.func().initializers().stream().map(val -> (Tensor) val).toList();
+            byte[] protobufModel = OnnxProtoBuilder.build(mf.func().func().body().entryBlock(), initializers);
+
+            if (DEBUG) {
+                System.out.println(mf.func().func().toText());
+                try {
+                    var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
+                    Files.write(export, protobufModel);
+                    System.out.println("Onnx model exported to: " + export.toAbsolutePath());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
 
             return new CachedSession(getInstance().createSession(
                     Arena.ofAuto(), // cached session must be created under its own auto arena
-                    OnnxProtoBuilder.build(mf.func().func().body().entryBlock(), initializers)), mf.operandsMapping());
+                    protobufModel), mf.operandsMapping());
         }
     }
 

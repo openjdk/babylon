@@ -349,6 +349,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
 
     static GraphProto graph(Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers) {
         var params = block.parameters();
+        params.forEach(indexer::getName);
         int first = params.size() - initializers.size();
         var args = params.isEmpty() || params.getFirst().type() instanceof OnnxType.TensorType ? params : params.subList(1, params.size());
         return graph(

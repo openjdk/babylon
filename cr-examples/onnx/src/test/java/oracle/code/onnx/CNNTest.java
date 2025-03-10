@@ -66,6 +66,10 @@ import static oracle.code.onnx.OnnxOperators.Softmax;
 // the verbosity e.g., esp. scalar constant expressions
 public class CNNTest {
 
+    static {
+        OnnxRuntime.DEBUG = false;
+    }
+
     private static final String IMAGES_PATH = CNNTest.class.getResource("images-ubyte").getPath();
     private static final String LABELS_PATH = CNNTest.class.getResource("labels-ubyte").getPath();
     private static final int IMAGES_HEADER_SIZE = 0;
@@ -319,7 +323,7 @@ public class CNNTest {
         }
     }
 
-//    @Test
+    @Test
     public void testModels() {
         try (var arena = Arena.ofConfined()) {
             CoreOp.FuncOp f = getFuncOp("cnn");
@@ -333,7 +337,7 @@ public class CNNTest {
         }
     }
 
-//    @Test
+    @Test
     public void testInterpreter() throws Exception {
         try (var arena = Arena.ofConfined()) {
             var conv1Weight = floatTensor(arena, "mnist/conv1-weight-float-le", 6, 1, 5, 5);

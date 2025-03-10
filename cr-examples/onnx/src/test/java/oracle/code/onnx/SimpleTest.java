@@ -9,6 +9,10 @@ import org.junit.jupiter.api.Test;
 
 public class SimpleTest {
 
+    static {
+        OnnxRuntime.DEBUG = false;
+    }
+
     @CodeReflection
     public Tensor<Float> add(Tensor<Float> a, Tensor<Float> b) {
         return OnnxOperators.Add(a, b);
