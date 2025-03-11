@@ -15,6 +15,6 @@
     * [Cascade Interface Mapping](hat-04-02-cascade-interface-mapping.md)
 * Implementation Detail
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
-
+    * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
 ---
 

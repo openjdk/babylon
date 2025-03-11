@@ -25,5 +25,5 @@ cat >/dev/null<<LICENSE
  */
 LICENSE
 
-#mvn -X -U -e clean compile jar:jar install
-mvn -e clean compile jar:jar install
+#mvn -X -U -e clean compile package install
+mvn -e clean compile package install

@@ -36,6 +36,7 @@ if(OPENCL_FOUND)
         ${SHARED_BACKEND}/cpp/shared.cpp
         ${OPENCL_BACKEND}/cpp/opencl_backend.cpp
         ${OPENCL_BACKEND}/cpp/opencl_backend_queue.cpp
+        ${OPENCL_BACKEND}/cpp/opencl_backend_kernel_dispatch.cpp
     )
 
     target_link_libraries(opencl_backend

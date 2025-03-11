@@ -26,11 +26,14 @@ package life;
 
 import hat.util.ui.SevenSegmentDisplay;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
+import javax.swing.JPanel;
 import javax.swing.JToggleButton;
 import javax.swing.WindowConstants;
 import java.awt.Color;
@@ -40,7 +43,6 @@ import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.MouseInfo;
 import java.awt.Point;
-import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -49,7 +51,6 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.ImageObserver;
-import java.util.Arrays;
 
 public class Viewer extends JFrame {
 
@@ -58,40 +59,24 @@ public class Viewer extends JFrame {
         public final long msPerFrame = 1000/requiredFrameRate;
         public final long maxGenerations = 1000000;
         private final Object doorBell = new Object();
-        public long generation = 0;
-
+        public long generations = 0;
         public volatile boolean minimizingCopies = false;
         public volatile boolean usingGPU = false;
         volatile private boolean started = false;
-
-        // public long start = System.currentTimeMillis();
         public long generationsSinceLastChange = 0;
         public long timeOfLastChange = 0;
-     //   public long framesSinceLastChange = 0;
-        public long timeOfLastFrame;
-
-
-
-        public enum RedrawState {RepaintRequested, RepaintCompleted}
-
-        ;
-        public volatile RedrawState redrawState = RedrawState.RepaintCompleted;
+        public long timeOfLastUIUpdate;
+        public volatile boolean lastUIUpdateCompleted = false;
         public final boolean useHat;
-        public volatile boolean updated = false;
+        public volatile boolean deviceOrModeModified = false;
 
         State(boolean useHat) {
             this.useHat = useHat;
         }
     }
-
-
     final Controls controls;
     final MainPanel mainPanel;
-
     public final State state;
-
-
-
     static final public class MainPanel extends JComponent implements ImageObserver {
         final double IN = 1.1;
         final double OUT = 1 / IN;
@@ -107,8 +92,7 @@ public class Viewer extends JFrame {
         private Point startPoint;
         final private State state;
 
-        record Drag(int xDiff, int yDiff) {
-        }
+        record Drag(int xDiff, int yDiff) { }
 
         Drag drag = null;
 
@@ -163,7 +147,7 @@ public class Viewer extends JFrame {
         @Override
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
-            state.redrawState = State.RedrawState.RepaintCompleted;
+            state.lastUIUpdateCompleted =  true;
         }
 
         @Override
@@ -200,22 +184,26 @@ public class Viewer extends JFrame {
     }
 
     public static class Controls {
-
-         private JButton startButton;
+public final JMenuBar menuBar;
+         private final JButton startButton;
         private JToggleButton useGPUToggleButton;
         private JToggleButton minimizeCopiesToggleButton;
         private SevenSegmentDisplay generationsPerSecondSevenSegment;
-        private SevenSegmentDisplay generationSevenSegment;
+        private final SevenSegmentDisplay generationSevenSegment;
 
         private State state;
 
-        Controls(JMenuBar menuBar, State state) {
+        Controls( State state) {
             this.state = state;
-            ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
-            this.startButton = (JButton) menuBar.add(new JButton("Start"));
+            this.menuBar = new JMenuBar();
+            JPanel panel = new JPanel();
+             panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+
+            ((JButton) panel.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
+            this.startButton = (JButton) panel.add(new JButton("Start"));
              if (!state.useHat) {
-                this.useGPUToggleButton = addToggle(menuBar, "Java", "GPU");
-                this.minimizeCopiesToggleButton = addToggle(menuBar, "Always Copy", "Minimize Moves");
+                this.useGPUToggleButton = addToggle(panel, "Java", "GPU");
+                this.minimizeCopiesToggleButton = addToggle(panel, "Always Copy", "Minimize Moves");
                 this.minimizeCopiesToggleButton.setEnabled(state.minimizingCopies);
                 minimizeCopiesToggleButton.addChangeListener(event -> {
                     this.state.minimizingCopies = minimizeCopiesToggleButton.isSelected();
@@ -230,25 +218,28 @@ public class Viewer extends JFrame {
                     System.out.println("Use GPU " + state.usingGPU);
                 });
             }
-            menuBar.add(new JLabel("Generation"));
+            panel.add(new JLabel("Generation"));
             this.generationSevenSegment = (SevenSegmentDisplay)
-                    menuBar.add(new SevenSegmentDisplay(6,30));
+                    panel.add(new SevenSegmentDisplay(6,30,panel.getForeground(),panel.getBackground()));
 
-            menuBar.add(new JLabel("Gen/Sec"));
+            panel.add(new JLabel("Gen/Sec"));
+
             this.generationsPerSecondSevenSegment = (SevenSegmentDisplay)
-                    menuBar.add(new SevenSegmentDisplay(6,30));
+                    panel.add(new SevenSegmentDisplay(6,30,panel.getForeground(),panel.getBackground()));
+            panel.add(Box.createHorizontalStrut(400));
+            menuBar.add(panel);
 
         }
 
-        JToggleButton addToggle(JMenuBar menuBar, String def, String alt) {
-            var toggleButton = (JToggleButton) menuBar.add(new JToggleButton(def));
+        JToggleButton addToggle(JComponent component, String def, String alt) {
+            var toggleButton = (JToggleButton) component.add(new JToggleButton(def));
             toggleButton.addChangeListener(event -> {
                 if (((JToggleButton) event.getSource()).isSelected()) {
                     ((JToggleButton) event.getSource()).setText(alt);
                 } else {
                     ((JToggleButton) event.getSource()).setText(def);
                 }
-                state.updated = true;
+                state.deviceOrModeModified = true;
             });
             return toggleButton;
         }
@@ -271,9 +262,8 @@ public class Viewer extends JFrame {
         super(title);
         this.state = state;
         this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY), state);
-        JMenuBar menuBar = new JMenuBar();
-        this.controls = new Controls(menuBar, state);
-        setJMenuBar(menuBar);
+        this.controls = new Controls( state);
+        setJMenuBar(this.controls.menuBar);
         controls.startButton.addActionListener(_ -> {
             state.started = true;
             synchronized (state.doorBell) {

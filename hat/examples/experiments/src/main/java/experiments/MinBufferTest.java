@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLBackend;
-import hat.backend.java.JavaMultiThreadedBackend;
+import hat.buffer.Buffer;
 import hat.buffer.S32Array;
 import static hat.ifacemapper.MappableIface.*;
 import jdk.incubator.code.CodeReflection;
@@ -49,50 +49,34 @@ public class MinBufferTest {
         }
 
         @CodeReflection
-        public static void multiply(ComputeContext cc, @RW S32Array s32Array, int len, int n) {
+        public static void add(ComputeContext cc, @RW S32Array s32Array, int len, int n) {
             for (int i = 0; i < n; i++) {
                 cc.dispatchKernel(len, kc -> inc(kc, s32Array, len));
+                System.out.println(i);//s32Array.array(0));
             }
         }
     }
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
-                new OpenCLBackend(of(PROFILE(), TRACE_COPIES(), GPU(),MINIMIZE_COPIES())));
+                new OpenCLBackend(of(
+                      //  TRACE(),
+                        TRACE_COPIES(),
+                        GPU(),
+                        MINIMIZE_COPIES()
+                ))
+
+        );
         int len = 10000000;
-        int mul = 100;
-        S32Array s32Array = S32Array.create(accelerator, len);
-        for (int i = 0; i < len; i++) {
-            s32Array.array(i, i);
-        }
+        int valueToAdd = 10;
+        S32Array s32Array = S32Array.create(accelerator, len,i->i);
         accelerator.compute(
-                cc -> Compute.multiply(cc, s32Array, len, mul));
+                cc -> Compute.add(cc, s32Array, len, valueToAdd)
+        );
+        // Quite an expensive way of adding 20 to each array alement
         for (int i = 0; i < 20; i++) {
             System.out.println(i + "=" + s32Array.array(i));
         }
-        /*
-        GroupLayout groupLayout = (GroupLayout) Buffer.getLayout(s32Array);
-        System.out.println("Layout from buffer "+groupLayout);
-        BoundSchema<?> boundSchema = Buffer.getBoundSchema(s32Array);
-        System.out.println("BoundSchema from buffer  "+boundSchema);
-
-        BoundSchema.FieldLayout<?> fieldLayout =  boundSchema.rootBoundSchemaNode().getName("array");
-        long arrayOffset = fieldLayout.offset();
-        MemoryLayout layout = fieldLayout.layout();
-
-        if (fieldLayout instanceof BoundSchema.ArrayFieldLayout arrayFieldLayout){
-            System.out.println("isArray");
-            arrayFieldLayout.elementOffset(0);
-            arrayFieldLayout.elementLayout(0);
-            if (arrayFieldLayout instanceof BoundSchema.BoundArrayFieldLayout boundArrayFieldLayout){
-                boundArrayFieldLayout.dimFields.forEach(dimLayout->{
-                    System.out.println(dimLayout.field.name + " "+dimLayout.offset());
-                });
-            }
-        }
-        S32Array2D.schema.toText(t->System.out.print(t));
-
-         */
     }
 
 }

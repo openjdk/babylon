@@ -50,6 +50,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         private static final int SHOW_COMPUTE_MODEL_BIT = 1 <<8;
         private static final int INFO_BIT = 1 <<9;
         private static final int TRACE_COPIES_BIT = 1 << 10;
+        private static final int TRACE_SKIPPED_COPIES_BIT = 1 << 11;
 
 
         public static Mode of() {
@@ -89,6 +90,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
                 case "MINIMIZE_COPIES" -> MINIMIZE_COPIES();
                 case "TRACE" -> TRACE();
                 case "TRACE_COPIES" -> TRACE_COPIES();
+                case "TRACE_SKIPPED_COPIES" -> TRACE_SKIPPED_COPIES();
                 case "SHOW_CODE" -> SHOW_CODE();
                 case "SHOW_KERNEL_MODEL" -> SHOW_KERNEL_MODEL();
                 case "SHOW_COMPUTE_MODEL" -> SHOW_COMPUTE_MODEL();
@@ -113,6 +115,12 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         }
         public boolean isTRACE_COPIES() {
             return (bits&TRACE_COPIES_BIT)==TRACE_COPIES_BIT;
+        }
+        public static Mode TRACE_SKIPPED_COPIES() {
+            return new Mode(TRACE_SKIPPED_COPIES_BIT);
+        }
+        public boolean isTRACE_SKIPPED_COPIES() {
+            return (bits&TRACE_SKIPPED_COPIES_BIT)==TRACE_SKIPPED_COPIES_BIT;
         }
         public static Mode INFO() {
             return new Mode(INFO_BIT);
@@ -148,6 +156,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
             return new Mode(MINIMIZE_COPIES_BIT);
         }
         public boolean isMINIMIZE_COPIES() {
+            String hex = Integer.toHexString(bits);
             return (bits&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT;
         }
         public static Mode SHOW_CODE() {
@@ -177,6 +186,12 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
                     builder.append("|");
                 }
                 builder.append("TRACE_COPIES");
+            }
+            if (isTRACE_SKIPPED_COPIES()) {
+                if (!builder.isEmpty()){
+                    builder.append("|");
+                }
+                builder.append("TRACE_SKIPPED_COPIES");
             }
             if (isINFO()) {
                 if (!builder.isEmpty()){
@@ -302,23 +317,33 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     @Override
     public void preMutate(Buffer b) {
-        if (b.isDeviceDirty()){
-            getBufferFromDeviceIfDirty(b);  // calls through FFI and might block when fetching from device
-            b.clearDeviceDirty();
+        if (mode.isMINIMIZE_COPIES()) {
+            if (b.isDeviceDirty()) {
+                if (!b.isHostChecked()) {
+                    getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
+                    b.setHostChecked();
+                }
+                b.clearDeviceDirty();
+            }
         }
     }
 
     @Override
     public void postMutate(Buffer b) {
-       b.setHostDirty();
+        if (mode.isMINIMIZE_COPIES()) {
+            b.setHostDirty();
+        }
     }
 
     @Override
     public void preAccess(Buffer b) {
-        if (b.isDeviceDirty()){
-            getBufferFromDeviceIfDirty(b); // calls through FFI and might block when fetching from device
-          // We don't call clearDeviceDirty() if we did then 'just reading on the host' would force copy in next dispatch
-            //so buffer is still considered deviceDirty
+        if (mode.isMINIMIZE_COPIES()) {
+            if (b.isDeviceDirty() && !b.isHostChecked()) {
+                getBufferFromDeviceIfDirty(b); // calls through FFI and might block when fetching from device
+                // We don't call clearDeviceDirty() if we did then 'just reading on the host' would force copy in next dispatch
+                //so buffer is still considered deviceDirty
+                b.setHostChecked();
+            }
         }
     }
 
@@ -329,11 +354,21 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     @Override
     public void preEscape(Buffer b) {
-        getBufferFromDeviceIfDirty(b).clearDeviceDirty(); //  we have to assume the escapee is about to be accessed
+        if (mode.isMINIMIZE_COPIES()) {
+            if (b.isDeviceDirty()) {
+                if (!b.isHostChecked()) {
+                    getBufferFromDeviceIfDirty(b);
+                    b.setHostChecked();
+                }
+               // b.clearDeviceDirty();
+            }
+        }//  we have to assume the escapee is about to be accessed
     }
 
     @Override
     public void postEscape(Buffer b) {
-        b.setHostDirty(); // We have no choice but to assume escapee was modified by the call
+        if (mode.isMINIMIZE_COPIES()) {
+            b.setHostDirty(); // We have no choice but to assume escapee was modified by the call
+        }
     }
 }

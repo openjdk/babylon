@@ -31,16 +31,18 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
        minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
        trace((mode&TRACE_BIT)==TRACE_BIT),
        traceCopies((mode&TRACE_COPIES_BIT)==TRACE_COPIES_BIT),
+       traceSkippedCopies((mode&TRACE_SKIPPED_COPIES_BIT)==TRACE_SKIPPED_COPIES_BIT),
        info((mode&INFO_BIT)==INFO_BIT),
        showCode((mode&SHOW_CODE_BIT)==SHOW_CODE_BIT),
        profile((mode&PROFILE_BIT)==PROFILE_BIT){
        if (info){
           std::cout << "native show_code " << showCode <<std::endl;
-          std::cout <<  "native info " << info<<std::endl;
+          std::cout << "native info " << info<<std::endl;
           std::cout << "native gpu " << gpu<<std::endl;
           std::cout << "native cpu " << cpu<<std::endl;
           std::cout << "native minimizeCopies " << minimizeCopies<<std::endl;
           std::cout << "native trace " << trace<<std::endl;
+          std::cout << "native traceSkippedCopies " << traceSkippedCopies<<std::endl;
           std::cout << "native traceCopies " << traceCopies<<std::endl;
           std::cout << "native profile " << profile<<std::endl;
        }
@@ -144,164 +146,6 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
     clReleaseKernel(kernel);
 }
 
-long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
-
-   // std::cout << "ndrange(" << range << ") " << std::endl;
-    ArgSled argSled(static_cast<ArgArray_s *>(argArray));
-    OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(program->backend);
-  //  std::cout << "Kernel name '"<< (dynamic_cast<Backend::Program::Kernel*>(this))->name<<"'"<<std::endl;
-    openclBackend->openclQueue.marker(openclBackend->openclQueue.EnterKernelDispatchBits,
-     (dynamic_cast<Backend::Program::Kernel*>(this))->name);
-    if (openclBackend->openclConfig.trace){
-       Sled::show(std::cout, argArray);
-    }
-    NDRange *ndrange = nullptr;
-    for (int i = 0; i < argSled.argc(); i++) {
-        Arg_s *arg = argSled.arg(i);
-        switch (arg->variant) {
-            case '&': {
-               if (openclBackend->openclConfig.trace){
-                  std::cout << "arg["<<i<<"] = "<< std::hex << (int)(arg->value.buffer.access);
-                  switch (arg->value.buffer.access){
-                      case RO_BYTE: std::cout << " RO";break;
-                      case WO_BYTE: std::cout << " WO";break;
-                      case RW_BYTE: std::cout << " RW";break;
-                      default: std::cout << "JUNK!!!!"; break;
-                  }
-                  std::cout << std::endl;
-               }
-               if ((arg->value.buffer.access == RO_BYTE ) || (arg->value.buffer.access == RW_BYTE ) ||(arg->value.buffer.access == WO_BYTE )){
-                 // OK
-               }else{
-                  std::cerr << "arg["<<i<<"] = "<< std::hex << (int)(arg->value.buffer.access) << std::endl;
-                  std::exit(1);
-               }
-
-               BufferState_s * bufferState = BufferState_s::of(arg);
-               OpenCLBuffer * openclBuffer =nullptr;
-               if (bufferState->isHostNew()){
-                  openclBuffer = new OpenCLBuffer(this, arg);
-                  if (openclBackend->openclConfig.trace){
-                     std::cout << "We allocated arg "<<i<<" buffer "<<std::endl;
-                  }
-                  bufferState->clearHostNew();
-               }else{
-                  if (openclBackend->openclConfig.trace){
-                      std::cout << "Were reusing  arg "<<i<<" buffer "<<std::endl;
-                  }
-                  openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
-                }
-                if (arg->idx == 0){
-                    ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
-                }
-                if (openclBackend->openclConfig.minimizeCopies){
-                   // is the buffer GPU dirty. If so we should not need to copy
-
-                     if (bufferState->isDeviceDirty() && bufferState->isHostDirty()){
-                           std::cerr <<" WHY is buffer host and device dirty for arg " << arg->idx << "  This should not happen!"<< std::endl;
-                           exit(1);
-                        }
-
-
-                    if (bufferState->isHostDirty()){
-                       if (openclBackend->openclConfig.traceCopies){
-                          std::cout << "HOST is dirty (java side changed code) so copying arg " << arg->idx <<" to device "<< std::endl;
-                       }
-                       bufferState->clearHostDirty();
-                       openclBuffer->copyToDevice();
-
-                    }else{
-                       if (openclBackend->openclConfig.traceCopies){
-                           std::cout << "HOST is not dirty (java side has not changed code) so not copying arg " << arg->idx <<" to device "<< std::endl;
-                       }
-                    }
-
-                }else{
-                    if (openclBackend->openclConfig.traceCopies){
-                        std::cout << "copying arg " << arg->idx <<" to device "<< std::endl;
-                    }
-                    openclBuffer->copyToDevice();
-                }
-                cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
-                if (status != CL_SUCCESS) {
-                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-                    exit(1);
-                }
-                if (openclBackend->openclConfig.trace){
-                   std::cout << "set buffer arg " << arg->idx << std::endl;
-                }
-                break;
-            }
-             case 'B':
-             case 'S':
-             case 'C':
-             case 'I':
-             case 'F':
-             case 'J':
-             case 'D':
-             {
-                cl_int status = clSetKernelArg(kernel, arg->idx, arg->size(), (void *) &arg->value);
-                if (status != CL_SUCCESS) {
-                    std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-                    exit(1);
-                }
-                if (openclBackend->openclConfig.trace){
-                   std::cerr << "set " <<arg->variant << " " << arg->idx << std::endl;
-                }
-                break;
-            }
-            default: {
-                std::cerr << "unexpected variant setting args in OpenCLkernel::ndrange " << (char) arg->variant << std::endl;
-                exit(1);
-            }
-        }
-    }
-
-    size_t globalSize = ndrange->maxX;
-    if (openclBackend->openclConfig.trace){
-       std::cout << "ndrange = " << ndrange->maxX << std::endl;
-    }
-    size_t dims = 1;
-    cl_int status = clEnqueueNDRangeKernel(
-            openclBackend->openclQueue.command_queue,
-            kernel,
-            dims,
-            nullptr,
-            &globalSize,
-            nullptr,
-            openclBackend->openclQueue.eventc,
-            openclBackend->openclQueue.eventListPtr(),
-            openclBackend->openclQueue.nextEventPtr());
-    openclBackend->openclQueue.markAsNDRangeAndInc();
-    if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-        exit(1);
-    }
-    if (openclBackend->openclConfig.trace){
-       std::cout << "enqueued kernel dispatch globalSize=" << globalSize << std::endl;
-    }
-   if (openclBackend->openclConfig.minimizeCopies){
-     openclBackend->openclQueue.wait();
-   }else{
-       for (int i = 1; i < argSled.argc(); i++) { // note i = 1... we don't need to copy back the KernelContext
-          Arg_s *arg = argSled.arg(i);
-          if (arg->variant == '&') {
-             BufferState_s * bufferState = BufferState_s::of(arg );
-             static_cast<OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
-             if (openclBackend->openclConfig.traceCopies){
-                std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
-                bufferState->dump("After copy from device");
-             }
-             bufferState->setDeviceDirty();
-          }
-       }
-         openclBackend->openclQueue.wait();
-    }
-      openclBackend->openclQueue.marker(openclBackend->openclQueue.LeaveKernelDispatchBits,
-           (dynamic_cast<Backend::Program::Kernel*>(this))->name
-      );
-    return 0;
-}
 
 /*
   OpenCLProgram
@@ -330,14 +174,30 @@ bool OpenCLBackend::OpenCLProgram::programOK() {
   OpenCLBackend
   */
 bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
-
-   // if (openclConfig->trace){
-       if (openclConfig.minimizeCopies){
-         std::cout << "attempting  to get buffer from device (if dirty) from OpenCLBackend "<<std::endl;
-       //}else{
-       //  std::cout << "skipping attempt  to get buffer from device (if dirty) from OpenCLBackend (we are not minimizing copies) "<<std::endl;
+    if (openclConfig.minimizeCopies){
+       BufferState_s * bufferState = BufferState_s::of(memorySegment,memorySegmentLength);
+       if (bufferState->isDeviceDirty()){
+          std::cout << "from getBufferFromDeviceIfDirty Buffer is device dirty so attempting to get buffer from device from OpenCLBackend "<<std::endl;
+            // we use static cast because the ptr type is void*
+            static_cast<OpenCLProgram::OpenCLKernel::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
+                     //  if (openclConfig.traceCopies){
+                         // std::cout << "copying buffer from device "<< std::endl;
+                       //   bufferState->dump("After copy from device");
+                     //  }
+                       openclQueue.wait();
+                       openclQueue.release();
+                      //  bufferState->dump("1 After copy from device");
+                     // we don't clear the deviceDirty because we may have only read!  bufferState->clearDeviceDirty();
+                       // bufferState->dump("2 After copy from device");
+        //  std::cout << "We have pulled the buffer from the device and cleared device dirty flag"<<std::endl;
+       }else{
+          std::cout << "HOW DID WE GET HERE 1 attempting  to get buffer but buffer is not device dirty"<<std::endl;
+          std::exit(1);
        }
-   // }
+    }else{
+     std::cerr << "HOW DID WE GET HERE ? java side should avoid calling getBufferFromDeviceIfDirty as we are not minimising buffers!"<<std::endl;
+     std::exit(1);
+    }
 
     return true;
 }

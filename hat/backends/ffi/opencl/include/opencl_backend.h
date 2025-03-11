@@ -55,6 +55,7 @@ public:
         const static  int SHOW_COMPUTE_MODEL_BIT = 1 <<8;
         const static  int INFO_BIT = 1 <<9;
         const static  int TRACE_COPIES_BIT = 1 <<10;
+        const static  int TRACE_SKIPPED_COPIES_BIT = 1 <<11;
         int mode;
         bool gpu;
         bool cpu;
@@ -64,6 +65,7 @@ public:
         bool showCode;
         bool info;
         bool traceCopies;
+         bool traceSkippedCopies;
         OpenCLConfig(int mode);
         virtual ~OpenCLConfig();
     };
@@ -111,7 +113,9 @@ public:
     };
 
     class OpenCLProgram : public Backend::Program {
+        public:
         class OpenCLKernel : public Backend::Program::Kernel {
+            public:
             class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
                 cl_mem clMem;

@@ -119,10 +119,12 @@ extern void hexdump(void *ptr, int buflen);
 
  struct BufferState_s{
    static const long  MAGIC =0x4a71facebffab175;
-   static const int   BIT_HOST_NEW =0x00000004;
-   static const int   BIT_DEVICE_NEW =0x00000008;
-   static const int   BIT_HOST_DIRTY =0x00000001;
-   static const int   BIT_DEVICE_DIRTY =0x00000002;
+   static const int   NONE = 0;
+   static const int   BIT_HOST_NEW =1<<0;
+   static const int   BIT_DEVICE_NEW =1<<1;
+   static const int   BIT_HOST_DIRTY =1<<2;
+   static const int   BIT_DEVICE_DIRTY =1<<3;
+   static const int   BIT_HOST_CHECKED =1<<4;
 
 
    long magic1;
@@ -164,6 +166,12 @@ extern void hexdump(void *ptr, int buflen);
    }
    void clearHostDirty(){
       resetBits(BIT_HOST_DIRTY);
+   }
+   void clearHostChecked(){
+      resetBits(BIT_HOST_CHECKED);
+   }
+   void clear(){
+       bits=0;
    }
    bool isHostNew(){
       return  areBitsSet(BIT_HOST_NEW);
