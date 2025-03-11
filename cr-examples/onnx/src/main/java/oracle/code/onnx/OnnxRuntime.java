@@ -20,7 +20,7 @@ import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
 public final class OnnxRuntime {
 
-    static boolean DEBUG = true;
+    static final boolean DEBUG = Boolean.getBoolean("oracle.code.onnx.OnnxRuntime.DEBUG");
 
     static {
         String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";

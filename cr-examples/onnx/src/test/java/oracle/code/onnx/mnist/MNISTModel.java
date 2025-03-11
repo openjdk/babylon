@@ -24,6 +24,7 @@
 package oracle.code.onnx.mnist;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
@@ -38,14 +39,17 @@ import static oracle.code.onnx.OnnxOperators.*;
 public class MNISTModel {
 
     static final int IMAGE_SIZE = 28;
-    static final long[] IMAGE_SHAPE = new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE};
 
-    private static Tensor<Float> initialize(String resource, long... shape) throws IOException {
+    private static Tensor<Float> load(String resource, long... shape) {
         try (var in = MNISTModel.class.getResourceAsStream(resource)) {
+            assert in != null;
             return Tensor.ofShape(shape, in.readAllBytes(), Tensor.ElementType.FLOAT);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
+    // Weights
     final Tensor<Float> conv1Weights;
     final Tensor<Float> conv1Biases;
     final Tensor<Float> conv2Weights;
@@ -57,19 +61,23 @@ public class MNISTModel {
     final Tensor<Float> fc3Weights;
     final Tensor<Float> fc3Biases;
 
-    public MNISTModel() throws IOException {
-        conv1Weights = initialize("conv1-weight-float-le", 6, 1, 5, 5);
-        conv1Biases = initialize("conv1-bias-float-le", 6);
-        conv2Weights = initialize("conv2-weight-float-le", 16, 6, 5, 5);
-        conv2Biases = initialize("conv2-bias-float-le", 16);
-        fc1Weights = initialize("fc1-weight-float-le", 120, 256);
-        fc1Biases = initialize("fc1-bias-float-le", 120);
-        fc2Weights = initialize("fc2-weight-float-le", 84, 120);
-        fc2Biases = initialize("fc2-bias-float-le", 84);
-        fc3Weights = initialize("fc3-weight-float-le", 10, 84);
-        fc3Biases = initialize("fc3-bias-float-le", 10);
+    public MNISTModel() {
+        // Load the weights (constant inputs)
+        // The weights were obtained from a trained pytorch model with the MNIST dataset
+        conv1Weights = load("conv1-weight-float-le", 6, 1, 5, 5);
+        conv1Biases = load("conv1-bias-float-le", 6);
+        conv2Weights = load("conv2-weight-float-le", 16, 6, 5, 5);
+        conv2Biases = load("conv2-bias-float-le", 16);
+        fc1Weights = load("fc1-weight-float-le", 120, 256);
+        fc1Biases = load("fc1-bias-float-le", 120);
+        fc2Weights = load("fc2-weight-float-le", 84, 120);
+        fc2Biases = load("fc2-bias-float-le", 84);
+        fc3Weights = load("fc3-weight-float-le", 10, 84);
+        fc3Biases = load("fc3-bias-float-le", 10);
     }
 
+    // The machine learning model, a convolutional neural network
+    // Annotated with code @CodeReflection so that the method's code is accessible
     @CodeReflection
     public Tensor<Float> cnn(Tensor<Float> inputImage) {
         // Scaling to 0-1
@@ -114,12 +122,17 @@ public class MNISTModel {
     }
 
     public float[] classify(float[] imageData) {
+        // Manage per-execution data in a confined arena
         try (Arena arena = Arena.ofConfined()) {
-            var imageTensor = Tensor.ofShape(arena, IMAGE_SHAPE, imageData);
+            // Convert the image to an input tensor
+            var imageTensor = Tensor.ofShape(arena, new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
 
+            // Execute the machine learning model
+            // Translate the Java code to an ONNX model and execute in the ONNX runtime
             var predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(),
                     () -> cnn(imageTensor));
 
+            // Convert the output predication to float[]
             return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);
         }
     }

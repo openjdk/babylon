@@ -12,10 +12,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class RuntimeTest {
 
-    static {
-        OnnxRuntime.DEBUG = false;
-    }
-
     @Test
     public void test() throws Exception {
         var ort = OnnxRuntime.getInstance();

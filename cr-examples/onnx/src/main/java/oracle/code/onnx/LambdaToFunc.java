@@ -18,6 +18,8 @@ import oracle.code.onnx.compiler.OnnxTransformer;
 
 public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMapping) {
 
+    static final boolean DEBUG = Boolean.getBoolean("oracle.code.onnx.OnnxRuntime.DEBUG");
+
     public static LambdaToFunc fromLambda(MethodHandles.Lookup l, CoreOp.LambdaOp lambda, Map<Value, Object> evaluatedValues) {
         evaluatedValues = new HashMap<>(evaluatedValues);
         // Shortcut for lambda expressions that call just one method
@@ -51,6 +53,9 @@ public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMappin
                         }
                     }
                 }
+                if (DEBUG) {
+                    System.out.println(f.toText());
+                }
                 OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, evaluatedValues, f);
                 return new LambdaToFunc(onnxFunc, operandsMapping);
             }
@@ -59,7 +64,7 @@ public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMappin
         var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
                 capturedValues.stream().map(Value::type)
                         .map(t -> t instanceof VarType vt ? vt.valueType() : t).toList());
-        OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, evaluatedValues, CoreOp.func("onnxCode", functionType)
+        CoreOp.FuncOp f = CoreOp.func("onnxCode", functionType)
                 .body(bb -> {
                     bb.context().mapValues(capturedValues, bb.parameters());
                     for (Op op : lambda.body().entryBlock().ops()) {
@@ -71,7 +76,11 @@ public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMappin
                             bb.apply(op);
                         }
                     }
-                }));
+                });
+        if (DEBUG) {
+            System.out.println(f.toText());
+        }
+        OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, evaluatedValues, f);
 
         var operandsMapping = new int[capturedValues.size()];
         for (int i = 0; i < operandsMapping.length; i++) {

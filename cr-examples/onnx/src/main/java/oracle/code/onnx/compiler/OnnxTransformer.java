@@ -7,6 +7,7 @@ import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.*;
 import oracle.code.onnx.OnnxOperators;
+import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
