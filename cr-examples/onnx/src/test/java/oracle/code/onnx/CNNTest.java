@@ -66,10 +66,6 @@ import static oracle.code.onnx.OnnxOperators.Softmax;
 // the verbosity e.g., esp. scalar constant expressions
 public class CNNTest {
 
-    static {
-        OnnxRuntime.DEBUG = false;
-    }
-
     private static final String IMAGES_PATH = CNNTest.class.getResource("images-ubyte").getPath();
     private static final String LABELS_PATH = CNNTest.class.getResource("labels-ubyte").getPath();
     private static final int IMAGES_HEADER_SIZE = 0;
