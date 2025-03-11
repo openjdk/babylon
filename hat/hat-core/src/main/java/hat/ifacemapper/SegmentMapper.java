@@ -373,11 +373,12 @@ public interface SegmentMapper<T> {
         // hat iface bffa   bitz
         // 4a7 1face bffa   b175
         public static final long MAGIC = 0x4a71facebffab175L;
-        public static int BIT_HOST_NEW = 0x00000004;
-        public static int BIT_DEVICE_NEW = 0x00000008;
-        public static int BIT_HOST_DIRTY = 0x00000001;
-        public static int BIT_DEVICE_DIRTY = 0x00000002;
-
+        public static int NONE = 0;
+        public static int BIT_HOST_NEW = 1<<0;
+        public static int BIT_DEVICE_NEW = 1<<1;
+        public static int BIT_HOST_DIRTY = 1<<2;
+        public static int BIT_DEVICE_DIRTY = 1<<3;
+        public static int BIT_HOST_CHECKED = 1<<4;
 
         static final MemoryLayout stateMemoryLayout = MemoryLayout.structLayout(
                 ValueLayout.JAVA_LONG.withName("magic1"),
@@ -471,6 +472,14 @@ public interface SegmentMapper<T> {
             }
             return this;
         }
+        public BufferState setHostChecked(boolean checked) {
+            if (checked){
+                or(BIT_HOST_CHECKED);
+            }else{
+                andNot(BIT_HOST_CHECKED); // this is wrong we want bits&=!BIT_DEVICE_DIRTY
+            }
+            return this;
+        }
         public BufferState setDeviceDirty(boolean dirty) {
             if (dirty){
                 or(BIT_DEVICE_DIRTY);
@@ -485,11 +494,17 @@ public interface SegmentMapper<T> {
         public boolean isHostDirty() {
             return all(BIT_HOST_DIRTY);
         }
+        public boolean isHostChecked() {
+            return all(BIT_HOST_CHECKED);
+        }
         public boolean isHostNewOrDirty() {
             return all(BIT_HOST_NEW|BIT_HOST_DIRTY);
         }
         public boolean isDeviceDirty() {
             return all(BIT_DEVICE_DIRTY);
+        }
+        public BufferState clearHostChecked() {
+            return xor(BIT_HOST_CHECKED);
         }
         public BufferState clearDeviceDirty() {
             return xor(BIT_DEVICE_DIRTY);

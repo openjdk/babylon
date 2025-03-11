@@ -30,6 +30,7 @@ import hat.ifacemapper.Schema;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.StructLayout;
 import java.lang.invoke.MethodHandles;
+import java.util.function.Function;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
@@ -45,6 +46,9 @@ public interface S32Array extends Buffer {
     static S32Array create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
     }
+    static S32Array create(Accelerator accelerator, int length, Function<Integer,Integer> filler){
+        return schema.allocate(accelerator, length).fill(filler);
+    }
     static S32Array createFrom(Accelerator accelerator, int[] arr){
         return create( accelerator, arr.length).copyfrom(arr);
     }
@@ -54,6 +58,12 @@ public interface S32Array extends Buffer {
     }
     default S32Array copyTo(int[] ints) {
         MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 4, ints, 0, length());
+        return this;
+    }
+    default S32Array fill(Function<Integer, Integer> filler) {
+        for (int i = 0; i < length(); i++) {
+            array(i, filler.apply(i));
+        }
         return this;
     }
 }

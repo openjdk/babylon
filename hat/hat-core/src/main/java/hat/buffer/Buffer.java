@@ -43,13 +43,19 @@ public interface Buffer extends MappableIface {
     default boolean isDeviceDirty(){
         return SegmentMapper.BufferState.of(this).isDeviceDirty();
     }
+    default boolean isHostChecked(){
+        return SegmentMapper.BufferState.of(this).isHostChecked();
+    }
 
     default void clearDeviceDirty(){
          SegmentMapper.BufferState.of(this).clearDeviceDirty();
     }
-
     default void setHostDirty(){
         SegmentMapper.BufferState.of(this).setHostDirty(true);
+    }
+
+    default void setHostChecked(){
+        SegmentMapper.BufferState.of(this).setHostChecked(true);
     }
 
     interface Union extends MappableIface {

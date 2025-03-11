@@ -28,8 +28,6 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLBackend;
-import hat.backend.java.JavaMultiThreadedBackend;
-import hat.backend.java.JavaSequentialBackend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
 import hat.ifacemapper.SegmentMapper;
@@ -46,6 +44,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static hat.backend.Backend.FIRST;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
@@ -216,24 +215,81 @@ public class Main {
         static public void compute(final @RO ComputeContext cc,
                                    Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
-            while (viewer.state.generation < viewer.state.maxGenerations) {
+            int skipped = 0;
+            while (viewer.state.generations < viewer.state.maxGenerations) {
                 long now = System.currentTimeMillis();
-                boolean displayThisGeneration =  viewer.state.redrawState.equals(Viewer.State.RedrawState.RepaintCompleted)
-                        && ((now - viewer.state.timeOfLastFrame) >= viewer.state.msPerFrame);
+                boolean shouldUpdateUI =  viewer.state.lastUIUpdateCompleted
+                        && ((now - viewer.state.timeOfLastUIUpdate) >= viewer.state.msPerFrame);
 
                 cc.dispatchKernel(cellGrid.width() * cellGrid.height(), kc -> Compute.life(kc, control, cellGrid));
+
                 int to = control.from();
                 control.from(control.to());
                 control.to(to);
-                viewer.state.generation++;
+
+                viewer.state.generations++;
                 viewer.state.generationsSinceLastChange++;
 
-                if (displayThisGeneration) {
+                if (shouldUpdateUI) {
+                    if (skipped > 0) {
+                    //    System.out.println("skipped " + skipped);
+                    }
+                    skipped=0;
                     viewer.controls.updateCounters(now);
                     cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
-                    viewer.state.redrawState = Viewer.State.RedrawState.RepaintRequested;
+                    viewer.state.lastUIUpdateCompleted =false;
                     viewer.mainPanel.repaint();
-                    viewer.state.timeOfLastFrame = now;
+                    viewer.state.timeOfLastUIUpdate = now;
+                }else{
+                    skipped++;
+
+
+                }
+            }
+        }
+
+        static void nonHatCompute(CLWrapComputeContext clWrapComputeContext,  CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel,Viewer viewer, Control control, CellGrid cellGrid) {
+int skipped = 0;
+            while (viewer.state.generations < viewer.state.maxGenerations) {
+
+                long now = System.currentTimeMillis();
+                boolean shouldUpdateUI = viewer.state.lastUIUpdateCompleted
+                        && ((now - viewer.state.timeOfLastUIUpdate) >= viewer.state.msPerFrame);
+
+                if (viewer.state.usingGPU) {
+                    SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(cellGrid);
+                    bufferState.setHostDirty(!viewer.state.minimizingCopies || (viewer.state.generations == 0)); // only first
+                    bufferState.setDeviceDirty(!viewer.state.minimizingCopies || shouldUpdateUI);
+                    kernel.run(clWrapComputeContext, cellGrid.wxh(), cellGrid, control);
+                } else {
+                    IntStream.range(0, cellGrid.wxh()).parallel().forEach(kcx ->
+                            Compute.lifePerIdx(kcx, control, cellGrid)
+                    );
+                }
+                int tempFrom = control.from();
+                control.from(control.to());
+                control.to(tempFrom);
+
+                viewer.state.generations++;
+                viewer.state.generationsSinceLastChange++;
+
+                if (shouldUpdateUI) {
+                    if (skipped > 0) {
+                       // System.out.println("skipped " + skipped);
+                    }
+                    skipped=0;
+                    if (viewer.state.deviceOrModeModified) {
+                        viewer.state.generationsSinceLastChange = 0;
+                        viewer.state.timeOfLastChange = now;
+                        viewer.state.deviceOrModeModified = false;
+                    }
+                    viewer.controls.updateCounters(now);
+                    cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
+                    viewer.state.lastUIUpdateCompleted=false;
+                    viewer.mainPanel.repaint();
+                    viewer.state.timeOfLastUIUpdate = now;
+                }else{
+                   skipped++;
                 }
             }
         }
@@ -241,9 +297,9 @@ public class Main {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
-               // new OpenCLBackend("GPU,MINIMIZE_COPIES")
-                new OpenCLBackend("GPU")
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST
+              //  new OpenCLBackend("GPU,TRACE_COPIES,MINIMIZE_COPIES")
+             //  new OpenCLBackend("GPU,TRACE_COPIES")
                 //new JavaMultiThreadedBackend()
                // new JavaSequentialBackend()
         );
@@ -274,54 +330,19 @@ public class Main {
         var program = context.buildProgram(Compute.codeHeader + Compute.codeVal + Compute.codeLifePerIdx);
         CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel = program.getKernel("life");
         // Set following true to use HAT
-        Viewer.State state = new Viewer.State(false);
+        Viewer.State state = new Viewer.State(true);
         Viewer viewer = new Viewer("Life", cellGrid, state);
+
         var tempFrom = control.from();
         control.from(control.to());
         control.to(tempFrom);
+
         viewer.mainPanel.repaint();
         viewer.waitForStart();
         if (state.useHat) {
-
             accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
         } else {
-
-            while (state.generation < state.maxGenerations) {
-
-                long now = System.currentTimeMillis();
-                boolean displayThisGeneration = state.redrawState.equals(Viewer.State.RedrawState.RepaintCompleted)
-                        && ((now - state.timeOfLastFrame) >= state.msPerFrame);
-
-                if (state.usingGPU) {
-                    SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(cellGrid);
-                    bufferState.setHostDirty(!state.minimizingCopies || (state.generation == 0)); // only first
-                    bufferState.setDeviceDirty(!state.minimizingCopies || displayThisGeneration);
-                    kernel.run(clWrapComputeContext, cellGrid.wxh(), cellGrid, control);
-                } else {
-                    IntStream.range(0, cellGrid.wxh()).parallel().forEach(kcx ->
-                            Compute.lifePerIdx(kcx, control, cellGrid)
-                    );
-                }
-                tempFrom = control.from();
-                control.from(control.to());
-                control.to(tempFrom);
-
-                state.generation++;
-                state.generationsSinceLastChange++;
-
-                if (displayThisGeneration) {
-                    if (state.updated) {
-                        state.generationsSinceLastChange = 0;
-                        state.timeOfLastChange = now;
-                        state.updated = false;
-                    }
-                    viewer.controls.updateCounters(now);
-                    cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
-                    state.redrawState = Viewer.State.RedrawState.RepaintRequested;
-                    viewer.mainPanel.repaint();
-                    state.timeOfLastFrame = now;
-                }
-            }
+            Compute.nonHatCompute(clWrapComputeContext, kernel,viewer,control,cellGrid);
         }
     }
 }

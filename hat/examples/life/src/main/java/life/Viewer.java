@@ -36,7 +36,6 @@ import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JToggleButton;
 import javax.swing.WindowConstants;
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -44,7 +43,6 @@ import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.MouseInfo;
 import java.awt.Point;
-import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -53,27 +51,24 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.ImageObserver;
-import java.util.Arrays;
 
 public class Viewer extends JFrame {
 
     public static class State {
-        public final long requiredFrameRate = 20;
+        public final long requiredFrameRate = 10;
         public final long msPerFrame = 1000/requiredFrameRate;
         public final long maxGenerations = 1000000;
         private final Object doorBell = new Object();
-        public long generation = 0;
+        public long generations = 0;
         public volatile boolean minimizingCopies = false;
         public volatile boolean usingGPU = false;
         volatile private boolean started = false;
         public long generationsSinceLastChange = 0;
         public long timeOfLastChange = 0;
-        public long timeOfLastFrame;
-
-        public enum RedrawState {RepaintRequested, RepaintCompleted};
-        public volatile RedrawState redrawState = RedrawState.RepaintCompleted;
+        public long timeOfLastUIUpdate;
+        public volatile boolean lastUIUpdateCompleted = false;
         public final boolean useHat;
-        public volatile boolean updated = false;
+        public volatile boolean deviceOrModeModified = false;
 
         State(boolean useHat) {
             this.useHat = useHat;
@@ -152,7 +147,7 @@ public class Viewer extends JFrame {
         @Override
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
-            state.redrawState = State.RedrawState.RepaintCompleted;
+            state.lastUIUpdateCompleted =  true;
         }
 
         @Override
@@ -244,7 +239,7 @@ public final JMenuBar menuBar;
                 } else {
                     ((JToggleButton) event.getSource()).setText(def);
                 }
-                state.updated = true;
+                state.deviceOrModeModified = true;
             });
             return toggleButton;
         }
