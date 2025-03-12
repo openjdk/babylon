@@ -27,9 +27,11 @@ package hat.optools;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
 
+import java.lang.invoke.MethodHandles;
+
 public abstract class VarOpWrapper extends OpWrapper<CoreOp.VarOp> {
-    public VarOpWrapper(CoreOp.VarOp op) {
-        super(op);
+    public VarOpWrapper(CoreOp.VarOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
     public JavaType javaType() {
@@ -41,6 +43,6 @@ public abstract class VarOpWrapper extends OpWrapper<CoreOp.VarOp> {
     }
 
     public boolean isIfaceAssignment() {
-        return OpWrapper.isIface(javaType());
+        return isIface(lookup,javaType());
     }
 }

@@ -26,10 +26,12 @@ package hat.optools;
 
 import jdk.incubator.code.op.CoreOp;
 
+import java.lang.invoke.MethodHandles;
+
 public class VarLoadOpWrapper extends VarAccessOpWrapper<CoreOp.VarAccessOp.VarLoadOp> implements LoadOpWrapper {
 
-    VarLoadOpWrapper(CoreOp.VarAccessOp.VarLoadOp op) {
-        super(op);
+    VarLoadOpWrapper(CoreOp.VarAccessOp.VarLoadOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
 }

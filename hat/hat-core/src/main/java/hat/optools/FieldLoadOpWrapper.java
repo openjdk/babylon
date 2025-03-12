@@ -28,16 +28,17 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.ClassType;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 
 public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldLoadOp> implements LoadOpWrapper {
-    FieldLoadOpWrapper(CoreOp.FieldAccessOp.FieldLoadOp op) {
-        super(op);
+    FieldLoadOpWrapper(CoreOp.FieldAccessOp.FieldLoadOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
     public Object getStaticFinalPrimitiveValue() {
         if (fieldType() instanceof ClassType classType) {
-            Class<?> clazz = (Class<?>) classTypeToType(classType);
+            Class<?> clazz = (Class<?>) classTypeToType(lookup,classType);
             try {
                 Field field = clazz.getField(fieldName());
                 field.setAccessible(true);

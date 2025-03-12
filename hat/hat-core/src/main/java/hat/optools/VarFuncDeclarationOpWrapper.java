@@ -27,13 +27,15 @@ package hat.optools;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.op.CoreOp;
 
+import java.lang.invoke.MethodHandles;
+
 public class VarFuncDeclarationOpWrapper extends VarOpWrapper {
     final CoreOp.FuncOp funcOp;
     final Block.Parameter blockParameter;
     final int idx;
 
-    public VarFuncDeclarationOpWrapper(CoreOp.VarOp op, CoreOp.FuncOp funcOp, Block.Parameter blockParameter) {
-        super(op);
+    public VarFuncDeclarationOpWrapper(CoreOp.VarOp op, CoreOp.FuncOp funcOp, Block.Parameter blockParameter, MethodHandles.Lookup lookup) {
+        super(op, lookup);
         this.funcOp = funcOp;
         this.blockParameter = blockParameter;
         this.idx = blockParameter.index();

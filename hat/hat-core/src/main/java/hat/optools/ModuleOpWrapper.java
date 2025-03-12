@@ -39,8 +39,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
-    ModuleOpWrapper(CoreOp.ModuleOp op) {
-        super(op);
+    ModuleOpWrapper(CoreOp.ModuleOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
     record MethodRefToEntryFuncOpCall(MethodRef methodRef, CoreOp.FuncOp funcOp) {
@@ -54,9 +54,9 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
                                                                Method entryPoint) {
         Optional<CoreOp.FuncOp> codeModel = Op.ofMethod(entryPoint);
         if (codeModel.isPresent()) {
-            return OpWrapper.wrap(createTransitiveInvokeModule(lookup, MethodRef.method(entryPoint), codeModel.get()));
+            return OpWrapper.wrap(createTransitiveInvokeModule(lookup, MethodRef.method(entryPoint), codeModel.get()),lookup);
         } else {
-            return OpWrapper.wrap(CoreOp.module(List.of()));
+            return OpWrapper.wrap(CoreOp.module(List.of()),lookup);
         }
     }
    /* static Method resolveToMethod(MethodHandles.Lookup lookup, MethodRef invokedMethodRef){
@@ -78,10 +78,10 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
             if (closure.funcsVisited.add(methodRefToEntryFuncOpCall.methodRef)) {
                 CoreOp.FuncOp tf = methodRefToEntryFuncOpCall.funcOp.transform(
                         methodRefToEntryFuncOpCall.methodRef.toString(), (blockBuilder, op) -> {
-                            if (op instanceof CoreOp.InvokeOp invokeOp && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
+                            if (op instanceof CoreOp.InvokeOp invokeOp && OpWrapper.wrap(invokeOp,lookup) instanceof InvokeOpWrapper invokeOpWrapper) {
                                 Method invokedMethod = invokeOpWrapper.method(lookup);
                                 Optional<CoreOp.FuncOp> optionalInvokedFuncOp = Op.ofMethod(invokedMethod);
-                                if (optionalInvokedFuncOp.isPresent() && OpWrapper.wrap(optionalInvokedFuncOp.get()) instanceof FuncOpWrapper funcOpWrapper) {
+                                if (optionalInvokedFuncOp.isPresent() && OpWrapper.wrap(optionalInvokedFuncOp.get(),lookup) instanceof FuncOpWrapper funcOpWrapper) {
                                     MethodRefToEntryFuncOpCall call =
                                             new MethodRefToEntryFuncOpCall(invokeOpWrapper.methodRef(), funcOpWrapper.op());
                                     closure.work.push(call);

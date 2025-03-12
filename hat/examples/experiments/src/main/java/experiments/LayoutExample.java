@@ -101,6 +101,7 @@ public class LayoutExample {
 
 
     public static void main(String[] args) {
+        var lookup =     MethodHandles.lookup();
         Optional<Method> om = Stream.of(LayoutExample.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals("m"))
                 .findFirst();
@@ -109,9 +110,9 @@ public class LayoutExample {
         CoreOp.FuncOp f= Op.ofMethod(m).orElseThrow();
         f = SSA.transform(f);
         System.out.println(f.toText());
-        FunctionType functionType = transformStructClassToPtr(MethodHandles.lookup(), f);
+        FunctionType functionType = transformStructClassToPtr(lookup, f);
         System.out.println(f.toText());
-        CoreOp.FuncOp pm = transformInvokesToPtrs(MethodHandles.lookup(), f, functionType);
+        CoreOp.FuncOp pm = transformInvokesToPtrs(lookup, f, functionType);
         System.out.println(pm.toText());
     }
     static FunctionType transformStructClassToPtr(MethodHandles.Lookup l,

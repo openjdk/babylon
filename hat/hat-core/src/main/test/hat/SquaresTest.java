@@ -30,6 +30,8 @@ import org.testng.annotations.Test;
 
 import jdk.incubator.code.CodeReflection;
 
+import java.lang.invoke.MethodHandles;
+
 
 /*
  * @test
@@ -54,8 +56,8 @@ public class SquaresTest {
 
   @Test
        void    testSquares(){
-        var lookup = java.lang.invoke.MethodHandles.lookup();
-        var accelerator = new Accelerator(lookup, new JavaMultiThreadedBackend());
+
+        var accelerator = new Accelerator(MethodHandles.lookup(), new JavaMultiThreadedBackend());
         var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);

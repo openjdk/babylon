@@ -110,7 +110,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
         // System.out.println(module.op().toText());
 
-        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(Op.ofMethod(computeMethod).orElseThrow());
+        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(Op.ofMethod(computeMethod).orElseThrow(),accelerator.lookup);
 
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOpWrapper);
 
@@ -127,7 +127,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
-        LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op());
+        LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op(),computeCallGraph.computeContext.accelerator.lookup);
         MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         try {

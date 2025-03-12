@@ -109,7 +109,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 if (optionalFuncOp.isPresent()) {
                     //System.out.println("A call to a method on the kernel class which we have code model for " + methodRef);
                     kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                            new KernelReachableResolvedMethodCall(this, methodRef, invokeOpCalledMethod, OpWrapper.wrap(optionalFuncOp.get())
+                            new KernelReachableResolvedMethodCall(this, methodRef, invokeOpCalledMethod, OpWrapper.wrap(optionalFuncOp.get(),computeContext.accelerator.lookup)
                             )));
                 } else {
                     // System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);

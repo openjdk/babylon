@@ -26,8 +26,10 @@ package hat.optools;
 
 import jdk.incubator.code.op.CoreOp;
 
+import java.lang.invoke.MethodHandles;
+
 public class ConstantOpWrapper extends UnaryOpWrapper<CoreOp.ConstantOp> {
-    ConstantOpWrapper(CoreOp.ConstantOp op) {
-        super(op);
+    ConstantOpWrapper(CoreOp.ConstantOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 }

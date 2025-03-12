@@ -115,7 +115,8 @@ public class PointyHatArray {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), new BackendAdaptor() {
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        Accelerator accelerator = new Accelerator(lookup, new BackendAdaptor() {
             @Override
             public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
                 var highLevelForm = Op.ofMethod(kernelCallGraph.entrypoint.method).orElseThrow();
@@ -132,12 +133,12 @@ public class PointyHatArray {
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+                FunctionType functionType = OpsAndTypes.transformTypes(lookup, ssaInvokeForm);
                 System.out.println("SSA form with types transformed args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+                CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(lookup, ssaInvokeForm, functionType);
                 System.out.println("SSA form with invokes replaced by ptrs");
                 System.out.println(ssaPtrForm.toText());
             }

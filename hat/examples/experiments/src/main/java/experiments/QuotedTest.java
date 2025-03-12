@@ -33,6 +33,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.op.CoreOp;
 
+import java.lang.invoke.MethodHandles;
+
 import static jdk.incubator.code.op.CoreOp._return;
 import static jdk.incubator.code.op.CoreOp.add;
 import static jdk.incubator.code.op.CoreOp.closureCall;
@@ -76,8 +78,9 @@ public class QuotedTest {
                 });
 
         f.writeTo(System.out);
+        MethodHandles.Lookup lookup =  MethodHandles.lookup();
         C99HATComputeBuilder codeBuilder = new C99HATComputeBuilder();
-        FuncOpWrapper wf = OpWrapper.wrap(f);
+        FuncOpWrapper wf = OpWrapper.wrap(f, lookup);
         codeBuilder.compute(wf);
         System.out.println(codeBuilder);
 

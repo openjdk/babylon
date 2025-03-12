@@ -38,8 +38,8 @@ import java.util.List;
 import java.util.Map;
 
 public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
-    public LambdaOpWrapper(CoreOp.LambdaOp op) {
-        super(op);
+    public LambdaOpWrapper(CoreOp.LambdaOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
     public InvokeOpWrapper getInvoke(int index) {
@@ -47,7 +47,7 @@ public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
         selectOnlyBlockOfOnlyBody(blockWrapper ->
                 result.of(blockWrapper.op(index))
         );
-        return OpWrapper.wrap(result.get());
+        return OpWrapper.wrap(result.get(),lookup);
     }
 
     public List<Value> operands() {
@@ -62,7 +62,7 @@ public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
         return OpWrapper.wrap(op().body().entryBlock().ops().stream()
                 .filter(op -> op instanceof CoreOp.InvokeOp)
                 .map(op -> (CoreOp.InvokeOp) op)
-                .findFirst().get());
+                .findFirst().get(),lookup);
     }
 
     public MethodRef getQuotableTargetMethodRef() {

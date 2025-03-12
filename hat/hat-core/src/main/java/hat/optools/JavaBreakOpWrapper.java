@@ -26,9 +26,11 @@ package hat.optools;
 
 import jdk.incubator.code.op.ExtendedOp;
 
+import java.lang.invoke.MethodHandles;
+
 public class JavaBreakOpWrapper extends OpWrapper<ExtendedOp.JavaBreakOp> {
-    public JavaBreakOpWrapper(ExtendedOp.JavaBreakOp op) {
-        super(op);
+    public JavaBreakOpWrapper(ExtendedOp.JavaBreakOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
 }

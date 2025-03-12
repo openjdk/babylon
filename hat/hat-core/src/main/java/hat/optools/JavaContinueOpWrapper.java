@@ -26,9 +26,11 @@ package hat.optools;
 
 import jdk.incubator.code.op.ExtendedOp;
 
+import java.lang.invoke.MethodHandles;
+
 public class JavaContinueOpWrapper extends OpWrapper<ExtendedOp.JavaContinueOp> {
-    public JavaContinueOpWrapper(ExtendedOp.JavaContinueOp op) {
-        super(op);
+    public JavaContinueOpWrapper(ExtendedOp.JavaContinueOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
 }

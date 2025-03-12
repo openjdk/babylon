@@ -117,11 +117,12 @@ public class RawLayout {
 
 
     public static void main(String[] args) {
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
         CoreOp.FuncOp m = getFuncOp("m");
         m = SSA.transform(m);
         System.out.println(m.toText());
 
-        CoreOp.FuncOp pm = transformInvokesToPtrs(MethodHandles.lookup(), m);
+        CoreOp.FuncOp pm = transformInvokesToPtrs(lookup, m);
         System.out.println(pm.toText());
     }
 
