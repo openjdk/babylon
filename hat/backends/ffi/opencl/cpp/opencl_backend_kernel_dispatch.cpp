@@ -120,6 +120,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                         //  std::cout << "We are not minimising copies OR (HOST is JAVA dirty and the kernel is READS this arg) so copying arg " << arg->idx <<" to device "<< std::endl;
                        }
                        bufferState->clearHostDirty();
+                       if (openclBackend->openclConfig.traceEnqueues){
+                           std::cout << "copying arg " << arg->idx <<" to device "<< std::endl;
+                       }
                        openclBuffer->copyToDevice();
 
                     }else{
@@ -184,7 +187,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    if (openclBackend->openclConfig.trace){
+    if (openclBackend->openclConfig.trace | openclBackend->openclConfig.traceEnqueues){
        std::cout << "enqueued kernel dispatch globalSize=" << globalSize << std::endl;
     }
 
@@ -199,6 +202,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                     //std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
                    // bufferState->dump("After copy from device");
                 //}
+                if (openclBackend->openclConfig.traceEnqueues){
+                   std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
+                }
                 bufferState->setDeviceDirty();
              }else{
                  if (openclBackend->openclConfig.traceSkippedCopies){

@@ -28,14 +28,13 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLBackend;
-import hat.buffer.Buffer;
 import hat.buffer.S32Array;
 import static hat.ifacemapper.MappableIface.*;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
 
-import static hat.backend.ffi.OpenCLBackend.Mode.*;
+import static hat.backend.ffi.Config.*;
 
 public class MinBufferTest {
 

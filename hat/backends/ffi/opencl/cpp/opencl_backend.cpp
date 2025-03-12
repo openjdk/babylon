@@ -22,6 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+#define opencl_backend_cpp
 #include "opencl_backend.h"
 
 OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
@@ -31,6 +32,7 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
        minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
        trace((mode&TRACE_BIT)==TRACE_BIT),
        traceCopies((mode&TRACE_COPIES_BIT)==TRACE_COPIES_BIT),
+        traceEnqueues((mode&TRACE_ENQUEUES_BIT)==TRACE_ENQUEUES_BIT),
        traceSkippedCopies((mode&TRACE_SKIPPED_COPIES_BIT)==TRACE_SKIPPED_COPIES_BIT),
        info((mode&INFO_BIT)==INFO_BIT),
        showCode((mode&SHOW_CODE_BIT)==SHOW_CODE_BIT),
@@ -44,6 +46,7 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
           std::cout << "native trace " << trace<<std::endl;
           std::cout << "native traceSkippedCopies " << traceSkippedCopies<<std::endl;
           std::cout << "native traceCopies " << traceCopies<<std::endl;
+          std::cout << "native traceEnqueues " << traceEnqueues<<std::endl;
           std::cout << "native profile " << profile<<std::endl;
        }
  }
@@ -177,9 +180,12 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
     if (openclConfig.minimizeCopies){
        BufferState_s * bufferState = BufferState_s::of(memorySegment,memorySegmentLength);
        if (bufferState->isDeviceDirty()){
-          std::cout << "from getBufferFromDeviceIfDirty Buffer is device dirty so attempting to get buffer from device from OpenCLBackend "<<std::endl;
+         // std::cout << "from getBufferFromDeviceIfDirty Buffer is device dirty so attempting to get buffer from device from OpenCLBackend "<<std::endl;
             // we use static cast because the ptr type is void*
             static_cast<OpenCLProgram::OpenCLKernel::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
+              if (openclConfig.traceEnqueues | openclConfig.traceCopies){
+                 std::cout << "copying buffer from device (from java access) "<< std::endl;
+              }
                      //  if (openclConfig.traceCopies){
                          // std::cout << "copying buffer from device "<< std::endl;
                        //   bufferState->dump("After copy from device");
