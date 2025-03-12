@@ -26,7 +26,7 @@
 package hat.ifacemapper;
 
 import hat.ifacemapper.accessor.AccessorInfo;
-import jdk.internal.ValueBased;
+//import jdk.internal.ValueBased;
 
 
 import java.lang.foreign.GroupLayout;
@@ -40,7 +40,7 @@ import java.util.function.Consumer;
  * This class maintains a cache of seen sub-mappers, so they do not have to be created more
  * than once. Creating a sub-mapper is a relatively expensive operation.
  */
-@ValueBased
+//@ValueBased
 final class MapperCache {
 
     private final MethodHandles.Lookup lookup;

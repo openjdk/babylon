@@ -26,7 +26,7 @@
 package hat.ifacemapper.accessor;
 
 import hat.ifacemapper.MapperUtil;
-import jdk.internal.ValueBased;
+//import jdk.internal.ValueBased;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
@@ -53,7 +53,7 @@ import java.util.stream.Stream;
  * This class is used to create MethodInfo objects (which hold extensive additional information
  * for a method) and to organize them in a way they can easily be retrieved.
  */
-@ValueBased
+//@ValueBased
 public final class Accessors {
 
     private final Map<AccessorInfo.Key, List<AccessorInfo>> keyToAccessorMap;

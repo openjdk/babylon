@@ -40,9 +40,9 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
     final Config config;
 
     final MethodHandle getBackend_MH;
-    public long getBackend(int mode, int platform, int device, int unused) {
+    public long getBackend(int configBits) {
         try {
-            backendHandle = (long) getBackend_MH.invoke(mode, platform, device, unused);
+            backendHandle = (long) getBackend_MH.invoke(configBits);
         } catch (Throwable throwable) {
             throw new IllegalStateException(throwable);
         }
@@ -54,8 +54,8 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
     public OpenCLBackend(Config config) {
         super("opencl_backend");
         this.config = config;
-        getBackend_MH  =  nativeLibrary.longFunc("getOpenCLBackend",JAVA_INT,JAVA_INT, JAVA_INT, JAVA_INT);
-        getBackend(config.bits(),0, 0, 0 );
+        getBackend_MH  =  nativeLibrary.longFunc("getOpenCLBackend",JAVA_INT);
+        getBackend(config.bits());
         if (config.isINFO()) {
             System.out.println("CONFIG = "+config);
             info();

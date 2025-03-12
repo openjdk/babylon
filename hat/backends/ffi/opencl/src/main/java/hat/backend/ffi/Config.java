@@ -5,7 +5,10 @@ import java.util.Arrays;
 import java.util.List;
 
 public record Config(int bits) {
-    record Bit(int index, String name){};
+    record Bit(int index, String name) {
+    }
+
+    ;
     // These must sync with hat/backends/ffi/opencl/include/opencl_backend.h
     // Bits 0-3 select platform id 0..5
     // Bits 4-7 select device id 0..15
@@ -26,20 +29,21 @@ public record Config(int bits) {
     private static final int END_BIT_IDX = 29;
 
     private static String[] bitNames = {
-      "GPU",
-      "CPU",
-      "MINIMIZE_COPIES",
-      "TRACE",
-      "PROFILE",
-      "SHOW_CODE",
-      "SHOW_KERNEL_MODEL",
-      "SHOW_COMPUTE_MODEL",
-      "INFO",
-      "TRACE_COPIES",
-      "TRACE_SKIPPED_COPIES",
-      "TRACE_ENQUEUES",
-      "TRACE_CALLS"
+            "GPU",
+            "CPU",
+            "MINIMIZE_COPIES",
+            "TRACE",
+            "PROFILE",
+            "SHOW_CODE",
+            "SHOW_KERNEL_MODEL",
+            "SHOW_COMPUTE_MODEL",
+            "INFO",
+            "TRACE_COPIES",
+            "TRACE_SKIPPED_COPIES",
+            "TRACE_ENQUEUES",
+            "TRACE_CALLS"
     };
+
     public static Config of() {
         if ((((System.getenv("HAT") instanceof String e) ? e : "") +
                 ((System.getProperty("HAT") instanceof String p) ? p : "")) instanceof String opts) {
@@ -75,37 +79,61 @@ public record Config(int bits) {
     public static Config of(String name) {
         for (int i = 0; i < bitNames.length; i++) {
             if (bitNames[i].equals(name)) {
-                return new Config(1<<(i+START_BIT_IDX));
+                return new Config(1 << (i + START_BIT_IDX));
             }
         }
 
-                if (name.contains(",")) {
-                    List<Config> configs = new ArrayList<>();
-                    Arrays.stream(name.split(",")).forEach(opt ->
-                            configs.add(of(opt))
-                    );
-                    return of(configs);
-                } else {
+
+
+        if (name.contains(",")) {
+            List<Config> configs = new ArrayList<>();
+            Arrays.stream(name.split(",")).forEach(opt ->
+                    configs.add(of(opt))
+            );
+            return of(configs);
+        }else if (name.contains(":")){
+            var tokens=name.split(":");
+            if (tokens.length == 2) {
+                if (tokens[0].equals("PLATFORM")) {
+                    int value = Integer.parseInt(tokens[1]);
+                    return new Config(value);
+                }else  if (tokens[0].equals("DEVICE")) {
+                    int value = Integer.parseInt(tokens[1]);
+                    return new Config(value<<4);
+                }else{
                     System.out.println("Unexpected opt '" + name + "'");
                     return Config.of(0);
                 }
+            }else{
+                System.out.println("Unexpected opt '" + name + "'");
+                return Config.of(0);
+            }
+        } else {
+            System.out.println("Unexpected opt '" + name + "'");
+            return Config.of(0);
+        }
     }
 
     public static Config TRACE_COPIES() {
         return new Config(TRACE_COPIES_BIT);
     }
+
     public boolean isTRACE_COPIES() {
         return (bits & TRACE_COPIES_BIT) == TRACE_COPIES_BIT;
     }
+
     public static Config TRACE_CALLS() {
         return new Config(TRACE_CALLS_BIT);
     }
+
     public boolean isTRACE_CALLS() {
         return (bits & TRACE_CALLS_BIT) == TRACE_CALLS_BIT;
     }
+
     public static Config TRACE_ENQUEUES() {
         return new Config(TRACE_ENQUEUES_BIT);
     }
+
     public boolean isTRACE_ENQUEUES() {
         return (bits & TRACE_ENQUEUES_BIT) == TRACE_ENQUEUES_BIT;
     }
@@ -114,6 +142,7 @@ public record Config(int bits) {
     public static Config TRACE_SKIPPED_COPIES() {
         return new Config(TRACE_SKIPPED_COPIES_BIT);
     }
+
     public boolean isTRACE_SKIPPED_COPIES() {
         return (bits & TRACE_SKIPPED_COPIES_BIT) == TRACE_SKIPPED_COPIES_BIT;
     }
@@ -121,6 +150,7 @@ public record Config(int bits) {
     public static Config INFO() {
         return new Config(INFO_BIT);
     }
+
     public boolean isINFO() {
         return (bits & INFO_BIT) == INFO_BIT;
     }
@@ -128,6 +158,7 @@ public record Config(int bits) {
     public static Config CPU() {
         return new Config(CPU_BIT);
     }
+
     public boolean isCPU() {
         return (bits & CPU_BIT) == CPU_BIT;
     }
@@ -135,6 +166,7 @@ public record Config(int bits) {
     public static Config GPU() {
         return new Config(GPU_BIT);
     }
+
     public boolean isGPU() {
         return (bits & GPU_BIT) == GPU_BIT;
     }
@@ -142,6 +174,7 @@ public record Config(int bits) {
     public static Config PROFILE() {
         return new Config(PROFILE_BIT);
     }
+
     public boolean isPROFILE() {
         return (bits & PROFILE_BIT) == PROFILE_BIT;
     }
@@ -149,6 +182,7 @@ public record Config(int bits) {
     public static Config TRACE() {
         return new Config(TRACE_BIT);
     }
+
     public boolean isTRACE() {
         return (bits & TRACE_BIT) == TRACE_BIT;
     }
@@ -156,6 +190,7 @@ public record Config(int bits) {
     public static Config MINIMIZE_COPIES() {
         return new Config(MINIMIZE_COPIES_BIT);
     }
+
     public boolean isMINIMIZE_COPIES() {
         String hex = Integer.toHexString(bits);
         return (bits & MINIMIZE_COPIES_BIT) == MINIMIZE_COPIES_BIT;
@@ -164,6 +199,7 @@ public record Config(int bits) {
     public static Config SHOW_CODE() {
         return new Config(SHOW_CODE_BIT);
     }
+
     public boolean isSHOW_CODE() {
         return (bits & SHOW_CODE_BIT) == SHOW_CODE_BIT;
     }
@@ -171,6 +207,7 @@ public record Config(int bits) {
     public static Config SHOW_KERNEL_MODEL() {
         return new Config(SHOW_KERNEL_MODEL_BIT);
     }
+
     public boolean isSHOW_KERNEL_MODEL() {
         return (bits & SHOW_KERNEL_MODEL_BIT) == SHOW_KERNEL_MODEL_BIT;
     }
@@ -178,6 +215,7 @@ public record Config(int bits) {
     public static Config SHOW_COMPUTE_MODEL() {
         return new Config(SHOW_COMPUTE_MODEL_BIT);
     }
+
     public boolean isSHOW_COMPUTE_MODEL() {
         return (bits & SHOW_COMPUTE_MODEL_BIT) == SHOW_COMPUTE_MODEL_BIT;
     }
@@ -186,11 +224,11 @@ public record Config(int bits) {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         for (int bitIdx = START_BIT_IDX; bitIdx < END_BIT_IDX; bitIdx++) {
-            if ((bits&(1<<bitIdx))==(1<<bitIdx)) {
+            if ((bits & (1 << bitIdx)) == (1 << bitIdx)) {
                 if (!builder.isEmpty()) {
                     builder.append("|");
                 }
-                builder.append(bitNames[bitIdx-START_BIT_IDX]);
+                builder.append(bitNames[bitIdx - START_BIT_IDX]);
 
             }
         }

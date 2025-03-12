@@ -25,20 +25,24 @@
 #define opencl_backend_cpp
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
-       mode(mode),
-       gpu((mode&GPU_BIT)==GPU_BIT),
-       cpu((mode&CPU_BIT)==CPU_BIT),
-       minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
+OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits):
+       configBits(configBits),
+       gpu((configBits&GPU_BIT)==GPU_BIT),
+       cpu((configBits&CPU_BIT)==CPU_BIT),
+       minimizeCopies((configBits&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
        alwaysCopy(!minimizeCopies),
-       trace((mode&TRACE_BIT)==TRACE_BIT),
-       traceCopies((mode&TRACE_COPIES_BIT)==TRACE_COPIES_BIT),
-       traceEnqueues((mode&TRACE_ENQUEUES_BIT)==TRACE_ENQUEUES_BIT),
-       traceCalls((mode&TRACE_CALLS_BIT)==TRACE_CALLS_BIT),
-       traceSkippedCopies((mode&TRACE_SKIPPED_COPIES_BIT)==TRACE_SKIPPED_COPIES_BIT),
-       info((mode&INFO_BIT)==INFO_BIT),
-       showCode((mode&SHOW_CODE_BIT)==SHOW_CODE_BIT),
-       profile((mode&PROFILE_BIT)==PROFILE_BIT){
+       trace((configBits&TRACE_BIT)==TRACE_BIT),
+       traceCopies((configBits&TRACE_COPIES_BIT)==TRACE_COPIES_BIT),
+       traceEnqueues((configBits&TRACE_ENQUEUES_BIT)==TRACE_ENQUEUES_BIT),
+       traceCalls((configBits&TRACE_CALLS_BIT)==TRACE_CALLS_BIT),
+       traceSkippedCopies((configBits&TRACE_SKIPPED_COPIES_BIT)==TRACE_SKIPPED_COPIES_BIT),
+       info((configBits&INFO_BIT)==INFO_BIT),
+       showCode((configBits&SHOW_CODE_BIT)==SHOW_CODE_BIT),
+       profile((configBits&PROFILE_BIT)==PROFILE_BIT),
+       platform((configBits&0xf)),
+       device((configBits&0xf0)>>4)
+
+       {
        if (info){
           std::cout << "native show_code " << showCode <<std::endl;
           std::cout << "native info " << info<<std::endl;
@@ -52,6 +56,8 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
           std::cout << "native traceCopies " << traceCopies<<std::endl;
           std::cout << "native traceEnqueues " << traceEnqueues<<std::endl;
           std::cout << "native profile " << profile<<std::endl;
+          std::cout << "native platform " << platform<<std::endl;
+          std::cout << "native device " << device<<std::endl;
        }
  }
  OpenCLBackend::OpenCLConfig::~OpenCLConfig(){
@@ -212,8 +218,8 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
     return true;
 }
 
-OpenCLBackend::OpenCLBackend(int mode, int platform, int device )
-        : Backend(mode), openclConfig(mode), openclQueue(this) {
+OpenCLBackend::OpenCLBackend(int configBits )
+        : Backend(configBits), openclConfig(mode), openclQueue(this) {
     if (openclConfig.trace){
         std::cout << "openclConfig->gpu" << (openclConfig.gpu ? "true" : "false") << std::endl;
         std::cout << "openclConfig->minimizeCopies" << (openclConfig.minimizeCopies ? "true" : "false") << std::endl;
@@ -612,10 +618,10 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
 }
 
 
-long getOpenCLBackend(int mode, int platform, int device, int unused) {
+long getOpenCLBackend(int configBits) {
  // std::cerr << "Opencl Driver mode=" << mode << " platform=" << platform << " device=" << device << std::endl;
 
-    return reinterpret_cast<long>(new OpenCLBackend(mode, platform, device));
+    return reinterpret_cast<long>(new OpenCLBackend(configBits));
 }
 
 
