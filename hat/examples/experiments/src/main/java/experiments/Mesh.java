@@ -28,12 +28,10 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLBackend;
-import static hat.backend.ffi.OpenCLBackend.Mode.*;
+import static hat.backend.ffi.Config.*;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
-import hat.backend.DebugBackend;
 import hat.buffer.Buffer;
-import hat.buffer.BufferAllocator;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;

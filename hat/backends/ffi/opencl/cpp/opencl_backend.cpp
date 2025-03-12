@@ -22,6 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+#define opencl_backend_cpp
 #include "opencl_backend.h"
 
 OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
@@ -29,8 +30,11 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
        gpu((mode&GPU_BIT)==GPU_BIT),
        cpu((mode&CPU_BIT)==CPU_BIT),
        minimizeCopies((mode&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
+       alwaysCopy(!minimizeCopies),
        trace((mode&TRACE_BIT)==TRACE_BIT),
        traceCopies((mode&TRACE_COPIES_BIT)==TRACE_COPIES_BIT),
+       traceEnqueues((mode&TRACE_ENQUEUES_BIT)==TRACE_ENQUEUES_BIT),
+       traceCalls((mode&TRACE_CALLS_BIT)==TRACE_CALLS_BIT),
        traceSkippedCopies((mode&TRACE_SKIPPED_COPIES_BIT)==TRACE_SKIPPED_COPIES_BIT),
        info((mode&INFO_BIT)==INFO_BIT),
        showCode((mode&SHOW_CODE_BIT)==SHOW_CODE_BIT),
@@ -41,9 +45,12 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int mode):
           std::cout << "native gpu " << gpu<<std::endl;
           std::cout << "native cpu " << cpu<<std::endl;
           std::cout << "native minimizeCopies " << minimizeCopies<<std::endl;
+          std::cout << "native alwaysCopy " << alwaysCopy<<std::endl;
           std::cout << "native trace " << trace<<std::endl;
           std::cout << "native traceSkippedCopies " << traceSkippedCopies<<std::endl;
+          std::cout << "native traceCalls " << traceCalls<<std::endl;
           std::cout << "native traceCopies " << traceCopies<<std::endl;
+          std::cout << "native traceEnqueues " << traceEnqueues<<std::endl;
           std::cout << "native profile " << profile<<std::endl;
        }
  }
@@ -180,6 +187,9 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
           std::cout << "from getBufferFromDeviceIfDirty Buffer is device dirty so attempting to get buffer from device from OpenCLBackend "<<std::endl;
             // we use static cast because the ptr type is void*
             static_cast<OpenCLProgram::OpenCLKernel::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
+              if (openclConfig.traceEnqueues | openclConfig.traceCopies){
+                 std::cout << "copying buffer from device (from java access) "<< std::endl;
+              }
                      //  if (openclConfig.traceCopies){
                          // std::cout << "copying buffer from device "<< std::endl;
                        //   bufferState->dump("After copy from device");

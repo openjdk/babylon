@@ -28,6 +28,7 @@ package nbody.opencl;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.backend.ffi.Config;
 import hat.backend.ffi.OpenCLBackend;
 import hat.ifacemapper.SegmentMapper;
 import jdk.incubator.code.CodeReflection;
@@ -116,7 +117,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         super(arena, width, height, particle, bodyCount, mode);
         final float maxDist = 80f;
         accelerator = new Accelerator(MethodHandles.lookup(),
-                new OpenCLBackend(OpenCLBackend.Mode.of("GPU"))
+                new OpenCLBackend(Config.of("GPU"))
         );
         universe = Universe.create(accelerator, bodyCount);
         for (int body = 0; body < bodyCount; body++) {

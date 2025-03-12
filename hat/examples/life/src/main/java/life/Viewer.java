@@ -184,8 +184,8 @@ public class Viewer extends JFrame {
     }
 
     public static class Controls {
-public final JMenuBar menuBar;
-         private final JButton startButton;
+        public final JMenuBar menuBar;
+        private final JButton startButton;
         private JToggleButton useGPUToggleButton;
         private JToggleButton minimizeCopiesToggleButton;
         private SevenSegmentDisplay generationsPerSecondSevenSegment;
@@ -197,7 +197,7 @@ public final JMenuBar menuBar;
             this.state = state;
             this.menuBar = new JMenuBar();
             JPanel panel = new JPanel();
-             panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+            panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
 
             ((JButton) panel.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
             this.startButton = (JButton) panel.add(new JButton("Start"));

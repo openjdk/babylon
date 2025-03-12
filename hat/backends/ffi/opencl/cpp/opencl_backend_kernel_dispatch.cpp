@@ -27,7 +27,7 @@
 void dispatchKernel(Kernel kernel, KernelContext kc, Arg ... args) {
     for (int argn = 0; argn<args.length; argn++){
       Arg arg = args[argn];
-      if (!minimizingBuffers || (((arg.flags &JavaDirty)==JavaDirty) && kernel.readsFrom(arg))) {
+      if (alwaysCopyBuffers || (((arg.flags &JavaDirty)==JavaDirty) && kernel.readsFrom(arg))) {
          enqueueCopyToDevice(arg);
       }
     }
@@ -36,7 +36,7 @@ void dispatchKernel(Kernel kernel, KernelContext kc, Arg ... args) {
 
     for (int argn = 0; argn<args.length; argn++){
       Arg arg = args[argn];
-      if (!minimizingBuffers){
+      if (alwaysCopyBuffers){
          enqueueCopyFromDevice(arg);
          arg.flags = 0;
       }else{
@@ -50,24 +50,42 @@ void dispatchKernel(Kernel kernel, KernelContext kc, Arg ... args) {
 
 }
 */
-bool shouldCopyToDevice(BufferState_s *bufferState, Arg_s *arg ){
+bool shouldCopyToDevice(BufferState_s *bufferState, Arg_s *arg, bool alwaysCopy, bool showWhy){
    bool kernelReadsFromThisArg = (arg->value.buffer.access==RW_BYTE) || (arg->value.buffer.access==RO_BYTE);
    bool isHostDirtyOrNew = bufferState->isHostDirty() | bufferState->isHostNew();
 
    bool result=  (kernelReadsFromThisArg & isHostDirtyOrNew);
-   if (result && bufferState->isDeviceDirty()){
-         std::cout << "already still on GPU!"<<std::endl;
-         result= false;
-   }
-   return result;
+
+   if (showWhy){
+     std::cout<<
+          "alwaysCopy="<<alwaysCopy
+          << " | argRW="<<(arg->value.buffer.access==RW_BYTE)
+          << " | argRO="<<(arg->value.buffer.access==RO_BYTE)
+          << " | kernelNeedsToRead="<<  kernelReadsFromThisArg
+          << " | hostDirty="<< bufferState->isHostDirty()
+          << " | hostNew="<< bufferState->isHostNew()
+          << " | deviceDirty="<< bufferState->isDeviceDirty()
+          <<" so "
+            ;
+    }
+    if (result && bufferState->isDeviceDirty()){
+            result= false;
+      }
+   return alwaysCopy |result;
 }
-bool shouldCopyFromDevice( BufferState_s *bufferState, Arg_s *arg ){
+bool shouldCopyFromDevice( BufferState_s *bufferState, Arg_s *arg, bool alwaysCopy, bool showWhy ){
    bool kernelWroteToThisArg = (arg->value.buffer.access==WO_BYTE) |  (arg->value.buffer.access==RW_BYTE);
    bool result = kernelWroteToThisArg;
-   //if (!result){
-    //  std::cout << "shouldCopyFromDevice false"<<std::endl;
-  // }
-   return result;
+   if (showWhy){
+       std::cout<<
+         "alwaysCopy="<<alwaysCopy
+            << " | argWO="<<(arg->value.buffer.access==WO_BYTE)
+            << " | argRW="<<(arg->value.buffer.access==RW_BYTE)
+            << " | kernelWroteToThisArg="<<  kernelWroteToThisArg
+            <<" so "
+              ;
+      }
+   return alwaysCopy;
 }
 
 long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
@@ -78,6 +96,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
   //  std::cout << "Kernel name '"<< (dynamic_cast<Backend::Program::Kernel*>(this))->name<<"'"<<std::endl;
     openclBackend->openclQueue.marker(openclBackend->openclQueue.EnterKernelDispatchBits,
      (dynamic_cast<Backend::Program::Kernel*>(this))->name);
+    if (openclBackend->openclConfig.traceCalls){
+       std::cout << "ndrange(\"" <<  (dynamic_cast<Backend::Program::Kernel*>(this))->name<< "\"){"<<std::endl;
+    }
     if (openclBackend->openclConfig.trace){
        Sled::show(std::cout, argArray);
     }
@@ -113,20 +134,23 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                   }
                   openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
                 }
-                if (!openclBackend->openclConfig.minimizeCopies
-                   || shouldCopyToDevice(bufferState, arg)){
+                if (shouldCopyToDevice(bufferState, arg,openclBackend->openclConfig.alwaysCopy,
+                      (openclBackend->openclConfig.traceCopies|openclBackend->openclConfig.traceEnqueues))){
 
                        if (openclBackend->openclConfig.traceCopies){
-                        //  std::cout << "We are not minimising copies OR (HOST is JAVA dirty and the kernel is READS this arg) so copying arg " << arg->idx <<" to device "<< std::endl;
+                          std::cout << "We are always cloying  OR (HOST is JAVA dirty and the kernel is READS this arg) so copying arg " << arg->idx <<" to device "<< std::endl;
                        }
                        bufferState->clearHostDirty();
+                       if (openclBackend->openclConfig.traceEnqueues){
+                           std::cout << "copying arg " << arg->idx <<" to device "<< std::endl;
+                       }
                        openclBuffer->copyToDevice();
 
                     }else{
                      if (openclBackend->openclConfig.traceSkippedCopies){
-                                          std::cout << "NOT copying arg " << arg->idx <<" to device "<< std::endl;
+                           std::cout << "NOT copying arg " << arg->idx <<" to device "<< std::endl;
                                                        // bufferState->dump("After copy from device");
-                                     }
+                     }
                     }
 
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
@@ -184,8 +208,9 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-    if (openclBackend->openclConfig.trace){
-       std::cout << "enqueued kernel dispatch globalSize=" << globalSize << std::endl;
+    if (openclBackend->openclConfig.trace | openclBackend->openclConfig.traceEnqueues){
+       std::cout << "enqueued kernel dispatch \"" << (dynamic_cast<Backend::Program::Kernel*>(this))->name <<
+       "\" globalSize=" << globalSize << std::endl;
     }
 
 
@@ -193,12 +218,17 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
           Arg_s *arg = argSled.arg(i);
           if (arg->variant == '&') {
              BufferState_s * bufferState = BufferState_s::of(arg );
-             if (!openclBackend->openclConfig.minimizeCopies || shouldCopyFromDevice(bufferState,arg)){
+             if (shouldCopyFromDevice(bufferState,arg,
+                 openclBackend->openclConfig.alwaysCopy,
+                 openclBackend->openclConfig.traceEnqueues)){
                 static_cast<OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
                 //if (openclBackend->openclConfig.traceCopies){
                     //std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
                    // bufferState->dump("After copy from device");
                 //}
+                if (openclBackend->openclConfig.traceEnqueues){
+                   std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
+                }
                 bufferState->setDeviceDirty();
              }else{
                  if (openclBackend->openclConfig.traceSkippedCopies){
@@ -216,5 +246,8 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
       );
       openclBackend->openclQueue.wait();
       openclBackend->openclQueue.release();
+       if (openclBackend->openclConfig.traceCalls){
+                  std::cout << "\"" <<  (dynamic_cast<Backend::Program::Kernel*>(this))->name<< "\"}"<<std::endl;
+       }
     return 0;
 }
