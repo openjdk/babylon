@@ -57,6 +57,7 @@ void main(String[] argv) {
   var args = new ArrayList<>(List.of(argv));
   java(java -> java
      .enable_preview()
+     .verbose()
      .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
      .enable_native_access("ALL-UNNAMED")
      .library_path(buildDir)
@@ -81,6 +82,9 @@ void main(String[] argv) {
               .when(jextractedOpenCLJar.exists() && jextractedOpenGLJar.exists() && exampleName.equals("nbody"), _->{ haveBackend
                   .class_path(jextractedOpenCLJar,jextractedOpenGLJar, wrapJar, clwrapJar, glwrapJar )
                   .start_on_first_thread();
+              })
+              .when(jextractedOpenCLJar.exists()  && exampleName.equals("life"), _->{ haveBackend
+                  .class_path(jextractedOpenCLJar, wrapJar, clwrapJar);
               })
               .main_class(exampleName + ".Main")
               .args(args);

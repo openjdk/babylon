@@ -32,7 +32,7 @@ import java.lang.foreign.Arena;
 public class Main {
     public static void main(String[] args)  {
         int particleCount = args.length > 2 ? Integer.parseInt(args[2]) : 32768;
-        Mode mode = Mode.of(args.length > 3 ? args[3] : Mode.OpenCL.toString());
+        Mode mode = Mode.of(args.length > 3 ? args[3] : Mode.HAT.toString());
         try (var arena = mode.equals(Mode.JavaMT4) || mode.equals(Mode.JavaMT) ? Arena.ofShared() : Arena.ofConfined()) {
             var particleTexture = new GLTexture(arena, Main.class.getResourceAsStream("/particle.png"));
             new OpenCLNBodyGLWindow( arena, 1000, 1000, particleTexture, particleCount, mode).bindEvents().mainLoop();
