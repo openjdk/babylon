@@ -1395,7 +1395,8 @@ public class ReflectMethods extends TreeTranslator {
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
                 // @@@ use uninitialized variable
-                Value init = variablesStack.block.op(defaultValue(jcVar.type));
+                Value defaultValue = variablesStack.block.op(defaultValue(jcVar.type));
+                Value init = convert(defaultValue, jcVar.type);
                 Op.Result op = variablesStack.block.op(CoreOp.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
                 variablesStack.localToOp.put(jcVar.sym, op);
             }
@@ -2328,7 +2329,7 @@ public class ReflectMethods extends TreeTranslator {
                 case POSTINC, POSTDEC, PREINC, PREDEC -> {
                     // Capture applying rhs and operation
                     Function<Value, Value> scanRhs = (lhs) -> {
-                        Value one = append(numericOneValue(tree.type));
+                        Value one = convert(append(numericOneValue(tree.type)), types.unboxedType(tree.type));
                         Value unboxedLhs = unboxIfNeeded(lhs);
 
                         Value unboxedLhsPlusOne = switch (tree.getTag()) {
@@ -2652,11 +2653,9 @@ public class ReflectMethods extends TreeTranslator {
 
         Op defaultValue(Type t) {
             return switch (t.getTag()) {
-                case BYTE -> CoreOp.constant(typeToTypeElement(t), (byte)0);
+                case BYTE, SHORT, INT -> CoreOp.constant(JavaType.INT, 0);
                 case CHAR -> CoreOp.constant(typeToTypeElement(t), (char)0);
                 case BOOLEAN -> CoreOp.constant(typeToTypeElement(t), false);
-                case SHORT -> CoreOp.constant(typeToTypeElement(t), (short)0);
-                case INT -> CoreOp.constant(typeToTypeElement(t), 0);
                 case FLOAT -> CoreOp.constant(typeToTypeElement(t), 0f);
                 case LONG -> CoreOp.constant(typeToTypeElement(t), 0L);
                 case DOUBLE -> CoreOp.constant(typeToTypeElement(t), 0d);
@@ -2666,10 +2665,8 @@ public class ReflectMethods extends TreeTranslator {
 
         Op numericOneValue(Type t) {
             return switch (t.getTag()) {
-                case BYTE -> CoreOp.constant(typeToTypeElement(t), (byte)1);
+                case BYTE, SHORT, INT -> CoreOp.constant(JavaType.INT, 1);
                 case CHAR -> CoreOp.constant(typeToTypeElement(t), (char)1);
-                case SHORT -> CoreOp.constant(typeToTypeElement(t), (short)1);
-                case INT -> CoreOp.constant(typeToTypeElement(t), 1);
                 case FLOAT -> CoreOp.constant(typeToTypeElement(t), 1f);
                 case LONG -> CoreOp.constant(typeToTypeElement(t), 1L);
                 case DOUBLE -> CoreOp.constant(typeToTypeElement(t), 1d);
