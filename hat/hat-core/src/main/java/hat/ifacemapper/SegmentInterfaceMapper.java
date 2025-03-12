@@ -30,7 +30,7 @@ import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.Accessors;
 import hat.ifacemapper.accessor.ValueType;
 import hat.ifacemapper.component.Util;
-import jdk.internal.vm.annotation.Stable;
+//import jdk.internal.vm.annotation.Stable;
 
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
@@ -63,16 +63,16 @@ public final class SegmentInterfaceMapper<T>
 
     private static final MethodHandles.Lookup LOCAL_LOOKUP = MethodHandles.lookup();
 
-    @Stable
+   // @Stable
     private final Class<T> implClass;
-    @Stable
+   // @Stable
     private final MethodHandle getHandle;
-    @Stable
+   // @Stable
     private final MethodHandle setHandle;
-    @Stable
+   // @Stable
     // Capability to extract the segment from an instance of the generated implClass
     private final MethodHandle segmentGetHandle;
-    @Stable
+   // @Stable
     // Capability to extract the offset from an instance of the generated implClass
     private final MethodHandle offsetGetHandle;
     private final List<AffectedMemory> affectedMemories;

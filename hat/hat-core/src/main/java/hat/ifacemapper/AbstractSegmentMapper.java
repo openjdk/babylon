@@ -26,7 +26,7 @@
 package hat.ifacemapper;
 
 import hat.ifacemapper.accessor.Accessors;
-import jdk.internal.vm.annotation.Stable;
+//import jdk.internal.vm.annotation.Stable;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.invoke.MethodHandle;
@@ -36,11 +36,11 @@ import java.util.function.UnaryOperator;
 
 abstract class AbstractSegmentMapper<T> implements SegmentMapper<T> {
 
-    @Stable
+   // @Stable
     private final MethodHandles.Lookup lookup;
-    @Stable
+  //  @Stable
     private final Class<T> type;
-    @Stable
+  //  @Stable
     private final GroupLayout layout;
     private final BoundSchema<?> boundSchema;
     private final boolean leaf;

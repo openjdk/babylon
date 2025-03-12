@@ -55,8 +55,8 @@ questions.
                     <compilerArgs>
                         <arg>--add-modules=jdk.incubator.code</arg>
                         <arg>--enable-preview</arg>
-                        <arg>--add-exports=java.base/jdk.internal=ALL-UNNAMED</arg>
-                        <arg>--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
+                        <!-- <arg>- -add-exports=java.base/jdk.internal=ALL-UNNAMED</arg> -->
+                        <!-- <arg>- -add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg> -->
                     </compilerArgs>
                     <source>24</source>
                     <target>24</target>

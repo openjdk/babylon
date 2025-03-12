@@ -53,12 +53,13 @@ void main(String[] argv) {
   var wrapJar = buildDir.jarFile("hat-wrap-1.0.jar");
   var clwrapJar = buildDir.jarFile("hat-clwrap-1.0.jar");
   var glwrapJar = buildDir.jarFile("hat-glwrap-1.0.jar");
+  var verbose = false;
 
   var args = new ArrayList<>(List.of(argv));
   java(java -> java
      .enable_preview()
-     .verbose()
-     .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
+     .verbose(verbose)
+     //.add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
      .enable_native_access("ALL-UNNAMED")
      .library_path(buildDir)
      .class_path(buildDir.jarFile("hat-core-1.0.jar"))

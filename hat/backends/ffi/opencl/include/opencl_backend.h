@@ -65,7 +65,7 @@ public:
         const static  int END_BIT_IDX = 29;
 
         const static  char *bitNames[]; // See below for out of line definition
-        int mode;
+        int configBits;
         bool gpu;
         bool cpu;
         bool minimizeCopies;
@@ -78,6 +78,8 @@ public:
         bool traceSkippedCopies;
         bool traceEnqueues;
         bool traceCalls;
+        int platform; //0..15
+        int device; //0..15
         OpenCLConfig(int mode);
         virtual ~OpenCLConfig();
     };
@@ -162,7 +164,7 @@ public:
     cl_device_id device_id;
     OpenCLConfig openclConfig;
     OpenCLQueue openclQueue;
-    OpenCLBackend(int mode, int platform, int device);
+    OpenCLBackend(int configBits);
     ~OpenCLBackend();
     int getMaxComputeUnits();
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
@@ -180,7 +182,7 @@ public:
 public:
     static const char *errorMsg(cl_int status);
 };
-extern "C" long getOpenCLBackend(int mode, int platform, int device, int unused);
+extern "C" long getOpenCLBackend(int configBits);
 #ifdef opencl_backend_cpp
 const  char *OpenCLBackend::OpenCLConfig::bitNames[] = {
               "GPU",

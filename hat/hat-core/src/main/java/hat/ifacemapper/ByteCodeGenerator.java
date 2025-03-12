@@ -28,7 +28,8 @@ package hat.ifacemapper;
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.ArrayInfo;
 import hat.ifacemapper.accessor.ScalarInfo;
-import jdk.internal.ValueBased;
+//import jdk.internal.ValueBased;
+//import jdk.internal.ValueBased;
 
 
 import java.lang.classfile.Annotation;
@@ -74,7 +75,7 @@ import static java.lang.constant.ConstantDescs.INIT_NAME;
 import static java.lang.constant.ConstantDescs.MTD_void;
 import static java.lang.constant.ConstantDescs.ofCallsiteBootstrap;
 
-@ValueBased
+//@ValueBased
 final class ByteCodeGenerator {
 
     static final String SEGMENT_FIELD_NAME = "segment";
@@ -102,8 +103,8 @@ final class ByteCodeGenerator {
 
     void classDefinition() {
         // @ValueBased
-        Annotation valueBased = Annotation.of(desc(ValueBased.class));
-        cb.with(RuntimeVisibleAnnotationsAttribute.of(valueBased));
+       // Annotation valueBased = Annotation.of(desc(ValueBased.class));
+        //cb.with(RuntimeVisibleAnnotationsAttribute.of(valueBased));
         // public final
         cb.withFlags(ACC_PUBLIC | ACC_FINAL | ACC_SUPER);
         // extends Object
