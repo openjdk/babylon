@@ -2329,7 +2329,8 @@ public class ReflectMethods extends TreeTranslator {
                 case POSTINC, POSTDEC, PREINC, PREDEC -> {
                     // Capture applying rhs and operation
                     Function<Value, Value> scanRhs = (lhs) -> {
-                        Value one = convert(append(numericOneValue(tree.type)), types.unboxedType(tree.type));
+                        Type unboxedType = types.unboxedTypeOrType(tree.type);
+                        Value one = convert(append(numericOneValue(unboxedType)), unboxedType);
                         Value unboxedLhs = unboxIfNeeded(lhs);
 
                         Value unboxedLhsPlusOne = switch (tree.getTag()) {
@@ -2670,7 +2671,6 @@ public class ReflectMethods extends TreeTranslator {
                 case FLOAT -> CoreOp.constant(typeToTypeElement(t), 1f);
                 case LONG -> CoreOp.constant(typeToTypeElement(t), 1L);
                 case DOUBLE -> CoreOp.constant(typeToTypeElement(t), 1d);
-                case CLASS -> numericOneValue(types.unboxedType(t));
                 default -> throw new UnsupportedOperationException(t.toString());
             };
         }
