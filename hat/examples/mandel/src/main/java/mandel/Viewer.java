@@ -26,9 +26,16 @@ package mandel;
 
 import hat.buffer.Buffer;
 import hat.buffer.S32Array2D;
+import hat.util.ui.SevenSegmentDisplay;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuBar;
+import javax.swing.JPanel;
 import javax.swing.WindowConstants;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -44,6 +51,8 @@ import java.lang.foreign.MemorySegment;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class Viewer extends JFrame {
+
+    public final SevenSegmentDisplay framesSecondSevenSegment;
 
     public static class PointF32 {
         public final float x;
@@ -124,6 +133,16 @@ public class Viewer extends JFrame {
         super(title);
 
         this.imageViewer = new ImageViewer(new BufferedImage(s32Array2D.width(), s32Array2D.height(), BufferedImage.TYPE_INT_RGB));
+        var menuBar = new JMenuBar();
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        ((JButton) panel.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
+        panel.add(new JLabel("FPS"));
+        this.framesSecondSevenSegment = (SevenSegmentDisplay)
+                panel.add(new SevenSegmentDisplay(3,30,panel.getForeground(),panel.getBackground()));
+        panel.add(Box.createHorizontalStrut(400));
+        menuBar.add(panel);
+        this.setJMenuBar(menuBar);
         this.getContentPane().add(this.imageViewer);
         this.pack();
         this.setLocationRelativeTo(null);

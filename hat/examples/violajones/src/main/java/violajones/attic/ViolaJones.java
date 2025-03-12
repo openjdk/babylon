@@ -30,7 +30,7 @@ import hat.backend.java.JavaMultiThreadedBackend;
 import hat.backend.java.WorkStealer;
 import hat.buffer.F32Array2D;
 import org.xml.sax.SAXException;
-import violajones.HaarViewer;
+import violajones.Viewer;
 import violajones.XMLHaarCascadeModel;
 import hat.buffer.S08x3RGBImage;
 import violajones.ifaces.Cascade;
@@ -72,7 +72,7 @@ public class ViolaJones {
         CoreJavaViolaJones.rgbToGreyScale(rgbImage, greyImageF32);
         CoreJavaViolaJones.createIntegralImage(greyImageF32, integralImageF32, integralSqImageF32);
 
-        HaarViewer harViz = new HaarViewer(accelerator, nasa, rgbImage, cascade, integralImageF32, integralSqImageF32);
+        Viewer harViz = new Viewer(accelerator, nasa, rgbImage, cascade, integralImageF32, integralSqImageF32);
 
         harViz.showIntegrals();
 
@@ -339,8 +339,9 @@ public class ViolaJones {
                                 scaleTable,
                                 resultTable);
                     });
-            System.out.println("done " + (System.currentTimeMillis() - start) + "ms");
-            harViz.showResults(resultTable, null, null);
+            long ms = (System.currentTimeMillis() - start);
+            System.out.println("done " + ms + "ms");
+            harViz.showResults(resultTable, null, null, ms);
         }
         //   } else if (mode.equals("javaSegments")) {
 

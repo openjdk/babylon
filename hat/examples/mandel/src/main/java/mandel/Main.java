@@ -137,9 +137,12 @@ public class Main {
                         final float fy = y - sign * zoomPoint.y / zoomFrames;
                         accelerator.compute(cc -> Main.compute(cc, pallette, s32Array2D, fx, fy, fscale));
                         viewer.imageViewer.syncWithRGB(s32Array2D);
+
                     }
                 }
-                System.out.println("FPS = " + ((zoomFrames * 2 * 1000) / (System.currentTimeMillis() - startMillis)));
+                var fps =  ((zoomFrames * 2 * 1000) / (System.currentTimeMillis() - startMillis));
+                viewer.framesSecondSevenSegment.set((int)fps);
+               // System.out.println("FPS = " +fps);
             }
         }
     }

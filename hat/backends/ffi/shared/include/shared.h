@@ -38,27 +38,17 @@
 #include <stack>
 
 #ifdef __APPLE__
-#define LongUnsignedNewline "%llu\n"
-#define Size_tNewline "%lu\n"
-#define LongHexNewline "(0x%llx)\n"
-#define alignedMalloc(size, alignment) memalign(alignment, size)
-#define SNPRINTF snprintf
+   #define SNPRINTF snprintf
 #else
-
-#include <malloc.h>
-
-#define LongHexNewline "(0x%lx)\n"
-#define LongUnsignedNewline "%lu\n"
-#define Size_tNewline "%lu\n"
-#if defined (_WIN32)
-#include "windows.h"
-#define alignedMalloc(size, alignment) _aligned_malloc(size, alignment)
-#define SNPRINTF _snprintf
-#else
-#define alignedMalloc(size, alignment) memalign(alignment, size)
-#define SNPRINTF  snprintf
+   #include <malloc.h>
+   #if defined (_WIN32)
+      #include "windows.h"
+      #define SNPRINTF _snprintf
+   #else
+      #define SNPRINTF  snprintf
+   #endif
 #endif
-#endif
+
 typedef char s8_t;
 typedef char byte;
 typedef char boolean;
@@ -78,11 +68,15 @@ extern void hexdump(void *ptr, int buflen);
  // hat iface bffa   bits
  // 4a7 1face bffa   b175
 
+ #define UNKNOWN_BYTE 0
+ #define RO_BYTE (1<<1)
+ #define WO_BYTE (1<<2)
+ #define RW_BYTE (RO_BYTE|WO_BYTE)
 
  struct Buffer_s {
     void *memorySegment;   // Address of a Buffer/MemorySegment
     long sizeInBytes;     // The size of the memory segment in bytes
-    u8_t access;          // 0=??/1=RO/2=WO/3=RW if this is a buffer
+    u8_t access;          // see hat/buffer/ArgArray.java  UNKNOWN_BYTE=0, RO_BYTE =1<<1,WO_BYTE =1<<2,RW_BYTE =RO_BYTE|WO_BYTE;
 } ;
 
  union Value_u {
@@ -125,10 +119,12 @@ extern void hexdump(void *ptr, int buflen);
 
  struct BufferState_s{
    static const long  MAGIC =0x4a71facebffab175;
-   static const int   BIT_HOST_NEW =0x00000004;
-   static const int   BIT_DEVICE_NEW =0x00000008;
-   static const int   BIT_HOST_DIRTY =0x00000001;
-   static const int   BIT_DEVICE_DIRTY =0x00000002;
+   static const int   NONE = 0;
+   static const int   BIT_HOST_NEW =1<<0;
+   static const int   BIT_DEVICE_NEW =1<<1;
+   static const int   BIT_HOST_DIRTY =1<<2;
+   static const int   BIT_DEVICE_DIRTY =1<<3;
+   static const int   BIT_HOST_CHECKED =1<<4;
 
 
    long magic1;
@@ -146,11 +142,16 @@ extern void hexdump(void *ptr, int buflen);
    void setBits(int bitBits) {
       bits|=bitBits;
    }
-   void  resetBits(int bitsToReset) {
+   void  xorBits(int bitsToReset) {
       // say bits = 0b0111 (7) and bitz = 0b0100 (4)
       int xored = bits^bitsToReset;  // xored = 0b0011 (3)
       bits =  xored;
    }
+    void  resetBits(int bitsToReset) {
+         // say bits = 0b0111 (7) and bitz = 0b0100 (4)
+         bits = bits&~bitsToReset;  // xored = 0b0011 (3)
+         //bits =  xored;
+      }
    int getBits() {
       return bits;
    }
@@ -165,6 +166,12 @@ extern void hexdump(void *ptr, int buflen);
    }
    void clearHostDirty(){
       resetBits(BIT_HOST_DIRTY);
+   }
+   void clearHostChecked(){
+      resetBits(BIT_HOST_CHECKED);
+   }
+   void clear(){
+       bits=0;
    }
    bool isHostNew(){
       return  areBitsSet(BIT_HOST_NEW);
@@ -202,7 +209,7 @@ extern void hexdump(void *ptr, int buflen);
       return (BufferState_s*) (((char*)ptr)+sizeInBytes-sizeof(BufferState_s));
    }
 
-     static BufferState_s* of(Arg_s *arg){
+     static BufferState_s* of(Arg_s *arg){ // access?
         return BufferState_s::of(
            arg->value.buffer.memorySegment,
            arg->value.buffer.sizeInBytes
@@ -264,6 +271,7 @@ public:
                 std::cout << " buffer {"
                           << " void *address = 0x" << std::hex << (long) a->value.buffer.memorySegment << std::dec
                           << ", long bytesSize= 0x" << std::hex << (long) a->value.buffer.sizeInBytes << std::dec
+                          << ", char access= 0x" << std::hex << (unsigned char) a->value.buffer.access << std::dec
                           << "}" << std::endl;
                 break;
             default:

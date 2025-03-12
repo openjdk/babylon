@@ -7,7 +7,7 @@ import java.nio.channels.FileChannel;
 import java.util.Arrays;
 
 public enum OnnxProtoPrinter {
-    BYTE, BYTES, INT, LONG, FLOAT, DOUBLE, STRING,
+    BYTES, INT, INTS, FLOAT, FLOATS, DOUBLE, DOUBLES, STRING,
     Attribute, ValueInfoProto, NodeProto, TrainingInfoProto, ModelProto, StringStringEntryProto, TensorAnnotation,
     GraphProto, TensorProto, Segment, SparseTensorProto, TensorShapeProto, Dimension, TypeProto, Tensor, Sequence,
     Map, Optional, SparseTensor, OperatorSetIdProto, FunctionProto;
@@ -16,12 +16,12 @@ public enum OnnxProtoPrinter {
         init(Attribute,
                 1, "name", STRING,
                 2, "f", FLOAT,
-                3, "i", LONG,
+                3, "i", INT,
                 4, "s", BYTES,
                 5, "t", TensorProto,
                 6, "g", GraphProto,
-                7, "floats", FLOAT,
-                8, "ints", LONG,
+                7, "floats", FLOATS,
+                8, "ints", INTS,
                 9, "strings", BYTES,
                10, "tensors", TensorProto,
                11, "graphs", GraphProto,
@@ -53,11 +53,11 @@ public enum OnnxProtoPrinter {
                 3, "initialization_binding", StringStringEntryProto,
                 4, "update_binding", StringStringEntryProto);
         init(ModelProto,
-                1, "ir_version", LONG,
+                1, "ir_version", INT,
                 2, "producer_name", STRING,
                 3, "producer_version", STRING,
                 4, "domain", STRING,
-                5, "model_version", LONG,
+                5, "model_version", INT,
                 6, "doc_string", STRING,
                 7, "graph", GraphProto,
                 8, "opset_import", OperatorSetIdProto,
@@ -82,32 +82,32 @@ public enum OnnxProtoPrinter {
                 15, "sparse_initializer", SparseTensorProto,
                 16, "metadata_props", StringStringEntryProto);
         init(TensorProto,
-                1, "dims", LONG,
+                1, "dims", INTS,
                 2, "data_type", INT,
                 3, "segment", Segment,
-                4, "float_data", FLOAT,
-                5, "int32_data", INT,
+                4, "float_data", FLOATS,
+                5, "int32_data", INTS,
                 6, "string_data", BYTES,
-                7, "int64_data", LONG,
+                7, "int64_data", INTS,
                 8, "name", STRING,
                 9, "raw_data", BYTES,
-                10, "double_data", DOUBLE,
-                11, "uint64_data", LONG,
+                10, "double_data", DOUBLES,
+                11, "uint64_data", INTS,
                 12, "doc_string", STRING,
                 13, "external_data", StringStringEntryProto,
                 14, "data_location", INT,
                 16, "metadata_props", StringStringEntryProto);
         init(Segment,
-                1, "begin", LONG,
-                2, "end", LONG);
+                1, "begin", INT,
+                2, "end", INT);
         init(SparseTensorProto,
                 1, "values", TensorProto,
                 2, "indices", TensorProto,
-                3, "dims", LONG);
+                3, "dims", INTS);
         init(TensorShapeProto,
                 1, "dim", Dimension);
         init(Dimension,
-                1, "dim_value", LONG,
+                1, "dim_value", INT,
                 2, "dim_param", STRING,
                 3, "denotation", STRING);
         init(TypeProto,
@@ -132,7 +132,7 @@ public enum OnnxProtoPrinter {
                 2, "shape", TensorShapeProto);
         init(OperatorSetIdProto,
                 1, "domain", STRING,
-                2, "version", LONG);
+                2, "version", INT);
         init(FunctionProto,
                 1, "name", STRING,
                 4, "input", STRING,
@@ -170,17 +170,55 @@ public enum OnnxProtoPrinter {
     private Field[] fields;
 
     public void print(int indent, ByteBuffer data) {
+        data = data.order(ByteOrder.nativeOrder());
         while (data.remaining() > 0) {
             long tag = decodeVarint(data);
             var f = fields[((int)tag >> 3) - 1];
+            boolean packed = (tag & 7) == 2;
             System.out.print("    ".repeat(indent) + f.type() + " " + f.name() + " ");
             switch (f.type) {
-                case BYTE, INT, LONG ->
+                case INT ->
                     System.out.println(decodeVarint(data));
+                case INTS -> {
+                    if (packed) {
+                        var size = decodeVarint(data);
+                        var stop = data.position() + size;
+                        while (data.position() < stop) {
+                            System.out.print(decodeVarint(data) + " ");
+                        }
+                        System.out.println();
+                    } else {
+                        System.out.println(decodeVarint(data));
+                    }
+                }
                 case FLOAT ->
                     System.out.println(data.getFloat());
+                case FLOATS -> {
+                    if (packed) {
+                        var size = decodeVarint(data);
+                        var stop = data.position() + size;
+                        while (data.position() < stop) {
+                            System.out.print(data.getFloat() + " ");
+                        }
+                        System.out.println();
+                    } else {
+                        System.out.println(data.getFloat());
+                    }
+                }
                 case DOUBLE ->
                     System.out.println(data.getDouble());
+                case DOUBLES -> {
+                    if (packed) {
+                        var size = decodeVarint(data);
+                        var stop = data.position() + size;
+                        while (data.position() < stop) {
+                            System.out.print(data.getDouble() + " ");
+                        }
+                        System.out.println();
+                    } else {
+                        System.out.println(data.getDouble());
+                    }
+                }
                 case BYTES -> {
                     var bytes = new byte[(int)decodeVarint(data)];
                     data.get(bytes);
@@ -202,8 +240,8 @@ public enum OnnxProtoPrinter {
         }
     }
 
-    public static void printModel(ByteBuffer model) {
-        ModelProto.print(0, model);
+    public static void printModel(byte[] model) {
+        ModelProto.print(0, ByteBuffer.wrap(model));
     }
 
     public static void main(String... args) throws Exception {

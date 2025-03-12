@@ -35,14 +35,27 @@ void main(String[] args) {
      *    |    +--cmake-build-debug/    All intermediate cmake artifacts
      *    |
      *    +--stage/
-     *    |    +--repo/                 All downloaded maven assets
+     *    |    +--repo/                 All downloaded maven assets (if any)
      *    |    |
      *    |    +--jextract/             All jextracted files
      *    |    |    +--opencl
      *    |    |    +--opengl
      *    |    |    +--cuda
      *    |
-     *    +--hat                        * Note maven style layout
+     *    +--wrap/
+     *    |    +--wrap/                 All downloaded maven assets
+     *    |    |    +--wrap/                (*)
+     *    |    |    +--clwrap/              (*)
+     *    |    |    +--glwrap/              (*)
+     *    |    |    +--cuwrap/              (*)
+     *    |    |
+     *    |
+     *    +--extractions/
+     *    |    +--opencl/ 
+     *    |    +--opengl/
+     *    |    +--cuda/
+     *    |
+     *    +--hat-core                        * Note maven style layout
      *    |    +--src/main/java
      *    |    |    +--hat/
      *    |    |
@@ -56,26 +69,26 @@ void main(String[] args) {
      *    |    +--jextracted
      *    |    |    +--opencl                (*)
      *    |    +--ffi
-     *    |    |    +--opencl                (*)
-     *    |    |    +--ptx                   (*)
-     *    |    |    +--mock                  (*)
-     *    |    |    +--spirv                 (*)
-     *    |    |    +--cuda                  (*)
-     *    |    |    +--hip                   (*)
+     *    |         +--opencl                (*)
+     *    |         +--ptx                   (*)
+     *    |         +--mock                  (*)
+     *    |         +--spirv                 (*)
+     *    |         +--cuda                  (*)
+     *    |         +--hip                   (*)
      *    |
      *    +--examples
-     *    |    +--mandel                (*)
-     *    |    +--squares               (*)
-     *    |    +--heal                  (*)
-     *    |    +--life                  (*)
-     *    |    +--violajones            (*)
+     *    |    +--mandel                     (*)
+     *    |    +--squares                    (*)
+     *    |    +--heal                       (*)
+     *    |    +--life                       (*)
+     *    |    +--nbody                      (*)
+     *    |    +--experiments                (*)
+     *    |    +--violajones                 (*)
      *
      */
 
-  var dir = DirEntry.current();
-
-    // var dir = DirEntry.current();
-    var hatCoreDir = dir.existingDir("hat");
+    var dir = DirEntry.current();
+    var hatCoreDir = dir.existingDir("hat-core");
     var backends = dir.existingDir("backends");
     var examples = dir.existingDir("examples");
     var wrapsDir = dir.existingDir("wrap");
@@ -100,9 +113,31 @@ void main(String[] args) {
     out.println();
 
     var verbose = false;
+    var wrapJar= buildDir.jarFile("hat-wrap-1.0.jar");
+    var clWrapJar= buildDir.jarFile("hat-clwrap-1.0.jar");
+    var glWrapJar= buildDir.jarFile("hat-glwrap-1.0.jar");
+    var cuWrapJar= buildDir.jarFile("hat-cuwrap-1.0.jar");
+    var hatJar = buildDir.jarFile("hat-core-1.0.jar");
 
-    var wrap= jar(jar -> jar
-         .jarFile(buildDir.jarFile("wrap.jar"))
+ var hatJavacOpts = javacBuilder($ -> $
+            .enable_preview()
+            .add_modules("jdk.incubator.code")
+          //  .add_exports_to_all_unnamed("java.base", "jdk.internal", "jdk.internal.vm.annotation")
+            .current_source()
+    );
+
+    var hatJarOptions = jarBuilder($ -> $
+            .verbose(verbose)
+    );
+    jar(hatJarOptions, jar -> jar
+            .jarFile(hatJar)
+            .maven_style_root(hatCoreDir)
+            .javac(hatJavacOpts, javac -> {
+            })
+    );
+
+    jar(jar -> jar
+         .jarFile(wrapJar)
          .maven_style_root(wrapsDir.dir("wrap"))
          .javac(javac -> javac.current_source())
     );
@@ -124,9 +159,9 @@ void main(String[] args) {
                 out.println("Using existing extracted "+openclCapability.jarFile(buildDir).fileName());
             }
             jar(jar -> jar
-               .jarFile(buildDir.jarFile("clwrap.jar"))
+               .jarFile(clWrapJar)
                .maven_style_root(wrapsDir.dir("clwrap"))
-               .javac(javac -> javac.current_source().class_path(wrap, openclCapability.jarFile(buildDir)))
+               .javac(javac -> javac.current_source().class_path(wrapJar,hatJar, openclCapability.jarFile(buildDir)))
             );
         } else {
             out.println("This platform does not have OpenCL");
@@ -147,13 +182,13 @@ void main(String[] args) {
                 out.println("Using existing extracted "+openglCapability.jarFile(buildDir).fileName());
             }
             jar(jar -> jar
-               .jarFile(buildDir.jarFile("glwrap.jar"))
+               .jarFile(glWrapJar)
                .maven_style_root(wrapsDir.dir("glwrap"))
                .javac(javac -> javac
                   .current_source()
                   .exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLCallbackEventHandler\\.java$"))
                   //.exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLFuncEventHandler\\.java$"))
-                  .class_path(wrap, openglCapability.jarFile(buildDir))
+                  .class_path(wrapJar, openglCapability.jarFile(buildDir))
                )
             );
         } else {
@@ -167,37 +202,22 @@ void main(String[] args) {
             out.println("This platform does not have CUDA");
         }
     }
-    var hatJavacOpts = javacBuilder($ -> $
-            .enable_preview()
-            .add_modules("jdk.incubator.code")
-            .add_exports_to_all_unnamed("java.base", "jdk.internal", "jdk.internal.vm.annotation")
-            .current_source()
-    );
 
-    var hatJarOptions = jarBuilder($ -> $
-            .verbose(verbose)
-    );
-    var hatJarFile = buildDir.jarFile("hat-1.0.jar");
-    jar(hatJarOptions, jar -> jar
-            .jarFile(hatJarFile)
-            .maven_style_root(hatCoreDir)
-            .javac(hatJavacOpts, javac -> {
-            })
-    );
-
+    var backendJars = new ArrayList<bldr.Bldr.JarFile>();
+   
 
     // Here we create all ffi-backend jars.
     var ffiBackends = backends.existingDir("ffi");
-    ffiBackends
-            .subDirs()
+    ffiBackends.subDirs()
             .filter(backend -> backend.failsToMatch("^.*(spirv|hip|shared|target|.idea)$"))
             .forEach(backend -> {
-                var jarFile = buildDir.jarFile("hat-backend-ffi-" + backend.fileName() + "-1.0.jar");
-                out.println(jarFile.fileName());
+                var ffiBackendJarFile = buildDir.jarFile("hat-backend-ffi-" + backend.fileName() + "-1.0.jar");
+                backendJars.add(ffiBackendJarFile);
+                out.println(ffiBackendJarFile.fileName());
                 jar(hatJarOptions, jar -> jar
-                        .jarFile(jarFile)
+                        .jarFile(ffiBackendJarFile)
                         .maven_style_root(backend)
-                        .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile))
+                        .javac(hatJavacOpts, javac -> javac.class_path(hatJar))
                 );
             });
 
@@ -205,22 +225,26 @@ void main(String[] args) {
     var jextractedBackends = backends.existingDir("jextracted");
     var jextractedBackendSharedDir = jextractedBackends.dir("shared");
     out.println("Shared jextracted "+jextractedBackendSharedDir.path());
+    var jextractedSharedBackendJar=buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar");
+    backendJars.add(jextractedSharedBackendJar);
     var jextractedBackendSharedResult = jar(hatJarOptions, jar -> jar
-          .jarFile(buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar"))
+          .jarFile(jextractedSharedBackendJar)
           .maven_style_root(jextractedBackendSharedDir)
-          .javac(hatJavacOpts, javac -> javac.verbose(true)
-              .class_path(hatJarFile)
+          .javac(hatJavacOpts, javac -> javac.verbose(verbose)
+              .class_path(hatJar)
           )
     ); 
 
     if (openclCapability.available()){
        var jextractedBackendOpenCLDir = jextractedBackends.dir("opencl");
        out.println("OpenCL jextracted "+jextractedBackendOpenCLDir.path());
-       var jextractedOpenCLBackendOpenCLResult = jar(hatJarOptions, jar -> jar
-          .jarFile(buildDir.jarFile("hat-backend-jextracted-opencl-1.0.jar"))
+       var jextractedOpenCLBackendJar = buildDir.jarFile("hat-backend-jextracted-opencl-1.0.jar");
+       backendJars.add(jextractedOpenCLBackendJar);
+       jar(hatJarOptions, jar -> jar
+          .jarFile(jextractedOpenCLBackendJar)
           .maven_style_root(jextractedBackendOpenCLDir)
-          .javac(hatJavacOpts, javac -> javac.verbose(true)
-              .class_path(hatJarFile, openclCapability.jarFile(buildDir), jextractedBackendSharedResult )
+          .javac(hatJavacOpts, javac -> javac.verbose(verbose)
+              .class_path(hatJar, openclCapability.jarFile(buildDir), jextractedBackendSharedResult )
           )
        );
    }
@@ -231,47 +255,57 @@ void main(String[] args) {
             .subDirs()
             .filter(backend -> backend.failsToMatch("^.*(target|.idea)$"))
             .forEach(backend -> {
-                var jarFile = buildDir.jarFile("hat-backend-java-" + backend.fileName() + "-1.0.jar");
-                out.println(jarFile.fileName());
+                var backendJavaJar = buildDir.jarFile("hat-backend-java-" + backend.fileName() + "-1.0.jar");
+                out.println(backendJavaJar.fileName());
+                backendJars.add(backendJavaJar);
                 jar(hatJarOptions, jar -> jar
-                        .jarFile(jarFile)
+                        .jarFile(backendJavaJar)
                         .dir_list(backend.dir("src/main/resources"))
                 );
             });
 
+    backendJars.forEach(j->out.println(" backend "+j.path()));
+
 
     // here we create the example jars
     examples.subDirs()
-            .filter(example -> example.failsToMatch("^.*(experiments|nbody|target|.idea)$"))
+            .filter(example -> example.failsToMatch("^.*(experiments|nbody|life|target|.idea)$"))
             .forEach(example -> {
-                var jarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
-                out.println(jarFile.fileName());
+                var exampleJarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
+                out.println(exampleJarFile.fileName());
                 jar(hatJarOptions, jar -> jar
-                        .jarFile(jarFile)
+                        .jarFile(exampleJarFile)
                         .maven_style_root(example)
-                        .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile,  openclCapability.jarFile(buildDir),
-                            buildDir.jarFile("wrap.jar"),
-                            buildDir.jarFile("clwrap.jar")))
-                        .manifest(manifest -> manifest
-                                .main_class(example.fileName() + ".Main")
-                        )
+                        .javac(hatJavacOpts, javac -> javac.class_path(hatJar))
+                        .manifest(manifest -> manifest .main_class(example.fileName() + ".Main"))
                 );
             });
 
     
+    if (jextractCapability.available() && openclCapability.available()) {
+        var example = examples.dir("life");
+        var exampleJarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
+        out.println(exampleJarFile.fileName());
+        jar(hatJarOptions, jar -> jar
+                .jarFile(exampleJarFile)
+                .maven_style_root(example)
+                .javac(hatJavacOpts, javac -> javac
+                   .class_path(hatJar, wrapJar, clWrapJar, openclCapability.jarFile(buildDir), buildDir.jarFile("hat-backend-ffi-opencl-1.0.jar"))
+                )
+        );
+    }
+
 
     if (jextractCapability.available() && openclCapability.available() && openglCapability.available()) {
         var example = examples.dir("nbody");
-        var jarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
-        out.println(jarFile.fileName());
+        var exampleJarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
+        out.println(exampleJarFile.fileName());
         jar(hatJarOptions, jar -> jar
-                .jarFile(jarFile)
+                .jarFile(exampleJarFile)
                 .maven_style_root(example)
-                .javac(hatJavacOpts, javac -> javac.class_path(hatJarFile, 
-                            buildDir.jarFile("wrap.jar"),
-                            buildDir.jarFile("clwrap.jar"),
-                            buildDir.jarFile("glwrap.jar"),
-                            openclCapability.jarFile(buildDir), openglCapability.jarFile(buildDir)))
+                .javac(hatJavacOpts, javac -> javac
+                    .class_path( hatJar, wrapJar, clWrapJar, glWrapJar, openclCapability.jarFile(buildDir), openglCapability.jarFile(buildDir),buildDir.jarFile("hat-backend-ffi-opencl-1.0.jar"))
+                )
         );
     }
 

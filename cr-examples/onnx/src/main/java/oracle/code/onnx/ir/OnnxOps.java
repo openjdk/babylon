@@ -32,7 +32,7 @@ import jdk.incubator.code.op.OpFactory;
 import java.util.*;
 
 @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "unused", "SequencedCollectionMethodCanBeUsed"})
-public final class OnnxOps {
+public final class OnnxOps extends ExplicitOnnxOps {
 
     private OnnxOps() {}
 

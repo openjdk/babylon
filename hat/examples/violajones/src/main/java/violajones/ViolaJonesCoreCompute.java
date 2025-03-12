@@ -308,7 +308,7 @@ public class ViolaJonesCoreCompute {
 
     @CodeReflection
     static public void compute(@RO final ComputeContext cc, @RO Cascade cascade, @RO S08x3RGBImage s08X3RGBImage, @RW ResultTable resultTable, @RO ScaleTable scaleTable) {
-        long start = System.currentTimeMillis();
+
         int width = s08X3RGBImage.width();
         int height = s08X3RGBImage.height();
 
@@ -325,7 +325,6 @@ public class ViolaJonesCoreCompute {
         cc.dispatchKernel(scaleTable.multiScaleAccumulativeRange(), kc ->
                 findFeaturesKernel(kc, cascade, integralImage, integralSqImage, scaleTable, resultTable));
 
-        System.out.println((System.currentTimeMillis() - start)+"ms");
     }
 
 

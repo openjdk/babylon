@@ -31,9 +31,11 @@ import java.lang.foreign.ValueLayout;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.JAVA_DOUBLE;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
+import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
 public class Wrap {
     public interface Ptr{
@@ -82,6 +84,25 @@ public class Wrap {
         @Override
         public long sizeof(){
             return JAVA_LONG.byteSize();
+        }
+    }
+    public  record DoublePtr(MemorySegment ptr)  implements Ptr{
+        public static DoublePtr of(Arena arena, double value) {
+            return new DoublePtr(arena.allocateFrom(JAVA_DOUBLE, value));
+        }
+
+        public double set(double value) {
+            ptr.set(JAVA_DOUBLE, 0, value);
+            return value;
+        }
+
+        public double get() {
+            return ptr.get(JAVA_DOUBLE, 0);
+        }
+
+        @Override
+        public long sizeof(){
+            return JAVA_DOUBLE.byteSize();
         }
     }
 
@@ -172,6 +193,25 @@ public class Wrap {
         @Override
         public long sizeof(){
             return JAVA_FLOAT.byteSize();
+        }
+    }
+    public record ShortPtr(MemorySegment ptr)  implements Ptr{
+        public static ShortPtr of(Arena arena, short value) {
+            return new ShortPtr(arena.allocateFrom(JAVA_SHORT, value));
+        }
+
+        public short set(short value) {
+            ptr.set(JAVA_SHORT, 0, value);
+            return value;
+        }
+
+        public short get() {
+            return ptr.get(JAVA_SHORT, 0);
+        }
+
+        @Override
+        public long sizeof(){
+            return JAVA_SHORT.byteSize();
         }
     }
 

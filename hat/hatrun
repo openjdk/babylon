@@ -48,19 +48,21 @@ void main(String[] argv) {
   var backends = hatDir.existingDir("backends");
   var examples = hatDir.dir("examples");
   var buildDir = hatDir.existingBuildDir("build");
-  var jextractedOpenCLJar = buildDir.jarFile("opencl.jar");
-  var jextractedOpenGLJar = buildDir.jarFile("opengl.jar");
-  var wrapJar = buildDir.jarFile("wrap.jar");
-  var clwrapJar = buildDir.jarFile("clwrap.jar");
-  var glwrapJar = buildDir.jarFile("glwrap.jar");
+  var jextractedOpenCLJar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
+  var jextractedOpenGLJar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
+  var wrapJar = buildDir.jarFile("hat-wrap-1.0.jar");
+  var clwrapJar = buildDir.jarFile("hat-clwrap-1.0.jar");
+  var glwrapJar = buildDir.jarFile("hat-glwrap-1.0.jar");
+  var verbose = false;
 
   var args = new ArrayList<>(List.of(argv));
   java(java -> java
      .enable_preview()
-     .add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
+     .verbose(verbose)
+     //.add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
      .enable_native_access("ALL-UNNAMED")
      .library_path(buildDir)
-     .class_path(buildDir.jarFile("hat-1.0.jar"))
+     .class_path(buildDir.jarFile("hat-core-1.0.jar"))
      .when((!args.isEmpty() && args.getFirst().equals("headless")), ifHeadless -> {
         ifHeadless.headless();
         args.removeFirst();
@@ -81,6 +83,9 @@ void main(String[] argv) {
               .when(jextractedOpenCLJar.exists() && jextractedOpenGLJar.exists() && exampleName.equals("nbody"), _->{ haveBackend
                   .class_path(jextractedOpenCLJar,jextractedOpenGLJar, wrapJar, clwrapJar, glwrapJar )
                   .start_on_first_thread();
+              })
+              .when(jextractedOpenCLJar.exists()  && exampleName.equals("life"), _->{ haveBackend
+                  .class_path(jextractedOpenCLJar, wrapJar, clwrapJar);
               })
               .main_class(exampleName + ".Main")
               .args(args);

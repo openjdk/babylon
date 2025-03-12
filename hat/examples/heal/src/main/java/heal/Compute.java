@@ -55,6 +55,8 @@ import javax.swing.JTextField;
 import java.awt.Point;
 
 import static hat.ifacemapper.MappableIface.*;
+
+import hat.util.ui.SevenSegmentDisplay;
 import jdk.incubator.code.CodeReflection;
 import java.util.stream.IntStream;
 
@@ -90,8 +92,7 @@ public class Compute {
      *  }
      */
 
-    public static void heal(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, Point bestMatchOffset,
-                            JTextField maskTB, JTextField healTB) {
+    public static void heal(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, Point bestMatchOffset) {
         long start = System.currentTimeMillis();
         Selection.Mask mask = selection.getMask();
         var dest = new int[mask.maskRGBData.length];
@@ -104,7 +105,7 @@ public class Compute {
                     : s32Array2D.get( x,  y );
         });
 
-        maskTB.setText(Long.toString(System.currentTimeMillis() - start));
+        //maskTB.setText(Long.toString(System.currentTimeMillis() - start));
         /*   TODO .. Implement laplacian
          * int[] stencil = new int[]{-1, 1, -mask.width, mask.width};
          *
@@ -170,7 +171,7 @@ public class Compute {
             s32Array2D.set( x,  y, dest[i]);
         });
      //   System.out.println("heal2 " + (System.currentTimeMillis() - start) + "ms");
-        healTB.setText(Long.toString(System.currentTimeMillis() - start));
+      //  healTB.setText(Long.toString(System.currentTimeMillis() - start));
     }
 
     @CodeReflection
@@ -270,7 +271,7 @@ public class Compute {
         bestMatchOffset.setLocation(x - selectionBox.x1(),y - selectionBox.y1());
     }
 
-    public static Point getBestMatchOffset(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, JTextField searchTB) {
+    public static Point getBestMatchOffset(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, SevenSegmentDisplay searchSevenSegmentDisplay) {
         final Point bestMatchOffset  =new Point(0,0);
         if (!selection.pointList.isEmpty()) {
             long hatStart = System.currentTimeMillis();
@@ -322,7 +323,8 @@ public class Compute {
             accelerator.compute(cc->
                     Compute.bestFitCompute(cc, bestMatchOffset, s32Array2D, searchArea, selectionBox, xyrgbList
             ));
-            searchTB.setText(Long.toString(System.currentTimeMillis() - hatStart));
+            searchSevenSegmentDisplay.set((int)(System.currentTimeMillis() - hatStart));
+           // searchTB.setText(Long.toString(System.currentTimeMillis() - hatStart));
         }
         return bestMatchOffset;
     }

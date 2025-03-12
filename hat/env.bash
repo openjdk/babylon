@@ -51,6 +51,7 @@ else
   elif  [[ "$OS" == Darwin ]]; then
     export ostype=macosx
   else
+    # Windows?
     echo "Could not determine ostype uname -s returned ${OS}"
   fi
 
@@ -62,6 +63,7 @@ else
   elif  [[ "$ARCH" == arm64 ]]; then
     export archtype=aarch64
   else
+    #MIPS?
     echo "Could not determine aarchtype uname -m returned ${ARCH}"
   fi
 
@@ -73,20 +75,43 @@ else
     # or
     #   We can locate one because we are a subdir of BABYLON using ${PWD}/..
 
-    # export BABYLON_JDK_HOME=${BABYLON_JDK_HOME:-$(realpath ${PWD}/..)}
-
     if [[ -z "${BABYLON_JDK_HOME}" ]]; then 
        echo "No user provided BABYLON_JDK_HOME var, we will try \${PWD}/.. = $(realpath ${PWD}/..)"
        export BABYLON_JDK_HOME=$(realpath ${PWD}/..)
+       echo "We found a babylon build here ${BABYLON_JDK_HOME}"
     else
        echo "Using user supplied BABYLON_JDK_HOME ${BABYLON_JDK_HOME}"
     fi
 
+    if command -v jextract; then 
+       echo 'jextract in your PATH'
+    else
+       if [[ -z "${JEXTRACT_HOME}" ]]; then 
+          echo "No user provided JEXTRACT_HOME var, we will try ~/jextract-22"
+          if [[ -d ~/jextract-22/bin ]]; then 
+             export JEXTRACT_HOME=$(realpath ~/jextract-22)
+             echo "We found jextract here ${JEXTRACT_HOME}"
+          fi
+       else
+          echo "Using user supplied JEXTRACT_HOME ${JEXTRACT_HOME}"
+       fi
+    fi
+
+    if [[ -d "${JEXTRACT_HOME}/bin" ]]; then
+      if echo ${PATH} | grep ${JEXTRACT_HOME} >/dev/null ;then
+         echo "PATH already contains \${JEXTRACT_HOME}/bin"
+      else
+         export SAFE_PATH=${PATH}
+         echo "Adding \${JEXTRACT_HOME}/bin prefix to PATH, SAFE_PATH contains previous value"
+         export PATH=${JEXTRACT_HOME}/bin:${PATH}
+      fi
+    else
+      echo 'You will need to add jextract to your PATH to be able to build'
+      echo 'Either add it, or JEXTRACT_HOME'
+    fi
 
     if [[ -d "${BABYLON_JDK_HOME}/build" ]]; then
-      #echo "\${BABYLON_JDK_HOME}/build seems ok!"
       export JAVA_HOME=${BABYLON_JDK_HOME}/build/${ostype}-${archtype}-server-release/jdk
-      #echo "exporting JAVA_HOME=${JAVA_HOME}"
       if echo ${PATH} | grep ${JAVA_HOME} >/dev/null ;then
          echo "PATH already contains \${JAVA_HOME}/bin"
       else
@@ -94,17 +119,6 @@ else
          echo "Adding \${JAVA_HOME}/bin prefix to PATH, SAFE_PATH contains previous value"
          export PATH=${JAVA_HOME}/bin:${PATH}
       fi
-
-      if [[ ${1} = "clean" ]]; then 
-         rm -rf build 
-      fi 
-
-      if command -v jextract; then 
-         echo 'SUCCESS.. Found a valid JDK and found jextract in your PATH'
-      else
-         echo 'CAUTION.. Found a valid JDK, but you will need to add jextract to your PATH to be able to build'
-      fi
-
     else
       echo "We expected either:-"
       echo "    \${PWD} to be in a hat subdir of a compiled babylon jdk build" 

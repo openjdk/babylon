@@ -36,7 +36,7 @@ questions.
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat</artifactId>
+            <artifactId>hat-core</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
@@ -56,14 +56,14 @@ questions.
                 <version>1.8</version>
                 <executions>
                     <execution>
-                        <id>1</id>
+                        <id>copyJarToBuildDir</id>
                         <phase>install</phase>
                         <goals>
                             <goal>run</goal>
                         </goals>
                         <configuration>
                             <target>
-                                <copy file="target/hat-backend-ffi-opencl-1.0.jar" toDir="${hat.build}"/>
+                                <copy file="target/${project.artifactId}-${project.version}.jar" toDir="${hat.build}"/>
                             </target>
                         </configuration>
                     </execution>
