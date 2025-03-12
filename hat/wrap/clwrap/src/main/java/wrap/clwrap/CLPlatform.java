@@ -24,6 +24,8 @@
  */
 package wrap.clwrap;
 
+import hat.buffer.Buffer;
+import hat.ifacemapper.SegmentMapper;
 import opencl.opencl_h;
 import wrap.ArenaHolder;
 import wrap.Wrap;
@@ -34,18 +36,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.lang.foreign.MemorySegment.NULL;
-import static opencl.opencl_h.*;
+import static opencl.opencl_h.CL_DEVICE_BUILT_IN_KERNELS;
+import static opencl.opencl_h.CL_DEVICE_MAX_COMPUTE_UNITS;
+import static opencl.opencl_h.CL_DEVICE_NAME;
+import static opencl.opencl_h.CL_DEVICE_TYPE_ALL;
+import static opencl.opencl_h.CL_DEVICE_VENDOR;
+import static opencl.opencl_h.CL_MEM_READ_WRITE;
+import static opencl.opencl_h.CL_MEM_USE_HOST_PTR;
+import static opencl.opencl_h.CL_PROGRAM_BUILD_LOG;
+import static opencl.opencl_h.CL_QUEUE_PROFILING_ENABLE;
+import static opencl.opencl_h.CL_SUCCESS;
 
 // https://streamhpc.com/blog/2013-04-28/opencl-error-codes/
 public class CLPlatform implements ArenaHolder {
     public static List<CLPlatform> platforms(Arena arena) {
         var arenaWrapper = ArenaHolder.wrap(arena);
         List<CLPlatform> platforms = new ArrayList<>();
-        var platformc = arenaWrapper.intPtr( 0);
+        var platformc = arenaWrapper.intPtr(0);
         if ((opencl_h.clGetPlatformIDs(0, NULL, platformc.ptr())) != CL_SUCCESS()) {
             System.out.println("Failed to get opencl platforms");
         } else {
-            var platformIds = arenaWrapper.ptrArr( platformc.get());
+            var platformIds = arenaWrapper.ptrArr(platformc.get());
             if ((opencl_h.clGetPlatformIDs(platformc.get(), platformIds.ptr(), NULL)) != CL_SUCCESS()) {
                 System.out.println("Failed getting platform ids");
             } else {
@@ -89,6 +100,7 @@ public class CLPlatform implements ArenaHolder {
         public String deviceName() {
             return strDeviceInfo(CL_DEVICE_NAME());
         }
+
         public String deviceVendor() {
             return strDeviceInfo(CL_DEVICE_VENDOR());
         }
@@ -151,17 +163,21 @@ public class CLPlatform implements ArenaHolder {
                     } else {
                         var deviceIdList = ptrArr(context.device.deviceId);
                         if ((status.set(opencl_h.clBuildProgram(program, 1, deviceIdList.ptr(), NULL, NULL, NULL))) != CL_SUCCESS()) {
-                            System.out.println("failed to build" + status);
+                            System.err.println("failed to build program " + status);
+                            System.err.println("Source "+source);
+                           // System.exit(1);
                         }
                         var logLen = longPtr(1L);
                         if ((status.set(opencl_h.clGetProgramBuildInfo(program, context.device.deviceId, CL_PROGRAM_BUILD_LOG(), 0, NULL, logLen.ptr()))) != CL_SUCCESS()) {
-                            System.out.println("failed to get log build " + status.get());
+                            System.err.println("failed to get log build " + status.get());
+                            System.exit(1);
                         } else {
                             var logPtr = cstr(1 + logLen.get());
                             if ((status.set(opencl_h.clGetProgramBuildInfo(program, context.device.deviceId, opencl_h.CL_PROGRAM_BUILD_LOG(), logLen.get(), logPtr.ptr(), NULL))) != opencl_h.CL_SUCCESS()) {
-                                System.out.println("clGetBuildInfo (getting log) failed");
+                                System.out.println("clGetBuildInfo (getting log) failed ");
                             } else {
                                 log = logPtr.get();
+                                System.out.println("log\n" +log);
                             }
                         }
                     }
@@ -184,7 +200,7 @@ public class CLPlatform implements ArenaHolder {
                         var status = program.context.device.platform.status;
                         kernel = opencl_h.clCreateKernel(program.program, kernelNameCStr.ptr(), status.ptr());
                         if (!status.isOK()) {
-                            System.out.println("failed to create kernel " + status);
+                            System.out.println("failed to create kernel '"+kernelName+"'" + status);
                         }
                     }
 
@@ -194,15 +210,15 @@ public class CLPlatform implements ArenaHolder {
                         for (int i = 0; i < args.length; i++) {
                             if (args[i] instanceof CLWrapComputeContext.MemorySegmentState memorySegmentState) {
                                 if (memorySegmentState.clMemPtr == null) {
-                                    memorySegmentState.clMemPtr = CLWrapComputeContext.ClMemPtr.of(arena(),opencl_h.clCreateBuffer(program.context.context,
+                                    memorySegmentState.clMemPtr = CLWrapComputeContext.ClMemPtr.of(arena(), opencl_h.clCreateBuffer(program.context.context,
                                             CL_MEM_USE_HOST_PTR() | CL_MEM_READ_WRITE(),
                                             memorySegmentState.memorySegment.byteSize(),
                                             memorySegmentState.memorySegment,
                                             status.ptr()));
                                     if (!status.isOK()) {
-                                        throw new RuntimeException("failed to create memory buffer " + status.get());
+                                        throw new RuntimeException("failed to create memory buffer for arg["+i+" " + status.get());
                                     }
-                                      }
+                                }
                                 if (memorySegmentState.copyToDevice) {
                                     status.set(opencl_h.clEnqueueWriteBuffer(program.context.queue,
                                             memorySegmentState.clMemPtr.get(),
@@ -215,23 +231,72 @@ public class CLPlatform implements ArenaHolder {
                                             clWrapComputeContext.nextEventPtrSlot()
                                     ));
                                     if (!status.isOK()) {
-                                        System.out.println("failed to enqueue write " + status);
+                                        System.err.println("failed to enqueue write for arg["+i+" " + status);
+                                        System.exit(1);
                                     }
                                 }
 
                                 status.set(opencl_h.clSetKernelArg(kernel, i, memorySegmentState.clMemPtr.sizeof(), memorySegmentState.clMemPtr.ptr()));
                                 if (!status.isOK()) {
-                                    System.out.println("failed to set arg " + status);
+                                    System.err.println("failed to set arg["+i+" " + status);
+                                    System.exit(1);
                                 }
+                            } else if (args[i] instanceof Buffer buffer) {
+                                //  System.out.println("Arg "+i+" is a buffer so checking if we need to write");
+                                SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(buffer);
+
+                                //System.out.println("Before possible write"+ bufferState);
+                                MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
+
+                                CLWrapComputeContext.ClMemPtr clmem = clWrapComputeContext.clMemMap.computeIfAbsent(memorySegment, k ->
+                                        CLWrapComputeContext.ClMemPtr.of(arena(), opencl_h.clCreateBuffer(program.context.context,
+                                                CL_MEM_USE_HOST_PTR() | CL_MEM_READ_WRITE(),
+                                                memorySegment.byteSize(),
+                                                memorySegment,
+                                                status.ptr()))
+                                );
+                                if (bufferState.isHostDirty()) {
+
+                                    //System.out.println("arg " + args[i] + " isHostDirty copying in");
+                                    status.set(opencl_h.clEnqueueWriteBuffer(program.context.queue,
+                                            clmem.get(),
+                                            clWrapComputeContext.blockInt(),
+                                            0,
+                                            memorySegment.byteSize(),
+                                            memorySegment,
+                                            clWrapComputeContext.eventc(),
+                                            clWrapComputeContext.eventsPtr(),
+                                            clWrapComputeContext.nextEventPtrSlot()
+                                    ));
+                                    if (!status.isOK()) {
+                                        System.err.println("failed to enqueue write for arg["+i+" " + status);
+                                        System.exit(1);
+                                    }
+                                } else {
+
+                                    //  System.out.println("arg "+args[i]+" is not HostDirty not copying in");
+                                }
+                                //     System.out.println("After possible write "+ bufferState);
+                                status.set(opencl_h.clSetKernelArg(kernel, i, clmem.sizeof(), clmem.ptr()));
+                                if (!status.isOK()) {
+                                    System.err.println("failed to set arg["+i+"]" + status);
+                                    System.exit(1);
+                                }
+
                             } else {
                                 Wrap.Ptr ptr = switch (args[i]) {
                                     case Integer intArg -> intPtr(intArg);
                                     case Float floatArg -> floatPtr(floatArg);
+                                    case Double doubleArg -> doublePtr(doubleArg);
+                                    case Long longArg -> longPtr(longArg);
+                                    case Short shortArg -> shortPtr(shortArg);
                                     default -> throw new IllegalStateException("Unexpected value: " + args[i]);
                                 };
                                 status.set(opencl_h.clSetKernelArg(kernel, i, ptr.sizeof(), ptr.ptr()));
                                 if (!status.isOK()) {
-                                    System.out.println("failed to set arg " + status);
+                                    System.err.println("failed to set arg["+i+"] " + status);
+
+                                    System.exit(1);
                                 }
 
                             }
@@ -246,9 +311,9 @@ public class CLPlatform implements ArenaHolder {
                                         NULL,
                                         globalSize.ptr(),
                                         NULL,
-                                clWrapComputeContext.eventc(),
-                                clWrapComputeContext.eventsPtr(),
-                                clWrapComputeContext.nextEventPtrSlot()
+                                        clWrapComputeContext.eventc(),
+                                        clWrapComputeContext.eventsPtr(),
+                                        clWrapComputeContext.nextEventPtrSlot()
                                 )
                         );
                         if (!status.isOK()) {
@@ -276,6 +341,31 @@ public class CLPlatform implements ArenaHolder {
                                         System.out.println("failed to enqueue read " + status);
                                     }
                                 }
+                            } else if (args[i] instanceof Buffer buffer) {
+                                //   System.out.println("Arg "+i+" is a buffer so checking if we need to read");
+                                SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(buffer);
+                                MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
+                                CLWrapComputeContext.ClMemPtr clmem = clWrapComputeContext.clMemMap.get(memorySegment);
+                                // System.out.println("Before possible read "+ bufferState);
+                                if (bufferState.isDeviceDirty()) {
+                                  //  System.out.println("arg " + args[i] + " isDeviceDirty copying out");
+                                    status.set(opencl_h.clEnqueueReadBuffer(program.context.queue,
+                                            clmem.get(),
+                                            clWrapComputeContext.blockInt(),
+                                            0,
+                                            memorySegment.byteSize(),
+                                            memorySegment,
+                                            clWrapComputeContext.eventc(),
+                                            clWrapComputeContext.eventsPtr(),
+                                            clWrapComputeContext.nextEventPtrSlot()
+                                    ));
+                                    if (!status.isOK()) {
+                                        System.out.println("failed to enqueue read " + status);
+                                    }
+                                } else {
+                                    //   System.out.println("arg "+args[i]+" isnot DeviceDirty not copying out");
+                                }
+
                             }
                         }
                         // if (!computeContext.alwaysBlock) {
@@ -355,7 +445,7 @@ public class CLPlatform implements ArenaHolder {
         this.secretarena = arena;
         this.platformId = platformId;
         this.status = CLStatusPtr.of(arena());
-        var devicec = intPtr( 0);
+        var devicec = intPtr(0);
         if ((status.set(opencl_h.clGetDeviceIDs(platformId, CL_DEVICE_TYPE_ALL(), 0, NULL, devicec.ptr()))) != opencl_h.CL_SUCCESS()) {
             System.err.println("Failed getting devicec for platform 0 ");
         } else {

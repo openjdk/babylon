@@ -28,7 +28,6 @@ package oracle.code.onnx;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.nio.ByteBuffer;
 
     /*
 class DataType(enum.IntEnum):
@@ -66,16 +65,36 @@ public class Tensor<T> extends OnnxNumber {
 
     public static final long[] SCALAR_SHAPE = new long[0];
 
+    public static Tensor<Boolean> ofScalar(boolean b) {
+        return ofScalar(Arena.ofAuto(), b);
+    }
+
+    public static Tensor<Boolean> ofScalar(Arena arena, boolean b) {
+        return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_BYTE, b ? (byte)1 : 0), ElementType.BOOL, SCALAR_SHAPE);
+    }
+
     public static Tensor<Byte> ofScalar(byte b) {
         return ofShape(SCALAR_SHAPE, b);
+    }
+
+    public static Tensor<Byte> ofScalar(Arena arena, byte b) {
+        return ofShape(arena, SCALAR_SHAPE, b);
     }
 
     public static Tensor<Long> ofScalar(long l) {
         return ofShape(SCALAR_SHAPE, l);
     }
 
+    public static Tensor<Long> ofScalar(Arena arena, long l) {
+        return ofShape(arena, SCALAR_SHAPE, l);
+    }
+
     public static Tensor<Float> ofScalar(float f) {
         return ofShape(SCALAR_SHAPE, f);
+    }
+
+    public static Tensor<Float> ofScalar(Arena arena, float f) {
+        return ofShape(arena, SCALAR_SHAPE, f);
     }
 
 
@@ -83,39 +102,64 @@ public class Tensor<T> extends OnnxNumber {
         return ofShape(new long[]{values.length}, values);
     }
 
+    public static Tensor<Byte> ofFlat(Arena arena, byte... values) {
+        return ofShape(arena, new long[]{values.length}, values);
+    }
+
     public static Tensor<Long> ofFlat(long... values) {
         return ofShape(new long[]{values.length}, values);
+    }
+
+    public static Tensor<Long> ofFlat(Arena arena, long... values) {
+        return ofShape(arena, new long[]{values.length}, values);
     }
 
     public static Tensor<Float> ofFlat(float... values) {
         return ofShape(new long[]{values.length}, values);
     }
 
+    public static Tensor<Float> ofFlat(Arena arena, float... values) {
+        return ofShape(arena, new long[]{values.length}, values);
+    }
+
     public static Tensor<Byte> ofShape(long[] shape, byte... values) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_BYTE, values);
-        return new Tensor(data, ElementType.UINT8, shape);
+        return ofShape(Arena.ofAuto(), shape, values);
+    }
+
+    public static Tensor<Byte> ofShape(Arena arena, long[] shape, byte... values) {
+        return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_BYTE, values), ElementType.UINT8, shape);
     }
 
     public static Tensor<Long> ofShape(long[] shape, long... values) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_LONG, values);
-        return new Tensor(data, ElementType.INT64, shape);
+        return ofShape(Arena.ofAuto(), shape, values);
+    }
+
+    public static Tensor<Long> ofShape(Arena arena, long[] shape, long... values) {
+        return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_LONG, values), ElementType.INT64, shape);
     }
 
     public static Tensor<Float> ofShape(long[] shape, float... values) {
-        var data = Arena.ofAuto().allocateFrom(ValueLayout.JAVA_FLOAT, values);
-        return new Tensor(data, ElementType.FLOAT, shape);
+        return ofShape(Arena.ofAuto(), shape, values);
+    }
+
+    public static Tensor<Float> ofShape(Arena arena, long[] shape, float... values) {
+        return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_FLOAT, values), ElementType.FLOAT, shape);
+    }
+
+    public static <T> Tensor<T> ofShape(long[] shape, byte[] rawData, ElementType elementType) {
+        return ofShape(Arena.ofAuto(), shape, rawData, elementType);
+    }
+
+    public static <T> Tensor<T> ofShape(Arena arena, long[] shape, byte[] rawData, ElementType elementType) {
+        return new Tensor(arena, arena.allocateFrom(ValueLayout.JAVA_BYTE, rawData), elementType, shape);
     }
 
     // Mandatory reference to dataAddr to avoid its garbage colletion
     private final MemorySegment dataAddr;
     final MemorySegment tensorAddr;
 
-    public Tensor(MemorySegment dataAddr, ElementType type, long... shape) {
-        this(dataAddr, OnnxRuntime.getInstance().createTensor(dataAddr, type, shape));
-    }
-
-    public Tensor(MemorySegment tensorAddr) {
-        this(null, tensorAddr);
+    public Tensor(Arena arena, MemorySegment dataAddr, ElementType type, long[] shape) {
+        this(dataAddr, OnnxRuntime.getInstance().createTensor(arena, dataAddr, type, shape));
     }
 
     Tensor(MemorySegment dataAddr, MemorySegment tensorAddr) {
@@ -123,8 +167,16 @@ public class Tensor<T> extends OnnxNumber {
         this.tensorAddr = tensorAddr;
     }
 
-    public ByteBuffer asByteBuffer() {
-        return OnnxRuntime.getInstance().tensorBuffer(tensorAddr);
+    public ElementType elementType() {
+        return OnnxRuntime.getInstance().tensorElementType(tensorAddr);
+    }
+
+    public long[] shape() {
+        return OnnxRuntime.getInstance().tensorShape(tensorAddr);
+    }
+
+    public MemorySegment data() {
+        return dataAddr;
     }
 
     public enum ElementType {

@@ -2517,7 +2517,7 @@ public class Bldr {
             }
 
             default JarFile jarFile(BuildDir buildDir) {
-                return buildDir.jarFile(packageName() + ".jar");
+                return buildDir.jarFile("hat-jextracted-"+packageName() + "-1.0.jar");
             }
 
             void inversionOfControl(JExtractBuilder jextractBuilder);
@@ -2640,17 +2640,13 @@ public class Bldr {
             }
 
             public DirEntry glutIncludeDir() {
-                return DirEntry.of("/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/Library/Frameworks/GLUT.framework/Headers");
-                // return DirEntry.of(Path.of(cmakeProbe.value(glutIncludeDirKey))+"/Headers");
+                return DirEntry.of(cmakeProbe.value(osxSysroot)+"/System/Library/Frameworks/GLUT.framework/Headers");
             }
 
             public String appLibFrameworks() {
                 return cmakeProbe.value(osxSysroot);
             }
 
-            // public Path frameworkLibrary(String frameworkName) {
-            //     return Path.of(appLibFrameworks()).resolve(frameworkName + ".framework/" + frameworkName);
-            //  }
             public String lib() {
                 return cmakeProbe.value(libKey);
             }

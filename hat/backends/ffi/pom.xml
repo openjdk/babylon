@@ -36,7 +36,7 @@ questions.
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat</artifactId>
+            <artifactId>hat-core</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
@@ -54,7 +54,7 @@ questions.
                 <version>3.1.0</version>
                 <executions>
                     <execution>
-                        <id>1</id>
+                        <id>cmake-B</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>exec</goal>
@@ -69,7 +69,7 @@ questions.
                         </configuration>
                     </execution>
                     <execution>
-                        <id>2</id>
+                        <id>cmake--build</id>
                         <phase>install</phase>
                         <goals>
                             <goal>exec</goal>

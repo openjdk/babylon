@@ -28,7 +28,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 
 public interface ArenaHolder {
-    public static ArenaHolder wrap(Arena arena) {
+    static ArenaHolder wrap(Arena arena) {
         return ()-> arena;
     }
 
@@ -37,8 +37,15 @@ public interface ArenaHolder {
     default Wrap.IntPtr intPtr(int value){
         return Wrap.IntPtr.of(arena(), value);
     }
+    default Wrap.ShortPtr shortPtr(short value){
+        return Wrap.ShortPtr.of(arena(), value);
+    }
+
     default Wrap.LongPtr longPtr(long value){
         return Wrap.LongPtr.of(arena(), value);
+    }
+    default Wrap.DoublePtr doublePtr(double value){
+        return Wrap.DoublePtr.of(arena(), value);
     }
     default Wrap.FloatPtr floatPtr(float value){
         return Wrap.FloatPtr.of(arena(), value);

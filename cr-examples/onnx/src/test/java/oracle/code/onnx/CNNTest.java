@@ -44,10 +44,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
+import java.lang.foreign.ValueLayout;
 import java.nio.channels.FileChannel;
-import java.util.List;
+import java.util.HashMap;
 import java.util.function.Function;
 
 import static java.util.Optional.empty;
@@ -60,7 +59,6 @@ import static oracle.code.onnx.OnnxOperators.Flatten;
 import static oracle.code.onnx.OnnxOperators.Gemm;
 import static oracle.code.onnx.OnnxOperators.MaxPool;
 import static oracle.code.onnx.OnnxOperators.Relu;
-import static oracle.code.onnx.OnnxOperators.Reshape;
 import static oracle.code.onnx.OnnxOperators.Softmax;
 
 // A rough CNN implementation which expects a input [batch_size, 1, 28, 28].
@@ -79,8 +77,6 @@ public class CNNTest {
 //    static final int LABELS_HEADER_SIZE = 8;
 
     private static final String GREY_SCALE = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-    private static final Arena ARENA = Arena.ofAuto();
-
     private static final int PIXEL_DEPTH = 255;
     private static final int NUM_CHANNELS = 1;
     private static final int IMAGE_SIZE = 28;
@@ -113,12 +109,9 @@ public class CNNTest {
 
         Tensor<Float> inputImage = Cast(ubyteImage, empty(), Tensor.ElementType.FLOAT.id);
 
-        var shape = Constant(new long[]{-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE});
-        var inputReshaped = Reshape(inputImage, shape, empty());
-
         // Scaling the features to 0-1
         var scalingFactor = Constant((float) PIXEL_DEPTH);
-        var scaledInput = Div(inputReshaped, scalingFactor);
+        var scaledInput = Div(inputImage, scalingFactor);
 
         // First conv layer
         var conv1 = Conv(scaledInput, conv1Weights, of(conv1Biases), of(new long[4]),
@@ -195,18 +188,6 @@ public class CNNTest {
                     empty(),
                     OnnxType.TENSOR_FLOAT32.eType().id()));
 
-            var shape = b.op(OnnxOps.Constant(OnnxType.TENSOR_INT64,
-                    empty(),
-                    empty(),
-                    empty(),
-                    empty(),
-                    empty(),
-                    of(new long[]{-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE}),
-                    empty(),
-                    empty()));
-            var inputReshaped = b.op(OnnxOps.Reshape(inputImage.type(),
-                    inputImage, shape, empty()));
-
             // Scaling the features
             var scalingFactor = b.op(OnnxOps.Constant(OnnxType.TENSOR_FLOAT32,
                     empty(),
@@ -217,7 +198,7 @@ public class CNNTest {
                     empty(),
                     empty(),
                     empty()));
-            var scaledInput = b.op(OnnxOps.Div(inputReshaped.type(), inputReshaped, scalingFactor));
+            var scaledInput = b.op(OnnxOps.Div(inputImage.type(), inputImage, scalingFactor));
 
             // First conv layer
             var conv1 = b.op(OnnxOps.Conv(scaledInput.type(),
@@ -321,97 +302,111 @@ public class CNNTest {
         });
     }
 
-    static void printImage(int imageIndex, ByteBuffer bb) {
+    static void printImage(int imageIndex, MemorySegment data) {
         System.out.println("Image #" + imageIndex + " :");
         int offset = imageIndex * 28 * 28;
         for (int y = 0; y < 28; y++) {
             for (int x = 0; x < 28; x++) {
-                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & bb.get(offset + y * 28 + x)) / 256));
+                System.out.print(GREY_SCALE.charAt(GREY_SCALE.length() * (0xff & data.get(ValueLayout.JAVA_BYTE, offset + y * 28 + x)) / 256));
             }
             System.out.println();
         }
     }
 
-    private static Tensor<Float> floatTensor(String resource, long... shape) throws IOException {
+    private Tensor<Float> floatTensor(Arena arena, String resource, long... shape) throws IOException {
         try (var file = new RandomAccessFile(CNNTest.class.getResource(resource).getPath(), "r")) {
-            return new Tensor(file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length(), ARENA), Tensor.ElementType.FLOAT, shape);
+            return new Tensor(arena, file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, file.length(), arena), Tensor.ElementType.FLOAT, shape);
         }
-    }
-
-    static List<Tensor<Float>> loadWeights() throws IOException {
-        return List.of(floatTensor("conv1-weight-float-le", 6, 1, 5, 5),
-                       floatTensor("conv1-bias-float-le", 6),
-                       floatTensor("conv2-weight-float-le", 16, 6, 5, 5),
-                       floatTensor("conv2-bias-float-le", 16),
-                       floatTensor("fc1-weight-float-le", 120, 256),
-                       floatTensor("fc1-bias-float-le", 120),
-                       floatTensor("fc2-weight-float-le", 84, 120),
-                       floatTensor("fc2-bias-float-le", 84),
-                       floatTensor("fc3-weight-float-le", 10, 84),
-                       floatTensor("fc3-bias-float-le", 10));
-    }
-
-    static int nextBestMatch(FloatBuffer fb) {
-        float maxW = fb.get();
-        int maxI = 0;
-        for (int i = 1; i < 10; i++) {
-            float w = fb.get();
-            if (w > maxW) {
-                maxW = w;
-                maxI = i;
-            }
-        }
-        return maxI;
     }
 
     @Test
     public void testModels() {
-        CoreOp.FuncOp f = getFuncOp("cnn");
-        CoreOp.FuncOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
-        System.out.println(onnxModel.toText());
+        try (var arena = Arena.ofConfined()) {
+            CoreOp.FuncOp f = getFuncOp("cnn");
+            var onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), new HashMap<>(), f);
+            System.out.println(onnxModel.func().toText());
 
-        CoreOp.FuncOp expectedOnnxModel = cnnModel();
-        System.out.println(expectedOnnxModel.toText());
+            CoreOp.FuncOp expectedOnnxModel = cnnModel();
+            System.out.println(expectedOnnxModel.toText());
 
-        Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
+            Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel.func()));
+        }
     }
 
     @Test
     public void testInterpreter() throws Exception {
-        var weights = loadWeights();
-        test(inputImage -> cnn(weights.get(0), weights.get(1), weights.get(2), weights.get(3), weights.get(4),
-                               weights.get(5), weights.get(6), weights.get(7), weights.get(8), weights.get(9),
-                               inputImage));
+        try (var arena = Arena.ofConfined()) {
+            var conv1Weight = floatTensor(arena, "mnist/conv1-weight-float-le", 6, 1, 5, 5);
+            var conv1Bias = floatTensor(arena, "mnist/conv1-bias-float-le", 6);
+            var conv2Weight = floatTensor(arena, "mnist/conv2-weight-float-le", 16, 6, 5, 5);
+            var conv2Bias = floatTensor(arena, "mnist/conv2-bias-float-le", 16);
+            var fc1Weight = floatTensor(arena, "mnist/fc1-weight-float-le", 120, 256);
+            var fc1Bias = floatTensor(arena, "mnist/fc1-bias-float-le", 120);
+            var fc2Weight = floatTensor(arena, "mnist/fc2-weight-float-le", 84, 120);
+            var fc2Bias = floatTensor(arena, "mnist/fc2-bias-float-le", 84);
+            var fc3Weight = floatTensor(arena, "mnist/fc3-weight-float-le", 10, 84);
+            var fc3Bias = floatTensor(arena, "mnist/fc3-bias-float-le", 10);
+            test(arena, inputImage -> cnn(conv1Weight, conv1Bias,
+                                          conv2Weight, conv2Bias,
+                                          fc1Weight, fc1Bias,
+                                          fc2Weight, fc2Bias,
+                                          fc3Weight, fc3Bias,
+                                          inputImage));
+        }
     }
 
     @Test
     public void testProtobufModel() throws Exception {
-        var weights = loadWeights();
-        test(inputImage -> new Tensor(OnnxRuntime.getInstance().runFunc(
-                    OnnxTransformer.transform(MethodHandles.lookup(), getFuncOp("cnn")),
-                    Stream.concat(weights.stream(), Stream.of(inputImage))
-                            .map(t -> t.tensorAddr).toList()).getFirst()));
+        try (var arena = Arena.ofConfined()) {
+            var conv1Weight = floatTensor(arena, "mnist/conv1-weight-float-le", 6, 1, 5, 5);
+            var conv1Bias = floatTensor(arena, "mnist/conv1-bias-float-le", 6);
+            var conv2Weight = floatTensor(arena, "mnist/conv2-weight-float-le", 16, 6, 5, 5);
+            var conv2Bias = floatTensor(arena, "mnist/conv2-bias-float-le", 16);
+            var fc1Weight = floatTensor(arena, "mnist/fc1-weight-float-le", 120, 256);
+            var fc1Bias = floatTensor(arena, "mnist/fc1-bias-float-le", 120);
+            var fc2Weight = floatTensor(arena, "mnist/fc2-weight-float-le", 84, 120);
+            var fc2Bias = floatTensor(arena, "mnist/fc2-bias-float-le", 84);
+            var fc3Weight = floatTensor(arena, "mnist/fc3-weight-float-le", 10, 84);
+            var fc3Bias = floatTensor(arena, "mnist/fc3-bias-float-le", 10);
+            test(arena, inputImage -> OnnxRuntime.execute(arena, MethodHandles.lookup(), () ->
+                    cnn(conv1Weight, conv1Bias, conv2Weight, conv2Bias,
+                        fc1Weight, fc1Bias, fc2Weight, fc2Bias, fc3Weight, fc3Bias,
+                        inputImage)));
+        }
     }
 
-    private void test(Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {
+    private void test(Arena arena, Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {
         try (RandomAccessFile imagesF = new RandomAccessFile(IMAGES_PATH, "r");
              RandomAccessFile labelsF = new RandomAccessFile(LABELS_PATH, "r")) {
 
-            ByteBuffer imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE);
-            ByteBuffer labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE);
+            MemorySegment imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE, arena);
+            MemorySegment labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE, arena);
 
-            Tensor<Byte> inputImage = new Tensor(MemorySegment.ofBuffer(imagesIn), Tensor.ElementType.UINT8, new long[]{imagesF.length() - IMAGES_HEADER_SIZE});
+            long size = imagesF.length() - IMAGES_HEADER_SIZE;
+            Tensor<Byte> inputImage = new Tensor(arena, imagesIn, Tensor.ElementType.UINT8, new long[]{size / (28 * 28), 1, 28, 28});
 
-            FloatBuffer result = executor.apply(inputImage).asByteBuffer().asFloatBuffer();
+            MemorySegment result = executor.apply(inputImage).data();
 
             int matched = 0, mismatched = 0;
-            while (result.remaining() > 0) {
-                int expected = labelsIn.get();
-                int actual = nextBestMatch(result);
+            int i = 0;
+            int resultSize = (int)result.byteSize() / 4;
+            while (i < resultSize) {
+                int expected = labelsIn.get(ValueLayout.JAVA_BYTE, i / 10);
+
+                int actual = 0;
+                float maxW = result.getAtIndex(ValueLayout.JAVA_FLOAT, i++);
+                for (int j = 1; j < 10; j++) {
+                    float w = result.getAtIndex(ValueLayout.JAVA_FLOAT, i++);
+                    if (w > maxW) {
+                        maxW = w;
+                        actual = j;
+                    }
+                }
+
                 if (expected == actual) {
                     matched++;
                 } else {
-                    int imageIndex = labelsIn.position() - 1;
+                    int imageIndex = i / 10 - 1;
                     printImage(imageIndex, imagesIn);
                     System.out.println("expected: " + expected + " actual: " + actual);
                     System.out.println("-".repeat(28));

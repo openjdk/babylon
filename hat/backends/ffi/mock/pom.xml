@@ -36,7 +36,7 @@ questions.
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat</artifactId>
+            <artifactId>hat-core</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
@@ -63,7 +63,7 @@ questions.
                         </goals>
                         <configuration>
                             <target>
-                                <copy file="target/hat-backend-ffi-mock-1.0.jar" toDir="${hat.build}"/>
+                                <copy file="target/${project.artifactId}-${project.version}.jar" toDir="${hat.build}"/>
                             </target>
                         </configuration>
                     </execution>
