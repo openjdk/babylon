@@ -126,7 +126,7 @@ public class OpsAndTypes {
                  */
 
                 if (op instanceof CoreOp.InvokeOp invokeOp
-                        && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper
+                        && OpWrapper.wrap(invokeOp,lookup) instanceof InvokeOpWrapper invokeOpWrapper
                         && invokeOpWrapper.hasOperands()
                         && invokeOpWrapper.isIfaceBufferMethod()
                         && invokeOpWrapper.getReceiver() instanceof Value iface // Is there a containing iface type Iface

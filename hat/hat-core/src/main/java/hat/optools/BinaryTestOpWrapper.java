@@ -26,8 +26,10 @@ package hat.optools;
 
 import jdk.incubator.code.op.CoreOp;
 
+import java.lang.invoke.MethodHandles;
+
 public class BinaryTestOpWrapper extends BinaryOpWrapper<CoreOp.BinaryTestOp> {
-    BinaryTestOpWrapper(CoreOp.BinaryTestOp op) {
-        super(op);
+    BinaryTestOpWrapper(CoreOp.BinaryTestOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 }

@@ -25,11 +25,13 @@
 package hat.optools;
 
 import jdk.incubator.code.op.ExtendedOp;
+
+import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public class ForOpWrapper extends LoopOpWrapper<ExtendedOp.JavaForOp> {
-    ForOpWrapper(ExtendedOp.JavaForOp op) {
-        super(op);
+    ForOpWrapper(ExtendedOp.JavaForOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
     public Stream<OpWrapper<?>> initWrappedYieldOpStream() {

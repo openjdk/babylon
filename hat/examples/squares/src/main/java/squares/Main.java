@@ -33,6 +33,8 @@ import hat.buffer.S32Array;
 import static hat.ifacemapper.MappableIface.*;
 import jdk.incubator.code.CodeReflection;
 
+import java.lang.invoke.MethodHandles;
+
 public class Main {
     @CodeReflection
     public static int squareit(int v) {
@@ -57,8 +59,8 @@ public class Main {
 
 
     public static void main(String[] args) {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
-        var accelerator = new Accelerator(lookup, Backend.FIRST);//new JavaMultiThreadedBackend());
+
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
         var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);

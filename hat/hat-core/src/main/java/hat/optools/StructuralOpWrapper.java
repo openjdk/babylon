@@ -26,8 +26,10 @@ package hat.optools;
 
 import jdk.incubator.code.Op;
 
+import java.lang.invoke.MethodHandles;
+
 public abstract class StructuralOpWrapper<T extends Op> extends OpWrapper<T> {
-    StructuralOpWrapper(T op) {
-        super(op);
+    StructuralOpWrapper(T op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 }

@@ -25,11 +25,13 @@
 package hat.optools;
 
 import jdk.incubator.code.op.ExtendedOp;
+
+import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public class IfOpWrapper extends StructuralOpWrapper<ExtendedOp.JavaIfOp> {
-    public IfOpWrapper(ExtendedOp.JavaIfOp op) {
-        super(op);
+    public IfOpWrapper(ExtendedOp.JavaIfOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
     public boolean hasElseN(int idx) {

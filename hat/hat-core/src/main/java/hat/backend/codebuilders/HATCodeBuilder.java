@@ -58,6 +58,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -322,7 +323,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
          T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
 
-         T parencedence(CodeBuilderContext buildContext, Op parent, Op child);
+         T parencedence(CodeBuilderContext buildContext, MethodHandles.Lookup lookup, Op parent, Op child);
 
          T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, Op child);
 

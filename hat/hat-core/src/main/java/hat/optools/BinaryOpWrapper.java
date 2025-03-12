@@ -26,9 +26,11 @@ package hat.optools;
 
 import jdk.incubator.code.Op;
 
+import java.lang.invoke.MethodHandles;
+
 public abstract class BinaryOpWrapper<T extends Op> extends OpWrapper<T> {
-    BinaryOpWrapper(T op) {
-        super(op);
+    BinaryOpWrapper(T op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
     public Op lhsAsOp() {

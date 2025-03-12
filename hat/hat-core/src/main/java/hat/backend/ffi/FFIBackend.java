@@ -119,13 +119,13 @@ public abstract class FFIBackend extends FFIBackendDriver {
                     bldr.op(invokeOW.op());
                 } else {
                     invokeOW.op().operands().stream()
-                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIface(javaType))
+                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIface(prevFOW.lookup, javaType))
                             .forEach(value ->
                                     bldr.op(CoreOp.invoke(ESCAPE.pre, cc, bldrCntxt.getValue(value)))
                             );
                     bldr.op(invokeOW.op());
                     invokeOW.op().operands().stream()
-                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIface(javaType))
+                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIface(prevFOW.lookup,javaType))
                             .forEach(value -> bldr.op(
                                     CoreOp.invoke(ESCAPE.post, cc, bldrCntxt.getValue(value)))
                             );

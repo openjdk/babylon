@@ -43,8 +43,8 @@ import java.util.stream.Stream;
 public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
 
 
-    public InvokeOpWrapper(CoreOp.InvokeOp op) {
-        super(op);
+    public InvokeOpWrapper(CoreOp.InvokeOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
     public MethodRef methodRef() {
@@ -56,25 +56,25 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
     }
 
     public boolean isIfaceBufferMethod() {
-        return isIface(javaRefType());
+        return isIface(lookup,javaRefType());
     }
 
 
     public boolean isRawKernelCall() {
         boolean isRawKernelCall = (operandCount() > 1 && operandNAsValue(0) instanceof Value value
                 && value.type() instanceof JavaType javaType
-                && (isAssignable(javaType, hat.KernelContext.class) || isAssignable(javaType, hat.buffer.KernelContext.class))
+                && (isAssignable(lookup,javaType, hat.KernelContext.class) || isAssignable(lookup,javaType, hat.buffer.KernelContext.class))
         );
         return isRawKernelCall;
     }
 
     public boolean isKernelContextMethod() {
-        return isAssignable(javaRefType(), KernelContext.class);
+        return isAssignable(lookup,javaRefType(), KernelContext.class);
 
     }
 
     public boolean isComputeContextMethod() {
-        return isAssignable(javaRefType(), ComputeContext.class);
+        return isAssignable(lookup,javaRefType(), ComputeContext.class);
 
     }
 
@@ -153,7 +153,7 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
 
     public Optional<Class<?>> javaRefClass() {
         if (javaRefType() instanceof ClassType classType) {
-            return Optional.of((Class<?>)classTypeToType(classType));
+            return Optional.of((Class<?>)classTypeToType(lookup,classType));
         }else{
             return Optional.empty();
         }
@@ -161,7 +161,7 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
 
     public Optional<Class<?>> javaReturnClass() {
         if (javaReturnType() instanceof ClassType classType) {
-            return Optional.of((Class<?>)classTypeToType(classType));
+            return Optional.of((Class<?>)classTypeToType(lookup,classType));
         }else{
             return Optional.empty();
         }

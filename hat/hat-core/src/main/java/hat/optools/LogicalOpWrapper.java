@@ -25,11 +25,13 @@
 package hat.optools;
 
 import jdk.incubator.code.op.ExtendedOp;
+
+import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public class LogicalOpWrapper extends BinaryOpWrapper<ExtendedOp.JavaConditionalOp> {
-    LogicalOpWrapper(ExtendedOp.JavaConditionalOp op) {
-        super(op);
+    LogicalOpWrapper(ExtendedOp.JavaConditionalOp op, MethodHandles.Lookup lookup) {
+        super(op,lookup);
     }
 
     public Stream<OpWrapper<?>> lhsWrappedYieldOpStream() {

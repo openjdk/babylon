@@ -99,7 +99,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
-                        } else if (InvokeOpWrapper.isIface(paramInfo.javaType)) {
+                        } else if (InvokeOpWrapper.isIface(fow.lookup,paramInfo.javaType)) {
                             atLeastOneIfaceBufferParam.of(true);
                         } else {
                             hasOnlyPrimitiveAndIfaceBufferParams.of(false);
@@ -168,7 +168,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
             } else if (entrypoint.method.getDeclaringClass().equals(javaRefClass)) {
                 Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeWrapperCalledMethod);
                 if (optionalFuncOp.isPresent()) {
-                    FuncOpWrapper fow = OpWrapper.wrap(optionalFuncOp.get());
+                    FuncOpWrapper fow = OpWrapper.wrap(optionalFuncOp.get(),computeContext.accelerator.lookup);
                     if (isKernelDispatch(invokeWrapperCalledMethod, fow)) {
                         // System.out.println("A kernel reference (not a direct call) to a kernel " + methodRef);
                         kernelCallGraphMap.computeIfAbsent(methodRef, _ ->

@@ -29,6 +29,8 @@ import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.type.JavaType;
 
+import java.lang.invoke.MethodHandles;
+
 public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
     @Override
     public OpenCLHatKernelBuilder defines() {
@@ -62,8 +64,8 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder functionDeclaration(JavaType type, String name) {
-        return keyword("inline").space().type(type).space().identifier(name);
+    public OpenCLHatKernelBuilder functionDeclaration(MethodHandles.Lookup lookup,JavaType type, String name) {
+        return keyword("inline").space().type(lookup,type).space().identifier(name);
     }
 
     @Override
@@ -72,9 +74,9 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
+    public OpenCLHatKernelBuilder atomicInc(CodeBuilderContext buildContext, MethodHandles.Lookup lookup, Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ -> {
-              ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
+              ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op(),lookup));
               rarrow().identifier(name);
           });
     }
