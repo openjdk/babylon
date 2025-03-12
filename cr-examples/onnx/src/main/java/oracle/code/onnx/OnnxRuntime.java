@@ -69,9 +69,17 @@ public final class OnnxRuntime {
             }
         }
 
+        // @@@ heuristic assumption the first non-tensor and non-varbox captured value is receiver
+        private static Object getReceiver(SequencedCollection<Object> values) {
+            for (var v : values) {
+                if (!(v instanceof Tensor || v instanceof CoreOp.Var)) return v;
+            }
+            return null;
+        }
+
         @Override
         protected CachedSession computeValue(Class<?> type) {
-            var mf = LambdaToFunc.fromLambda(l, (CoreOp.LambdaOp)q.op(), q.capturedValues());
+            var mf = LambdaToFunc.fromLambda(l, (CoreOp.LambdaOp)q.op(), getReceiver(q.capturedValues().sequencedValues()));
 
             List<Tensor> initializers = mf.func().initializers().stream().map(val -> (Tensor) val).toList();
             byte[] protobufModel = OnnxProtoBuilder.build(mf.func().func().body().entryBlock(), initializers);
@@ -92,6 +100,10 @@ public final class OnnxRuntime {
     }
 
     private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
+
+    public static <T> Tensor<T> execute(OnnxFunction<Tensor<T>> codeLambda) {
+        return execute(MethodHandles.lookup(), codeLambda);
+    }
 
     public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
         return execute(Arena.ofAuto(), l, codeLambda);

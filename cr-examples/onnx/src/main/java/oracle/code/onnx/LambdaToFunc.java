@@ -10,21 +10,20 @@ import java.util.function.Predicate;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.VarType;
+import jdk.incubator.code.type.*;
 import oracle.code.onnx.compiler.OnnxTransformer;
 
 public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMapping) {
 
     static final boolean DEBUG = Boolean.getBoolean("oracle.code.onnx.OnnxRuntime.DEBUG");
 
-    public static LambdaToFunc fromLambda(MethodHandles.Lookup l, CoreOp.LambdaOp lambda, Map<Value, Object> evaluatedValues) {
-        evaluatedValues = new HashMap<>(evaluatedValues);
+    static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
+
+    public static LambdaToFunc fromLambda(MethodHandles.Lookup l, CoreOp.LambdaOp lambda, Object initializersReceiver) {
         // Shortcut for lambda expressions that call just one method
         if (singleMethodInvocation(lambda) instanceof
                 SingleMethod(CoreOp.InvokeOp iop, Map<Value, Value> valueMapping)) {
+            System.out.println("!!" + lambda.toText());
             Method m;
             try {
                 m = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
@@ -42,24 +41,16 @@ public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMappin
                 for (int i = 0; i < operandsMapping.length; i++) {
                     var opValue = valueMapping.get(operands.get(i));
                     operandsMapping[i] = captured.indexOf(opValue);
-                    if (i == 0) {
-                        var value = evaluatedValues.get(opValue);
-                        if (value instanceof CoreOp.Var v) {
-                            value = v.value();
-                        }
-                        if (value != null && !(value instanceof Tensor)) {
-                            // @@@ probably a receiver
-                            evaluatedValues.put(fParams.get(i), value);
-                        }
-                    }
                 }
                 if (DEBUG) {
                     System.out.println(f.toText());
                 }
-                OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, evaluatedValues, f);
+                OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, initializersReceiver, f);
                 return new LambdaToFunc(onnxFunc, operandsMapping);
             }
         }
+        System.out.println("??" + lambda.toText());
+
         var capturedValues = lambda.capturedValues();
         var functionType = FunctionType.functionType(lambda.invokableType().returnType(),
                 capturedValues.stream().map(Value::type)
@@ -80,7 +71,7 @@ public record LambdaToFunc(OnnxTransformer.OnnxFuncOp func, int[] operandsMappin
         if (DEBUG) {
             System.out.println(f.toText());
         }
-        OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, evaluatedValues, f);
+        OnnxTransformer.OnnxFuncOp onnxFunc = OnnxTransformer.transform(l, initializersReceiver, f);
 
         var operandsMapping = new int[capturedValues.size()];
         for (int i = 0; i < operandsMapping.length; i++) {

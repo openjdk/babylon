@@ -46,23 +46,25 @@ final class OnnxPartialEvaluator {
     static final TypeElement TENSOR_RAW_CLASS = JavaType.type(Tensor.class);
 
     // Map from ONNX operator invocation to evaluated attributes
-    Map<CoreOp.InvokeOp, List<Object>> evaluatedAttributes;
+    final Map<CoreOp.InvokeOp, List<Object>> evaluatedAttributes;
 
     // Operations that depend directly or indirectly on input parameters
     // The operations' results are not evaluated
-    Set<Op> unevaluatedOperations;
+    final Set<Op> unevaluatedOperations;
 
-    List<Object> initializers;
+    final Object initializersReceiver;
+    final List<Object> initializers;
 
-    public OnnxPartialEvaluator() {
+    public OnnxPartialEvaluator(Object initializersReceiver) {
         this.evaluatedAttributes = new HashMap<>();
         this.unevaluatedOperations = new HashSet<>();
+        this.initializersReceiver = initializersReceiver;
         this.initializers = new ArrayList<>();
     }
 
     public <T extends Op & Op.Invokable>
-    void evaluate(MethodHandles.Lookup l, T op, Map<Value, Object> evaluatedValues) {
-        var ev = new HashMap(evaluatedValues);
+    void evaluate(MethodHandles.Lookup l, T op) {
+        var ev = new HashMap();
 
         interpretEntryBlock(l, op.body().entryBlock(), new OpContext(), ev);
 
@@ -344,7 +346,14 @@ final class OnnxPartialEvaluator {
                 if (fo.operands().isEmpty()) {
                     initializers.add(fo.fieldDescriptor().resolveToHandle(l).get());
                 } else {
-                    initializers.add(fo.fieldDescriptor().resolveToHandle(l).get(oc.getValue(fo.operands().getFirst())));
+                    try {
+                        initializers.add(fo.fieldDescriptor().resolveToHandle(l).get(initializersReceiver));
+                    } catch (Exception e) {
+                        System.out.println(fo.parentBlock().parentBody().parentOp().toText());
+                        System.out.println(fo);
+                        System.out.println(initializersReceiver);
+                        throw e;
+                    }
                 }
             } catch (ReflectiveOperationException ex) {
                 throw interpreterException(ex);

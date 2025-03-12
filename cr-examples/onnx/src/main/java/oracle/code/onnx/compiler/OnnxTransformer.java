@@ -32,9 +32,9 @@ public class OnnxTransformer {
 
     public record OnnxFuncOp(CoreOp.FuncOp func, List<Object> initializers) {}
 
-    public static OnnxFuncOp transform(MethodHandles.Lookup l, Map<Value, Object> evaluatedValues, CoreOp.FuncOp in) {
-        OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
-        pe.evaluate(l, in, evaluatedValues);
+    public static OnnxFuncOp transform(MethodHandles.Lookup l, Object initializersReceiver, CoreOp.FuncOp in) {
+        OnnxPartialEvaluator pe = new OnnxPartialEvaluator(initializersReceiver);
+        pe.evaluate(l, in);
 
         FunctionType ft = FunctionType.functionType(
                 type(in.invokableType().returnType()),
@@ -103,15 +103,22 @@ public class OnnxTransformer {
                         }
                         opArgs.addAll(attributes.stream().map(a -> {
                             if (a instanceof CoreOp.LambdaOp lo) {
-                                var ltf = LambdaToFunc.fromLambda(l, lo, evaluatedValues);
+                                var ltf = LambdaToFunc.fromLambda(l, lo, initializersReceiver);
                                 var cc = bb.context();
                                 var lbb = Body.Builder.of(bb.parentBody(), lo.invokableType(), cc);
                                 var eb = lbb.entryBlock();
                                 var params = ltf.func().func().body().entryBlock().parameters();
                                 var captured = lo.capturedValues();
-                                for (int i = 0; i < params.size(); i++) {
+                                System.out.println(params.stream().map(Value::type).toList());
+                                System.out.println(captured.stream().map(Value::type).toList());
+                                System.out.println(lo.parentBlock().parentBody().parentOp().toText());
+//                                System.out.println(lo.capturedValues());
+                                System.out.println(ltf.func().func().toText());
+                                var mapping = ltf.operandsMapping();
+                                System.out.println(Arrays.toString(mapping));
+                                for (int i = 0; i < mapping.length; i++) {
                                     var param = params.get(i);
-                                    cc.mapValue(param, eb.op(OnnxOps.Identity(param.type(), cc.getValue(traverseUp(captured.get(i))))));
+                                    cc.mapValue(param, eb.op(OnnxOps.Identity(param.type(), cc.getValue(traverseUp(captured.get(mapping[i]))))));
                                 }
                                 ltf.func().func().body().entryBlock().ops().forEach(eb::apply);
                                 return lbb;
