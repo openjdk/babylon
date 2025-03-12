@@ -240,9 +240,36 @@ public final class OnnxRuntime {
                 runtimeAddress,
                 allocatorInfo,
                 flatData, flatData.byteSize(),
-                shape.length == 0 ? MemorySegment.NULL : arena.allocateFrom(C_LONG_LONG, shape), (long)shape.length,
+                shape.length == 0 ? MemorySegment.NULL : autoShape(arena, shape, flatData.byteSize() / elementType.size()), (long)shape.length,
                 elementType.id,
                 ret)).reinterpret(arena, value -> OrtApi.ReleaseValue(runtimeAddress, value));
+    }
+
+    private static MemorySegment autoShape(Arena arena, long[] shape, long elementsCount) {
+        int auto = -1;
+        long elCount = 1;
+        for (int i = 0; i < shape.length; i++) {
+            long dim = shape[i];
+            if (dim == -1) {
+                if (auto == -1) {
+                    auto = i;
+                } else {
+                    throw new IllegalArgumentException("Multiple automatic dimensions in shape");
+                }
+            } else {
+                elCount *= dim;
+            }
+        }
+        var ms = arena.allocateFrom(C_LONG_LONG, shape);
+        if (auto != -1) {
+            long autoDim = elementsCount / elCount;
+            ms.setAtIndex(C_LONG, auto, autoDim);
+            elCount *= autoDim;
+        }
+        if (elCount != elementsCount) {
+            throw new IllegalArgumentException("Tensor shape does not match data");
+        }
+        return ms;
     }
 
     public Tensor.ElementType tensorElementType(MemorySegment tensorAddr) {
