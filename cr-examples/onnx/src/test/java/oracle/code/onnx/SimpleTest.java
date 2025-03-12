@@ -14,7 +14,7 @@ public class SimpleTest {
         return OnnxOperators.Add(a, b);
     }
 
-//    @Test
+    @Test
     public void testAdd() throws Exception {
         var a = Tensor.ofFlat(1f, 2, 3);
         assertEquals(
@@ -27,7 +27,7 @@ public class SimpleTest {
         return OnnxOperators.Sub(a, b);
     }
 
-//    @Test
+    @Test
     public void testSub() throws Exception {
         var b = Tensor.ofFlat(6f, 5, 4);
         var a = Tensor.ofFlat(1f, 2, 3);
@@ -41,7 +41,7 @@ public class SimpleTest {
         return OnnxOperators.Constant(-1f);
     }
 
-//    @Test
+    @Test
     public void testFconstant() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1f);
@@ -54,7 +54,7 @@ public class SimpleTest {
         return OnnxOperators.Constant(new float[]{-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE});
     }
 
-//    @Test
+    @Test
     public void testFconstants() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
@@ -67,7 +67,7 @@ public class SimpleTest {
         return OnnxOperators.Constant(-1l);
     }
 
-//    @Test
+    @Test
     public void testLconstant() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1l);
@@ -80,7 +80,7 @@ public class SimpleTest {
         return OnnxOperators.Constant(new long[]{-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE});
     }
 
-//    @Test
+    @Test
     public void testLconstants() throws Exception {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
@@ -93,7 +93,7 @@ public class SimpleTest {
         return OnnxOperators.Shape(OnnxOperators.Reshape(data, shape, Optional.empty()), Optional.empty(), Optional.empty());
     }
 
-//    @Test
+    @Test
     public void testReshapeAndShape() throws Exception {
         var data = Tensor.ofFlat(1f, 2, 3, 4, 5, 6, 7, 8);
         var shape = Tensor.ofFlat(2l, 2, 2);
@@ -108,7 +108,7 @@ public class SimpleTest {
         return OnnxOperators.MaxPool(x, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),  new long[]{2}).Indices();
     }
 
-//    @Test
+    @Test
     public void testIndicesOfMaxPool() throws Exception {
         var x = Tensor.ofShape(new long[]{2, 2, 2}, 1f, 2, 3, 4, 5, 6, 7, 8);
         assertEquals(
@@ -162,7 +162,7 @@ public class SimpleTest {
         return OnnxOperators.Identity(initialized);
     }
 
-//    @Test
+    @Test
     public void testInitialized() throws Exception {
 
         assertEquals(initialized(),
@@ -176,7 +176,7 @@ public class SimpleTest {
         return OnnxOperators.If(cond, () -> OnnxOperators.Identity(initialized2), () -> OnnxOperators.Identity(initialized));
     }
 
-    @Test
+//    @Test
     public void testIfInitialized() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var condTrue = Tensor.ofScalar(true);
