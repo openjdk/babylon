@@ -61,20 +61,23 @@ public:
         const static  int TRACE_COPIES_BIT = 1 <<25;
         const static  int TRACE_SKIPPED_COPIES_BIT = 1 <<26;
         const static  int TRACE_ENQUEUES_BIT = 1 <<27;
-        const static  int END_BIT_IDX = 28;
+        const static  int TRACE_CALLS_BIT = 1 <<28;
+        const static  int END_BIT_IDX = 29;
 
         const static  char *bitNames[]; // See below for out of line definition
         int mode;
         bool gpu;
         bool cpu;
         bool minimizeCopies;
+        bool alwaysCopy;
         bool trace;
         bool profile;
         bool showCode;
         bool info;
         bool traceCopies;
         bool traceSkippedCopies;
-          bool traceEnqueues;
+        bool traceEnqueues;
+        bool traceCalls;
         OpenCLConfig(int mode);
         virtual ~OpenCLConfig();
     };
@@ -191,6 +194,7 @@ const  char *OpenCLBackend::OpenCLConfig::bitNames[] = {
               "INFO",
               "TRACE_COPIES",
               "TRACE_SKIPPED_COPIES",
-              "TRACE_ENQUEUES"
+              "TRACE_ENQUEUES",
+              "TRACE_CALLS"
         };
 #endif

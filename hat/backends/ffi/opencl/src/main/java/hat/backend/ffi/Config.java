@@ -22,7 +22,8 @@ public record Config(int bits) {
     private static final int TRACE_COPIES_BIT = 1 << 25;
     private static final int TRACE_SKIPPED_COPIES_BIT = 1 << 26;
     private static final int TRACE_ENQUEUES_BIT = 1 << 27;
-    private static final int END_BIT_IDX = 28;
+    private static final int TRACE_CALLS_BIT = 1 << 28;
+    private static final int END_BIT_IDX = 29;
 
     private static String[] bitNames = {
       "GPU",
@@ -36,7 +37,8 @@ public record Config(int bits) {
       "INFO",
       "TRACE_COPIES",
       "TRACE_SKIPPED_COPIES",
-      "TRACE_ENQUEUES"
+      "TRACE_ENQUEUES",
+      "TRACE_CALLS"
     };
     public static Config of() {
         if ((((System.getenv("HAT") instanceof String e) ? e : "") +
@@ -94,6 +96,12 @@ public record Config(int bits) {
     }
     public boolean isTRACE_COPIES() {
         return (bits & TRACE_COPIES_BIT) == TRACE_COPIES_BIT;
+    }
+    public static Config TRACE_CALLS() {
+        return new Config(TRACE_CALLS_BIT);
+    }
+    public boolean isTRACE_CALLS() {
+        return (bits & TRACE_CALLS_BIT) == TRACE_CALLS_BIT;
     }
     public static Config TRACE_ENQUEUES() {
         return new Config(TRACE_ENQUEUES_BIT);
