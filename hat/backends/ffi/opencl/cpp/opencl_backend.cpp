@@ -273,7 +273,7 @@ OpenCLBackend::OpenCLBackend(int configBits )
         return;
     }
 
-    device_id = device_ids[0];
+    device_id = device_ids[openclConfig.device];
     delete[] device_ids;
     delete[] platforms;
 
