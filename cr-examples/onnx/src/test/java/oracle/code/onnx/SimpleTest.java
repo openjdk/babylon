@@ -168,11 +168,19 @@ public class SimpleTest {
                      OnnxRuntime.execute(() -> initialized()));
     }
 
-    final Tensor<Float> initialized2 = Tensor.ofFlat(42f);
+    final Tensor<Float> initialized2 = Tensor.ofFlat(33f);
+    final Tensor<Float> initialized3 = Tensor.ofFlat(-1f);
+    final Tensor<Float> initialized4 = Tensor.ofFlat(-99f);
 
     @CodeReflection
-    public Tensor<Float> ifInitialized(Tensor<Boolean> cond) {
-        return OnnxOperators.If(cond, () -> OnnxOperators.Identity(initialized2), () -> OnnxOperators.Identity(initialized));
+    public Tensor<Float> ifInitialized(Tensor<Boolean> cond1, Tensor<Boolean> cond2) {
+        return OnnxOperators.If(cond1,
+                () -> OnnxOperators.If(cond2,
+                        () -> OnnxOperators.Identity(initialized4),
+                        () -> OnnxOperators.Identity(initialized3)),
+                () -> OnnxOperators.If(cond2,
+                        () -> OnnxOperators.Identity(initialized2),
+                        () -> OnnxOperators.Identity(initialized)));
     }
 
     @Test
@@ -180,11 +188,15 @@ public class SimpleTest {
         var condFalse = Tensor.ofScalar(false);
         var condTrue = Tensor.ofScalar(true);
 
-        assertEquals(initialized2, ifInitialized(condFalse));
-        assertEquals(initialized2, OnnxRuntime.execute(() -> ifInitialized(condFalse)));
+        assertEquals(initialized, ifInitialized(condTrue, condTrue));
+        assertEquals(initialized, OnnxRuntime.execute(() -> ifInitialized(condTrue, condTrue)));
+        assertEquals(initialized2, ifInitialized(condTrue, condFalse));
+        assertEquals(initialized2, OnnxRuntime.execute(() -> ifInitialized(condTrue, condFalse)));
+        assertEquals(initialized3, ifInitialized(condFalse, condTrue));
+        assertEquals(initialized3, OnnxRuntime.execute(() -> ifInitialized(condFalse, condTrue)));
+        assertEquals(initialized4, ifInitialized(condFalse, condFalse));
+        assertEquals(initialized4, OnnxRuntime.execute(() -> ifInitialized(condFalse, condFalse)));
 
-        assertEquals(initialized, ifInitialized(condTrue));
-        assertEquals(initialized, OnnxRuntime.execute(() -> ifInitialized(condTrue)));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
