@@ -264,7 +264,7 @@ OpenCLBackend::OpenCLBackend(int configBits )
 
     cl_command_queue_properties queue_props = CL_QUEUE_PROFILING_ENABLE;
 
-    if ((openclQueue.command_queue = clCreateCommandQueue(context, device_ids[0], queue_props, &status)) == NULL ||
+    if ((openclQueue.command_queue = clCreateCommandQueue(context, device_ids[openclConfig.device], queue_props, &status)) == NULL ||
         status != CL_SUCCESS) {
         std::cerr << "clCreateCommandQueue failed " << errorMsg(status)<<std::endl;
         clReleaseContext(context);
