@@ -39,7 +39,7 @@ public class ViolaJonesRaw {
 
     public static void main(String[] _args) throws IOException, ParserConfigurationException, SAXException {
 
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.JAVA_MULTITHREADED);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         Arena arena = Arena.global();
 
         XMLHaarCascadeModel haarCascade = XMLHaarCascadeModel.load(ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));

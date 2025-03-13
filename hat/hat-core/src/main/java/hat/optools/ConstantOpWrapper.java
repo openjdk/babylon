@@ -29,7 +29,7 @@ import jdk.incubator.code.op.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class ConstantOpWrapper extends UnaryOpWrapper<CoreOp.ConstantOp> {
-    ConstantOpWrapper(CoreOp.ConstantOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    ConstantOpWrapper( MethodHandles.Lookup lookup,CoreOp.ConstantOp op) {
+        super(lookup,op);
     }
 }

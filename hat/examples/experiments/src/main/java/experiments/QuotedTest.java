@@ -80,7 +80,7 @@ public class QuotedTest {
         f.writeTo(System.out);
         MethodHandles.Lookup lookup =  MethodHandles.lookup();
         C99HATComputeBuilder codeBuilder = new C99HATComputeBuilder();
-        FuncOpWrapper wf = OpWrapper.wrap(f, lookup);
+        FuncOpWrapper wf = OpWrapper.wrap(lookup,f);
         codeBuilder.compute(wf);
         System.out.println(codeBuilder);
 

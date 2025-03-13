@@ -29,8 +29,8 @@ import jdk.incubator.code.op.ExtendedOp;
 import java.lang.invoke.MethodHandles;
 
 public class JavaBreakOpWrapper extends OpWrapper<ExtendedOp.JavaBreakOp> {
-    public JavaBreakOpWrapper(ExtendedOp.JavaBreakOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    public JavaBreakOpWrapper( MethodHandles.Lookup lookup,ExtendedOp.JavaBreakOp op) {
+        super(lookup,op);
     }
 
 }

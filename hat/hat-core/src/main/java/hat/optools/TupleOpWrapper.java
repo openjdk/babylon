@@ -29,8 +29,8 @@ import jdk.incubator.code.op.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class TupleOpWrapper extends StructuralOpWrapper<CoreOp.TupleOp> {
-    public TupleOpWrapper(CoreOp.TupleOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    public TupleOpWrapper( MethodHandles.Lookup lookup,CoreOp.TupleOp op) {
+        super(lookup,op);
     }
 
 }

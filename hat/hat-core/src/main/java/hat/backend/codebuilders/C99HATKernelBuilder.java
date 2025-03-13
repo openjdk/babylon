@@ -85,8 +85,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract T globalPtrPrefix();
 
     @Override
-    public T type(MethodHandles.Lookup lookup,JavaType javaType) {
-        if (InvokeOpWrapper.isIface(lookup,javaType) && javaType instanceof ClassType classType) {
+    public T type(CodeBuilderContext buildContext,JavaType javaType) {
+        if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup(),javaType) && javaType instanceof ClassType classType) {
             globalPtrPrefix().space();
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
@@ -107,11 +107,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         CodeBuilderContext buildContext = new CodeBuilderContext(kernelReachableResolvedMethodCall.funcOpWrapper());
         buildContext.scope(buildContext.funcOpWrapper, () -> {
             nl();
-            functionDeclaration(buildContext.funcOpWrapper.lookup,buildContext.funcOpWrapper.getReturnType(), buildContext.funcOpWrapper.functionName());
+            functionDeclaration(buildContext,buildContext.funcOpWrapper.getReturnType(), buildContext.funcOpWrapper.functionName());
 
             var list = buildContext.funcOpWrapper.paramTable.list();
             parenNlIndented(_ ->
-                    commaSeparated(list, (info) -> type(buildContext.funcOpWrapper.lookup,info.javaType).space().varName(info.varOp))
+                    commaSeparated(list, (info) -> type(buildContext,info.javaType).space().varName(info.varOp))
             );
 
             braceNlIndented(_ -> {
@@ -144,7 +144,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             parenNlIndented(_ -> {
                         globalPtrPrefix().space().suffix_t("KernelContext").space().asterisk().identifier("global_kc");
                         list.stream().skip(1).forEach(info ->
-                                comma().space().type(buildContext.funcOpWrapper.lookup,info.javaType).space().varName(info.varOp)
+                                comma().space().type(buildContext,info.javaType).space().varName(info.varOp)
                         );
                     }
             );
@@ -166,7 +166,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T kernelDeclaration(String name);
 
-    public abstract T functionDeclaration(MethodHandles.Lookup lookup,JavaType javaType, String name);
+    public abstract T functionDeclaration(CodeBuilderContext codeBuilderContext,JavaType javaType, String name);
 
     public abstract T globalId();
 

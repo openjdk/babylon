@@ -29,7 +29,7 @@ import jdk.incubator.code.op.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class BinaryTestOpWrapper extends BinaryOpWrapper<CoreOp.BinaryTestOp> {
-    BinaryTestOpWrapper(CoreOp.BinaryTestOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    BinaryTestOpWrapper( MethodHandles.Lookup lookup,CoreOp.BinaryTestOp op) {
+        super(lookup, op);
     }
 }

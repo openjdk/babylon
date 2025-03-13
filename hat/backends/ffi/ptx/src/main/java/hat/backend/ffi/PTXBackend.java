@@ -106,7 +106,7 @@ public class PTXBackend extends C99FFIBackend {
     public String createCode(KernelCallGraph kernelCallGraph, PTXCodeBuilder builder, Object[] args) {
         StringBuilder out = new StringBuilder();
         StringBuilder invokedMethods = new StringBuilder();
-        FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.entrypoint.funcOpWrapper().op(),kernelCallGraph.computeContext.accelerator.lookup);
+        FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op());
         FuncOpWrapper lowered = f.lower();
         HashMap<String, Object> argsMap = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
@@ -118,7 +118,7 @@ public class PTXBackend extends C99FFIBackend {
         out.append(builder.getTextAndReset());
 
         for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
-            FuncOpWrapper calledFunc = new FuncOpWrapper(k.funcOpWrapper().op(),kernelCallGraph.computeContext.accelerator.lookup);
+            FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op());
             FuncOpWrapper loweredFunc = calledFunc.lower();
             loweredFunc = transformPtrs(loweredFunc, argsMap);
             invokedMethods.append(createFunction(new PTXCodeBuilder(addressSize).nl().nl(), loweredFunc, false));
@@ -137,11 +137,11 @@ public class PTXBackend extends C99FFIBackend {
     }
 
     public FuncOpWrapper transformPtrs(FuncOpWrapper func, HashMap<String, Object> argsMap) {
-        return FuncOpWrapper.wrap(func.op().transform((block, op) -> {
+        return FuncOpWrapper.wrap(func.lookup,func.op().transform((block, op) -> {
             CopyContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (op instanceof CoreOp.InvokeOp invokeOp
-                    && OpWrapper.wrap(invokeOp, func.lookup) instanceof InvokeOpWrapper invokeOpWrapper) {
+                    && OpWrapper.wrap(func.lookup,invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
                 if (invokeOpWrapper.isIfaceBufferMethod()
                         && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
                         && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
@@ -165,7 +165,7 @@ public class PTXBackend extends C99FFIBackend {
                 block.apply(op);
             }
             return block;
-        }),func.lookup);
+        }));
     }
 
     public String createFunction(PTXCodeBuilder builder, FuncOpWrapper lowered, boolean entry) {
@@ -182,7 +182,7 @@ public class PTXBackend extends C99FFIBackend {
         builder.functionPrologue();
 
         out = builder.getTextAndReset();
-        ssa.firstBody().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(o->OpWrapper.wrap(o,lowered.lookup))));
+        ssa.firstBody().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(o->OpWrapper.wrap(lowered.lookup,o))));
 
         builder.functionEpilogue();
         body = builder.getTextAndReset();

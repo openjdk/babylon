@@ -64,8 +64,8 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder functionDeclaration(MethodHandles.Lookup lookup,JavaType type, String name) {
-        return keyword("inline").space().type(lookup,type).space().identifier(name);
+    public OpenCLHatKernelBuilder functionDeclaration(CodeBuilderContext codeBuilderContext,JavaType type, String name) {
+        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(name);
     }
 
     @Override
@@ -74,9 +74,9 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder atomicInc(CodeBuilderContext buildContext, MethodHandles.Lookup lookup, Op.Result instanceResult, String name){
+    public OpenCLHatKernelBuilder atomicInc(CodeBuilderContext buildContext,  Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ -> {
-              ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op(),lookup));
+              ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),instanceResult.op()));
               rarrow().identifier(name);
           });
     }

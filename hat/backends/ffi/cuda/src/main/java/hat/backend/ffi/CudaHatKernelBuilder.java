@@ -68,8 +68,8 @@ public class CudaHatKernelBuilder extends C99HATKernelBuilder<CudaHatKernelBuild
     }
 
     @Override
-    public CudaHatKernelBuilder functionDeclaration(MethodHandles.Lookup lookup,JavaType javaType, String name) {
-        return externC().space().keyword("__device__").space().keyword("inline").space().type(lookup,javaType).space().identifier(name);
+    public CudaHatKernelBuilder functionDeclaration(CodeBuilderContext codeBuilderContext,JavaType javaType, String name) {
+        return externC().space().keyword("__device__").space().keyword("inline").space().type(codeBuilderContext,javaType).space().identifier(name);
     }
 
     @Override
@@ -79,9 +79,9 @@ public class CudaHatKernelBuilder extends C99HATKernelBuilder<CudaHatKernelBuild
 
 
     @Override
-    public CudaHatKernelBuilder atomicInc(CodeBuilderContext buildContext, MethodHandles.Lookup lookup,Op.Result instanceResult, String name){
+    public CudaHatKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
         return identifier("atomicAdd").paren(_ -> {
-             ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op(),lookup));
+             ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),instanceResult.op()));
              rarrow().identifier(name).comma().literal(1);
         });
     }

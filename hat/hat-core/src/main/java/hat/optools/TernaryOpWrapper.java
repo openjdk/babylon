@@ -31,8 +31,8 @@ import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public class TernaryOpWrapper extends OpWrapper<ExtendedOp.JavaConditionalExpressionOp> {
-    public TernaryOpWrapper(ExtendedOp.JavaConditionalExpressionOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    public TernaryOpWrapper( MethodHandles.Lookup lookup,ExtendedOp.JavaConditionalExpressionOp op) {
+        super(lookup,op);
     }
 
     public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {

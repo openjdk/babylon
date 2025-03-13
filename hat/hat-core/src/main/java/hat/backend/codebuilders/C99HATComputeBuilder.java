@@ -39,11 +39,12 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
     }
 
     public T compute(FuncOpWrapper funcOpWrapper) {
+        CodeBuilderContext buildContext = new CodeBuilderContext(funcOpWrapper);
         computeDeclaration(funcOpWrapper.functionReturnTypeDesc(), funcOpWrapper.functionName());
         parenNlIndented(_ ->
-                commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type(funcOpWrapper.lookup,(JavaType) info.parameter.type()).space().varName(info.varOp))
+                commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
-        CodeBuilderContext buildContext = new CodeBuilderContext(funcOpWrapper);
+
         braceNlIndented(_ ->
                 funcOpWrapper.wrappedRootOpStream(funcOpWrapper.firstBlockOfFirstBody()).forEach(root ->
                         recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()

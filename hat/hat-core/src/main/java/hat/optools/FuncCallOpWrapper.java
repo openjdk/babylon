@@ -29,8 +29,8 @@ import jdk.incubator.code.op.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class FuncCallOpWrapper extends OpWrapper<CoreOp.FuncCallOp> {
-    public FuncCallOpWrapper(CoreOp.FuncCallOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    public FuncCallOpWrapper( MethodHandles.Lookup lookup,CoreOp.FuncCallOp op) {
+        super(lookup,op);
     }
 
 

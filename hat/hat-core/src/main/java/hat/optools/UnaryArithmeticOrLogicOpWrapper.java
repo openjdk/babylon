@@ -29,7 +29,7 @@ import jdk.incubator.code.op.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class UnaryArithmeticOrLogicOpWrapper extends UnaryOpWrapper<CoreOp.UnaryOp> {
-    UnaryArithmeticOrLogicOpWrapper(CoreOp.UnaryOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    UnaryArithmeticOrLogicOpWrapper( MethodHandles.Lookup lookup,CoreOp.UnaryOp op) {
+        super(lookup,op);
     }
 }

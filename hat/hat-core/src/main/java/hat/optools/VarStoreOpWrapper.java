@@ -31,8 +31,8 @@ import java.lang.invoke.MethodHandles;
 public class VarStoreOpWrapper extends VarAccessOpWrapper<CoreOp.VarAccessOp.VarStoreOp> implements StoreOpWrapper {
 
 
-    VarStoreOpWrapper(CoreOp.VarAccessOp.VarStoreOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    VarStoreOpWrapper( MethodHandles.Lookup lookup,CoreOp.VarAccessOp.VarStoreOp op) {
+        super(lookup,op);
     }
 
 }

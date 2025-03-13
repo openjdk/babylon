@@ -29,7 +29,7 @@ import jdk.incubator.code.Op;
 import java.lang.invoke.MethodHandles;
 
 public abstract class UnaryOpWrapper<T extends Op> extends OpWrapper<T> {
-    UnaryOpWrapper(T op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    UnaryOpWrapper(MethodHandles.Lookup lookup,T op) {
+        super(lookup,op);
     }
 }

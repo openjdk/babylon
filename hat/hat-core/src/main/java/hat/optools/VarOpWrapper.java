@@ -30,8 +30,8 @@ import jdk.incubator.code.type.JavaType;
 import java.lang.invoke.MethodHandles;
 
 public abstract class VarOpWrapper extends OpWrapper<CoreOp.VarOp> {
-    public VarOpWrapper(CoreOp.VarOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    public VarOpWrapper(MethodHandles.Lookup lookup,CoreOp.VarOp op) {
+        super(lookup, op);
     }
 
     public JavaType javaType() {
@@ -43,6 +43,6 @@ public abstract class VarOpWrapper extends OpWrapper<CoreOp.VarOp> {
     }
 
     public boolean isIfaceAssignment() {
-        return isIface(lookup,javaType());
+        return isIface(javaType());
     }
 }
