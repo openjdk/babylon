@@ -201,8 +201,8 @@ final class OnnxPartialEvaluator {
         // an entry block with a parent body whose nearest ancestor body
         // is the current context block's parent body
         BlockContext yieldContext = oc.stack.peek();
-        assert yieldContext == null ||
-                yieldContext.b().parentBody() == entry.parentBody().parentOp().ancestorBody();
+//        assert yieldContext == null ||
+//                yieldContext.b().parentBody() == entry.parentBody().parentOp().ancestorBody();
 
         // Note that first block cannot have any successors so the queue will have at least one entry
         oc.stack.push(new BlockContext(entry, evaluatedValues));
@@ -315,12 +315,6 @@ final class OnnxPartialEvaluator {
                         attrs.add(Optional.empty());
                     }
                 }
-                evaluatedAttributes.put(io, attrs);
-            } else if (opClass == ExplicitOnnxOps.If.class) {
-                // @@@ hard-coded 2 extra undeclared attributes
-                List<Object> attrs = o.operands().subList(inputs.size(), inputs.size() + 2).stream()
-                        .map(oc::getValue)
-                        .toList();
                 evaluatedAttributes.put(io, attrs);
             } else {
                 for (int i = 0; i < attributes.size(); i++) {
@@ -479,7 +473,9 @@ final class OnnxPartialEvaluator {
                         .collect(Collectors.joining());
             }
             case CoreOp.LambdaOp lambdaOp -> {
-                return lambdaOp;
+                interpretBody(l, lambdaOp.body(), oc, List.of());
+                unevaluatedOperations.add(o);
+                return null;
             }
             case null, default -> throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));

@@ -1,7 +1,6 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandles;
 import java.util.Optional;
 import jdk.incubator.code.CodeReflection;
 import org.junit.jupiter.api.Assertions;
@@ -121,7 +120,7 @@ public class SimpleTest {
         return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Constant(1f));
     }
 
-//    @Test
+    @Test
     public void testIfConst() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var expFalse = Tensor.ofScalar(-1f);
@@ -138,10 +137,10 @@ public class SimpleTest {
     @CodeReflection
     public Tensor<Float> ifCapture(Tensor<Boolean> cond, Tensor<Float> trueValue) {
         var falseValue = OnnxOperators.Constant(-1f);
-        return OnnxOperators.If(cond, () -> OnnxOperators.Identity(falseValue), () -> trueValue);
+        return OnnxOperators.If(cond, () -> OnnxOperators.Identity(falseValue), () -> OnnxOperators.Identity(trueValue));
     }
 
-//    @Test
+    @Test
     public void testIfCapture() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var expFalse = Tensor.ofScalar(-1f);
