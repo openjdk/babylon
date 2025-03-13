@@ -49,25 +49,21 @@ public:
         // Bits 0-3 select platform id 0..5
         // Bits 4-7 select device id 0..15
         const static  int START_BIT_IDX = 16;
-        const static  int GPU_BIT =1<<START_BIT_IDX;
-        const static  int CPU_BIT =1<<17;
-        const static  int MINIMIZE_COPIES_BIT =1<<18;
-        const static  int TRACE_BIT =1<<19;
-        const static  int PROFILE_BIT =1<<20;
-        const static  int SHOW_CODE_BIT = 1 << 21;
-        const static  int SHOW_KERNEL_MODEL_BIT = 1 << 22;
-        const static  int SHOW_COMPUTE_MODEL_BIT = 1 <<23;
-        const static  int INFO_BIT = 1<<24;
-        const static  int TRACE_COPIES_BIT = 1 <<25;
-        const static  int TRACE_SKIPPED_COPIES_BIT = 1 <<26;
-        const static  int TRACE_ENQUEUES_BIT = 1 <<27;
-        const static  int TRACE_CALLS_BIT = 1 <<28;
-        const static  int END_BIT_IDX = 29;
+        const static  int MINIMIZE_COPIES_BIT =1<<START_BIT_IDX;
+        const static  int TRACE_BIT =1<<17;
+        const static  int PROFILE_BIT =1<<18;
+        const static  int SHOW_CODE_BIT = 1 << 19;
+        const static  int SHOW_KERNEL_MODEL_BIT = 1 << 20;
+        const static  int SHOW_COMPUTE_MODEL_BIT = 1 <<21;
+        const static  int INFO_BIT = 1<<22;
+        const static  int TRACE_COPIES_BIT = 1 <<23;
+        const static  int TRACE_SKIPPED_COPIES_BIT = 1 <<24;
+        const static  int TRACE_ENQUEUES_BIT = 1 <<25;
+        const static  int TRACE_CALLS_BIT = 1 <<26;
+        const static  int END_BIT_IDX = 27;
 
         const static  char *bitNames[]; // See below for out of line definition
         int configBits;
-        bool gpu;
-        bool cpu;
         bool minimizeCopies;
         bool alwaysCopy;
         bool trace;
@@ -185,8 +181,6 @@ public:
 extern "C" long getOpenCLBackend(int configBits);
 #ifdef opencl_backend_cpp
 const  char *OpenCLBackend::OpenCLConfig::bitNames[] = {
-              "GPU",
-              "CPU",
               "MINIMIZE_COPIES",
               "TRACE",
               "PROFILE",

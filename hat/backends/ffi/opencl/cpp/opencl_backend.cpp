@@ -27,8 +27,6 @@
 
 OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits):
        configBits(configBits),
-       gpu((configBits&GPU_BIT)==GPU_BIT),
-       cpu((configBits&CPU_BIT)==CPU_BIT),
        minimizeCopies((configBits&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
        alwaysCopy(!minimizeCopies),
        trace((configBits&TRACE_BIT)==TRACE_BIT),
@@ -40,14 +38,10 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits):
        showCode((configBits&SHOW_CODE_BIT)==SHOW_CODE_BIT),
        profile((configBits&PROFILE_BIT)==PROFILE_BIT),
        platform((configBits&0xf)),
-       device((configBits&0xf0)>>4)
-
-       {
+       device((configBits&0xf0)>>4){
        if (info){
           std::cout << "native show_code " << showCode <<std::endl;
           std::cout << "native info " << info<<std::endl;
-          std::cout << "native gpu " << gpu<<std::endl;
-          std::cout << "native cpu " << cpu<<std::endl;
           std::cout << "native minimizeCopies " << minimizeCopies<<std::endl;
           std::cout << "native alwaysCopy " << alwaysCopy<<std::endl;
           std::cout << "native trace " << trace<<std::endl;
@@ -191,21 +185,12 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
        BufferState_s * bufferState = BufferState_s::of(memorySegment,memorySegmentLength);
        if (bufferState->isDeviceDirty()){
           std::cout << "from getBufferFromDeviceIfDirty Buffer is device dirty so attempting to get buffer from device from OpenCLBackend "<<std::endl;
-            // we use static cast because the ptr type is void*
-            static_cast<OpenCLProgram::OpenCLKernel::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
-              if (openclConfig.traceEnqueues | openclConfig.traceCopies){
-                 std::cout << "copying buffer from device (from java access) "<< std::endl;
-              }
-                     //  if (openclConfig.traceCopies){
-                         // std::cout << "copying buffer from device "<< std::endl;
-                       //   bufferState->dump("After copy from device");
-                     //  }
-                       openclQueue.wait();
-                       openclQueue.release();
-                      //  bufferState->dump("1 After copy from device");
-                     // we don't clear the deviceDirty because we may have only read!  bufferState->clearDeviceDirty();
-                       // bufferState->dump("2 After copy from device");
-        //  std::cout << "We have pulled the buffer from the device and cleared device dirty flag"<<std::endl;
+          static_cast<OpenCLProgram::OpenCLKernel::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
+          if (openclConfig.traceEnqueues | openclConfig.traceCopies){
+             std::cout << "copying buffer from device (from java access) "<< std::endl;
+          }
+          openclQueue.wait();
+          openclQueue.release();
        }else{
           std::cout << "HOW DID WE GET HERE 1 attempting  to get buffer but buffer is not device dirty"<<std::endl;
           std::exit(1);
@@ -220,53 +205,57 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
 
 OpenCLBackend::OpenCLBackend(int configBits )
         : Backend(configBits), openclConfig(mode), openclQueue(this) {
-    if (openclConfig.trace){
-        std::cout << "openclConfig->gpu" << (openclConfig.gpu ? "true" : "false") << std::endl;
-        std::cout << "openclConfig->minimizeCopies" << (openclConfig.minimizeCopies ? "true" : "false") << std::endl;
-    }
-    cl_device_type requestedType =openclConfig.gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU;
 
     cl_int status;
     cl_uint platformc = 0;
     if ((status = clGetPlatformIDs(0, NULL, &platformc)) != CL_SUCCESS) {
-        if (status != CL_SUCCESS){
-           std::cerr << "clGetPlatformIDs (to get count) failed " << errorMsg(status)<<std::endl;
-        }
+        std::cerr << "clGetPlatformIDs (to get count) failed " << errorMsg(status)<<std::endl;
+        std::exit(1);
+        return;
+    }
+
+    if (openclConfig.platform >= platformc){
+        std::cerr << "We only have "<<platformc<<" platform"<<((platformc>1)?"s":"")<<" (platform[0]-platform["<<(platformc-1)<<"] inclusive) you requested platform["<<openclConfig.platform<<"]"<< std::endl;
+        std::exit(1);
         return;
     }
     cl_platform_id *platforms = new cl_platform_id[platformc];
     if ((status = clGetPlatformIDs(platformc, platforms, NULL)) != CL_SUCCESS) {
-         if (status != CL_SUCCESS){
-            std::cerr << "clGetPlatformIDs failed " << errorMsg(status)<<std::endl;
-         }
+        std::cerr << "clGetPlatformIDs failed " << errorMsg(status)<<std::endl;
+        std::exit(1);
         return;
     }
-
     cl_uint devicec = 0;
-    for (unsigned int i = 0; devicec == 0 && i < platformc; ++i) {
-        platform_id = platforms[i];
-        if ((status = clGetDeviceIDs(platform_id, requestedType, 0, NULL, &devicec)) != CL_SUCCESS) {
+        platform_id = platforms[openclConfig.platform];
+        if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 0, NULL, &devicec)) != CL_SUCCESS) {
             if (status != CL_SUCCESS){
                std::cerr << "clGetDeviceIDs (to get count) failed " << errorMsg(status)<<std::endl;
             }
             delete[] platforms;
             return;
         }
-    }
+       if (openclConfig.device >= devicec){
+            std::cerr << "Platform["<<openclConfig.platform<<"] only has "<<devicec<<" device"<<((devicec>1)?"s":"")<<" (device[0]-device["<<(devicec-1)<<"] inclusive) and you requested device["<<openclConfig.device<<"]"<< std::endl;
+            std::cerr << "No device available " << errorMsg(CL_DEVICE_NOT_AVAILABLE)<<std::endl;
+              delete[] platforms;
+            std::exit(1);
+            return;
+        }
+
     if (devicec == 0) {
         status = CL_DEVICE_NOT_AVAILABLE;
         std::cerr << "No device available " << errorMsg(status)<<std::endl;
+          delete[] platforms;
         return;
     }
     cl_device_id *device_ids = new cl_device_id[devicec];             // compute device id
-    if ((status = clGetDeviceIDs(platform_id, requestedType, devicec, device_ids, NULL)) != CL_SUCCESS) {
-
+    if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, devicec, device_ids, NULL)) != CL_SUCCESS) {
         std::cerr << "clGetDeviceIDs failed " << errorMsg(status)<<std::endl;
         delete[] platforms;
         delete[] device_ids;
         return;
     }
-    if ((context = clCreateContext(0, 1, device_ids, NULL, NULL, &status)) == NULL || status != CL_SUCCESS) {
+    if ((context = clCreateContext(nullptr, 1, &device_ids[openclConfig.device], NULL, NULL, &status)) == NULL || status != CL_SUCCESS) {
         std::cerr << "clCreateContext failed " << errorMsg(status)<<std::endl;
         delete[] platforms;
         delete[] device_ids;
@@ -287,45 +276,14 @@ OpenCLBackend::OpenCLBackend(int configBits )
     device_id = device_ids[0];
     delete[] device_ids;
     delete[] platforms;
+
 }
 
 OpenCLBackend::~OpenCLBackend() {
     clReleaseContext(context);
 
 }
-/*
-  static char *strInfo(cl_device_id device_id, cl_device_info device_info){
-     size_t sz;
-     cl_int  status = clGetDeviceInfo(device_id, device_info, 0, nullptr,  &sz);
-     char *ptr = new char[sz+1];
-     status = clGetDeviceInfo(device_id, device_info, sz, ptr,nullptr);
-     return ptr;
-  }
 
-  static cl_int cl_int_info(cl_device_id device_id, cl_device_info device_info){
-     cl_uint v;
-     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
-     return v;
-  }
-  static cl_ulong cl_ulong_info(cl_device_id device_id, cl_device_info device_info){
-     cl_ulong v;
-     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
-     return v;
-  }
-  static size_t size_t_info(cl_device_id device_id, cl_device_info device_info){
-     size_t v;
-     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(v), &v, nullptr);
-     return v;
-  }
-
-  static char *strInfo(cl_platform_id platform_id,cl_platform_info platform_info){
-       size_t sz;
-       cl_int  status = clGetPlatformInfo(platform_id, platform_info, 0, nullptr,  &sz);
-       char *ptr = new char[sz+1];
-       status = clGetPlatformInfo(platform_id, platform_info, sz, ptr,nullptr);
-       return ptr;
-  }
-  */
    char *OpenCLBackend::strInfo( cl_device_info device_info){
      size_t sz;
      cl_int  status = clGetDeviceInfo(device_id, device_info, 0, nullptr,  &sz);
