@@ -29,7 +29,7 @@ import jdk.incubator.code.op.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class BinaryLogicalOpWrapper extends BinaryOpWrapper<CoreOp.BinaryOp> {
-    BinaryLogicalOpWrapper(CoreOp.BinaryOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    BinaryLogicalOpWrapper( MethodHandles.Lookup lookup,CoreOp.BinaryOp op) {
+        super(lookup,op);
     }
 }

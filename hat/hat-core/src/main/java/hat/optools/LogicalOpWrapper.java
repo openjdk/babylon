@@ -30,8 +30,8 @@ import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public class LogicalOpWrapper extends BinaryOpWrapper<ExtendedOp.JavaConditionalOp> {
-    LogicalOpWrapper(ExtendedOp.JavaConditionalOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    LogicalOpWrapper(MethodHandles.Lookup lookup,ExtendedOp.JavaConditionalOp op) {
+        super(lookup,op);
     }
 
     public Stream<OpWrapper<?>> lhsWrappedYieldOpStream() {

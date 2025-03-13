@@ -34,8 +34,8 @@ import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.PrimitiveType;
 
 public abstract class FieldAccessOpWrapper<T extends CoreOp.FieldAccessOp> extends OpWrapper<T> {
-    FieldAccessOpWrapper(T op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    FieldAccessOpWrapper( MethodHandles.Lookup lookup,T op) {
+        super(lookup,op);
     }
     public boolean isKernelContextAccess() {
         var refType = fieldRef().refType();

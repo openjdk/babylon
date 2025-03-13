@@ -98,7 +98,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         kernelReachableResolvedMethodCall.funcOpWrapper().selectCalls(invokeOpWrapper -> {
             MethodRef methodRef = invokeOpWrapper.methodRef();
             Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();
-            Method invokeOpCalledMethod = invokeOpWrapper.method(this.computeContext.accelerator.lookup);
+            Method invokeOpCalledMethod = invokeOpWrapper.method();
             if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
                 //System.out.println("kernel reachable iface mapped buffer call  -> " + methodRef);
                 kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
@@ -109,7 +109,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 if (optionalFuncOp.isPresent()) {
                     //System.out.println("A call to a method on the kernel class which we have code model for " + methodRef);
                     kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                            new KernelReachableResolvedMethodCall(this, methodRef, invokeOpCalledMethod, OpWrapper.wrap(optionalFuncOp.get(),computeContext.accelerator.lookup)
+                            new KernelReachableResolvedMethodCall(this, methodRef, invokeOpCalledMethod, OpWrapper.wrap(computeContext.accelerator.lookup,optionalFuncOp.get())
                             )));
                 } else {
                     // System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);

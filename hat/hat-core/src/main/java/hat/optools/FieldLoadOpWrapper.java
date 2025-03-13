@@ -32,20 +32,18 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 
 public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldLoadOp> implements LoadOpWrapper {
-    FieldLoadOpWrapper(CoreOp.FieldAccessOp.FieldLoadOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    FieldLoadOpWrapper( MethodHandles.Lookup lookup,CoreOp.FieldAccessOp.FieldLoadOp op) {
+        super(lookup,op);
     }
 
     public Object getStaticFinalPrimitiveValue() {
         if (fieldType() instanceof ClassType classType) {
-            Class<?> clazz = (Class<?>) classTypeToType(lookup,classType);
+            Class<?> clazz = (Class<?>) classTypeToType(classType);
             try {
                 Field field = clazz.getField(fieldName());
                 field.setAccessible(true);
                 return field.get(null);
-            } catch (NoSuchFieldException e) {
-                throw new RuntimeException(e);
-            } catch (IllegalAccessException e) {
+            } catch (NoSuchFieldException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
         }

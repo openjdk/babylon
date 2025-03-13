@@ -29,7 +29,7 @@ import jdk.incubator.code.op.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class YieldOpWrapper extends StructuralOpWrapper<CoreOp.YieldOp> {
-    public YieldOpWrapper(CoreOp.YieldOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    public YieldOpWrapper(MethodHandles.Lookup lookup,CoreOp.YieldOp op) {
+        super(lookup,op);
     }
 }

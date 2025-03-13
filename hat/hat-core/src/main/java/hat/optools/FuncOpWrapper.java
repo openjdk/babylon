@@ -165,8 +165,8 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     public BiMap<Block.Parameter, CoreOp.VarOp> parameterVarOpMap = new BiMap<>();
     public BiMap<Block.Parameter, CoreOp.InvokeOp> parameterInvokeOpMap = new BiMap<>();
     public BiMap<Block.Parameter, OpsAndTypes.HatPtrOp> parameterHatPtrOpMap = new BiMap<>();
-    public FuncOpWrapper(CoreOp.FuncOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    public FuncOpWrapper( MethodHandles.Lookup lookup,CoreOp.FuncOp op) {
+        super(lookup,op);
 
         op().parameters().forEach(parameter -> {
             Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
@@ -189,18 +189,18 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     }
 
     public FuncOpWrapper lower() {
-        return OpWrapper.wrap(op().transform((block, op) -> {
+        return OpWrapper.wrap(lookup,op().transform((block, op) -> {
             if (op instanceof Op.Lowerable lop) {
                 return lop.lower(block);
             } else {
                 block.op(op);
                 return block;
             }
-        }),lookup);
+        }));
     }
 
     public FuncOpWrapper ssa() {
-        return OpWrapper.wrap(SSA.transform(op()),lookup);
+        return OpWrapper.wrap(lookup,SSA.transform(op()));
     }
 
 
@@ -227,20 +227,20 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     }
 
     public FuncOpWrapper transformInvokes(WrappedInvokeOpTransformer wrappedOpTransformer) {
-        return OpWrapper.wrap(op().transform((b, op) -> {
+        return OpWrapper.wrap(lookup,op().transform((b, op) -> {
             if (op instanceof CoreOp.InvokeOp invokeOp) {
-                wrappedOpTransformer.apply(b, OpWrapper.wrap(invokeOp,lookup));
+                wrappedOpTransformer.apply(b, OpWrapper.wrap(lookup,invokeOp));
             } else {
                 b.op(op);
             }
             return b;
-        }),lookup);
+        }));
     }
 
     public FuncOpWrapper transformIfaceInvokes(BiConsumer<Block.Builder,InvokeOpWrapper> wrappedOpTransformer) {
-        return OpWrapper.wrap(op().transform((b, op) -> {
+        return OpWrapper.wrap(lookup,op().transform((b, op) -> {
             if (op instanceof CoreOp.InvokeOp invokeOp) {
-                InvokeOpWrapper wrapped = OpWrapper.wrap(invokeOp,lookup);
+                InvokeOpWrapper wrapped = OpWrapper.wrap(lookup,invokeOp);
                 if (wrapped.isIfaceBufferMethod()) {
                     wrappedOpTransformer.accept(b,wrapped);
                 }else{
@@ -250,7 +250,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
                 b.op(op);
             }
             return b;
-        }),lookup);
+        }));
     }
     public static class WrappedOpReplacer<T extends Op, WT extends OpWrapper<T>>{
 
@@ -282,22 +282,22 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     }
 
     public FuncOpWrapper replace(Consumer<WrappedOpReplacer<?,OpWrapper<?>>> wrappedOpTransformer) {
-        return OpWrapper.wrap(op().transform((b, op) -> {
-            var replacer = new WrappedOpReplacer(b, OpWrapper.wrap(op,lookup));
+        return OpWrapper.wrap(lookup, op().transform((b, op) -> {
+            var replacer = new WrappedOpReplacer(b, OpWrapper.wrap(lookup,op));
             wrappedOpTransformer.accept(replacer);
             if (!replacer.replaced) {
                b.op(op);
             }
             return b;
-        }),lookup);
+        }));
     }
 
     public  <T extends Op, WT extends OpWrapper<T>>FuncOpWrapper findMapAndReplace(
             Predicate<OpWrapper<?>> predicate,
             Function<OpWrapper<?>, WT> mapper,
             Consumer<WrappedOpReplacer<T,WT>> wrappedOpTransformer) {
-        return OpWrapper.wrap(op().transform((b, op) -> {
-            var opWrapper = OpWrapper.wrap(op,lookup);
+        return OpWrapper.wrap(lookup, op().transform((b, op) -> {
+            var opWrapper = OpWrapper.wrap(lookup,op);
             if (predicate.test(opWrapper)) {
                 var replacer = new WrappedOpReplacer<T,WT>(b, mapper.apply(opWrapper));
                 wrappedOpTransformer.accept(replacer);
@@ -308,7 +308,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
                 b.op(op);
             }
             return b;
-        }),lookup);
+        }));
     }
     public String functionName() {
         return op().funcName();

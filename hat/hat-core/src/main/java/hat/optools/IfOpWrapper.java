@@ -30,8 +30,8 @@ import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public class IfOpWrapper extends StructuralOpWrapper<ExtendedOp.JavaIfOp> {
-    public IfOpWrapper(ExtendedOp.JavaIfOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    public IfOpWrapper(MethodHandles.Lookup lookup,ExtendedOp.JavaIfOp op) {
+        super(lookup,op);
     }
 
     public boolean hasElseN(int idx) {

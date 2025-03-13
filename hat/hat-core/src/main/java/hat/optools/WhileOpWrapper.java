@@ -31,8 +31,8 @@ import java.util.stream.Stream;
 
 public class WhileOpWrapper extends LoopOpWrapper<ExtendedOp.JavaWhileOp> {
 
-    WhileOpWrapper(ExtendedOp.JavaWhileOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    WhileOpWrapper( MethodHandles.Lookup lookup,ExtendedOp.JavaWhileOp op) {
+        super(lookup,op);
     }
 
     @Override

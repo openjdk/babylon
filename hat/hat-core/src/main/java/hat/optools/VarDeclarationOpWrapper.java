@@ -29,7 +29,7 @@ import jdk.incubator.code.op.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class VarDeclarationOpWrapper extends VarOpWrapper implements StoreOpWrapper {
-    public VarDeclarationOpWrapper(CoreOp.VarOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    public VarDeclarationOpWrapper( MethodHandles.Lookup lookup,CoreOp.VarOp op) {
+        super(lookup, op);
     }
 }

@@ -323,7 +323,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
          T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
 
-         T parencedence(CodeBuilderContext buildContext, MethodHandles.Lookup lookup, Op parent, Op child);
+         T parencedence(CodeBuilderContext buildContext,  Op parent, Op child);
 
          T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, Op child);
 
@@ -366,7 +366,9 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     }
 
     public static class CodeBuilderContext {
-
+        public MethodHandles.Lookup lookup(){
+            return funcOpWrapper.lookup;
+        }
         public static class Scope<OW extends OpWrapper<?>> {
             final Scope<?> parent;
             final OW opWrapper;

@@ -39,8 +39,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
-    ModuleOpWrapper(CoreOp.ModuleOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    ModuleOpWrapper(MethodHandles.Lookup lookup,CoreOp.ModuleOp op) {
+        super(lookup,op);
     }
 
     record MethodRefToEntryFuncOpCall(MethodRef methodRef, CoreOp.FuncOp funcOp) {
@@ -50,16 +50,16 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
                    List<CoreOp.FuncOp> moduleFuncOps) {
     }
 
-    public static ModuleOpWrapper createTransitiveInvokeModule(MethodHandles.Lookup lookup,
+    public  ModuleOpWrapper createTransitiveInvokeModule(
                                                                Method entryPoint) {
         Optional<CoreOp.FuncOp> codeModel = Op.ofMethod(entryPoint);
         if (codeModel.isPresent()) {
-            return OpWrapper.wrap(createTransitiveInvokeModule(lookup, MethodRef.method(entryPoint), codeModel.get()),lookup);
+            return OpWrapper.wrap(lookup, createTransitiveInvokeModule( MethodRef.method(entryPoint), codeModel.get()));
         } else {
-            return OpWrapper.wrap(CoreOp.module(List.of()),lookup);
+            return OpWrapper.wrap(lookup, CoreOp.module(List.of()));
         }
     }
-   /* static Method resolveToMethod(MethodHandles.Lookup lookup, MethodRef invokedMethodRef){
+   /*  Method resolveToMethod(MethodHandles.Lookup lookup, MethodRef invokedMethodRef){
         Method invokedMethod = null;
         try {
             invokedMethod = invokedMethodRef.resolveToMethod(lookup);
@@ -69,7 +69,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
         return invokedMethod;
     } */
 
-    static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup,
+     CoreOp.ModuleOp createTransitiveInvokeModule(
                                                         MethodRef methodRef, CoreOp.FuncOp entryFuncOp) {
         Closure closure = new Closure(new ArrayDeque<>(), new LinkedHashSet<>(), new ArrayList<>());
         closure.work.push(new MethodRefToEntryFuncOpCall(methodRef, entryFuncOp));
@@ -78,10 +78,10 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
             if (closure.funcsVisited.add(methodRefToEntryFuncOpCall.methodRef)) {
                 CoreOp.FuncOp tf = methodRefToEntryFuncOpCall.funcOp.transform(
                         methodRefToEntryFuncOpCall.methodRef.toString(), (blockBuilder, op) -> {
-                            if (op instanceof CoreOp.InvokeOp invokeOp && OpWrapper.wrap(invokeOp,lookup) instanceof InvokeOpWrapper invokeOpWrapper) {
-                                Method invokedMethod = invokeOpWrapper.method(lookup);
+                            if (op instanceof CoreOp.InvokeOp invokeOp && OpWrapper.wrap(lookup, invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
+                                Method invokedMethod = invokeOpWrapper.method();
                                 Optional<CoreOp.FuncOp> optionalInvokedFuncOp = Op.ofMethod(invokedMethod);
-                                if (optionalInvokedFuncOp.isPresent() && OpWrapper.wrap(optionalInvokedFuncOp.get(),lookup) instanceof FuncOpWrapper funcOpWrapper) {
+                                if (optionalInvokedFuncOp.isPresent() && OpWrapper.wrap(lookup, optionalInvokedFuncOp.get()) instanceof FuncOpWrapper funcOpWrapper) {
                                     MethodRefToEntryFuncOpCall call =
                                             new MethodRefToEntryFuncOpCall(invokeOpWrapper.methodRef(), funcOpWrapper.op());
                                     closure.work.push(call);

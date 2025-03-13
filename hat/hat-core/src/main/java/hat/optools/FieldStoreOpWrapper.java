@@ -32,8 +32,8 @@ import java.lang.invoke.MethodHandles;
 public class FieldStoreOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldStoreOp> implements StoreOpWrapper {
 
 
-    FieldStoreOpWrapper(CoreOp.FieldAccessOp.FieldStoreOp op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    FieldStoreOpWrapper( MethodHandles.Lookup lookup,CoreOp.FieldAccessOp.FieldStoreOp op) {
+        super(lookup,op);
     }
 
     public boolean isKernelContextAccess() {

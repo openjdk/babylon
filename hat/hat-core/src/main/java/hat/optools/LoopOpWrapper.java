@@ -30,8 +30,8 @@ import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public abstract class LoopOpWrapper<T extends Op> extends StructuralOpWrapper<T> {
-    LoopOpWrapper(T op, MethodHandles.Lookup lookup) {
-        super(op,lookup);
+    LoopOpWrapper(MethodHandles.Lookup lookup, T op ) {
+        super(lookup,op);
     }
 
     public abstract Stream<OpWrapper<?>> conditionWrappedYieldOpStream();

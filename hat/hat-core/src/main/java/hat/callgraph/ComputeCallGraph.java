@@ -99,7 +99,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
-                        } else if (InvokeOpWrapper.isIface(fow.lookup,paramInfo.javaType)) {
+                        } else if (InvokeOpWrapper.isIfaceUsingLookup(fow.lookup,paramInfo.javaType)) {
                             atLeastOneIfaceBufferParam.of(true);
                         } else {
                             hasOnlyPrimitiveAndIfaceBufferParams.of(false);
@@ -148,7 +148,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
         computeReachableResolvedMethodCall.funcOpWrapper().selectCalls((invokeWrapper) -> {
             MethodRef methodRef = invokeWrapper.methodRef();
             Class<?> javaRefClass = invokeWrapper.javaRefClass().orElseThrow();
-            Method invokeWrapperCalledMethod = invokeWrapper.method(this.computeContext.accelerator.lookup);
+            Method invokeWrapperCalledMethod = invokeWrapper.method();
             if (Buffer.class.isAssignableFrom(javaRefClass)) {
                 // System.out.println("iface mapped buffer call  -> " + methodRef);
                 computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
@@ -168,7 +168,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
             } else if (entrypoint.method.getDeclaringClass().equals(javaRefClass)) {
                 Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeWrapperCalledMethod);
                 if (optionalFuncOp.isPresent()) {
-                    FuncOpWrapper fow = OpWrapper.wrap(optionalFuncOp.get(),computeContext.accelerator.lookup);
+                    FuncOpWrapper fow = OpWrapper.wrap(computeContext.accelerator.lookup,optionalFuncOp.get());
                     if (isKernelDispatch(invokeWrapperCalledMethod, fow)) {
                         // System.out.println("A kernel reference (not a direct call) to a kernel " + methodRef);
                         kernelCallGraphMap.computeIfAbsent(methodRef, _ ->
