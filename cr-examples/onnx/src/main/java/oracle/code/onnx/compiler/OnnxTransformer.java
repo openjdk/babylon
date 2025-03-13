@@ -1,8 +1,11 @@
 package oracle.code.onnx.compiler;
 
-import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.*;
@@ -11,13 +14,6 @@ import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
-
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.*;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import jdk.incubator.code.OpTransformer;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
 
 // Transform the Java code model of an ONNX function to an ONNX code model
@@ -71,13 +67,16 @@ public class OnnxTransformer {
         });
 
         inits = new ArrayList<>();
+        var top = new Block.Builder[1];
         // turning field loads into additiona arguments
         inputFunc = inlinedFunc.transform((bb, op) -> {
+            if (top[0] == null) top[0] = bb;
             var cc  = bb.context();
             switch (op) {
                 case CoreOp.FieldAccessOp.FieldLoadOp flo when op.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS) -> {
                     inits.add(flo.fieldDescriptor());
-                    cc.mapValue(op.result(), bb.parameter(op.resultType()));
+                    // initializers turn into top block parameters
+                    cc.mapValue(op.result(), top[0].parameter(op.resultType()));
                 }
                 default -> bb.apply(op);
             }

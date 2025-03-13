@@ -175,7 +175,7 @@ public class SimpleTest {
         return OnnxOperators.If(cond, () -> OnnxOperators.Identity(initialized2), () -> OnnxOperators.Identity(initialized));
     }
 
-//    @Test
+    @Test
     public void testIfInitialized() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var condTrue = Tensor.ofScalar(true);
