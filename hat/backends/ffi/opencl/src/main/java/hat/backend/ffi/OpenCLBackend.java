@@ -37,7 +37,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
-    final Config config;
+    final OpenCLConfig config;
 
     final MethodHandle getBackend_MH;
     public long getBackend(int configBits) {
@@ -49,9 +49,9 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         return backendHandle;
     }
     public OpenCLBackend(String configSpec) {
-        this(Config.of(configSpec));
+        this(OpenCLConfig.of(configSpec));
     }
-    public OpenCLBackend(Config config) {
+    public OpenCLBackend(OpenCLConfig config) {
         super("opencl_backend");
         this.config = config;
         getBackend_MH  =  nativeLibrary.longFunc("getOpenCLBackend",JAVA_INT);
@@ -64,7 +64,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
 
     public OpenCLBackend() {
-        this(Config.of().or(Config.GPU()));
+        this(OpenCLConfig.of());
     }
 
 
