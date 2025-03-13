@@ -198,7 +198,7 @@ public class OnnxTransformer {
                         }
                     }
                     opArgs.addAll(attributes);
-                    if (operatorName.equals("If")) {
+                    if (opClass == ExplicitOnnxOps.If.class) {
                         // Explicit transformation of nested bodies
                         for (int i = 1; i < 3; i++) {
                             var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
