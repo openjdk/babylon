@@ -37,27 +37,32 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
 
 final class OnnxPartialEvaluator {
 
     static final JavaType ONNX_OPERATORS_CLASS = JavaType.type(OnnxOperators.class);
+    static final TypeElement TENSOR_RAW_CLASS = JavaType.type(Tensor.class);
 
     // Map from ONNX operator invocation to evaluated attributes
-    final Map<CoreOp.InvokeOp, List<Object>> evaluatedAttributes;
+    Map<CoreOp.InvokeOp, List<Object>> evaluatedAttributes;
 
     // Operations that depend directly or indirectly on input parameters
     // The operations' results are not evaluated
-    final Set<Op> unevaluatedOperations;
+    Set<Op> unevaluatedOperations;
+
+    List<Object> initializers;
 
     public OnnxPartialEvaluator() {
         this.evaluatedAttributes = new HashMap<>();
         this.unevaluatedOperations = new HashSet<>();
+        this.initializers = new ArrayList<>();
     }
 
     public <T extends Op & Op.Invokable>
-    void evaluate(MethodHandles.Lookup l, T op) {
-        var ev = new HashMap();
+    void evaluate(MethodHandles.Lookup l, T op, Map<Value, Object> evaluatedValues) {
+        var ev = new HashMap(evaluatedValues);
 
         interpretEntryBlock(l, op.body().entryBlock(), new OpContext(), ev);
 
@@ -201,8 +206,8 @@ final class OnnxPartialEvaluator {
         // an entry block with a parent body whose nearest ancestor body
         // is the current context block's parent body
         BlockContext yieldContext = oc.stack.peek();
-//        assert yieldContext == null ||
-//                yieldContext.b().parentBody() == entry.parentBody().parentOp().ancestorBody();
+        assert yieldContext == null ||
+                yieldContext.b().parentBody() == entry.parentBody().parentOp().ancestorBody();
 
         // Note that first block cannot have any successors so the queue will have at least one entry
         oc.stack.push(new BlockContext(entry, evaluatedValues));
@@ -302,7 +307,7 @@ final class OnnxPartialEvaluator {
             OnnxOp.OnnxSchema schema = schemaFromOnnxOpClass(opClass);
 
             List<OnnxOp.OnnxParameter> inputs = schema.inputs();
-            assert o.operands().subList(0, inputs.size()).stream().noneMatch(oc::isValueDefined);
+//            assert o.operands().subList(0, inputs.size()).stream().noneMatch(oc::isValueDefined);
             List<OnnxOp.OnnxAttribute> attributes = schema.attributes();
 
             if (opClass == OnnxOps.Constant.class && o.operands().size() == 1) {
@@ -316,6 +321,12 @@ final class OnnxPartialEvaluator {
                     }
                 }
                 evaluatedAttributes.put(io, attrs);
+            } else if (opClass == ExplicitOnnxOps.If.class) {
+                // @@@ hard-coded 2 extra undeclared attributes
+                List<Object> attrs = o.operands().subList(inputs.size(), inputs.size() + 2).stream()
+                        .map(oc::getValue)
+                        .toList();
+                evaluatedAttributes.put(io, attrs);
             } else {
                 for (int i = 0; i < attributes.size(); i++) {
                     assert oc.isValueDefined(o.operands().get(inputs.size() + i)) : operatorName;
@@ -326,6 +337,18 @@ final class OnnxPartialEvaluator {
                 evaluatedAttributes.put(io, attrs);
             }
 
+            unevaluatedOperations.add(o);
+            return null;
+        } else if (o instanceof CoreOp.FieldAccessOp.FieldLoadOp fo && fo.fieldDescriptor().type() instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS)) {
+            try {
+                if (fo.operands().isEmpty()) {
+                    initializers.add(fo.fieldDescriptor().resolveToHandle(l).get());
+                } else {
+                    initializers.add(fo.fieldDescriptor().resolveToHandle(l).get(oc.getValue(fo.operands().getFirst())));
+                }
+            } catch (ReflectiveOperationException ex) {
+                throw interpreterException(ex);
+            }
             unevaluatedOperations.add(o);
             return null;
         } else if (!o.operands().stream().allMatch(oc::isValueDefined)) {
@@ -473,9 +496,7 @@ final class OnnxPartialEvaluator {
                         .collect(Collectors.joining());
             }
             case CoreOp.LambdaOp lambdaOp -> {
-                interpretBody(l, lambdaOp.body(), oc, List.of());
-                unevaluatedOperations.add(o);
-                return null;
+                return lambdaOp;
             }
             case null, default -> throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));

@@ -13,7 +13,6 @@ import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
 import jdk.incubator.code.op.CoreOp;
-import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
 
@@ -51,12 +50,14 @@ public final class OnnxRuntime {
     public interface OnnxFunction<T> extends Supplier<T>, Quotable {
     }
 
-    static class CachedSessionClassValue extends ClassValue<Session> {
+    record CachedSession(Session session, int[] operandsMapping) {}
+
+    static class CachedSessionClassValue extends ClassValue<CachedSession> {
 
         private MethodHandles.Lookup l;
         private Quoted q;
 
-        Session computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
+        CachedSession computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
             try {
                 this.l = l;
                 this.q = q;
@@ -68,22 +69,15 @@ public final class OnnxRuntime {
             }
         }
 
-        // @@@ heuristic assumption the first non-tensor and non-varbox captured value is receiver
-        private static Object getReceiver(SequencedCollection<Object> values) {
-            for (var v : values) {
-                if (!(v instanceof Tensor || v instanceof CoreOp.Var)) return v;
-            }
-            return null;
-        }
-
         @Override
-        protected Session computeValue(Class<?> type) {
-            var trans = OnnxTransformer.ofLambda(l, (CoreOp.LambdaOp)q.op());
-            var func = trans.transform();
-            byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(), trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
+        protected CachedSession computeValue(Class<?> type) {
+            var mf = LambdaToFunc.fromLambda(l, (CoreOp.LambdaOp)q.op(), q.capturedValues());
+
+            List<Tensor> initializers = mf.func().initializers().stream().map(val -> (Tensor) val).toList();
+            byte[] protobufModel = OnnxProtoBuilder.build(mf.func().func().body().entryBlock(), initializers);
 
             if (DEBUG) {
-                System.out.println(func.toText());
+                System.out.println(mf.func().func().toText());
                 try {
                     var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
                     Files.write(export, protobufModel);
@@ -91,18 +85,13 @@ public final class OnnxRuntime {
                 } catch (IOException _) {}
             }
 
-            return getInstance().createSession(
+            return new CachedSession(getInstance().createSession(
                     Arena.ofAuto(), // cached session must be created under its own auto arena
-                    protobufModel);
-
+                    protobufModel), mf.operandsMapping());
         }
     }
 
     private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
-
-    public static <T> Tensor<T> execute(OnnxFunction<Tensor<T>> codeLambda) {
-        return execute(MethodHandles.lookup(), codeLambda);
-    }
 
     public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
         return execute(Arena.ofAuto(), l, codeLambda);
@@ -114,7 +103,9 @@ public final class OnnxRuntime {
 
         var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
 
-        List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
+        var captured = q.capturedValues().sequencedValues().toArray();
+        List<Tensor> arguments = IntStream.of(model.operandsMapping())
+                .mapToObj(i -> captured[i])
                 .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
                 .<Tensor>mapMulti((val, args) -> {
                     if (val instanceof Tensor t) {
@@ -122,7 +113,8 @@ public final class OnnxRuntime {
                     }
                 })
                 .toList();
-        return model.run(arena, arguments).getFirst();
+
+        return model.session.run(arena, arguments).getFirst();
     }
 
     public static OnnxRuntime getInstance() {
