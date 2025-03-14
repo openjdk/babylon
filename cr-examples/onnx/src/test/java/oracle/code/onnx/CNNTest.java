@@ -32,6 +32,7 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.TupleType;
 import jdk.incubator.code.writer.OpWriter;
+import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Test;
@@ -45,8 +46,8 @@ import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.channels.FileChannel;
+import java.util.HashMap;
 import java.util.function.Function;
-import oracle.code.onnx.compiler.OnnxTransformer;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -322,13 +323,13 @@ public class CNNTest {
     public void testModels() {
         try (var arena = Arena.ofConfined()) {
             CoreOp.FuncOp f = getFuncOp("cnn");
-            var onnxModel = new OnnxTransformer(MethodHandles.lookup(), f).transform();
-            System.out.println(onnxModel.toText());
+            var onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), new HashMap<>(), f);
+            System.out.println(onnxModel.func().toText());
 
             CoreOp.FuncOp expectedOnnxModel = cnnModel();
             System.out.println(expectedOnnxModel.toText());
 
-            Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
+            Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel.func()));
         }
     }
 
