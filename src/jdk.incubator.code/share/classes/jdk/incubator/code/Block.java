@@ -901,10 +901,11 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         for (Value v : op.operands()) {
-            if (!isReachable(v)) {
-                throw new IllegalStateException(
-                        String.format("Operand of operation %s is not defined in tree: %s", op, v));
-            }
+// @@@ captured values of lambdas are not defined in the same tree
+//            if (!isReachable(v)) {
+//                throw new IllegalStateException(
+//                        String.format("Operand of operation %s is not defined in tree: %s", op, v));
+//            }
             assert !v.isBound();
         }
 
