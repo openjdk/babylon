@@ -1,4 +1,4 @@
-/* vim: set ft=java: 
+/*
  *
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -24,8 +24,6 @@
  * questions.
  */
 
-import static bldr.Bldr.*;
-import static bldr.Bldr.Capabilities.*;
 
 void main(String[] argv) {
    var pomComment = """
@@ -50,24 +48,24 @@ void main(String[] argv) {
 
       Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
       or visit www.oracle.com if you need additional information or have any
-      questions.                
+      questions.
       """;
 
-  var hatDir = DirEntry.current();
+  var hatDir = Script.DirEntry.current();
   var hatCore = hatDir.existingDir("hat-core");
   var backends = hatDir.existingDir("backends");
   var examples = hatDir.existingDir("examples");
   var extractions = hatDir.existingDir("extractions");
   var buildDir = hatDir.existingBuildDir("build");
 
-  var opencl = OpenCL.of();
-  var opengl = OpenGL.of();
-  var cuda = CUDA.of();
-  var hip = HIP.of();
-  var jextract = JExtract.of();
-  var cmake = CMake.of();
+  var opencl = Script.Capabilities.OpenCL.of();
+  var opengl = Script.Capabilities.OpenGL.of();
+  var cuda = Script.Capabilities.CUDA.of();
+  var hip = Script.Capabilities.HIP.of();
+  var jextract = Script.Capabilities.JExtract.of();
+  var cmake = Script.Capabilities.CMake.of();
 
-  var capabilities = Capabilities.of(opencl, opengl, cuda, hip, jextract, cmake);
+  var capabilities = Script.Capabilities.of(opencl, opengl, cuda, hip, jextract, cmake);
 
   if (cmake.available()) {
     cmake.probe(buildDir, capabilities);
