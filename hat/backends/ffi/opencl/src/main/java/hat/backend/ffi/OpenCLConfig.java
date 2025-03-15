@@ -12,7 +12,7 @@ public record OpenCLConfig(int bits) {
     // Bits 0-3 select platform id 0..5
     // Bits 4-7 select device id 0..15
     private static final int START_BIT_IDX = 16;
-    private static final int MINIMIZE_COPIES_BIT = 1 << 16;
+    private static final int MINIMIZE_COPIES_BIT = 1 << START_BIT_IDX;
     private static final int TRACE_BIT = 1 << 17;
     private static final int PROFILE_BIT = 1 << 18;
     private static final int SHOW_CODE_BIT = 1 << 19;

@@ -6,8 +6,6 @@
       <sourceFolder url="file://$MODULE_DIR$/../hat-core/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../hat-core/src/main/test"  />
     </content>
-    <content url="file://$MODULE_DIR$" />
-    <content url="file://$MODULE_DIR$/../docs" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library">

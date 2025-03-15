@@ -82,7 +82,7 @@ Now we should be able to use maven to build, if successful maven will place all 
 ```bash
 cd hat
 . ./env.bash
-mvn clean  compile jar:jar install
+mvn clean  compile package install
 ls build
 hat-1.0.jar                         hat-example-heal-1.0.jar        libptx_backend.dylib
 hat-backend-ffi-cuda-1.0.jar        hat-example-mandel-1.0.jar      libspirv_backend.dylib
@@ -112,9 +112,9 @@ ${JAVA_HOME}/bin/java \
    mandel.Main
 ```
 
-The provided `hatrun` java launch script simplifies this somewhat, we just need to pass the backend name `ffi-opencl` and the package name `mandel`
+The provided `hat/run` java launch script simplifies this somewhat, we just need to pass the backend name `ffi-opencl` and the package name `mandel`
 (all examples are assumed to be in `packagename/Main.java`
 
 ```bash
-java @bldr/hatrun ffi-opencl mandel
+java @hat/run ffi-opencl mandel
 ```
