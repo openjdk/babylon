@@ -902,7 +902,6 @@ public final class Block implements CodeElement<Block, Op> {
 
         for (Value v : op.operands()) {
             if (!isReachable(v)) {
-                System.out.println(op + " operands: " + op.operands);
                 throw new IllegalStateException(
                         String.format("Operand of operation %s is not defined in tree: %s", op, v));
             }
