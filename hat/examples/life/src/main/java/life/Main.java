@@ -44,6 +44,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static hat.backend.Backend.FIRST;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
@@ -209,7 +210,7 @@ public class Main {
             }
         }
 
-        static void  updateUI(long now, CellGrid cellGrid, Viewer viewer, int from) {
+        static void  updateUI(long now, @RO CellGrid cellGrid, Viewer viewer, int from) {
             viewer.controls.updateCounters(now);
             cellGrid.copySliceTo(viewer.mainPanel.rasterData, from);
             viewer.state.lastUIUpdateCompleted =false;
@@ -222,36 +223,25 @@ public class Main {
         static public void compute(final @RO ComputeContext cc,
                                    Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
-            int skipped = 0;
+            int range = cellGrid.width() * cellGrid.height();
             while (viewer.state.generations < viewer.state.maxGenerations) {
-                long now = System.currentTimeMillis();
-                boolean shouldUpdateUI =  viewer.state.lastUIUpdateCompleted
-                        && ((now - viewer.state.timeOfLastUIUpdate) >= viewer.state.msPerFrame);
+                cc.dispatchKernel(range, kc -> Compute.life(kc, control, cellGrid));
 
-                cc.dispatchKernel(cellGrid.width() * cellGrid.height(), kc -> Compute.life(kc, control, cellGrid));
-
-                int to = control.from();
-                control.from(control.to());
-                control.to(to);
+                int to = control.from(); control.from(control.to()); control.to(to);
 
                 viewer.state.generations++;
                 viewer.state.generationsSinceLastChange++;
+                long now = System.currentTimeMillis();
 
-                if (shouldUpdateUI) {
-                    if (skipped > 0) {
-                        System.out.println("skipped " + skipped);
-                    }
-                    skipped=0;
+                if (viewer.state.lastUIUpdateCompleted
+                        && ((now - viewer.state.timeOfLastUIUpdate) >= viewer.state.msPerFrame)) {
                     updateUI(now,cellGrid,viewer,control.from());
-
-                }else{
-                    skipped++;
                 }
             }
         }
 
         static void nonHatCompute(CLWrapComputeContext clWrapComputeContext,  CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel,Viewer viewer, Control control, CellGrid cellGrid) {
-int skipped = 0;
+//int skipped = 0;
             while (viewer.state.generations < viewer.state.maxGenerations) {
 
                 long now = System.currentTimeMillis();
@@ -276,23 +266,16 @@ int skipped = 0;
                 viewer.state.generationsSinceLastChange++;
 
                 if (shouldUpdateUI) {
-                    if (skipped > 0) {
-                       // System.out.println("skipped " + skipped);
-                    }
-                    skipped=0;
+
                     if (viewer.state.deviceOrModeModified) {
                         viewer.state.generationsSinceLastChange = 0;
                         viewer.state.timeOfLastChange = now;
                         viewer.state.deviceOrModeModified = false;
                     }
                     updateUI(now, cellGrid,viewer,control.from());
-                   // viewer.controls.updateCounters(now);
-                  //  cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
-                  //  viewer.state.lastUIUpdateCompleted=false;
-                   // viewer.mainPanel.repaint();
-                   // viewer.state.timeOfLastUIUpdate = now;
-                }else{
-                   skipped++;
+
+                //}else{
+                //   skipped++;
                 }
             }
         }
@@ -300,8 +283,8 @@ int skipped = 0;
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),// FIRST
-                new OpenCLBackend("INFO,MINIMIZE_COPIES")
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST
+               // new OpenCLBackend("INFO,MINIMIZE_COPIES")
             // new OpenCLBackend("INFO,SHOW_COMPUTE_MODEL")
                 //new JavaMultiThreadedBackend()
                // new JavaSequentialBackend()

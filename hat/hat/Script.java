@@ -468,9 +468,9 @@ public class Script {
                     .map(d -> DirEntry.of(d.getPath()));
         }
 
-       // public Stream<DirEntry> subDirs(Predicate<DirEntry> predicate) {
-        //    return subDirs().filter(predicate);
-       // }
+     //   public Stream<DirEntry> subDirs(Predicate<DirEntry> predicate) {
+       //     return subDirs().filter(predicate);
+      //  }
 
         public XMLFile pom(
                 String comment, Consumer<XMLNode.PomXmlBuilder> pomXmlBuilderConsumer) {

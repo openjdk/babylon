@@ -39,21 +39,21 @@ public record BufferState(MemorySegment segment, long paddedSize) {
     // hat iface bffa   bitz
     // 4a7 1face bffa   b175
     public static final long MAGIC = 0x4a71facebffab175L;
-    public static int NONE = 0;
-    public static int BIT_HOST_NEW = 1<< 0;
-    public static int BIT_DEVICE_NEW = 1 << 1;
-    public static int BIT_HOST_DIRTY = 1 << 2;
-    public static int BIT_DEVICE_DIRTY = 1 << 3;
-    public static int BIT_HOST_CHECKED = 1 << 4;
+    public static final int NONE = 0;
+    public static final int BIT_HOST_NEW = 1<< 0;
+    public static final int BIT_DEVICE_NEW = 1 << 1;
+    public static final int BIT_HOST_DIRTY = 1 << 2;
+    public static final int BIT_DEVICE_DIRTY = 1 << 3;
+    public static final int BIT_HOST_CHECKED = 1 << 4;
 
-    public static int NO_STATE = 0;
-    public static int NEW_STATE = 1;
-    public static int HOST_OWNED = 2;
-    public static int DEVICE_OWNED = 3;
-    public static int DEVICE_VALID_HOST_HAS_COPY = 4;
+    public static final int NO_STATE = 0;
+    public static final int NEW_STATE = 1;
+    public static final int HOST_OWNED = 2;
+    public static final int DEVICE_OWNED = 3;
+    public static final int DEVICE_VALID_HOST_HAS_COPY = 4;
     public static String[] stateNames = new String[]{
             "NO_STATE",
-            "NEW_STAT",
+            "NEW_STATE",
             "HOST_OWNED",
             "DEVICE_OWNED",
             "DEVICE_VALID_HOST_HAS_COPY"
@@ -102,10 +102,12 @@ public record BufferState(MemorySegment segment, long paddedSize) {
         MemorySegment s = Buffer.getMemorySegment(buffer);
         return new BufferState(s, s.byteSize() - BufferState.byteSize());
     }
-    BufferState setState(int newState) {
+    public BufferState setState(int newState) {
         BufferState.state.set(segment, paddedSize, newState);
         return this;
     }
+
+
 
     BufferState setLength(long newLength) {
         BufferState.length.set(segment, paddedSize, newLength);
@@ -146,7 +148,12 @@ public record BufferState(MemorySegment segment, long paddedSize) {
         return this;
     }
 
-
+    public int getState() {
+        return (Integer)BufferState.state.get(segment, paddedSize);
+    }
+    public String getStateString(){
+        return stateNames[getState()];
+    }
     public int getBits() {
         return (Integer) BufferState.bits.get(segment, paddedSize);
     }

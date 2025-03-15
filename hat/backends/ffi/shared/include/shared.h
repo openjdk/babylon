@@ -230,10 +230,10 @@ extern void hexdump(void *ptr, int buflen);
 #ifdef shared_cpp
 const  char *BufferState_s::stateNames[] = {
               "NO_STATE",
-              "NEW_STAT",
-                        "HOST_OWNED",
-                        "DEVICE_OWNED",
-                        "DEVICE_VALID_HOST_HAS_COPY"
+              "NEW_STATE",
+              "HOST_OWNED",
+              "DEVICE_OWNED",
+              "DEVICE_VALID_HOST_HAS_COPY"
         };
 #endif
 

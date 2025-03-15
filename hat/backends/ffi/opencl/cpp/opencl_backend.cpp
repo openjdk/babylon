@@ -94,12 +94,28 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
 bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyToDevice( Arg_s *arg){
    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
    bool kernelReadsFromThisArg = (arg->value.buffer.access==RW_BYTE) || (arg->value.buffer.access==RO_BYTE);
-   bool isHostDirtyOrNew = bufferState->isHostDirty() | bufferState->isHostNew();
 
-   bool result=  (kernelReadsFromThisArg & isHostDirtyOrNew);
+   if (openclBackend->openclConfig.useState){
+     bool isAlwaysCopyingOrNewStateOrHostOwned =
+        openclBackend->openclConfig.alwaysCopy
+        ||  (bufferState->state == BufferState_s::NEW_STATE)
+         || ((bufferState->state == BufferState_s::HOST_OWNED));
+     if (openclBackend->openclConfig.showWhy){
+       std::cout<<
+                   "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy
+                   << " | arg.RW="<<(arg->value.buffer.access==RW_BYTE)
+                   << " | arg.RO="<<(arg->value.buffer.access==RO_BYTE)
+                   << " | kernel.needsToRead="<<  kernelReadsFromThisArg
+                   << " | Buffer state = "<< BufferState_s::stateNames[bufferState->state]
+                   <<" so "
+                     ;
+     }
+     return isAlwaysCopyingOrNewStateOrHostOwned;
+   }else{
+     bool isHostDirtyOrNew = bufferState->isHostDirty() | bufferState->isHostNew();
 
-   if (openclBackend->openclConfig.showWhy){
-     std::cout<<
+      if (openclBackend->openclConfig.showWhy){
+        std::cout<<
           "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy
           << " | arg.RW="<<(arg->value.buffer.access==RW_BYTE)
           << " | arg.RO="<<(arg->value.buffer.access==RO_BYTE)
@@ -109,32 +125,51 @@ bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyToDevic
           << " | buffer.deviceDirty="<< bufferState->isDeviceDirty()
           <<" so "
             ;
-    }
-    if (result && bufferState->isDeviceDirty()){
-            result= false;
       }
-   return openclBackend->openclConfig.alwaysCopy |result;
+
+     bool result=  (kernelReadsFromThisArg & isHostDirtyOrNew);
+     if (result && bufferState->isDeviceDirty()){
+       result= false;
+     }
+     return openclBackend->openclConfig.alwaysCopy |result;
+   }
 }
 bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyFromDevice(Arg_s *arg){
    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
+ bool kernelWroteToThisArg = (arg->value.buffer.access==WO_BYTE) |  (arg->value.buffer.access==RW_BYTE);
+    if (openclBackend->openclConfig.useState){
+       if (openclBackend->openclConfig.showWhy){
+           std::cout<<
+             "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy
+                << " | arg.WO="<<(arg->value.buffer.access==WO_BYTE)
+                << " | arg.RW="<<(arg->value.buffer.access==RW_BYTE)
+                << " | kernel.wroteToThisArg="<<  kernelWroteToThisArg
+                << "Buffer state = "<< BufferState_s::stateNames[bufferState->state]
+                <<" so " ;
+       }
+       return openclBackend->openclConfig.alwaysCopy;
+    }else{
 
-   bool kernelWroteToThisArg = (arg->value.buffer.access==WO_BYTE) |  (arg->value.buffer.access==RW_BYTE);
-   bool result = kernelWroteToThisArg;
-   if (openclBackend->openclConfig.showWhy){
-       std::cout<<
-         "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy
+       if (openclBackend->openclConfig.showWhy){
+         std::cout<<
+            "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy
             << " | arg.WO="<<(arg->value.buffer.access==WO_BYTE)
             << " | arg.RW="<<(arg->value.buffer.access==RW_BYTE)
             << " | kernel.wroteToThisArg="<<  kernelWroteToThisArg
             <<" so " ;
-      }
-   return openclBackend->openclConfig.alwaysCopy;
+       }
+       return openclBackend->openclConfig.alwaysCopy;
+    }
+
+
 }
 
 
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
     OpenCLKernel *openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
     OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
+   //  std::cout << "copyTo(" <<std::hex << (long) arg->value.buffer.memorySegment << "," << std::dec<<   bufferState->length <<")"<<std::endl;
+
     cl_int status = clEnqueueWriteBuffer(
        openclBackend->openclQueue.command_queue,
        clMem,
@@ -160,6 +195,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
 void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
     OpenCLKernel * openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
     OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
+ //  std::cout << "copyFrom(" <<std::hex << (long) arg->value.buffer.memorySegment << "," << std::dec<<   bufferState->length <<")"<<std::endl;
 
     cl_int status = clEnqueueReadBuffer(
        openclBackend->openclQueue.command_queue,
@@ -181,8 +217,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
        std::cout << "enqueued buffer for arg idx " << arg->idx << " in OpenCLBuffer::copyFromDevice()" << std::endl;
     }
 
-   // std::cout << "setting device dirty"<<std::endl;
-    bufferState->setDeviceDirty();
+
 
 }
 
@@ -230,10 +265,14 @@ bool OpenCLBackend::OpenCLProgram::programOK() {
   OpenCLBackend
   */
 bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
+    if (openclConfig.traceCalls){
+      std::cout << "getBufferFromDeviceIfDirty(" <<std::hex << (long)memorySegment << "," << std::dec<< memorySegmentLength <<"){"<<std::endl;
+    }
     if (openclConfig.minimizeCopies){
        BufferState_s * bufferState = BufferState_s::of(memorySegment,memorySegmentLength);
-       if (bufferState->isDeviceDirty()){
-          std::cout << "from getBufferFromDeviceIfDirty Buffer is device dirty so attempting to get buffer from device from OpenCLBackend "<<std::endl;
+       if (   (openclConfig.useState && (bufferState->state == BufferState_s::DEVICE_OWNED))
+           || (!openclConfig.useState && bufferState->isDeviceDirty())){
+
           static_cast<OpenCLProgram::OpenCLKernel::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
           if (openclConfig.traceEnqueues | openclConfig.traceCopies){
              std::cout << "copying buffer from device (from java access) "<< std::endl;
@@ -248,7 +287,9 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
      std::cerr << "HOW DID WE GET HERE ? java side should avoid calling getBufferFromDeviceIfDirty as we are not minimising buffers!"<<std::endl;
      std::exit(1);
     }
-
+    if (openclConfig.traceCalls){
+      std::cout << "}getBufferFromDeviceIfDirty()"<<std::endl;
+    }
     return true;
 }
 

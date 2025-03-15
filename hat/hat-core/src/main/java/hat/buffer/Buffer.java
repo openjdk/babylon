@@ -40,6 +40,16 @@ import static hat.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 
 public interface Buffer extends MappableIface {
 
+    default int getState(){
+        return BufferState.of(this).getState();
+    }
+    default void setState(int newState ){
+         BufferState.of(this).setState(newState);
+    }
+
+    default String getStateString(){
+        return BufferState.of(this).getStateString();
+    }
     default boolean isDeviceDirty(){
         return BufferState.of(this).isDeviceDirty();
     }
