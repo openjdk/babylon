@@ -23,7 +23,8 @@ public record OpenCLConfig(int bits) {
     private static final int TRACE_SKIPPED_COPIES_BIT = 1 << 24;
     private static final int TRACE_ENQUEUES_BIT = 1 << 25;
     private static final int TRACE_CALLS_BIT = 1 << 26;
-    private static final int END_BIT_IDX = 27;
+    private static final int SHOW_WHY_BIT = 1 << 27;
+    private static final int END_BIT_IDX = 28;
 
     private static String[] bitNames = {
             "MINIMIZE_COPIES",
@@ -36,7 +37,8 @@ public record OpenCLConfig(int bits) {
             "TRACE_COPIES",
             "TRACE_SKIPPED_COPIES",
             "TRACE_ENQUEUES",
-            "TRACE_CALLS"
+            "TRACE_CALLS",
+            "SHOW_WHY",
     };
 
     public static OpenCLConfig of() {
@@ -104,6 +106,13 @@ public record OpenCLConfig(int bits) {
             System.out.println("Unexpected opt '" + name + "'");
             return OpenCLConfig.of(0);
         }
+    }
+    public static OpenCLConfig SHOW_WHY() {
+        return new OpenCLConfig(SHOW_WHY_BIT);
+    }
+
+    public boolean isSHOW_WHY() {
+        return (bits & SHOW_WHY_BIT) == SHOW_WHY_BIT;
     }
 
     public static OpenCLConfig TRACE_COPIES() {

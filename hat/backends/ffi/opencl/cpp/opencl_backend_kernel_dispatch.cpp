@@ -96,27 +96,14 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                   if (openclBackend->openclConfig.trace){
                       std::cout << "Were reusing  arg "<<i<<" buffer "<<std::endl;
                   }
-
                   openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
                 }
-                if (openclBuffer->shouldCopyToDevice(arg,openclBackend->openclConfig.alwaysCopy,
-                      (openclBackend->openclConfig.traceCopies|openclBackend->openclConfig.traceEnqueues))){
-
-                       if (openclBackend->openclConfig.traceCopies){
-                          std::cout << "We are always copying  OR (HOST is JAVA dirty and the kernel is READS this arg) so copying arg " << arg->idx <<" to device "<< std::endl;
-                       }
+                if (openclBuffer->shouldCopyToDevice(arg)){
                        bufferState->clearHostDirty();
-                       if (openclBackend->openclConfig.traceEnqueues){
-                           std::cout << "copying arg " << arg->idx <<" to device "<< std::endl;
-                       }
                        openclBuffer->copyToDevice();
-
-                    }else{
-                     if (openclBackend->openclConfig.traceSkippedCopies){
-                           std::cout << "NOT copying arg " << arg->idx <<" to device "<< std::endl;
-                                                       // bufferState->dump("After copy from device");
-                     }
-                    }
+                }else if (openclBackend->openclConfig.traceSkippedCopies){
+                       std::cout << "NOT copying arg " << arg->idx <<" to device "<< std::endl;
+                }
 
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
                 if (status != CL_SUCCESS) {
@@ -184,22 +171,14 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
           if (arg->variant == '&') {
              BufferState_s * bufferState = BufferState_s::of(arg );
              OpenCLBuffer *openclBuffer = static_cast<OpenCLBuffer *>(bufferState->vendorPtr);
-             if (openclBuffer->shouldCopyFromDevice(arg,
-                 openclBackend->openclConfig.alwaysCopy,
-                 openclBackend->openclConfig.traceEnqueues)){
-                 openclBuffer->copyFromDevice();
-                //if (openclBackend->openclConfig.traceCopies){
-                    //std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
-                   // bufferState->dump("After copy from device");
-                //}
-                if (openclBackend->openclConfig.traceEnqueues){
+             if (openclBuffer->shouldCopyFromDevice(arg)){
+                openclBuffer->copyFromDevice();
+                if (openclBackend->openclConfig.traceCopies||openclBackend->openclConfig.traceEnqueues){
                    std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
                 }
-               // bufferState->setDeviceDirty();
              }else{
                  if (openclBackend->openclConfig.traceSkippedCopies){
                       std::cout << "NOT copying arg " << arg->idx <<" from device "<< std::endl;
-                                   // bufferState->dump("After copy from device");
                  }
              }
           }

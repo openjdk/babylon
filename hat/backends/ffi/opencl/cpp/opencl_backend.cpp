@@ -37,10 +37,11 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits):
        info((configBits&INFO_BIT)==INFO_BIT),
        showCode((configBits&SHOW_CODE_BIT)==SHOW_CODE_BIT),
        profile((configBits&PROFILE_BIT)==PROFILE_BIT),
+       showWhy((configBits&SHOW_WHY_BIT)==SHOW_WHY_BIT),
        platform((configBits&0xf)),
        device((configBits&0xf0)>>4){
        if (info){
-          std::cout << "native show_code " << showCode <<std::endl;
+          std::cout << "native showCode " << showCode <<std::endl;
           std::cout << "native info " << info<<std::endl;
           std::cout << "native minimizeCopies " << minimizeCopies<<std::endl;
           std::cout << "native alwaysCopy " << alwaysCopy<<std::endl;
@@ -50,6 +51,7 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits):
           std::cout << "native traceCopies " << traceCopies<<std::endl;
           std::cout << "native traceEnqueues " << traceEnqueues<<std::endl;
           std::cout << "native profile " << profile<<std::endl;
+          std::cout << "native showWhy " << showWhy<<std::endl;
           std::cout << "native platform " << platform<<std::endl;
           std::cout << "native device " << device<<std::endl;
        }
@@ -84,44 +86,44 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
 
 }
 
-bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer
-      ::shouldCopyToDevice( Arg_s *arg, bool alwaysCopy, bool showWhy){
+bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyToDevice( Arg_s *arg){
+   OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
    bool kernelReadsFromThisArg = (arg->value.buffer.access==RW_BYTE) || (arg->value.buffer.access==RO_BYTE);
    bool isHostDirtyOrNew = bufferState->isHostDirty() | bufferState->isHostNew();
 
    bool result=  (kernelReadsFromThisArg & isHostDirtyOrNew);
 
-   if (showWhy){
+   if (openclBackend->openclConfig.showWhy){
      std::cout<<
-          "alwaysCopy="<<alwaysCopy
-          << " | argRW="<<(arg->value.buffer.access==RW_BYTE)
-          << " | argRO="<<(arg->value.buffer.access==RO_BYTE)
-          << " | kernelNeedsToRead="<<  kernelReadsFromThisArg
-          << " | hostDirty="<< bufferState->isHostDirty()
-          << " | hostNew="<< bufferState->isHostNew()
-          << " | deviceDirty="<< bufferState->isDeviceDirty()
+          "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy
+          << " | arg.RW="<<(arg->value.buffer.access==RW_BYTE)
+          << " | arg.RO="<<(arg->value.buffer.access==RO_BYTE)
+          << " | kernel.needsToRead="<<  kernelReadsFromThisArg
+          << " | buffer.hostDirty="<< bufferState->isHostDirty()
+          << " | buffer.hostNew="<< bufferState->isHostNew()
+          << " | buffer.deviceDirty="<< bufferState->isDeviceDirty()
           <<" so "
             ;
     }
     if (result && bufferState->isDeviceDirty()){
             result= false;
       }
-   return alwaysCopy |result;
+   return openclBackend->openclConfig.alwaysCopy |result;
 }
-bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer
-     ::shouldCopyFromDevice(Arg_s *arg, bool alwaysCopy, bool showWhy ){
+bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyFromDevice(Arg_s *arg){
+   OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
+
    bool kernelWroteToThisArg = (arg->value.buffer.access==WO_BYTE) |  (arg->value.buffer.access==RW_BYTE);
    bool result = kernelWroteToThisArg;
-   if (showWhy){
+   if (openclBackend->openclConfig.showWhy){
        std::cout<<
-         "alwaysCopy="<<alwaysCopy
-            << " | argWO="<<(arg->value.buffer.access==WO_BYTE)
-            << " | argRW="<<(arg->value.buffer.access==RW_BYTE)
-            << " | kernelWroteToThisArg="<<  kernelWroteToThisArg
-            <<" so "
-              ;
+         "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy
+            << " | arg.WO="<<(arg->value.buffer.access==WO_BYTE)
+            << " | arg.RW="<<(arg->value.buffer.access==RW_BYTE)
+            << " | kernel.wroteToThisArg="<<  kernelWroteToThisArg
+            <<" so " ;
       }
-   return alwaysCopy;
+   return openclBackend->openclConfig.alwaysCopy;
 }
 
 
@@ -174,7 +176,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
        std::cout << "enqueued buffer for arg idx " << arg->idx << " in OpenCLBuffer::copyFromDevice()" << std::endl;
     }
 
-    std::cout << "setting device dirty"<<std::endl;
+   // std::cout << "setting device dirty"<<std::endl;
     bufferState->setDeviceDirty();
 
 }
