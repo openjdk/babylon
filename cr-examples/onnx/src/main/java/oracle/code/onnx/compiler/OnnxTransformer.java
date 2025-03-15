@@ -29,39 +29,31 @@ public class OnnxTransformer {
     private final List<FieldRef> inits;
 
     public static OnnxTransformer ofLambda(MethodHandles.Lookup lookup, CoreOp.LambdaOp lambda) {
-        var qotableLambdaFunc = SSA.transform((CoreOp.FuncOp)lambda.ancestorBody().parentOp().ancestorBody().parentOp());
-
-        var flatLambdaFunc = CoreOp.func(qotableLambdaFunc.funcName(), FunctionType.functionType(lambda.invokableType().returnType(), qotableLambdaFunc.invokableType().parameterTypes())).body(bb -> {
-            var cc  = bb.context();
-            cc.mapValues(qotableLambdaFunc.parameters(), bb.parameters());
-            qotableLambdaFunc.body().entryBlock().firstOp().bodies().getFirst().entryBlock().ops().getFirst().bodies().getFirst().entryBlock().ops().forEach(bb::apply);
+        var lambdaFunc = (CoreOp.FuncOp)lambda.ancestorBody().parentOp().ancestorBody().parentOp();
+        var flatLambdaFunc = lambdaFunc.transform((bb, op) -> {
+            switch (op) {
+                case CoreOp.QuotedOp qo -> {
+                    bb.context().mapValues(lambdaFunc.parameters(), bb.parameters());
+                    bb.transformBody(lambda.body(), List.of(), OpTransformer.COPYING_TRANSFORMER);
+                }
+                case CoreOp.ReturnOp _ -> {}
+                default -> bb.op(op);
+            }
+            return bb;
         });
-
         return new OnnxTransformer(lookup, flatLambdaFunc);
     }
 
     public OnnxTransformer(MethodHandles.Lookup lookup, CoreOp.FuncOp func) {
         l = lookup;
 
-        var inlinedFunc = func.transform(OpTransformer.DROP_LOCATION_TRANSFORMER).transform((bb, op) -> {
+        var inlinedFunc = func.transform((bb, op) -> {
             var cc  = bb.context();
             switch (op) {
-                case CoreOp.InvokeOp io when resolve(io) instanceof CoreOp.FuncOp inline -> {
-                    // @@@ inline the whole FuncOp with nested bodies
-                    var entryBlock = inline.transform(OpTransformer.DROP_LOCATION_TRANSFORMER).body().entryBlock();
-                    for (int i = 0; i < io.operands().size(); i++) {
-                        var out = cc.getValue(io.operands().get(i));
-                        cc.mapValue(entryBlock.parameters().get(i), cc.getValueOrDefault(out, out));
-                    }
-                    for (var o : entryBlock.ops()) {
-                        if (o instanceof CoreOp.ReturnOp ro) {
-                            cc.mapValue(io.result(), cc.getValue(ro.returnValue()));
-                        } else {
-                            bb.apply(o);
-                        }
-                    }
-                }
-                default -> bb.apply(op);
+                case CoreOp.InvokeOp io when resolve(io) instanceof CoreOp.FuncOp inline ->
+                    bb.inline(inline, cc.getValues(io.operands()), (_, v) -> cc.mapValue(io.result(), v));
+                default ->
+                    bb.apply(op);
             }
             return bb;
         });
@@ -118,16 +110,17 @@ public class OnnxTransformer {
 
         var paramTypes = onnxModel.invokableType().parameterTypes();
 
-        CoreOp.FuncOp stripModel = onnxModel;
+        CoreOp.FuncOp cutModel = onnxModel;
         if (!paramTypes.isEmpty() && !(paramTypes.getFirst() instanceof OnnxType.TensorType)) {
             // drop receiver
-            stripModel = CoreOp.func(onnxModel.funcName(), FunctionType.functionType(onnxModel.invokableType().returnType(), paramTypes.subList(1, paramTypes.size()))).body(bb -> {
+            var funcType = FunctionType.functionType(onnxModel.invokableType().returnType(), paramTypes.subList(1, paramTypes.size()));
+            cutModel = CoreOp.func(onnxModel.funcName(), funcType).body(bb -> {
                 bb.context().mapValues(onnxModel.parameters().subList(1, paramTypes.size()), bb.parameters());
-                onnxModel.body().entryBlock().ops().forEach(bb::apply);
+                bb.transformBody(onnxModel.body(), List.of(), OpTransformer.COPYING_TRANSFORMER);
             });
         }
 
-        return SSA.transform(stripModel).transform((b, op) -> {
+        return SSA.transform(cutModel).transform((b, op) -> {
             // Drop any non-terminating operation whose result is not used
             if (op instanceof Op.Terminating || !op.result().uses().isEmpty()) {
                 b.op(op);
