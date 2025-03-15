@@ -30,7 +30,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLConfig;
 import hat.backend.ffi.OpenCLBackend;
-import hat.ifacemapper.SegmentMapper;
+import hat.ifacemapper.BufferState;
 import jdk.incubator.code.CodeReflection;
 import nbody.Mode;
 import nbody.NBodyGLWindow;
@@ -316,11 +316,11 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
     @Override
     protected void moveBodies() {
         if (frameCount == 0) {
-            SegmentMapper.BufferState.of(universe).setHostDirty(true).setDeviceDirty(true);
+            BufferState.of(universe).setHostDirty(true).setDeviceDirty(true);
             // vel.copyToDevice = true;
             // pos.copyToDevice = true;
         } else {
-            SegmentMapper.BufferState.of(universe).setHostDirty(false).setDeviceDirty(true);
+            BufferState.of(universe).setHostDirty(false).setDeviceDirty(true);
             // vel.copyToDevice = false;
             //pos.copyToDevice = false;
         }

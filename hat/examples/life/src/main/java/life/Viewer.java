@@ -55,7 +55,7 @@ import java.awt.image.ImageObserver;
 public class Viewer extends JFrame {
 
     public static class State {
-        public final long requiredFrameRate = 10;
+        public final long requiredFrameRate = 5;
         public final long msPerFrame = 1000/requiredFrameRate;
         public final long maxGenerations = 1000000;
         private final Object doorBell = new Object();

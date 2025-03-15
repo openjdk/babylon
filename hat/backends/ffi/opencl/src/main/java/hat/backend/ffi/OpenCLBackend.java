@@ -30,6 +30,7 @@ import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
+import hat.ifacemapper.BufferState;
 
 import java.lang.invoke.MethodHandle;
 
@@ -101,13 +102,42 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
             throw new IllegalStateException("why is premutate being called if we are not minimizing buffer copies");
             //System.exit(1);
         }
-        if (b.isDeviceDirty()) {
+        if (config.isUSE_STATE() ) {
+
+            switch (b.getState()){
+                case BufferState.NO_STATE:
+                case BufferState.NEW_STATE :
+                case BufferState.HOST_OWNED :
+                case BufferState.DEVICE_VALID_HOST_HAS_COPY:{
+                    if (config.isSHOW_STATE()) {
+                        System.out.println("in preMutate state = " + b.getStateString() + " no action to take");
+                    }
+                break;
+                }
+                case BufferState.DEVICE_OWNED:{
+                    getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
+
+                    if (config.isSHOW_STATE()) {
+                        System.out.print("in preMutate state = " + b.getStateString() + " we pulled from device ");
+                    }
+                    b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
+                    if (config.isSHOW_STATE()) {
+                        System.out.println("and switched to " + b.getStateString());
+                    }
+                    break;
+                }
+                default:
+                    throw new IllegalStateException("Not expecting this state ");
+            }
+        }else {
+            if (b.isDeviceDirty()) {
                 if (!b.isHostChecked()) {
                     getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
                     b.setHostChecked();
                 }
                 b.clearDeviceDirty();
             }
+        }
 
     }
 
@@ -116,8 +146,17 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         if (!config.isMINIMIZE_COPIES()) {
             throw new IllegalStateException("why is postmutate being called if we are not minimizing buffer copies");
         }
-
+        if (config.isUSE_STATE()) {
+            if (config.isSHOW_STATE()) {
+                System.out.print("in postMutate state = " + b.getStateString() + " no action to take ");
+            }
+            b.setState(BufferState.HOST_OWNED);
+            if (config.isSHOW_STATE()) {
+                System.out.println("and switched to (or stayed on) " + b.getStateString());
+            }
+        }else {
             b.setHostDirty();
+        }
 
     }
 
@@ -126,13 +165,41 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         if (!config.isMINIMIZE_COPIES()) {
             throw new IllegalStateException("why is pre access being called if we are not minimizing buffer copies");
         }
+        if (config.isUSE_STATE() ) {
 
+            switch (b.getState()){
+                case BufferState.NO_STATE:
+                case BufferState.NEW_STATE :
+                case BufferState.HOST_OWNED :
+                case BufferState.DEVICE_VALID_HOST_HAS_COPY:{
+                    if (config.isSHOW_STATE()) {
+                        System.out.println("in preAccess state = " + b.getStateString() + " no action to take");
+                    }
+                    break;
+                }
+                case BufferState.DEVICE_OWNED:{
+                    getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
+
+                    if (config.isSHOW_STATE()) {
+                        System.out.print("in preAccess state = " + b.getStateString() + " we pulled from device ");
+                    }
+                    b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
+                    if (config.isSHOW_STATE()) {
+                        System.out.println("and switched to " + b.getStateString());
+                    }
+                    break;
+                }
+                default:
+                    throw new IllegalStateException("Not expecting this state ");
+            }
+        }else {
             if (b.isDeviceDirty() && !b.isHostChecked()) {
                 getBufferFromDeviceIfDirty(b); // calls through FFI and might block when fetching from device
                 // We don't call clearDeviceDirty() if we did then 'just reading on the host' would force copy in next dispatch
                 //so buffer is still considered deviceDirty
                 b.setHostChecked();
             }
+        }
     }
 
 
@@ -140,6 +207,9 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
     public void postAccess(Buffer b) {
         if (!config.isMINIMIZE_COPIES()) {
             throw new IllegalStateException("why is postaccess being called if we are not minimizing buffer copies");
+        }
+        if (config.isUSE_STATE() && config.isSHOW_STATE()) {
+            System.out.println("in postAccess state = " + b.getStateString());
         }
        // a no op buffer may well still be deviceDirty
     }
@@ -149,14 +219,42 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         if (!config.isMINIMIZE_COPIES()) {
             throw new IllegalStateException("why is preEscape being called if we are not minimizing buffer copies");
         }
+        if (config.isUSE_STATE() ) {
 
+            switch (b.getState()){
+                case BufferState.NO_STATE:
+                case BufferState.NEW_STATE :
+                case BufferState.HOST_OWNED :
+                case BufferState.DEVICE_VALID_HOST_HAS_COPY:{
+                    if (config.isSHOW_STATE()) {
+                        System.out.println("in preEscape state = " + b.getStateString() + " no action to take");
+                    }
+                    break;
+                }
+                case BufferState.DEVICE_OWNED:{
+                    getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
+
+                    if (config.isSHOW_STATE()) {
+                        System.out.print("in preEscape state = " + b.getStateString() + " we pulled from device ");
+                    }
+                    b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
+                    if (config.isSHOW_STATE()) {
+                        System.out.println("and switched to " + b.getStateString());
+                    }
+                    break;
+                }
+                default:
+                    throw new IllegalStateException("Not expecting this state ");
+            }
+        }else {
             if (b.isDeviceDirty()) {
                 if (!b.isHostChecked()) {
                     getBufferFromDeviceIfDirty(b);
                     b.setHostChecked();
                 }
-               // b.clearDeviceDirty();
+                // b.clearDeviceDirty();
             }
+        }
 
     }
 
@@ -165,8 +263,20 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         if (!config.isMINIMIZE_COPIES()) {
             throw new IllegalStateException("why is postEscape being called if we are not minimizing buffer copies");
         }
+        if (config.isUSE_STATE() ) {
 
-            b.setHostDirty(); // We have no choice but to assume escapee was modified by the call
+                    if (config.isSHOW_STATE()) {
+                        System.out.print("in postEscape state = " + b.getStateString() + " we pulled from device ");
+                    }
+                    b.setState(BufferState.HOST_OWNED);
+                    if (config.isSHOW_STATE()) {
+                        System.out.println("and switched to " + b.getStateString());
+                    }
+
+        }else {
+
+            b.setHostDirty();
+        }// We have no choice but to assume escapee was modified by the call
 
     }
 }

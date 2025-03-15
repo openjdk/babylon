@@ -64,9 +64,7 @@ typedef long s64_t;
 typedef unsigned long u64_t;
 
 extern void hexdump(void *ptr, int buflen);
- // hat iface buffer bits
- // hat iface bffa   bits
- // 4a7 1face bffa   b175
+
 
  #define UNKNOWN_BYTE 0
  #define RO_BYTE (1<<1)
@@ -127,15 +125,28 @@ extern void hexdump(void *ptr, int buflen);
    static const int   BIT_HOST_CHECKED =1<<4;
 
 
+   static const int NO_STATE = 0;
+   static const int NEW_STATE = 1;
+   static const int HOST_OWNED = 2;
+   static const int DEVICE_OWNED = 3;
+   static const int DEVICE_VALID_HOST_HAS_COPY = 4;
+   const static  char *stateNames[]; // See below for out of line definition
+
    long magic1;
+   long length;
    int bits;
-   int unused;
+   int state;
    void *vendorPtr;
    long magic2;
    bool ok(){
       return ((magic1 == MAGIC) && (magic2 == MAGIC));
    }
-
+   void setState(int newState) {
+      state = newState;
+   }
+   int getState() {
+      return state;
+   }
    void assignBits(int bitBits) {
       bits=bitBits;
    }
@@ -197,11 +208,11 @@ extern void hexdump(void *ptr, int buflen);
 
    void dump(const char *msg){
      if (ok()){
-        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}\n", msg, bits, unused, (long)vendorPtr);
+        printf("{%s,length: %016lx, bits:%08x, state:%08x, vendorPtr:%016lx}\n", msg, length, bits, state, (long)vendorPtr);
      }else{
         printf("%s bad magic \n", msg);
         printf("(magic1:%016lx,", magic1);
-        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}", msg, bits, unused, (long)vendorPtr);
+        printf("{%s, length: %016lx, bits:%08x, state:%08x, vendorPtr:%016lx}", msg, length, bits, state, (long)vendorPtr);
         printf("magic2:%016lx)\n", magic2);
      }
    }
@@ -216,6 +227,15 @@ extern void hexdump(void *ptr, int buflen);
            );
       }
 };
+#ifdef shared_cpp
+const  char *BufferState_s::stateNames[] = {
+              "NO_STATE",
+              "NEW_STATE",
+              "HOST_OWNED",
+              "DEVICE_OWNED",
+              "DEVICE_VALID_HOST_HAS_COPY"
+        };
+#endif
 
 struct ArgArray_s {
     u32_t argc;

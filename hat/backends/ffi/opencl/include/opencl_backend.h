@@ -60,7 +60,10 @@ public:
         const static  int TRACE_SKIPPED_COPIES_BIT = 1 <<24;
         const static  int TRACE_ENQUEUES_BIT = 1 <<25;
         const static  int TRACE_CALLS_BIT = 1 <<26;
-        const static  int END_BIT_IDX = 27;
+        const static  int SHOW_WHY_BIT = 1 <<27;
+        const static  int USE_STATE_BIT = 1 <<28;
+        const static  int SHOW_STATE_BIT = 1 <<29;
+        const static  int END_BIT_IDX = 30;
 
         const static  char *bitNames[]; // See below for out of line definition
         int configBits;
@@ -74,6 +77,9 @@ public:
         bool traceSkippedCopies;
         bool traceEnqueues;
         bool traceCalls;
+        bool showWhy;
+        bool useState;
+        bool showState;
         int platform; //0..15
         int device; //0..15
         OpenCLConfig(int mode);
@@ -131,9 +137,12 @@ public:
             class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
                 cl_mem clMem;
+                BufferState_s * bufferState;
                 void copyToDevice();
                 void copyFromDevice();
-                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
+                bool shouldCopyToDevice(Arg_s *arg);
+                bool shouldCopyFromDevice(Arg_s *arg);
+                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg, BufferState_s *bufferState);
                 virtual ~OpenCLBuffer();
             };
         private:
@@ -192,5 +201,8 @@ const  char *OpenCLBackend::OpenCLConfig::bitNames[] = {
               "TRACE_SKIPPED_COPIES",
               "TRACE_ENQUEUES",
               "TRACE_CALLS"
+              "SHOW_WHY_BIT",
+              "USE_STATE_BIT",
+              "SHOW_STATE_BIT"
         };
 #endif

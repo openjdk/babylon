@@ -81,6 +81,7 @@ public abstract class FFIBackendDriver implements Backend {
         if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
         }
+       // System.out.println("  !!!!!!!!!!!!!                   Getting buffer from device!!!");
         if (this instanceof BufferTracker) {
             try {
                 MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
