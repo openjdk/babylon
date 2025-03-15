@@ -131,9 +131,10 @@ public:
             class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
             public:
                 cl_mem clMem;
+                BufferState_s * bufferState;
                 void copyToDevice();
                 void copyFromDevice();
-                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
+                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg,BufferState_s *bufferState);
                 virtual ~OpenCLBuffer();
             };
         private:

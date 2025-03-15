@@ -27,11 +27,10 @@ package life;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.backend.Backend;
 import hat.backend.ffi.OpenCLBackend;
 import hat.buffer.Buffer;
+import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
-import hat.ifacemapper.SegmentMapper;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
 import jdk.incubator.code.CodeReflection;
@@ -45,7 +44,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import static hat.backend.Backend.FIRST;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
@@ -261,7 +259,7 @@ int skipped = 0;
                         && ((now - viewer.state.timeOfLastUIUpdate) >= viewer.state.msPerFrame);
 
                 if (viewer.state.usingGPU) {
-                    SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(cellGrid);
+                    BufferState bufferState = BufferState.of(cellGrid);
                     bufferState.setHostDirty(!viewer.state.minimizingCopies || (viewer.state.generations == 0)); // only first
                     bufferState.setDeviceDirty(!viewer.state.minimizingCopies || shouldUpdateUI);
                     kernel.run(clWrapComputeContext, cellGrid.wxh(), cellGrid, control);

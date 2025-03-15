@@ -64,9 +64,7 @@ typedef long s64_t;
 typedef unsigned long u64_t;
 
 extern void hexdump(void *ptr, int buflen);
- // hat iface buffer bits
- // hat iface bffa   bits
- // 4a7 1face bffa   b175
+
 
  #define UNKNOWN_BYTE 0
  #define RO_BYTE (1<<1)
@@ -128,6 +126,7 @@ extern void hexdump(void *ptr, int buflen);
 
 
    long magic1;
+   long length;
    int bits;
    int unused;
    void *vendorPtr;
@@ -197,11 +196,11 @@ extern void hexdump(void *ptr, int buflen);
 
    void dump(const char *msg){
      if (ok()){
-        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}\n", msg, bits, unused, (long)vendorPtr);
+        printf("{%s,length: %016lx, bits:%08x, unused:%08x, vendorPtr:%016lx}\n", msg, length, bits, unused, (long)vendorPtr);
      }else{
         printf("%s bad magic \n", msg);
         printf("(magic1:%016lx,", magic1);
-        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}", msg, bits, unused, (long)vendorPtr);
+        printf("{%s, length: %016lx, bits:%08x, unused:%08x, vendorPtr:%016lx}", msg, length, bits, unused, (long)vendorPtr);
         printf("magic2:%016lx)\n", magic2);
      }
    }

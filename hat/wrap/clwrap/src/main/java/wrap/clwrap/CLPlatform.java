@@ -25,7 +25,7 @@
 package wrap.clwrap;
 
 import hat.buffer.Buffer;
-import hat.ifacemapper.SegmentMapper;
+import hat.ifacemapper.BufferState;
 import opencl.opencl_h;
 import wrap.ArenaHolder;
 import wrap.Wrap;
@@ -243,7 +243,7 @@ public class CLPlatform implements ArenaHolder {
                                 }
                             } else if (args[i] instanceof Buffer buffer) {
                                 //  System.out.println("Arg "+i+" is a buffer so checking if we need to write");
-                                SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(buffer);
+                                BufferState bufferState = BufferState.of(buffer);
 
                                 //System.out.println("Before possible write"+ bufferState);
                                 MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
@@ -343,7 +343,7 @@ public class CLPlatform implements ArenaHolder {
                                 }
                             } else if (args[i] instanceof Buffer buffer) {
                                 //   System.out.println("Arg "+i+" is a buffer so checking if we need to read");
-                                SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(buffer);
+                                BufferState bufferState = BufferState.of(buffer);
                                 MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
                                 CLWrapComputeContext.ClMemPtr clmem = clWrapComputeContext.clMemMap.get(memorySegment);
                                 // System.out.println("Before possible read "+ bufferState);

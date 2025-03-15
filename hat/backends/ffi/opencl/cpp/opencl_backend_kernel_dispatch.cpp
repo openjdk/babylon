@@ -123,7 +123,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                BufferState_s * bufferState = BufferState_s::of(arg);
                OpenCLBuffer * openclBuffer =nullptr;
                if (bufferState->isHostNew()){
-                  openclBuffer = new OpenCLBuffer(this, arg);
+                  openclBuffer = new OpenCLBuffer(this, arg, bufferState);
                   if (openclBackend->openclConfig.trace){
                      std::cout << "We allocated arg "<<i<<" buffer "<<std::endl;
                   }
@@ -132,13 +132,14 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                   if (openclBackend->openclConfig.trace){
                       std::cout << "Were reusing  arg "<<i<<" buffer "<<std::endl;
                   }
+
                   openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
                 }
                 if (shouldCopyToDevice(bufferState, arg,openclBackend->openclConfig.alwaysCopy,
                       (openclBackend->openclConfig.traceCopies|openclBackend->openclConfig.traceEnqueues))){
 
                        if (openclBackend->openclConfig.traceCopies){
-                          std::cout << "We are always cloying  OR (HOST is JAVA dirty and the kernel is READS this arg) so copying arg " << arg->idx <<" to device "<< std::endl;
+                          std::cout << "We are always copying  OR (HOST is JAVA dirty and the kernel is READS this arg) so copying arg " << arg->idx <<" to device "<< std::endl;
                        }
                        bufferState->clearHostDirty();
                        if (openclBackend->openclConfig.traceEnqueues){

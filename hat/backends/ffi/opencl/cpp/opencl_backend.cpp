@@ -62,8 +62,8 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits):
   OpenCLBuffer
   */
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg)
-        : Backend::Program::Kernel::Buffer(kernel, arg) {
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg, BufferState_s *bufferState)
+        : Backend::Program::Kernel::Buffer(kernel, arg), bufferState(bufferState) {
     cl_int status;
     OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
     clMem = clCreateBuffer(
@@ -77,8 +77,6 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-
-    BufferState_s * bufferState = BufferState_s::of(arg);
      bufferState->vendorPtr =  static_cast<void *>(this);
     if (openclBackend->openclConfig.traceCopies){
         std::cout << "created buffer for arg idx "<< arg->idx << std::endl;
@@ -95,7 +93,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
        clMem,
        CL_FALSE,
        0,
-       arg->value.buffer.sizeInBytes,
+       bufferState->length, // arg->value.buffer.sizeInBytes,
        arg->value.buffer.memorySegment,
        openclBackend->openclQueue.eventc,
        openclBackend->openclQueue.eventListPtr(),
@@ -121,7 +119,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
        clMem,
        CL_FALSE,
        0,
-       arg->value.buffer.sizeInBytes,
+       bufferState->length,//arg->value.buffer.sizeInBytes,
        arg->value.buffer.memorySegment,
        openclBackend->openclQueue.eventc,
        openclBackend->openclQueue.eventListPtr(),
