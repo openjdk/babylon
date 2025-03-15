@@ -92,11 +92,10 @@ public abstract class FFIBackend extends FFIBackendDriver {
         bldr.op(CoreOp.invoke(wrapper.post, cc, iface));
     }
 
-    protected static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod, boolean show) {
+    protected static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod, boolean show, boolean inject) {
         FuncOpWrapper prevFOW = computeMethod.funcOpWrapper();
         FuncOpWrapper returnFOW = prevFOW;
-        boolean transform = true;
-        if (transform) {
+        if (inject) {
             if (show) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 returnFOW.op().writeTo(System.out);
@@ -134,6 +133,11 @@ public abstract class FFIBackend extends FFIBackendDriver {
             });
             if (show) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
+                returnFOW.op().writeTo(System.out);
+            }
+        }else{
+            if (show) {
+                System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
                 returnFOW.op().writeTo(System.out);
             }
         }

@@ -75,7 +75,7 @@ public class PTXBackend extends C99FFIBackend {
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("PTX backend recieved closed closure");
         System.out.println("PTX backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true,true);
     }
 
     @Override

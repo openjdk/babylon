@@ -70,8 +70,8 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        //System.out.println("OpenCL backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint, config.isSHOW_COMPUTE_MODEL());
+       // System.out.println("OpenCL backend received computeContext minimizing = "+ config.isMINIMIZE_COPIES());
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, config.isSHOW_COMPUTE_MODEL(), config.isMINIMIZE_COPIES());
     }
 
     @Override
@@ -96,44 +96,60 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
     @Override
     public void preMutate(Buffer b) {
-        if (config.isMINIMIZE_COPIES()) {
-            if (b.isDeviceDirty()) {
+
+        if (!config.isMINIMIZE_COPIES()) {
+            throw new IllegalStateException("why is premutate being called if we are not minimizing buffer copies");
+            //System.exit(1);
+        }
+        if (b.isDeviceDirty()) {
                 if (!b.isHostChecked()) {
                     getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
                     b.setHostChecked();
                 }
                 b.clearDeviceDirty();
             }
-        }
+
     }
 
     @Override
     public void postMutate(Buffer b) {
-        if (config.isMINIMIZE_COPIES()) {
-            b.setHostDirty();
+        if (!config.isMINIMIZE_COPIES()) {
+            throw new IllegalStateException("why is postmutate being called if we are not minimizing buffer copies");
         }
+
+            b.setHostDirty();
+
     }
 
     @Override
     public void preAccess(Buffer b) {
-        if (config.isMINIMIZE_COPIES()) {
+        if (!config.isMINIMIZE_COPIES()) {
+            throw new IllegalStateException("why is pre access being called if we are not minimizing buffer copies");
+        }
+
             if (b.isDeviceDirty() && !b.isHostChecked()) {
                 getBufferFromDeviceIfDirty(b); // calls through FFI and might block when fetching from device
                 // We don't call clearDeviceDirty() if we did then 'just reading on the host' would force copy in next dispatch
                 //so buffer is still considered deviceDirty
                 b.setHostChecked();
             }
-        }
     }
+
 
     @Override
     public void postAccess(Buffer b) {
+        if (!config.isMINIMIZE_COPIES()) {
+            throw new IllegalStateException("why is postaccess being called if we are not minimizing buffer copies");
+        }
        // a no op buffer may well still be deviceDirty
     }
 
     @Override
     public void preEscape(Buffer b) {
-        if (config.isMINIMIZE_COPIES()) {
+        if (!config.isMINIMIZE_COPIES()) {
+            throw new IllegalStateException("why is preEscape being called if we are not minimizing buffer copies");
+        }
+
             if (b.isDeviceDirty()) {
                 if (!b.isHostChecked()) {
                     getBufferFromDeviceIfDirty(b);
@@ -141,13 +157,16 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
                 }
                // b.clearDeviceDirty();
             }
-        }//  we have to assume the escapee is about to be accessed
+
     }
 
     @Override
     public void postEscape(Buffer b) {
-        if (config.isMINIMIZE_COPIES()) {
-            b.setHostDirty(); // We have no choice but to assume escapee was modified by the call
+        if (!config.isMINIMIZE_COPIES()) {
+            throw new IllegalStateException("why is postEscape being called if we are not minimizing buffer copies");
         }
+
+            b.setHostDirty(); // We have no choice but to assume escapee was modified by the call
+
     }
 }

@@ -57,7 +57,7 @@ public class MockBackend extends FFIBackend {
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Mock backend recieved closed closure");
         System.out.println("Mock backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true, true);
     }
 
     @Override

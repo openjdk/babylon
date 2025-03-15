@@ -61,7 +61,6 @@ public class MinBufferTest {
                 new OpenCLBackend(of(
                       //  TRACE(),
                         TRACE_COPIES(),
-                        GPU(),
                         MINIMIZE_COPIES()
                 ))
 

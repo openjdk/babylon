@@ -59,7 +59,7 @@ public class OpenCLBackend extends C99FFIBackend {
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("OpenCL backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true,true);
     }
 
     @Override

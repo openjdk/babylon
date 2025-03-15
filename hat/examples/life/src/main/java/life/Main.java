@@ -27,6 +27,7 @@ package life;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.backend.Backend;
 import hat.backend.ffi.OpenCLBackend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
@@ -210,6 +211,14 @@ public class Main {
             }
         }
 
+        static void  updateUI(long now, CellGrid cellGrid, Viewer viewer, int from) {
+            viewer.controls.updateCounters(now);
+            cellGrid.copySliceTo(viewer.mainPanel.rasterData, from);
+            viewer.state.lastUIUpdateCompleted =false;
+            viewer.mainPanel.repaint();
+            viewer.state.timeOfLastUIUpdate = now;
+        }
+
 
         @CodeReflection
         static public void compute(final @RO ComputeContext cc,
@@ -232,18 +241,13 @@ public class Main {
 
                 if (shouldUpdateUI) {
                     if (skipped > 0) {
-                    //    System.out.println("skipped " + skipped);
+                        System.out.println("skipped " + skipped);
                     }
                     skipped=0;
-                    viewer.controls.updateCounters(now);
-                    cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
-                    viewer.state.lastUIUpdateCompleted =false;
-                    viewer.mainPanel.repaint();
-                    viewer.state.timeOfLastUIUpdate = now;
+                    updateUI(now,cellGrid,viewer,control.from());
+
                 }else{
                     skipped++;
-
-
                 }
             }
         }
@@ -283,11 +287,12 @@ int skipped = 0;
                         viewer.state.timeOfLastChange = now;
                         viewer.state.deviceOrModeModified = false;
                     }
-                    viewer.controls.updateCounters(now);
-                    cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
-                    viewer.state.lastUIUpdateCompleted=false;
-                    viewer.mainPanel.repaint();
-                    viewer.state.timeOfLastUIUpdate = now;
+                    updateUI(now, cellGrid,viewer,control.from());
+                   // viewer.controls.updateCounters(now);
+                  //  cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
+                  //  viewer.state.lastUIUpdateCompleted=false;
+                   // viewer.mainPanel.repaint();
+                   // viewer.state.timeOfLastUIUpdate = now;
                 }else{
                    skipped++;
                 }
@@ -297,9 +302,9 @@ int skipped = 0;
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST
-              //  new OpenCLBackend("GPU,TRACE_COPIES,MINIMIZE_COPIES")
-             //  new OpenCLBackend("GPU,TRACE_COPIES")
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),// FIRST
+                new OpenCLBackend("INFO,MINIMIZE_COPIES")
+            // new OpenCLBackend("INFO,SHOW_COMPUTE_MODEL")
                 //new JavaMultiThreadedBackend()
                // new JavaSequentialBackend()
         );

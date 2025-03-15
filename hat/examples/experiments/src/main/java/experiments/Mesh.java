@@ -137,7 +137,7 @@ public class Mesh {
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup()
-                ,new OpenCLBackend(of(PROFILE(), GPU(), TRACE())));
+                ,new OpenCLBackend(of(PROFILE(),  TRACE())));
                 //,new DebugBackend(
                 //DebugBackend.HowToRunCompute.REFLECT,
                 //DebugBackend.HowToRunKernel.BABYLON_INTERPRETER));
