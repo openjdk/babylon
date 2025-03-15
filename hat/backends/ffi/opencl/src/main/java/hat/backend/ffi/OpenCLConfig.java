@@ -24,6 +24,8 @@ public record OpenCLConfig(int bits) {
     private static final int TRACE_ENQUEUES_BIT = 1 << 25;
     private static final int TRACE_CALLS_BIT = 1 << 26;
     private static final int SHOW_WHY_BIT = 1 << 27;
+    private static final int USE_STATE_BIT = 1 << 28;
+    private static final int SHOW_STATE_BIT = 1 << 29;
     private static final int END_BIT_IDX = 28;
 
     private static String[] bitNames = {
@@ -39,6 +41,8 @@ public record OpenCLConfig(int bits) {
             "TRACE_ENQUEUES",
             "TRACE_CALLS",
             "SHOW_WHY",
+            "USE_STATE",
+            "SHOW_STATE",
     };
 
     public static OpenCLConfig of() {
@@ -106,6 +110,20 @@ public record OpenCLConfig(int bits) {
             System.out.println("Unexpected opt '" + name + "'");
             return OpenCLConfig.of(0);
         }
+    }
+    public static OpenCLConfig USE_STATE() {
+        return new OpenCLConfig(USE_STATE_BIT);
+    }
+
+    public boolean isUSE_STATE() {
+        return (bits & USE_STATE_BIT) == USE_STATE_BIT;
+    }
+    public static OpenCLConfig SHOW_STATE() {
+        return new OpenCLConfig(SHOW_STATE_BIT);
+    }
+
+    public boolean isSHOW_STATE() {
+        return (bits & SHOW_STATE_BIT) == SHOW_STATE_BIT;
     }
     public static OpenCLConfig SHOW_WHY() {
         return new OpenCLConfig(SHOW_WHY_BIT);

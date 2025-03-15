@@ -46,11 +46,23 @@ public record BufferState(MemorySegment segment, long paddedSize) {
     public static int BIT_DEVICE_DIRTY = 1 << 3;
     public static int BIT_HOST_CHECKED = 1 << 4;
 
+    public static int NO_STATE = 0;
+    public static int NEW_STATE = 1;
+    public static int HOST_OWNED = 2;
+    public static int DEVICE_OWNED = 3;
+    public static int DEVICE_VALID_HOST_HAS_COPY = 4;
+    public static String[] stateNames = new String[]{
+            "NO_STATE",
+            "NEW_STAT",
+            "HOST_OWNED",
+            "DEVICE_OWNED",
+            "DEVICE_VALID_HOST_HAS_COPY"
+    };
     static final MemoryLayout stateMemoryLayout = MemoryLayout.structLayout(
             ValueLayout.JAVA_LONG.withName("magic1"),
             ValueLayout.JAVA_LONG.withName("length"),
             ValueLayout.JAVA_INT.withName("bits"),
-            ValueLayout.JAVA_INT.withName("unused"),
+            ValueLayout.JAVA_INT.withName("state"),
             ValueLayout.ADDRESS.withName("vendorPtr"),
             ValueLayout.JAVA_LONG.withName("magic2")
     ).withName("state");
@@ -67,6 +79,9 @@ public record BufferState(MemorySegment segment, long paddedSize) {
     );
     static final VarHandle bits = stateMemoryLayout.varHandle(
             MemoryLayout.PathElement.groupElement("bits")
+    );
+    static final VarHandle state = stateMemoryLayout.varHandle(
+            MemoryLayout.PathElement.groupElement("state")
     );
 
     static final VarHandle magic2 = stateMemoryLayout.varHandle(
@@ -86,6 +101,10 @@ public record BufferState(MemorySegment segment, long paddedSize) {
         Buffer buffer = (Buffer) Objects.requireNonNull(t);
         MemorySegment s = Buffer.getMemorySegment(buffer);
         return new BufferState(s, s.byteSize() - BufferState.byteSize());
+    }
+    BufferState setState(int newState) {
+        BufferState.state.set(segment, paddedSize, newState);
+        return this;
     }
 
     BufferState setLength(long newLength) {

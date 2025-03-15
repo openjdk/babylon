@@ -38,6 +38,9 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits):
        showCode((configBits&SHOW_CODE_BIT)==SHOW_CODE_BIT),
        profile((configBits&PROFILE_BIT)==PROFILE_BIT),
        showWhy((configBits&SHOW_WHY_BIT)==SHOW_WHY_BIT),
+       useState((configBits&USE_STATE_BIT)==USE_STATE_BIT),
+       showState((configBits&SHOW_STATE_BIT)==SHOW_STATE_BIT),
+
        platform((configBits&0xf)),
        device((configBits&0xf0)>>4){
        if (info){
@@ -52,6 +55,8 @@ OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits):
           std::cout << "native traceEnqueues " << traceEnqueues<<std::endl;
           std::cout << "native profile " << profile<<std::endl;
           std::cout << "native showWhy " << showWhy<<std::endl;
+           std::cout << "native useState " << useState<<std::endl;
+            std::cout << "native showState " << showState<<std::endl;
           std::cout << "native platform " << platform<<std::endl;
           std::cout << "native device " << device<<std::endl;
        }

@@ -349,7 +349,7 @@ public interface SegmentMapper<T> {
         }
         //System.out.println("Alloc 16 byte aligned layout + 16 bytes padded to next 16 bytes "+byteSize+"=>"+extendedByteSizePaddedTo16Bytes);
         var segment = arena.allocate(BufferState.getLayoutSizeAfterPadding(layout()) + BufferState.byteSize(), BufferState.alignment);
-        new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout())).setMagic().setLength(layout().byteSize()).assignBits(BufferState.BIT_HOST_NEW| BufferState.BIT_HOST_DIRTY);
+        new BufferState(segment, BufferState.getLayoutSizeAfterPadding(layout())).setMagic().setLength(layout().byteSize()).setState(BufferState.NEW_STATE).assignBits(BufferState.BIT_HOST_NEW| BufferState.BIT_HOST_DIRTY);
         T returnValue=  get(segment, layout(), boundSchema);
         // Uncomment if you want to check the State
         /*
