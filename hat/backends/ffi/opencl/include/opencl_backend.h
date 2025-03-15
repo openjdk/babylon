@@ -134,6 +134,9 @@ public:
                 BufferState_s * bufferState;
                 void copyToDevice();
                 void copyFromDevice();
+                bool shouldCopyToDevice(Arg_s *arg, bool alwaysCopy, bool showWhy);
+                bool shouldCopyFromDevice(Arg_s *arg, bool alwaysCopy, bool showWhy);
+
                 OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg,BufferState_s *bufferState);
                 virtual ~OpenCLBuffer();
             };

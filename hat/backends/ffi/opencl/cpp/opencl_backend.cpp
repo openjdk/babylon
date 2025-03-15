@@ -69,7 +69,7 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
     clMem = clCreateBuffer(
         openclBackend->context,
         CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
-        arg->value.buffer.sizeInBytes,
+        bufferState->length,// arg->value.buffer.sizeInBytes,
         arg->value.buffer.memorySegment,
         &status);
 
@@ -82,6 +82,46 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
         std::cout << "created buffer for arg idx "<< arg->idx << std::endl;
     }
 
+}
+
+bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer
+      ::shouldCopyToDevice( Arg_s *arg, bool alwaysCopy, bool showWhy){
+   bool kernelReadsFromThisArg = (arg->value.buffer.access==RW_BYTE) || (arg->value.buffer.access==RO_BYTE);
+   bool isHostDirtyOrNew = bufferState->isHostDirty() | bufferState->isHostNew();
+
+   bool result=  (kernelReadsFromThisArg & isHostDirtyOrNew);
+
+   if (showWhy){
+     std::cout<<
+          "alwaysCopy="<<alwaysCopy
+          << " | argRW="<<(arg->value.buffer.access==RW_BYTE)
+          << " | argRO="<<(arg->value.buffer.access==RO_BYTE)
+          << " | kernelNeedsToRead="<<  kernelReadsFromThisArg
+          << " | hostDirty="<< bufferState->isHostDirty()
+          << " | hostNew="<< bufferState->isHostNew()
+          << " | deviceDirty="<< bufferState->isDeviceDirty()
+          <<" so "
+            ;
+    }
+    if (result && bufferState->isDeviceDirty()){
+            result= false;
+      }
+   return alwaysCopy |result;
+}
+bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer
+     ::shouldCopyFromDevice(Arg_s *arg, bool alwaysCopy, bool showWhy ){
+   bool kernelWroteToThisArg = (arg->value.buffer.access==WO_BYTE) |  (arg->value.buffer.access==RW_BYTE);
+   bool result = kernelWroteToThisArg;
+   if (showWhy){
+       std::cout<<
+         "alwaysCopy="<<alwaysCopy
+            << " | argWO="<<(arg->value.buffer.access==WO_BYTE)
+            << " | argRW="<<(arg->value.buffer.access==RW_BYTE)
+            << " | kernelWroteToThisArg="<<  kernelWroteToThisArg
+            <<" so "
+              ;
+      }
+   return alwaysCopy;
 }
 
 
@@ -133,6 +173,10 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
     if(openclBackend->openclConfig.traceCopies){
        std::cout << "enqueued buffer for arg idx " << arg->idx << " in OpenCLBuffer::copyFromDevice()" << std::endl;
     }
+
+    std::cout << "setting device dirty"<<std::endl;
+    bufferState->setDeviceDirty();
+
 }
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
