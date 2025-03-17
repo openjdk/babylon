@@ -42,6 +42,7 @@ import wrap.glwrap.GLTexture;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 
+import static hat.backend.Backend.FIRST;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 import static opengl.opengl_h.glMatrixMode;
@@ -116,9 +117,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
     public OpenCLNBodyGLWindow(Arena arena, int width, int height, GLTexture particle, int bodyCount, Mode mode) {
         super(arena, width, height, particle, bodyCount, mode);
         final float maxDist = 80f;
-        accelerator = new Accelerator(MethodHandles.lookup(),
-                new OpenCLBackend(OpenCLConfig.of("GPU"))
-        );
+        accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
         universe = Universe.create(accelerator, bodyCount);
         for (int body = 0; body < bodyCount; body++) {
             Universe.Body b = universe.body(body);
