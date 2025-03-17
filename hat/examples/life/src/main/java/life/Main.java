@@ -27,7 +27,6 @@ package life;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.backend.ffi.OpenCLBackend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
@@ -210,72 +209,47 @@ public class Main {
             }
         }
 
-        static void  updateUI(long now, @RO CellGrid cellGrid, Viewer viewer, int from) {
-            viewer.controls.updateCounters(now);
-            cellGrid.copySliceTo(viewer.mainPanel.rasterData, from);
-            viewer.state.lastUIUpdateCompleted =false;
-            viewer.mainPanel.repaint();
-            viewer.state.timeOfLastUIUpdate = now;
-        }
+
 
 
         @CodeReflection
         static public void compute(final @RO ComputeContext cc,
-                                   Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
+                                   Viewer viewer, @RO Control ctrl, @RW CellGrid grid) {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
-            int range = cellGrid.width() * cellGrid.height();
-            while (viewer.state.generations < viewer.state.maxGenerations) {
-                cc.dispatchKernel(range, kc -> Compute.life(kc, control, cellGrid));
+            int range = grid.width() * grid.height();
+            while (viewer.stillRunning()) {
+                cc.dispatchKernel(range, kc -> Compute.life(kc, ctrl, grid));
 
-                int to = control.from(); control.from(control.to()); control.to(to);
+                int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
 
-                viewer.state.generations++;
-                viewer.state.generationsSinceLastChange++;
                 long now = System.currentTimeMillis();
-
-                if (viewer.state.lastUIUpdateCompleted
-                        && ((now - viewer.state.timeOfLastUIUpdate) >= viewer.state.msPerFrame)) {
-                    updateUI(now,cellGrid,viewer,control.from());
+                if (viewer.isReadyForUpdate(now)){
+                    viewer.update(now,grid,to);
                 }
             }
         }
 
         static void nonHatCompute(CLWrapComputeContext clWrapComputeContext,  CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel,Viewer viewer, Control control, CellGrid cellGrid) {
-//int skipped = 0;
-            while (viewer.state.generations < viewer.state.maxGenerations) {
+            int range = cellGrid.width() * cellGrid.height();
+            while (viewer.stillRunning()) {
 
                 long now = System.currentTimeMillis();
-                boolean shouldUpdateUI = viewer.state.lastUIUpdateCompleted
-                        && ((now - viewer.state.timeOfLastUIUpdate) >= viewer.state.msPerFrame);
+                boolean shouldUpdateUI = viewer.isReadyForUpdate(now);
 
                 if (viewer.state.usingGPU) {
                     BufferState bufferState = BufferState.of(cellGrid);
                     bufferState.setHostDirty(!viewer.state.minimizingCopies || (viewer.state.generations == 0)); // only first
                     bufferState.setDeviceDirty(!viewer.state.minimizingCopies || shouldUpdateUI);
-                    kernel.run(clWrapComputeContext, cellGrid.wxh(), cellGrid, control);
+                    kernel.run(clWrapComputeContext, range, cellGrid, control);
                 } else {
-                    IntStream.range(0, cellGrid.wxh()).parallel().forEach(kcx ->
+                    IntStream.range(0, range).parallel().forEach(kcx ->
                             Compute.lifePerIdx(kcx, control, cellGrid)
                     );
                 }
-                int tempFrom = control.from();
-                control.from(control.to());
-                control.to(tempFrom);
-
-                viewer.state.generations++;
-                viewer.state.generationsSinceLastChange++;
+                int to = control.from(); control.from(control.to());control.to(to);
 
                 if (shouldUpdateUI) {
-
-                    if (viewer.state.deviceOrModeModified) {
-                        viewer.state.generationsSinceLastChange = 0;
-                        viewer.state.timeOfLastChange = now;
-                        viewer.state.deviceOrModeModified = false;
-                    }
-                    updateUI(now, cellGrid,viewer,control.from());
-
-                //}else{
-                //   skipped++;
+                    viewer.update(now, cellGrid,control.from());
                 }
             }
         }
@@ -283,12 +257,7 @@ public class Main {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST
-               // new OpenCLBackend("INFO,MINIMIZE_COPIES")
-            // new OpenCLBackend("INFO,SHOW_COMPUTE_MODEL")
-                //new JavaMultiThreadedBackend()
-               // new JavaSequentialBackend()
-        );
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup());
 
         Arena arena = Arena.global();
         PatternData patternData = RleParser.readPatternData(

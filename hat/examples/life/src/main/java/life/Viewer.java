@@ -24,6 +24,7 @@
  */
 package life;
 
+import hat.ifacemapper.MappableIface;
 import hat.util.ui.SevenSegmentDisplay;
 
 import javax.swing.Box;
@@ -53,6 +54,34 @@ import java.awt.image.DataBufferByte;
 import java.awt.image.ImageObserver;
 
 public class Viewer extends JFrame {
+
+    public boolean isReadyForUpdate(long now) {
+        incGenerations();
+        return  (state.lastUIUpdateCompleted    && ((now - state.timeOfLastUIUpdate) >= state.msPerFrame));
+    }
+
+    public boolean stillRunning() {
+       return  state.generations < state.maxGenerations;
+    }
+
+    public void incGenerations() {
+        state.generations++;
+        state.generationsSinceLastChange++;
+    }
+
+     void update(long now, @MappableIface.RO Main.CellGrid cellGrid, int from) {
+
+        if (state.deviceOrModeModified) {
+            state.generationsSinceLastChange = 0;
+            state.timeOfLastChange = now;
+            state.deviceOrModeModified = false;
+        }
+        controls.updateCounters(now);
+        cellGrid.copySliceTo(mainPanel.rasterData, from);
+        state.lastUIUpdateCompleted =false;
+        mainPanel.repaint();
+        state.timeOfLastUIUpdate = now;
+    }
 
     public static class State {
         public final long requiredFrameRate = 5;
@@ -207,8 +236,8 @@ public class Viewer extends JFrame {
                 this.minimizeCopiesToggleButton.setEnabled(state.minimizingCopies);
                 minimizeCopiesToggleButton.addChangeListener(event -> {
                     this.state.minimizingCopies = minimizeCopiesToggleButton.isSelected();
-                    System.out.println("Minimizing Copies " + state.minimizingCopies);
-                    System.out.println("Use GPU " + state.usingGPU);
+                   // System.out.println("Minimizing Copies " + state.minimizingCopies);
+                  //  System.out.println("Use GPU " + state.usingGPU);
                 });
                 useGPUToggleButton.addChangeListener(event -> {
                     this.state.usingGPU = useGPUToggleButton.isSelected();

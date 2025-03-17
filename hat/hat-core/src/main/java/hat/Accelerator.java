@@ -47,6 +47,8 @@ import java.util.ServiceLoader;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import static hat.backend.Backend.FIRST;
+
 /**
  * This class provides the developer facing view of HAT, and wraps a <a href="backend/Backend.html">Backend</a> capable of
  * executing <b>NDRange</b> style execution.
@@ -83,8 +85,12 @@ public class Accelerator implements BufferAllocator, BufferTracker {
         return ndRange;
     }
 
+
     protected Accelerator(MethodHandles.Lookup lookup, ServiceLoader.Provider<Backend> provider) {
         this(lookup, provider.get());
+    }
+    public Accelerator(MethodHandles.Lookup lookup) {
+        this(lookup, FIRST);
     }
 
     /**
