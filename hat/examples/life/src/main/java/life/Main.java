@@ -238,9 +238,16 @@ public class Main {
 
                 if (viewer.state.usingGPU) {
                     BufferState bufferState = BufferState.of(cellGrid);
-                    bufferState.setHostDirty(!viewer.state.minimizingCopies || (viewer.state.generations == 0)); // only first
-                    bufferState.setDeviceDirty(!viewer.state.minimizingCopies || shouldUpdateUI);
+                    if (!viewer.state.minimizingCopies || (viewer.state.generations == 0)){
+                        bufferState.setState(BufferState.HOST_OWNED);
+                    }
+                    BufferState.of(control).setState(BufferState.HOST_OWNED);
                     kernel.run(clWrapComputeContext, range, cellGrid, control);
+
+                 //   bufferState.setHostDirty(!viewer.state.minimizingCopies || (viewer.state.generations == 0)); // only first
+                 //   bufferState.setDeviceDirty(!viewer.state.minimizingCopies || shouldUpdateUI);
+
+
                 } else {
                     IntStream.range(0, range).parallel().forEach(kcx ->
                             Compute.lifePerIdx(kcx, control, cellGrid)

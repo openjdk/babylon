@@ -24,9 +24,8 @@ public record OpenCLConfig(int bits) {
     private static final int TRACE_ENQUEUES_BIT = 1 << 25;
     private static final int TRACE_CALLS_BIT = 1 << 26;
     private static final int SHOW_WHY_BIT = 1 << 27;
-    private static final int USE_STATE_BIT = 1 << 28;
-    private static final int SHOW_STATE_BIT = 1 << 29;
-    private static final int END_BIT_IDX = 28;
+    private static final int SHOW_STATE_BIT = 1 << 28;
+    private static final int END_BIT_IDX = 29;
 
     private static String[] bitNames = {
             "MINIMIZE_COPIES",
@@ -41,7 +40,6 @@ public record OpenCLConfig(int bits) {
             "TRACE_ENQUEUES",
             "TRACE_CALLS",
             "SHOW_WHY",
-            "USE_STATE",
             "SHOW_STATE",
     };
 
@@ -92,12 +90,10 @@ public record OpenCLConfig(int bits) {
         }else if (name.contains(":")){
             var tokens=name.split(":");
             if (tokens.length == 2) {
-                if (tokens[0].equals("PLATFORM")) {
+                var token = tokens[0];
+                if (token.equals("PLATFORM") || token.equals("DEVICE")) {
                     int value = Integer.parseInt(tokens[1]);
-                    return new OpenCLConfig(value);
-                }else  if (tokens[0].equals("DEVICE")) {
-                    int value = Integer.parseInt(tokens[1]);
-                    return new OpenCLConfig(value<<4);
+                    return new OpenCLConfig(value<<(token.equals("DEVICE")?4:0));
                 }else{
                     System.out.println("Unexpected opt '" + name + "'");
                     return OpenCLConfig.of(0);
@@ -108,15 +104,9 @@ public record OpenCLConfig(int bits) {
             }
         } else {
             System.out.println("Unexpected opt '" + name + "'");
+            System.exit(1);
             return OpenCLConfig.of(0);
         }
-    }
-    public static OpenCLConfig USE_STATE() {
-        return new OpenCLConfig(USE_STATE_BIT);
-    }
-
-    public boolean isUSE_STATE() {
-        return (bits & USE_STATE_BIT) == USE_STATE_BIT;
     }
     public static OpenCLConfig SHOW_STATE() {
         return new OpenCLConfig(SHOW_STATE_BIT);

@@ -117,14 +117,6 @@ extern void hexdump(void *ptr, int buflen);
 
  struct BufferState_s{
    static const long  MAGIC =0x4a71facebffab175;
-   static const int   NONE = 0;
-   static const int   BIT_HOST_NEW =1<<0;
-   static const int   BIT_DEVICE_NEW =1<<1;
-   static const int   BIT_HOST_DIRTY =1<<2;
-   static const int   BIT_DEVICE_DIRTY =1<<3;
-   static const int   BIT_HOST_CHECKED =1<<4;
-
-
    static const int NO_STATE = 0;
    static const int NEW_STATE = 1;
    static const int HOST_OWNED = 2;
@@ -133,6 +125,7 @@ extern void hexdump(void *ptr, int buflen);
    const static  char *stateNames[]; // See below for out of line definition
 
    long magic1;
+   void *ptr;
    long length;
    int bits;
    int state;
@@ -147,72 +140,14 @@ extern void hexdump(void *ptr, int buflen);
    int getState() {
       return state;
    }
-   void assignBits(int bitBits) {
-      bits=bitBits;
-   }
-   void setBits(int bitBits) {
-      bits|=bitBits;
-   }
-   void  xorBits(int bitsToReset) {
-      // say bits = 0b0111 (7) and bitz = 0b0100 (4)
-      int xored = bits^bitsToReset;  // xored = 0b0011 (3)
-      bits =  xored;
-   }
-    void  resetBits(int bitsToReset) {
-         // say bits = 0b0111 (7) and bitz = 0b0100 (4)
-         bits = bits&~bitsToReset;  // xored = 0b0011 (3)
-         //bits =  xored;
-      }
-   int getBits() {
-      return bits;
-   }
-   bool areBitsSet(int bitBits) {
-      return (bits&bitBits)==bitBits;
-   }
-   void setHostDirty(){
-      setBits(BIT_HOST_DIRTY);
-   }
-   bool isHostDirty(){
-      return  areBitsSet(BIT_HOST_DIRTY);
-   }
-   void clearHostDirty(){
-      resetBits(BIT_HOST_DIRTY);
-   }
-   void clearHostChecked(){
-      resetBits(BIT_HOST_CHECKED);
-   }
-   void clear(){
-       bits=0;
-   }
-   bool isHostNew(){
-      return  areBitsSet(BIT_HOST_NEW);
-   }
-   void clearHostNew(){
-      resetBits(BIT_HOST_NEW);
-   }
-   bool isHostNewOrDirty() {
-      return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
-   }
-
-   void setDeviceDirty(){
-      setBits(BIT_DEVICE_DIRTY);
-   }
-
-   bool isDeviceDirty(){
-      return areBitsSet(BIT_DEVICE_DIRTY);
-   }
-   void clearDeviceDirty(){
-      resetBits(BIT_DEVICE_DIRTY);
-   }
-
 
    void dump(const char *msg){
      if (ok()){
-        printf("{%s,length: %016lx, bits:%08x, state:%08x, vendorPtr:%016lx}\n", msg, length, bits, state, (long)vendorPtr);
+        printf("{%s,ptr:%016lx,length: %016lx,  state:%08x, vendorPtr:%016lx}\n", msg, (long)ptr, length,  state, (long)vendorPtr);
      }else{
         printf("%s bad magic \n", msg);
         printf("(magic1:%016lx,", magic1);
-        printf("{%s, length: %016lx, bits:%08x, state:%08x, vendorPtr:%016lx}", msg, length, bits, state, (long)vendorPtr);
+        printf("{%s, ptr:%016lx, length: %016lx,  state:%08x, vendorPtr:%016lx}", msg, (long)ptr, length,  state, (long)vendorPtr);
         printf("magic2:%016lx)\n", magic2);
      }
    }
@@ -363,10 +298,6 @@ public:
 
 };
 
-
-//extern "C" void dumpArgArray(void *ptr);
-
-
 extern void hexdump(void *ptr, int buflen);
 
 class Sled {
@@ -448,13 +379,13 @@ public:
     };
     int mode;
 
-    Backend(int mode)
-            : mode(mode){}
+    Backend(int mode): mode(mode){}
 
     virtual void info() = 0;
 
-     virtual void computeStart() = 0;
-      virtual void computeEnd() = 0;
+    virtual void computeStart() = 0;
+
+    virtual void computeEnd() = 0;
 
     virtual int getMaxComputeUnits() = 0;
 
