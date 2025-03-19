@@ -142,9 +142,11 @@ public class CodeModelToAST {
             case CoreOp.NewOp newOp -> {
                 if (newOp.resultType() instanceof ArrayType at) {
                     var elemType = treeMaker.Ident(typeElementToType(at.componentType()).tsym);
-                    // @@@ we assume one dimension
-                    var dims = List.of((JCTree.JCExpression) valueToTree.get(newOp.operands().getFirst()));
-                    var na = treeMaker.NewArray(elemType, dims, null);
+                    var dims = new ListBuffer<JCTree.JCExpression>();
+                    for (int d = 0; d < at.dimensions(); d++) {
+                        dims.add(((JCTree.JCExpression) valueToTree.get(newOp.operands().get(d))));
+                    }
+                    var na = treeMaker.NewArray(elemType, dims.toList(), null);
                     na.type = typeElementToType(at);
                     yield na;
                 }
