@@ -54,8 +54,16 @@ public class OnnxInterpreter {
             }
             var outTensors = OnnxRuntime.getInstance().runOp(Arena.ofAuto(), schema.name(),
                     inputs.stream().takeWhile(i -> !(i instanceof Optional o && o.isEmpty())) // @@@ assuming gaps in the optional inputs are not allowed
-                              .map(i -> (Tensor)(i instanceof Optional o ? o.get() : i))
-                              .toList(),
+                            .map(i -> i instanceof Optional o ? o.get() : i)
+                            .mapMulti((i, ic) -> {
+                                if (i instanceof List li) {
+                                    li.forEach(ic);
+                                } else {
+                                    ic.accept(i);
+                                }
+                            })
+                            .map(Tensor.class::cast)
+                            .toList(),
                     schema.outputs().size(),
                     attributeMap);
             if (outTensors.size() == 1) {

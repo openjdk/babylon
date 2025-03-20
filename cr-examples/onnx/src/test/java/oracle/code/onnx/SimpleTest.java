@@ -1,6 +1,7 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
+import java.util.List;
 import java.util.Optional;
 import jdk.incubator.code.CodeReflection;
 import org.junit.jupiter.api.Assertions;
@@ -113,6 +114,20 @@ public class SimpleTest {
         assertEquals(
                 indicesOfMaxPool(x),
                 OnnxRuntime.execute(() -> indicesOfMaxPool(x)));
+    }
+
+    @CodeReflection
+    public Tensor<Float> concat(Tensor<Float> input1, Tensor<Float> input2, long axis) {
+        return OnnxOperators.Concat(List.of(input1, input2), axis);
+    }
+
+    @Test
+    public void testConcat() throws Exception {
+        var input1 = Tensor.ofFlat(1f, 2, 3);
+        var input2 = Tensor.ofFlat(4f, 5);
+        assertEquals(
+                concat(input1, input2, 0),
+                OnnxRuntime.execute(()-> concat(input1, input2, 0)));
     }
 
     @CodeReflection

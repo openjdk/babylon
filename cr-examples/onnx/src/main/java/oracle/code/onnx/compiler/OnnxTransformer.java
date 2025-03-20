@@ -186,7 +186,18 @@ public class OnnxTransformer {
                                 }
                             }
                             case VARIADIC -> {
-                                throw new UnsupportedOperationException();
+                                // Evaluation of expressions List.of() with symbolic values
+                                if (v instanceof Op.Result r && r.op() instanceof CoreOp.InvokeOp listInvoke
+                                        && listInvoke.invokeDescriptor().refType().equals(JavaType.type(List.class))) {
+                                    switch (listInvoke.invokeDescriptor().name()) {
+                                        case "of" -> {
+                                            opArgs.add(listInvoke.operands().stream().map(o -> bb.context().getValue(o)).toList());
+                                        }
+                                        default -> throw new UnsupportedOperationException();
+                                    }
+                                } else {
+                                    throw new UnsupportedOperationException();
+                                }
                             }
                         }
                     }
