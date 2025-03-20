@@ -61,9 +61,8 @@ public:
         const static  int TRACE_ENQUEUES_BIT = 1 <<25;
         const static  int TRACE_CALLS_BIT = 1 <<26;
         const static  int SHOW_WHY_BIT = 1 <<27;
-        const static  int USE_STATE_BIT = 1 <<28;
-        const static  int SHOW_STATE_BIT = 1 <<29;
-        const static  int END_BIT_IDX = 30;
+        const static  int SHOW_STATE_BIT = 1 <<28;
+        const static  int END_BIT_IDX = 29;
 
         const static  char *bitNames[]; // See below for out of line definition
         int configBits;
@@ -78,7 +77,6 @@ public:
         bool traceEnqueues;
         bool traceCalls;
         bool showWhy;
-        bool useState;
         bool showState;
         int platform; //0..15
         int device; //0..15

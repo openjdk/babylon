@@ -29,11 +29,17 @@ import hat.ComputeContext;
 import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 
+import java.lang.annotation.Annotation;
 import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.List;
+
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
@@ -41,6 +47,7 @@ import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.MethodRef;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.ESCAPE;
@@ -92,6 +99,66 @@ public abstract class FFIBackend extends FFIBackendDriver {
         bldr.op(CoreOp.invoke(wrapper.post, cc, iface));
     }
 
+    record TypeAndAccess(Annotation[] annotations, Value value, JavaType javaType) {
+        static TypeAndAccess of(Annotation[] annotations, Value value) {
+            return new TypeAndAccess(annotations, value, (JavaType) value.type());
+        }
+        boolean isIface(MethodHandles.Lookup lookup) {
+            return InvokeOpWrapper.isIfaceUsingLookup(lookup, javaType);
+        }
+        boolean ro(){
+            for (Annotation annotation : annotations) {
+                if (  annotation instanceof MappableIface.RO){
+                    System.out.println("MappableIface.RO");
+                    return true;
+                }
+            }
+            return false;
+        }
+        boolean rw(){
+            for (Annotation annotation : annotations) {
+                if (  annotation instanceof MappableIface.RW){
+                    System.out.println("MappableIface.RW");
+                    return true;
+                }
+            }
+            return false;
+        }
+        boolean wo(){
+            for (Annotation annotation : annotations) {
+                if (  annotation instanceof MappableIface.WO){
+                    System.out.println("MappableIface.WO");
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+
+        record PrePost(MethodRef pre,MethodRef post) {
+            static PrePost access() {
+                return new PrePost(ACCESS.pre, ACCESS.post);
+            }
+
+            static PrePost mutate() {
+                return new PrePost(MUTATE.pre, MUTATE.post);
+            }
+
+            static PrePost escape() {
+                return new PrePost(ESCAPE.pre, ESCAPE.post);
+            }
+
+            void apply(Block.Builder bldr, CopyContext bldrCntxt, Value computeContext, InvokeOpWrapper invokeOW) {
+                if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
+                    Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
+                    bldr.op(CoreOp.invoke(MUTATE.pre, computeContext, iface));  // cc->preMutate(iface);
+                    bldr.op(invokeOW.op());                         // iface.v(newV);
+                    bldr.op(CoreOp.invoke(MUTATE.post, computeContext, iface));
+                }
+            }
+        }
+
     protected static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod, boolean show, boolean inject) {
         FuncOpWrapper prevFOW = computeMethod.funcOpWrapper();
         FuncOpWrapper returnFOW = prevFOW;
@@ -117,17 +184,52 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 } else if (invokeOW.isComputeContextMethod() || invokeOW.isRawKernelCall()) { //dispatchKernel
                     bldr.op(invokeOW.op());
                 } else {
-                    invokeOW.op().operands().stream()
-                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, javaType))
-                            .forEach(value ->
-                                    bldr.op(CoreOp.invoke(ESCAPE.pre, cc, bldrCntxt.getValue(value)))
-                            );
-                    bldr.op(invokeOW.op());
-                    invokeOW.op().operands().stream()
-                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
-                            .forEach(value -> bldr.op(
-                                    CoreOp.invoke(ESCAPE.post, cc, bldrCntxt.getValue(value)))
-                            );
+                    List<Value> list = invokeOW.op().operands();
+                    System.out.println("args "+list.size());
+                    if (!list.isEmpty()) {
+                        System.out.println("method "+invokeOW.method());
+                        Annotation[][] parameterAnnotations = invokeOW.method().getParameterAnnotations();
+                        boolean isVirtual = list.size()>parameterAnnotations.length;
+                        System.out.println("params length"+parameterAnnotations.length);
+                        List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
+
+                            for (int i = isVirtual?1:0; i < list.size(); i++) {
+                                typeAndAccesses.add(TypeAndAccess.of(
+                                        parameterAnnotations[i-(isVirtual?1:0)],
+                                        list.get(i)));
+                            }
+                        List<PrePost> prePosts = new ArrayList<>();
+                        typeAndAccesses.stream()
+                                .filter(typeAndAccess -> typeAndAccess.isIface(prevFOW.lookup))//InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
+                                .forEach(typeAndAccess -> {
+                                     if (typeAndAccess.ro()) {
+                                         bldr.op(CoreOp.invoke(ACCESS.pre, cc,  bldrCntxt.getValue(typeAndAccess.value)));
+                                     }else if (typeAndAccess.wo()||typeAndAccess.rw()) {
+                                         bldr.op(CoreOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                     }else {
+                                         bldr.op(CoreOp.invoke(ESCAPE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                     }
+                                });
+                        //  invokeOW.op().operands().stream()
+                        // .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, javaType))
+                        //  .forEach(value ->
+                        //          bldr.op(CoreOp.invoke(ESCAPE.pre, cc, bldrCntxt.getValue(value)))
+                        //  );
+                        bldr.op(invokeOW.op());
+                        typeAndAccesses.stream()
+                                .filter(typeAndAccess -> InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
+                                .forEach(typeAndAccess -> {
+                                    if (typeAndAccess.ro()) {
+                                        bldr.op(CoreOp.invoke(ACCESS.post, cc,  bldrCntxt.getValue(typeAndAccess.value)));
+                                    }else if (typeAndAccess.rw() || typeAndAccess.wo()) {
+                                        bldr.op(CoreOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                    }else {
+                                        bldr.op(CoreOp.invoke(ESCAPE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                    }
+                                });
+                    }else{
+                        bldr.op(invokeOW.op());
+                    }
                 }
                 return bldr;
             });

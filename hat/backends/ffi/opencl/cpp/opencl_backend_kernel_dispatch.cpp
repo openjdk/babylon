@@ -85,9 +85,13 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                }
 
                BufferState_s * bufferState = BufferState_s::of(arg);
+               if (bufferState->ptr != arg->value.buffer.memorySegment){
+                   std::cerr <<"bufferState->ptr !=  arg->value.buffer.memorySegment"<<std::endl;
+                   std::exit(1);
+               }
+
                OpenCLBuffer * openclBuffer =nullptr;
-               if ((openclBackend->openclConfig.useState && (bufferState->state == BufferState_s::NEW_STATE))
-                || (!openclBackend->openclConfig.useState && bufferState->isHostNew())){
+               if (bufferState->state == BufferState_s::NEW_STATE){
                   openclBuffer = new OpenCLBuffer(this, arg, bufferState);
                   if (openclBackend->openclConfig.trace){
                      std::cout << "We allocated arg "<<i<<" buffer "<<std::endl;
@@ -100,14 +104,8 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                 }
                 if (openclBuffer->shouldCopyToDevice(arg)){
                    openclBuffer->copyToDevice();
-                   if (openclBackend->openclConfig.useState){
-                   }else{
-                       bufferState->clearHostNew();
-                       bufferState->clearHostDirty();
-                   }
-
                 }else if (openclBackend->openclConfig.traceSkippedCopies){
-                       std::cout << "NOT copying arg " << arg->idx <<" to device "<< std::endl;
+                    std::cout << "NOT copying arg " << arg->idx <<" to device "<< std::endl;
                 }
 
                 cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openclBuffer->clMem);
@@ -181,27 +179,12 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                 if (openclBackend->openclConfig.traceCopies||openclBackend->openclConfig.traceEnqueues){
                    std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
                 }
-
-
-    if (openclBackend->openclConfig.useState){
-     // std::cout << "setting device dirty"<<std::endl;
-       bufferState->state = BufferState_s::HOST_OWNED;
-    }else{
-       bufferState->clearDeviceDirty();
-
-    }
+                bufferState->state = BufferState_s::HOST_OWNED;
              }else{
                  if (openclBackend->openclConfig.traceSkippedCopies){
                       std::cout << "NOT copying arg " << arg->idx <<" from device "<< std::endl;
                  }
-                    if (openclBackend->openclConfig.useState){
-                      // std::cout << "setting device dirty"<<std::endl;
-                        bufferState->state = BufferState_s::DEVICE_OWNED;
-                     }else{
-                        bufferState->setDeviceDirty();
-                        bufferState->clearDeviceDirty();
-
-                     }
+                 bufferState->state = BufferState_s::DEVICE_OWNED;
              }
           }
        }

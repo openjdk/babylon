@@ -255,7 +255,7 @@ public class CLPlatform implements ArenaHolder {
                                                 memorySegment,
                                                 status.ptr()))
                                 );
-                                if (bufferState.isHostDirty()) {
+                                if (bufferState.getState()==BufferState.HOST_OWNED) {
 
                                     //System.out.println("arg " + args[i] + " isHostDirty copying in");
                                     status.set(opencl_h.clEnqueueWriteBuffer(program.context.queue,
@@ -347,7 +347,7 @@ public class CLPlatform implements ArenaHolder {
                                 MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
                                 CLWrapComputeContext.ClMemPtr clmem = clWrapComputeContext.clMemMap.get(memorySegment);
                                 // System.out.println("Before possible read "+ bufferState);
-                                if (bufferState.isDeviceDirty()) {
+                                if (bufferState.getState() == BufferState.HOST_OWNED) {
                                   //  System.out.println("arg " + args[i] + " isDeviceDirty copying out");
                                     status.set(opencl_h.clEnqueueReadBuffer(program.context.queue,
                                             clmem.get(),
