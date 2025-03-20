@@ -8,8 +8,10 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
@@ -372,12 +374,20 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                     onnxOp.operands().stream().map(v -> indexer.getName(v)).toList(),
                                     IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(onnxOp.result(), o)).toList(),
                                     onnxOp.onnxAttributes()));
-                        case CoreOp.ReturnOp _ -> { // skip
+                        case CoreOp.ReturnOp _, CoreOp.ConstantOp _ -> { // skip
                         }
                         case CoreOp.TupleLoadOp tlo ->
                             indexer.put(tlo.result(), indexer.getName(tlo.operands().getFirst(), tlo.index()));
-                        default ->
+                        case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(JavaType.type(List.class))
+                                                  && io.invokeDescriptor().name().equals("get")
+                                                  && io.operands().getLast() instanceof Op.Result or
+                                                  && or.op() instanceof CoreOp.ConstantOp co
+                                                  && co.value() instanceof Integer i ->
+                            indexer.put(io.result(), indexer.getName(io.operands().getFirst(), i));
+                        default -> {
+                            System.out.println(op.parent().parent().parent().toText());
                             throw new UnsupportedOperationException(op.toText());
+                        }
                     }
                 }).toList(),
                 List.of(indexer.getName(block.terminatingOp().operands().getFirst())));

@@ -23,6 +23,7 @@ public class OnnxTransformer {
 
 
     static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
+    static final JavaType LIST_CLASS = JavaType.type(List.class);
 
     private final MethodHandles.Lookup l;
     private final CoreOp.FuncOp inputFunc;
@@ -222,6 +223,15 @@ public class OnnxTransformer {
                 case CoreOp.InvokeOp io when
                         recordComponentAccessToTupleIndex(l, io.invokeDescriptor()) instanceof Integer index -> {
                     Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
+                    bb.context().mapValue(io.result(), result);
+                }
+                // Transform access to the result of an operator that is a list access
+                // @@@ raw use of List::get with constant argument
+                case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(LIST_CLASS) && io.invokeDescriptor().name().equals("get") -> {
+                    Op.Result result = bb.op(CoreOp.invoke(
+                            io.invokeDescriptor(),
+                            bb.context().getValue(io.operands().getFirst()),
+                            bb.op(CoreOp.constant(JavaType.INT, pe.evaluatedAttributes.get(io).getLast()))));
                     bb.context().mapValue(io.result(), result);
                 }
                 // Skip nested lambdas

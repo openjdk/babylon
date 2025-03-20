@@ -131,6 +131,20 @@ public class SimpleTest {
     }
 
     @CodeReflection
+    public Tensor<Float> split(Tensor<Float> input, Tensor<Long> split) {
+        return OnnxOperators.Split(input, Optional.of(split), Optional.empty(), Optional.empty()).get(0);
+    }
+
+    @Test
+    public void testSplit() throws Exception {
+        var input = Tensor.ofFlat(1f, 2, 3, 4, 5);
+        var split = Tensor.ofFlat(5l);
+        assertEquals(
+                split(input, split),
+                OnnxRuntime.execute(()-> split(input, split)));
+    }
+
+    @CodeReflection
     public Tensor<Float> ifConst(Tensor<Boolean> cond) {
         return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Constant(1f));
     }

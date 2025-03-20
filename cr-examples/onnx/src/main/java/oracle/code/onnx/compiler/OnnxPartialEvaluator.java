@@ -42,6 +42,7 @@ import oracle.code.onnx.ir.ExplicitOnnxOps;
 final class OnnxPartialEvaluator {
 
     static final JavaType ONNX_OPERATORS_CLASS = JavaType.type(OnnxOperators.class);
+    static final JavaType LIST_CLASS = JavaType.type(List.class);
 
     // Map from ONNX operator invocation to evaluated attributes
     final Map<CoreOp.InvokeOp, List<Object>> evaluatedAttributes;
@@ -326,6 +327,10 @@ final class OnnxPartialEvaluator {
                 evaluatedAttributes.put(io, attrs);
             }
 
+            unevaluatedOperations.add(o);
+            return null;
+        } else if (o instanceof CoreOp.InvokeOp io && io.invokeDescriptor().refType().equals(LIST_CLASS) && io.invokeDescriptor().name().equals("get")) {
+            evaluatedAttributes.put(io, List.of(oc.getValue(io.operands().getLast())));
             unevaluatedOperations.add(o);
             return null;
         } else if (!o.operands().stream().allMatch(oc::isValueDefined)) {
