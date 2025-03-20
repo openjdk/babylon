@@ -26,6 +26,7 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -77,7 +78,7 @@ class ExplicitOnnxOperators {
 
     // @@@ Constants for value - TENSOR and sparse_value - SPARSE_TENSOR
 
-    public static <T> Tensor<T> If(Tensor<Boolean> cond, Supplier<Tensor<T>> elseBody, Supplier<Tensor<T>> thenBody) {
+    public static <T> List<Tensor<T>> If(Tensor<Boolean> cond, Supplier<List<Tensor<T>>> elseBody, Supplier<List<Tensor<T>>> thenBody) {
         return cond.data().get(ValueLayout.JAVA_BOOLEAN, 0) ? thenBody.get() : elseBody.get();
     }
 }

@@ -146,7 +146,7 @@ public class SimpleTest {
 
     @CodeReflection
     public Tensor<Float> ifConst(Tensor<Boolean> cond) {
-        return OnnxOperators.If(cond, () -> OnnxOperators.Constant(-1f), () -> OnnxOperators.Constant(1f));
+        return OnnxOperators.If(cond, () -> List.of(OnnxOperators.Constant(-1f)), () -> List.of(OnnxOperators.Constant(1f))).get(0);
     }
 
     @Test
@@ -166,7 +166,7 @@ public class SimpleTest {
     @CodeReflection
     public Tensor<Float> ifCapture(Tensor<Boolean> cond, Tensor<Float> trueValue) {
         var falseValue = OnnxOperators.Constant(-1f);
-        return OnnxOperators.If(cond, () -> OnnxOperators.Identity(falseValue), () -> OnnxOperators.Identity(trueValue));
+        return OnnxOperators.If(cond, () -> List.of(OnnxOperators.Identity(falseValue)), () -> List.of(OnnxOperators.Identity(trueValue))).get(0);
     }
 
     @Test
@@ -205,11 +205,11 @@ public class SimpleTest {
     public Tensor<Float> ifInitialized(Tensor<Boolean> cond1, Tensor<Boolean> cond2) {
         return OnnxOperators.If(cond1,
                 () -> OnnxOperators.If(cond2,
-                        () -> OnnxOperators.Identity(initialized4),
-                        () -> OnnxOperators.Identity(initialized3)),
+                        () -> List.of(OnnxOperators.Identity(initialized4)),
+                        () -> List.of(OnnxOperators.Identity(initialized3))),
                 () -> OnnxOperators.If(cond2,
-                        () -> OnnxOperators.Identity(initialized2),
-                        () -> OnnxOperators.Identity(initialized)));
+                        () -> List.of(OnnxOperators.Identity(initialized2)),
+                        () -> List.of(OnnxOperators.Identity(initialized)))).get(0);
     }
 
     @Test

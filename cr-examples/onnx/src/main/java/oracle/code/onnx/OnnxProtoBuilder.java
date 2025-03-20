@@ -378,14 +378,18 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                         }
                         case CoreOp.TupleLoadOp tlo ->
                             indexer.put(tlo.result(), indexer.getName(tlo.operands().getFirst(), tlo.index()));
-                        case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(JavaType.type(List.class))
-                                                  && io.invokeDescriptor().name().equals("get")
-                                                  && io.operands().getLast() instanceof Op.Result or
-                                                  && or.op() instanceof CoreOp.ConstantOp co
-                                                  && co.value() instanceof Integer i ->
-                            indexer.put(io.result(), indexer.getName(io.operands().getFirst(), i));
+                        case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(JavaType.type(List.class)) -> {
+                            if (io.invokeDescriptor().name().equals("get") && io.operands().getLast() instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co && co.value() instanceof Integer i) {
+                                indexer.put(io.result(), indexer.getName(io.operands().getFirst(), i));
+                            } else if (io.invokeDescriptor().name().equals("of")) {
+                                for (int i = 0; i < io.operands().size(); i++) {
+                                    indexer.put(io.result(),  indexer.getName(io.operands().get(i), i));
+                                }
+                            } else {
+                                throw new UnsupportedOperationException(op.toText());
+                            }
+                        }
                         default -> {
-                            System.out.println(op.parent().parent().parent().toText());
                             throw new UnsupportedOperationException(op.toText());
                         }
                     }
