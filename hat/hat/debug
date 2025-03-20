@@ -1,0 +1,1 @@
+-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=y --enable-preview --source 24 hat/run.java
