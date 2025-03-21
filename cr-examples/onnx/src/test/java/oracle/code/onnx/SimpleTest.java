@@ -228,6 +228,24 @@ public class SimpleTest {
 
     }
 
+    @CodeReflection
+    public Tensor<Float> forLoopAdd(Tensor<Float> value, Tensor<Long> max) {
+        return OnnxOperators.Loop(max, Tensor.ofScalar(true), List.of(value),
+                l -> {
+                    var v = l.userValues().get(0);
+                    return new ExplicitOnnxOperators.LoopLocals<>(l.i(), l.cond(), List.of(OnnxOperators.Add(v, v)));
+                }).get(0);
+    }
+
+    @Test
+    public void testForLoopAdd() throws Exception {
+        var expected = Tensor.ofFlat(0f, 8, 16, 24);
+        var value = Tensor.ofFlat(0f, 1, 2, 3);
+        var max = Tensor.ofScalar(3l);
+        assertEquals(expected, forLoopAdd(value, max));
+//        assertEquals(expected, OnnxRuntime.execute(() -> forLoopAdd(value, max)));
+    }
+
     static void assertEquals(Tensor expected, Tensor actual) {
 
         var expectedType = expected.elementType();

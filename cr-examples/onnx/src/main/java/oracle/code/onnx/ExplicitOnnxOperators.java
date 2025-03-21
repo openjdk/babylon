@@ -26,8 +26,10 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 class ExplicitOnnxOperators {
@@ -80,5 +82,16 @@ class ExplicitOnnxOperators {
 
     public static <T> List<Tensor<T>> If(Tensor<Boolean> cond, Supplier<List<Tensor<T>>> elseBody, Supplier<List<Tensor<T>>> thenBody) {
         return cond.data().get(ValueLayout.JAVA_BOOLEAN, 0) ? thenBody.get() : elseBody.get();
+    }
+
+    public record LoopLocals<T>(Tensor<Long> i, Tensor<Boolean> cond, List<Tensor<T>> userValues) {}
+    public static <T> List<Tensor<T>> Loop(Tensor<Long> max, Tensor<Boolean> cond, List<Tensor<T>> v_initial, Function<LoopLocals<T>, LoopLocals<T>> body) {
+        long m = max.data().get(ValueLayout.JAVA_LONG, 0);
+        LoopLocals<T> ll = new LoopLocals<>(Tensor.ofScalar(0), cond, v_initial);
+        while (ll.i.data().get(ValueLayout.JAVA_LONG, 0) < m && ll.cond.data().get(ValueLayout.JAVA_BOOLEAN, 0)) {
+            ll = body.apply(ll);
+            ll.i.data().set(ValueLayout.JAVA_LONG, 0, ll.i.data().get(ValueLayout.JAVA_LONG, 0) + 1); // i++
+        }
+        return ll.userValues();
     }
 }
