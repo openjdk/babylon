@@ -8,8 +8,10 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
@@ -350,10 +352,10 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static GraphProto graph(Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers) {
         var params = block.parameters();
         params.forEach(indexer::getName);
-        int first = params.size() - initializers.size();
-        var args = params.isEmpty() || params.getFirst().type() instanceof OnnxType.TensorType ? params : params.subList(1, params.size());
+        int firstInitializer = params.size() - initializers.size();
+        var args = params.subList(params.isEmpty() || params.getFirst().type() instanceof OnnxType.TensorType ? 0 : 1, firstInitializer);
         return graph(
-                IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.getName(params.get(i + first)), initializers.get(i))).toList(),
+                IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.getName(params.get(i + firstInitializer)), initializers.get(i))).toList(),
                 args.stream().map(v ->
                         tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
                 block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
@@ -372,12 +374,24 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                     onnxOp.operands().stream().map(v -> indexer.getName(v)).toList(),
                                     IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(onnxOp.result(), o)).toList(),
                                     onnxOp.onnxAttributes()));
-                        case CoreOp.ReturnOp _ -> { // skip
+                        case CoreOp.ReturnOp _, CoreOp.ConstantOp _ -> { // skip
                         }
                         case CoreOp.TupleLoadOp tlo ->
                             indexer.put(tlo.result(), indexer.getName(tlo.operands().getFirst(), tlo.index()));
-                        default ->
+                        case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(JavaType.type(List.class)) -> {
+                            if (io.invokeDescriptor().name().equals("get") && io.operands().getLast() instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co && co.value() instanceof Integer i) {
+                                indexer.put(io.result(), indexer.getName(io.operands().getFirst(), i));
+                            } else if (io.invokeDescriptor().name().equals("of")) {
+                                for (int i = 0; i < io.operands().size(); i++) {
+                                    indexer.put(io.result(),  indexer.getName(io.operands().get(i), i));
+                                }
+                            } else {
+                                throw new UnsupportedOperationException(op.toText());
+                            }
+                        }
+                        default -> {
                             throw new UnsupportedOperationException(op.toText());
+                        }
                     }
                 }).toList(),
                 List.of(indexer.getName(block.terminatingOp().operands().getFirst())));

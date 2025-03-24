@@ -54,14 +54,37 @@ public class OnnxInterpreter {
             }
             var outTensors = OnnxRuntime.getInstance().runOp(Arena.ofAuto(), schema.name(),
                     inputs.stream().takeWhile(i -> !(i instanceof Optional o && o.isEmpty())) // @@@ assuming gaps in the optional inputs are not allowed
-                              .map(i -> (Tensor)(i instanceof Optional o ? o.get() : i))
-                              .toList(),
+                            .map(i -> i instanceof Optional o ? o.get() : i)
+                            .mapMulti((i, ic) -> {
+                                if (i instanceof List li) {
+                                    li.forEach(ic);
+                                } else {
+                                    ic.accept(i);
+                                }
+                            })
+                            .map(Tensor.class::cast)
+                            .toList(),
                     schema.outputs().size(),
                     attributeMap);
-            if (outTensors.size() == 1) {
-                return outTensors.getFirst();
+            var outputs = schema.outputs();
+            if (outputs.size() == 1) {
+                if (outputs.getLast().quantifier() == OnnxOp.OnnxParameter.Quantifier.VARIADIC) {
+                    return outTensors; // single variadic
+                } else {
+                    return outTensors.getFirst(); // single tensor
+                }
             } else {
-                return outTensors.toArray();
+                // @@@ assuming only tail can be variadic
+                if (outputs.getLast().quantifier() == OnnxOp.OnnxParameter.Quantifier.VARIADIC) {
+                    var outArray = new Object[schema.outputs().size()];
+                    for (int i = 0; i < outArray.length - 1; i++) {
+                        outArray[i] = outputs.get(i);
+                    }
+                    outArray[outArray.length - 1] = outputs.subList(outArray.length - 1, outputs.size());
+                    return outArray; // multiple tensors with variadic tail
+                } else {
+                    return outTensors.toArray(); // multiple tensors
+                }
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
