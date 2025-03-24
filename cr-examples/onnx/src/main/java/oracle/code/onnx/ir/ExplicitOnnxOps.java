@@ -201,8 +201,9 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
 
         public enum InputParameter implements OnnxOp.OnnxParameter {
-            M(TypeConstraint.I.typeVariable(), OnnxOp.OnnxParameter.Quantifier.OPTIONAL),
-            cond(TypeConstraint.B.typeVariable(), OnnxOp.OnnxParameter.Quantifier.OPTIONAL),
+            // @@@ Onnx spec declares the input parameters as optional, however it is causing problems
+            M(TypeConstraint.I.typeVariable(), OnnxOp.OnnxParameter.Quantifier.REQUIRED),
+            cond(TypeConstraint.B.typeVariable(), OnnxOp.OnnxParameter.Quantifier.REQUIRED),
             v_initial(TypeConstraint.V.typeVariable(), OnnxOp.OnnxParameter.Quantifier.VARIADIC),
             ;
 
@@ -273,7 +274,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new ExplicitOnnxOps.Loop(this, cc, ot);
         }
 
-        Loop(TypeElement resultType, Optional<Value> m, Optional<Value> cond, List<Value> v_initial, Body.Builder body) {
+        Loop(TypeElement resultType, Value m, Value cond, List<Value> v_initial, Body.Builder body) {
             super(SCHEMA, resultType, Set.of(), List.of(m, cond, v_initial), List.of());
 
             this.body = body.build(this);
@@ -314,7 +315,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static Loop OnnxLoop(TypeElement resultType, Optional<Value> m, Optional<Value> cond, List<Value> v_initial, Body.Builder body) {
+    public static Loop Loop(TypeElement resultType, Value m, Value cond, List<Value> v_initial, Body.Builder body) {
         return new Loop(resultType, m, cond, v_initial, body);
     }
 }

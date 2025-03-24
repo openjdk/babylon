@@ -478,7 +478,7 @@ final class OnnxPartialEvaluator {
                         .collect(Collectors.joining());
             }
             case CoreOp.LambdaOp lambdaOp -> {
-                interpretBody(l, lambdaOp.body(), oc, List.of());
+                interpretEntryBlock(l, lambdaOp.body().entryBlock(), oc, new HashMap<>());
                 unevaluatedOperations.add(o);
                 return null;
             }

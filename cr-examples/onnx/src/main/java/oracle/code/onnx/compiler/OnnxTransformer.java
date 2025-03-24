@@ -209,6 +209,10 @@ public class OnnxTransformer {
                             var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
                             opArgs.add(lambda.body().transform(bb.context(), bodyTransformer(pe)));
                         }
+                    } else if (opClass == ExplicitOnnxOps.Loop.class) {
+                        // Explicit transformation of nested body
+                        var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(3)).op());
+                        opArgs.add(lambda.body().transform(bb.context(), bodyTransformer(pe)));
                     }
                     OnnxOp onnxOp;
                     try {
