@@ -166,7 +166,7 @@ public class SimpleTest {
     @CodeReflection
     public Tensor<Float> ifCapture(Tensor<Boolean> cond, Tensor<Float> trueValue) {
         var falseValue = OnnxOperators.Constant(-1f);
-        return OnnxOperators.If(cond, () -> List.of(OnnxOperators.Identity(falseValue)), () -> List.of(OnnxOperators.Identity(trueValue))).get(0);
+        return OnnxOperators.If(cond, () -> OnnxOperators.Identity(falseValue), () -> OnnxOperators.Identity(trueValue));
     }
 
     @Test
@@ -229,12 +229,8 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public Tensor<Float> forLoopAdd(Tensor<Float> value, Tensor<Long> max, Tensor<Boolean> condition) {
-        return OnnxOperators.Loop(max, condition, List.of(value),
-                l -> {
-                    var v = l.userValues().get(0);
-                    return new ExplicitOnnxOperators.LoopLocals<>(l.i(), l.cond(), List.of(OnnxOperators.Add(v, v)));
-                }).get(0);
+    public Tensor<Float> forLoopAdd(Tensor<Long> max, Tensor<Boolean> condition, Tensor<Float> initialValue) {
+        return OnnxOperators.Loop(max, condition, initialValue, (i, cond, v) -> OnnxOperators.Add(v, v));
     }
 
     @Test
@@ -243,8 +239,8 @@ public class SimpleTest {
         var value = Tensor.ofFlat(0f, 1, 2, 3);
         var max = Tensor.ofScalar(3l);
         var cond = Tensor.ofScalar(true);
-        assertEquals(expected, forLoopAdd(value, max, cond));
-//        assertEquals(expected, OnnxRuntime.execute(() -> forLoopAdd(value, max, cond)));
+        assertEquals(expected, forLoopAdd(max, cond, value));
+//        assertEquals(expected, OnnxRuntime.execute(() -> forLoopAdd(max, cond, value)));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {

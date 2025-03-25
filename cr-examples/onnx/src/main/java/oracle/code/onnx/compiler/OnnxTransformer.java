@@ -197,7 +197,8 @@ public class OnnxTransformer {
                                         default -> throw new UnsupportedOperationException();
                                     }
                                 } else {
-                                    throw new UnsupportedOperationException();
+                                    // otherwise pass through a single value
+                                    opArgs.add(bb.context().getValue(v));
                                 }
                             }
                         }
@@ -207,12 +208,12 @@ public class OnnxTransformer {
                         // Explicit transformation of nested bodies
                         for (int i = 1; i < 3; i++) {
                             var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
-                            opArgs.add(lambda.body().transform(bb.context(), bodyTransformer(pe)));
+                            opArgs.add(transformBodyTranslateTypes(lambda.body(), bb.context(), bodyTransformer(pe)));
                         }
                     } else if (opClass == ExplicitOnnxOps.Loop.class) {
                         // Explicit transformation of nested body
                         var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(3)).op());
-                        opArgs.add(lambda.body().transform(bb.context(), bodyTransformer(pe)));
+                        opArgs.add(transformBodyTranslateTypes(lambda.body(), bb.context(), bodyTransformer(pe)));
                     }
                     OnnxOp onnxOp;
                     try {
@@ -246,6 +247,25 @@ public class OnnxTransformer {
             }
             return bb;
         };
+    }
+
+    // @@@ Ugly copy of Body::transform content to translate types
+    static Body.Builder transformBodyTranslateTypes(Body body, CopyContext cc, OpTransformer ot) {
+//        return body.transform(cc, ot);
+
+        Body ancestorBody = body.parentOp().parentBlock() instanceof Block parentBlock ? parentBlock.parentBody() : null;
+
+        Block.Builder ancestorBlockBuilder = ancestorBody != null
+                ? cc.getBlock(ancestorBody.entryBlock()) : null;
+        Body.Builder ancestorBodyBuilder = ancestorBlockBuilder != null
+                ? ancestorBlockBuilder.parentBody() : null;
+
+        Body.Builder bb = Body.Builder.of(ancestorBodyBuilder, FunctionType.functionType(type(body.yieldType())), cc, ot); // translate types
+        for (Block.Parameter p : body.entryBlock().parameters()) {
+            bb.entryBlock().parameter(type(p.type())); // translate types
+        }
+        bb.entryBlock().transformBody(body, bb.entryBlock().parameters(), cc, ot);
+        return bb;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

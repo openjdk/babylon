@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import jdk.incubator.code.Quotable;
 
 class ExplicitOnnxOperators {
 
@@ -80,18 +81,38 @@ class ExplicitOnnxOperators {
 
     // @@@ Constants for value - TENSOR and sparse_value - SPARSE_TENSOR
 
-    public static <T> List<Tensor<T>> If(Tensor<Boolean> cond, Supplier<List<Tensor<T>>> elseBody, Supplier<List<Tensor<T>>> thenBody) {
-        return cond.data().get(ValueLayout.JAVA_BOOLEAN, 0) ? thenBody.get() : elseBody.get();
+
+    public interface IfBody<T> extends Quotable {
+        T invoke();
     }
 
-    public record LoopLocals<T>(Tensor<Long> i, Tensor<Boolean> cond, List<Tensor<T>> userValues) {}
-    public static <T> List<Tensor<T>> Loop(Tensor<Long> max, Tensor<Boolean> cond, List<Tensor<T>> v_initial, Function<LoopLocals<T>, LoopLocals<T>> body) {
+    public static <T> T If(Tensor<Boolean> cond, IfBody<T> elseBody, IfBody<T> thenBody) {
+        return booleanValue(cond) ? thenBody.invoke() : elseBody.invoke();
+    }
+
+    public interface LoopBody<T> extends Quotable {
+        T invoke(Tensor<Long> i, Tensor<Boolean> cond, T input);
+    }
+
+    public static <T> T Loop(Tensor<Long> max, Tensor<Boolean> cond, T values, LoopBody<T> loopBody) {
         long m = max.data().get(ValueLayout.JAVA_LONG, 0);
-        LoopLocals<T> ll = new LoopLocals<>(Tensor.ofScalar(0), cond, v_initial);
-        while (ll.i.data().get(ValueLayout.JAVA_LONG, 0) < m && ll.cond.data().get(ValueLayout.JAVA_BOOLEAN, 0)) {
-            ll = body.apply(ll);
-            ll.i.data().set(ValueLayout.JAVA_LONG, 0, ll.i.data().get(ValueLayout.JAVA_LONG, 0) + 1); // i++
+        for (var i = Tensor.ofScalar(0l); longValue(i) < m && booleanValue(cond); set(i, longValue(i) + 1)) {
+            values = loopBody.invoke(i, cond, values);
         }
-        return ll.userValues();
+        return values;
+    }
+
+    // @@@ move to Tensor API
+
+    private static boolean booleanValue(Tensor<Boolean> t) {
+        return t.data().get(ValueLayout.JAVA_BOOLEAN, 0);
+    }
+
+    private static long longValue(Tensor<Long> t) {
+        return t.data().get(ValueLayout.JAVA_LONG, 0);
+    }
+
+    private static void set(Tensor<Long> t, long value) {
+        t.data().set(ValueLayout.JAVA_LONG, 0, value);
     }
 }

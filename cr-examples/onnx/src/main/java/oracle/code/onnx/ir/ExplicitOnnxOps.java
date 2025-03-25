@@ -274,7 +274,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new ExplicitOnnxOps.Loop(this, cc, ot);
         }
 
-        Loop(TypeElement resultType, Value m, Value cond, List<Value> v_initial, Body.Builder body) {
+        Loop(TypeElement resultType, Value m, Value cond, Value v_initial, Body.Builder body) {
             super(SCHEMA, resultType, Set.of(), List.of(m, cond, v_initial), List.of());
 
             this.body = body.build(this);
@@ -315,7 +315,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static Loop Loop(TypeElement resultType, Value m, Value cond, List<Value> v_initial, Body.Builder body) {
+    public static Loop Loop(TypeElement resultType, Value m, Value cond, Value v_initial, Body.Builder body) {
         return new Loop(resultType, m, cond, v_initial, body);
     }
 }
