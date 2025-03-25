@@ -26,11 +26,7 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import jdk.incubator.code.Quotable;
 
 class ExplicitOnnxOperators {
@@ -90,14 +86,21 @@ class ExplicitOnnxOperators {
         return booleanValue(cond) ? thenBody.invoke() : elseBody.invoke();
     }
 
+    public record LoopReturn<T>(Tensor<Boolean> cond, T output) {}
+    public static <T> LoopReturn<T> LoopReturn(Tensor<Boolean> cond, T output) {
+        return new LoopReturn<>(cond, output);
+    }
+
     public interface LoopBody<T> extends Quotable {
-        T invoke(Tensor<Long> i, Tensor<Boolean> cond, T input);
+        LoopReturn<T> invoke(Tensor<Long> i, Tensor<Boolean> cond, T input);
     }
 
     public static <T> T Loop(Tensor<Long> max, Tensor<Boolean> cond, T values, LoopBody<T> loopBody) {
         long m = max.data().get(ValueLayout.JAVA_LONG, 0);
         for (var i = Tensor.ofScalar(0l); longValue(i) < m && booleanValue(cond); set(i, longValue(i) + 1)) {
-            values = loopBody.invoke(i, cond, values);
+            LoopReturn<T> ret = loopBody.invoke(i, cond, values);
+            cond = ret.cond();
+            values = ret.output();
         }
         return values;
     }

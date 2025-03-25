@@ -230,7 +230,7 @@ public class SimpleTest {
 
     @CodeReflection
     public Tensor<Float> forLoopAdd(Tensor<Long> max, Tensor<Boolean> condition, Tensor<Float> initialValue) {
-        return OnnxOperators.Loop(max, condition, initialValue, (i, cond, v) -> OnnxOperators.Add(v, v));
+        return OnnxOperators.Loop(max, condition, initialValue, (i, cond, v) -> OnnxOperators.LoopReturn(cond, OnnxOperators.Add(v, v)));
     }
 
     @Test
@@ -240,7 +240,7 @@ public class SimpleTest {
         var max = Tensor.ofScalar(3l);
         var cond = Tensor.ofScalar(true);
         assertEquals(expected, forLoopAdd(max, cond, value));
-//        assertEquals(expected, OnnxRuntime.execute(() -> forLoopAdd(max, cond, value)));
+        assertEquals(expected, OnnxRuntime.execute(() -> forLoopAdd(max, cond, value)));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {

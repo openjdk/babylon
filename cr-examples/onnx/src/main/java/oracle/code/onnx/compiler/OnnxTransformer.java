@@ -242,6 +242,11 @@ public class OnnxTransformer {
                 // Skip nested lambdas
                 case CoreOp.LambdaOp _ -> {
                 }
+                case Op.Terminating _ -> {
+                    try {
+                        bb.op(op); // @@@ how to test the terminating op has been already inserted?
+                    } catch (IllegalStateException _) {}
+                }
                 // Copy remaining operations, which may be removed later transformations
                 default -> bb.op(op);
             }
@@ -350,22 +355,27 @@ public class OnnxTransformer {
     }
 
     static final TypeElement TENSOR_RAW_CLASS = JavaType.type(Tensor.class);
+    static final TypeElement LOOP_RETURN_RAW_CLASS = JavaType.type(ExplicitOnnxOps.LoopReturn.class);
 
     // @@@ Map of Java tensor types to ONNX tensor types
     // @@@ Shape??
     static TypeElement type(TypeElement type) {
-        if (type instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS)) {
-            JavaType elementType = ct.typeArguments().getFirst();
-            if (elementType.equals(JavaType.J_L_INTEGER)) {
-                return OnnxType.TENSOR_INT32;
-            } else if (elementType.equals(JavaType.J_L_FLOAT)) {
-                return OnnxType.TENSOR_FLOAT32;
-            } else if (elementType.equals(JavaType.J_L_LONG)) {
-                return OnnxType.TENSOR_INT64;
-            } else if (elementType.equals(JavaType.J_L_BYTE)) {
-                return OnnxType.TENSOR_UINT8;
-            } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
-                return OnnxType.TENSOR_BOOL;
+        if (type instanceof ClassType ct) {
+            if (ct.rawType().equals(TENSOR_RAW_CLASS)) {
+                JavaType elementType = ct.typeArguments().getFirst();
+                if (elementType.equals(JavaType.J_L_INTEGER)) {
+                    return OnnxType.TENSOR_INT32;
+                } else if (elementType.equals(JavaType.J_L_FLOAT)) {
+                    return OnnxType.TENSOR_FLOAT32;
+                } else if (elementType.equals(JavaType.J_L_LONG)) {
+                    return OnnxType.TENSOR_INT64;
+                } else if (elementType.equals(JavaType.J_L_BYTE)) {
+                    return OnnxType.TENSOR_UINT8;
+                } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
+                    return OnnxType.TENSOR_BOOL;
+                }
+            } else if (ct.rawType().equals(LOOP_RETURN_RAW_CLASS)) {
+                return JavaType.VOID;
             }
         }
         return type;

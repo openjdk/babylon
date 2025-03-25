@@ -172,6 +172,128 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         return new If(resultType, cond, elseBody, thenBody);
     }
 
+    @OpFactory.OpDeclaration(LoopReturn.NAME)
+    public static final class LoopReturn extends OnnxOp implements Op.Terminating {
+        public static final String NAME = "LoopReturn";
+
+        // @@@ make or fake body
+        public enum Attribute implements OnnxOp.OnnxAttribute.None { }
+
+        public enum TypeConstraint implements OnnxOp.OnnxTypeConstraint {
+            V(new OnnxType.TypeVariable("V", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.bool())))),
+            B(new OnnxType.TypeVariable("B", List.of(OnnxType.tensor(OnnxType.bool())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxOp.OnnxParameter {
+            // @@@ Onnx spec declares the input parameters as optional, however it is causing problems
+            cond(TypeConstraint.B.typeVariable(), OnnxOp.OnnxParameter.Quantifier.REQUIRED),
+            values(TypeConstraint.V.typeVariable(), OnnxOp.OnnxParameter.Quantifier.VARIADIC),
+            ;
+
+            final OnnxType type;
+            final OnnxOp.OnnxParameter.Quantifier quantifier;
+
+            InputParameter(OnnxType type, OnnxOp.OnnxParameter.Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public OnnxOp.OnnxParameter.Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxOp.OnnxParameter {
+            outputs(TypeConstraint.V.typeVariable(), OnnxOp.OnnxParameter.Quantifier.VARIADIC),
+            ;
+
+            final OnnxType type;
+            final OnnxOp.OnnxParameter.Quantifier quantifier;
+
+            OutputParameter(OnnxType type, OnnxOp.OnnxParameter.Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public OnnxOp.OnnxParameter.Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxOp.OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public LoopReturn(ExternalizableOp.ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        LoopReturn(ExplicitOnnxOps.LoopReturn that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+        }
+
+        @Override
+        public ExplicitOnnxOps.LoopReturn transform(CopyContext cc, OpTransformer ot) {
+            return new ExplicitOnnxOps.LoopReturn(this, cc, ot);
+        }
+
+        LoopReturn(TypeElement resultType, Value cond, Value v_initial) {
+            super(SCHEMA, resultType, Set.of(), List.of(cond, v_initial), List.of());
+        }
+
+        @Override
+        public SequencedSet<OnnxOp.OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxOp.OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(cond()));
+        }
+
+
+        public Value cond() {
+            return operands().get(0);
+        }
+
+        public List<Value> values() {
+            return operands().subList(1, operands().size());
+        }
+    }
+
+    public static LoopReturn LoopReturn(TypeElement resultType, Value cond, Value values) {
+        return new LoopReturn(resultType, cond, values);
+    }
+
     @OpFactory.OpDeclaration(Loop.NAME)
     public static final class Loop extends OnnxOp implements Op.Loop {
         public static final String NAME = "Loop";
@@ -295,18 +417,16 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return onnxInputs(SCHEMA, List.of(cond()));
         }
 
-        public Optional<Value> m() {
-            int i = optionalInputArguments.indexOf(InputParameter.M);
-            return i != -1 ? Optional.of(operands().get(1 + i)) : Optional.empty();
+        public Value max() {
+            return operands().get(0);
         }
 
-        public Optional<Value> cond() {
-            int i = optionalInputArguments.indexOf(InputParameter.cond);
-            return i != -1 ? Optional.of(operands().get(1 + i)) : Optional.empty();
+        public Value cond() {
+            return operands().get(1);
         }
 
         public List<Value> v_initial() {
-            return operands().subList(1, operands().size());
+            return operands().subList(2, operands().size());
         }
 
         @Override

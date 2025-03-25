@@ -95,7 +95,7 @@ public class RuntimeTest {
                     List.of(node("Loop", List.of("max", "cond", "a"), List.of("a_out"), Map.of(
                             "body", graph(
                                     List.of(),
-                                    List.of(scalarInfo("i", INT64.id), scalarInfo("cond_in", BOOL.id), tensorInfo("a_in", INT64.id)),
+                                    List.of(tensorInfo("i", INT64.id, true), tensorInfo("cond_in", BOOL.id, true), tensorInfo("a_in", INT64.id)),
                                     List.of(node("Identity", List.of("cond_in"), List.of("cond_out"), Map.of()),
                                             node("Add", List.of("a_in", "a_in"), List.of("a_out"), Map.of())),
                                     List.of("cond_out", "a_out"))))),
