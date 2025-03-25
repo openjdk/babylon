@@ -374,6 +374,8 @@ public class CNNTest {
         }
     }
 
+    private static final long[] IMAGE_SHAPE = new long[]{-1, 1, 28, 28};
+
     private void test(Arena arena, Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {
         try (RandomAccessFile imagesF = new RandomAccessFile(IMAGES_PATH, "r");
              RandomAccessFile labelsF = new RandomAccessFile(LABELS_PATH, "r")) {
@@ -381,8 +383,7 @@ public class CNNTest {
             MemorySegment imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE, arena);
             MemorySegment labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE, arena);
 
-            long size = imagesF.length() - IMAGES_HEADER_SIZE;
-            Tensor<Byte> inputImage = new Tensor(arena, imagesIn, Tensor.ElementType.UINT8, new long[]{size / (28 * 28), 1, 28, 28});
+            Tensor<Byte> inputImage = new Tensor(arena, imagesIn, Tensor.ElementType.UINT8, IMAGE_SHAPE);
 
             MemorySegment result = executor.apply(inputImage).data();
 
