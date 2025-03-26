@@ -26,7 +26,6 @@
 package hat.backend.jextracted;
 
 import hat.NDRange;
-import hat.backend.ffi.FFIBackend;
 import hat.backend.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
@@ -41,7 +40,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-public abstract class C99JExtractedBackend extends FFIBackend {
+public abstract class C99JExtractedBackend extends JExtractedBackend {
     public C99JExtractedBackend(String libName) {
         super(libName);
     }
@@ -68,7 +67,7 @@ public abstract class C99JExtractedBackend extends FFIBackend {
             kernelContext.maxX(ndRange.kid.maxX);
             args[0] = this.kernelContext;
             ArgArray.update(argArray,kernelCallGraph,  args);
-            c99NativeBackend.ndRange(kernelHandle, this.argArray);
+         //   c99NativeBackend.ndRange(kernelHandle, this.argArray);
         }
     }
 

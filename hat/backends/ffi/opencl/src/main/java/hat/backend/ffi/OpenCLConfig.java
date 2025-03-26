@@ -44,11 +44,15 @@ public record OpenCLConfig(int bits) {
     };
 
     public static OpenCLConfig of() {
-        if ((((System.getenv("HAT") instanceof String e) ? e : "") +
-                ((System.getProperty("HAT") instanceof String p) ? p : "")) instanceof String opts) {
+        if (System.getenv("HAT") instanceof String opts){
+            System.out.println("From env "+opts);
             return of(opts);
         }
-        return of();
+        if (System.getProperty("HAT") instanceof String opts) {
+            System.out.println("From prop "+opts);
+            return of(opts);
+        }
+        return of("");
     }
 
     public static OpenCLConfig of(int bits) {
@@ -76,6 +80,9 @@ public record OpenCLConfig(int bits) {
     }
 
     public static OpenCLConfig of(String name) {
+        if (name == null || name.equals("")){
+            return OpenCLConfig.of(0);
+        }
         for (int i = 0; i < bitNames.length; i++) {
             if (bitNames[i].equals(name)) {
                 return new OpenCLConfig(1 << (i + START_BIT_IDX));

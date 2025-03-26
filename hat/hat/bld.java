@@ -25,7 +25,45 @@
  */
 
 
-import static java.lang.System.*;
+import static java.lang.System.out;
+
+static class Targets {
+    final Script.BuildDir buildDir;
+    final public Script.JarFile wrapJar;
+    final Script.JarFile clWrapJar;
+    final public Script.JarFile glWrapJar;
+    final public Script.JarFile cuWrapJar;
+    final public Script.JarFile hatJar;
+    final public Script.CMakeBuildDir cmakeBuildDir;
+
+    Targets(Script.BuildDir buildDir) {
+        this.buildDir = buildDir;
+        this.wrapJar = buildDir.jarFile("hat-wrap-1.0.jar");
+        this.clWrapJar = buildDir.jarFile("hat-clwrap-1.0.jar");
+        this.glWrapJar = buildDir.jarFile("hat-glwrap-1.0.jar");
+        this.cuWrapJar = buildDir.jarFile("hat-cuwrap-1.0.jar");
+        this.hatJar = buildDir.jarFile("hat-core-1.0.jar");
+
+        cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
+    }
+}
+
+static class Example {
+
+    Script.JarFile jarFile;
+    Script.DirEntry dir;
+    String name;
+
+    Example(Script.JarFile jarFile, Script.DirEntry dir, String name) {
+        this.jarFile = jarFile;
+        this.dir = dir;
+        this.name = name;
+    }
+
+    static Example of(Script.BuildDir buildDir, Script.DirEntry dir) {
+        return new Example(buildDir.jarFile("hat-example-" + dir.fileName() + "-1.0.jar"), dir, dir.fileName());
+    }
+}
 
 void main(String[] args) {
 
@@ -90,11 +128,13 @@ void main(String[] args) {
     var dir = Script.DirEntry.current();
     var hatCoreDir = dir.existingDir("hat-core");
     var backends = dir.existingDir("backends");
-    var examples = dir.existingDir("examples");
+    var examplesDir = dir.existingDir("examples");
     var wrapsDir = dir.existingDir("wrap");
     var stageDir = dir.buildDir("stage").create();
+
     var buildDir = Script.BuildDir.of(dir.path("build")).create();
-    var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
+    var targets = new Targets(buildDir);
+
 
     var openclCapability = Script.Capabilities.OpenCL.of();
     var openglCapability = Script.Capabilities.OpenGL.of();
@@ -109,20 +149,15 @@ void main(String[] args) {
         cmakeCapability.probe(buildDir, capabilities);
     }
 
-    capabilities.capabilities().forEach(fw -> out.print( "["+fw.name + (fw.available() ? "\u2714" : "\u2715") +"]"));
+    capabilities.capabilities().forEach(fw -> out.print("[" + fw.name + (fw.available() ? "\u2714" : "\u2715") + "]"));
     out.println();
 
     var verbose = false;
-    var wrapJar= buildDir.jarFile("hat-wrap-1.0.jar");
-    var clWrapJar= buildDir.jarFile("hat-clwrap-1.0.jar");
-    var glWrapJar= buildDir.jarFile("hat-glwrap-1.0.jar");
-    var cuWrapJar= buildDir.jarFile("hat-cuwrap-1.0.jar");
-    var hatJar = buildDir.jarFile("hat-core-1.0.jar");
 
- var hatJavacOpts = Script.javacBuilder($ -> $
+
+    var hatJavacOpts = Script.javacBuilder($ -> $
             .enable_preview()
             .add_modules("jdk.incubator.code")
-          //  .add_exports_to_all_unnamed("java.base", "jdk.internal", "jdk.internal.vm.annotation")
             .current_source()
     );
 
@@ -130,38 +165,38 @@ void main(String[] args) {
             .verbose(verbose)
     );
     Script.jar(hatJarOptions, jar -> jar
-            .jarFile(hatJar)
+            .jarFile(targets.hatJar)
             .maven_style_root(hatCoreDir)
             .javac(hatJavacOpts, javac -> {
             })
     );
 
     Script.jar(jar -> jar
-         .jarFile(wrapJar)
-         .maven_style_root(wrapsDir.dir("wrap"))
-         .javac(javac -> javac.current_source())
+            .jarFile(targets.wrapJar)
+            .maven_style_root(wrapsDir.dir("wrap"))
+            .javac(javac -> javac.current_source())
     );
 
     if (jextractCapability.available()) {
         if (openclCapability.available()) {
             if (!openclCapability.jarFile(buildDir).exists()) {
                 if (!openclCapability.stage(stageDir).exists()) {
-                    Script.jextract(jextractCapability.executable, $ -> $ .verbose(verbose) .capability(openclCapability,stageDir));
-                }else{
-                    out.println("Using previously extracted  "+openclCapability.stage(buildDir).fileName());
+                    Script.jextract(jextractCapability.executable, $ -> $.verbose(verbose).capability(openclCapability, stageDir));
+                } else {
+                    out.println("Using previously extracted  " + openclCapability.stage(buildDir).fileName());
                 }
                 Script.jar(jar -> jar
-                    .jarFile(openclCapability.jarFile(buildDir))
-                    .javac(javac -> javac.current_source().source_path(Script.SourceDir.of(openclCapability.stage(stageDir).path())))
+                        .jarFile(openclCapability.jarFile(buildDir))
+                        .javac(javac -> javac.current_source().source_path(Script.SourceDir.of(openclCapability.stage(stageDir).path())))
 
                 );
-            }else{
-                out.println("Using existing extracted "+openclCapability.jarFile(buildDir).fileName());
+            } else {
+                out.println("Using existing extracted " + openclCapability.jarFile(buildDir).fileName());
             }
             Script.jar(jar -> jar
-               .jarFile(clWrapJar)
-               .maven_style_root(wrapsDir.dir("clwrap"))
-               .javac(javac -> javac.current_source().class_path(wrapJar,hatJar, openclCapability.jarFile(buildDir)))
+                    .jarFile(targets.clWrapJar)
+                    .maven_style_root(wrapsDir.dir("clwrap"))
+                    .javac(javac -> javac.current_source().class_path(targets.wrapJar, targets.hatJar, openclCapability.jarFile(buildDir)))
             );
         } else {
             out.println("This platform does not have OpenCL");
@@ -170,26 +205,26 @@ void main(String[] args) {
         if (openglCapability.available()) {
             if (!openglCapability.jarFile(buildDir).exists()) {
                 if (!openglCapability.stage(stageDir).exists()) {
-                    Script.jextract(jextractCapability, $ -> $ .verbose(verbose) .capability(openglCapability, stageDir));
-                }else{
-                    out.println("Using previously extracted  "+openglCapability.stage(buildDir).fileName());
+                    Script.jextract(jextractCapability, $ -> $.verbose(verbose).capability(openglCapability, stageDir));
+                } else {
+                    out.println("Using previously extracted  " + openglCapability.stage(buildDir).fileName());
                 }
                 Script.jar(jar -> jar
                         .jarFile(openglCapability.jarFile(buildDir))
                         .javac(javac -> javac.current_source().source_path(Script.SourceDir.of(openglCapability.stage(stageDir).path())))
                 );
-            }else{
-                out.println("Using existing extracted "+openglCapability.jarFile(buildDir).fileName());
+            } else {
+                out.println("Using existing extracted " + openglCapability.jarFile(buildDir).fileName());
             }
             Script.jar(jar -> jar
-               .jarFile(glWrapJar)
-               .maven_style_root(wrapsDir.dir("glwrap"))
-               .javac(javac -> javac
-                  .current_source()
-                  .exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLCallbackEventHandler\\.java$"))
-                  //.exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLFuncEventHandler\\.java$"))
-                  .class_path(wrapJar, openglCapability.jarFile(buildDir))
-               )
+                    .jarFile(targets.glWrapJar)
+                    .maven_style_root(wrapsDir.dir("glwrap"))
+                    .javac(javac -> javac
+                            .current_source()
+                            .exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLCallbackEventHandler\\.java$"))
+                            //.exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLFuncEventHandler\\.java$"))
+                            .class_path(targets.wrapJar, openglCapability.jarFile(buildDir))
+                    )
             );
         } else {
             out.println("This platform does not have OpenGL");
@@ -208,6 +243,18 @@ void main(String[] args) {
 
     // Here we create all ffi-backend jars.
     var ffiBackends = backends.existingDir("ffi");
+    var ffiBackendSharedDir = ffiBackends.dir("shared");
+    out.println("Shared ffi " + ffiBackendSharedDir.path());
+    var ffiSharedBackendJar = buildDir.jarFile("hat-backend-ffi-shared-1.0.jar");
+    backendJars.add(ffiSharedBackendJar);
+    var ffiBackendSharedResult = Script.jar(hatJarOptions, jar -> jar
+            .jarFile(ffiSharedBackendJar)
+            .maven_style_root(ffiBackendSharedDir)
+            .javac(hatJavacOpts, javac -> javac.verbose(verbose)
+                    .class_path(targets.hatJar)
+            )
+    );
+
     ffiBackends.subDirs()
             .filter(backend -> backend.failsToMatch("^.*(spirv|hip|shared|target|.idea)$"))
             .forEach(backend -> {
@@ -217,37 +264,37 @@ void main(String[] args) {
                 Script.jar(hatJarOptions, jar -> jar
                         .jarFile(ffiBackendJarFile)
                         .maven_style_root(backend)
-                        .javac(hatJavacOpts, javac -> javac.class_path(hatJar))
+                        .javac(hatJavacOpts, javac -> javac.class_path(targets.hatJar, ffiSharedBackendJar))
                 );
             });
 
     // Here we create jextracted-backend jars.
     var jextractedBackends = backends.existingDir("jextracted");
     var jextractedBackendSharedDir = jextractedBackends.dir("shared");
-    out.println("Shared jextracted "+jextractedBackendSharedDir.path());
-    var jextractedSharedBackendJar=buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar");
+    out.println("Shared jextracted " + jextractedBackendSharedDir.path());
+    var jextractedSharedBackendJar = buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar");
     backendJars.add(jextractedSharedBackendJar);
     var jextractedBackendSharedResult = Script.jar(hatJarOptions, jar -> jar
-          .jarFile(jextractedSharedBackendJar)
-          .maven_style_root(jextractedBackendSharedDir)
-          .javac(hatJavacOpts, javac -> javac.verbose(verbose)
-              .class_path(hatJar)
-          )
+            .jarFile(jextractedSharedBackendJar)
+            .maven_style_root(jextractedBackendSharedDir)
+            .javac(hatJavacOpts, javac -> javac.verbose(verbose)
+                    .class_path(targets.hatJar)
+            )
     );
 
-    if (openclCapability.available()){
-       var jextractedBackendOpenCLDir = jextractedBackends.dir("opencl");
-       out.println("OpenCL jextracted "+jextractedBackendOpenCLDir.path());
-       var jextractedOpenCLBackendJar = buildDir.jarFile("hat-backend-jextracted-opencl-1.0.jar");
-       backendJars.add(jextractedOpenCLBackendJar);
-       Script.jar(hatJarOptions, jar -> jar
-          .jarFile(jextractedOpenCLBackendJar)
-          .maven_style_root(jextractedBackendOpenCLDir)
-          .javac(hatJavacOpts, javac -> javac.verbose(verbose)
-              .class_path(hatJar, openclCapability.jarFile(buildDir), jextractedBackendSharedResult )
-          )
-       );
-   }
+    if (openclCapability.available()) {
+        var jextractedBackendOpenCLDir = jextractedBackends.dir("opencl");
+        out.println("OpenCL jextracted " + jextractedBackendOpenCLDir.path());
+        var jextractedOpenCLBackendJar = buildDir.jarFile("hat-backend-jextracted-opencl-1.0.jar");
+        backendJars.add(jextractedOpenCLBackendJar);
+        Script.jar(hatJarOptions, jar -> jar
+                .jarFile(jextractedOpenCLBackendJar)
+                .maven_style_root(jextractedBackendOpenCLDir)
+                .javac(hatJavacOpts, javac -> javac.verbose(verbose)
+                        .class_path(targets.hatJar, openclCapability.jarFile(buildDir), jextractedBackendSharedResult)
+                )
+        );
+    }
 
 
     // Here we create all java backend jars.
@@ -264,62 +311,49 @@ void main(String[] args) {
                 );
             });
 
-    backendJars.forEach(j->out.println(" backend "+j.path()));
+    backendJars.forEach(j -> out.println(" backend " + j.path()));
 
-
-    // here we create the example jars
-    examples.subDirs()
-            .filter(example -> example.failsToMatch("^.*(experiments|nbody|life|target|.idea)$"))
+    examplesDir.subDirs()
+            .filter(exampleDir -> exampleDir.failsToMatch("^.*(experiments|target|.idea)$"))
+            .map(exampleDir -> Example.of(targets.buildDir, exampleDir))
             .forEach(example -> {
-                var exampleJarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
-                out.println(exampleJarFile.fileName());
+                out.println(example.jarFile.fileName());
                 Script.jar(hatJarOptions, jar -> jar
-                        .jarFile(exampleJarFile)
-                        .maven_style_root(example)
-                        .javac(hatJavacOpts, javac -> javac.class_path(hatJar))
-                        .manifest(manifest -> manifest .main_class(example.fileName() + ".Main"))
+                        .jarFile(example.jarFile)
+                        .maven_style_root(example.dir)
+                        .javac(hatJavacOpts, javac ->
+                                javac.class_path(targets.hatJar)
+                                        .when(example.dir.matches("^.*(life|nbody)$") && jextractCapability.available() && openclCapability.available(), _ ->
+                                                javac.class_path(targets.wrapJar,
+                                                        targets.clWrapJar,
+                                                        openclCapability.jarFile(buildDir),
+                                                        buildDir.jarFile("hat-backend-ffi-opencl-1.0.jar")
+                                                )
+                                        )
+                                        .when(example.dir.matches("^.*(nbody)$") && jextractCapability.available() && openclCapability.available() && openglCapability.available(), _ ->
+                                                javac.class_path(targets.wrapJar,
+                                                        targets.glWrapJar,
+                                                        openglCapability.jarFile(buildDir)
+
+                                                )
+                                        )
+                        )
+                        .manifest(manifest -> manifest.main_class(example.name + ".Main"))
                 );
             });
 
 
-    if (jextractCapability.available() && openclCapability.available()) {
-        var example = examples.dir("life");
-        var exampleJarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
-        out.println(exampleJarFile.fileName());
-        Script.jar(hatJarOptions, jar -> jar
-                .jarFile(exampleJarFile)
-                .maven_style_root(example)
-                .javac(hatJavacOpts, javac -> javac
-                   .class_path(hatJar, wrapJar, clWrapJar, openclCapability.jarFile(buildDir), buildDir.jarFile("hat-backend-ffi-opencl-1.0.jar"))
-                )
-        );
-    }
-
-
-    if (jextractCapability.available() && openclCapability.available() && openglCapability.available()) {
-        var example = examples.dir("nbody");
-        var exampleJarFile = buildDir.jarFile("hat-example-" + example.fileName() + "-1.0.jar");
-        out.println(exampleJarFile.fileName());
-        Script.jar(hatJarOptions, jar -> jar
-                .jarFile(exampleJarFile)
-                .maven_style_root(example)
-                .javac(hatJavacOpts, javac -> javac
-                    .class_path( hatJar, wrapJar, clWrapJar, glWrapJar, openclCapability.jarFile(buildDir), openglCapability.jarFile(buildDir),buildDir.jarFile("hat-backend-ffi-opencl-1.0.jar"))
-                )
-        );
-    }
-
     if (cmakeCapability.available()) {
-        if (!cmakeBuildDir.exists()) {
+        if (!targets.cmakeBuildDir.exists()) {
             Script.cmake($ -> $
                     .verbose(verbose)
                     .source_dir(ffiBackends)
-                    .build_dir(cmakeBuildDir)
+                    .build_dir(targets.cmakeBuildDir)
                     .copy_to(buildDir)
             );
         }
         Script.cmake($ -> $
-                .build(cmakeBuildDir)
+                .build(targets.cmakeBuildDir)
         );
     } else {
         out.println("No cmake available so we did not build ffi backend shared libs");

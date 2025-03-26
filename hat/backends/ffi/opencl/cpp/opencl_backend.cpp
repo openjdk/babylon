@@ -90,12 +90,25 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
 }
 
 bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyToDevice( Arg_s *arg){
-   OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
+//std::cout << "shouldCopyToDevice( Arg_s *arg)" <<std::endl;
+// std::cout <<std::hex;
+//// std::cout << "arg=="<<((long) arg) <<std::endl;
+// std::cout << "arg->idx=="<<arg->idx <<std::endl;
+ //  std::cout << "bufferState=="<<((long) bufferState) <<std::endl;
+  //  std::cout << "kernel=="<<((long) kernel) <<std::endl;
+  //    std::cout << "kernel->name=="<<kernel->name <<std::endl;
+  //   std::cout << "kernel->program=="<<((long) kernel->program) <<std::endl;
+   //   std::cout << "kernel->program->backend=="<<((long) kernel->program->backend) <<std::endl;
+   //   std::cout <<std::dec;
+         OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
+
+
    bool kernelReadsFromThisArg = (arg->value.buffer.access==RW_BYTE) || (arg->value.buffer.access==RO_BYTE);
    bool isAlwaysCopyingOrNewStateOrHostOwned =
         openclBackend->openclConfig.alwaysCopy
         ||  (bufferState->state == BufferState_s::NEW_STATE)
         || ((bufferState->state == BufferState_s::HOST_OWNED));
+
    if (openclBackend->openclConfig.showWhy){
        std::cout<<
                    "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy

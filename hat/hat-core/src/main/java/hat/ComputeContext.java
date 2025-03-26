@@ -66,7 +66,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
 
     public enum WRAPPER {
-        MUTATE("Mutate"), ACCESS("Access"), ESCAPE("Escape");
+        MUTATE("Mutate"), ACCESS("Access");//, ESCAPE("Escape");
         final public MethodRef pre;
         final public MethodRef post;
 
@@ -170,7 +170,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         }
 
     }
-
+/*
     @Override
     public void preEscape(Buffer b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
@@ -183,7 +183,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.postEscape(b);
         }
-    }
+    } */
 
     @Override
     public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
