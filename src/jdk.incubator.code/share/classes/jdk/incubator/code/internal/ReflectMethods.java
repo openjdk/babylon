@@ -409,7 +409,8 @@ public class ReflectMethods extends TreeTranslator {
     private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
         switch (codeModelStorageOption) {
             case TEXT -> {
-                var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
+                var paramTypes = com.sun.tools.javac.util.List.of(crSyms.opFactoryType, crSyms.typeElementFactoryType);
+                var mt = new MethodType(paramTypes, crSyms.funcOpType,
                         com.sun.tools.javac.util.List.nil(), syms.methodClass);
                 var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
                 currentClassSym.members().enter(ms);
