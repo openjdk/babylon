@@ -142,7 +142,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
 
         @Override
         public List<Body> bodies() {
-            return List.of(elseBody, thenBody);
+            return List.of(thenBody, elseBody);
         }
 
         @Override

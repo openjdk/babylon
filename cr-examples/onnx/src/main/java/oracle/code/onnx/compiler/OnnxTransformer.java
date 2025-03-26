@@ -45,21 +45,26 @@ public class OnnxTransformer {
         return new OnnxTransformer(lookup, flatLambdaFunc);
     }
 
-    public OnnxTransformer(MethodHandles.Lookup lookup, CoreOp.FuncOp func) {
-        l = lookup;
-
-        var inlinedFunc = func.transform((bb, op) -> {
+    final CoreOp.FuncOp inline(CoreOp.FuncOp func) {
+        return func.transform((bb, op) -> {
             var cc  = bb.context();
             switch (op) {
                 case CoreOp.InvokeOp io when resolve(io) instanceof CoreOp.FuncOp inline ->
-                    bb.inline(inline, cc.getValues(io.operands()), (_, v) -> cc.mapValue(io.result(), v));
+                    bb.inline(inline(inline), cc.getValues(io.operands()), (_, v) -> cc.mapValue(io.result(), v));
                 default ->
                     bb.apply(op);
             }
             return bb;
         });
+    }
+
+    public OnnxTransformer(MethodHandles.Lookup lookup, CoreOp.FuncOp func) {
+        l = lookup;
+
+        var inlinedFunc = inline(func);
 
         inits = new ArrayList<>();
+        var initMap = new HashMap<FieldRef, Block.Parameter>();
         var top = new Block.Builder[1];
         // turning field loads into additiona arguments
         inputFunc = inlinedFunc.transform((bb, op) -> {
@@ -67,9 +72,11 @@ public class OnnxTransformer {
             var cc  = bb.context();
             switch (op) {
                 case CoreOp.FieldAccessOp.FieldLoadOp flo when op.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS) -> {
-                    inits.add(flo.fieldDescriptor());
                     // initializers turn into top block parameters
-                    cc.mapValue(op.result(), top[0].parameter(op.resultType()));
+                    cc.mapValue(op.result(), initMap.computeIfAbsent(flo.fieldDescriptor(), fd -> {
+                        inits.add(fd);
+                        return top[0].parameter(op.resultType());
+                    }));
                 }
                 default -> bb.apply(op);
             }
@@ -90,7 +97,7 @@ public class OnnxTransformer {
     public List<Tensor> initializers(Object receiver) {
         return inits.stream().map(i -> {
             try {
-                return (Tensor)i.resolveToHandle(l).get(receiver);
+                return (Tensor)(receiver == null ? i.resolveToHandle(l).get() : i.resolveToHandle(l).get(receiver));
             } catch (ReflectiveOperationException ex) {
                 throw new RuntimeException(ex);
             }
