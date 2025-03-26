@@ -366,8 +366,8 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                     List.of(indexer.getName(ifOp.operands().getFirst())),
                                     List.of(indexer.getName(ifOp.result())),
                                     java.util.Map.of(
-                                            "else_branch", graph(indexer, ifOp.elseBranch().entryBlock(), List.of(), 0),
-                                            "then_branch", graph(indexer, ifOp.thenBranch().entryBlock(), List.of(), 0))));
+                                            "then_branch", graph(indexer, ifOp.thenBranch().entryBlock(), List.of(), 0),
+                                            "else_branch", graph(indexer, ifOp.elseBranch().entryBlock(), List.of(), 0))));
                         case OnnxOps.LoopReturn _ -> {} // skip
                         case OnnxOps.Loop loopOp -> {
                             opNodes.accept(node(

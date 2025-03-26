@@ -150,7 +150,7 @@ public class SimpleTest {
 
     @CodeReflection
     public Tensor<Float> ifConst(Tensor<Boolean> cond) {
-        return If(cond, () -> List.of(Constant(-1f)), () -> List.of(Constant(1f))).get(0);
+        return If(cond, () -> List.of(Constant(1f)), () -> List.of(Constant(-1f))).get(0);
     }
 
     @Test
@@ -170,7 +170,7 @@ public class SimpleTest {
     @CodeReflection
     public Tensor<Float> ifCapture(Tensor<Boolean> cond, Tensor<Float> trueValue) {
         var falseValue = Constant(-1f);
-        return If(cond, () -> Identity(falseValue), () -> Identity(trueValue));
+        return If(cond, () -> Identity(trueValue), () -> Identity(falseValue));
     }
 
     @Test
@@ -209,11 +209,11 @@ public class SimpleTest {
     public Tensor<Float> ifInitialized(Tensor<Boolean> cond1, Tensor<Boolean> cond2) {
         return If(cond1,
                 () -> If(cond2,
-                        () -> List.of(Identity(initialized4)),
-                        () -> List.of(Identity(initialized3))),
+                        () -> List.of(Identity(initialized)),
+                        () -> List.of(Identity(initialized2))),
                 () -> If(cond2,
-                        () -> List.of(Identity(initialized2)),
-                        () -> List.of(Identity(initialized)))).get(0);
+                        () -> List.of(Identity(initialized3)),
+                        () -> List.of(Identity(initialized4)))).get(0);
     }
 
     @Test

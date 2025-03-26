@@ -37,7 +37,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
     public static final class If extends OnnxOp implements Nested {
         public static final String NAME = "If";
 
-        final Body elseBody, thenBody;
+        final Body thenBody, elseBody;
 
         // @@@ make or fake elseBody as "else_branch" attribute and thenBody as "then_branch" attribute
         public enum Attribute implements OnnxOp.OnnxAttribute.None { }
@@ -117,15 +117,15 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         public If(ExternalizableOp.ExternalizedOp def) {
             super(SCHEMA, def);
 
-            this.elseBody = def.bodyDefinitions().get(0).build(this);
-            this.thenBody = def.bodyDefinitions().get(1).build(this);
+            this.thenBody = def.bodyDefinitions().get(0).build(this);
+            this.elseBody = def.bodyDefinitions().get(1).build(this);
         }
 
         If(If that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
 
-            this.elseBody = that.elseBody.transform(cc, ot).build(this);
             this.thenBody = that.thenBody.transform(cc, ot).build(this);
+            this.elseBody = that.elseBody.transform(cc, ot).build(this);
         }
 
         @Override
@@ -133,11 +133,11 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new If(this, cc, ot);
         }
 
-        If(TypeElement resultType, Value cond, Body.Builder elseBranch, Body.Builder thenBranch) {
+        If(TypeElement resultType, Value cond, Body.Builder thenBranch, Body.Builder elseBranch) {
             super(SCHEMA, resultType, Set.of(), List.of(cond), List.of());
 
-            this.elseBody = elseBranch.build(this);
             this.thenBody = thenBranch.build(this);
+            this.elseBody = elseBranch.build(this);
         }
 
         @Override
@@ -168,8 +168,8 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static If If(TypeElement resultType, Value cond, Body.Builder elseBody, Body.Builder thenBody) {
-        return new If(resultType, cond, elseBody, thenBody);
+    public static If If(TypeElement resultType, Value cond, Body.Builder thenBody, Body.Builder elseBody) {
+        return new If(resultType, cond, thenBody, elseBody);
     }
 
     @OpFactory.OpDeclaration(LoopReturn.NAME)

@@ -82,7 +82,7 @@ class ExplicitOnnxOperators {
         T invoke();
     }
 
-    public static <T> T If(Tensor<Boolean> cond, IfBody<T> elseBody, IfBody<T> thenBody) {
+    public static <T> T If(Tensor<Boolean> cond, IfBody<T> thenBody, IfBody<T> elseBody) {
         return booleanValue(cond) ? thenBody.invoke() : elseBody.invoke();
     }
 
