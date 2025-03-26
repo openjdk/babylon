@@ -161,7 +161,6 @@ public:
     };
 
 public:
-
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
@@ -186,7 +185,8 @@ public:
     static const char *errorMsg(cl_int status);
 };
 extern "C" long getOpenCLBackend(int configBits);
-#ifdef opencl_backend_cpp
+
+#ifdef opencl_backend_config_cpp
 const  char *OpenCLBackend::OpenCLConfig::bitNames[] = {
               "MINIMIZE_COPIES",
               "TRACE",

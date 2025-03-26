@@ -23,6 +23,21 @@
  * questions.
  */
 #include "opencl_backend.h"
+
+
+/*
+  OpenCLKernel
+  */
+
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::Program *program, char* name, cl_kernel kernel)
+    : Backend::Program::Kernel(program, name), kernel(kernel){
+}
+
+OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
+    clReleaseKernel(kernel);
+}
+
+
 /*
 void dispatchKernel(Kernel kernel, KernelContext kc, Arg ... args) {
     for (int argn = 0; argn<args.length; argn++){
