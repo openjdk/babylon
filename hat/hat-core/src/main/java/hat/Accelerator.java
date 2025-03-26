@@ -142,7 +142,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
             ((BufferTracker) backend).postAccess(b);
         }
     }
-
+/*
     @Override
     public void preEscape(Buffer b) {
         if (backend instanceof BufferTracker) {
@@ -155,7 +155,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).postEscape(b);
         }
-    }
+    } */
 
     /**
      * An interface used for wrapping the compute entrypoint of work to be performed by the Accelerator.

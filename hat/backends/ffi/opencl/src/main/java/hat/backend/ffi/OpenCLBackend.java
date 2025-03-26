@@ -131,7 +131,9 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         if (config.isSHOW_STATE()) {
             System.out.print("in postMutate state = " + b.getStateString() + " no action to take ");
         }
-        b.setState(BufferState.HOST_OWNED);
+        if (b.getState() != BufferState.NEW_STATE) {
+            b.setState(BufferState.HOST_OWNED);
+        }
         if (config.isSHOW_STATE()) {
             System.out.println("and switched to (or stayed on) " + b.getStateString());
         }
@@ -173,7 +175,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
             System.out.println("in postAccess state = " + b.getStateString());
         }
     }
-
+/*
     @Override
     public void preEscape(Buffer b) {
         switch (b.getState()) {
@@ -212,5 +214,5 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
         if (config.isSHOW_STATE()) {
             System.out.println("and switched to " + b.getStateString());
         }
-    }
+    } */
 }

@@ -47,6 +47,7 @@ void main(String[] argv) {
   var backends = hatDir.existingDir("backends");
   var examples = hatDir.dir("examples");
   var buildDir = hatDir.existingBuildDir("build");
+  var ffiBackendSharedJar = buildDir.jarFile("hat-backend-ffi-shared-1.0.jar");
   var jextractedOpenCLJar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
   var jextractedOpenGLJar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
   var wrapJar = buildDir.jarFile("hat-wrap-1.0.jar");
@@ -71,7 +72,7 @@ void main(String[] argv) {
         if (backends.dir(backendName.replace('-','/')) instanceof Script.DirEntry backend && backend.exists()) {
            haveBackend.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
            if (backendName.equals("ffi-opencl")){
-               haveBackend.class_path(wrapJar, clwrapJar, jextractedOpenCLJar);
+               haveBackend.class_path(wrapJar, clwrapJar, jextractedOpenCLJar, ffiBackendSharedJar );
            }
         } else {
            throw new RuntimeException("No such backend " + backendName);

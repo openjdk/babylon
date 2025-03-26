@@ -26,13 +26,10 @@ package hat.backend.jextracted;
 
 
 import hat.backend.Backend;
-import hat.backend.ffi.FFILib;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
-import hat.buffer.SchemaBuilder;
 
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
 import java.lang.invoke.MethodHandle;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
@@ -40,7 +37,7 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 public abstract class JExtractedBackendDriver implements Backend {
-
+/*
     public boolean isAvailable() {
         return nativeLibrary.available;
     }
@@ -65,11 +62,11 @@ public abstract class JExtractedBackendDriver implements Backend {
 
     public long backendHandle = 0;
 
-
-    public final FFILib nativeLibrary;
+*/
+    //public final FFILib nativeLibrary;
 
     public JExtractedBackendDriver(String libName) {
-        this.nativeLibrary = new FFILib(libName);
+      /*  this.nativeLibrary = new FFILib(libName);
         this.dumpArgArray_MH = nativeLibrary.voidFunc("dumpArgArray", ADDRESS);
         this.getDevice_MH = nativeLibrary.longFunc("getDeviceHandle");
         this.releaseDevice_MH = nativeLibrary.voidFunc("releaseDeviceHandle", JAVA_LONG);
@@ -82,36 +79,36 @@ public abstract class JExtractedBackendDriver implements Backend {
         this.ndrange_MH = nativeLibrary.longFunc("ndrange", JAVA_LONG,  ADDRESS);
         this.info_MH = nativeLibrary.voidFunc("info", JAVA_LONG);
         this.getBackend_MH = nativeLibrary.longFunc("getBackend", ADDRESS, JAVA_INT, ADDRESS);
-
+*/
     }
 
     public long getBackend() {
 
         try {
-            backendHandle = (long) getBackend_MH.invoke();
+     //       backendHandle = (long) getBackend_MH.invoke();
         } catch (Throwable throwable) {
             throw new IllegalStateException(throwable);
         }
-        return backendHandle;
+        return 0l;//backendHandle;
     }
 
     public int getGetMaxComputeUnits() {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
+      //  if (backendHandle == 0L) {
+       //     throw new IllegalStateException("no backend handle");
+      //  }
         try {
-            return (int) getMaxComputeUnits_MH.invoke(backendHandle);
+            return (int)0;// getMaxComputeUnits_MH.invoke(backendHandle);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
     }
 
     public void info() {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
+     ///   if (backendHandle == 0L) {
+       //     throw new IllegalStateException("no backend handle");
+     //   }
         try {
-            info_MH.invoke(backendHandle);
+           ;// info_MH.invoke(backendHandle);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -119,20 +116,20 @@ public abstract class JExtractedBackendDriver implements Backend {
 
     public void dumpArgArray(ArgArray argArray) {
         try {
-            dumpArgArray_MH.invoke(Buffer.getMemorySegment(argArray));
+           // dumpArgArray_MH.invoke(Buffer.getMemorySegment(argArray));
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
     }
 
     public long compileProgram(String source) {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
+     //  if (backendHandle == 0L) {
+         //   throw new IllegalStateException("no backend handle");
+       // }
         try {
             var arena = Arena.global();
             var cstr = arena.allocateFrom(source);
-            return (Long) compileProgram_MH.invoke(backendHandle, source.length(), cstr);
+            return (Long)0L;// compileProgram_MH.invoke(backendHandle, source.length(), cstr);
 
         } catch (Throwable e) {
             throw new RuntimeException(e);
@@ -141,7 +138,7 @@ public abstract class JExtractedBackendDriver implements Backend {
 
     public void ndRange(long kernelHandle,  ArgArray argArray) {
         try {
-            this.ndrange_MH.invoke(kernelHandle, Buffer.getMemorySegment(argArray));
+           // this.ndrange_MH.invoke(kernelHandle, Buffer.getMemorySegment(argArray));
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -149,7 +146,7 @@ public abstract class JExtractedBackendDriver implements Backend {
 
     public boolean programOK(long programHandle) {
         try {
-            return (Boolean) programOK_MH.invoke(programHandle);
+            return (Boolean) false;// programOK_MH.invoke(programHandle);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -159,7 +156,7 @@ public abstract class JExtractedBackendDriver implements Backend {
         try {
             var arena = Arena.global();
             var cstr = arena.allocateFrom(kernelName);
-            return ((Long) getKernel_MH.invoke(programHandle, kernelName.length(), cstr)).longValue();
+            return ((Long) 0L);// getKernel_MH.invoke(programHandle, kernelName.length(), cstr)).longValue();
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -167,7 +164,7 @@ public abstract class JExtractedBackendDriver implements Backend {
 
     public void releaseKernel(long kernelHandle) {
         try {
-            releaseKernel_MH.invoke(kernelHandle);
+          //  releaseKernel_MH.invoke(kernelHandle);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -175,7 +172,7 @@ public abstract class JExtractedBackendDriver implements Backend {
 
     public void releaseProgram(long programHandle) {
         try {
-            releaseProgram_MH.invoke(programHandle);
+         //   releaseProgram_MH.invoke(programHandle);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -183,11 +180,11 @@ public abstract class JExtractedBackendDriver implements Backend {
 
 
     public void release() {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
+      //  if (backendHandle == 0L) {
+        //    throw new IllegalStateException("no backend handle");
+       // }
         try {
-            releaseDevice_MH.invoke(backendHandle);
+         //   releaseDevice_MH.invoke(backendHandle);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

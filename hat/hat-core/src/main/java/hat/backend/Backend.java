@@ -27,7 +27,6 @@ package hat.backend;
 
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.backend.ffi.FFIBackend;
 import hat.backend.java.JavaMultiThreadedBackend;
 import hat.backend.java.JavaSequentialBackend;
 import hat.buffer.BufferAllocator;
@@ -53,8 +52,7 @@ public interface Backend extends BufferAllocator {
         return (backendName.equals(requestedBackendName));
     };
     Predicate<Backend> FIRST = backend -> true;
-    Predicate<Backend> FIRST_NATIVE = backend -> backend instanceof FFIBackend FFIBackend && FFIBackend.isAvailable();
-    Predicate<Backend> JAVA_MULTITHREADED = backend -> backend instanceof JavaMultiThreadedBackend;
+     Predicate<Backend> JAVA_MULTITHREADED = backend -> backend instanceof JavaMultiThreadedBackend;
     Predicate<Backend> JAVA_SEQUENTIAL = backend -> backend instanceof JavaSequentialBackend;
 
     static Backend getBackend(Predicate<Backend> backendPredicate) {

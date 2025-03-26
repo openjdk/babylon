@@ -57,11 +57,12 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
    // std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
     OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(program->backend);
-  //  std::cout << "Kernel name '"<< (dynamic_cast<Backend::Program::Kernel*>(this))->name<<"'"<<std::endl;
+  //
     openclBackend->openclQueue.marker(openclBackend->openclQueue.EnterKernelDispatchBits,
      (dynamic_cast<Backend::Program::Kernel*>(this))->name);
     if (openclBackend->openclConfig.traceCalls){
        std::cout << "ndrange(\"" <<  (dynamic_cast<Backend::Program::Kernel*>(this))->name<< "\"){"<<std::endl;
+        std::cout << "Kernel name '"<< (dynamic_cast<Backend::Program::Kernel*>(this))->name<<"'"<<std::endl;
     }
     if (openclBackend->openclConfig.trace){
        Sled::show(std::cout, argArray);
@@ -90,10 +91,18 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                    std::exit(1);
                }
 
+               if ((bufferState->vendorPtr == 0L) && (bufferState->state != BufferState_s::NEW_STATE)){
+                   std::cerr << "Warning:  Unexpected initial state for arg "<< i
+                      <<" of kernel '"<<(dynamic_cast<Backend::Program::Kernel*>(this))->name<<"'"
+                      << " state=" << bufferState->state<< " '"
+                      << BufferState_s::stateNames[bufferState->state]<< "'"
+                      << " vendorPtr" << bufferState->vendorPtr<<std::endl;
+               }
                OpenCLBuffer * openclBuffer =nullptr;
-               if (bufferState->state == BufferState_s::NEW_STATE){
+
+               if (bufferState->vendorPtr == 0L || bufferState->state == BufferState_s::NEW_STATE){
                   openclBuffer = new OpenCLBuffer(this, arg, bufferState);
-                  if (openclBackend->openclConfig.trace){
+                 if (openclBackend->openclConfig.trace){
                      std::cout << "We allocated arg "<<i<<" buffer "<<std::endl;
                   }
                }else{
@@ -179,7 +188,8 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                 if (openclBackend->openclConfig.traceCopies||openclBackend->openclConfig.traceEnqueues){
                    std::cout << "copying arg " << arg->idx <<" from device "<< std::endl;
                 }
-                bufferState->state = BufferState_s::HOST_OWNED;
+                  bufferState->state = BufferState_s::DEVICE_OWNED;
+             //   bufferState->state = BufferState_s::HOST_OWNED;
              }else{
                  if (openclBackend->openclConfig.traceSkippedCopies){
                       std::cout << "NOT copying arg " << arg->idx <<" from device "<< std::endl;

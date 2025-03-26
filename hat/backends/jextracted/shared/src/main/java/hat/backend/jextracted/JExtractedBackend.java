@@ -26,7 +26,6 @@
 package hat.backend.jextracted;
 
 import hat.ComputeContext;
-import hat.backend.ffi.FFIBackendDriver;
 import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
@@ -44,10 +43,10 @@ import jdk.incubator.code.type.JavaType;
 import java.lang.foreign.Arena;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
-import static hat.ComputeContext.WRAPPER.ESCAPE;
+//import static hat.ComputeContext.WRAPPER.ESCAPE;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 
-public abstract class JExtractedBackend extends FFIBackendDriver {
+public abstract class JExtractedBackend extends JExtractedBackendDriver {
 
     public final Arena arena = Arena.global();
 
@@ -116,13 +115,13 @@ public abstract class JExtractedBackend extends FFIBackendDriver {
                     invokeOW.op().operands().stream()
                             .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
                             .forEach(value ->
-                                    bldr.op(CoreOp.invoke(ESCAPE.pre, cc, bldrCntxt.getValue(value)))
+                                    bldr.op(CoreOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(value)))
                             );
                     bldr.op(invokeOW.op());
                     invokeOW.op().operands().stream()
                             .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
                             .forEach(value -> bldr.op(
-                                    CoreOp.invoke(ESCAPE.post, cc, bldrCntxt.getValue(value)))
+                                    CoreOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(value)))
                             );
                 }
                 return bldr;

@@ -33,13 +33,6 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
-
-import java.lang.annotation.Annotation;
-import java.lang.foreign.Arena;
-import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
-import java.util.List;
-
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
@@ -49,8 +42,14 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
 
+import java.lang.annotation.Annotation;
+import java.lang.foreign.Arena;
+import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.List;
+
 import static hat.ComputeContext.WRAPPER.ACCESS;
-import static hat.ComputeContext.WRAPPER.ESCAPE;
+//import static hat.ComputeContext.WRAPPER.ESCAPE;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 
 public abstract class FFIBackend extends FFIBackendDriver {
@@ -145,9 +144,9 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 return new PrePost(MUTATE.pre, MUTATE.post);
             }
 
-            static PrePost escape() {
-                return new PrePost(ESCAPE.pre, ESCAPE.post);
-            }
+          //  static PrePost escape() {
+            //    return new PrePost(ESCAPE.pre, ESCAPE.post);
+           // }
 
             void apply(Block.Builder bldr, CopyContext bldrCntxt, Value computeContext, InvokeOpWrapper invokeOW) {
                 if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
@@ -185,12 +184,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
                     bldr.op(invokeOW.op());
                 } else {
                     List<Value> list = invokeOW.op().operands();
-                    System.out.println("args "+list.size());
+                 //   System.out.println("args "+list.size());
                     if (!list.isEmpty()) {
-                        System.out.println("method "+invokeOW.method());
+                       // System.out.println("method "+invokeOW.method());
                         Annotation[][] parameterAnnotations = invokeOW.method().getParameterAnnotations();
                         boolean isVirtual = list.size()>parameterAnnotations.length;
-                        System.out.println("params length"+parameterAnnotations.length);
+                     //   System.out.println("params length"+parameterAnnotations.length);
                         List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
 
                             for (int i = isVirtual?1:0; i < list.size(); i++) {
@@ -204,10 +203,10 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                 .forEach(typeAndAccess -> {
                                      if (typeAndAccess.ro()) {
                                          bldr.op(CoreOp.invoke(ACCESS.pre, cc,  bldrCntxt.getValue(typeAndAccess.value)));
-                                     }else if (typeAndAccess.wo()||typeAndAccess.rw()) {
-                                         bldr.op(CoreOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                  //   }else if (typeAndAccess.wo()||typeAndAccess.rw()) {
+                                    //     bldr.op(CoreOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                      }else {
-                                         bldr.op(CoreOp.invoke(ESCAPE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                         bldr.op(CoreOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                      }
                                 });
                         //  invokeOW.op().operands().stream()
@@ -221,10 +220,10 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                 .forEach(typeAndAccess -> {
                                     if (typeAndAccess.ro()) {
                                         bldr.op(CoreOp.invoke(ACCESS.post, cc,  bldrCntxt.getValue(typeAndAccess.value)));
-                                    }else if (typeAndAccess.rw() || typeAndAccess.wo()) {
-                                        bldr.op(CoreOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                 //   }else if (typeAndAccess.rw() || typeAndAccess.wo()) {
+                                 //       bldr.op(CoreOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                     }else {
-                                        bldr.op(CoreOp.invoke(ESCAPE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                        bldr.op(CoreOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                     }
                                 });
                     }else{
