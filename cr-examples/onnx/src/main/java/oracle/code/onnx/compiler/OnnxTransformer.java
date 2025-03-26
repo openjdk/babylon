@@ -97,7 +97,7 @@ public class OnnxTransformer {
     public List<Tensor> initializers(Object receiver) {
         return inits.stream().map(i -> {
             try {
-                return (Tensor)(receiver == null ? i.resolveToHandle(l).get() : i.resolveToHandle(l).get(receiver));
+                return (Tensor)(i.resolveToMember(l).accessFlags().contains(AccessFlag.STATIC) ? i.resolveToHandle(l).get() : i.resolveToHandle(l).get(receiver));
             } catch (ReflectiveOperationException ex) {
                 throw new RuntimeException(ex);
             }

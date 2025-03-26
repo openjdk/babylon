@@ -232,7 +232,7 @@ public class SimpleTest {
 
     }
 
-    final Tensor<Boolean> TRUE = Tensor.ofScalar(true); // @@@ support for static
+    static final Tensor<Boolean> TRUE = Tensor.ofScalar(true);
 
     @CodeReflection
     public Tensor<Float> forLoopAdd(Tensor<Long> max, Tensor<Float> initialValue) {
