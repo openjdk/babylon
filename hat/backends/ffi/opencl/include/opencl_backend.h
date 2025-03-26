@@ -176,11 +176,7 @@ public:
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
     long compileProgram(int len, char *source);
-    char *strInfo(cl_device_info device_info);
-    cl_int cl_int_info( cl_device_info device_info);
-    cl_ulong cl_ulong_info( cl_device_info device_info);
-    size_t size_t_info( cl_device_info device_info);
-    char *strPlatformInfo(cl_platform_info platform_info);
+
 public:
     static const char *errorMsg(cl_int status);
 };
@@ -204,3 +200,37 @@ const  char *OpenCLBackend::OpenCLConfig::bitNames[] = {
               "SHOW_STATE_BIT"
         };
 #endif
+
+struct PlatformInfo{
+    struct DeviceInfo{
+      OpenCLBackend *openclBackend;
+      cl_int maxComputeUnits;
+      cl_int maxWorkItemDimensions;
+      cl_device_type deviceType;
+      size_t maxWorkGroupSize;
+      cl_ulong globalMemSize;
+      cl_ulong localMemSize;
+      cl_ulong maxMemAllocSize;
+      char *profile;
+      char *deviceVersion;
+      size_t *maxWorkItemSizes ;
+      char *driverVersion;
+      char *cVersion;
+      char *name;
+      char *extensions;
+      char *builtInKernels;
+      char *deviceTypeStr;
+      DeviceInfo(OpenCLBackend *openclBackend);
+      ~DeviceInfo();
+    };
+  OpenCLBackend *openclBackend;
+  char *versionName;
+  char *vendorName;
+  char *name;
+  DeviceInfo deviceInfo;
+
+  PlatformInfo(OpenCLBackend *openclBackend);
+  ~PlatformInfo();
+};
+
+
