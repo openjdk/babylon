@@ -532,23 +532,16 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
         String opMethodName = new String(sig);
         Method opMethod;
-        Object[] args;
         try {
             // @@@ Use method handle with full power mode
-            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
-            args = new Object[] {};
+            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName, OpFactory.class,
+                    TypeElementFactory.class);
         } catch (NoSuchMethodException e) {
-            try {
-                opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName, OpFactory.class,
-                        TypeElementFactory.class);
-                args = new Object[] {ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY};
-            } catch (NoSuchMethodException e2) {
-                return Optional.empty();
-            }
+            return Optional.empty();
         }
         opMethod.setAccessible(true);
         try {
-            FuncOp funcOp = (FuncOp) opMethod.invoke(null, args);
+            FuncOp funcOp = (FuncOp) opMethod.invoke(null, ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
