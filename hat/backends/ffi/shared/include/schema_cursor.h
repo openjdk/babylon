@@ -30,18 +30,18 @@
 #include <iomanip>
 #include <stack>
 
-struct Cursor {
+struct SchemaCursor {
 private:
     std::stack<const char *> where;
 public:
     char *ptr;
-    Cursor(char *ptr);
-    virtual ~Cursor();
+    SchemaCursor(char *ptr);
+    virtual ~SchemaCursor();
     void in(const char * location);
     void out();
 private:
-    Cursor *skipWhiteSpace();
-    Cursor *skipIdentifier();
+    SchemaCursor *skipWhiteSpace();
+    SchemaCursor *skipIdentifier();
 public:
     void step(int count) ;
 

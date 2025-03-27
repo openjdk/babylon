@@ -86,8 +86,8 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
             if (config.isSHOW_CODE()) {
                 System.out.println(code);
             }
-            long programHandle = compileProgram(code);
-            if (programOK(programHandle)) {
+            long programHandle = compile(code);
+            if (compilationUnitOK(programHandle)) {
                 long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
                 return new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
             } else {
@@ -175,44 +175,4 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
             System.out.println("in postAccess state = " + b.getStateString());
         }
     }
-/*
-    @Override
-    public void preEscape(Buffer b) {
-        switch (b.getState()) {
-            case BufferState.NO_STATE:
-            case BufferState.NEW_STATE:
-            case BufferState.HOST_OWNED:
-            case BufferState.DEVICE_VALID_HOST_HAS_COPY: {
-                if (config.isSHOW_STATE()) {
-                    System.out.println("in preEscape state = " + b.getStateString() + " no action to take");
-                }
-                break;
-            }
-            case BufferState.DEVICE_OWNED: {
-                getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
-                if (config.isSHOW_STATE()) {
-                    System.out.print("in preEscape state = " + b.getStateString() + " we pulled from device ");
-                }
-                b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
-                if (config.isSHOW_STATE()) {
-                    System.out.println("and switched to " + b.getStateString());
-                }
-                break;
-            }
-            default:
-                throw new IllegalStateException("Not expecting this state ");
-        }
-
-    }
-
-    @Override
-    public void postEscape(Buffer b) {
-        if (config.isSHOW_STATE()) {
-            System.out.print("in postEscape state = " + b.getStateString() + " we pulled from device ");
-        }
-        b.setState(BufferState.HOST_OWNED);
-        if (config.isSHOW_STATE()) {
-            System.out.println("and switched to " + b.getStateString());
-        }
-    } */
 }

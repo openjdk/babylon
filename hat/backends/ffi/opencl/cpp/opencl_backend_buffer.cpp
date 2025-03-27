@@ -30,10 +30,10 @@
   OpenCLBuffer
   */
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg, BufferState_s *bufferState)
-        : Backend::Program::Kernel::Buffer(kernel, arg), bufferState(bufferState) {
+OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState)
+        : Backend::Buffer(backend, arg), bufferState(bufferState) {
     cl_int status;
-    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
+    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
     clMem = clCreateBuffer(
         openclBackend->context,
         CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
@@ -52,7 +52,7 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::OpenCLBuffer(Backend::
 
 }
 
-bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyToDevice( Arg_s *arg){
+bool OpenCLBackend::OpenCLBuffer::shouldCopyToDevice( Arg_s *arg){
 //std::cout << "shouldCopyToDevice( Arg_s *arg)" <<std::endl;
 // std::cout <<std::hex;
 //// std::cout << "arg=="<<((long) arg) <<std::endl;
@@ -63,7 +63,7 @@ bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyToDevic
   //   std::cout << "kernel->program=="<<((long) kernel->program) <<std::endl;
    //   std::cout << "kernel->program->backend=="<<((long) kernel->program->backend) <<std::endl;
    //   std::cout <<std::dec;
-         OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
+         OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
 
 
    bool kernelReadsFromThisArg = (arg->value.buffer.access==RW_BYTE) || (arg->value.buffer.access==RO_BYTE);
@@ -84,8 +84,8 @@ bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyToDevic
      }
      return isAlwaysCopyingOrNewStateOrHostOwned;
 }
-bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyFromDevice(Arg_s *arg){
-   OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(kernel->program->backend);
+bool OpenCLBackend::OpenCLBuffer::shouldCopyFromDevice(Arg_s *arg){
+   OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
  bool kernelWroteToThisArg = (arg->value.buffer.access==WO_BYTE) |  (arg->value.buffer.access==RW_BYTE);
        if (openclBackend->openclConfig.showWhy){
            std::cout<<
@@ -100,9 +100,9 @@ bool OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::shouldCopyFromDev
 }
 
 
-void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
-    OpenCLKernel *openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
-    OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
+void OpenCLBackend::OpenCLBuffer::copyToDevice() {
+  //  OpenCLKernel *openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
+    OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend *>(backend);
    //  std::cout << "copyTo(" <<std::hex << (long) arg->value.buffer.memorySegment << "," << std::dec<<   bufferState->length <<")"<<std::endl;
 
     cl_int status = clEnqueueWriteBuffer(
@@ -127,9 +127,9 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyToDevice() {
     }
 }
 
-void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() {
-    OpenCLKernel * openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
-    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(openclKernel->program->backend);
+void OpenCLBackend::OpenCLBuffer::copyFromDevice() {
+//    OpenCLKernel * openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
+    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
  //  std::cout << "copyFrom(" <<std::hex << (long) arg->value.buffer.memorySegment << "," << std::dec<<   bufferState->length <<")"<<std::endl;
 
     cl_int status = clEnqueueReadBuffer(
@@ -153,7 +153,7 @@ void OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::copyFromDevice() 
     }
 }
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLBuffer::~OpenCLBuffer() {
+OpenCLBackend::OpenCLBuffer::~OpenCLBuffer() {
     clReleaseMemObject(clMem);
 }
 

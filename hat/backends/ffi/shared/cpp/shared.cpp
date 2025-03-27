@@ -132,32 +132,32 @@ extern "C" void releaseBackend(long backendHandle) {
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
     delete backend;
 }
-extern "C" long compileProgram(long backendHandle, int len, char *source) {
+extern "C" long compile(long backendHandle, int len, char *source) {
     if (INFO){
        std::cout << "trampolining through backendHandle to backend.compileProgram() "
            <<std::hex<<backendHandle<< std::dec <<std::endl;
     }
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
-    auto programHandle = backend->compileProgram(len, source);
+    auto compilationUnitHandle = backend->compile(len, source);
     if (INFO){
-       std::cout << "programHandle = "<<std::hex<<backendHandle<< std::dec <<std::endl;
+       std::cout << "compilationUnitHandle = "<<std::hex<<compilationUnitHandle<< std::dec <<std::endl;
     }
-    return programHandle;
+    return compilationUnitHandle;
 }
-extern "C" long getKernel(long programHandle, int nameLen, char *name) {
+extern "C" long getKernel(long compilationUnitHandle, int nameLen, char *name) {
     if (INFO){
         std::cout << "trampolining through programHandle to program.getKernel()"
-            <<std::hex<<programHandle<< std::dec <<std::endl;
+            <<std::hex<<compilationUnitHandle<< std::dec <<std::endl;
     }
-    auto program = reinterpret_cast<Backend::Program *>(programHandle);
-    return program->getKernel(nameLen, name);
+    auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
+    return compilationUnit->getKernel(nameLen, name);
 }
 
 extern "C" long ndrange(long kernelHandle, void *argArray) {
     if (INFO){
        std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " << std::endl;
     }
-    auto kernel = reinterpret_cast<Backend::Program::Kernel *>(kernelHandle);
+    auto kernel = reinterpret_cast<Backend::CompilationUnit::Kernel *>(kernelHandle);
     kernel->ndrange( argArray);
     return (long) 0;
 }
@@ -165,23 +165,23 @@ extern "C" void releaseKernel(long kernelHandle) {
     if (INFO){
        std::cout << "trampolining through to releaseKernel " << std::endl;
     }
-    auto kernel = reinterpret_cast<Backend::Program::Kernel *>(kernelHandle);
+    auto kernel = reinterpret_cast<Backend::CompilationUnit::Kernel *>(kernelHandle);
     delete kernel;
 }
 
-extern "C" void releaseProgram(long programHandle) {
+extern "C" void releaseCompilationUnit(long compilationUnitHandle) {
     if (INFO){
-       std::cout << "trampolining through to releaseProgram " << std::endl;
+       std::cout << "trampolining through to releaseCompilationUnit " << std::endl;
     }
-    auto program = reinterpret_cast<Backend::Program *>(programHandle);
-    delete program;
+    auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
+    delete compilationUnit;
 }
-extern "C" bool programOK(long programHandle) {
+extern "C" bool compilationUnitOK(long compilationUnitHandle) {
     if (INFO){
-       std::cout << "trampolining through to programOK " << std::endl;
+       std::cout << "trampolining through to compilationUnitHandleOK " << std::endl;
     }
-    auto program = reinterpret_cast<Backend::Program *>(programHandle);
-    return program->programOK();
+    auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
+    return compilationUnit->compilationUnitOK();
 }
 
 extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength) {

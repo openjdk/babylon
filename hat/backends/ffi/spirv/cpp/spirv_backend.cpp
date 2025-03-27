@@ -26,11 +26,11 @@
 
 class SpirvBackend : public Backend {
 public:
-    class SpirvProgram : public Backend::Program {
-        class SpirvKernel : public Backend::Program::Kernel {
+    class SpirvProgram : public Backend::CompilationUnit {
+        class SpirvKernel : public Backend::CompilationUnit::Kernel {
         public:
-            SpirvKernel(Backend::Program *program, char *name)
-                    : Backend::Program::Kernel(program, name) {
+            SpirvKernel(Backend::CompilationUnit *compilationUnit, char *name)
+                    : Backend::CompilationUnit::Kernel(compilationUnit, name) {
             }
 
             ~SpirvKernel() {
@@ -43,8 +43,8 @@ public:
         };
 
     public:
-        SpirvProgram(Backend *backend, BuildInfo *buildInfo)
-                : Backend::Program(backend, buildInfo) {
+        SpirvProgram(Backend *backend, Backend::CompilationUnit::BuildInfo *buildInfo)
+                : Backend::CompilationUnit(backend, buildInfo) {
         }
 
         ~SpirvProgram() {
@@ -54,7 +54,7 @@ public:
             return (long) new SpirvKernel(this, name);
         }
 
-        bool programOK() {
+        bool compilationUnitOK() {
             return true;
         }
     };
@@ -84,14 +84,17 @@ bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
           std::cout << "spirv compute start()" << std::endl;
         }
 
-    long compileProgram(int len, char *source) {
-        std::cout << "spirv compileProgram()" << std::endl;
+    long compile(int len, char *source) {
+        std::cout << "spirv compile()" << std::endl;
         size_t srcLen = ::strlen(source);
         char *src = new char[srcLen + 1];
         ::strncpy(src, source, srcLen);
         src[srcLen] = '\0';
         std::cout << "native compiling " << src << std::endl;
-        return (long) new SpirvProgram(this, new BuildInfo(src, nullptr, false));
+
+        SpirvProgram *spirvProgram = new SpirvProgram(this, nullptr);
+        spirvProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(spirvProgram, nullptr, nullptr, false);
+        return (long)spirvProgram;
     }
 };
 

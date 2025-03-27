@@ -71,12 +71,12 @@ void Schema::show(std::ostream &out, SchemaNode *schemaNode) {
     show(out, 0, schemaNode);
 }
 
-Schema::FieldNode *Schema::FieldNode::parse(Cursor *cursor) {
+Schema::FieldNode *Schema::FieldNode::parse(SchemaCursor *cursor) {
     typeName = cursor->getIdentifier();
     return this;
 }
 
-Schema::Array *Schema::Array::parse(Cursor *cursor) {
+Schema::Array *Schema::Array::parse(SchemaCursor *cursor) {
     cursor->in("Array::Parse");
     if (cursor->is('*')) {
         flexible = true;
@@ -106,7 +106,7 @@ Schema::Array *Schema::Array::parse(Cursor *cursor) {
     return this;
 }
 
-Schema::AbstractStructOrUnionNode *Schema::AbstractStructOrUnionNode::parse(Cursor *cursor) {
+Schema::AbstractStructOrUnionNode *Schema::AbstractStructOrUnionNode::parse(SchemaCursor *cursor) {
     cursor->in("StructUnion::parse");
     do {
         char *identifier = nullptr;
@@ -133,15 +133,15 @@ Schema::AbstractStructOrUnionNode *Schema::AbstractStructOrUnionNode::parse(Curs
     return this;
 }
 
-Schema::StructNode *Schema::StructNode::parse(Cursor *cursor) {
+Schema::StructNode *Schema::StructNode::parse(SchemaCursor *cursor) {
     return dynamic_cast<StructNode *>(AbstractStructOrUnionNode::parse(cursor));
 }
 
-Schema::UnionNode *Schema::UnionNode::parse(Cursor *cursor) {
+Schema::UnionNode *Schema::UnionNode::parse(SchemaCursor *cursor) {
     return dynamic_cast<UnionNode *>(AbstractStructOrUnionNode::parse(cursor));
 }
 
-Schema::ArgNode *Schema::ArgNode::parse(Cursor *cursor) {
+Schema::ArgNode *Schema::ArgNode::parse(SchemaCursor *cursor) {
     cursor->in("ArgNode::parse");
     char actual;
     cursor->expectEither('!', '?', &actual, __LINE__);
@@ -171,7 +171,7 @@ Schema::ArgNode *Schema::ArgNode::parse(Cursor *cursor) {
     return this;
 }
 
-Schema::SchemaNode *Schema::SchemaNode::parse(Cursor *cursor) {
+Schema::SchemaNode *Schema::SchemaNode::parse(SchemaCursor *cursor) {
     cursor->in("SchemaNode::parse");
     cursor->expectDigit("arg count", __LINE__);
     int argc = cursor->getInt();

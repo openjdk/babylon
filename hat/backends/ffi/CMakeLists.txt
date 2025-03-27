@@ -59,8 +59,8 @@ add_subdirectory(mock)
 add_executable(schemadump
         ${SHARED_BACKEND}/cpp/schema.cpp
         ${SHARED_BACKEND}/cpp/schemadump.cpp
-        ${SHARED_BACKEND}/cpp/cursor.cpp
-        ${SHARED_BACKEND}/include/cursor.h
+        ${SHARED_BACKEND}/cpp/schema_cursor.cpp
+        ${SHARED_BACKEND}/include/schema_cursor.h
         ${SHARED_BACKEND}/include/schema.h
 )
 

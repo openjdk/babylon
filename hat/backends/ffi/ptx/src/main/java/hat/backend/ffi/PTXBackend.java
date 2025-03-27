@@ -95,8 +95,8 @@ public class PTXBackend extends C99FFIBackend {
 
         // System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
         String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
-        long programHandle = compileProgram(code);
-        if (programOK(programHandle)) {
+        long programHandle = compile(code);
+        if (compilationUnitOK(programHandle)) {
             long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
             CompiledKernel compiledKernel = new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
             compiledKernel.dispatch(ndRange,args);

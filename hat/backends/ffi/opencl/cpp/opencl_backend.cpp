@@ -32,7 +32,7 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
     if (openclConfig.minimizeCopies){
        BufferState_s * bufferState = BufferState_s::of(memorySegment,memorySegmentLength);
        if (bufferState->state == BufferState_s::DEVICE_OWNED){
-          static_cast<OpenCLProgram::OpenCLKernel::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
+          static_cast<OpenCLBackend::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
           if (openclConfig.traceEnqueues | openclConfig.traceCopies){
              std::cout << "copying buffer from device (from java access) "<< std::endl;
           }
@@ -152,7 +152,7 @@ void OpenCLBackend::computeEnd() {
  }
 }
 
-long OpenCLBackend::compileProgram(int len, char *source) {
+long OpenCLBackend::compile(int len, char *source) {
     size_t srcLen = ::strlen(source);
     char *src = new char[srcLen + 1];
     ::strncpy(src, source, srcLen);
@@ -174,11 +174,11 @@ long OpenCLBackend::compileProgram(int len, char *source) {
         // dont return we may still be able to get log!
     }
     size_t logLen = 0;
+    OpenCLProgram *openclProgram = new OpenCLProgram(this, nullptr, program);
 
-    BuildInfo *buildInfo = nullptr;
     if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &logLen)) != CL_SUCCESS) {
         std::cerr << "clGetBuildInfo (getting log size) failed" << std::endl;
-        buildInfo = new BuildInfo(src, nullptr, true);
+        openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram, src, nullptr, true);
     } else {
         cl_build_status buildStatus;
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(buildStatus), &buildStatus, nullptr);
@@ -195,13 +195,13 @@ long OpenCLBackend::compileProgram(int len, char *source) {
                     std::cerr << "logLen = " << logLen << " log  = " << log << std::endl;
                 }
             }
-            buildInfo = new BuildInfo(src, log, true);
+             openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram,src, log, true);
         } else {
-            buildInfo = new BuildInfo(src, nullptr, true);
+             openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram,src, nullptr, true);
         }
     }
 
-    return reinterpret_cast<long>(new OpenCLProgram(this, buildInfo, program));
+    return reinterpret_cast<long>(openclProgram);
 }
 
 const char *OpenCLBackend::errorMsg(cl_int status) {

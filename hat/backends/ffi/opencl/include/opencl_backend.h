@@ -127,12 +127,7 @@ public:
        void markAsLeaveKernelDispatchAndInc();
        virtual ~OpenCLQueue();
     };
-
-    class OpenCLProgram : public Backend::Program {
-        public:
-        class OpenCLKernel : public Backend::Program::Kernel {
-            public:
-            class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
+    class OpenCLBuffer : public Backend::Buffer {
             public:
                 cl_mem clMem;
                 BufferState_s * bufferState;
@@ -140,14 +135,19 @@ public:
                 void copyFromDevice();
                 bool shouldCopyToDevice(Arg_s *arg);
                 bool shouldCopyFromDevice(Arg_s *arg);
-                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg, BufferState_s *bufferState);
+                OpenCLBuffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState);
                 virtual ~OpenCLBuffer();
             };
+    class OpenCLProgram : public Backend::CompilationUnit {
+        public:
+        class OpenCLKernel : public Backend::CompilationUnit::Kernel {
+            public:
+
         private:
             const char *name;
             cl_kernel kernel;
         public:
-            OpenCLKernel(Backend::Program *program, char* name,cl_kernel kernel);
+            OpenCLKernel(Backend::CompilationUnit *compilationUnit, char* name,cl_kernel kernel);
             ~OpenCLKernel();
             long ndrange( void *argArray);
         };
@@ -157,7 +157,7 @@ public:
         OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program);
         ~OpenCLProgram();
         long getKernel(int nameLen, char *name);
-        bool programOK();
+        bool compilationUnitOK();
     };
 
 public:
@@ -175,7 +175,7 @@ public:
     void computeEnd();
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
-    long compileProgram(int len, char *source);
+    long compile(int len, char *source);
 
 public:
     static const char *errorMsg(cl_int status);

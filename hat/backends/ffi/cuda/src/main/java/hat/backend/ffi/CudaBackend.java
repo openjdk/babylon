@@ -63,8 +63,8 @@ public class CudaBackend extends C99FFIBackend {
         // System.out.println("Cuda backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createCode(kernelCallGraph, new CudaHatKernelBuilder(), args, true);
-            long programHandle = compileProgram(code);
-            if (programOK(programHandle)) {
+            long programHandle = compile(code);
+            if (compilationUnitOK(programHandle)) {
                 long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
                 return new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
             } else {

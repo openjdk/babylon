@@ -26,11 +26,11 @@
 
 class MockBackend : public Backend {
 public:
-    class MockProgram : public Backend::Program {
-        class MockKernel : public Backend::Program::Kernel {
+    class MockProgram : public Backend::CompilationUnit {
+        class MockKernel : public Backend::CompilationUnit::Kernel {
         public:
-            MockKernel(Backend::Program *program, char *name)
-                    : Backend::Program::Kernel(program, name) {
+            MockKernel(Backend::CompilationUnit *compilationUnit, char *name)
+                    : Backend::CompilationUnit::Kernel(compilationUnit, name) {
             }
             ~MockKernel() {}
             long ndrange(void *argArray) {
@@ -40,8 +40,8 @@ public:
         };
 
     public:
-        MockProgram(Backend *backend, BuildInfo *buildInfo)
-                : Backend::Program(backend, buildInfo) {
+        MockProgram(Backend *backend, Backend::CompilationUnit::BuildInfo *buildInfo)
+                : Backend::CompilationUnit(backend, buildInfo) {
         }
 
         ~MockProgram() {
@@ -51,7 +51,7 @@ public:
             return (long) new MockKernel(this, name);
         }
 
-        bool programOK() {
+        bool compilationUnitOK() {
             return true;
         }
     };
@@ -84,14 +84,16 @@ public:
               std::cout << "mock compute start()" << std::endl;
             }
 
-    long compileProgram(int len, char *source) {
+    long compile(int len, char *source) {
         std::cout << "mock compileProgram()" << std::endl;
         size_t srcLen = ::strlen(source);
         char *src = new char[srcLen + 1];
         ::strncpy(src, source, srcLen);
         src[srcLen] = '\0';
         std::cout << "native compiling " << src << std::endl;
-        return (long) new MockProgram(this, new BuildInfo(src, nullptr, false));
+        MockProgram *mockProgram = new MockProgram(this, nullptr);
+        mockProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(mockProgram,src, nullptr, false);
+        return (long)mockProgram;
     }
 };
 

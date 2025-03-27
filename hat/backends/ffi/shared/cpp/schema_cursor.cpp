@@ -23,20 +23,20 @@
  * questions.
  */
 
-#include "cursor.h"
+#include "schema_cursor.h"
 
 
-    Cursor::Cursor(char *ptr): ptr(ptr) {
+    SchemaCursor::SchemaCursor(char *ptr): ptr(ptr) {
     }
-     Cursor::~Cursor() {
+     SchemaCursor::~SchemaCursor() {
     }
-    void Cursor::in(const char * location){
+    void SchemaCursor::in(const char * location){
         where.push(location);
     }
-    void Cursor::out(){
+    void SchemaCursor::out(){
         where.pop();
     }
-    Cursor *Cursor::skipWhiteSpace() {
+    SchemaCursor *SchemaCursor::skipWhiteSpace() {
         while (*ptr == ' ' || *ptr == '\n' || *ptr == '\t') {
             step(1);
         }
@@ -44,30 +44,30 @@
     }
 
 
-    Cursor *Cursor::skipIdentifier() {
+    SchemaCursor *SchemaCursor::skipIdentifier() {
         while (peekAlpha() || peekDigit()) {
             step(1);
         }
         return this;
     }
 
-    void Cursor::step(int count) {
+    void SchemaCursor::step(int count) {
         while (count--) {
             ptr++;
         }
     }
 
-    bool Cursor::peekAlpha() {
+    bool SchemaCursor::peekAlpha() {
         skipWhiteSpace();
         return (::isalpha(*ptr));
     }
 
-    bool Cursor::peekDigit() {
+    bool SchemaCursor::peekDigit() {
         skipWhiteSpace();
         return (::isdigit(*ptr));
     }
 
-    bool Cursor::is(char ch) {
+    bool SchemaCursor::is(char ch) {
         skipWhiteSpace();
         if (*ptr == ch) {
             step(1);
@@ -75,11 +75,11 @@
         }
         return false;
     }
-    bool Cursor::isColon() {
+    bool SchemaCursor::isColon() {
        return is(':');
     }
 
-    bool Cursor::expect(char ch, const char *context,  int line ) {
+    bool SchemaCursor::expect(char ch, const char *context,  int line ) {
         if (is(ch)){
             return true;
         }
@@ -90,10 +90,10 @@
         exit(1);
         return false;
     }
-    bool Cursor::expect(char ch,  int line ) {
+    bool SchemaCursor::expect(char ch,  int line ) {
         return expect(ch, "", line);
     }
-    bool Cursor::expectDigit(const char *context,  int line ) {
+    bool SchemaCursor::expectDigit(const char *context,  int line ) {
         if (::isdigit(*ptr)){
             return true;
         }
@@ -104,7 +104,7 @@
         exit(1);
         return false;
     }
-    bool Cursor::expectAlpha(const char *context,  int line ) {
+    bool SchemaCursor::expectAlpha(const char *context,  int line ) {
         if (::isalpha(*ptr)){
             return true;
         }
@@ -115,7 +115,7 @@
         exit(1);
         return false;
     }
-    bool Cursor::isEither(char ch1, char ch2, char*actual) {
+    bool SchemaCursor::isEither(char ch1, char ch2, char*actual) {
         skipWhiteSpace();
         if (*ptr == ch1 || *ptr == ch2) {
             step(1);
@@ -124,7 +124,7 @@
         }
         return false;
     }
-    void Cursor::expectEither(char ch1, char ch2, char*actual, int line) {
+    void SchemaCursor::expectEither(char ch1, char ch2, char*actual, int line) {
         skipWhiteSpace();
         if (*ptr == ch1 || *ptr == ch2) {
             step(1);
@@ -139,7 +139,7 @@
 
     }
 
-    int Cursor::getInt() {
+    int SchemaCursor::getInt() {
         int value = *ptr - '0';
         step(1);
         if (peekDigit()) {
@@ -148,7 +148,7 @@
         return value;
     }
 
-    long Cursor::getLong() {
+    long SchemaCursor::getLong() {
         long value = *ptr - '0';
         step(1);
         if (peekDigit()) {
@@ -157,7 +157,7 @@
         return value;
     }
 
-    char *Cursor::getIdentifier() {
+    char *SchemaCursor::getIdentifier() {
         char *identifierStart = ptr;
         skipIdentifier();
         size_t len = ptr - identifierStart;
@@ -167,7 +167,7 @@
         return identifier;
     }
 
-    void Cursor::error(std::ostream &ostream, const char *file, int line, const char *str) {
+    void SchemaCursor::error(std::ostream &ostream, const char *file, int line, const char *str) {
         ostream << file << ":" << "@" << line << ": parse error " << str << " looking at " << ptr << std::endl;
         exit(1);
     }

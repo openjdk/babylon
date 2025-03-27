@@ -48,10 +48,10 @@ public abstract class FFIBackendDriver implements Backend {
     final MethodHandle getDevice_MH;
     final MethodHandle releaseDevice_MH;
     final MethodHandle getMaxComputeUnits_MH;
-    final MethodHandle compileProgram_MH;
-    final MethodHandle releaseProgram_MH;
+    final MethodHandle compile_MH;
+    final MethodHandle releaseCompilationUnit_MH;
     final MethodHandle getKernel_MH;
-    final MethodHandle programOK_MH;
+    final MethodHandle compilationUnitOK_MH;
     final MethodHandle releaseKernel_MH;
     final MethodHandle ndrange_MH;
     final MethodHandle info_MH;
@@ -65,10 +65,10 @@ public abstract class FFIBackendDriver implements Backend {
         this.getDevice_MH = nativeLibrary.longFunc("getDeviceHandle");
         this.releaseDevice_MH = nativeLibrary.voidFunc("releaseDeviceHandle", JAVA_LONG);
         this.getMaxComputeUnits_MH = nativeLibrary.intFunc("getMaxComputeUnits", JAVA_LONG);
-        this.compileProgram_MH = nativeLibrary.longFunc("compileProgram", JAVA_LONG, JAVA_INT, ADDRESS);
-        this.releaseProgram_MH = nativeLibrary.voidFunc("releaseProgram", JAVA_LONG);
+        this.compile_MH = nativeLibrary.longFunc("compile", JAVA_LONG, JAVA_INT, ADDRESS);
+        this.releaseCompilationUnit_MH = nativeLibrary.voidFunc("releaseCompilationUnit", JAVA_LONG);
         this.getKernel_MH = nativeLibrary.longFunc("getKernel", JAVA_LONG, JAVA_INT, ADDRESS);
-        this.programOK_MH = nativeLibrary.booleanFunc("programOK", JAVA_LONG);
+        this.compilationUnitOK_MH = nativeLibrary.booleanFunc("compilationUnitOK", JAVA_LONG);
         this.releaseKernel_MH = nativeLibrary.voidFunc("releaseKernel", JAVA_LONG);
         this.ndrange_MH = nativeLibrary.longFunc("ndrange", JAVA_LONG,  ADDRESS);
         this.info_MH = nativeLibrary.voidFunc("info", JAVA_LONG);
@@ -151,14 +151,14 @@ public abstract class FFIBackendDriver implements Backend {
         }
     }
 
-    public long compileProgram(String source) {
+    public long compile(String source) {
         if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
         }
         try {
             var arena = Arena.global();
             var cstr = arena.allocateFrom(source);
-            return (Long) compileProgram_MH.invoke(backendHandle, source.length(), cstr);
+            return (Long) compile_MH.invoke(backendHandle, source.length(), cstr);
 
         } catch (Throwable e) {
             throw new RuntimeException(e);
@@ -176,12 +176,12 @@ public abstract class FFIBackendDriver implements Backend {
         }
     }
 
-    public boolean programOK(long programHandle) {
+    public boolean compilationUnitOK(long compilationUnitHandle) {
         if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
         }
         try {
-            return (Boolean) programOK_MH.invoke(programHandle);
+            return (Boolean) compilationUnitOK_MH.invoke(compilationUnitHandle);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -211,12 +211,12 @@ public abstract class FFIBackendDriver implements Backend {
         }
     }
 
-    public void releaseProgram(long programHandle) {
+    public void releaseCompilationUnit(long compilationUnitHandle) {
         if (backendHandle == 0L) {
             throw new IllegalStateException("no backend handle");
         }
         try {
-            releaseProgram_MH.invoke(programHandle);
+            releaseCompilationUnit_MH.invoke(compilationUnitHandle);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

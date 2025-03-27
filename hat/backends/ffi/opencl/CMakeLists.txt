@@ -37,8 +37,8 @@ if(OPENCL_FOUND)
         ${SHARED_BACKEND}/include/shared.h
         ${SHARED_BACKEND}/cpp/buffer.cpp
         ${SHARED_BACKEND}/include/buffer.h
-        ${SHARED_BACKEND}/cpp/cursor.cpp
-        ${SHARED_BACKEND}/include/cursor.h
+        ${SHARED_BACKEND}/cpp/schema_cursor.cpp
+        ${SHARED_BACKEND}/include/schema_cursor.h
         ${SHARED_BACKEND}/cpp/buffer_cursor.cpp
         ${SHARED_BACKEND}/include/buffer_cursor.h
         ${SHARED_BACKEND}/cpp/hex.cpp

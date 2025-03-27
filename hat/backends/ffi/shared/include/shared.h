@@ -277,26 +277,7 @@ public:
 };
 
 
-class BuildInfo {
-public:
-    char *src;
-    char *log;
-    bool ok;
 
-    BuildInfo(char *src, char *log, bool ok)
-            : src(src), log(log), ok(ok) {
-    }
-
-    ~BuildInfo() {
-        if (src) {
-            delete[] src;
-        }
-        if (log) {
-            delete[] log;
-        }
-    }
-
-};
 
 extern void hexdump(void *ptr, int buflen);
 
@@ -314,30 +295,28 @@ public:
 
 class Backend {
 public:
+    class Buffer {
+    public:
+        Backend *backend;
+        Arg_s *arg;
 
-    class Program {
+        virtual void copyToDevice() = 0;
+
+        virtual void copyFromDevice() = 0;
+
+        Buffer(Backend *backend, Arg_s *arg)
+                : backend(backend), arg(arg) {
+        }
+
+        virtual ~Buffer() {}
+    };
+    class CompilationUnit {
     public:
         class Kernel {
         public:
-            class Buffer {
-            public:
-                Kernel *kernel;
-                Arg_s *arg;
-
-                virtual void copyToDevice() = 0;
-
-                virtual void copyFromDevice() = 0;
-
-                Buffer(Kernel *kernel, Arg_s *arg)
-                        : kernel(kernel), arg(arg) {
-                }
-
-                virtual ~Buffer() {}
-            };
-
             char *name;// strduped!
 
-            Program *program;
+            CompilationUnit *compilationUnit;
 
             virtual long ndrange(void *argArray) = 0;
             static char *copy(char *name){
@@ -347,8 +326,8 @@ public:
                 buf[len]='\0';
                 return buf;
             }
-            Kernel(Program *program, char *name)
-                    : program(program), name(copy(name)) {
+            Kernel(CompilationUnit *compilationUnit, char *name)
+                    : compilationUnit(compilationUnit), name(copy(name)) {
             }
 
             virtual ~Kernel() {
@@ -357,25 +336,44 @@ public:
                 }
             }
         };
+class BuildInfo {
+public:
+    CompilationUnit *compilationUnit;
+    char *src;
+    char *log;
+    bool ok;
 
+    BuildInfo(CompilationUnit *compilationUnit,char *src, char *log, bool ok)
+            : compilationUnit(compilationUnit), src(src), log(log), ok(ok) {
+    }
+
+    ~BuildInfo() {
+        if (src) {
+            delete[] src;
+        }
+        if (log) {
+            delete[] log;
+        }
+    }
+
+};
     public:
         Backend *backend;
         BuildInfo *buildInfo;
 
         virtual long getKernel(int nameLen, char *name) = 0;
 
-        virtual bool programOK() = 0;
+        virtual bool compilationUnitOK() = 0;
 
-        Program(Backend *backend, BuildInfo *buildInfo)
+        CompilationUnit(Backend *backend, BuildInfo *buildInfo)
                 : backend(backend), buildInfo(buildInfo) {
         }
 
-        virtual ~Program() {
+        virtual ~CompilationUnit() {
             if (buildInfo != nullptr) {
                 delete buildInfo;
             }
         };
-
     };
     int mode;
 
@@ -389,7 +387,7 @@ public:
 
     virtual int getMaxComputeUnits() = 0;
 
-    virtual long compileProgram(int len, char *source) = 0;
+    virtual long compile(int len, char *source) = 0;
 
     virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength)=0;
 
@@ -398,11 +396,11 @@ public:
 
 extern "C" void info(long backendHandle);
 extern "C" int getMaxComputeUnits(long backendHandle);
-extern "C" long compileProgram(long backendHandle, int len, char *source);
-extern "C" long getKernel(long programHandle, int len, char *name);
+extern "C" long compileCompilationUnit(long backendHandle, int len, char *source);
+extern "C" long getKernel(long compilationUnitHandle, int len, char *name);
 extern "C" void releaseBackend(long backendHandle);
-extern "C" void releaseProgram(long programHandle);
-extern "C" bool programOK(long programHandle);
+extern "C" void releaseCompilationUnit(long compilationUnitHandle);
+extern "C" bool compilationUnitOK(long compilationUnitHandle);
 extern "C" void releaseKernel(long kernelHandle);
 extern "C" long ndrange(long kernelHandle, void *argArray);
 extern "C" void computeStart(long backendHandle);

@@ -26,7 +26,7 @@
 #include "opencl_backend.h"
 
 OpenCLBackend::OpenCLProgram::OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program)
-    : Backend::Program(backend, buildInfo), program(program) {
+    : Backend::CompilationUnit(backend, buildInfo), program(program) {
 }
 
 OpenCLBackend::OpenCLProgram::~OpenCLProgram() {
@@ -42,7 +42,7 @@ long OpenCLBackend::OpenCLProgram::getKernel(int nameLen, char *name) {
     return (long) new OpenCLKernel(this,name, kernel);
 }
 
-bool OpenCLBackend::OpenCLProgram::programOK() {
+bool OpenCLBackend::OpenCLProgram::compilationUnitOK() {
     return true;
 }
 
