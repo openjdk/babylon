@@ -22,49 +22,76 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+ #pragma once
 
-#pragma once
-#include <vector>
 #include <cstring>
-#include <iostream>
-#include <iomanip>
-#include <stack>
+#include <stdlib.h>
+#include <ostream>
+#include <functional>
 
-struct Cursor {
-private:
-    std::stack<const char *> where;
+class PureMark {
 public:
-    char *ptr;
-    Cursor(char *ptr);
-    virtual ~Cursor();
-    void in(const char * location);
-    void out();
-private:
-    Cursor *skipWhiteSpace();
-    Cursor *skipIdentifier();
+    virtual char *getStart() = 0;
+    virtual ~PureMark(){}
+
+};
+class PureRange : public PureMark{
 public:
-    void step(int count) ;
+    virtual char *getEnd() = 0;
+    virtual size_t getSize() = 0;
+    virtual ~PureRange(){
 
-    bool peekAlpha();
+    }
+};
 
-    bool peekDigit() ;
+class Buffer : public PureRange{
+private:
+    size_t max;  // max size before we need to realloc.
+protected:
+    char *memory;
+    size_t size;  // size requested
+public:
+    Buffer();
 
-    bool is(char ch);
-    bool isColon();
+    Buffer(size_t size);
 
-    bool expect(char ch, const char *context,  int line ) ;
-    bool expect(char ch,  int line ) ;
-    bool expectDigit(const char *context,  int line );
-    bool expectAlpha(const char *context,  int line );
-    bool isEither(char ch1, char ch2, char*actual) ;
-    void expectEither(char ch1, char ch2, char*actual, int line);
+    Buffer(char *mem, size_t size);
 
-    int getInt() ;
+    Buffer(char *fileName);
 
-    long getLong();
+    Buffer(std::string fileName);
 
-    char *getIdentifier();
+    void resize(size_t size);
 
-    void error(std::ostream &ostream, const char *file, int line, const char *str);
+    void dump(std::ostream &s);
+
+    void dump(std::ostream &s, std::function<void(std::ostream &)> prefix );
+
+    size_t write(int fd);
+
+    size_t read(int fd, size_t size);
+
+    virtual ~Buffer();
+
+   // char *getPtr();
+    char *getStart() override;
+    char *getEnd() override;
+    size_t getSize() override;
+    std::string str();
+};
+
+class GrowableBuffer : public Buffer {
+public:
+    GrowableBuffer();
+
+    GrowableBuffer(size_t size);
+
+    GrowableBuffer(char *mem, size_t size);
+
+    GrowableBuffer(char *fileName);
+
+    void add(void *contents, size_t bytes);
+
+    void add(char c);
 
 };

@@ -22,49 +22,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
 #pragma once
-#include <vector>
-#include <cstring>
+
+#include <sys/stat.h>
+#include <dirent.h>
+#include <fstream>
 #include <iostream>
+#include <vector>
+#include <memory>
+#include <functional>
+#include <cstring>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstdlib>
+#include <sys/wait.h>
+#include <sstream>
 #include <iomanip>
-#include <stack>
+#include <functional>
 
-struct Cursor {
-private:
-    std::stack<const char *> where;
+class StringUtil {
 public:
-    char *ptr;
-    Cursor(char *ptr);
-    virtual ~Cursor();
-    void in(const char * location);
-    void out();
-private:
-    Cursor *skipWhiteSpace();
-    Cursor *skipIdentifier();
-public:
-    void step(int count) ;
+    static void replaceInPlace(std::string &subject, const std::string &search,
+                               const std::string &replace);
 
-    bool peekAlpha();
-
-    bool peekDigit() ;
-
-    bool is(char ch);
-    bool isColon();
-
-    bool expect(char ch, const char *context,  int line ) ;
-    bool expect(char ch,  int line ) ;
-    bool expectDigit(const char *context,  int line );
-    bool expectAlpha(const char *context,  int line );
-    bool isEither(char ch1, char ch2, char*actual) ;
-    void expectEither(char ch1, char ch2, char*actual, int line);
-
-    int getInt() ;
-
-    long getLong();
-
-    char *getIdentifier();
-
-    void error(std::ostream &ostream, const char *file, int line, const char *str);
-
+    static bool endsWith(const std::string &str, const std::string &suffix);
 };
+
+
+
+

@@ -22,49 +22,21 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
 #pragma once
-#include <vector>
-#include <cstring>
+
+
 #include <iostream>
-#include <iomanip>
-#include <stack>
+#include <functional>
 
-struct Cursor {
-private:
-    std::stack<const char *> where;
+
+class Hex {
 public:
-    char *ptr;
-    Cursor(char *ptr);
-    virtual ~Cursor();
-    void in(const char * location);
-    void out();
-private:
-    Cursor *skipWhiteSpace();
-    Cursor *skipIdentifier();
-public:
-    void step(int count) ;
+    static void ascii(std::ostream &s, char c);
 
-    bool peekAlpha();
+    static void hex(std::ostream &s, char c);
 
-    bool peekDigit() ;
-
-    bool is(char ch);
-    bool isColon();
-
-    bool expect(char ch, const char *context,  int line ) ;
-    bool expect(char ch,  int line ) ;
-    bool expectDigit(const char *context,  int line );
-    bool expectAlpha(const char *context,  int line );
-    bool isEither(char ch1, char ch2, char*actual) ;
-    void expectEither(char ch1, char ch2, char*actual, int line);
-
-    int getInt() ;
-
-    long getLong();
-
-    char *getIdentifier();
-
-    void error(std::ostream &ostream, const char *file, int line, const char *str);
-
+    static void bytes(std::ostream &s, char *p, size_t len, std::function<void(std::ostream &)> prefix);
 };
+
+
+

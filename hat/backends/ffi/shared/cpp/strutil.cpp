@@ -23,48 +23,22 @@
  * questions.
  */
 
-#pragma once
-#include <vector>
-#include <cstring>
-#include <iostream>
-#include <iomanip>
-#include <stack>
+#include "strutil.h"
 
-struct Cursor {
-private:
-    std::stack<const char *> where;
-public:
-    char *ptr;
-    Cursor(char *ptr);
-    virtual ~Cursor();
-    void in(const char * location);
-    void out();
-private:
-    Cursor *skipWhiteSpace();
-    Cursor *skipIdentifier();
-public:
-    void step(int count) ;
+void StringUtil::replaceInPlace(std::string &subject, const std::string &search,
+                                const std::string &replace) {
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos) {
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
+    }
+}
 
-    bool peekAlpha();
 
-    bool peekDigit() ;
+bool StringUtil::endsWith(const std::string &str, const std::string &suffix) {
+    return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+}
 
-    bool is(char ch);
-    bool isColon();
 
-    bool expect(char ch, const char *context,  int line ) ;
-    bool expect(char ch,  int line ) ;
-    bool expectDigit(const char *context,  int line );
-    bool expectAlpha(const char *context,  int line );
-    bool isEither(char ch1, char ch2, char*actual) ;
-    void expectEither(char ch1, char ch2, char*actual, int line);
 
-    int getInt() ;
 
-    long getLong();
-
-    char *getIdentifier();
-
-    void error(std::ostream &ostream, const char *file, int line, const char *str);
-
-};
