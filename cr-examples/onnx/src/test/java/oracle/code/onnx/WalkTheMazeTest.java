@@ -1,6 +1,8 @@
 package oracle.code.onnx;
 
+import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Optional;
 import jdk.incubator.code.CodeReflection;
@@ -13,131 +15,143 @@ import static oracle.code.onnx.OnnxRuntime.execute;
 
 public class WalkTheMazeTest {
 
-    static final Tensor<Byte> MAZE = Tensor.ofShape(new long[]{22, 48},
-            """
-            ###############################################
-            #     #     #   #     #     #       #   #     #
-            # # # ##### # ### ##### ##### ##### ##### # ###
-            # # #       #   #     #     # #     #         #
-            # # ######### ### ### # ### # # ##### ### #####
-            #   #         # # #       #   #       #       #
-            # ########### # # # # ####### ### ### ### ##  #
-            #   #     #   #     #       #     #     #     #
-            ### ### # # ### ############### # ##### #######
-            #       # #   #       #         # #        #  #
-            # ####### ### ##### # # ##### ##### ########  #
-            #         #   #     # # # #                   #
-            ######### ##### ##### ### # ####### ########  #
-            # #           #     #     # #     #   #       #
-            # # ######### # # ### ### # # ##### # ######  #
-            # #       #   # #   #   #       #   #         #
-            # ##### # # ##### ### ########### ### #########
-            #     # # #   #     #   #           #     #   #
-            #     # # #   #     #   #           #     #   #
-            ### # # # ### ### ##### # ####### ### ### #   #
-            #   #       #     #     #       #         #   #
-            ###############################################
-            """.getBytes());
+    final String expectedPath;
 
-    static final Tensor<Long> HOME_POS = Tensor.ofFlat(20l, 1); // bottom left corner
+    // initializers
+    final Tensor<Byte> maze;
+    final Tensor<Boolean> _true;
+    final Tensor<Long> homePos, directionNorth, directionSouth, directionEast, directionWest,
+                       oneOne, zero, two, three, mOne, mThree, max, limit,
+                       stepSouth, stepNorth, stepEast, stepWest, scalarShape, wall;
 
-    static final String EXPECTED_PATH =
-            ">>^^>>vv>>>>>><<^^^^^<<<<<<^^>>>>>>>>>>vv<<vvv>>vv>>>>^^>>^<<^^>><<^^>><<<<^^>>>>^^>>vvvvvvvvv>>vv<<<<>>>>^^^<<^^>><<^^>>>>vv>>>>>><<^^>>>><<<<vv<"
-           +"<^^^^>>>>>>>>vvvv<<vv<<<<<<<<vvv>>>>>><<<<<<^^>>>>>>>>vv>>>>>>>>^^^<<<<^^>>>>>>>>^^^^^^<vv<<<<<<<<<^^>>>>>>><<<^^<<^^^^>>>>vv<<>>vv>>>>^^<<<<^^>>>"
-           +"><<^^>><<<<vv<<<<vv<<<<<<^^>>>>^^<<<<<<vvvv<<^^<<<<^^>>>><<<<vvvv<<^^<<<<^^>>>><<<<vvvvvv<<^^vvvv>>>>vv<<<<vvvv^^>>vvvv<<v>>vv<<<<^^^<<^^>>^^<<<<^"
-           +"^^^^^<<<<>>vv<<<<^^<<^^>>^^^^>>vv>>>>>>^^<<<<>>>>vv<<<<<<^^<<<<vvvvvv>>vv<<vv>>>>>>>>vv<<<<<<vv>>>>vvvvv<<^^^<<<<^^^^vvvvv>>vv<<>";
+    public WalkTheMazeTest() {
+        expectedPath = ">>^^>>vv>>>>>><<^^^^^<<<<<<^^>>>>>>>>>>vv<<vvv>>vv>>>>^^>>^<<^^>><<^^>><<<<^^>>>>^^>>vvvvvvvvv>>vv<<<<>>>>^^^<<^^>><<^^"
+                     + ">>>>vv>>>>>><<^^>>>><<<<vv<<^^^^>>>>>>>>vvvv<<vv<<<<<<<<vvv>>>>>><<<<<<^^>>>>>>>>vv>>>>>>>>^^^<<<<^^>>>>>>>>^^^^^^<vv<<"
+                     + "<<<<<<<^^>>>>>>><<<^^<<^^^^>>>>vv<<>>vv>>>>^^<<<<^^>>>><<^^>><<<<vv<<<<vv<<<<<<^^>>>>^^<<<<<<vvvv<<^^<<<<^^>>>><<<<vvvv"
+                     + "<<^^<<<<^^>>>><<<<vvvvvv<<^^vvvv>>>>vv<<<<vvvv^^>>vvvv<<v>>vv<<<<^^^<<^^>>^^<<<<^^^^^^<<<<>>vv<<<<^^<<^^>>^^^^>>vv>>>>>"
+                     + ">^^<<<<>>>>vv<<<<<<^^<<<<vvvvvv>>vv<<vv>>>>>>>>vv<<<<<<vv>>>>vvvvv<<^^^<<<<^^^^vvvvv>>vv<<>";
 
-    static final Tensor<Long> DIRECTION_NORTH = Tensor.ofFlat('^');
-    static final Tensor<Long> DIRECTION_SOUTH = Tensor.ofFlat('v');
-    static final Tensor<Long> DIRECTION_EAST = Tensor.ofFlat('>');
-    static final Tensor<Long> DIRECTION_WEST = Tensor.ofFlat('<');
-    static final Tensor<Boolean> TRUE = Tensor.ofScalar(true);
-    static final Tensor<Long> ONE_ONE = Tensor.ofFlat(1l, 1);
-    static final Tensor<Long> ZERO = Tensor.ofFlat(0l);
-    static final Tensor<Long> TWO = Tensor.ofFlat(2l);
-    static final Tensor<Long> THREE = Tensor.ofFlat(3l);
-    static final Tensor<Long> MONE = Tensor.ofFlat(-1l);
-    static final Tensor<Long> MTHREE = Tensor.ofFlat(-3l);
-    static final Tensor<Long> MAX = Tensor.ofFlat(Long.MAX_VALUE);
-    static final Tensor<Long> LIMIT = Tensor.ofFlat(1000l);
-    static final Tensor<Long> STEP_SOUTH = Tensor.ofFlat(1l, 0);
-    static final Tensor<Long> STEP_NORTH = Tensor.ofFlat(-1l, 0);
-    static final Tensor<Long> STEP_EAST = Tensor.ofFlat(0l, 1);
-    static final Tensor<Long> STEP_WEST = Tensor.ofFlat(0l, -1);
-    static final Tensor<Long> SCALAR_SHAPE = Tensor.ofFlat(new long[0]);
-    static final Tensor<Long> WALL = Tensor.ofScalar('#');
+        var arena = Arena.ofAuto();
 
-    @CodeReflection
-    public static Tensor<Long> turnLeft(Tensor<Long> direction) {
-        return If(Equal(direction, DIRECTION_EAST),
-                () -> Identity(DIRECTION_NORTH),
-                () -> If(Equal(direction, DIRECTION_NORTH),
-                        () -> Identity(DIRECTION_WEST),
-                        () -> If(Equal(direction, DIRECTION_WEST),
-                            () -> Identity(DIRECTION_SOUTH),
-                            () -> Identity(DIRECTION_EAST))));
+        maze = Tensor.ofShape(arena, new long[]{22, 48},
+                """
+                ###############################################
+                #     #     #   #     #     #       #   #     #
+                # # # ##### # ### ##### ##### ##### ##### # ###
+                # # #       #   #     #     # #     #         #
+                # # ######### ### ### # ### # # ##### ### #####
+                #   #         # # #       #   #       #       #
+                # ########### # # # # ####### ### ### ### ##  #
+                #   #     #   #     #       #     #     #     #
+                ### ### # # ### ############### # ##### #######
+                #       # #   #       #         # #        #  #
+                # ####### ### ##### # # ##### ##### ########  #
+                #         #   #     # # # #                   #
+                ######### ##### ##### ### # ####### ########  #
+                # #           #     #     # #     #   #       #
+                # # ######### # # ### ### # # ##### # ######  #
+                # #       #   # #   #   #       #   #         #
+                # ##### # # ##### ### ########### ### #########
+                #     # # #   #     #   #           #     #   #
+                #     # # #   #     #   #           #     #   #
+                ### # # # ### ### ##### # ####### ### ### #   #
+                #   #       #     #     #       #         #   #
+                ###############################################
+                """.getBytes());
+
+        _true = Tensor.ofScalar(arena, true);
+        homePos = Tensor.ofFlat(arena, 20l, 1); // bottom left corner
+        directionNorth = Tensor.ofFlat(arena, '^');
+        directionSouth = Tensor.ofFlat(arena, 'v');
+        directionEast = Tensor.ofFlat(arena, '>');
+        directionWest = Tensor.ofFlat(arena, '<');
+        oneOne = Tensor.ofFlat(arena, 1l, 1);
+        zero = Tensor.ofFlat(arena, 0l);
+        two = Tensor.ofFlat(arena, 2l);
+        three = Tensor.ofFlat(arena, 3l);
+        mOne = Tensor.ofFlat(arena, -1l);
+        mThree = Tensor.ofFlat(arena, -3l);
+        max = Tensor.ofFlat(arena, Long.MAX_VALUE);
+        limit = Tensor.ofFlat(arena, 1000l);
+        stepSouth = Tensor.ofFlat(arena, 1l, 0);
+        stepNorth = Tensor.ofFlat(arena, -1l, 0);
+        stepEast = Tensor.ofFlat(arena, 0l, 1);
+        stepWest = Tensor.ofFlat(arena, 0l, -1);
+        scalarShape = Tensor.ofFlat(arena, new long[0]);
+        wall = Tensor.ofScalar(arena, '#');
     }
 
     @CodeReflection
-    public static Tensor<Long> turnRight(Tensor<Long> direction) {
-        return Loop(THREE, TRUE, direction, (i, cond, d)
+    public Tensor<Long> turnLeft(Tensor<Long> direction) {
+        return If(Equal(direction, directionEast),
+                () -> Identity(directionNorth),
+                () -> If(Equal(direction, directionNorth),
+                        () -> Identity(directionWest),
+                        () -> If(Equal(direction, directionWest),
+                            () -> Identity(directionSouth),
+                            () -> Identity(directionEast))));
+    }
+
+    @CodeReflection
+    public Tensor<Long> turnRight(Tensor<Long> direction) {
+        return Loop(three, _true, direction, (i, cond, d)
                 -> LoopReturn(cond, turnLeft(d)));
     }
 
     @CodeReflection
-    public static Tensor<Boolean> isWallAt(Tensor<Long> pos) {
-        return Equal(CastLike(Slice(MAZE, pos, Add(pos, ONE_ONE), empty(), empty()), WALL, empty()), WALL);
+    public Tensor<Boolean> isWallAt(Tensor<Long> pos) {
+        return Equal(CastLike(Slice(maze, pos, Add(pos, oneOne), empty(), empty()), wall, empty()), wall);
     }
 
     @CodeReflection
-    public static Tensor<Long> posInFrontOfMe(Tensor<Long> myPos, Tensor<Long> myDirection) {
-        return  If(Equal(myDirection, DIRECTION_EAST),
-                () -> Add(myPos, STEP_EAST),
-                () -> If(Equal(myDirection, DIRECTION_NORTH),
-                        () -> Add(myPos, STEP_NORTH),
-                        () -> If(Equal(myDirection, DIRECTION_WEST),
-                            () -> Add(myPos, STEP_WEST),
-                            () -> Add(myPos, STEP_SOUTH))));
+    public Tensor<Long> posInFrontOfMe(Tensor<Long> myPos, Tensor<Long> myDirection) {
+        return  If(Equal(myDirection, directionEast),
+                () -> Add(myPos, stepEast),
+                () -> If(Equal(myDirection, directionNorth),
+                        () -> Add(myPos, stepNorth),
+                        () -> If(Equal(myDirection, directionWest),
+                            () -> Add(myPos, stepWest),
+                            () -> Add(myPos, stepSouth))));
     }
 
     @CodeReflection
-    public static Tensor<Boolean> atHome(Tensor<Long> pos) {
-        return ReduceMin(Equal(pos, HOME_POS), empty(), empty(), empty());
+    public Tensor<Boolean> atHome(Tensor<Long> pos) {
+        return ReduceMin(Equal(pos, homePos), empty(), empty(), empty());
     }
 
     @CodeReflection
-    public static Tensor<Long> lastPos(Tensor<Long> pathLog) {
-        return Slice(pathLog, MTHREE, MONE, empty(), empty());
+    public Tensor<Long> lastPos(Tensor<Long> pathLog) {
+        return Slice(pathLog, mThree, mOne, empty(), empty());
     }
 
     @CodeReflection
-    public static Tensor<Long> lastDirection(Tensor<Long> pathLog) {
-        return Slice(pathLog, MONE, MAX, empty(), empty());
+    public Tensor<Long> lastDirection(Tensor<Long> pathLog) {
+        return Slice(pathLog, mOne, max, empty(), empty());
     }
 
     @CodeReflection
-    public static Tensor<Long> addToLog(Tensor<Long> pathLog, Tensor<Long> pos, Tensor<Long> direction) {
+    public Tensor<Long> addToLog(Tensor<Long> pathLog, Tensor<Long> pos, Tensor<Long> direction) {
         return Concat(List.of(pathLog, pos, direction), 0);
     }
 
     @CodeReflection
-    public static Tensor<Byte> extractDirections(Tensor<Long> pathLog) {
-        return Cast(Slice(pathLog, TWO, MAX, Optional.of(ZERO), Optional.of(THREE)), empty(), 3);
+    public Tensor<Byte> extractDirections(Tensor<Long> pathLog) {
+        return Cast(Slice(pathLog, two, max, Optional.of(zero), Optional.of(three)), empty(), 3);
     }
 
     @CodeReflection
-    public static Tensor<Long> turnLeftWhileWall(Tensor<Long> pos, Tensor<Long> direction) {
-        var initialCond = Reshape(isWallAt(posInFrontOfMe(pos, direction)), SCALAR_SHAPE, empty());
-        return Loop(LIMIT, initialCond, direction, (_, _, dir) -> {
+    public Tensor<Long> turnLeftWhileWall(Tensor<Long> pos, Tensor<Long> direction) {
+        var initialCond = Reshape(isWallAt(posInFrontOfMe(pos, direction)), scalarShape, empty());
+        return Loop(limit, initialCond, direction, (_, _, dir) -> {
                 dir = turnLeft(dir);
                 return LoopReturn(isWallAt(posInFrontOfMe(pos, dir)), dir);
             });
     }
 
     @CodeReflection
-    public static Tensor<Long> walkAroundTheMaze() {
-        var start = Concat(List.of(HOME_POS, DIRECTION_EAST), 0);
-        var pathLog = Loop(LIMIT, TRUE, start, (_, _, log) -> {
+    public Tensor<Long> walkAroundTheMaze() {
+        var start = Concat(List.of(homePos, directionEast), 0);
+        var pathLog = Loop(limit, _true, start, (_, _, log) -> {
             var pos = lastPos(log);
             var direction = lastDirection(log);
 
@@ -153,7 +167,9 @@ public class WalkTheMazeTest {
 
     @Test
     public void testWalkAroundTheMaze() throws Exception {
-        var directions = execute(() -> extractDirections(walkAroundTheMaze()));
-        Assertions.assertEquals(EXPECTED_PATH, new String(directions.data().toArray(ValueLayout.JAVA_BYTE)));
+        try (var arena = Arena.ofConfined()) {
+            var directions = execute(arena, MethodHandles.lookup(), () -> extractDirections(walkAroundTheMaze()));
+            Assertions.assertEquals(expectedPath, new String(directions.data().toArray(ValueLayout.JAVA_BYTE)));
+        }
     }
 }
