@@ -154,7 +154,7 @@ public:
     private:
         cl_program program;
     public:
-        OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program);
+        OpenCLProgram(Backend *backend, char *src, char *log, bool ok, cl_program program);
         ~OpenCLProgram();
         long getKernel(int nameLen, char *name);
         bool compilationUnitOK();

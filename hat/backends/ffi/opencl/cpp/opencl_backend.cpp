@@ -169,16 +169,16 @@ long OpenCLBackend::compile(int len, char *source) {
         return 0;
     }
 
-    if ((status = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr)) != CL_SUCCESS) {
-        std::cerr << "clBuildProgram failed" << std::endl;
-        // dont return we may still be able to get log!
+    cl_int buildStatus = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
+    if (buildStatus != CL_SUCCESS) {
+       std::cerr << "buildStatus =failed" << std::endl;
     }
     size_t logLen = 0;
-    OpenCLProgram *openclProgram = new OpenCLProgram(this, nullptr, program);
-
+    OpenCLProgram *openclProgram = nullptr;
     if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &logLen)) != CL_SUCCESS) {
         std::cerr << "clGetBuildInfo (getting log size) failed" << std::endl;
-        openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram, src, nullptr, true);
+        //openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram, src, nullptr, false);
+       openclProgram= new OpenCLProgram(this,  src,nullptr,buildStatus==CL_SUCCESS,program);
     } else {
         cl_build_status buildStatus;
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(buildStatus), &buildStatus, nullptr);
@@ -195,9 +195,10 @@ long OpenCLBackend::compile(int len, char *source) {
                     std::cerr << "logLen = " << logLen << " log  = " << log << std::endl;
                 }
             }
-             openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram,src, log, true);
+              openclProgram= new OpenCLProgram(this,  src,log,buildStatus==CL_SUCCESS,program);
+
         } else {
-             openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram,src, nullptr, true);
+          openclProgram= new OpenCLProgram(this, src, nullptr, buildStatus==CL_SUCCESS, program);
         }
     }
 

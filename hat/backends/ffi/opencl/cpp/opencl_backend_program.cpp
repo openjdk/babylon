@@ -25,8 +25,8 @@
 
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLProgram::OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program)
-    : Backend::CompilationUnit(backend, buildInfo), program(program) {
+OpenCLBackend::OpenCLProgram::OpenCLProgram(Backend *backend,  char *src, char *log, bool ok, cl_program program)
+    : Backend::CompilationUnit(backend, src,log, ok), program(program) {
 }
 
 OpenCLBackend::OpenCLProgram::~OpenCLProgram() {

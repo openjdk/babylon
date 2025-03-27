@@ -43,8 +43,8 @@ public:
         };
 
     public:
-        SpirvProgram(Backend *backend, Backend::CompilationUnit::BuildInfo *buildInfo)
-                : Backend::CompilationUnit(backend, buildInfo) {
+        SpirvProgram(Backend *backend, char *src, char *log, bool ok)
+                : Backend::CompilationUnit(backend,src,log,ok) {
         }
 
         ~SpirvProgram() {
@@ -92,8 +92,7 @@ bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
         src[srcLen] = '\0';
         std::cout << "native compiling " << src << std::endl;
 
-        SpirvProgram *spirvProgram = new SpirvProgram(this, nullptr);
-        spirvProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(spirvProgram, nullptr, nullptr, false);
+        SpirvProgram *spirvProgram = new SpirvProgram(this,  src, nullptr, false);
         return (long)spirvProgram;
     }
 };

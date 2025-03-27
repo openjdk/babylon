@@ -134,7 +134,7 @@ extern "C" void releaseBackend(long backendHandle) {
 }
 extern "C" long compile(long backendHandle, int len, char *source) {
     if (INFO){
-       std::cout << "trampolining through backendHandle to backend.compileProgram() "
+       std::cout << "trampolining through backendHandle to backend.compile() "
            <<std::hex<<backendHandle<< std::dec <<std::endl;
     }
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
@@ -146,7 +146,7 @@ extern "C" long compile(long backendHandle, int len, char *source) {
 }
 extern "C" long getKernel(long compilationUnitHandle, int nameLen, char *name) {
     if (INFO){
-        std::cout << "trampolining through programHandle to program.getKernel()"
+        std::cout << "trampolining through programHandle to compilationUnit.getKernel()"
             <<std::hex<<compilationUnitHandle<< std::dec <<std::endl;
     }
     auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
@@ -192,5 +192,3 @@ extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmen
     auto memorySegment = reinterpret_cast<void *>(memorySegmentHandle);
     return backend->getBufferFromDeviceIfDirty(memorySegment, memorySegmentLength);
 }
-
-

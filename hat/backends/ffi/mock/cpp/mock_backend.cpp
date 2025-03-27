@@ -40,8 +40,8 @@ public:
         };
 
     public:
-        MockProgram(Backend *backend, Backend::CompilationUnit::BuildInfo *buildInfo)
-                : Backend::CompilationUnit(backend, buildInfo) {
+        MockProgram(Backend *backend, char *src, char *log, bool ok )
+                : Backend::CompilationUnit(backend, src,log, ok) {
         }
 
         ~MockProgram() {
@@ -91,8 +91,7 @@ public:
         ::strncpy(src, source, srcLen);
         src[srcLen] = '\0';
         std::cout << "native compiling " << src << std::endl;
-        MockProgram *mockProgram = new MockProgram(this, nullptr);
-        mockProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(mockProgram,src, nullptr, false);
+        MockProgram *mockProgram = new MockProgram(this,src, nullptr, false);
         return (long)mockProgram;
     }
 };

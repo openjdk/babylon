@@ -336,43 +336,28 @@ public:
                 }
             }
         };
-class BuildInfo {
-public:
-    CompilationUnit *compilationUnit;
-    char *src;
-    char *log;
-    bool ok;
-
-    BuildInfo(CompilationUnit *compilationUnit,char *src, char *log, bool ok)
-            : compilationUnit(compilationUnit), src(src), log(log), ok(ok) {
-    }
-
-    ~BuildInfo() {
-        if (src) {
-            delete[] src;
-        }
-        if (log) {
-            delete[] log;
-        }
-    }
-
-};
-    public:
+  public:
         Backend *backend;
-        BuildInfo *buildInfo;
-
+        char *src;
+        char *log;
+        bool ok;
         virtual long getKernel(int nameLen, char *name) = 0;
 
-        virtual bool compilationUnitOK() = 0;
+        bool compilationUnitOK(){
+           return ok;
+        }
 
-        CompilationUnit(Backend *backend, BuildInfo *buildInfo)
-                : backend(backend), buildInfo(buildInfo) {
+        CompilationUnit(Backend *backend, char *src, char *log, bool ok)
+                : backend(backend), src(src),log(log),ok(ok) {
         }
 
         virtual ~CompilationUnit() {
-            if (buildInfo != nullptr) {
-                delete buildInfo;
-            }
+           if (src != nullptr) {
+              delete[] src;
+           }
+           if (log != nullptr) {
+              delete[] log;
+           }
         };
     };
     int mode;
@@ -395,7 +380,6 @@ public:
 };
 
 extern "C" void info(long backendHandle);
-extern "C" int getMaxComputeUnits(long backendHandle);
 extern "C" long compileCompilationUnit(long backendHandle, int len, char *source);
 extern "C" long getKernel(long compilationUnitHandle, int len, char *name);
 extern "C" void releaseBackend(long backendHandle);
