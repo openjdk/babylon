@@ -45,21 +45,26 @@ public class OnnxTransformer {
         return new OnnxTransformer(lookup, flatLambdaFunc);
     }
 
-    public OnnxTransformer(MethodHandles.Lookup lookup, CoreOp.FuncOp func) {
-        l = lookup;
-
-        var inlinedFunc = func.transform((bb, op) -> {
+    final CoreOp.FuncOp inline(CoreOp.FuncOp func) {
+        return func.transform((bb, op) -> {
             var cc  = bb.context();
             switch (op) {
                 case CoreOp.InvokeOp io when resolve(io) instanceof CoreOp.FuncOp inline ->
-                    bb.inline(inline, cc.getValues(io.operands()), (_, v) -> cc.mapValue(io.result(), v));
+                    bb.inline(inline(inline), cc.getValues(io.operands()), (_, v) -> cc.mapValue(io.result(), v));
                 default ->
                     bb.apply(op);
             }
             return bb;
         });
+    }
+
+    public OnnxTransformer(MethodHandles.Lookup lookup, CoreOp.FuncOp func) {
+        l = lookup;
+
+        var inlinedFunc = inline(func);
 
         inits = new ArrayList<>();
+        var initMap = new HashMap<FieldRef, Block.Parameter>();
         var top = new Block.Builder[1];
         // turning field loads into additiona arguments
         inputFunc = inlinedFunc.transform((bb, op) -> {
@@ -67,9 +72,11 @@ public class OnnxTransformer {
             var cc  = bb.context();
             switch (op) {
                 case CoreOp.FieldAccessOp.FieldLoadOp flo when op.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS) -> {
-                    inits.add(flo.fieldDescriptor());
                     // initializers turn into top block parameters
-                    cc.mapValue(op.result(), top[0].parameter(op.resultType()));
+                    cc.mapValue(op.result(), initMap.computeIfAbsent(flo.fieldDescriptor(), fd -> {
+                        inits.add(fd);
+                        return top[0].parameter(op.resultType());
+                    }));
                 }
                 default -> bb.apply(op);
             }
@@ -90,7 +97,7 @@ public class OnnxTransformer {
     public List<Tensor> initializers(Object receiver) {
         return inits.stream().map(i -> {
             try {
-                return (Tensor)i.resolveToHandle(l).get(receiver);
+                return (Tensor)(i.resolveToMember(l).accessFlags().contains(AccessFlag.STATIC) ? i.resolveToHandle(l).get() : i.resolveToHandle(l).get(receiver));
             } catch (ReflectiveOperationException ex) {
                 throw new RuntimeException(ex);
             }
@@ -197,7 +204,8 @@ public class OnnxTransformer {
                                         default -> throw new UnsupportedOperationException();
                                     }
                                 } else {
-                                    throw new UnsupportedOperationException();
+                                    // otherwise pass through a single value
+                                    opArgs.add(bb.context().getValue(v));
                                 }
                             }
                         }
@@ -207,12 +215,12 @@ public class OnnxTransformer {
                         // Explicit transformation of nested bodies
                         for (int i = 1; i < 3; i++) {
                             var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
-                            opArgs.add(lambda.body().transform(bb.context(), bodyTransformer(pe)));
+                            opArgs.add(transformBodyTranslateTypes(lambda.body(), bb.context(), bodyTransformer(pe)));
                         }
                     } else if (opClass == ExplicitOnnxOps.Loop.class) {
                         // Explicit transformation of nested body
                         var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(3)).op());
-                        opArgs.add(lambda.body().transform(bb.context(), bodyTransformer(pe)));
+                        opArgs.add(transformBodyTranslateTypes(lambda.body(), bb.context(), bodyTransformer(pe)));
                     }
                     OnnxOp onnxOp;
                     try {
@@ -241,11 +249,35 @@ public class OnnxTransformer {
                 // Skip nested lambdas
                 case CoreOp.LambdaOp _ -> {
                 }
+                case Op.Terminating _ -> {
+                    try {
+                        bb.op(op); // @@@ how to test the terminating op has been already inserted?
+                    } catch (IllegalStateException _) {}
+                }
                 // Copy remaining operations, which may be removed later transformations
                 default -> bb.op(op);
             }
             return bb;
         };
+    }
+
+    // @@@ Ugly copy of Body::transform content to translate types
+    static Body.Builder transformBodyTranslateTypes(Body body, CopyContext cc, OpTransformer ot) {
+//        return body.transform(cc, ot);
+
+        Body ancestorBody = body.parentOp().parentBlock() instanceof Block parentBlock ? parentBlock.parentBody() : null;
+
+        Block.Builder ancestorBlockBuilder = ancestorBody != null
+                ? cc.getBlock(ancestorBody.entryBlock()) : null;
+        Body.Builder ancestorBodyBuilder = ancestorBlockBuilder != null
+                ? ancestorBlockBuilder.parentBody() : null;
+
+        Body.Builder bb = Body.Builder.of(ancestorBodyBuilder, FunctionType.functionType(type(body.yieldType())), cc, ot); // translate types
+        for (Block.Parameter p : body.entryBlock().parameters()) {
+            bb.entryBlock().parameter(type(p.type())); // translate types
+        }
+        bb.entryBlock().transformBody(body, bb.entryBlock().parameters(), cc, ot);
+        return bb;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -330,22 +362,27 @@ public class OnnxTransformer {
     }
 
     static final TypeElement TENSOR_RAW_CLASS = JavaType.type(Tensor.class);
+    static final TypeElement LOOP_RETURN_RAW_CLASS = JavaType.type(ExplicitOnnxOps.LoopReturn.class);
 
     // @@@ Map of Java tensor types to ONNX tensor types
     // @@@ Shape??
     static TypeElement type(TypeElement type) {
-        if (type instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS)) {
-            JavaType elementType = ct.typeArguments().getFirst();
-            if (elementType.equals(JavaType.J_L_INTEGER)) {
-                return OnnxType.TENSOR_INT32;
-            } else if (elementType.equals(JavaType.J_L_FLOAT)) {
-                return OnnxType.TENSOR_FLOAT32;
-            } else if (elementType.equals(JavaType.J_L_LONG)) {
-                return OnnxType.TENSOR_INT64;
-            } else if (elementType.equals(JavaType.J_L_BYTE)) {
-                return OnnxType.TENSOR_UINT8;
-            } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
-                return OnnxType.TENSOR_BOOL;
+        if (type instanceof ClassType ct) {
+            if (ct.rawType().equals(TENSOR_RAW_CLASS)) {
+                JavaType elementType = ct.typeArguments().getFirst();
+                if (elementType.equals(JavaType.J_L_INTEGER)) {
+                    return OnnxType.TENSOR_INT32;
+                } else if (elementType.equals(JavaType.J_L_FLOAT)) {
+                    return OnnxType.TENSOR_FLOAT32;
+                } else if (elementType.equals(JavaType.J_L_LONG)) {
+                    return OnnxType.TENSOR_INT64;
+                } else if (elementType.equals(JavaType.J_L_BYTE)) {
+                    return OnnxType.TENSOR_UINT8;
+                } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
+                    return OnnxType.TENSOR_BOOL;
+                }
+            } else if (ct.rawType().equals(LOOP_RETURN_RAW_CLASS)) {
+                return JavaType.VOID;
             }
         }
         return type;

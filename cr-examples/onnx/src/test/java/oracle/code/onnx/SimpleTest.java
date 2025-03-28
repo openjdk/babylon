@@ -7,11 +7,15 @@ import jdk.incubator.code.CodeReflection;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import static java.util.Optional.empty;
+import static oracle.code.onnx.OnnxOperators.*;
+import static oracle.code.onnx.OnnxRuntime.execute;
+
 public class SimpleTest {
 
     @CodeReflection
     public Tensor<Float> add(Tensor<Float> a, Tensor<Float> b) {
-        return OnnxOperators.Add(a, b);
+        return Add(a, b);
     }
 
     @Test
@@ -19,12 +23,12 @@ public class SimpleTest {
         var a = Tensor.ofFlat(1f, 2, 3);
         assertEquals(
                 add(a, a),
-                OnnxRuntime.execute(() -> add(a, a)));
+                execute(() -> add(a, a)));
     }
 
     @CodeReflection
     public Tensor<Float> sub(Tensor<Float> a, Tensor<Float> b) {
-        return OnnxOperators.Sub(a, b);
+        return Sub(a, b);
     }
 
     @Test
@@ -33,12 +37,12 @@ public class SimpleTest {
         var a = Tensor.ofFlat(1f, 2, 3);
         assertEquals(
                 sub(a, b),
-                OnnxRuntime.execute(() -> sub(a, b)));
+                execute(() -> sub(a, b)));
     }
 
     @CodeReflection
     public Tensor<Float> fconstant() {
-        return OnnxOperators.Constant(-1f);
+        return Constant(-1f);
     }
 
     @Test
@@ -46,12 +50,12 @@ public class SimpleTest {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1f);
         assertEquals(expected, fconstant());
-        assertEquals(expected, OnnxRuntime.execute(() -> fconstant()));
+        assertEquals(expected, execute(() -> fconstant()));
     }
 
     @CodeReflection
     public Tensor<Float> fconstants() {
-        return OnnxOperators.Constant(new float[]{-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE});
+        return Constant(new float[]{-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE});
     }
 
     @Test
@@ -59,12 +63,12 @@ public class SimpleTest {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1f, 0, 1, Float.MIN_VALUE, Float.MAX_VALUE);
         assertEquals(expected, fconstants());
-        assertEquals(expected, OnnxRuntime.execute(() -> fconstants()));
+        assertEquals(expected, execute(() -> fconstants()));
     }
 
     @CodeReflection
     public Tensor<Long> lconstant() {
-        return OnnxOperators.Constant(-1l);
+        return Constant(-1l);
     }
 
     @Test
@@ -72,12 +76,12 @@ public class SimpleTest {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofScalar(-1l);
         assertEquals(expected, lconstant());
-        assertEquals(expected, OnnxRuntime.execute(() -> lconstant()));
+        assertEquals(expected, execute(() -> lconstant()));
     }
 
     @CodeReflection
     public Tensor<Long> lconstants() {
-        return OnnxOperators.Constant(new long[]{-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE});
+        return Constant(new long[]{-1, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE});
     }
 
     @Test
@@ -85,12 +89,12 @@ public class SimpleTest {
         // tests the numbers are encoded correctly
         var expected = Tensor.ofFlat(-1l, 0, 1, Long.MIN_VALUE, Long.MAX_VALUE);
         assertEquals(expected, lconstants());
-        assertEquals(expected, OnnxRuntime.execute(() -> lconstants()));
+        assertEquals(expected, execute(() -> lconstants()));
     }
 
     @CodeReflection
     public Tensor<Long> reshapeAndShape(Tensor<Float> data, Tensor<Long> shape) {
-        return OnnxOperators.Shape(OnnxOperators.Reshape(data, shape, Optional.empty()), Optional.empty(), Optional.empty());
+        return Shape(Reshape(data, shape, empty()), empty(), empty());
     }
 
     @Test
@@ -99,13 +103,13 @@ public class SimpleTest {
         var shape = Tensor.ofFlat(2l, 2, 2);
         assertEquals(
                 reshapeAndShape(data, shape),
-                OnnxRuntime.execute(() -> reshapeAndShape(data, shape)));
+                execute(() -> reshapeAndShape(data, shape)));
     }
 
     @CodeReflection
     public Tensor<Long> indicesOfMaxPool(Tensor<Float> x) {
         // testing secondary output
-        return OnnxOperators.MaxPool(x, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),  new long[]{2}).Indices();
+        return MaxPool(x, empty(), empty(), empty(), empty(), empty(), empty(),  new long[]{2}).Indices();
     }
 
     @Test
@@ -113,12 +117,12 @@ public class SimpleTest {
         var x = Tensor.ofShape(new long[]{2, 2, 2}, 1f, 2, 3, 4, 5, 6, 7, 8);
         assertEquals(
                 indicesOfMaxPool(x),
-                OnnxRuntime.execute(() -> indicesOfMaxPool(x)));
+                execute(() -> indicesOfMaxPool(x)));
     }
 
     @CodeReflection
     public Tensor<Float> concat(Tensor<Float> input1, Tensor<Float> input2, long axis) {
-        return OnnxOperators.Concat(List.of(input1, input2), axis);
+        return Concat(List.of(input1, input2), axis);
     }
 
     @Test
@@ -127,12 +131,12 @@ public class SimpleTest {
         var input2 = Tensor.ofFlat(4f, 5);
         assertEquals(
                 concat(input1, input2, 0),
-                OnnxRuntime.execute(()-> concat(input1, input2, 0)));
+                execute(()-> concat(input1, input2, 0)));
     }
 
     @CodeReflection
     public Tensor<Float> split(Tensor<Float> input, Tensor<Long> split) {
-        return OnnxOperators.Split(input, Optional.of(split), Optional.empty(), Optional.empty()).get(0);
+        return Split(input, Optional.of(split), empty(), empty()).get(0);
     }
 
     @Test
@@ -141,12 +145,12 @@ public class SimpleTest {
         var split = Tensor.ofFlat(5l);
         assertEquals(
                 split(input, split),
-                OnnxRuntime.execute(()-> split(input, split)));
+                execute(()-> split(input, split)));
     }
 
     @CodeReflection
     public Tensor<Float> ifConst(Tensor<Boolean> cond) {
-        return OnnxOperators.If(cond, () -> List.of(OnnxOperators.Constant(-1f)), () -> List.of(OnnxOperators.Constant(1f))).get(0);
+        return If(cond, () -> List.of(Constant(1f)), () -> List.of(Constant(-1f))).get(0);
     }
 
     @Test
@@ -157,16 +161,16 @@ public class SimpleTest {
         var expTrue = Tensor.ofScalar(1f);
 
         assertEquals(expFalse, ifConst(condFalse));
-        assertEquals(expFalse, OnnxRuntime.execute(() -> ifConst(condFalse)));
+        assertEquals(expFalse, execute(() -> ifConst(condFalse)));
 
         assertEquals(expTrue, ifConst(condTrue));
-        assertEquals(expTrue, OnnxRuntime.execute(() -> ifConst(condTrue)));
+        assertEquals(expTrue, execute(() -> ifConst(condTrue)));
     }
 
     @CodeReflection
     public Tensor<Float> ifCapture(Tensor<Boolean> cond, Tensor<Float> trueValue) {
-        var falseValue = OnnxOperators.Constant(-1f);
-        return OnnxOperators.If(cond, () -> List.of(OnnxOperators.Identity(falseValue)), () -> List.of(OnnxOperators.Identity(trueValue))).get(0);
+        var falseValue = Constant(-1f);
+        return If(cond, () -> Identity(trueValue), () -> Identity(falseValue));
     }
 
     @Test
@@ -177,24 +181,24 @@ public class SimpleTest {
         var expTrue = Tensor.ofScalar(1f);
 
         assertEquals(expFalse, ifCapture(condFalse, expTrue));
-        assertEquals(expFalse, OnnxRuntime.execute(() -> ifCapture(condFalse, expTrue)));
+        assertEquals(expFalse, execute(() -> ifCapture(condFalse, expTrue)));
 
         assertEquals(expTrue, ifCapture(condTrue, expTrue));
-        assertEquals(expTrue, OnnxRuntime.execute(() -> ifCapture(condTrue, expTrue)));
+        assertEquals(expTrue, execute(() -> ifCapture(condTrue, expTrue)));
     }
 
     final Tensor<Float> initialized = Tensor.ofFlat(42f);
 
     @CodeReflection
     public Tensor<Float> initialized() {
-        return OnnxOperators.Identity(initialized);
+        return Identity(initialized);
     }
 
     @Test
     public void testInitialized() throws Exception {
 
         assertEquals(initialized(),
-                     OnnxRuntime.execute(() -> initialized()));
+                     execute(() -> initialized()));
     }
 
     final Tensor<Float> initialized2 = Tensor.ofFlat(33f);
@@ -203,13 +207,13 @@ public class SimpleTest {
 
     @CodeReflection
     public Tensor<Float> ifInitialized(Tensor<Boolean> cond1, Tensor<Boolean> cond2) {
-        return OnnxOperators.If(cond1,
-                () -> OnnxOperators.If(cond2,
-                        () -> List.of(OnnxOperators.Identity(initialized4)),
-                        () -> List.of(OnnxOperators.Identity(initialized3))),
-                () -> OnnxOperators.If(cond2,
-                        () -> List.of(OnnxOperators.Identity(initialized2)),
-                        () -> List.of(OnnxOperators.Identity(initialized)))).get(0);
+        return If(cond1,
+                () -> If(cond2,
+                        () -> List.of(Identity(initialized)),
+                        () -> List.of(Identity(initialized2))),
+                () -> If(cond2,
+                        () -> List.of(Identity(initialized3)),
+                        () -> List.of(Identity(initialized4)))).get(0);
     }
 
     @Test
@@ -218,23 +222,21 @@ public class SimpleTest {
         var condTrue = Tensor.ofScalar(true);
 
         assertEquals(initialized, ifInitialized(condTrue, condTrue));
-        assertEquals(initialized, OnnxRuntime.execute(() -> ifInitialized(condTrue, condTrue)));
+        assertEquals(initialized, execute(() -> ifInitialized(condTrue, condTrue)));
         assertEquals(initialized2, ifInitialized(condTrue, condFalse));
-        assertEquals(initialized2, OnnxRuntime.execute(() -> ifInitialized(condTrue, condFalse)));
+        assertEquals(initialized2, execute(() -> ifInitialized(condTrue, condFalse)));
         assertEquals(initialized3, ifInitialized(condFalse, condTrue));
-        assertEquals(initialized3, OnnxRuntime.execute(() -> ifInitialized(condFalse, condTrue)));
+        assertEquals(initialized3, execute(() -> ifInitialized(condFalse, condTrue)));
         assertEquals(initialized4, ifInitialized(condFalse, condFalse));
-        assertEquals(initialized4, OnnxRuntime.execute(() -> ifInitialized(condFalse, condFalse)));
+        assertEquals(initialized4, execute(() -> ifInitialized(condFalse, condFalse)));
 
     }
 
+    static final Tensor<Boolean> TRUE = Tensor.ofScalar(true);
+
     @CodeReflection
-    public Tensor<Float> forLoopAdd(Tensor<Float> value, Tensor<Long> max, Tensor<Boolean> condition) {
-        return OnnxOperators.Loop(max, condition, List.of(value),
-                l -> {
-                    var v = l.userValues().get(0);
-                    return new ExplicitOnnxOperators.LoopLocals<>(l.i(), l.cond(), List.of(OnnxOperators.Add(v, v)));
-                }).get(0);
+    public Tensor<Float> forLoopAdd(Tensor<Long> max, Tensor<Float> initialValue) {
+        return Loop(max, TRUE, initialValue, (i, cond, v) -> LoopReturn(cond, Add(v, v)));
     }
 
     @Test
@@ -242,9 +244,8 @@ public class SimpleTest {
         var expected = Tensor.ofFlat(0f, 8, 16, 24);
         var value = Tensor.ofFlat(0f, 1, 2, 3);
         var max = Tensor.ofScalar(3l);
-        var cond = Tensor.ofScalar(true);
-        assertEquals(expected, forLoopAdd(value, max, cond));
-//        assertEquals(expected, OnnxRuntime.execute(() -> forLoopAdd(value, max, cond)));
+        assertEquals(expected, forLoopAdd(max, value));
+        assertEquals(expected, execute(() -> forLoopAdd(max, value)));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {

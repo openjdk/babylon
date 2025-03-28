@@ -332,7 +332,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         entry block only
     static byte[] build(Block block, List<oracle.code.onnx.Tensor> initializers) {
         var indexer = new Indexer();
-        var model = build(graph(indexer, block, initializers));
+        var model = build(graph(indexer, block, initializers, 0));
 //        OnnxProtoPrinter.printModel(model);
         return model;
     }
@@ -349,15 +349,15 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 .buf.toByteArray();
     }
 
-    static GraphProto graph(Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers) {
+    static GraphProto graph(Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers, int scalarArgs) {
         var params = block.parameters();
         params.forEach(indexer::getName);
         int firstInitializer = params.size() - initializers.size();
         var args = params.subList(params.isEmpty() || params.getFirst().type() instanceof OnnxType.TensorType ? 0 : 1, firstInitializer);
         return graph(
                 IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.getName(params.get(i + firstInitializer)), initializers.get(i))).toList(),
-                args.stream().map(v ->
-                        tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
+                IntStream.range(0, args.size()).mapToObj(i ->
+                        tensorInfo(indexer.getName(args.get(i)), ((OnnxType.TensorType)args.get(i).type()).eType().id(), i < scalarArgs)).toList(),
                 block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
                         case OnnxOps.If ifOp ->
@@ -365,9 +365,18 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                     ifOp.opName(),
                                     List.of(indexer.getName(ifOp.operands().getFirst())),
                                     List.of(indexer.getName(ifOp.result())),
-                                    java.util.Map.of( // @@@ wrong mapping of captured inputs
-                                            "else_branch", graph(indexer, ifOp.elseBranch().entryBlock(), List.of()),
-                                            "then_branch", graph(indexer, ifOp.thenBranch().entryBlock(), List.of()))));
+                                    java.util.Map.of(
+                                            "then_branch", graph(indexer, ifOp.thenBranch().entryBlock(), List.of(), 0),
+                                            "else_branch", graph(indexer, ifOp.elseBranch().entryBlock(), List.of(), 0))));
+                        case OnnxOps.LoopReturn _ -> {} // skip
+                        case OnnxOps.Loop loopOp -> {
+                            opNodes.accept(node(
+                                    loopOp.opName(),
+                                    loopOp.operands().stream().map(indexer::getName).toList(),
+                                    List.of(indexer.getName(loopOp.result())),
+                                    java.util.Map.of(
+                                            "body", graph(indexer, loopOp.loopBody().entryBlock(), List.of(), 2))));
+                        }
                         case OnnxOp onnxOp ->
                             opNodes.accept(node(
                                     onnxOp.opName(),
@@ -394,7 +403,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                         }
                     }
                 }).toList(),
-                List.of(indexer.getName(block.terminatingOp().operands().getFirst())));
+                block.terminatingOp().operands().stream().map(indexer::getName).toList());
     }
 
     static GraphProto graph(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
@@ -414,20 +423,15 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     }
 
     static ValueInfoProto tensorInfo(String name, int tensorElementType) {
-        return new ValueInfoProto()
-                .name(name)
-                .type(new TypeProto()
-                        .tensor_type(new Tensor()
-                                .elem_type(tensorElementType)));
+        return tensorInfo(name, tensorElementType, false);
     }
 
-    static ValueInfoProto scalarInfo(String name, int tensorElementType) {
+    static ValueInfoProto tensorInfo(String name, int tensorElementType, boolean addScalarShape) {
+        var t = new Tensor().elem_type(tensorElementType);
+        if (addScalarShape) t.shape(new TensorShapeProto());
         return new ValueInfoProto()
                 .name(name)
-                .type(new TypeProto()
-                        .tensor_type(new Tensor()
-                                .elem_type(tensorElementType)
-                                .shape(new TensorShapeProto())));
+                .type(new TypeProto().tensor_type(t));
     }
 
     static TensorProto tensorProto(String name, oracle.code.onnx.Tensor tensor) {

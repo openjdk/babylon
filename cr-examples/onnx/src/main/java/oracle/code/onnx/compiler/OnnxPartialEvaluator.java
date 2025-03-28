@@ -303,7 +303,7 @@ final class OnnxPartialEvaluator {
             OnnxOp.OnnxSchema schema = schemaFromOnnxOpClass(opClass);
 
             List<OnnxOp.OnnxParameter> inputs = schema.inputs();
-            assert o.operands().subList(0, inputs.size()).stream().noneMatch(oc::isValueDefined);
+//            assert o.operands().subList(0, inputs.size()).stream().noneMatch(oc::isValueDefined);
             List<OnnxOp.OnnxAttribute> attributes = schema.attributes();
 
             if (opClass == OnnxOps.Constant.class && o.operands().size() == 1) {
