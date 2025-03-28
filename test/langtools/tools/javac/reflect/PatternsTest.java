@@ -396,4 +396,52 @@ public class PatternsTest {
     boolean test9(Object o) {
         return o instanceof Rectangle(_, ConcretePoint cp);
     }
+
+    @IR("""
+            func @"test10" (%0 : int)boolean -> {
+                  %1 : Var<int> = var %0 @"i";
+                  %2 : int = var.load %1;
+                  %3 : int = constant @"0";
+                  %4 : byte = conv %3;
+                  %5 : Var<byte> = var %4 @"b";
+                  %6 : boolean = pattern.match %2
+                      ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<byte> -> {
+                          %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<byte> = pattern.type @"b";
+                          yield %7;
+                      }
+                      (%8 : byte)void -> {
+                          var.store %5 %8;
+                          yield;
+                      };
+                  return %6;
+              };
+            """)
+    @CodeReflection
+    static boolean test10(int i) {
+        return i instanceof byte b;
+    }
+
+    @IR("""
+            func @"test11" (%0 : int)boolean -> {
+                  %1 : Var<int> = var %0 @"i";
+                  %2 : int = var.load %1;
+                  %3 : int = constant @"0";
+                  %4 : short = conv %3;
+                  %5 : Var<short> = var %4 @"s";
+                  %6 : boolean = pattern.match %2
+                      ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<short> -> {
+                          %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<short> = pattern.type @"s";
+                          yield %7;
+                      }
+                      (%8 : short)void -> {
+                          var.store %5 %8;
+                          yield;
+                      };
+                  return %6;
+              };
+            """)
+    @CodeReflection
+    static boolean test11(int i) {
+        return i instanceof short s;
+    }
 }
