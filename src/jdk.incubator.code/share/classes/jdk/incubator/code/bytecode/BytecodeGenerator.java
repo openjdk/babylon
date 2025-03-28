@@ -94,7 +94,7 @@ public final class BytecodeGenerator {
             StringConcatFactory.class.describeConstable().orElseThrow(),
             "makeConcat",
             CD_CallSite);
-    private static final MethodTypeDesc opMethodDesc = MethodTypeDesc.of(FuncOp.class.describeConstable().get(),
+    private static final MethodTypeDesc opMethodDesc = MethodTypeDesc.of(Op.class.describeConstable().get(),
             OpFactory.class.describeConstable().get(), TypeElementFactory.class.describeConstable().get());
 
     /**
@@ -175,7 +175,6 @@ public final class BytecodeGenerator {
                                 .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
                                         "fromStringOfFuncOp",
                                         MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
-                                .checkcast(FuncOp.class.describeConstable().get())
                                 .areturn()));
                 }
                 generateMethod(lookup, className, "lambda$" + i, lop, clb, lambdaSink, quotable);

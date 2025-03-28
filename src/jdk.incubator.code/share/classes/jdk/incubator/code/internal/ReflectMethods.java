@@ -410,13 +410,13 @@ public class ReflectMethods extends TreeTranslator {
         switch (codeModelStorageOption) {
             case TEXT -> {
                 var paramTypes = com.sun.tools.javac.util.List.of(crSyms.opFactoryType, crSyms.typeElementFactoryType);
-                var mt = new MethodType(paramTypes, crSyms.funcOpType,
+                var mt = new MethodType(paramTypes, crSyms.opType,
                         com.sun.tools.javac.util.List.nil(), syms.methodClass);
                 var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
                 currentClassSym.members().enter(ms);
                 var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
                         com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
-                var ret = make.Return(make.TypeCast(crSyms.funcOpType, opFromStr));
+                var ret = make.Return(opFromStr);
                 var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
                 return md;
             }
