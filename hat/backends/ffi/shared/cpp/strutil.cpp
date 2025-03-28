@@ -22,12 +22,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.ffi;
 
-public class OpenCLDeviceInfo {
+#include "strutil.h"
 
-    public static void main(String[] args) {
-        OpenCLBackend openCLBackend = new OpenCLBackend();
-        openCLBackend.backendBridge.info();
+void StringUtil::replaceInPlace(std::string &subject, const std::string &search,
+                                const std::string &replace) {
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos) {
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
     }
 }
+
+
+bool StringUtil::endsWith(const std::string &str, const std::string &suffix) {
+    return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+}
+
+
+
+

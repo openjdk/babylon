@@ -277,26 +277,7 @@ public:
 };
 
 
-class BuildInfo {
-public:
-    char *src;
-    char *log;
-    bool ok;
 
-    BuildInfo(char *src, char *log, bool ok)
-            : src(src), log(log), ok(ok) {
-    }
-
-    ~BuildInfo() {
-        if (src) {
-            delete[] src;
-        }
-        if (log) {
-            delete[] log;
-        }
-    }
-
-};
 
 extern void hexdump(void *ptr, int buflen);
 
@@ -314,30 +295,28 @@ public:
 
 class Backend {
 public:
+    class Buffer {
+    public:
+        Backend *backend;
+        Arg_s *arg;
 
-    class Program {
+        virtual void copyToDevice() = 0;
+
+        virtual void copyFromDevice() = 0;
+
+        Buffer(Backend *backend, Arg_s *arg)
+                : backend(backend), arg(arg) {
+        }
+
+        virtual ~Buffer() {}
+    };
+    class CompilationUnit {
     public:
         class Kernel {
         public:
-            class Buffer {
-            public:
-                Kernel *kernel;
-                Arg_s *arg;
-
-                virtual void copyToDevice() = 0;
-
-                virtual void copyFromDevice() = 0;
-
-                Buffer(Kernel *kernel, Arg_s *arg)
-                        : kernel(kernel), arg(arg) {
-                }
-
-                virtual ~Buffer() {}
-            };
-
             char *name;// strduped!
 
-            Program *program;
+            CompilationUnit *compilationUnit;
 
             virtual long ndrange(void *argArray) = 0;
             static char *copy(char *name){
@@ -347,8 +326,8 @@ public:
                 buf[len]='\0';
                 return buf;
             }
-            Kernel(Program *program, char *name)
-                    : program(program), name(copy(name)) {
+            Kernel(CompilationUnit *compilationUnit, char *name)
+                    : compilationUnit(compilationUnit), name(copy(name)) {
             }
 
             virtual ~Kernel() {
@@ -357,25 +336,29 @@ public:
                 }
             }
         };
-
-    public:
+  public:
         Backend *backend;
-        BuildInfo *buildInfo;
-
+        char *src;
+        char *log;
+        bool ok;
         virtual long getKernel(int nameLen, char *name) = 0;
 
-        virtual bool programOK() = 0;
-
-        Program(Backend *backend, BuildInfo *buildInfo)
-                : backend(backend), buildInfo(buildInfo) {
+        bool compilationUnitOK(){
+           return ok;
         }
 
-        virtual ~Program() {
-            if (buildInfo != nullptr) {
-                delete buildInfo;
-            }
-        };
+        CompilationUnit(Backend *backend, char *src, char *log, bool ok)
+                : backend(backend), src(src),log(log),ok(ok) {
+        }
 
+        virtual ~CompilationUnit() {
+           if (src != nullptr) {
+              delete[] src;
+           }
+           if (log != nullptr) {
+              delete[] log;
+           }
+        };
     };
     int mode;
 
@@ -387,25 +370,9 @@ public:
 
     virtual void computeEnd() = 0;
 
-    virtual int getMaxComputeUnits() = 0;
-
-    virtual long compileProgram(int len, char *source) = 0;
+    virtual long compile(int len, char *source) = 0;
 
     virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength)=0;
 
     virtual ~Backend() {};
 };
-
-extern "C" void info(long backendHandle);
-extern "C" int getMaxComputeUnits(long backendHandle);
-extern "C" long compileProgram(long backendHandle, int len, char *source);
-extern "C" long getKernel(long programHandle, int len, char *name);
-extern "C" void releaseBackend(long backendHandle);
-extern "C" void releaseProgram(long programHandle);
-extern "C" bool programOK(long programHandle);
-extern "C" void releaseKernel(long kernelHandle);
-extern "C" long ndrange(long kernelHandle, void *argArray);
-extern "C" void computeStart(long backendHandle);
-extern "C" void computeEnd(long backendHandle);
-extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength);
-

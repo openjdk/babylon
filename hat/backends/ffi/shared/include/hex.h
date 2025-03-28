@@ -22,12 +22,21 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.ffi;
+#pragma once
 
-public class OpenCLDeviceInfo {
 
-    public static void main(String[] args) {
-        OpenCLBackend openCLBackend = new OpenCLBackend();
-        openCLBackend.backendBridge.info();
-    }
-}
+#include <iostream>
+#include <functional>
+
+
+class Hex {
+public:
+    static void ascii(std::ostream &s, char c);
+
+    static void hex(std::ostream &s, char c);
+
+    static void bytes(std::ostream &s, char *p, size_t len, std::function<void(std::ostream &)> prefix);
+};
+
+
+

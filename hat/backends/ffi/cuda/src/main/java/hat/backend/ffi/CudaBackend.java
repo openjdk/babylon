@@ -35,20 +35,16 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class CudaBackend extends C99FFIBackend {
 
-    final MethodHandle getBackend_MH;
-    public long getBackend(int mode, int platform, int device) {
-        try {
-            backendHandle = (long) getBackend_MH.invoke(mode, platform, device);
-        } catch (Throwable throwable) {
-            throw new IllegalStateException(throwable);
-        }
-        return backendHandle;
+    final FFILib.LongIntMethodPtr getBackend_MPtr;
+    public long getBackend(int mode) {
+            backendBridge.handle = getBackend_MPtr.invoke(mode);
+            return backendBridge.handle;
     }
     public CudaBackend() {
         super("cuda_backend");
-        getBackend_MH  =  nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
-        getBackend(0,0, 0 );
-        info();
+        getBackend_MPtr  =  ffiLib.longIntFunc("getBackend");
+        getBackend(0);
+        backendBridge.info();
     }
 
     @Override
@@ -63,10 +59,10 @@ public class CudaBackend extends C99FFIBackend {
         // System.out.println("Cuda backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createCode(kernelCallGraph, new CudaHatKernelBuilder(), args, true);
-            long programHandle = compileProgram(code);
-            if (programOK(programHandle)) {
-                long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
-                return new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
+            var compilationUnit = backendBridge.compile(code);
+            if (compilationUnit.ok()) {
+                var kernel = compilationUnit.getKernel(kernelCallGraph.entrypoint.method.getName());
+                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
             } else {
                 throw new IllegalStateException("cuda failed to compile ");
             }

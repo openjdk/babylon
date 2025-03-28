@@ -23,6 +23,21 @@
  * questions.
  */
 #include "opencl_backend.h"
+
+
+/*
+  OpenCLKernel
+  */
+
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::CompilationUnit *compilationUnit, char* name, cl_kernel kernel)
+    : Backend::CompilationUnit::Kernel(compilationUnit, name), kernel(kernel){
+}
+
+OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
+    clReleaseKernel(kernel);
+}
+
+
 /*
 void dispatchKernel(Kernel kernel, KernelContext kc, Arg ... args) {
     for (int argn = 0; argn<args.length; argn++){
@@ -56,13 +71,13 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
 
    // std::cout << "ndrange(" << range << ") " << std::endl;
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
-    OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(program->backend);
+    OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend*>(compilationUnit->backend);
   //
     openclBackend->openclQueue.marker(openclBackend->openclQueue.EnterKernelDispatchBits,
-     (dynamic_cast<Backend::Program::Kernel*>(this))->name);
+     (dynamic_cast<Backend::CompilationUnit::Kernel*>(this))->name);
     if (openclBackend->openclConfig.traceCalls){
-       std::cout << "ndrange(\"" <<  (dynamic_cast<Backend::Program::Kernel*>(this))->name<< "\"){"<<std::endl;
-        std::cout << "Kernel name '"<< (dynamic_cast<Backend::Program::Kernel*>(this))->name<<"'"<<std::endl;
+       std::cout << "ndrange(\"" <<  (dynamic_cast<Backend::CompilationUnit::Kernel*>(this))->name<< "\"){"<<std::endl;
+        std::cout << "Kernel name '"<< (dynamic_cast<Backend::CompilationUnit::Kernel*>(this))->name<<"'"<<std::endl;
     }
     if (openclBackend->openclConfig.trace){
        Sled::show(std::cout, argArray);
@@ -93,7 +108,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
 
                if ((bufferState->vendorPtr == 0L) && (bufferState->state != BufferState_s::NEW_STATE)){
                    std::cerr << "Warning:  Unexpected initial state for arg "<< i
-                      <<" of kernel '"<<(dynamic_cast<Backend::Program::Kernel*>(this))->name<<"'"
+                      <<" of kernel '"<<(dynamic_cast<Backend::CompilationUnit::Kernel*>(this))->name<<"'"
                       << " state=" << bufferState->state<< " '"
                       << BufferState_s::stateNames[bufferState->state]<< "'"
                       << " vendorPtr" << bufferState->vendorPtr<<std::endl;
@@ -101,7 +116,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
                OpenCLBuffer * openclBuffer =nullptr;
 
                if (bufferState->vendorPtr == 0L || bufferState->state == BufferState_s::NEW_STATE){
-                  openclBuffer = new OpenCLBuffer(this, arg, bufferState);
+                  openclBuffer = new OpenCLBuffer(openclBackend, arg, bufferState);
                  if (openclBackend->openclConfig.trace){
                      std::cout << "We allocated arg "<<i<<" buffer "<<std::endl;
                   }
@@ -173,7 +188,7 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
         exit(1);
     }
     if (openclBackend->openclConfig.trace | openclBackend->openclConfig.traceEnqueues){
-       std::cout << "enqueued kernel dispatch \"" << (dynamic_cast<Backend::Program::Kernel*>(this))->name <<
+       std::cout << "enqueued kernel dispatch \"" << (dynamic_cast<Backend::CompilationUnit::Kernel*>(this))->name <<
        "\" globalSize=" << globalSize << std::endl;
     }
 
@@ -202,12 +217,12 @@ long OpenCLBackend::OpenCLProgram::OpenCLKernel::ndrange(void *argArray) {
 
 
       openclBackend->openclQueue.marker(openclBackend->openclQueue.LeaveKernelDispatchBits,
-           (dynamic_cast<Backend::Program::Kernel*>(this))->name
+           (dynamic_cast<Backend::CompilationUnit::Kernel*>(this))->name
       );
       openclBackend->openclQueue.wait();
       openclBackend->openclQueue.release();
        if (openclBackend->openclConfig.traceCalls){
-                  std::cout << "\"" <<  (dynamic_cast<Backend::Program::Kernel*>(this))->name<< "\"}"<<std::endl;
+                  std::cout << "\"" <<  (dynamic_cast<Backend::CompilationUnit::Kernel*>(this))->name<< "\"}"<<std::endl;
        }
     return 0;
 }

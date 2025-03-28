@@ -74,7 +74,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
 
         boolean interpret = false;
      //   long ns = System.nanoTime();
-        computeStart();
+        backendBridge.computeStart();
         if (interpret) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op(), args);
         } else {
@@ -88,7 +88,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 throw new RuntimeException(e);
             }
         }
-        computeEnd();
+        backendBridge.computeEnd();
        // System.out.println("compute "+ ((System.nanoTime() - ns)/1000)+" us");
     }
 

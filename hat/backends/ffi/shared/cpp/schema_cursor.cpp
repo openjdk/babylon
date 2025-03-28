@@ -23,30 +23,20 @@
  * questions.
  */
 
-#pragma once
-#include <vector>
-#include <cstring>
-#include <iostream>
-#include <iomanip>
-#include <stack>
+#include "schema_cursor.h"
 
-struct Cursor {
-private:
-    std::stack<const char *> where;
-public:
-    char *ptr;
-    Cursor(char *ptr): ptr(ptr) {
+
+    SchemaCursor::SchemaCursor(char *ptr): ptr(ptr) {
     }
-    virtual ~Cursor() {
+     SchemaCursor::~SchemaCursor() {
     }
-    void in(const char * location){
+    void SchemaCursor::in(const char * location){
         where.push(location);
     }
-    void out(){
+    void SchemaCursor::out(){
         where.pop();
     }
-private:
-    Cursor *skipWhiteSpace() {
+    SchemaCursor *SchemaCursor::skipWhiteSpace() {
         while (*ptr == ' ' || *ptr == '\n' || *ptr == '\t') {
             step(1);
         }
@@ -54,30 +44,30 @@ private:
     }
 
 
-    Cursor *skipIdentifier() {
+    SchemaCursor *SchemaCursor::skipIdentifier() {
         while (peekAlpha() || peekDigit()) {
             step(1);
         }
         return this;
     }
-public:
-    void step(int count) {
+
+    void SchemaCursor::step(int count) {
         while (count--) {
             ptr++;
         }
     }
 
-    bool peekAlpha() {
+    bool SchemaCursor::peekAlpha() {
         skipWhiteSpace();
         return (::isalpha(*ptr));
     }
 
-    bool peekDigit() {
+    bool SchemaCursor::peekDigit() {
         skipWhiteSpace();
         return (::isdigit(*ptr));
     }
 
-    bool is(char ch) {
+    bool SchemaCursor::is(char ch) {
         skipWhiteSpace();
         if (*ptr == ch) {
             step(1);
@@ -85,11 +75,11 @@ public:
         }
         return false;
     }
-    bool isColon() {
+    bool SchemaCursor::isColon() {
        return is(':');
     }
 
-    bool expect(char ch, const char *context,  int line ) {
+    bool SchemaCursor::expect(char ch, const char *context,  int line ) {
         if (is(ch)){
             return true;
         }
@@ -100,10 +90,10 @@ public:
         exit(1);
         return false;
     }
-    bool expect(char ch,  int line ) {
+    bool SchemaCursor::expect(char ch,  int line ) {
         return expect(ch, "", line);
     }
-    bool expectDigit(const char *context,  int line ) {
+    bool SchemaCursor::expectDigit(const char *context,  int line ) {
         if (::isdigit(*ptr)){
             return true;
         }
@@ -114,7 +104,7 @@ public:
         exit(1);
         return false;
     }
-    bool expectAlpha(const char *context,  int line ) {
+    bool SchemaCursor::expectAlpha(const char *context,  int line ) {
         if (::isalpha(*ptr)){
             return true;
         }
@@ -125,7 +115,7 @@ public:
         exit(1);
         return false;
     }
-    bool isEither(char ch1, char ch2, char*actual) {
+    bool SchemaCursor::isEither(char ch1, char ch2, char*actual) {
         skipWhiteSpace();
         if (*ptr == ch1 || *ptr == ch2) {
             step(1);
@@ -134,7 +124,7 @@ public:
         }
         return false;
     }
-    void expectEither(char ch1, char ch2, char*actual, int line) {
+    void SchemaCursor::expectEither(char ch1, char ch2, char*actual, int line) {
         skipWhiteSpace();
         if (*ptr == ch1 || *ptr == ch2) {
             step(1);
@@ -148,24 +138,8 @@ public:
         exit(1);
 
     }
-    /*bool is(char *str) {
-        skipWhiteSpace();
-        int count = 0;
-        char *safePtr = ptr;
-        while (*str && *ptr && *str == *ptr) {
-            ptr++;
-            str++;
-            count++;
-        }
-        if (count > 0 && *str == '\0') {
-            step(count);
-            return true;
-        }
-        ptr = safePtr;
-        return false;
-    }*/
 
-    int getInt() {
+    int SchemaCursor::getInt() {
         int value = *ptr - '0';
         step(1);
         if (peekDigit()) {
@@ -174,7 +148,7 @@ public:
         return value;
     }
 
-    long getLong() {
+    long SchemaCursor::getLong() {
         long value = *ptr - '0';
         step(1);
         if (peekDigit()) {
@@ -183,7 +157,7 @@ public:
         return value;
     }
 
-    char *getIdentifier() {
+    char *SchemaCursor::getIdentifier() {
         char *identifierStart = ptr;
         skipIdentifier();
         size_t len = ptr - identifierStart;
@@ -193,10 +167,8 @@ public:
         return identifier;
     }
 
-    void error(std::ostream &ostream, const char *file, int line, const char *str) {
+    void SchemaCursor::error(std::ostream &ostream, const char *file, int line, const char *str) {
         ostream << file << ":" << "@" << line << ": parse error " << str << " looking at " << ptr << std::endl;
         exit(1);
     }
 
-};
-;

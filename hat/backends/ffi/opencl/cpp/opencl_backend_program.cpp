@@ -22,12 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.ffi;
 
-public class OpenCLDeviceInfo {
+#include "opencl_backend.h"
 
-    public static void main(String[] args) {
-        OpenCLBackend openCLBackend = new OpenCLBackend();
-        openCLBackend.backendBridge.info();
-    }
+OpenCLBackend::OpenCLProgram::OpenCLProgram(Backend *backend,  char *src, char *log, bool ok, cl_program program)
+    : Backend::CompilationUnit(backend, src,log, ok), program(program) {
 }
+
+OpenCLBackend::OpenCLProgram::~OpenCLProgram() {
+    clReleaseProgram(program);
+}
+
+long OpenCLBackend::OpenCLProgram::getKernel(int nameLen, char *name) {
+    cl_int status;
+    cl_kernel kernel = clCreateKernel(program, name, &status);
+    if (status != CL_SUCCESS){
+       std::cerr << "Failed to get kernel "<<name<<" "<<errorMsg(status)<<std::endl;
+    }
+    return (long) new OpenCLKernel(this,name, kernel);
+}
+
+bool OpenCLBackend::OpenCLProgram::compilationUnitOK() {
+    return true;
+}
+
+

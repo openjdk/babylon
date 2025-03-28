@@ -22,12 +22,49 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.ffi;
 
-public class OpenCLDeviceInfo {
+#pragma once
+#include <vector>
+#include <cstring>
+#include <iostream>
+#include <iomanip>
+#include <stack>
 
-    public static void main(String[] args) {
-        OpenCLBackend openCLBackend = new OpenCLBackend();
-        openCLBackend.backendBridge.info();
-    }
-}
+struct SchemaCursor {
+private:
+    std::stack<const char *> where;
+public:
+    char *ptr;
+    SchemaCursor(char *ptr);
+    virtual ~SchemaCursor();
+    void in(const char * location);
+    void out();
+private:
+    SchemaCursor *skipWhiteSpace();
+    SchemaCursor *skipIdentifier();
+public:
+    void step(int count) ;
+
+    bool peekAlpha();
+
+    bool peekDigit() ;
+
+    bool is(char ch);
+    bool isColon();
+
+    bool expect(char ch, const char *context,  int line ) ;
+    bool expect(char ch,  int line ) ;
+    bool expectDigit(const char *context,  int line );
+    bool expectAlpha(const char *context,  int line );
+    bool isEither(char ch1, char ch2, char*actual) ;
+    void expectEither(char ch1, char ch2, char*actual, int line);
+
+    int getInt() ;
+
+    long getLong();
+
+    char *getIdentifier();
+
+    void error(std::ostream &ostream, const char *file, int line, const char *str);
+
+};

@@ -50,16 +50,14 @@ public abstract class C99FFIBackend extends FFIBackend {
     public static class CompiledKernel {
         public final C99FFIBackend c99FFIBackend;
         public final KernelCallGraph kernelCallGraph;
-        public final String text;
-        public final long kernelHandle;
+        public final BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge;
         public final ArgArray argArray;
         public final KernelContext kernelContext;
 
-        public CompiledKernel(C99FFIBackend c99FFIBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
+        public CompiledKernel(C99FFIBackend c99FFIBackend, KernelCallGraph kernelCallGraph, BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge, Object[] ndRangeAndArgs) {
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
-            this.text = text;
-            this.kernelHandle = kernelHandle;
+            this.kernelBridge = kernelBridge;
             this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator, 0, 0);
             ndRangeAndArgs[0] = this.kernelContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
@@ -72,7 +70,7 @@ public abstract class C99FFIBackend extends FFIBackend {
             ArgArray.update(argArray,kernelCallGraph, args);
             //System.out.println("argupdate  "+((System.nanoTime()-ns)/1000)+" us");
            // ns = System.nanoTime();
-            c99FFIBackend.ndRange(kernelHandle, this.argArray);
+            kernelBridge.ndRange(this.argArray);
            // System.out.println("dispatch time "+((System.nanoTime()-ns)/1000)+" us");
         }
     }

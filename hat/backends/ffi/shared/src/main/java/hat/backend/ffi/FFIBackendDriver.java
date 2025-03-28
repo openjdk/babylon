@@ -28,208 +28,169 @@ package hat.backend.ffi;
 import hat.backend.Backend;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
-import hat.buffer.BufferTracker;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
-import java.lang.invoke.MethodHandle;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-import static java.lang.foreign.ValueLayout.JAVA_LONG;
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class FFIBackendDriver implements Backend {
     public boolean isAvailable() {
-        return nativeLibrary.available;
-    }
-    final MethodHandle computeStart_MH;
-    final MethodHandle computeEnd_MH;
-    final MethodHandle dumpArgArray_MH;
-    final MethodHandle getDevice_MH;
-    final MethodHandle releaseDevice_MH;
-    final MethodHandle getMaxComputeUnits_MH;
-    final MethodHandle compileProgram_MH;
-    final MethodHandle releaseProgram_MH;
-    final MethodHandle getKernel_MH;
-    final MethodHandle programOK_MH;
-    final MethodHandle releaseKernel_MH;
-    final MethodHandle ndrange_MH;
-    final MethodHandle info_MH;
-    final MethodHandle getBufferFromDeviceIfDirty_MH;
-    public long backendHandle = 0;
-    public final FFILib nativeLibrary;
-
-    public FFIBackendDriver(String libName) {
-        this.nativeLibrary = new FFILib(libName);
-        this.dumpArgArray_MH = nativeLibrary.voidFunc("dumpArgArray", ADDRESS);
-        this.getDevice_MH = nativeLibrary.longFunc("getDeviceHandle");
-        this.releaseDevice_MH = nativeLibrary.voidFunc("releaseDeviceHandle", JAVA_LONG);
-        this.getMaxComputeUnits_MH = nativeLibrary.intFunc("getMaxComputeUnits", JAVA_LONG);
-        this.compileProgram_MH = nativeLibrary.longFunc("compileProgram", JAVA_LONG, JAVA_INT, ADDRESS);
-        this.releaseProgram_MH = nativeLibrary.voidFunc("releaseProgram", JAVA_LONG);
-        this.getKernel_MH = nativeLibrary.longFunc("getKernel", JAVA_LONG, JAVA_INT, ADDRESS);
-        this.programOK_MH = nativeLibrary.booleanFunc("programOK", JAVA_LONG);
-        this.releaseKernel_MH = nativeLibrary.voidFunc("releaseKernel", JAVA_LONG);
-        this.ndrange_MH = nativeLibrary.longFunc("ndrange", JAVA_LONG,  ADDRESS);
-        this.info_MH = nativeLibrary.voidFunc("info", JAVA_LONG);
-        this.computeStart_MH = nativeLibrary.voidFunc("computeStart", JAVA_LONG);
-        this.computeEnd_MH = nativeLibrary.voidFunc("computeEnd", JAVA_LONG);
-        this.getBufferFromDeviceIfDirty_MH = nativeLibrary.booleanFunc("getBufferFromDeviceIfDirty",JAVA_LONG, ADDRESS, JAVA_LONG);
+        return ffiLib.available;
     }
 
-    public Buffer getBufferFromDeviceIfDirty(Buffer buffer) {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-       // System.out.println("  !!!!!!!!!!!!!                   Getting buffer from device!!!");
-        if (this instanceof BufferTracker) {
-            try {
-                MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
-                boolean ok = (Boolean) getBufferFromDeviceIfDirty_MH.invoke(backendHandle, memorySegment, memorySegment.byteSize());
-                if (!ok){
-                    throw new IllegalStateException("Failed to get buffer from backend");
+
+    public static class BackendBridge {
+        // CUDA this combines Device+Stream+Context
+        // OpenCL this combines Platform+Device+Queue+Context
+        public static class CompilationUnitBridge {
+            // CUDA calls this a Module
+            // OpenCL calls this a program
+            public static class KernelBridge {
+                // CUDA calls this a Function
+                // OpenCL calls this a Program
+                CompilationUnitBridge compilationUnitBridge;
+                long handle;
+                final FFILib.VoidHandleMethodPtr releaseKernel_MPtr;
+                String name;
+                final FFILib.LongLongAddressMethodPtr ndrange_MPtr;
+                KernelBridge(CompilationUnitBridge compilationUnitBridge, String name, long handle) {
+                    this.compilationUnitBridge = compilationUnitBridge;
+                    this.handle = handle;
+                    this.releaseKernel_MPtr = compilationUnitBridge.backendBridge.ffiLib.voidHandleFunc("releaseKernel");
+                    this.ndrange_MPtr = compilationUnitBridge.backendBridge.ffiLib.longLongAddressFunc("ndrange");
+                    this.name = name;
                 }
 
-            } catch (Throwable throwable) {
-                throw new IllegalStateException(throwable);
+
+
+                public void ndRange(ArgArray argArray) {
+                    this.ndrange_MPtr.invoke(handle, Buffer.getMemorySegment(argArray));
+                }
+                void release() {
+                    releaseKernel_MPtr.invoke(handle);
+                }
             }
+
+            BackendBridge backendBridge;
+            String source;
+            final FFILib.VoidHandleMethodPtr releaseCompilationUnit_MPtr;
+            final FFILib.BooleanHandleMethodPtr compilationUnitOK_MPtr;
+            final FFILib.LongHandleIntAddressMethodPtr getKernel_MPtr;
+
+
+            long handle;
+            Map<String, KernelBridge> kernels = new HashMap<>();
+
+            CompilationUnitBridge(BackendBridge backendBridge, long handle, String source) {
+                this.backendBridge = backendBridge;
+                this.handle = handle;
+                this.source = source;
+                this.releaseCompilationUnit_MPtr = backendBridge.ffiLib.voidHandleFunc("releaseCompilationUnit");
+                this.compilationUnitOK_MPtr = backendBridge.ffiLib.booleanHandleFunc("compilationUnitOK");
+                this.getKernel_MPtr = backendBridge.ffiLib.longHandleIntAddressFunc("getKernel");
+
+
+
+            }
+
+            void release() {
+                this.releaseCompilationUnit_MPtr.invoke(handle);
+            }
+
+            boolean ok() {
+                return this.compilationUnitOK_MPtr.invoke(handle);
+            }
+
+            public KernelBridge getKernel(String kernelName) {
+                KernelBridge kernelBridge = kernels.computeIfAbsent(kernelName, _ ->
+                        new KernelBridge(this, kernelName,
+                                getKernel_MPtr.invoke(handle, kernelName.length(), Arena.global().allocateFrom(kernelName)))
+                );
+                return kernelBridge;
+
+
+            }
+
+
         }
-        return buffer;
+
+        FFILib ffiLib;
+        long handle;
+
+        Map<Long, CompilationUnitBridge> compilationUnits = new HashMap<>();
+        final FFILib.LongHandleIntAddressMethodPtr compile_MPtr;
+        final FFILib.VoidHandleMethodPtr computeStart_MPtr;
+        final FFILib.VoidHandleMethodPtr computeEnd_MPtr;
+        final FFILib.VoidAddressMethodPtr dumpArgArray_MPtr;
+
+        final FFILib.VoidHandleMethodPtr info_MPtr;
+        final FFILib.BooleanHandleAddressLongMethodPtr getBufferFromDeviceIfDirty_MPtr;
+        BackendBridge(FFILib ffiLib) {
+            this.ffiLib = ffiLib;
+            this.compile_MPtr = ffiLib.longHandleIntAddressFunc("compile");
+            this.dumpArgArray_MPtr = ffiLib.voidAddressFunc("dumpArgArray");
+            this.info_MPtr = ffiLib.voidHandleFunc("info");
+            this.computeStart_MPtr = ffiLib.voidHandleFunc("computeStart");
+            this.computeEnd_MPtr = ffiLib.voidHandleFunc("computeEnd");
+            this.getBufferFromDeviceIfDirty_MPtr = ffiLib.booleanHandleAddressLongFunc("getBufferFromDeviceIfDirty");
+        }
+
+
+        void release() {
+
+        }
+
+        private CompilationUnitBridge compilationUnit(long handle, String source) {
+            return compilationUnits.computeIfAbsent(handle, _ ->
+                    new CompilationUnitBridge(this, handle, source)
+            );
+        }
+
+        public CompilationUnitBridge compile(String source) {
+            var compilationUnitHandle = compile_MPtr.invoke(handle, source.length(), Arena.global().allocateFrom(source));
+            return compilationUnit(compilationUnitHandle, source);
+        }
+
+        public Buffer getBufferFromDeviceIfDirty(Buffer buffer) {
+            MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
+            boolean ok = getBufferFromDeviceIfDirty_MPtr.invoke(handle, memorySegment, memorySegment.byteSize());
+            if (!ok) {
+                throw new IllegalStateException("Failed to get buffer from backend");
+            }
+            return buffer;
+
+        }
+
+        public void computeStart() {
+            computeStart_MPtr.invoke(handle);
+        }
+
+        public void computeEnd() {
+            computeEnd_MPtr.invoke(handle);
+        }
+
+        public void info() {
+            info_MPtr.invoke(handle);
+        }
+
+        public void dumpArgArray(ArgArray argArray) {
+            dumpArgArray_MPtr.invoke(Buffer.getMemorySegment(argArray));
+        }
+
 
     }
 
-    public int getGetMaxComputeUnits() {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            return (int) getMaxComputeUnits_MH.invoke(backendHandle);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
+
+
+    public final FFILib ffiLib;
+    public final BackendBridge backendBridge;
+
+    public FFIBackendDriver(String libName) {
+        this.ffiLib = new FFILib(libName);
+        this.backendBridge = new BackendBridge(ffiLib);
+
     }
 
-    public void computeStart() {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            computeStart_MH.invoke(backendHandle);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-    public void computeEnd() {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            computeEnd_MH.invoke(backendHandle);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-    public void info() {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            info_MH.invoke(backendHandle);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    public void dumpArgArray(ArgArray argArray) {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            dumpArgArray_MH.invoke(Buffer.getMemorySegment(argArray));
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public long compileProgram(String source) {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            var arena = Arena.global();
-            var cstr = arena.allocateFrom(source);
-            return (Long) compileProgram_MH.invoke(backendHandle, source.length(), cstr);
-
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void ndRange(long kernelHandle,  ArgArray argArray) {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            this.ndrange_MH.invoke(kernelHandle, Buffer.getMemorySegment(argArray));
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public boolean programOK(long programHandle) {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            return (Boolean) programOK_MH.invoke(programHandle);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public long getKernel(long programHandle, String kernelName) {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            var arena = Arena.global();
-            var cstr = arena.allocateFrom(kernelName);
-            return ((Long) getKernel_MH.invoke(programHandle, kernelName.length(), cstr)).longValue();
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void releaseKernel(long kernelHandle) {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            releaseKernel_MH.invoke(kernelHandle);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void releaseProgram(long programHandle) {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            releaseProgram_MH.invoke(programHandle);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void release() {
-        if (backendHandle == 0L) {
-            throw new IllegalStateException("no backend handle");
-        }
-        try {
-            releaseDevice_MH.invoke(backendHandle);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
 }

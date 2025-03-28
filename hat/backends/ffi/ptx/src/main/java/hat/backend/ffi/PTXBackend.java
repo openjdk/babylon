@@ -41,14 +41,9 @@ import java.util.*;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class PTXBackend extends C99FFIBackend {
-    final MethodHandle getBackend_MH;
+    final FFILib.LongIntMethodPtr getBackend_MPtr;
     public long getBackend(int mode) {
-        try {
-            backendHandle = (long) getBackend_MH.invoke(mode);
-        } catch (Throwable throwable) {
-            throw new IllegalStateException(throwable);
-        }
-        return backendHandle;
+          return  backendBridge.handle = getBackend_MPtr.invoke(mode);
     }
     int major;
     int minor;
@@ -67,7 +62,7 @@ public class PTXBackend extends C99FFIBackend {
         mathFns = new HashMap<>();
         usedMathFns = new HashSet<>();
         loadMathFns();
-        getBackend_MH  =  nativeLibrary.longFunc("getPtxBackend",JAVA_INT);
+        getBackend_MPtr  =  ffiLib.longIntFunc("getPtxBackend");
         getBackend(0);
     }
 
@@ -95,10 +90,10 @@ public class PTXBackend extends C99FFIBackend {
 
         // System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
         String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
-        long programHandle = compileProgram(code);
-        if (programOK(programHandle)) {
-            long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
-            CompiledKernel compiledKernel = new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
+        var compilationUnit = backendBridge.compile(code);
+        if (compilationUnit.ok()) {
+            var kernel = compilationUnit.getKernel( kernelCallGraph.entrypoint.method.getName());
+            CompiledKernel compiledKernel = new CompiledKernel(this, kernelCallGraph, kernel, args);
             compiledKernel.dispatch(ndRange,args);
         }
     }

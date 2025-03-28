@@ -35,10 +35,28 @@ if(OPENCL_FOUND)
     add_library(opencl_backend SHARED
         ${SHARED_BACKEND}/cpp/shared.cpp
         ${SHARED_BACKEND}/include/shared.h
+        ${SHARED_BACKEND}/cpp/buffer.cpp
+        ${SHARED_BACKEND}/include/buffer.h
+        ${SHARED_BACKEND}/cpp/schema_cursor.cpp
+        ${SHARED_BACKEND}/include/schema_cursor.h
+        ${SHARED_BACKEND}/cpp/buffer_cursor.cpp
+        ${SHARED_BACKEND}/include/buffer_cursor.h
+        ${SHARED_BACKEND}/cpp/hex.cpp
+        ${SHARED_BACKEND}/include/hex.h
+        ${SHARED_BACKEND}/cpp/json.cpp
+        ${SHARED_BACKEND}/include/json.h
+        ${SHARED_BACKEND}/cpp/filesysutil.cpp
+        ${SHARED_BACKEND}/include/filesysutil.h
+        ${SHARED_BACKEND}/cpp/strutil.cpp
+        ${SHARED_BACKEND}/include/strutil.h
         ${OPENCL_BACKEND}/include/opencl_backend.h
         ${OPENCL_BACKEND}/cpp/opencl_backend.cpp
+        ${OPENCL_BACKEND}/cpp/opencl_backend_buffer.cpp
+        ${OPENCL_BACKEND}/cpp/opencl_backend_config.cpp
+        ${OPENCL_BACKEND}/cpp/opencl_backend_info.cpp
         ${OPENCL_BACKEND}/cpp/opencl_backend_queue.cpp
-        ${OPENCL_BACKEND}/cpp/opencl_backend_kernel_dispatch.cpp
+        ${OPENCL_BACKEND}/cpp/opencl_backend_kernel.cpp
+        ${OPENCL_BACKEND}/cpp/opencl_backend_program.cpp
     )
 
     target_link_libraries(opencl_backend

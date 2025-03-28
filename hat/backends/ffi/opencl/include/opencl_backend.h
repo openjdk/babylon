@@ -127,12 +127,7 @@ public:
        void markAsLeaveKernelDispatchAndInc();
        virtual ~OpenCLQueue();
     };
-
-    class OpenCLProgram : public Backend::Program {
-        public:
-        class OpenCLKernel : public Backend::Program::Kernel {
-            public:
-            class OpenCLBuffer : public Backend::Program::Kernel::Buffer {
+    class OpenCLBuffer : public Backend::Buffer {
             public:
                 cl_mem clMem;
                 BufferState_s * bufferState;
@@ -140,28 +135,32 @@ public:
                 void copyFromDevice();
                 bool shouldCopyToDevice(Arg_s *arg);
                 bool shouldCopyFromDevice(Arg_s *arg);
-                OpenCLBuffer(Backend::Program::Kernel *kernel, Arg_s *arg, BufferState_s *bufferState);
+                OpenCLBuffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState);
                 virtual ~OpenCLBuffer();
             };
+    class OpenCLProgram : public Backend::CompilationUnit {
+        public:
+        class OpenCLKernel : public Backend::CompilationUnit::Kernel {
+            public:
+
         private:
             const char *name;
             cl_kernel kernel;
         public:
-            OpenCLKernel(Backend::Program *program, char* name,cl_kernel kernel);
+            OpenCLKernel(Backend::CompilationUnit *compilationUnit, char* name,cl_kernel kernel);
             ~OpenCLKernel();
             long ndrange( void *argArray);
         };
     private:
         cl_program program;
     public:
-        OpenCLProgram(Backend *backend, BuildInfo *buildInfo, cl_program program);
+        OpenCLProgram(Backend *backend, char *src, char *log, bool ok, cl_program program);
         ~OpenCLProgram();
         long getKernel(int nameLen, char *name);
-        bool programOK();
+        bool compilationUnitOK();
     };
 
 public:
-
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
@@ -176,17 +175,14 @@ public:
     void computeEnd();
     void dumpSled(std::ostream &out,void *argArray);
     char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
-    long compileProgram(int len, char *source);
-    char *strInfo(cl_device_info device_info);
-    cl_int cl_int_info( cl_device_info device_info);
-    cl_ulong cl_ulong_info( cl_device_info device_info);
-    size_t size_t_info( cl_device_info device_info);
-    char *strPlatformInfo(cl_platform_info platform_info);
+    long compile(int len, char *source);
+
 public:
     static const char *errorMsg(cl_int status);
 };
 extern "C" long getOpenCLBackend(int configBits);
-#ifdef opencl_backend_cpp
+
+#ifdef opencl_backend_config_cpp
 const  char *OpenCLBackend::OpenCLConfig::bitNames[] = {
               "MINIMIZE_COPIES",
               "TRACE",
@@ -204,3 +200,37 @@ const  char *OpenCLBackend::OpenCLConfig::bitNames[] = {
               "SHOW_STATE_BIT"
         };
 #endif
+
+struct PlatformInfo{
+    struct DeviceInfo{
+      OpenCLBackend *openclBackend;
+      cl_int maxComputeUnits;
+      cl_int maxWorkItemDimensions;
+      cl_device_type deviceType;
+      size_t maxWorkGroupSize;
+      cl_ulong globalMemSize;
+      cl_ulong localMemSize;
+      cl_ulong maxMemAllocSize;
+      char *profile;
+      char *deviceVersion;
+      size_t *maxWorkItemSizes ;
+      char *driverVersion;
+      char *cVersion;
+      char *name;
+      char *extensions;
+      char *builtInKernels;
+      char *deviceTypeStr;
+      DeviceInfo(OpenCLBackend *openclBackend);
+      ~DeviceInfo();
+    };
+  OpenCLBackend *openclBackend;
+  char *versionName;
+  char *vendorName;
+  char *name;
+  DeviceInfo deviceInfo;
+
+  PlatformInfo(OpenCLBackend *openclBackend);
+  ~PlatformInfo();
+};
+
+
