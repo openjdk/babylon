@@ -90,7 +90,7 @@ public class OnnxTransformer {
             if (res.isPresent()) {
                 return SSA.transform(res.get());
             }
-        } catch (ReflectiveOperationException _) {}
+        } catch (ReflectiveOperationException | IllegalArgumentException _) {}
         return null;
     }
 
