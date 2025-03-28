@@ -99,13 +99,6 @@ void Sled::show(std::ostream &out, void *argArray) {
 }
 
 
-extern "C" int getMaxComputeUnits(long backendHandle) {
-    if (INFO){
-        std::cout << "trampolining through backendHandle to backend.getMaxComputeUnits()" << std::endl;
-    }
-    auto *backend = reinterpret_cast<Backend*>(backendHandle);
-    return backend->getMaxComputeUnits();
-}
 
 extern "C" void info(long backendHandle) {
     if (INFO){

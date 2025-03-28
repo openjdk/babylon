@@ -25,31 +25,24 @@
 package hat.backend.ffi;
 
 
-import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandle;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class MockBackend extends FFIBackend {
-    final MethodHandle getBackend_MH;
+    final FFILib.LongIntMethodPtr getBackend_MPtr;
     public long getBackend(int mode) {
-        try {
-            backendHandle = (long) getBackend_MH.invoke(mode);
-        } catch (Throwable throwable) {
-            throw new IllegalStateException(throwable);
-        }
-        return backendHandle;
+       return getBackend_MPtr.invoke(mode);
     }
 
 
     public MockBackend() {
         super("mock_backend");
-        getBackend_MH  =  nativeLibrary.longFunc("getMockBackend",JAVA_INT);
+        getBackend_MPtr  =  ffiLib.longIntFunc("getMockBackend");
         getBackend(0);
     }
 

@@ -28,6 +28,6 @@ public class OpenCLDeviceInfo {
 
     public static void main(String[] args) {
         OpenCLBackend openCLBackend = new OpenCLBackend();
-        openCLBackend.info();
+        openCLBackend.backendBridge.info();
     }
 }

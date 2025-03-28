@@ -28,6 +28,6 @@ public class PTXDeviceInfo {
 
     public static void main(String[] args) {
         PTXBackend ptxBackend = new PTXBackend();
-        ptxBackend.info();
+        ptxBackend.backendBridge.info();
     }
 }

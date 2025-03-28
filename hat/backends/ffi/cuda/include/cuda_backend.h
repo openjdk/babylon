@@ -83,13 +83,9 @@ public:
             class CudaBuffer : public Backend::Program::Kernel::Buffer {
             public:
                 CUdeviceptr devicePtr;
-
                 CudaBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
-
                 void copyToDevice();
-
                 void copyFromDevice();
-
                 virtual ~CudaBuffer();
             };
 
@@ -98,9 +94,7 @@ public:
             cudaStream_t cudaStream;
         public:
             CudaKernel(Backend::Program *program, char* name, CUfunction function);
-
             ~CudaKernel() override;
-
             long ndrange( void *argArray);
         };
 
@@ -110,11 +104,8 @@ public:
 
     public:
         CudaProgram(Backend *backend, BuildInfo *buildInfo, Ptx *ptx, CUmodule module);
-
         ~CudaProgram();
-
         long getKernel(int nameLen, char *name);
-
         bool programOK();
     };
 
@@ -122,19 +113,15 @@ private:
     CUdevice device;
     CUcontext context;
 public:
+    void info();
+
+    long compile(int len, char *source);
 
     CudaBackend(int mode);
 
     CudaBackend();
 
     ~CudaBackend();
-
-    int getMaxComputeUnits();
-
-    void info();
-
-    long compileProgram(int len, char *source);
-
 };
 extern "C" long getCudaBackend(int mode);
 

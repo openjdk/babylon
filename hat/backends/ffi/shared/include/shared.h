@@ -370,24 +370,9 @@ public:
 
     virtual void computeEnd() = 0;
 
-    virtual int getMaxComputeUnits() = 0;
-
     virtual long compile(int len, char *source) = 0;
 
     virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength)=0;
 
     virtual ~Backend() {};
 };
-
-extern "C" void info(long backendHandle);
-extern "C" long compileCompilationUnit(long backendHandle, int len, char *source);
-extern "C" long getKernel(long compilationUnitHandle, int len, char *name);
-extern "C" void releaseBackend(long backendHandle);
-extern "C" void releaseCompilationUnit(long compilationUnitHandle);
-extern "C" bool compilationUnitOK(long compilationUnitHandle);
-extern "C" void releaseKernel(long kernelHandle);
-extern "C" long ndrange(long kernelHandle, void *argArray);
-extern "C" void computeStart(long backendHandle);
-extern "C" void computeEnd(long backendHandle);
-extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength);
-
