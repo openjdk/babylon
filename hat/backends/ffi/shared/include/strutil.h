@@ -40,12 +40,10 @@
 #include <iomanip>
 #include <functional>
 
-class StringUtil {
-public:
-    static void replaceInPlace(std::string &subject, const std::string &search,
-                               const std::string &replace);
-
-    static bool endsWith(const std::string &str, const std::string &suffix);
+namespace strutil {
+     void replaceInPlace(std::string &subject, const std::string &search,const std::string &replace);
+     bool endsWith(const std::string &str, const std::string &suffix);
+     char *clone(char *name);
 };
 
 

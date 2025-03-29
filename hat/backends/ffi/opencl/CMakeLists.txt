@@ -45,8 +45,8 @@ if(OPENCL_FOUND)
         ${SHARED_BACKEND}/include/hex.h
         ${SHARED_BACKEND}/cpp/json.cpp
         ${SHARED_BACKEND}/include/json.h
-        ${SHARED_BACKEND}/cpp/filesysutil.cpp
-        ${SHARED_BACKEND}/include/filesysutil.h
+        ${SHARED_BACKEND}/cpp/fsutil.cpp
+        ${SHARED_BACKEND}/include/fsutil.h
         ${SHARED_BACKEND}/cpp/strutil.cpp
         ${SHARED_BACKEND}/include/strutil.h
         ${OPENCL_BACKEND}/include/opencl_backend.h
