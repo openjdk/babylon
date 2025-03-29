@@ -786,7 +786,7 @@ JSonObjectNode *JSon::create(std::function<void(JSonObjectNode *)> builder){
 
 
  JSonNode *JSon::parseFile(std::string filename){
-   if (FileSysUtil::isFile(filename)) {
+   if (fsutil::isFile(filename)) {
 
       struct stat st;
       stat(filename.c_str(), &st);

@@ -24,7 +24,7 @@
  */
  #include <map>
 #include <mutex>
-#include "filesysutil.h"
+#include "fsutil.h"
 #include "strutil.h"
 //#define TRACEMEM
 #ifdef TRACEMEM
@@ -102,7 +102,7 @@ void operator delete(void *bytes){
       std::cout << "no allocation for "<< (long)bytes<<std::endl;
 }
 #endif
-void FileSysUtil::visit(const std::string &dirName, bool recurse, std::function<void(bool dir, std::string name)> visitor) {
+void fsutil::visit(const std::string &dirName, bool recurse, std::function<void(bool dir, std::string name)> visitor) {
     DIR *d;
     if ((d = opendir(dirName.c_str())) != nullptr) {
         struct dirent *ent;
@@ -122,7 +122,7 @@ void FileSysUtil::visit(const std::string &dirName, bool recurse, std::function<
     }
 }
 
-void FileSysUtil::forEachFileName(const std::string &dirName, std::function<void(std::string name)> visitor) {
+void fsutil::forEachFileName(const std::string &dirName, std::function<void(std::string name)> visitor) {
     DIR *d;
     if ((d = opendir(dirName.c_str())) != nullptr) {
         struct dirent *ent;
@@ -136,7 +136,7 @@ void FileSysUtil::forEachFileName(const std::string &dirName, std::function<void
     }
 }
 
-void FileSysUtil::forEachDirName(const std::string &dirName, std::function<void(std::string name)> visitor) {
+void fsutil::forEachDirName(const std::string &dirName, std::function<void(std::string name)> visitor) {
     DIR *d;
     if ((d = opendir(dirName.c_str())) != nullptr) {
         struct dirent *ent;
@@ -151,7 +151,7 @@ void FileSysUtil::forEachDirName(const std::string &dirName, std::function<void(
     }
 }
 
-void FileSysUtil::forEachLine(const std::string &fileName, std::function<void(std::string name)> visitor) {
+void fsutil::forEachLine(const std::string &fileName, std::function<void(std::string name)> visitor) {
     std::size_t current, previous = 0;
     std::string content = getFile(fileName);
     current = content.find('\n');
@@ -164,7 +164,7 @@ void FileSysUtil::forEachLine(const std::string &fileName, std::function<void(st
 
 #define BUF_SIZE 4096
 
-void FileSysUtil::send(int from, size_t bytes, int to) {
+void fsutil::send(int from, size_t bytes, int to) {
     char buf[BUF_SIZE];
     size_t bytesRead;
     size_t totalSent = 0;
@@ -180,27 +180,27 @@ void FileSysUtil::send(int from, size_t bytes, int to) {
     }
 }
 
-void FileSysUtil::send(const std::string &fileName, int to) {
+void fsutil::send(const std::string &fileName, int to) {
     int fd = ::open(fileName.c_str(), O_RDONLY);
-    size_t bytes = FileSysUtil::size(fileName);
+    size_t bytes = fsutil::size(fileName);
     send(fd, bytes, to);
     ::close(fd);
 }
 
 
-size_t FileSysUtil::size(const std::string &fileName) {
+size_t fsutil::size(const std::string &fileName) {
 
     struct stat st;
     stat(fileName.c_str(), &st);
     return st.st_size;
 }
 
-bool FileSysUtil::isDir(const std::string &dirName) {
+bool fsutil::isDir(const std::string &dirName) {
     struct stat buffer;
     return (stat(dirName.c_str(), &buffer) == 0 && S_ISDIR(buffer.st_mode));
 }
 
-bool FileSysUtil::removeFile(const std::string &dirName) {
+bool fsutil::removeFile(const std::string &dirName) {
     struct stat buffer;
     if (stat(dirName.c_str(), &buffer) == 0 && S_ISREG(buffer.st_mode)){
         std::cerr << "removing file '"+dirName<<"'"<<std::endl;
@@ -209,29 +209,29 @@ bool FileSysUtil::removeFile(const std::string &dirName) {
     return false;
 }
 
-bool FileSysUtil::isFile(const std::string &fileName) {
+bool fsutil::isFile(const std::string &fileName) {
     struct stat buffer;
     return (stat(fileName.c_str(), &buffer) == 0 && S_ISREG(buffer.st_mode));
 }
-bool FileSysUtil::isFileOrLink(const std::string &fileName) {
+bool fsutil::isFileOrLink(const std::string &fileName) {
     struct stat buffer;
     return (stat(fileName.c_str(), &buffer) == 0 && (S_ISREG(buffer.st_mode) || (S_ISLNK(buffer.st_mode))));
 }
 
-bool FileSysUtil::isFile(const std::string &dirName, const std::string &fileName) {
+bool fsutil::isFile(const std::string &dirName, const std::string &fileName) {
     std::string path = dirName + "/" + fileName;
     return isFile(path);
 }
-bool FileSysUtil::isFileOrLink(const std::string &dirName, const std::string &fileName) {
+bool fsutil::isFileOrLink(const std::string &dirName, const std::string &fileName) {
     std::string path = dirName + "/" + fileName;
     return isFileOrLink(path);
 }
 
-bool FileSysUtil::hasFileSuffix(const std::string &fileName, const std::string &suffix) {
-    return StringUtil::endsWith(fileName, suffix);
+bool fsutil::hasFileSuffix(const std::string &fileName, const std::string &suffix) {
+    return strutil::endsWith(fileName, suffix);
 }
 
-std::string FileSysUtil::getFileNameEndingWith(const std::string &dir, const std::string &suffix) {
+std::string fsutil::getFileNameEndingWith(const std::string &dir, const std::string &suffix) {
     std::vector<std::string> matches;
     visit(dir, false, [&](auto dir, auto n) { if (!dir && hasFileSuffix(n, suffix)) matches.push_back(n); });
     if (matches.size() == 0) {
@@ -244,7 +244,7 @@ std::string FileSysUtil::getFileNameEndingWith(const std::string &dir, const std
     return "";
 }
 
-void FileSysUtil::mkdir_p(char *path) {
+void fsutil::mkdir_p(char *path) {
     char *sep = std::strrchr(path, '/');
     if (sep != NULL) {
         *sep = 0;
@@ -256,14 +256,14 @@ void FileSysUtil::mkdir_p(char *path) {
     }
 }
 
-std::string FileSysUtil::getFile(const std::string &path) {
+std::string fsutil::getFile(const std::string &path) {
     std::stringstream buf;
     std::ifstream input(path.c_str());
     buf << input.rdbuf();
     return buf.str();
 }
 
-BufferCursor *FileSysUtil::getFileBufferCursor(const std::string &path) {
+BufferCursor *fsutil::getFileBufferCursor(const std::string &path) {
     size_t s = size(path);
     // read directly into buffer!  buffer(path.c_str());
     char *buf = (char *)malloc(s+1);
@@ -274,13 +274,13 @@ BufferCursor *FileSysUtil::getFileBufferCursor(const std::string &path) {
     return buffer;
 }
 
-void FileSysUtil::putFile(const std::string &path, const std::string &content) {
+void fsutil::putFile(const std::string &path, const std::string &content) {
     std::ofstream out(path);
     out << content;
     out.close();
 }
 
-void FileSysUtil::putFileBufferCursor(const std::string &path, BufferCursor *buffer) {
+void fsutil::putFileBufferCursor(const std::string &path, BufferCursor *buffer) {
      std::cerr << "who the hell called putFileBUffer" << std::endl;
      ::exit(1);
 }

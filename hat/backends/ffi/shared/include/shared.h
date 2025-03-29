@@ -37,6 +37,8 @@
 #include <bitset>
 #include <stack>
 
+#include "strutil.h"
+
 #ifdef __APPLE__
    #define SNPRINTF snprintf
 #else
@@ -319,15 +321,9 @@ public:
             CompilationUnit *compilationUnit;
 
             virtual long ndrange(void *argArray) = 0;
-            static char *copy(char *name){
-                size_t len =::strlen(name);
-                char *buf = new char[len+1];
-                memcpy(buf, name, len);
-                buf[len]='\0';
-                return buf;
-            }
+
             Kernel(CompilationUnit *compilationUnit, char *name)
-                    : compilationUnit(compilationUnit), name(copy(name)) {
+                    : compilationUnit(compilationUnit), name(strutil::clone(name)) {
             }
 
             virtual ~Kernel() {
