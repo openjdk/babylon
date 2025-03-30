@@ -25,39 +25,8 @@
 #define opencl_backend_config_cpp
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits):
-       configBits(configBits),
-       minimizeCopies((configBits&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
-       alwaysCopy(!minimizeCopies),
-       trace((configBits&TRACE_BIT)==TRACE_BIT),
-       traceCopies((configBits&TRACE_COPIES_BIT)==TRACE_COPIES_BIT),
-       traceEnqueues((configBits&TRACE_ENQUEUES_BIT)==TRACE_ENQUEUES_BIT),
-       traceCalls((configBits&TRACE_CALLS_BIT)==TRACE_CALLS_BIT),
-       traceSkippedCopies((configBits&TRACE_SKIPPED_COPIES_BIT)==TRACE_SKIPPED_COPIES_BIT),
-       info((configBits&INFO_BIT)==INFO_BIT),
-       showCode((configBits&SHOW_CODE_BIT)==SHOW_CODE_BIT),
-       profile((configBits&PROFILE_BIT)==PROFILE_BIT),
-       showWhy((configBits&SHOW_WHY_BIT)==SHOW_WHY_BIT),
-       showState((configBits&SHOW_STATE_BIT)==SHOW_STATE_BIT),
+OpenCLBackend::OpenCLConfig::OpenCLConfig(int configBits): Backend::Config(configBits){
 
-       platform((configBits&0xf)),
-       device((configBits&0xf0)>>4){
-       if (info){
-          std::cout << "native showCode " << showCode <<std::endl;
-          std::cout << "native info " << info<<std::endl;
-          std::cout << "native minimizeCopies " << minimizeCopies<<std::endl;
-          std::cout << "native alwaysCopy " << alwaysCopy<<std::endl;
-          std::cout << "native trace " << trace<<std::endl;
-          std::cout << "native traceSkippedCopies " << traceSkippedCopies<<std::endl;
-          std::cout << "native traceCalls " << traceCalls<<std::endl;
-          std::cout << "native traceCopies " << traceCopies<<std::endl;
-          std::cout << "native traceEnqueues " << traceEnqueues<<std::endl;
-          std::cout << "native profile " << profile<<std::endl;
-          std::cout << "native showWhy " << showWhy<<std::endl;
-          std::cout << "native showState " << showState<<std::endl;
-          std::cout << "native platform " << platform<<std::endl;
-          std::cout << "native device " << device<<std::endl;
-       }
  }
  OpenCLBackend::OpenCLConfig::~OpenCLConfig(){
  }

@@ -31,7 +31,7 @@
   */
 
 OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState)
-        : Backend::Buffer(backend, arg), bufferState(bufferState) {
+        : Backend::Buffer(backend, arg, bufferState) {
     cl_int status;
     OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
     clMem = clCreateBuffer(

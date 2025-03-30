@@ -1983,9 +1983,13 @@ public class Script {
             return self();
         }
 
-        public JExtractBuilder library(Path... libraries) {
-            this.libraries.addAll(Arrays.asList(libraries));
+        public JExtractBuilder library(List<Path>libraries) {
+            this.libraries.addAll(libraries);
             return self();
+        }
+
+        public JExtractBuilder library(Path... libraries) {
+            return library(Arrays.asList(libraries));
         }
 
         public JExtractBuilder compile_flag(String... compileFlags) {
@@ -2153,7 +2157,9 @@ public class Script {
     public static Optional<Path> fromPATH(String name) {
         return Arrays.stream(System.getenv("PATH").split(File.pathSeparator))
                 .map(dirName -> Path.of(dirName).resolve(name).normalize())
-                .filter(Files::isExecutable).findFirst();
+                .filter(Files::isExecutable)
+                .filter(Files::isRegularFile)
+                .findFirst();
     }
 
 
@@ -2455,6 +2461,9 @@ public class Script {
             return v.value().toString();
         }
 
+        public void dump() {
+            varMap.forEach((k,v)->System.out.println("'"+k+"'='"+v+"'"));
+        }
         public boolean hasKey(String includeDirKey) {
             return varMap.containsKey(includeDirKey);
         }
@@ -2610,9 +2619,12 @@ public class Script {
                                         + appLibFrameworks() + "/System/library/Frameworks")
                                 .library(mac.frameworkLibrary("OpenCL"))
                                 .header(Path.of(includeDir()).resolve("Headers/opencl.h")),
-                        linux -> {
-                            throw new IllegalStateException("Linux not handled yet");
-                        });
+         linux -> jextractBuilder
+                 // .compile_flag("-F"
+                 //        + appLibFrameworks() + "/System/library/Frameworks")
+                 .library(Path.of(lib()))
+                 .header(Path.of(includeDir()).resolve("opencl.h"))
+                      );
             }
         }
 
@@ -2647,12 +2659,15 @@ public class Script {
                 return cmakeProbe.value(osxSysroot);
             }
 
-            public String lib() {
-                return cmakeProbe.value(libKey);
+            public List<Path> libs() {
+                return Arrays.stream(cmakeProbe.value(libKey).split(";"))
+                        .map(s->Path.of(s)).toList();
+
             }
 
             public Path lib(String frameworkName) {
-                return Path.of(cmakeProbe.value(libKey).split(";")[0]).resolve(frameworkName + ".framework/" + frameworkName);
+                var split = cmakeProbe.value(libKey).split(";");
+                return Path.of(split[0]).resolve(frameworkName + ".framework/" + frameworkName);
             }
 
             @Override
@@ -2691,16 +2706,20 @@ public class Script {
             }
             @Override public void inversionOfControl(JExtractBuilder jextractBuilder){
                 jextractBuilder
-                        .os(mac -> jextractBuilder
-                                .compile_flag("-F"
+                        .os(
+                                mac -> jextractBuilder
+                                   .compile_flag("-F"
                                         + appLibFrameworks() + "/System/library/Frameworks")
-                                .library(mac.frameworkLibrary("OpenGL"))
-                                .library(mac.frameworkLibrary("GLUT"))
-                                .header(glutIncludeDir().dir("glut.h").path()),
-                        linux -> {
-                            throw new IllegalStateException("Linux not handled yet");
-                        }
-                );
+                                   .library(mac.frameworkLibrary("OpenGL"))
+                                   .library(mac.frameworkLibrary("GLUT"))
+                                   .header(glutIncludeDir().dir("glut.h").path()),
+                                linux -> jextractBuilder
+                                  // .compile_flag("-F"
+                                    //        + appLibFrameworks() + "/System/library/Frameworks")
+                                    .library(libs())
+                                   // .library(lib("GLUT"))
+                                    .header(glutIncludeDir().dir("glut.h").path())
+                        );
             }
         }
 

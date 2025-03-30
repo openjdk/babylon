@@ -256,7 +256,7 @@ void main(String[] args) {
     );
 
     ffiBackends.subDirs()
-            .filter(backend -> backend.failsToMatch("^.*(spirv|hip|shared|target|.idea)$"))
+            .filter(backend -> backend.failsToMatch("^.*(spirv|hip|shared|target|cmake-build-debug|.idea)$"))
             .forEach(backend -> {
                 var ffiBackendJarFile = buildDir.jarFile("hat-backend-ffi-" + backend.fileName() + "-1.0.jar");
                 backendJars.add(ffiBackendJarFile);

@@ -28,13 +28,9 @@ While based on OpenCL's event list, I think we need to use a MOD eventMax queue.
 
 So
 */
- OpenCLBackend::OpenCLQueue::OpenCLQueue(OpenCLBackend *openclBackend)
-    :openclBackend(openclBackend),
-     eventMax(10000),
-     events(new cl_event[eventMax]),
-     eventInfoBits(new int[eventMax]),
-      eventInfoConstCharPtrArgs(new const char *[eventMax]),
-      eventc(0){
+ OpenCLBackend::OpenCLQueue::OpenCLQueue(Backend *backend)
+    : Backend::Queue(backend),
+     events(new cl_event[eventMax]){
  }
 
  cl_event *OpenCLBackend::OpenCLQueue::eventListPtr(){
@@ -269,6 +265,5 @@ void OpenCLBackend::OpenCLQueue::wait(){
  OpenCLBackend::OpenCLQueue::~OpenCLQueue(){
      clReleaseCommandQueue(command_queue);
      delete []events;
-     delete []eventInfoBits;
-     delete []eventInfoConstCharPtrArgs;
+
  }

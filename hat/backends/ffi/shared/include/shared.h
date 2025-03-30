@@ -297,17 +297,98 @@ public:
 
 class Backend {
 public:
+    class Config{
+    public:
+        // These must sync with hat/backend/ffi/Mode.java
+        // Bits 0-3 select platform id 0..5
+        // Bits 4-7 select device id 0..15
+        const static  int START_BIT_IDX = 16;
+        const static  int MINIMIZE_COPIES_BIT =1<<START_BIT_IDX;
+        const static  int TRACE_BIT =1<<17;
+        const static  int PROFILE_BIT =1<<18;
+        const static  int SHOW_CODE_BIT = 1 << 19;
+        const static  int SHOW_KERNEL_MODEL_BIT = 1 << 20;
+        const static  int SHOW_COMPUTE_MODEL_BIT = 1 <<21;
+        const static  int INFO_BIT = 1<<22;
+        const static  int TRACE_COPIES_BIT = 1 <<23;
+        const static  int TRACE_SKIPPED_COPIES_BIT = 1 <<24;
+        const static  int TRACE_ENQUEUES_BIT = 1 <<25;
+        const static  int TRACE_CALLS_BIT = 1 <<26;
+        const static  int SHOW_WHY_BIT = 1 <<27;
+        const static  int SHOW_STATE_BIT = 1 <<28;
+        const static  int END_BIT_IDX = 29;
+
+        const static  char *bitNames[]; // See below for out of line definition
+        int configBits;
+        bool minimizeCopies;
+        bool alwaysCopy;
+        bool trace;
+        bool profile;
+        bool showCode;
+        bool info;
+        bool traceCopies;
+        bool traceSkippedCopies;
+        bool traceEnqueues;
+        bool traceCalls;
+        bool showWhy;
+        bool showState;
+        int platform; //0..15
+        int device; //0..15
+        Config(int mode);
+        virtual ~Config();
+    };
+    class Queue {
+    public:
+        const static  int START_BIT_IDX =20;
+        static const int CopyToDeviceBits= 1<<START_BIT_IDX;
+        static const int CopyFromDeviceBits= 1<<21;
+        static const int NDRangeBits =1<<22;
+        static const int StartComputeBits= 1<<23;
+        static const int EndComputeBits= 1<<24;
+        static const int EnterKernelDispatchBits= 1<<25;
+        static const int LeaveKernelDispatchBits= 1<<26;
+        static const int HasConstCharPtrArgBits = 1<<27;
+        static const int hasIntArgBits = 1<<28;
+        const static  int END_BIT_IDX = 27;
+        Backend *backend;
+        size_t eventMax;
+        size_t eventc;
+
+        int *eventInfoBits;
+        const char **eventInfoConstCharPtrArgs;
+        Queue(Backend *openclBackend);
+        virtual void showEvents(int width)=0;
+        virtual void wait()=0;
+        virtual void release()=0;
+        virtual void computeStart()=0;
+        virtual void computeEnd()=0;
+        virtual void inc(int bits)=0;
+        virtual void inc(int bits, const char *arg)=0;
+        virtual  void inc(int bits, int arg)=0;
+        virtual void marker(int bits)=0;
+        virtual void marker(int bits, const char *arg)=0;
+        virtual void marker(int bits, int arg)=0;
+        virtual void markAsCopyToDeviceAndInc(int argn)=0;
+        virtual  void markAsCopyFromDeviceAndInc(int argn)=0;
+        virtual void markAsNDRangeAndInc()=0;
+        virtual void markAsStartComputeAndInc()=0;
+        virtual  void markAsEndComputeAndInc()=0;
+        virtual  void markAsEnterKernelDispatchAndInc()=0;
+        virtual void markAsLeaveKernelDispatchAndInc()=0;
+         virtual ~Queue();
+    };
     class Buffer {
     public:
         Backend *backend;
         Arg_s *arg;
+        BufferState_s *bufferState;
 
         virtual void copyToDevice() = 0;
 
         virtual void copyFromDevice() = 0;
 
-        Buffer(Backend *backend, Arg_s *arg)
-                : backend(backend), arg(arg) {
+        Buffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState)
+                : backend(backend), arg(arg), bufferState(bufferState) {
         }
 
         virtual ~Buffer() {}
@@ -372,3 +453,22 @@ public:
 
     virtual ~Backend() {};
 };
+
+#ifdef shared_cpp
+const  char *Backend::Config::bitNames[] = {
+              "MINIMIZE_COPIES",
+              "TRACE",
+              "PROFILE",
+              "SHOW_CODE",
+              "SHOW_KERNEL_MODEL",
+              "SHOW_COMPUTE_MODEL",
+              "INFO",
+              "TRACE_COPIES",
+              "TRACE_SKIPPED_COPIES",
+              "TRACE_ENQUEUES",
+              "TRACE_CALLS"
+              "SHOW_WHY_BIT",
+              "USE_STATE_BIT",
+              "SHOW_STATE_BIT"
+        };
+#endif
