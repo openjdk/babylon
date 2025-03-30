@@ -44,6 +44,7 @@ questions.
         <module>ptx</module>
         <module>cuda</module>
         <module>mock</module>
+        <module>shared</module>
         <module>opencl</module>
     </modules>
     <build>
