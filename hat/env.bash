@@ -85,6 +85,7 @@ else
 
     if command -v jextract; then 
        echo 'jextract in your PATH'
+       export JEXTRACT_HOME=$(dirname $(dirname $(command -v jextract)))
     else
        if [[ -z "${JEXTRACT_HOME}" ]]; then 
           echo "No user provided JEXTRACT_HOME var, we will try ~/jextract-22"
@@ -106,7 +107,7 @@ else
          export PATH=${JEXTRACT_HOME}/bin:${PATH}
       fi
     else
-      echo 'You will need to add jextract to your PATH to be able to build'
+      echo 'You will need to add jextract your PATH to be able to build'
       echo 'Either add it, or JEXTRACT_HOME'
     fi
 
