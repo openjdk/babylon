@@ -272,6 +272,32 @@ public class SimpleTest {
         assertEquals(expected, execute(() -> forLoopAddRecord(max, value)).val());
     }
 
+    public record Tuple(Tensor<Long> a, Tensor<Float> b) {}
+
+    static Tuple newTuple(Tensor<Long> a, Tensor<Float> b) {
+        return new Tuple(a, b);
+    }
+
+    static LoopReturn<Tuple> newLoopReturn(Tensor<Boolean> b, Tuple t) {
+        return new LoopReturn<>(b, t);
+    }
+
+    @CodeReflection
+    public Tuple loop(Tensor<Boolean> b) {
+        var c1 = Constant(1l);
+        var c2 = Constant(1f);
+        var c3 = Constant(4l);
+        return Loop(c3, b, newTuple(c1, c2), (i, cond, v) -> newLoopReturn(Identity(cond), newTuple(Add(v.a(), v.a()), Identity(Add(v.b(), v.b())))));
+    }
+
+    @Test
+    public void testLoop() throws Exception {
+        var b = Tensor.ofScalar(true);
+        var res = execute(() -> loop(b));
+        assertEquals(Tensor.ofScalar(16l), res.a());
+        assertEquals(Tensor.ofScalar(16f), res.b());
+    }
+
     static void assertEquals(Tensor expected, Tensor actual) {
 
         var expectedType = expected.elementType();
