@@ -118,9 +118,9 @@ Ptx *Ptx::nvcc(const char *ptxSource, size_t len) {
 /*
 //http://mercury.pr.erau.edu/~siewerts/extra/code/digital-media/CUDA/cuda_work/samples/0_Simple/matrixMulDrv/matrixMulDrv.cpp
  */
-PtxBackend::PtxProgram::PtxKernel::PtxBuffer::PtxBuffer(Backend::Program::Kernel *kernel, Arg_s *arg)
-        : Buffer(kernel, arg), devicePtr() {
-    /*
+PtxBackend::PtxBuffer::PtxBuffer(Backend *backend,Arg_s *arg, BufferState_s *bufferState)
+        : Buffer(backend,arg, bufferState), devicePtr() {
+    /*z
      *   (void *) arg->value.buffer.memorySegment,
      *   (size_t) arg->value.buffer.sizeInBytes);
      */
@@ -136,7 +136,7 @@ PtxBackend::PtxProgram::PtxKernel::PtxBuffer::PtxBuffer(Backend::Program::Kernel
     arg->value.buffer.vendorPtr = static_cast<void *>(this);
 }
 
-PtxBackend::PtxProgram::PtxKernel::PtxBuffer::~PtxBuffer() {
+PtxBackend::PtxBuffer::~PtxBuffer() {
 
  //   std::cout << "cuMemFree()"
   //          << "devptr " << std::hex<<  (long)devicePtr <<std::dec
@@ -151,8 +151,8 @@ PtxBackend::PtxProgram::PtxKernel::PtxBuffer::~PtxBuffer() {
     arg->value.buffer.vendorPtr = nullptr;
 }
 
-void PtxBackend::PtxProgram::PtxKernel::PtxBuffer::copyToDevice() {
-    auto ptxKernel = dynamic_cast<PtxKernel*>(kernel);
+void PtxBackend::PtxBuffer::copyToDevice() {
+  //  auto ptxKernel = dynamic_cast<PtxKernel*>(kernel);
  //   std::cout << "copyToDevice() 0x"   << std::hex<<arg->value.buffer.sizeInBytes<<std::dec << " "<< arg->value.buffer.sizeInBytes << " "
  //             << "devptr " << std::hex<<  (long)devicePtr <<std::dec
  //             << std::endl;
@@ -184,8 +184,8 @@ void PtxBackend::PtxProgram::PtxKernel::PtxBuffer::copyToDevice() {
     }
 }
 
-void PtxBackend::PtxProgram::PtxKernel::PtxBuffer::copyFromDevice() {
-    auto ptxKernel = dynamic_cast<PtxKernel*>(kernel);
+void PtxBackend::PtxBuffer::copyFromDevice() {
+ //   auto ptxKernel = dynamic_cast<PtxKernel*>(kernel);
  //   std::cout << "copyFromDevice() 0x" << std::hex<<arg->value.buffer.sizeInBytes<<std::dec << " "<< arg->value.buffer.sizeInBytes << " "
  //             << "devptr " << std::hex<<  (long)devicePtr <<std::dec
   //            << std::endl;
@@ -223,8 +223,8 @@ void PtxBackend::PtxProgram::PtxKernel::PtxBuffer::copyFromDevice() {
     }
 }
 
-PtxBackend::PtxProgram::PtxKernel::PtxKernel(Backend::Program *program,char * name, CUfunction function)
-        : Backend::Program::Kernel(program, name), function(function),cudaStream() {
+PtxBackend::PtxProgram::PtxKernel::PtxKernel(Backend::CompilationUnit *program,char * name, CUfunction function)
+        : Backend::CompilationUnit::Kernel(program, name), function(function),cudaStream() {
 }
 
 PtxBackend::PtxProgram::PtxKernel::~PtxKernel() = default;
