@@ -162,10 +162,10 @@ public class SimpleTest {
 
     @CodeReflection
     public SingleValueTuple<Tensor<Float>> ifConstRecord(Tensor<Boolean> cond) {
-        return If(cond, () -> new SingleValueTuple(Constant(1f)), () -> new SingleValueTuple(Constant(-1f)));
+        return If(cond, () -> new SingleValueTuple<>(Constant(1f)), () -> new SingleValueTuple<>(Constant(-1f)));
     }
 
-//    @Test
+    @Test
     public void testIfConst() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var expFalse = Tensor.ofScalar(-1f);

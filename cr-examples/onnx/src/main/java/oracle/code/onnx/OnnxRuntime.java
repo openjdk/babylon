@@ -86,9 +86,8 @@ public final class OnnxRuntime {
         protected Session computeValue(Class<?> type) {
             var trans = OnnxTransformer.ofLambda(l, (CoreOp.LambdaOp)q.op());
             var func = trans.transform();
-            System.out.println(func.toText());
             byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(), trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
-            OnnxProtoPrinter.printModel(protobufModel);
+
             if (DEBUG) {
                 System.out.println(func.toText());
                 try {
