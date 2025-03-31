@@ -51,7 +51,7 @@
 #include <iostream>
 #include <cuda.h>
 #include <builtin_types.h>
-
+#include <cuda_runtime_api.h>
 #define CUDA_TYPES
 
 #include "shared.h"
@@ -63,48 +63,103 @@
 //extern void __checkCudaErrors(CUresult err, const char *file, const int line);
 
 //#define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)
-
-class Ptx {
+class Text {
 public:
     size_t len;
     char *text;
+    bool isCopy;
 
-    Ptx(size_t len);
-
-    ~Ptx();
-
-    static Ptx *nvcc(const char *cudaSource, size_t len);
+    Text(size_t len, char *text, bool isCopy);
+    Text(char *text, bool isCopy);
+    Text(size_t len);
+    virtual ~Text();
 };
+
+class PtxSource: public Text  {
+public:
+    PtxSource();
+    PtxSource(size_t len);
+    PtxSource(char *text);
+    ~PtxSource() = default;
+    static PtxSource *nvcc(const char *cudaSource, size_t len);
+};
+class CudaSource:public Text  {
+public:
+    CudaSource(size_t len);
+    CudaSource(char* text);
+    ~CudaSource() = default;
+};
+class Log:public Text  {
+public:
+    Log(size_t len);
+    Log(char* text);
+    ~Log()  = default;
+};
+
 
 class CudaBackend : public Backend {
 public:
-    class CudaProgram : public Backend::Program {
-        class CudaKernel : public Backend::Program::Kernel {
-            class CudaBuffer : public Backend::Program::Kernel::Buffer {
-            public:
-                CUdeviceptr devicePtr;
-                CudaBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
-                void copyToDevice();
-                void copyFromDevice();
-                virtual ~CudaBuffer();
-            };
+class CudaConfig : public Backend::Config{
+    public:
+        CudaConfig(int mode);
+         ~CudaConfig()=default;
+    };
+class CudaQueue: public Backend::Queue {
+    public:
+        cudaStream_t cudaStream;
+        CudaQueue(Backend *backend);
+        void showEvents(int width);
+        void wait();
+        void release();
+        void computeStart();
+        void computeEnd();
+        void inc(int bits);
+        void inc(int bits, const char *arg);
+        void inc(int bits, int arg);
+        void marker(int bits);
+        void marker(int bits, const char *arg);
+        void marker(int bits, int arg);
+        void markAsCopyToDeviceAndInc(int argn);
+        void markAsCopyFromDeviceAndInc(int argn);
+        void markAsNDRangeAndInc();
+        void markAsStartComputeAndInc();
+        void markAsEndComputeAndInc();
+        void markAsEnterKernelDispatchAndInc();
+        void markAsLeaveKernelDispatchAndInc();
+        virtual ~CudaQueue();
+    };
+
+    class CudaBuffer : public Backend::Buffer {
+    public:
+        CUdeviceptr devicePtr;
+        CudaBuffer(Backend *backend,Arg_s *arg, BufferState_s *bufferStateS);
+        void copyToDevice();
+        void copyFromDevice();
+        virtual ~CudaBuffer();
+    };
+
+    class CudaModule : public Backend::CompilationUnit {
+        class CudaKernel : public Backend::CompilationUnit::Kernel {
 
         private:
             CUfunction function;
-            cudaStream_t cudaStream;
+
         public:
-            CudaKernel(Backend::Program *program, char* name, CUfunction function);
+            CudaKernel(Backend::CompilationUnit *program, char* name, CUfunction function);
             ~CudaKernel() override;
             long ndrange( void *argArray);
         };
 
     private:
         CUmodule module;
-        Ptx *ptx;
+        CudaSource cudaSource;
+        PtxSource ptxSource;
+        Log log;
 
     public:
-        CudaProgram(Backend *backend, BuildInfo *buildInfo, Ptx *ptx, CUmodule module);
-        ~CudaProgram();
+
+        CudaModule(Backend *backend, char *cudaSrc,   char *log, bool ok, CUmodule module);
+        ~CudaModule();
         long getKernel(int nameLen, char *name);
         bool programOK();
     };
@@ -112,10 +167,16 @@ public:
 private:
     CUdevice device;
     CUcontext context;
+
+    CudaConfig cudaConfig;
+    CudaQueue cudaQueue;
 public:
     void info();
 
     long compile(int len, char *source);
+    void computeStart();
+    void computeEnd();
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
 
     CudaBackend(int mode);
 
