@@ -82,6 +82,38 @@ public class TestCaptureQuotable {
     }
 
     @Test
+    public void testCaptureThisInInvocationArg() {
+        Quotable quotable = (Quotable & ToIntFunction<Number>)y -> y.intValue() + Integer.valueOf(hashCode());
+        Quoted quoted = Op.ofQuotable(quotable).get();
+        assertEquals(quoted.capturedValues().size(), 1);
+        Iterator<Object> it = quoted.capturedValues().values().iterator();
+        assertEquals(it.next(), this);
+        List<Object> arguments = new ArrayList<>();
+        arguments.add(1);
+        arguments.addAll(quoted.capturedValues().values());
+        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+                arguments);
+        assertEquals(res, 1 + hashCode());
+    }
+
+    record R(int i) {}
+
+    @Test
+    public void testCaptureThisInNewArg() {
+        Quotable quotable = (Quotable & ToIntFunction<Number>)y -> y.intValue() + new R(hashCode()).i;
+        Quoted quoted = Op.ofQuotable(quotable).get();
+        assertEquals(quoted.capturedValues().size(), 1);
+        Iterator<Object> it = quoted.capturedValues().values().iterator();
+        assertEquals(it.next(), this);
+        List<Object> arguments = new ArrayList<>();
+        arguments.add(1);
+        arguments.addAll(quoted.capturedValues().values());
+        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+                arguments);
+        assertEquals(res, 1 + hashCode());
+    }
+
+    @Test
     public void testCaptureMany() {
         int[] ia = new int[8];
         int i1 = ia[0] = 0;

@@ -645,6 +645,7 @@ public class ReflectMethods extends TreeTranslator {
                         !seenClasses.contains(tree.type.tsym)) {
                     throw unsupported(tree);
                 }
+                super.visitNewClass(tree);
             }
 
             @Override

@@ -101,6 +101,37 @@ public class TestCaptureQuoted {
         assertEquals(res, x + 1 + hashCode() + hello.length());
     }
 
+    @Test
+    public void testCaptureThisInInvocationArg() {
+        Quoted quoted = (Number y) -> y.intValue() + Integer.valueOf(hashCode());
+        assertEquals(quoted.capturedValues().size(), 1);
+        Iterator<Object> it = quoted.capturedValues().values().iterator();
+        assertEquals(it.next(), this);
+        List<Object> arguments = new ArrayList<>();
+        arguments.add(1);
+        arguments.addAll(quoted.capturedValues().values());
+        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+                arguments);
+        assertEquals(res, 1 + hashCode());
+    }
+
+    record R(int i) {}
+
+    @Test
+    public void testCaptureThisInNewArg() {
+        Quoted quoted = (Number y) -> y.intValue() + new R(hashCode()).i;
+        assertEquals(quoted.capturedValues().size(), 1);
+        Iterator<Object> it = quoted.capturedValues().values().iterator();
+        assertEquals(it.next(), this);
+        List<Object> arguments = new ArrayList<>();
+        arguments.add(1);
+        arguments.addAll(quoted.capturedValues().values());
+        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+                arguments);
+        assertEquals(res, 1 + hashCode());
+    }
+
+
     @DataProvider(name = "ints")
     public Object[][] ints() {
         return IntStream.range(0, 50)
