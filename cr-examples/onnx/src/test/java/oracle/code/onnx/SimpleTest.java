@@ -236,7 +236,7 @@ public class SimpleTest {
 
     @CodeReflection
     public Tensor<Float> forLoopAdd(Tensor<Long> max, Tensor<Float> initialValue) {
-        return Loop(max, TRUE, initialValue, (i, cond, v) -> LoopReturn(cond, Add(v, v)));
+        return Loop(max, TRUE, initialValue, (i, cond, v) -> new LoopReturn<>(cond, Add(v, v)));
     }
 
     @Test

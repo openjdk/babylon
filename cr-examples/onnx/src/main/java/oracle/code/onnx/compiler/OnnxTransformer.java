@@ -237,6 +237,17 @@ public class OnnxTransformer {
                     Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                     bb.context().mapValue(io.result(), result);
                 }
+                // Transform record static construction
+                // @@@ use of NewOp sometimes cause IOOBE from javac at jdk.incubator.code/jdk.incubator.code.internal.ReflectMethods$BodyScanner.thisValue(ReflectMethods.java:689)
+                case CoreOp.InvokeOp io when isRecord(l, io.resultType()) -> {
+                    Op.Result result = bb.op(CoreOp.tuple(bb.context().getValues(io.operands())));
+                    bb.context().mapValue(io.result(), result);
+                }
+                // Transform record construction
+                case CoreOp.NewOp no when isRecord(l, no.type()) -> {
+                    Op.Result result = bb.op(CoreOp.tuple(bb.context().getValues(no.operands())));
+                    bb.context().mapValue(no.result(), result);
+                }
                 // Transform access to the result of an operator that is a list access
                 // @@@ raw use of List::get with constant argument
                 case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(LIST_CLASS) && io.invokeDescriptor().name().equals("get") -> {
@@ -339,6 +350,17 @@ public class OnnxTransformer {
         return TupleType.tupleType(tupleComponentTypes);
     }
 
+    static boolean isRecord(MethodHandles.Lookup l, TypeElement type) {
+        if (type instanceof ClassType ct) try {
+            var t = ct.resolve(l);
+            while (t instanceof ParameterizedType pt) t = pt.getRawType();
+            if (t instanceof Class c) return c.isRecord();
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+        return false;
+    }
+
     static Integer recordComponentAccessToTupleIndex(MethodHandles.Lookup l, MethodRef ref) {
         if (ref.refType() instanceof ClassType ct && ct.toClassName().startsWith("oracle.code.onnx.OnnxOperators$")) {
             Class<?> refClass;
@@ -362,7 +384,6 @@ public class OnnxTransformer {
     }
 
     static final TypeElement TENSOR_RAW_CLASS = JavaType.type(Tensor.class);
-    static final TypeElement LOOP_RETURN_RAW_CLASS = JavaType.type(ExplicitOnnxOps.LoopReturn.class);
 
     // @@@ Map of Java tensor types to ONNX tensor types
     // @@@ Shape??
@@ -381,8 +402,6 @@ public class OnnxTransformer {
                 } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
                     return OnnxType.TENSOR_BOOL;
                 }
-            } else if (ct.rawType().equals(LOOP_RETURN_RAW_CLASS)) {
-                return JavaType.VOID;
             }
         }
         return type;

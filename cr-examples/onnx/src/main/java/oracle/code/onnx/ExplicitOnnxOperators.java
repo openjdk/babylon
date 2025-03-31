@@ -87,10 +87,6 @@ class ExplicitOnnxOperators {
     }
 
     public record LoopReturn<T>(Tensor<Boolean> cond, T output) {}
-    public static <T> LoopReturn<T> LoopReturn(Tensor<Boolean> cond, T output) {
-        return new LoopReturn<>(cond, output);
-    }
-
     public interface LoopBody<T> extends Quotable {
         LoopReturn<T> invoke(Tensor<Long> i, Tensor<Boolean> cond, T input);
     }
