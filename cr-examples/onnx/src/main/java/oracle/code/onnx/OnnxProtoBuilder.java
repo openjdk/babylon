@@ -3,12 +3,14 @@ package oracle.code.onnx;
 import java.io.ByteArrayOutputStream;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
@@ -377,8 +379,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         var args = params.subList(params.isEmpty() || params.getFirst().type() instanceof OnnxType.TensorType ? 0 : 1, firstInitializer);
         return graph(
                 IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.nameOf(params.get(i + firstInitializer)), initializers.get(i))).toList(),
-                IntStream.range(0, args.size()).mapToObj(i ->
-                        tensorInfo(indexer.nameOf(args.get(i)), ((OnnxType.TensorType)args.get(i).type()).eType().id(), i < scalarArgs)).toList(),
+                tensorInfos(indexer, args, scalarArgs),
                 block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
                         case OnnxOps.If ifOp ->
@@ -432,6 +433,25 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                         oc.accept(indexer.nameOf(o));
                     }
                 }).toList());
+    }
+
+    static List<ValueInfoProto> tensorInfos(Indexer indexer, List<Block.Parameter> args, int scalarArgs) {
+        var infos = new ArrayList<ValueInfoProto>();
+        for (var arg : args) {
+            switch (arg.type()) {
+                case OnnxType.TensorType tt ->
+                    infos.add(tensorInfo(indexer.nameOf(arg), tt.eType().id(), infos.size() < scalarArgs));
+                case TupleType tt -> {
+                    var ct = tt.componentTypes();
+                    for (int i = 0; i < ct.size(); i++) {
+                        infos.add(tensorInfo(indexer.nameOf(arg, i), ((OnnxType.TensorType)ct.get(i)).eType().id(), infos.size() < scalarArgs));
+                    }
+                }
+                default ->
+                    throw new UnsupportedOperationException();
+            }
+        }
+        return infos;
     }
 
     static GraphProto graph(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {

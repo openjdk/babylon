@@ -109,8 +109,8 @@ public class OnnxTransformer {
         OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
         pe.evaluate(l, inputFunc);
 
-        FunctionType ft = FunctionType.functionType(type(inputFunc.invokableType().returnType()),
-                inputFunc.invokableType().parameterTypes().stream().map(OnnxTransformer::type).toList()
+        FunctionType ft = FunctionType.functionType(type(l, inputFunc.invokableType().returnType()),
+                inputFunc.invokableType().parameterTypes().stream().map(te -> type(l, te)).toList()
         );
         CoreOp.FuncOp onnxModel = CoreOp.func(inputFunc.funcName(), ft).body(b -> {
             b.transformBody(inputFunc.body(), b.parameters(), bodyTransformer(pe));
@@ -165,7 +165,7 @@ public class OnnxTransformer {
                                 .collect(Collectors.toSet());
                         opArgs.add(optionalOutputs);
                     } else {
-                        opArgs.add(type(op.resultType()));
+                        opArgs.add(type(l, op.resultType()));
                     }
 
                     for (int i = 0; i < schema.inputs().size(); i++) {
@@ -215,12 +215,12 @@ public class OnnxTransformer {
                         // Explicit transformation of nested bodies
                         for (int i = 1; i < 3; i++) {
                             var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
-                            opArgs.add(transformBodyTranslateTypes(lambda.body(), bb.context(), bodyTransformer(pe)));
+                            opArgs.add(transformBodyTranslateTypes(l, lambda.body(), bb.context(), bodyTransformer(pe)));
                         }
                     } else if (opClass == ExplicitOnnxOps.Loop.class) {
                         // Explicit transformation of nested body
                         var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(3)).op());
-                        opArgs.add(transformBodyTranslateTypes(lambda.body(), bb.context(), bodyTransformer(pe)));
+                        opArgs.add(transformBodyTranslateTypes(l, lambda.body(), bb.context(), bodyTransformer(pe)));
                     }
                     OnnxOp onnxOp;
                     try {
@@ -273,7 +273,7 @@ public class OnnxTransformer {
     }
 
     // @@@ Ugly copy of Body::transform content to translate types
-    static Body.Builder transformBodyTranslateTypes(Body body, CopyContext cc, OpTransformer ot) {
+    static Body.Builder transformBodyTranslateTypes(MethodHandles.Lookup l, Body body, CopyContext cc, OpTransformer ot) {
 //        return body.transform(cc, ot);
 
         Body ancestorBody = body.parentOp().parentBlock() instanceof Block parentBlock ? parentBlock.parentBody() : null;
@@ -283,9 +283,9 @@ public class OnnxTransformer {
         Body.Builder ancestorBodyBuilder = ancestorBlockBuilder != null
                 ? ancestorBlockBuilder.parentBody() : null;
 
-        Body.Builder bb = Body.Builder.of(ancestorBodyBuilder, FunctionType.functionType(type(body.yieldType())), cc, ot); // translate types
+        Body.Builder bb = Body.Builder.of(ancestorBodyBuilder, FunctionType.functionType(type(l, body.yieldType())), cc, ot); // translate types
         for (Block.Parameter p : body.entryBlock().parameters()) {
-            bb.entryBlock().parameter(type(p.type())); // translate types
+            bb.entryBlock().parameter(type(l, p.type())); // translate types
         }
         bb.entryBlock().transformBody(body, bb.entryBlock().parameters(), cc, ot);
         return bb;
@@ -327,7 +327,7 @@ public class OnnxTransformer {
                     Type elementType = pt.getActualTypeArguments()[0];
                     switch (elementType) {
                         case Class<?> _ -> {
-                            tupleComponentTypes.add(type(JavaType.type(pt)));
+                            tupleComponentTypes.add(type(l, JavaType.type(pt)));
                         }
                         case TypeVariable<?> tv -> {
                             // Resolve type variable
@@ -338,10 +338,21 @@ public class OnnxTransformer {
                                     break;
                                 }
                             }
-                            tupleComponentTypes.add(type(JavaType.parameterized(JavaType.type(Tensor.class), e)));
+                            tupleComponentTypes.add(type(l, JavaType.parameterized(JavaType.type(Tensor.class), e)));
                         }
                         default -> throw new IllegalStateException("Unexpected value: " + elementType);
                     }
+                }
+                case TypeVariable tv -> {
+                    // Resolve type variable
+                    JavaType e = null;
+                    for (int j = 0; j < recordClass.getTypeParameters().length; j++) {
+                        if (recordClass.getTypeParameters()[j].getName().equals(tv.getName())) {
+                            e = recordType.typeArguments().get(j);
+                            break;
+                        }
+                    }
+                    tupleComponentTypes.add(type(l, e));
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + rc.getGenericType());
             }
@@ -362,7 +373,7 @@ public class OnnxTransformer {
     }
 
     static Integer recordComponentAccessToTupleIndex(MethodHandles.Lookup l, MethodRef ref) {
-        if (ref.refType() instanceof ClassType ct && ct.toClassName().startsWith("oracle.code.onnx.OnnxOperators$")) {
+        if (ref.refType() instanceof ClassType ct) {
             Class<?> refClass;
             try {
                 refClass = (Class<?>) ct.resolve(l);
@@ -387,7 +398,7 @@ public class OnnxTransformer {
 
     // @@@ Map of Java tensor types to ONNX tensor types
     // @@@ Shape??
-    static TypeElement type(TypeElement type) {
+    static TypeElement type(MethodHandles.Lookup l, TypeElement type) {
         if (type instanceof ClassType ct) {
             if (ct.rawType().equals(TENSOR_RAW_CLASS)) {
                 JavaType elementType = ct.typeArguments().getFirst();
@@ -402,6 +413,8 @@ public class OnnxTransformer {
                 } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
                     return OnnxType.TENSOR_BOOL;
                 }
+            } else if (isRecord(l, type)) {
+                return recordTypeToTupleType(l, ct);
             }
         }
         return type;

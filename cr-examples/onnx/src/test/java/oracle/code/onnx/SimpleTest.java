@@ -269,7 +269,7 @@ public class SimpleTest {
         var max = Tensor.ofScalar(3l);
         assertEquals(expected, forLoopAdd(max, value));
         assertEquals(expected, execute(() -> forLoopAdd(max, value)));
-//        assertEquals(expected, execute(() -> forLoopAddRecord(max, value)).val());
+        assertEquals(expected, execute(() -> forLoopAddRecord(max, value)).val());
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
