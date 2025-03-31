@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLBackend;
-import static hat.backend.ffi.OpenCLConfig.*;
+import static hat.backend.ffi.Config.*;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 import hat.buffer.Buffer;

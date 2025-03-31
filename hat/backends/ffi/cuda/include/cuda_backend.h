@@ -73,6 +73,39 @@ public:
     Text(char *text, bool isCopy);
     Text(size_t len);
     virtual ~Text();
+    void writeTmp(std::string &filename) const{
+        std::ofstream out;
+        out.open(filename, std::ofstream::trunc);
+        out.write(text, len);
+        out.close();
+    }
+    void readTmp(std::string &filename){
+        if (isCopy && text){
+            delete[] text;
+        }
+        text = nullptr;
+        isCopy=false;
+       // std::cout << "reading from " << filename << std::endl;
+
+        std::ifstream ptxStream;
+        ptxStream.open(filename);
+
+
+        ptxStream.seekg(0, std::ios::end);
+        len = ptxStream.tellg();
+        ptxStream.seekg(0, std::ios::beg);
+
+        if (len > 0) {
+            text = new char[len];
+            isCopy = true;
+            //std::cerr << "about to read  " << len << std::endl;
+            ptxStream.read(text, len);
+            ptxStream.close();
+            //std::cerr << "read  " << len << std::endl;
+            text[len - 1] = '\0';
+            //std::cerr << "read text " << text << std::endl;
+        }
+    }
 };
 
 class PtxSource: public Text  {
@@ -85,6 +118,7 @@ public:
 };
 class CudaSource:public Text  {
 public:
+    CudaSource(size_t len, char *text, bool isCopy);
     CudaSource(size_t len);
     CudaSource(char* text);
     ~CudaSource() = default;
@@ -184,5 +218,5 @@ public:
 
     ~CudaBackend();
 };
-extern "C" long getCudaBackend(int mode);
+
 

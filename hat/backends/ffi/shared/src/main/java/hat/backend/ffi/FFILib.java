@@ -68,6 +68,9 @@ public class FFILib {
             super(ffiLib,FunctionDescriptor.ofVoid(ADDRESS), name);
         }
         public void invoke(MemorySegment memorySegment) {
+            if (mh == null){
+                throw new RuntimeException("Null methodhandle "+name);
+            }
             try {
                 mh.invoke(memorySegment);
             } catch (Throwable e) {
@@ -81,6 +84,9 @@ public class FFILib {
             super(ffiLib, FunctionDescriptor.ofVoid(JAVA_LONG), name);
         }
         public void invoke(long handle) {
+            if (mh == null){
+                throw new RuntimeException("Null methodhandle "+name);
+            }
             if (handle == 0) {
                 throw new RuntimeException("handle is zero");
             }
@@ -97,6 +103,9 @@ public class FFILib {
             super(ffiLib, FunctionDescriptor.of(JAVA_BOOLEAN,JAVA_LONG),name);
         }
         public boolean invoke(long handle) {
+            if (mh == null){
+                throw new RuntimeException("Null methodhandle "+name);
+            }
             if (handle == 0L) {
                 throw new IllegalArgumentException("handle is zero");
             }
@@ -113,6 +122,9 @@ public class FFILib {
             super(ffiLib, FunctionDescriptor.of(JAVA_BOOLEAN,JAVA_LONG,ADDRESS,JAVA_LONG), name);
         }
         public boolean invoke(long handle,MemorySegment memorySegment, long len) {
+            if (mh == null){
+                throw new RuntimeException("Null methodhandle "+name);
+            }
             if (handle == 0L) {
                 throw new IllegalArgumentException("handle is zero");
             }
@@ -129,6 +141,9 @@ public class FFILib {
             super(ffiLib, FunctionDescriptor.of(JAVA_LONG,JAVA_LONG,JAVA_INT,ADDRESS), name);
         }
         public long invoke(long handle, int i, MemorySegment memorySegment) {
+            if (mh == null){
+                throw new RuntimeException("Null methodhandle "+name);
+            }
             if (handle == 0L) {
                 throw new IllegalArgumentException("handle is zero");
             }
@@ -145,6 +160,9 @@ public class FFILib {
             super(ffiLib,FunctionDescriptor.of(JAVA_LONG,JAVA_INT), name);
         }
         public long invoke( int i) {
+            if (mh == null){
+                throw new RuntimeException("Null methodhandle "+name);
+            }
             try {
                 return (long)mh.invoke(i);
             } catch (Throwable e) {
@@ -158,6 +176,9 @@ public class FFILib {
             super(ffiLib,FunctionDescriptor.of(JAVA_LONG,JAVA_LONG,ADDRESS), name);
         }
         public long invoke(long l,  MemorySegment memorySegment) {
+            if (mh == null){
+                throw new RuntimeException("Null methodhandle "+name);
+            }
             try {
                 return (long)mh.invoke(l, memorySegment);
             } catch (Throwable e) {

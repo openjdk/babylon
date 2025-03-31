@@ -32,13 +32,9 @@ import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BufferState;
 
-import java.lang.invoke.MethodHandle;
-
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-
 public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
-    final OpenCLConfig config;
+    final Config config;
 
     final FFILib.LongIntMethodPtr getBackend_MPtr;
 
@@ -47,10 +43,10 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
     }
 
     public OpenCLBackend(String configSpec) {
-        this(OpenCLConfig.of(configSpec));
+        this(Config.of(configSpec));
     }
 
-    public OpenCLBackend(OpenCLConfig config) {
+    public OpenCLBackend(Config config) {
         super("opencl_backend");
         this.config = config;
         getBackend_MPtr = ffiLib.longIntFunc("getOpenCLBackend");
@@ -63,7 +59,7 @@ public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
 
     public OpenCLBackend() {
-        this(OpenCLConfig.of());
+        this(Config.of());
     }
 
 

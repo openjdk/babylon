@@ -63,7 +63,10 @@ CudaSource::CudaSource(size_t len)
 CudaSource::CudaSource(char *text)
         : Text(text, false) {
 }
+CudaSource::CudaSource(size_t len, char *text, bool isCopy)
+   :Text(len, text, isCopy){
 
+}
 Log::Log(size_t len)
         : Text(len) {
 }
@@ -75,70 +78,45 @@ uint64_t timeSinceEpochMillisec() {
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
+std::string tmpFileName(uint64_t time, const std::string& suffix){
+    std::stringstream timestamp;
+    timestamp << "./tmp" << time << suffix;
+    return timestamp.str();
+}
+
 PtxSource *PtxSource::nvcc(const char *cudaSource, size_t len) {
-    PtxSource *ptx = nullptr;
+    CudaSource cSource(len,(char*)cudaSource,false);
+
     uint64_t time = timeSinceEpochMillisec();
-    std::stringstream timestampPtx;
-    timestampPtx << "./tmp" << time << ".ptx";
-    const char *ptxPath = strdup(timestampPtx.str().c_str());
-   // std::cout << "ptx " << ptxPath << std::endl;
+    std::string ptxPath = tmpFileName(time, ".ptx");
+    std::string cudaPath = tmpFileName(time, ".cu");
     // we are going to fork exec nvcc
     int pid;
+    cSource.writeTmp(cudaPath);
     if ((pid = fork()) == 0) {
-        std::ofstream cuda;
-        std::stringstream timestampCuda;
-        timestampCuda << "./tmp" << time << ".cu";
-        const char *cudaPath = strdup(timestampCuda.str().c_str());
-        std::cout << "cuda " << cudaPath << std::endl;
-        cuda.open(cudaPath, std::ofstream::trunc);
-        cuda.write(cudaSource, len);
-        cuda.close();
-        const char *path = "/usr/bin/nvcc";
-        //const char *path = "/usr/local/cuda-12.2/bin/nvcc";
-        const char *argv[]{"nvcc", "-ptx", cudaPath, "-o", ptxPath, nullptr};
-        // we can't free cudaPath or ptxpath in child because we need them in exec, no prob through
-        // because we get a new proc so they are released to os
-        execvp(path, (char *const *) argv);
-
+        const char *path = "/usr/local/cuda-12.2/bin/nvcc";
+        const char *argv[]{"nvcc", "-ptx", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
+       // std::cerr << "child about to exec nvcc" << std::endl;
+       // std::cerr << "path " << path<< " " << argv[1]<< " " << argv[2]<< " " << argv[3]<< " " << argv[4]<< std::endl;
+        int stat = execvp(path, (char *const *) argv);
+        std::cerr << " nvcc stat = "<<stat << " errno="<< errno<< " '"<< std::strerror(errno)<< "'"<<std::endl;
+        std::exit(errno);
     } else if (pid < 0) {
         // fork failed.
         std::cerr << "fork of nvcc failed" << std::endl;
         std::exit(1);
     } else {
         int status;
-     //   std::cerr << "fork suceeded waiting for child" << std::endl;
+       // std::cerr << "parent waiting for child nvcc exec" << std::endl;
         pid_t result = wait(&status);
-        std::cerr << "child finished" << std::endl;
-        std::ifstream ptxStream;
-        ptxStream.open(ptxPath);
-      //  if (ptxStream.is_open()) {
-            ptxStream.seekg(0, std::ios::end);
-            size_t ptxLen = ptxStream.tellg();
-            ptxStream.close();
-            ptxStream.open(ptxPath);
-            free((void *) ptxPath);
-            ptxPath = nullptr;
-            if (ptxLen > 0) {
-                std::cerr << "ptx len "<< ptxLen << std::endl;
-                ptx = new PtxSource(ptxLen + 1);
-                std::cerr << "about to read  "<< ptx->len << std::endl;
-                ptxStream.read(ptx->text, ptx->len);
-                ptxStream.close();
-                std::cerr << "about to read  "<< ptx->len << std::endl;
-                ptx->text[ptx->len - 1] = '\0';
-                std::cerr << "read text "<< ptx->text << std::endl;
-
-            } else {
-                std::cerr << "no ptx! ptxLen == 0?";
-                exit(1);
-            }
-      //  }else{
-        //    std::cerr << "no ptx!";
-       //     exit(1);
-      //  }
+        //std::cerr << "child finished should be safe to read "<< ptxPath << std::endl;
+        PtxSource *ptx= new PtxSource();
+        ptx->readTmp(ptxPath);
+        return ptx;
     }
-    std::cout << "returning PTX" << std::endl;
-    return ptx;
+    std::cerr << "we should never get here !";
+    exit(1);
+    return nullptr;
 }
 
 /*
@@ -459,8 +437,7 @@ long CudaBackend::compile(int len, char *source) {
         exit(1);
     }
 }
-
-long getCudaBackend(int mode) {
+extern "C" long getCudaBackend(int mode) {
     long backendHandle= reinterpret_cast<long>(new CudaBackend(mode));
     std::cout << "getBackend() -> backendHandle=" << std::hex << backendHandle << std::dec << std::endl;
     return backendHandle;

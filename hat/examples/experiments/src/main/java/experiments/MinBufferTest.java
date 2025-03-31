@@ -34,7 +34,7 @@ import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
 
-import static hat.backend.ffi.OpenCLConfig.*;
+import static hat.backend.ffi.Config.*;
 
 public class MinBufferTest {
 

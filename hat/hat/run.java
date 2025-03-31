@@ -74,6 +74,9 @@ void main(String[] argv) {
            if (backendName.equals("ffi-opencl")){
                haveBackend.class_path(wrapJar, clwrapJar, jextractedOpenCLJar, ffiBackendSharedJar );
            }
+           if (backendName.equals("ffi-cuda")){
+               haveBackend.class_path(ffiBackendSharedJar );
+           }
         } else {
            throw new RuntimeException("No such backend " + backendName);
         }
