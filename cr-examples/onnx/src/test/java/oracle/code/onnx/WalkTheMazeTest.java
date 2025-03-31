@@ -4,7 +4,6 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
-import java.util.Optional;
 import jdk.incubator.code.CodeReflection;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -120,26 +119,6 @@ public class WalkTheMazeTest {
     }
 
     @CodeReflection
-    public Tensor<Long> lastPos(Tensor<Long> pathLog) {
-        return Slice(pathLog, mThree, mOne, empty(), empty());
-    }
-
-    @CodeReflection
-    public Tensor<Long> lastDirection(Tensor<Long> pathLog) {
-        return Slice(pathLog, mOne, max, empty(), empty());
-    }
-
-    @CodeReflection
-    public Tensor<Long> addToLog(Tensor<Long> pathLog, Tensor<Long> pos, Tensor<Long> direction) {
-        return Concat(List.of(pathLog, pos, direction), 0);
-    }
-
-    @CodeReflection
-    public Tensor<Byte> extractDirections(Tensor<Long> pathLog) {
-        return Cast(Slice(pathLog, two, max, Optional.of(zero), Optional.of(three)), empty(), 3);
-    }
-
-    @CodeReflection
     public Tensor<Long> turnLeftWhileWall(Tensor<Long> pos, Tensor<Long> direction) {
         var initialCond = Reshape(isWallAt(posInFrontOfMe(pos, direction)), scalarShape, empty());
         return Loop(limit, initialCond, direction, (_, _, dir) -> {
@@ -149,26 +128,30 @@ public class WalkTheMazeTest {
     }
 
     @CodeReflection
-    public Tensor<Long> walkAroundTheMaze() {
-        var start = Concat(List.of(homePos, directionEast), 0);
-        var pathLog = Loop(limit, _true, start, (_, _, log) -> {
-            var pos = lastPos(log);
-            var direction = lastDirection(log);
+    public Tensor<Byte> appendToPath(Tensor<Byte> path, Tensor<Long> direction) {
+        return Concat(List.of(path, Cast(direction, empty(), 2)), 0);
+    }
 
+    public record LoopData(Tensor<Long> pos, Tensor<Long> direction, Tensor<Byte> path) {}
+
+    @CodeReflection
+    public Tensor<Byte> walkAroundTheMaze() {
+        var initData = new LoopData(homePos, directionEast, Cast(directionEast, empty(), 2));
+        var outData = Loop(limit, _true, initData, (_, _, loopData) -> {
             // walk along the right wall
-            pos = posInFrontOfMe(pos, direction);
-            direction = turnRight(direction);
+            var pos = posInFrontOfMe(loopData.pos(), loopData.direction());
+            var direction = turnRight(loopData.direction());
             direction = turnLeftWhileWall(pos, direction);
 
-            return new LoopReturn<>(Not(atHome(pos)), addToLog(log, pos, direction));
+            return new LoopReturn<>(Not(atHome(pos)), new LoopData(pos, direction, appendToPath(loopData.path(), direction)));
         });
-        return pathLog;
+        return outData.path();
     }
 
     @Test
     public void testWalkAroundTheMaze() throws Exception {
         try (var arena = Arena.ofConfined()) {
-            var directions = execute(arena, MethodHandles.lookup(), () -> extractDirections(walkAroundTheMaze()));
+            var directions = execute(arena, MethodHandles.lookup(), () -> walkAroundTheMaze());
             Assertions.assertEquals(expectedPath, new String(directions.data().toArray(ValueLayout.JAVA_BYTE)));
         }
     }
