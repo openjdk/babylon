@@ -254,12 +254,12 @@ public class SimpleTest {
 
     @CodeReflection
     public Tensor<Float> forLoopAdd(Tensor<Long> max, Tensor<Float> initialValue) {
-        return Loop(max, TRUE, initialValue, (i, cond, v) -> new LoopReturn<>(cond, Add(v, v)));
+        return Loop(max, TRUE, initialValue, (i, cond, v) -> new LoopResult<>(cond, Add(v, v)));
     }
 
     @CodeReflection
     public SingleValueTuple<Tensor<Float>> forLoopAddRecord(Tensor<Long> max, Tensor<Float> initialValue) {
-        return Loop(max, TRUE, new SingleValueTuple<>(initialValue), (i, cond, v) -> new LoopReturn<>(cond, new SingleValueTuple<>(Add(v.val(), v.val()))));
+        return Loop(max, TRUE, new SingleValueTuple<>(initialValue), (i, cond, v) -> new LoopResult<>(cond, new SingleValueTuple<>(Add(v.val(), v.val()))));
     }
 
     @Test
@@ -279,7 +279,7 @@ public class SimpleTest {
         var c1 = Constant(1l);
         var c2 = Constant(1f);
         var c3 = Constant(4l);
-        return Loop(c3, b, new Tuple(c1, c2), (i, cond, v) -> new LoopReturn<>(Identity(cond), new Tuple(Add(v.a(), v.a()), Identity(Add(v.b(), v.b())))));
+        return Loop(c3, b, new Tuple(c1, c2), (i, cond, v) -> new LoopResult<>(Identity(cond), new Tuple(Add(v.a(), v.a()), Identity(Add(v.b(), v.b())))));
     }
 
     @Test

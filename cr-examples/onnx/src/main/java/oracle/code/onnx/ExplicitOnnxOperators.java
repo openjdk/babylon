@@ -86,15 +86,15 @@ class ExplicitOnnxOperators {
         return booleanValue(cond) ? thenBody.invoke() : elseBody.invoke();
     }
 
-    public record LoopReturn<T>(Tensor<Boolean> cond, T output) {}
+    public record LoopResult<T>(Tensor<Boolean> cond, T output) {}
     public interface LoopBody<T> extends Quotable {
-        LoopReturn<T> invoke(Tensor<Long> i, Tensor<Boolean> cond, T input);
+        LoopResult<T> invoke(Tensor<Long> i, Tensor<Boolean> cond, T input);
     }
 
     public static <T> T Loop(Tensor<Long> max, Tensor<Boolean> cond, T values, LoopBody<T> loopBody) {
         long m = max.data().get(ValueLayout.JAVA_LONG, 0);
         for (var i = Tensor.ofScalar(0l); longValue(i) < m && booleanValue(cond); set(i, longValue(i) + 1)) {
-            LoopReturn<T> ret = loopBody.invoke(i, cond, values);
+            LoopResult<T> ret = loopBody.invoke(i, cond, values);
             cond = ret.cond();
             values = ret.output();
         }

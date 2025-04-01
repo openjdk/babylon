@@ -94,7 +94,7 @@ public class WalkTheMazeTest {
     @CodeReflection
     public Tensor<Long> turnRight(Tensor<Long> direction) {
         return Loop(three, _true, direction, (i, cond, d)
-                -> new LoopReturn<>(cond, turnLeft(d)));
+                -> new LoopResult<>(cond, turnLeft(d)));
     }
 
     @CodeReflection
@@ -123,7 +123,7 @@ public class WalkTheMazeTest {
         var initialCond = Reshape(isWallAt(posInFrontOfMe(pos, direction)), scalarShape, empty());
         return Loop(limit, initialCond, direction, (_, _, dir) -> {
                 dir = turnLeft(dir);
-                return new LoopReturn<>(isWallAt(posInFrontOfMe(pos, dir)), dir);
+                return new LoopResult<>(isWallAt(posInFrontOfMe(pos, dir)), dir);
             });
     }
 
@@ -143,7 +143,7 @@ public class WalkTheMazeTest {
             var direction = turnRight(loopData.direction());
             direction = turnLeftWhileWall(pos, direction);
 
-            return new LoopReturn<>(Not(atHome(pos)), new LoopData(pos, direction, appendToPath(loopData.path(), direction)));
+            return new LoopResult<>(Not(atHome(pos)), new LoopData(pos, direction, appendToPath(loopData.path(), direction)));
         });
         return outData.path();
     }
