@@ -19,8 +19,7 @@ public class WalkTheMazeTest {
     // initializers
     final Tensor<Byte> maze;
     final Tensor<Boolean> _true;
-    final Tensor<Long> homePos, directionNorth, directionSouth, directionEast, directionWest,
-                       oneOne, zero, two, three, mOne, mThree, max, limit,
+    final Tensor<Long> homePos, directionNorth, directionSouth, directionEast, directionWest, oneOne, three, limit,
                        stepSouth, stepNorth, stepEast, stepWest, scalarShape, wall;
 
     public WalkTheMazeTest() {
@@ -65,12 +64,7 @@ public class WalkTheMazeTest {
         directionEast = Tensor.ofFlat(arena, '>');
         directionWest = Tensor.ofFlat(arena, '<');
         oneOne = Tensor.ofFlat(arena, 1l, 1);
-        zero = Tensor.ofFlat(arena, 0l);
-        two = Tensor.ofFlat(arena, 2l);
         three = Tensor.ofFlat(arena, 3l);
-        mOne = Tensor.ofFlat(arena, -1l);
-        mThree = Tensor.ofFlat(arena, -3l);
-        max = Tensor.ofFlat(arena, Long.MAX_VALUE);
         limit = Tensor.ofFlat(arena, 1000l);
         stepSouth = Tensor.ofFlat(arena, 1l, 0);
         stepNorth = Tensor.ofFlat(arena, -1l, 0);
