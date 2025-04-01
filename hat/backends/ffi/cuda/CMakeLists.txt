@@ -29,7 +29,23 @@ if(CUDAToolkit_FOUND)
     )
 
     add_library(cuda_backend SHARED
-	    ${SHARED_BACKEND}/cpp/shared.cpp
+            ${SHARED_BACKEND}/cpp/shared.cpp
+            ${SHARED_BACKEND}/include/shared.h
+            ${SHARED_BACKEND}/cpp/buffer.cpp
+            ${SHARED_BACKEND}/include/buffer.h
+            ${SHARED_BACKEND}/cpp/schema_cursor.cpp
+            ${SHARED_BACKEND}/include/schema_cursor.h
+            ${SHARED_BACKEND}/cpp/buffer_cursor.cpp
+            ${SHARED_BACKEND}/include/buffer_cursor.h
+            ${SHARED_BACKEND}/cpp/hex.cpp
+            ${SHARED_BACKEND}/include/hex.h
+            ${SHARED_BACKEND}/cpp/json.cpp
+            ${SHARED_BACKEND}/include/json.h
+            ${SHARED_BACKEND}/cpp/fsutil.cpp
+            ${SHARED_BACKEND}/include/fsutil.h
+            ${SHARED_BACKEND}/cpp/strutil.cpp
+            ${SHARED_BACKEND}/include/strutil.h
+            ${CUDA_BACKEND}/include/cuda_backend.h
 	    ${CUDA_BACKEND}/cpp/cuda_backend.cpp
     )
 
