@@ -97,7 +97,7 @@ public class WalkTheMazeTest {
     }
 
     @CodeReflection
-    public Tensor<Long> posInFrontOfMe(Tensor<Long> myPos, Tensor<Long> myDirection) {
+    public Tensor<Long> step(Tensor<Long> myPos, Tensor<Long> myDirection) {
         return  If(Equal(myDirection, directionEast),
                 () -> Add(myPos, stepEast),
                 () -> If(Equal(myDirection, directionNorth),
@@ -114,10 +114,10 @@ public class WalkTheMazeTest {
 
     @CodeReflection
     public Tensor<Long> turnLeftWhileWall(Tensor<Long> pos, Tensor<Long> direction) {
-        var initialCond = Reshape(isWallAt(posInFrontOfMe(pos, direction)), scalarShape, empty());
+        var initialCond = Reshape(isWallAt(step(pos, direction)), scalarShape, empty());
         return Loop(limit, initialCond, direction, (_, _, dir) -> {
                 dir = turnLeft(dir);
-                return new LoopResult<>(isWallAt(posInFrontOfMe(pos, dir)), dir);
+                return new LoopResult<>(isWallAt(step(pos, dir)), dir);
             });
     }
 
@@ -133,7 +133,7 @@ public class WalkTheMazeTest {
         var initData = new LoopData(homePos, directionEast, Cast(directionEast, empty(), 2));
         var outData = Loop(limit, _true, initData, (_, _, loopData) -> {
             // walk along the right wall
-            var pos = posInFrontOfMe(loopData.pos(), loopData.direction());
+            var pos = step(loopData.pos(), loopData.direction());
             var direction = turnRight(loopData.direction());
             direction = turnLeftWhileWall(pos, direction);
 
