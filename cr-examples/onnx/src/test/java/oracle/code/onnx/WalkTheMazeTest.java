@@ -94,7 +94,7 @@ public class WalkTheMazeTest {
     @CodeReflection
     public Tensor<Long> turnRight(Tensor<Long> direction) {
         return Loop(three, _true, direction, (i, cond, d)
-                -> newLoopReturn(cond, turnLeft(d)));
+                -> new LoopReturn<>(cond, turnLeft(d)));
     }
 
     @CodeReflection
@@ -123,7 +123,7 @@ public class WalkTheMazeTest {
         var initialCond = Reshape(isWallAt(posInFrontOfMe(pos, direction)), scalarShape, empty());
         return Loop(limit, initialCond, direction, (_, _, dir) -> {
                 dir = turnLeft(dir);
-                return newLoopReturn(isWallAt(posInFrontOfMe(pos, dir)), dir);
+                return new LoopReturn<>(isWallAt(posInFrontOfMe(pos, dir)), dir);
             });
     }
 
@@ -154,10 +154,5 @@ public class WalkTheMazeTest {
             var directions = execute(arena, MethodHandles.lookup(), () -> walkAroundTheMaze());
             Assertions.assertEquals(expectedPath, new String(directions.data().toArray(ValueLayout.JAVA_BYTE)));
         }
-    }
-
-    // @@@ use of new LoopReturn may cause IOOBE from javac at jdk.incubator.code/jdk.incubator.code.internal.ReflectMethods$BodyScanner.thisValue(ReflectMethods.java:689)
-    static <T> LoopReturn<T> newLoopReturn(Tensor<Boolean> cond, T output) {
-        return new LoopReturn<>(cond, output);
     }
 }

@@ -87,7 +87,8 @@ public final class OnnxRuntime {
             var trans = OnnxTransformer.ofLambda(l, (CoreOp.LambdaOp)q.op());
             var func = trans.transform();
             byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(), trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
-
+            System.out.println(func.toText());
+            OnnxProtoPrinter.printModel(protobufModel);
             if (DEBUG) {
                 System.out.println(func.toText());
                 try {
@@ -138,7 +139,9 @@ public final class OnnxRuntime {
         } else if(getRecordConstructor(l, retType) instanceof Constructor recordConstructor) {
             try {
                 return (T)recordConstructor.newInstance(ret.toArray());
-            } catch (ReflectiveOperationException e) {
+            } catch (Exception e) {
+                System.out.println(recordConstructor);
+                System.out.println(ret);
                 throw new IllegalStateException(e);
             }
         } else {

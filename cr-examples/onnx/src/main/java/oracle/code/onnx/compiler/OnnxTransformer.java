@@ -237,12 +237,6 @@ public class OnnxTransformer {
                     Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                     bb.context().mapValue(io.result(), result);
                 }
-                // Transform record static construction
-                // @@@ use of NewOp sometimes cause IOOBE from javac at jdk.incubator.code/jdk.incubator.code.internal.ReflectMethods$BodyScanner.thisValue(ReflectMethods.java:689)
-                case CoreOp.InvokeOp io when isRecord(l, io.resultType()) -> {
-                    Op.Result result = bb.op(CoreOp.tuple(bb.context().getValues(io.operands())));
-                    bb.context().mapValue(io.result(), result);
-                }
                 // Transform record construction
                 case CoreOp.NewOp no when isRecord(l, no.type()) -> {
                     Op.Result result = bb.op(CoreOp.tuple(bb.context().getValues(no.operands())));
@@ -272,7 +266,7 @@ public class OnnxTransformer {
         };
     }
 
-    // @@@ Ugly copy of Body::transform content to translate types
+    // @@@ Copy of Body::transform content to translate types
     static Body.Builder transformBodyTranslateTypes(MethodHandles.Lookup l, Body body, CopyContext cc, OpTransformer ot) {
 //        return body.transform(cc, ot);
 
