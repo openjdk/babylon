@@ -87,10 +87,9 @@ public final class OnnxRuntime {
             var trans = OnnxTransformer.ofLambda(l, (CoreOp.LambdaOp)q.op());
             var func = trans.transform();
             byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(), trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
-            System.out.println(func.toText());
+
             OnnxProtoPrinter.printModel(protobufModel);
             if (DEBUG) {
-                System.out.println(func.toText());
                 try {
                     var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
                     Files.write(export, protobufModel);
@@ -140,8 +139,6 @@ public final class OnnxRuntime {
             try {
                 return (T)recordConstructor.newInstance(ret.toArray());
             } catch (Exception e) {
-                System.out.println(recordConstructor);
-                System.out.println(ret);
                 throw new IllegalStateException(e);
             }
         } else {
