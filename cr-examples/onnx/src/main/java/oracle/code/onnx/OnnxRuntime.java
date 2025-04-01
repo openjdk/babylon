@@ -88,7 +88,6 @@ public final class OnnxRuntime {
             var func = trans.transform();
             byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(), trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
 
-            OnnxProtoPrinter.printModel(protobufModel);
             if (DEBUG) {
                 try {
                     var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
