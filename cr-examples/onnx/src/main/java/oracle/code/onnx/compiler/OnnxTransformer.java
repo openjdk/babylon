@@ -356,14 +356,13 @@ public class OnnxTransformer {
     }
 
     static boolean isRecord(MethodHandles.Lookup l, TypeElement type) {
-        if (type instanceof ClassType ct) try {
-            var t = ct.resolve(l);
-            while (t instanceof ParameterizedType pt) t = pt.getRawType();
-            if (t instanceof Class c) return c.isRecord();
+        try {
+            return type instanceof ClassType ct &&
+                    ct.erasure().resolve(l) instanceof Class c &&
+                    c.isRecord();
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-        return false;
     }
 
     static Integer recordComponentAccessToTupleIndex(MethodHandles.Lookup l, MethodRef ref) {
