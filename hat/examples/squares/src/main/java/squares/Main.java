@@ -61,7 +61,7 @@ public class Main {
     public static void main(String[] args) {
 
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
-        var arr = S32Array.create(accelerator, 32);
+        var arr = S32Array.create(accelerator, 1024);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);
         }

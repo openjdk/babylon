@@ -47,6 +47,10 @@ if(CUDAToolkit_FOUND)
             ${SHARED_BACKEND}/include/strutil.h
             ${CUDA_BACKEND}/include/cuda_backend.h
 	    ${CUDA_BACKEND}/cpp/cuda_backend.cpp
+            ${CUDA_BACKEND}/cpp/cuda_backend_buffer.cpp
+            ${CUDA_BACKEND}/cpp/cuda_backend_kernel.cpp
+            ${CUDA_BACKEND}/cpp/cuda_backend_module.cpp
+            ${CUDA_BACKEND}/cpp/cuda_backend_queue.cpp
     )
 
     target_link_libraries(cuda_backend
@@ -56,6 +60,16 @@ if(CUDAToolkit_FOUND)
 
     add_executable(cuda_info
 	    ${CUDA_BACKEND}/cpp/info.cpp
+    )
+
+    add_executable(cuda_squares
+            ${CUDA_BACKEND}/cpp/squares.cpp
+    )
+
+    target_link_libraries(cuda_squares
+            cuda_backend
+            -lcudart
+            -lcuda
     )
 
     target_link_libraries(cuda_info

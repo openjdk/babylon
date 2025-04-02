@@ -28,8 +28,6 @@ package nbody.opencl;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.backend.ffi.OpenCLConfig;
-import hat.backend.ffi.OpenCLBackend;
 import hat.ifacemapper.BufferState;
 import jdk.incubator.code.CodeReflection;
 import nbody.Mode;
