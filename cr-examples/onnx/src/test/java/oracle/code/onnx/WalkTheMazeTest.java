@@ -4,7 +4,6 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
-import java.util.Optional;
 import jdk.incubator.code.CodeReflection;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -20,8 +19,7 @@ public class WalkTheMazeTest {
     // initializers
     final Tensor<Byte> maze;
     final Tensor<Boolean> _true;
-    final Tensor<Long> homePos, directionNorth, directionSouth, directionEast, directionWest,
-                       oneOne, zero, two, three, mOne, mThree, max, limit,
+    final Tensor<Long> homePos, directionNorth, directionSouth, directionEast, directionWest, oneOne, three, limit,
                        stepSouth, stepNorth, stepEast, stepWest, scalarShape, wall;
 
     public WalkTheMazeTest() {
@@ -66,12 +64,7 @@ public class WalkTheMazeTest {
         directionEast = Tensor.ofFlat(arena, '>');
         directionWest = Tensor.ofFlat(arena, '<');
         oneOne = Tensor.ofFlat(arena, 1l, 1);
-        zero = Tensor.ofFlat(arena, 0l);
-        two = Tensor.ofFlat(arena, 2l);
         three = Tensor.ofFlat(arena, 3l);
-        mOne = Tensor.ofFlat(arena, -1l);
-        mThree = Tensor.ofFlat(arena, -3l);
-        max = Tensor.ofFlat(arena, Long.MAX_VALUE);
         limit = Tensor.ofFlat(arena, 1000l);
         stepSouth = Tensor.ofFlat(arena, 1l, 0);
         stepNorth = Tensor.ofFlat(arena, -1l, 0);
@@ -95,7 +88,7 @@ public class WalkTheMazeTest {
     @CodeReflection
     public Tensor<Long> turnRight(Tensor<Long> direction) {
         return Loop(three, _true, direction, (i, cond, d)
-                -> LoopReturn(cond, turnLeft(d)));
+                -> new LoopResult<>(cond, turnLeft(d)));
     }
 
     @CodeReflection
@@ -104,7 +97,7 @@ public class WalkTheMazeTest {
     }
 
     @CodeReflection
-    public Tensor<Long> posInFrontOfMe(Tensor<Long> myPos, Tensor<Long> myDirection) {
+    public Tensor<Long> step(Tensor<Long> myPos, Tensor<Long> myDirection) {
         return  If(Equal(myDirection, directionEast),
                 () -> Add(myPos, stepEast),
                 () -> If(Equal(myDirection, directionNorth),
@@ -120,55 +113,39 @@ public class WalkTheMazeTest {
     }
 
     @CodeReflection
-    public Tensor<Long> lastPos(Tensor<Long> pathLog) {
-        return Slice(pathLog, mThree, mOne, empty(), empty());
-    }
-
-    @CodeReflection
-    public Tensor<Long> lastDirection(Tensor<Long> pathLog) {
-        return Slice(pathLog, mOne, max, empty(), empty());
-    }
-
-    @CodeReflection
-    public Tensor<Long> addToLog(Tensor<Long> pathLog, Tensor<Long> pos, Tensor<Long> direction) {
-        return Concat(List.of(pathLog, pos, direction), 0);
-    }
-
-    @CodeReflection
-    public Tensor<Byte> extractDirections(Tensor<Long> pathLog) {
-        return Cast(Slice(pathLog, two, max, Optional.of(zero), Optional.of(three)), empty(), 3);
-    }
-
-    @CodeReflection
     public Tensor<Long> turnLeftWhileWall(Tensor<Long> pos, Tensor<Long> direction) {
-        var initialCond = Reshape(isWallAt(posInFrontOfMe(pos, direction)), scalarShape, empty());
+        var initialCond = Reshape(isWallAt(step(pos, direction)), scalarShape, empty());
         return Loop(limit, initialCond, direction, (_, _, dir) -> {
                 dir = turnLeft(dir);
-                return LoopReturn(isWallAt(posInFrontOfMe(pos, dir)), dir);
+                return new LoopResult<>(isWallAt(step(pos, dir)), dir);
             });
     }
 
     @CodeReflection
-    public Tensor<Long> walkAroundTheMaze() {
-        var start = Concat(List.of(homePos, directionEast), 0);
-        var pathLog = Loop(limit, _true, start, (_, _, log) -> {
-            var pos = lastPos(log);
-            var direction = lastDirection(log);
+    public Tensor<Byte> appendToPath(Tensor<Byte> path, Tensor<Long> direction) {
+        return Concat(List.of(path, Cast(direction, empty(), 2)), 0);
+    }
 
+    public record LoopData(Tensor<Long> pos, Tensor<Long> direction, Tensor<Byte> path) {}
+
+    @CodeReflection
+    public Tensor<Byte> walkAroundTheMaze() {
+        var initData = new LoopData(homePos, directionEast, Cast(directionEast, empty(), 2));
+        var outData = Loop(limit, _true, initData, (_, _, loopData) -> {
             // walk along the right wall
-            pos = posInFrontOfMe(pos, direction);
-            direction = turnRight(direction);
+            var pos = step(loopData.pos(), loopData.direction());
+            var direction = turnRight(loopData.direction());
             direction = turnLeftWhileWall(pos, direction);
 
-            return LoopReturn(Not(atHome(pos)), addToLog(log, pos, direction));
+            return new LoopResult<>(Not(atHome(pos)), new LoopData(pos, direction, appendToPath(loopData.path(), direction)));
         });
-        return pathLog;
+        return outData.path();
     }
 
     @Test
     public void testWalkAroundTheMaze() throws Exception {
         try (var arena = Arena.ofConfined()) {
-            var directions = execute(arena, MethodHandles.lookup(), () -> extractDirections(walkAroundTheMaze()));
+            var directions = execute(arena, MethodHandles.lookup(), () -> walkAroundTheMaze());
             Assertions.assertEquals(expectedPath, new String(directions.data().toArray(ValueLayout.JAVA_BYTE)));
         }
     }

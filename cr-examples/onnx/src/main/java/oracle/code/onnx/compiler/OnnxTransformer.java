@@ -16,6 +16,31 @@ import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
 
+/*
+Analysis and Transformations, in order
+
+- Lambda to function, promoting captures to function parameters.
+  (We need to handle captured Var ops modelling Java method parameters.)
+- Inline methods.
+  (We could first choose to transform into a module op of func ops, similar to HAT might do.)
+- Promote (final) tensor field accesses to parameters.
+  Each unique field reference is promoted to a function parameter.
+  (This also accumulates every unique field reference into a list in encounter order,
+   reflection is used to obtain the tensor values for ONNX initializers.)
+- Partially evaluate the Java code model, using a clone of the interpreter.
+- Java code model to ONNX code model.
+  Lambdas expressions transform recursively (need to restrict where expressions are used
+  to arguments of invocations)
+  (Also transforms records to tuples.)
+  (Using results from partial evaluation.)
+- Drop unused parameters (i.e., the receiver).
+  (Could be merged with droping unused operations.)
+- SSA.
+- Drop unused operations.
+
+ */
+
+
 // Transform the Java code model of an ONNX function to an ONNX code model
 public class OnnxTransformer {
 
@@ -29,20 +54,38 @@ public class OnnxTransformer {
     private final CoreOp.FuncOp inputFunc;
     private final List<FieldRef> inits;
 
-    public static OnnxTransformer ofLambda(MethodHandles.Lookup lookup, CoreOp.LambdaOp lambda) {
-        var lambdaFunc = (CoreOp.FuncOp)lambda.ancestorBody().parentOp().ancestorBody().parentOp();
-        var flatLambdaFunc = lambdaFunc.transform((bb, op) -> {
-            switch (op) {
-                case CoreOp.QuotedOp qo -> {
-                    bb.context().mapValues(lambdaFunc.parameters(), bb.parameters());
-                    bb.transformBody(lambda.body(), List.of(), OpTransformer.COPYING_TRANSFORMER);
+    public static OnnxTransformer ofQuotedLambda(MethodHandles.Lookup lookup, Quoted quotedLambda) {
+        CoreOp.LambdaOp lambda = (CoreOp.LambdaOp) quotedLambda.op();
+        assert lambda.parameters().isEmpty();
+
+        List<Value> captures = lambda.capturedValues();
+        List<TypeElement> normalizedCaptureTypes = captures.stream()
+                .map(v -> v instanceof Op.Result r &&
+                        r.op() instanceof CoreOp.VarOp vop &&
+                        vop.initOperand() instanceof Block.Parameter p ? p : v)
+                .map(Value::type)
+                .toList();
+        FunctionType ft = FunctionType.functionType(lambda.invokableType().returnType(), normalizedCaptureTypes);
+
+        CoreOp.FuncOp f = CoreOp.FuncOp.func("f", ft).body(b -> {
+            // Map input captured values
+            for (int i = 0; i < captures.size(); i++) {
+                Value inputCapture = captures.get(i);
+                Value output;
+                if (inputCapture instanceof Op.Result r &&
+                        r.op() instanceof CoreOp.VarOp vop &&
+                        vop.initOperand() instanceof Block.Parameter) {
+                    output = b.op(CoreOp.var(b.parameters().get(i)));
+                } else {
+                    output = b.parameters().get(i);
                 }
-                case CoreOp.ReturnOp _ -> {}
-                default -> bb.op(op);
+                b.context().mapValue(inputCapture, output);
             }
-            return bb;
+
+            b.transformBody(lambda.body(), List.of(), OpTransformer.COPYING_TRANSFORMER);
         });
-        return new OnnxTransformer(lookup, flatLambdaFunc);
+
+        return new OnnxTransformer(lookup, f);
     }
 
     final CoreOp.FuncOp inline(CoreOp.FuncOp func) {
@@ -68,6 +111,8 @@ public class OnnxTransformer {
         var top = new Block.Builder[1];
         // turning field loads into additiona arguments
         inputFunc = inlinedFunc.transform((bb, op) -> {
+            // @@@ This is ugly, in this case we could ask the bb for its furthest ancestor block
+            // when we need it
             if (top[0] == null) top[0] = bb;
             var cc  = bb.context();
             switch (op) {
@@ -105,29 +150,33 @@ public class OnnxTransformer {
     }
 
     public CoreOp.FuncOp transform() {
-
         OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
         pe.evaluate(l, inputFunc);
 
-        FunctionType ft = FunctionType.functionType(type(inputFunc.invokableType().returnType()),
-                inputFunc.invokableType().parameterTypes().stream().map(OnnxTransformer::type).toList()
+        // ONNX model transformation
+        FunctionType ft = FunctionType.functionType(type(l, inputFunc.invokableType().returnType()),
+                inputFunc.invokableType().parameterTypes().stream().map(te -> type(l, te)).toList()
         );
         CoreOp.FuncOp onnxModel = CoreOp.func(inputFunc.funcName(), ft).body(b -> {
             b.transformBody(inputFunc.body(), b.parameters(), bodyTransformer(pe));
         });
 
-        var paramTypes = onnxModel.invokableType().parameterTypes();
-
+        // Drop unused parameters transformation, can be merged with drop unused operations transformation
         CoreOp.FuncOp cutModel = onnxModel;
-        if (!paramTypes.isEmpty() && !(paramTypes.getFirst() instanceof OnnxType.TensorType)) {
-            // drop receiver
-            var funcType = FunctionType.functionType(onnxModel.invokableType().returnType(), paramTypes.subList(1, paramTypes.size()));
+        if (onnxModel.parameters().stream().anyMatch(v -> v.uses().isEmpty())) {
+            List<Block.Parameter> usedParameters = onnxModel.parameters().stream()
+                    .filter(v -> !v.uses().isEmpty())
+                    .toList();
+            List<TypeElement> usedParameterTypes = usedParameters.stream().map(Value::type).toList();
+
+            var funcType = FunctionType.functionType(onnxModel.invokableType().returnType(), usedParameterTypes);
             cutModel = CoreOp.func(onnxModel.funcName(), funcType).body(bb -> {
-                bb.context().mapValues(onnxModel.parameters().subList(1, paramTypes.size()), bb.parameters());
+                bb.context().mapValues(usedParameters, bb.parameters());
                 bb.transformBody(onnxModel.body(), List.of(), OpTransformer.COPYING_TRANSFORMER);
             });
         }
 
+        // SSA and drop unused operations transformation
         return SSA.transform(cutModel).transform((b, op) -> {
             // Drop any non-terminating operation whose result is not used
             if (op instanceof Op.Terminating || !op.result().uses().isEmpty()) {
@@ -165,7 +214,7 @@ public class OnnxTransformer {
                                 .collect(Collectors.toSet());
                         opArgs.add(optionalOutputs);
                     } else {
-                        opArgs.add(type(op.resultType()));
+                        opArgs.add(type(l, op.resultType()));
                     }
 
                     for (int i = 0; i < schema.inputs().size(); i++) {
@@ -215,12 +264,12 @@ public class OnnxTransformer {
                         // Explicit transformation of nested bodies
                         for (int i = 1; i < 3; i++) {
                             var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
-                            opArgs.add(transformBodyTranslateTypes(lambda.body(), bb.context(), bodyTransformer(pe)));
+                            opArgs.add(transformBodyTranslateTypes(l, lambda, bb, bodyTransformer(pe)));
                         }
                     } else if (opClass == ExplicitOnnxOps.Loop.class) {
                         // Explicit transformation of nested body
                         var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(3)).op());
-                        opArgs.add(transformBodyTranslateTypes(lambda.body(), bb.context(), bodyTransformer(pe)));
+                        opArgs.add(transformBodyTranslateTypes(l, lambda, bb, bodyTransformer(pe)));
                     }
                     OnnxOp onnxOp;
                     try {
@@ -237,6 +286,11 @@ public class OnnxTransformer {
                     Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                     bb.context().mapValue(io.result(), result);
                 }
+                // Transform record construction
+                case CoreOp.NewOp no when isRecord(l, no.type()) -> {
+                    Op.Result result = bb.op(CoreOp.tuple(bb.context().getValues(no.operands())));
+                    bb.context().mapValue(no.result(), result);
+                }
                 // Transform access to the result of an operator that is a list access
                 // @@@ raw use of List::get with constant argument
                 case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(LIST_CLASS) && io.invokeDescriptor().name().equals("get") -> {
@@ -249,11 +303,6 @@ public class OnnxTransformer {
                 // Skip nested lambdas
                 case CoreOp.LambdaOp _ -> {
                 }
-                case Op.Terminating _ -> {
-                    try {
-                        bb.op(op); // @@@ how to test the terminating op has been already inserted?
-                    } catch (IllegalStateException _) {}
-                }
                 // Copy remaining operations, which may be removed later transformations
                 default -> bb.op(op);
             }
@@ -261,22 +310,23 @@ public class OnnxTransformer {
         };
     }
 
-    // @@@ Ugly copy of Body::transform content to translate types
-    static Body.Builder transformBodyTranslateTypes(Body body, CopyContext cc, OpTransformer ot) {
-//        return body.transform(cc, ot);
+    // @@@ Copy of Body::transform content to translate types
+    static Body.Builder transformBodyTranslateTypes(MethodHandles.Lookup l, Op.Invokable iop,
+                                                    Block.Builder ancestor, OpTransformer ot) {
+        // @@@ Pass in function type to override that of body's type?
+//        return iop.body().transform(cc, ot);
+        FunctionType inputType = iop.invokableType();
+        FunctionType outputType = FunctionType.functionType(
+                type(l, inputType.returnType()),
+                inputType.parameterTypes().stream().map(pt -> type(l, pt)).toList());
 
-        Body ancestorBody = body.parentOp().parentBlock() instanceof Block parentBlock ? parentBlock.parentBody() : null;
+        // @@@ It's not clear in the API when to pass CopyContext and OpTransformer
+        // @@@ create a Body.Builder structurally connected as a descendant of a Block.Builder
+        // but not yet connected as the child of an operation
+        Body.Builder bb = Body.Builder.of(ancestor.parentBody(),
+                outputType, ancestor.context()); // translate types
 
-        Block.Builder ancestorBlockBuilder = ancestorBody != null
-                ? cc.getBlock(ancestorBody.entryBlock()) : null;
-        Body.Builder ancestorBodyBuilder = ancestorBlockBuilder != null
-                ? ancestorBlockBuilder.parentBody() : null;
-
-        Body.Builder bb = Body.Builder.of(ancestorBodyBuilder, FunctionType.functionType(type(body.yieldType())), cc, ot); // translate types
-        for (Block.Parameter p : body.entryBlock().parameters()) {
-            bb.entryBlock().parameter(type(p.type())); // translate types
-        }
-        bb.entryBlock().transformBody(body, bb.entryBlock().parameters(), cc, ot);
+        bb.entryBlock().transformBody(iop.body(), bb.entryBlock().parameters(), ot);
         return bb;
     }
 
@@ -316,7 +366,7 @@ public class OnnxTransformer {
                     Type elementType = pt.getActualTypeArguments()[0];
                     switch (elementType) {
                         case Class<?> _ -> {
-                            tupleComponentTypes.add(type(JavaType.type(pt)));
+                            tupleComponentTypes.add(type(l, JavaType.type(pt)));
                         }
                         case TypeVariable<?> tv -> {
                             // Resolve type variable
@@ -327,10 +377,21 @@ public class OnnxTransformer {
                                     break;
                                 }
                             }
-                            tupleComponentTypes.add(type(JavaType.parameterized(JavaType.type(Tensor.class), e)));
+                            tupleComponentTypes.add(type(l, JavaType.parameterized(JavaType.type(Tensor.class), e)));
                         }
                         default -> throw new IllegalStateException("Unexpected value: " + elementType);
                     }
+                }
+                case TypeVariable tv -> {
+                    // Resolve type variable
+                    JavaType e = null;
+                    for (int j = 0; j < recordClass.getTypeParameters().length; j++) {
+                        if (recordClass.getTypeParameters()[j].getName().equals(tv.getName())) {
+                            e = recordType.typeArguments().get(j);
+                            break;
+                        }
+                    }
+                    tupleComponentTypes.add(type(l, e));
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + rc.getGenericType());
             }
@@ -339,8 +400,18 @@ public class OnnxTransformer {
         return TupleType.tupleType(tupleComponentTypes);
     }
 
+    static boolean isRecord(MethodHandles.Lookup l, TypeElement type) {
+        try {
+            return type instanceof ClassType ct &&
+                    ct.erasure().resolve(l) instanceof Class c &&
+                    c.isRecord();
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     static Integer recordComponentAccessToTupleIndex(MethodHandles.Lookup l, MethodRef ref) {
-        if (ref.refType() instanceof ClassType ct && ct.toClassName().startsWith("oracle.code.onnx.OnnxOperators$")) {
+        if (ref.refType() instanceof ClassType ct) {
             Class<?> refClass;
             try {
                 refClass = (Class<?>) ct.resolve(l);
@@ -362,11 +433,10 @@ public class OnnxTransformer {
     }
 
     static final TypeElement TENSOR_RAW_CLASS = JavaType.type(Tensor.class);
-    static final TypeElement LOOP_RETURN_RAW_CLASS = JavaType.type(ExplicitOnnxOps.LoopReturn.class);
 
     // @@@ Map of Java tensor types to ONNX tensor types
     // @@@ Shape??
-    static TypeElement type(TypeElement type) {
+    static TypeElement type(MethodHandles.Lookup l, TypeElement type) {
         if (type instanceof ClassType ct) {
             if (ct.rawType().equals(TENSOR_RAW_CLASS)) {
                 JavaType elementType = ct.typeArguments().getFirst();
@@ -381,8 +451,8 @@ public class OnnxTransformer {
                 } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
                     return OnnxType.TENSOR_BOOL;
                 }
-            } else if (ct.rawType().equals(LOOP_RETURN_RAW_CLASS)) {
-                return JavaType.VOID;
+            } else if (isRecord(l, type)) {
+                return recordTypeToTupleType(l, ct);
             }
         }
         return type;

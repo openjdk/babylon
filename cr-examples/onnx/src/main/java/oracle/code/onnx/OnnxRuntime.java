@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.ParameterizedType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -13,6 +15,8 @@ import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.type.JavaType;
 import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
@@ -78,9 +82,10 @@ public final class OnnxRuntime {
 
         @Override
         protected Session computeValue(Class<?> type) {
-            var trans = OnnxTransformer.ofLambda(l, (CoreOp.LambdaOp)q.op());
+            var trans = OnnxTransformer.ofQuotedLambda(l, q);
             var func = trans.transform();
-            byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(), trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
+            byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(),
+                    trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
 
             if (DEBUG) {
                 System.out.println(func.toText());
@@ -100,16 +105,16 @@ public final class OnnxRuntime {
 
     private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
 
-    public static <T> Tensor<T> execute(OnnxFunction<Tensor<T>> codeLambda) {
+    public static <T> T execute(OnnxFunction<T> codeLambda) {
         return execute(MethodHandles.lookup(), codeLambda);
     }
 
-    public static <T> Tensor<T> execute(MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
+    public static <T> T execute(MethodHandles.Lookup l, OnnxFunction<T> codeLambda) {
         return execute(Arena.ofAuto(), l, codeLambda);
     }
 
 
-    public static <T> Tensor<T> execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<Tensor<T>> codeLambda) {
+    public static <T> T execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<T> codeLambda) {
         var q = Op.ofQuotable(codeLambda).orElseThrow();
 
         var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
@@ -122,8 +127,36 @@ public final class OnnxRuntime {
                     }
                 })
                 .toList();
-        return model.run(arena, arguments).getFirst();
+        List<Tensor> ret = model.run(arena, arguments);
+
+        ClassType retType = ((ClassType)((CoreOp.LambdaOp)q.op()).invokableType().returnType()).rawType();
+        if (retType.equals(TENSOR_RAW_TYPE)) {
+            return (T)ret.getFirst();
+        } else if(retType.equals(LIST_RAW_TYPE)) {
+            return (T)ret;
+        } else if(getRecordConstructor(l, retType) instanceof Constructor recordConstructor) {
+            try {
+                return (T)recordConstructor.newInstance(ret.toArray());
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        } else {
+            throw new UnsupportedOperationException("Unsupported return type: " + q.op().resultType());
+        }
     }
+
+    static Constructor getRecordConstructor(MethodHandles.Lookup l, ClassType ct) {
+        try {
+            var t = ct.resolve(l);
+            while (t instanceof ParameterizedType pt) t = pt.getRawType();
+            if (t instanceof Class c && c.isRecord()) return c.getConstructors()[0];
+        } catch (ReflectiveOperationException _) {
+        }
+        return null;
+    }
+
+    static final JavaType TENSOR_RAW_TYPE = JavaType.type(Tensor.class);
+    static final JavaType LIST_RAW_TYPE = JavaType.type(List.class);
 
     public static OnnxRuntime getInstance() {
         if (INSTANCE == null) {

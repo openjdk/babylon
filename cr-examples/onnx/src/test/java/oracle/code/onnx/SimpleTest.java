@@ -153,6 +153,18 @@ public class SimpleTest {
         return If(cond, () -> List.of(Constant(1f)), () -> List.of(Constant(-1f))).get(0);
     }
 
+    @CodeReflection
+    public List<Tensor<Float>> ifConstList(Tensor<Boolean> cond) {
+        return If(cond, () -> List.of(Constant(1f)), () -> List.of(Constant(-1f)));
+    }
+
+    public record SingleValueTuple<T>(T val) {}
+
+    @CodeReflection
+    public SingleValueTuple<Tensor<Float>> ifConstRecord(Tensor<Boolean> cond) {
+        return If(cond, () -> new SingleValueTuple<>(Constant(1f)), () -> new SingleValueTuple<>(Constant(-1f)));
+    }
+
     @Test
     public void testIfConst() throws Exception {
         var condFalse = Tensor.ofScalar(false);
@@ -165,6 +177,12 @@ public class SimpleTest {
 
         assertEquals(expTrue, ifConst(condTrue));
         assertEquals(expTrue, execute(() -> ifConst(condTrue)));
+
+        assertEquals(expFalse, execute(() -> ifConstList(condFalse)).get(0));
+        assertEquals(expTrue, execute(() -> ifConstList(condTrue)).get(0));
+
+        assertEquals(expFalse, execute(() -> ifConstRecord(condFalse)).val());
+        assertEquals(expTrue, execute(() -> ifConstRecord(condTrue)).val());
     }
 
     @CodeReflection
@@ -236,7 +254,12 @@ public class SimpleTest {
 
     @CodeReflection
     public Tensor<Float> forLoopAdd(Tensor<Long> max, Tensor<Float> initialValue) {
-        return Loop(max, TRUE, initialValue, (i, cond, v) -> LoopReturn(cond, Add(v, v)));
+        return Loop(max, TRUE, initialValue, (i, cond, v) -> new LoopResult<>(cond, Add(v, v)));
+    }
+
+    @CodeReflection
+    public SingleValueTuple<Tensor<Float>> forLoopAddRecord(Tensor<Long> max, Tensor<Float> initialValue) {
+        return Loop(max, TRUE, new SingleValueTuple<>(initialValue), (i, cond, v) -> new LoopResult<>(cond, new SingleValueTuple<>(Add(v.val(), v.val()))));
     }
 
     @Test
@@ -246,6 +269,25 @@ public class SimpleTest {
         var max = Tensor.ofScalar(3l);
         assertEquals(expected, forLoopAdd(max, value));
         assertEquals(expected, execute(() -> forLoopAdd(max, value)));
+        assertEquals(expected, execute(() -> forLoopAddRecord(max, value)).val());
+    }
+
+    public record Tuple(Tensor<Long> a, Tensor<Float> b) {}
+
+    @CodeReflection
+    public Tuple loop(Tensor<Boolean> b) {
+        var c1 = Constant(1l);
+        var c2 = Constant(1f);
+        var c3 = Constant(4l);
+        return Loop(c3, b, new Tuple(c1, c2), (i, cond, v) -> new LoopResult<>(Identity(cond), new Tuple(Add(v.a(), v.a()), Identity(Add(v.b(), v.b())))));
+    }
+
+    @Test
+    public void testLoop() throws Exception {
+        var b = Tensor.ofScalar(true);
+        var res = execute(() -> loop(b));
+        assertEquals(Tensor.ofScalar(16l), res.a());
+        assertEquals(Tensor.ofScalar(16f), res.b());
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
