@@ -110,38 +110,38 @@ int main(int argc, char **argv) {
        .target sm_52
        .address_size 64
 
-	       // .globl	squareKernel
+               // .globl        squareKernel
 
        .visible .entry squareKernel(
-	       .param .u64 squareKernel_param_0,
-	       .param .u64 squareKernel_param_1
+               .param .u64 squareKernel_param_0,
+               .param .u64 squareKernel_param_1
        )
        {
-	       .reg .pred 	%p<2>;
-	       .reg .b32 	%r<8>;
-	       .reg .b64 	%rd<7>;
+               .reg .pred           %p<2>;
+               .reg .b32            %r<8>;
+               .reg .b64            %rd<7>;
 
 
-	       ld.param.u64 	%rd2, [squareKernel_param_0];
-	       ld.param.u64 	%rd1, [squareKernel_param_1];
-	       cvta.to.global.u64 	%rd3, %rd2;
-	       mov.u32 	%r2, %ntid.x;
-	       mov.u32 	%r3, %ctaid.x;
-	       mov.u32 	%r4, %tid.x;
-	       mad.lo.s32 	%r1, %r3, %r2, %r4;
-	       ld.global.u32 	%r5, [%rd3+4];
-	       setp.ge.s32 	%p1, %r1, %r5;
-	       @%p1 bra 	$L__BB0_2;
+               ld.param.u64         %rd2, [squareKernel_param_0];
+               ld.param.u64         %rd1, [squareKernel_param_1];
+               cvta.to.global.u64         %rd3, %rd2;
+               mov.u32              %r2, %ntid.x;
+               mov.u32              %r3, %ctaid.x;
+               mov.u32              %r4, %tid.x;
+               mad.lo.s32           %r1, %r3, %r2, %r4;
+               ld.global.u32        %r5, [%rd3+4];
+               setp.ge.s32          %p1, %r1, %r5;
+               @%p1 bra             $L__BB0_2;
 
-	       cvta.to.global.u64 	%rd4, %rd1;
-	       mul.wide.s32 	%rd5, %r1, 4;
-	       add.s64 	%rd6, %rd4, %rd5;
-	       ld.global.u32 	%r6, [%rd6+4];
-	       mul.lo.s32 	%r7, %r6, %r6;
-	       st.global.u32 	[%rd6+4], %r7;
+               cvta.to.global.u64   %rd4, %rd1;
+               mul.wide.s32         %rd5, %r1, 4;
+               add.s64              %rd6, %rd4, %rd5;
+               ld.global.u32        %r6, [%rd6+4];
+               mul.lo.s32           %r7, %r6, %r6;
+               st.global.u32        [%rd6+4], %r7;
 
        $L__BB0_2:
-	       ret;
+               ret;
        }
     )");
 
