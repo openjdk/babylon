@@ -39,13 +39,13 @@ Text::Text(size_t len)
         : len(len), text(len > 0 ? new char[len] : nullptr), isCopy(true) {
     std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
 }
-void Text::writeTmp(std::string &filename) const{
+void Text::write(std::string &filename) const{
     std::ofstream out;
     out.open(filename, std::ofstream::trunc);
     out.write(text, len);
     out.close();
 }
-void Text::readTmp(std::string &filename){
+void Text::read(std::string &filename){
     if (isCopy && text){
         delete[] text;
     }
@@ -72,6 +72,7 @@ void Text::readTmp(std::string &filename){
         //std::cerr << "read text " << text << std::endl;
     }
 }
+
 Text::~Text(){
     if (isCopy && text){
         delete[] text;
@@ -100,6 +101,9 @@ CudaSource::CudaSource(size_t len, char *text, bool isCopy)
    :Text(len, text, isCopy){
 
 }
+CudaSource::CudaSource()
+        : Text(0) {
+}
 Log::Log(size_t len)
         : Text(len) {
 }
@@ -125,7 +129,7 @@ PtxSource *PtxSource::nvcc(const char *cudaSource, size_t len) {
     std::string cudaPath = tmpFileName(time, ".cu");
     // we are going to fork exec nvcc
     int pid;
-    cSource.writeTmp(cudaPath);
+    cSource.write(cudaPath);
     if ((pid = fork()) == 0) {
         const char *path = "/usr/local/cuda-12.2/bin/nvcc";
         const char *argv[]{"nvcc", "-ptx", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
@@ -144,7 +148,7 @@ PtxSource *PtxSource::nvcc(const char *cudaSource, size_t len) {
         pid_t result = wait(&status);
         //std::cerr << "child finished should be safe to read "<< ptxPath << std::endl;
         PtxSource *ptx= new PtxSource();
-        ptx->readTmp(ptxPath);
+        ptx->read(ptxPath);
         return ptx;
     }
     std::cerr << "we should never get here !";
@@ -158,18 +162,44 @@ CudaBackend::CudaBackend(int mode)
   //  std::cout << "CudaBackend constructor " << ((cudaConfig == nullptr) ? "cudaConfig== null" : "got cudaConfig")
     //          << std::endl;
     int deviceCount = 0;
-    CUresult err = cuInit(0);
-    if (err == CUDA_SUCCESS) {
-        cuDeviceGetCount(&deviceCount);
-        std::cout << "CudaBackend device count" << std::endl;
-        cuDeviceGet(&device, 0);
-        std::cout << "CudaBackend device ok" << std::endl;
-        cuCtxCreate(&context, 0, device);
-        std::cout << "CudaBackend context created ok" << std::endl;
+    CUresult status = cuInit(0);
+    if (status == CUDA_SUCCESS) {
+        status  = cuDeviceGetCount(&deviceCount);
+        if (status != CUDA_SUCCESS) {
+            std::cerr
+                    << "cuDeviceGetCount() failed we seem to have the runtime library but no device, CUDA error = "
+                    << status
+                    << " " << cudaGetErrorString(static_cast<cudaError_t>(status))
+                    << " " << __FILE__ << " line " << __LINE__ << std::endl;
+            exit(-1);
+        }
+        std::cout << "CudaBackend device count = "<< deviceCount << std::endl;
+        status= cuDeviceGet(&device, 0);
+        if (status != CUDA_SUCCESS) {
+            std::cerr
+                    << "cuDeviceGet() failed we seem to have the runtime library but no device, CUDA error = "
+                    << status
+                    << " " << cudaGetErrorString(static_cast<cudaError_t>(status))
+                    << " " << __FILE__ << " line " << __LINE__ << std::endl;
+            exit(-1);
+        }
+        std::cout << "CudaBackend device ok (id = "<<device<<")" << std::endl;
+
+        status = cuCtxCreate(&context, 0, device);
+        if (status != CUDA_SUCCESS) {
+            std::cerr
+                    << "cuCtxCreate() failed we seem to have the runtime library found a device, but cant create context, CUDA error = "
+                    << status
+                    << " " << cudaGetErrorString(static_cast<cudaError_t>(status))
+                    << " " << __FILE__ << " line " << __LINE__ << std::endl;
+            exit(-1);
+        }
+        std::cout << "CudaBackend context created ok (id="<<context<<")" << std::endl;
     } else {
-        std::cout << "CudaBackend failed, we seem to have the runtime library but no device, no context, nada "
-                  << std::endl;
-        exit(1);
+        std::cerr << "cuInit() failed we seem to have the runtime library but no device, no context, nada CUDA error = " << status
+                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
+                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+        exit(-1);
     }
 }
 
@@ -217,6 +247,80 @@ void CudaBackend::info() {
     std::cout << "  64-bit Memory Address:           " <<
               ((totalGlobalMem > (unsigned long long) 4 * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
 
+}
+
+PtxSource *CudaBackend::nvcc(CudaSource *cudaSource){
+    uint64_t time = timeSinceEpochMillisec();
+    std::string ptxPath = tmpFileName(time, ".ptx");
+    std::string cudaPath = tmpFileName(time, ".cu");
+    // we are going to fork exec nvcc so we need to write the cuda source to disk
+    int pid;
+    cudaSource->write(cudaPath);
+    if ((pid = fork()) == 0) {
+        const char *path = "/usr/local/cuda-12.2/bin/nvcc";
+        const char *argv[]{"nvcc", "-ptx", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
+        // std::cerr << "child about to exec nvcc" << std::endl;
+        // std::cerr << "path " << path<< " " << argv[1]<< " " << argv[2]<< " " << argv[3]<< " " << argv[4]<< std::endl;
+        int stat = execvp(path, (char *const *) argv);
+        std::cerr << " nvcc stat = "<<stat << " errno="<< errno<< " '"<< std::strerror(errno)<< "'"<<std::endl;
+        std::exit(errno);
+    } else if (pid < 0) {
+        // fork failed.
+        std::cerr << "fork of nvcc failed" << std::endl;
+        std::exit(1);
+    } else {
+        int status;
+        // std::cerr << "parent waiting for child nvcc exec" << std::endl;
+        pid_t result = wait(&status);
+        //std::cerr << "child finished should be safe to read "<< ptxPath << std::endl;
+        PtxSource *ptx= new PtxSource();
+        ptx->read(ptxPath);
+        return ptx;
+    }
+    std::cerr << "we should never get here !";
+    exit(1);
+    return nullptr;
+
+}
+CudaBackend::CudaModule * CudaBackend::compile(CudaSource &cudaSource) {
+    return compile(&cudaSource);
+}
+CudaBackend::CudaModule * CudaBackend::compile(CudaSource *cudaSource) {
+    PtxSource *ptx = nvcc(cudaSource);
+    CUmodule module;
+    std::cout << "inside compile" << std::endl;
+    std::cout << "cuda " << cudaSource->text << std::endl;
+    if (ptx->text != nullptr) {
+        std::cout << "ptx " << ptx->text << std::endl;
+        Log *infLog = new Log(8192);
+        Log *errLog = new Log(8192);
+        const unsigned int optc = 5;
+        auto jitOptions = new CUjit_option[optc];
+        void **jitOptVals = new void *[optc];
+
+
+        jitOptions[0] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;jitOptVals[0] = (void *) (size_t) infLog->len;
+        jitOptions[1] = CU_JIT_INFO_LOG_BUFFER; jitOptVals[1] = infLog->text;
+        jitOptions[2] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;jitOptVals[2] = (void *) (size_t) errLog->len;
+        jitOptions[3] = CU_JIT_ERROR_LOG_BUFFER; jitOptVals[3] = errLog->text;
+        jitOptions[4] = CU_JIT_GENERATE_LINE_INFO;jitOptVals[4] = (void *)1;
+        int status = cuModuleLoadDataEx(&module, ptx->text,
+                                        optc, jitOptions, (void **) jitOptVals);
+        if (CUDA_SUCCESS != status) {
+            std::cerr << "cuModuleLoadDataEx() CUDA error = " << status
+                      <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
+                      <<" " << __FILE__ << " line " << __LINE__ << std::endl;
+            exit(-1);
+        }
+        std::cout <<"> PTX JIT inflog:"<<std::endl  << infLog->text << std::endl;
+        std::cout <<"> PTX JIT errlog:"<<std::endl  << errLog->text << std::endl;
+        return new CudaModule(this,  ptx->text,infLog->text,true, module);
+
+        //delete ptx;
+    } else {
+        std::cout << "no ptx content!" << std::endl;
+        exit(1);
+    }
 }
 
 long CudaBackend::compile(int len, char *source) {
@@ -281,4 +385,11 @@ void CudaBackend::computeStart(){
 }
 bool CudaBackend::getBufferFromDeviceIfDirty(void *memorySegment, long size){
 return true;
+}
+
+CudaBackend * CudaBackend::of(long backendHandle){
+    return reinterpret_cast<CudaBackend *>(backendHandle);
+}
+CudaBackend * CudaBackend::of(Backend *backend){
+    return dynamic_cast<CudaBackend *>(backend);
 }

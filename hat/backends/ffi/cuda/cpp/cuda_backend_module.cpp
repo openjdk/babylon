@@ -33,8 +33,18 @@ CudaBackend::CudaModule::CudaModule(Backend *backend, char *src, char  *log,  bo
 }
 
 CudaBackend::CudaModule::~CudaModule() = default;
-
-long CudaBackend::CudaModule::getKernel(int nameLen, char *name) {
+CudaBackend::CudaModule * CudaBackend::CudaModule::of(long moduleHandle){
+    return reinterpret_cast<CudaBackend::CudaModule *>(moduleHandle);
+}
+long CudaBackend::CudaModule::getKernel(int len, char *name) {
+    CudaKernel* cudaKernel= getCudaKernel(len, name);
+    long kernelHandle =  reinterpret_cast<long>(cudaKernel);
+    return kernelHandle;
+}
+CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(char *name) {
+    return getCudaKernel(std::strlen(name), name);
+}
+CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(int nameLen, char *name) {
     CUfunction function;
     CUresult status= cuModuleGetFunction(&function, module, name);
     if (CUDA_SUCCESS != status) {
@@ -43,8 +53,8 @@ long CudaBackend::CudaModule::getKernel(int nameLen, char *name) {
                   <<" " << __FILE__ << " line " << __LINE__ << std::endl;
         exit(-1);
     }
-    long kernelHandle =  reinterpret_cast<long>(new CudaKernel(this, name, function));
-    return kernelHandle;
+    return new CudaKernel(this,name, function);
+
 }
 
 bool CudaBackend::CudaModule::programOK() {

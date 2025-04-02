@@ -72,8 +72,8 @@ public:
     Text(size_t len, char *text, bool isCopy);
     Text(char *text, bool isCopy);
     Text(size_t len);
-    void writeTmp(std::string &filename) const;
-    void readTmp(std::string &filename);
+    void write(std::string &filename) const;
+    void read(std::string &filename);
     virtual ~Text();
 };
 
@@ -90,6 +90,7 @@ public:
     CudaSource(size_t len, char *text, bool isCopy);
     CudaSource(size_t len);
     CudaSource(char* text);
+    CudaSource();
     ~CudaSource() = default;
 };
 class Log:public Text  {
@@ -142,16 +143,6 @@ class CudaQueue: public Backend::Queue {
     };
 
     class CudaModule : public Backend::CompilationUnit {
-        class CudaKernel : public Backend::CompilationUnit::Kernel {
-
-        private:
-            CUfunction function;
-
-        public:
-            CudaKernel(Backend::CompilationUnit *program, char* name, CUfunction function);
-            ~CudaKernel() override;
-            long ndrange( void *argArray);
-        };
 
     private:
         CUmodule module;
@@ -160,11 +151,29 @@ class CudaQueue: public Backend::Queue {
         Log log;
 
     public:
+        class CudaKernel : public Backend::CompilationUnit::Kernel {
 
+        private:
+            CUfunction function;
+
+        public:
+            CudaKernel(Backend::CompilationUnit *program, char* name, CUfunction function);
+            ~CudaKernel() override;
+            static CudaKernel * of(long kernelHandle);
+            static CudaKernel * of(Backend::CompilationUnit::Kernel *kernel);
+
+            long ndrange( void *argArray);
+        };
         CudaModule(Backend *backend, char *cudaSrc,   char *log, bool ok, CUmodule module);
         ~CudaModule();
+        static CudaModule * of(long moduleHandle);
+        static CudaModule * of(Backend::CompilationUnit *compilationUnit);
         long getKernel(int nameLen, char *name);
+        CudaKernel *getCudaKernel(char *name);
+        CudaKernel *getCudaKernel(int nameLen, char *name);
         bool programOK();
+
+
     };
 
 private:
@@ -175,7 +184,9 @@ private:
     CudaQueue cudaQueue;
 public:
     void info();
-
+    CudaModule * compile(CudaSource *cudaSource);
+    CudaModule * compile(CudaSource &cudaSource);
+    PtxSource *nvcc(CudaSource *cudaSource);
     long compile(int len, char *source);
     void computeStart();
     void computeEnd();
@@ -186,6 +197,8 @@ public:
     CudaBackend();
 
     ~CudaBackend();
+    static CudaBackend * of(long backendHandle);
+    static CudaBackend * of(Backend *backend);
 };
 
 

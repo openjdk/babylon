@@ -62,6 +62,16 @@ if(CUDAToolkit_FOUND)
 	    ${CUDA_BACKEND}/cpp/info.cpp
     )
 
+    add_executable(cuda_squares
+            ${CUDA_BACKEND}/cpp/squares.cpp
+    )
+
+    target_link_libraries(cuda_squares
+            cuda_backend
+            -lcudart
+            -lcuda
+    )
+
     target_link_libraries(cuda_info
             cuda_backend
             -lcudart

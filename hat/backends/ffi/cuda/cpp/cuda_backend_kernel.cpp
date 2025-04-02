@@ -36,7 +36,7 @@ CudaBackend::CudaModule::CudaKernel::~CudaKernel() = default;
 
 long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
 
-    auto cudaBackend = dynamic_cast<CudaBackend*>(compilationUnit->backend);
+    auto cudaBackend = CudaBackend::of(compilationUnit->backend);
     if (cudaBackend->cudaConfig.traceCalls) {
         std::cout << "ndrange(" <<  ") " << name << std::endl;
     }
@@ -93,6 +93,7 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
                   <<" " << __FILE__ << " line " << __LINE__ << std::endl;
         exit(-1);
     }
+
     status = cuCtxSetCurrent(cudaBackend->context);
     if (CUDA_SUCCESS != status) {
         std::cerr << "cuCtxSetCurrent() CUDA error = " << status
@@ -104,7 +105,7 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
     status= cuLaunchKernel(function,
                                    rangediv1024, 1, 1,
                                    1024, 1, 1,
-                                   0, cudaBackend->cudaQueue.cudaStream,
+                                   0, nullptr /*cudaBackend->cudaQueue.cudaStream */,
                     argslist, nullptr);
     if (CUDA_SUCCESS != status) {
         std::cerr << "cuLaunchKernel() CUDA error = " << status
@@ -126,8 +127,9 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
-            static_cast<CudaBuffer *>(BufferState_s::of(arg)->vendorPtr)->copyFromDevice();
-
+            auto bufferState = BufferState_s::of(arg)->vendorPtr;
+            auto cudaBuffer = static_cast<CudaBuffer *>(bufferState);
+            cudaBuffer->copyFromDevice();
         }
     }
     status=   static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cudaStream));
@@ -141,8 +143,9 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
-            delete static_cast<CudaBuffer *>(BufferState_s::of(arg)->vendorPtr);
-            BufferState_s::of(arg)->vendorPtr = nullptr;
+            //auto bufferState = BufferState_s::of(arg)->vendorPtr;
+            //auto cudaBuffer = static_cast<CudaBuffer *>(bufferState);
+            //delete cudaBuffer;
 
         }
     }
@@ -150,3 +153,9 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
     return (long) 0;
 }
 
+CudaBackend::CudaModule::CudaKernel * CudaBackend::CudaModule::CudaKernel::of(long kernelHandle){
+    return reinterpret_cast<CudaBackend::CudaModule::CudaKernel *>(kernelHandle);
+}
+CudaBackend::CudaModule::CudaKernel * CudaBackend::CudaModule::CudaKernel::of(Backend::CompilationUnit::Kernel *kernel){
+    return dynamic_cast<CudaBackend::CudaModule::CudaKernel *>(kernel);
+}
