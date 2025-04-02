@@ -11,8 +11,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
@@ -84,11 +82,13 @@ public final class OnnxRuntime {
 
         @Override
         protected Session computeValue(Class<?> type) {
-            var trans = OnnxTransformer.ofLambda(l, (CoreOp.LambdaOp)q.op());
+            var trans = OnnxTransformer.ofQuotedLambda(l, q);
             var func = trans.transform();
-            byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(), trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
+            byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(),
+                    trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
 
             if (DEBUG) {
+                System.out.println(func.toText());
                 try {
                     var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
                     Files.write(export, protobufModel);
