@@ -31,6 +31,7 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.ChessState;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Scanner;
 import jdk.incubator.code.CodeReflection;
 import java.util.*;
@@ -319,8 +320,8 @@ public class Chess {
     }
 
     public static void main(String[] args) {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
-        var accelerator = new Accelerator(lookup, Backend.FIRST);//new JavaMultiThreadedBackend());
+
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
         var board = initBoard(accelerator);
         printBoard(board);
 

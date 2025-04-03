@@ -37,6 +37,8 @@
 #include <bitset>
 #include <stack>
 
+#include "strutil.h"
+
 #ifdef __APPLE__
    #define SNPRINTF snprintf
 #else
@@ -64,9 +66,7 @@ typedef long s64_t;
 typedef unsigned long u64_t;
 
 extern void hexdump(void *ptr, int buflen);
- // hat iface buffer bits
- // hat iface bffa   bits
- // 4a7 1face bffa   b175
+
 
  #define UNKNOWN_BYTE 0
  #define RO_BYTE (1<<1)
@@ -119,89 +119,37 @@ extern void hexdump(void *ptr, int buflen);
 
  struct BufferState_s{
    static const long  MAGIC =0x4a71facebffab175;
-   static const int   NONE = 0;
-   static const int   BIT_HOST_NEW =1<<0;
-   static const int   BIT_DEVICE_NEW =1<<1;
-   static const int   BIT_HOST_DIRTY =1<<2;
-   static const int   BIT_DEVICE_DIRTY =1<<3;
-   static const int   BIT_HOST_CHECKED =1<<4;
-
+   static const int NO_STATE = 0;
+   static const int NEW_STATE = 1;
+   static const int HOST_OWNED = 2;
+   static const int DEVICE_OWNED = 3;
+   static const int DEVICE_VALID_HOST_HAS_COPY = 4;
+   const static  char *stateNames[]; // See below for out of line definition
 
    long magic1;
+   void *ptr;
+   long length;
    int bits;
-   int unused;
+   int state;
    void *vendorPtr;
    long magic2;
    bool ok(){
       return ((magic1 == MAGIC) && (magic2 == MAGIC));
    }
-
-   void assignBits(int bitBits) {
-      bits=bitBits;
+   void setState(int newState) {
+      state = newState;
    }
-   void setBits(int bitBits) {
-      bits|=bitBits;
+   int getState() {
+      return state;
    }
-   void  xorBits(int bitsToReset) {
-      // say bits = 0b0111 (7) and bitz = 0b0100 (4)
-      int xored = bits^bitsToReset;  // xored = 0b0011 (3)
-      bits =  xored;
-   }
-    void  resetBits(int bitsToReset) {
-         // say bits = 0b0111 (7) and bitz = 0b0100 (4)
-         bits = bits&~bitsToReset;  // xored = 0b0011 (3)
-         //bits =  xored;
-      }
-   int getBits() {
-      return bits;
-   }
-   bool areBitsSet(int bitBits) {
-      return (bits&bitBits)==bitBits;
-   }
-   void setHostDirty(){
-      setBits(BIT_HOST_DIRTY);
-   }
-   bool isHostDirty(){
-      return  areBitsSet(BIT_HOST_DIRTY);
-   }
-   void clearHostDirty(){
-      resetBits(BIT_HOST_DIRTY);
-   }
-   void clearHostChecked(){
-      resetBits(BIT_HOST_CHECKED);
-   }
-   void clear(){
-       bits=0;
-   }
-   bool isHostNew(){
-      return  areBitsSet(BIT_HOST_NEW);
-   }
-   void clearHostNew(){
-      resetBits(BIT_HOST_NEW);
-   }
-   bool isHostNewOrDirty() {
-      return areBitsSet(BIT_HOST_NEW|BIT_HOST_DIRTY);
-   }
-
-   void setDeviceDirty(){
-      setBits(BIT_DEVICE_DIRTY);
-   }
-
-   bool isDeviceDirty(){
-      return areBitsSet(BIT_DEVICE_DIRTY);
-   }
-   void clearDeviceDirty(){
-      resetBits(BIT_DEVICE_DIRTY);
-   }
-
 
    void dump(const char *msg){
      if (ok()){
-        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}\n", msg, bits, unused, (long)vendorPtr);
+        printf("{%s,ptr:%016lx,length: %016lx,  state:%08x, vendorPtr:%016lx}\n", msg, (long)ptr, length,  state, (long)vendorPtr);
      }else{
         printf("%s bad magic \n", msg);
         printf("(magic1:%016lx,", magic1);
-        printf("{%s, bits:%08x, unused:%08x, vendorPtr:%016lx}", msg, bits, unused, (long)vendorPtr);
+        printf("{%s, ptr:%016lx, length: %016lx,  state:%08x, vendorPtr:%016lx}", msg, (long)ptr, length,  state, (long)vendorPtr);
         printf("magic2:%016lx)\n", magic2);
      }
    }
@@ -215,7 +163,17 @@ extern void hexdump(void *ptr, int buflen);
            arg->value.buffer.sizeInBytes
            );
       }
+
 };
+#ifdef shared_cpp
+const  char *BufferState_s::stateNames[] = {
+              "NO_STATE",
+              "NEW_STATE",
+              "HOST_OWNED",
+              "DEVICE_OWNED",
+              "DEVICE_VALID_HOST_HAS_COPY"
+        };
+#endif
 
 struct ArgArray_s {
     u32_t argc;
@@ -322,29 +280,6 @@ public:
 };
 
 
-class BuildInfo {
-public:
-    char *src;
-    char *log;
-    bool ok;
-
-    BuildInfo(char *src, char *log, bool ok)
-            : src(src), log(log), ok(ok) {
-    }
-
-    ~BuildInfo() {
-        if (src) {
-            delete[] src;
-        }
-        if (log) {
-            delete[] log;
-        }
-    }
-
-};
-
-
-//extern "C" void dumpArgArray(void *ptr);
 
 
 extern void hexdump(void *ptr, int buflen);
@@ -363,41 +298,114 @@ public:
 
 class Backend {
 public:
+    class Config{
+    public:
+        // These must sync with hat/backend/ffi/Mode.java
+        // Bits 0-3 select platform id 0..5
+        // Bits 4-7 select device id 0..15
+        const static  int START_BIT_IDX = 16;
+        const static  int MINIMIZE_COPIES_BIT =1<<START_BIT_IDX;
+        const static  int TRACE_BIT =1<<17;
+        const static  int PROFILE_BIT =1<<18;
+        const static  int SHOW_CODE_BIT = 1 << 19;
+        const static  int SHOW_KERNEL_MODEL_BIT = 1 << 20;
+        const static  int SHOW_COMPUTE_MODEL_BIT = 1 <<21;
+        const static  int INFO_BIT = 1<<22;
+        const static  int TRACE_COPIES_BIT = 1 <<23;
+        const static  int TRACE_SKIPPED_COPIES_BIT = 1 <<24;
+        const static  int TRACE_ENQUEUES_BIT = 1 <<25;
+        const static  int TRACE_CALLS_BIT = 1 <<26;
+        const static  int SHOW_WHY_BIT = 1 <<27;
+        const static  int SHOW_STATE_BIT = 1 <<28;
+        const static  int END_BIT_IDX = 29;
 
-    class Program {
+        const static  char *bitNames[]; // See below for out of line definition
+        int configBits;
+        bool minimizeCopies;
+        bool alwaysCopy;
+        bool trace;
+        bool profile;
+        bool showCode;
+        bool info;
+        bool traceCopies;
+        bool traceSkippedCopies;
+        bool traceEnqueues;
+        bool traceCalls;
+        bool showWhy;
+        bool showState;
+        int platform; //0..15
+        int device; //0..15
+        Config(int mode);
+        virtual ~Config();
+    };
+    class Queue {
+    public:
+        const static  int START_BIT_IDX =20;
+        static const int CopyToDeviceBits= 1<<START_BIT_IDX;
+        static const int CopyFromDeviceBits= 1<<21;
+        static const int NDRangeBits =1<<22;
+        static const int StartComputeBits= 1<<23;
+        static const int EndComputeBits= 1<<24;
+        static const int EnterKernelDispatchBits= 1<<25;
+        static const int LeaveKernelDispatchBits= 1<<26;
+        static const int HasConstCharPtrArgBits = 1<<27;
+        static const int hasIntArgBits = 1<<28;
+        const static  int END_BIT_IDX = 27;
+        Backend *backend;
+        size_t eventMax;
+        size_t eventc;
+
+        int *eventInfoBits;
+        const char **eventInfoConstCharPtrArgs;
+        Queue(Backend *openclBackend);
+        virtual void showEvents(int width)=0;
+        virtual void wait()=0;
+        virtual void release()=0;
+        virtual void computeStart()=0;
+        virtual void computeEnd()=0;
+        virtual void inc(int bits)=0;
+        virtual void inc(int bits, const char *arg)=0;
+        virtual  void inc(int bits, int arg)=0;
+        virtual void marker(int bits)=0;
+        virtual void marker(int bits, const char *arg)=0;
+        virtual void marker(int bits, int arg)=0;
+        virtual void markAsCopyToDeviceAndInc(int argn)=0;
+        virtual  void markAsCopyFromDeviceAndInc(int argn)=0;
+        virtual void markAsNDRangeAndInc()=0;
+        virtual void markAsStartComputeAndInc()=0;
+        virtual  void markAsEndComputeAndInc()=0;
+        virtual  void markAsEnterKernelDispatchAndInc()=0;
+        virtual void markAsLeaveKernelDispatchAndInc()=0;
+         virtual ~Queue();
+    };
+    class Buffer {
+    public:
+        Backend *backend;
+        Arg_s *arg;
+        BufferState_s *bufferState;
+
+        virtual void copyToDevice() = 0;
+
+        virtual void copyFromDevice() = 0;
+
+        Buffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState)
+                : backend(backend), arg(arg), bufferState(bufferState) {
+        }
+
+        virtual ~Buffer() {}
+    };
+    class CompilationUnit {
     public:
         class Kernel {
         public:
-            class Buffer {
-            public:
-                Kernel *kernel;
-                Arg_s *arg;
-
-                virtual void copyToDevice() = 0;
-
-                virtual void copyFromDevice() = 0;
-
-                Buffer(Kernel *kernel, Arg_s *arg)
-                        : kernel(kernel), arg(arg) {
-                }
-
-                virtual ~Buffer() {}
-            };
-
             char *name;// strduped!
 
-            Program *program;
+            CompilationUnit *compilationUnit;
 
             virtual long ndrange(void *argArray) = 0;
-            static char *copy(char *name){
-                size_t len =::strlen(name);
-                char *buf = new char[len+1];
-                memcpy(buf, name, len);
-                buf[len]='\0';
-                return buf;
-            }
-            Kernel(Program *program, char *name)
-                    : program(program), name(copy(name)) {
+
+            Kernel(CompilationUnit *compilationUnit, char *name)
+                    : compilationUnit(compilationUnit), name(strutil::clone(name)) {
             }
 
             virtual ~Kernel() {
@@ -406,55 +414,62 @@ public:
                 }
             }
         };
-
-    public:
+  public:
         Backend *backend;
-        BuildInfo *buildInfo;
-
+        char *src;
+        char *log;
+        bool ok;
         virtual long getKernel(int nameLen, char *name) = 0;
 
-        virtual bool programOK() = 0;
-
-        Program(Backend *backend, BuildInfo *buildInfo)
-                : backend(backend), buildInfo(buildInfo) {
+        bool compilationUnitOK(){
+           return ok;
         }
 
-        virtual ~Program() {
-            if (buildInfo != nullptr) {
-                delete buildInfo;
-            }
-        };
+        CompilationUnit(Backend *backend, char *src, char *log, bool ok)
+                : backend(backend), src(src),log(log),ok(ok) {
+        }
 
+        virtual ~CompilationUnit() {
+           if (src != nullptr) {
+              delete[] src;
+           }
+           if (log != nullptr) {
+              delete[] log;
+           }
+        };
     };
     int mode;
 
-    Backend(int mode)
-            : mode(mode){}
+    Backend(int mode): mode(mode){}
 
     virtual void info() = 0;
 
-     virtual void computeStart() = 0;
-      virtual void computeEnd() = 0;
+    virtual void computeStart() = 0;
 
-    virtual int getMaxComputeUnits() = 0;
+    virtual void computeEnd() = 0;
 
-    virtual long compileProgram(int len, char *source) = 0;
+    virtual long compile(int len, char *source) = 0;
 
     virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength)=0;
 
     virtual ~Backend() {};
 };
 
-extern "C" void info(long backendHandle);
-extern "C" int getMaxComputeUnits(long backendHandle);
-extern "C" long compileProgram(long backendHandle, int len, char *source);
-extern "C" long getKernel(long programHandle, int len, char *name);
-extern "C" void releaseBackend(long backendHandle);
-extern "C" void releaseProgram(long programHandle);
-extern "C" bool programOK(long programHandle);
-extern "C" void releaseKernel(long kernelHandle);
-extern "C" long ndrange(long kernelHandle, void *argArray);
-extern "C" void computeStart(long backendHandle);
-extern "C" void computeEnd(long backendHandle);
-extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength);
-
+#ifdef shared_cpp
+const  char *Backend::Config::bitNames[] = {
+              "MINIMIZE_COPIES",
+              "TRACE",
+              "PROFILE",
+              "SHOW_CODE",
+              "SHOW_KERNEL_MODEL",
+              "SHOW_COMPUTE_MODEL",
+              "INFO",
+              "TRACE_COPIES",
+              "TRACE_SKIPPED_COPIES",
+              "TRACE_ENQUEUES",
+              "TRACE_CALLS"
+              "SHOW_WHY_BIT",
+              "USE_STATE_BIT",
+              "SHOW_STATE_BIT"
+        };
+#endif

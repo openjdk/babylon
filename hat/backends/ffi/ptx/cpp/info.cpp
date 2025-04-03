@@ -26,7 +26,7 @@
 #include "ptx_backend.h"
 
 int main(int argc, char **argv) {
-    PtxBackend ptxBackend;
+    PtxBackend ptxBackend(0);
     ptxBackend.info();
 }
 

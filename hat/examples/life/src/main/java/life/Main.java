@@ -29,8 +29,8 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.ffi.OpenCLBackend;
 import hat.buffer.Buffer;
+import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
-import hat.ifacemapper.SegmentMapper;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
 import jdk.incubator.code.CodeReflection;
@@ -211,85 +211,50 @@ public class Main {
         }
 
 
+
+
         @CodeReflection
         static public void compute(final @RO ComputeContext cc,
-                                   Viewer viewer, @RO Control control, @RW CellGrid cellGrid) {
+                                   Viewer viewer, @RO Control ctrl, @RW CellGrid grid) {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
-            int skipped = 0;
-            while (viewer.state.generations < viewer.state.maxGenerations) {
+            int range = grid.width() * grid.height();
+            while (viewer.stillRunning()) {
+                cc.dispatchKernel(range, kc -> Compute.life(kc, ctrl, grid));
+
+                int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
+
                 long now = System.currentTimeMillis();
-                boolean shouldUpdateUI =  viewer.state.lastUIUpdateCompleted
-                        && ((now - viewer.state.timeOfLastUIUpdate) >= viewer.state.msPerFrame);
-
-                cc.dispatchKernel(cellGrid.width() * cellGrid.height(), kc -> Compute.life(kc, control, cellGrid));
-
-                int to = control.from();
-                control.from(control.to());
-                control.to(to);
-
-                viewer.state.generations++;
-                viewer.state.generationsSinceLastChange++;
-
-                if (shouldUpdateUI) {
-                    if (skipped > 0) {
-                    //    System.out.println("skipped " + skipped);
-                    }
-                    skipped=0;
-                    viewer.controls.updateCounters(now);
-                    cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
-                    viewer.state.lastUIUpdateCompleted =false;
-                    viewer.mainPanel.repaint();
-                    viewer.state.timeOfLastUIUpdate = now;
-                }else{
-                    skipped++;
-
-
+                if (viewer.isReadyForUpdate(now)){
+                    viewer.update(now,grid,to);
                 }
             }
         }
 
         static void nonHatCompute(CLWrapComputeContext clWrapComputeContext,  CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel,Viewer viewer, Control control, CellGrid cellGrid) {
-int skipped = 0;
-            while (viewer.state.generations < viewer.state.maxGenerations) {
+            int range = cellGrid.width() * cellGrid.height();
+            while (viewer.stillRunning()) {
 
                 long now = System.currentTimeMillis();
-                boolean shouldUpdateUI = viewer.state.lastUIUpdateCompleted
-                        && ((now - viewer.state.timeOfLastUIUpdate) >= viewer.state.msPerFrame);
+                boolean shouldUpdateUI = viewer.isReadyForUpdate(now);
 
                 if (viewer.state.usingGPU) {
-                    SegmentMapper.BufferState bufferState = SegmentMapper.BufferState.of(cellGrid);
-                    bufferState.setHostDirty(!viewer.state.minimizingCopies || (viewer.state.generations == 0)); // only first
-                    bufferState.setDeviceDirty(!viewer.state.minimizingCopies || shouldUpdateUI);
-                    kernel.run(clWrapComputeContext, cellGrid.wxh(), cellGrid, control);
+                    BufferState bufferState = BufferState.of(cellGrid);
+                    if (!viewer.state.minimizingCopies || (viewer.state.generations == 0)){
+                        bufferState.setState(BufferState.HOST_OWNED);
+                    }
+                    BufferState.of(control).setState(BufferState.HOST_OWNED);
+                    kernel.run(clWrapComputeContext, range, cellGrid, control);
+
+
                 } else {
-                    IntStream.range(0, cellGrid.wxh()).parallel().forEach(kcx ->
+                    IntStream.range(0, range).parallel().forEach(kcx ->
                             Compute.lifePerIdx(kcx, control, cellGrid)
                     );
                 }
-                int tempFrom = control.from();
-                control.from(control.to());
-                control.to(tempFrom);
-
-                viewer.state.generations++;
-                viewer.state.generationsSinceLastChange++;
+                int to = control.from(); control.from(control.to());control.to(to);
 
                 if (shouldUpdateUI) {
-                    if (skipped > 0) {
-                       // System.out.println("skipped " + skipped);
-                    }
-                    skipped=0;
-                    if (viewer.state.deviceOrModeModified) {
-                        viewer.state.generationsSinceLastChange = 0;
-                        viewer.state.timeOfLastChange = now;
-                        viewer.state.deviceOrModeModified = false;
-                    }
-                    viewer.controls.updateCounters(now);
-                    cellGrid.copySliceTo(viewer.mainPanel.rasterData, control.from());
-                    viewer.state.lastUIUpdateCompleted=false;
-                    viewer.mainPanel.repaint();
-                    viewer.state.timeOfLastUIUpdate = now;
-                }else{
-                   skipped++;
+                    viewer.update(now, cellGrid,control.from());
                 }
             }
         }
@@ -297,12 +262,7 @@ int skipped = 0;
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST
-              //  new OpenCLBackend("GPU,TRACE_COPIES,MINIMIZE_COPIES")
-             //  new OpenCLBackend("GPU,TRACE_COPIES")
-                //new JavaMultiThreadedBackend()
-               // new JavaSequentialBackend()
-        );
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
 
         Arena arena = Arena.global();
         PatternData patternData = RleParser.readPatternData(

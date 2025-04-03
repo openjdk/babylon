@@ -39,6 +39,11 @@ questions.
             <artifactId>hat-core</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-backend-ffi-shared</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

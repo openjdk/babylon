@@ -66,7 +66,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
 
     public enum WRAPPER {
-        MUTATE("Mutate"), ACCESS("Access"), ESCAPE("Escape");
+        MUTATE("Mutate"), ACCESS("Access");//, ESCAPE("Escape");
         final public MethodRef pre;
         final public MethodRef post;
 
@@ -110,7 +110,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
         // System.out.println(module.op().toText());
 
-        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(Op.ofMethod(computeMethod).orElseThrow());
+        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(accelerator.lookup,Op.ofMethod(computeMethod).orElseThrow());
 
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOpWrapper);
 
@@ -127,7 +127,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
-        LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op());
+        LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap(computeCallGraph.computeContext.accelerator.lookup,(CoreOp.LambdaOp) quoted.op());
         MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         try {
@@ -170,7 +170,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         }
 
     }
-
+/*
     @Override
     public void preEscape(Buffer b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
@@ -183,7 +183,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.postEscape(b);
         }
-    }
+    } */
 
     @Override
     public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {

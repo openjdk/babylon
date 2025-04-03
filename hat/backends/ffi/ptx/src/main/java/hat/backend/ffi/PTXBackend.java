@@ -41,14 +41,9 @@ import java.util.*;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class PTXBackend extends C99FFIBackend {
-    final MethodHandle getBackend_MH;
+    final FFILib.LongIntMethodPtr getBackend_MPtr;
     public long getBackend(int mode) {
-        try {
-            backendHandle = (long) getBackend_MH.invoke(mode);
-        } catch (Throwable throwable) {
-            throw new IllegalStateException(throwable);
-        }
-        return backendHandle;
+          return  backendBridge.handle = getBackend_MPtr.invoke(mode);
     }
     int major;
     int minor;
@@ -67,7 +62,7 @@ public class PTXBackend extends C99FFIBackend {
         mathFns = new HashMap<>();
         usedMathFns = new HashSet<>();
         loadMathFns();
-        getBackend_MH  =  nativeLibrary.longFunc("getPtxBackend",JAVA_INT);
+        getBackend_MPtr  =  ffiLib.longIntFunc("getPtxBackend");
         getBackend(0);
     }
 
@@ -75,7 +70,7 @@ public class PTXBackend extends C99FFIBackend {
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("PTX backend recieved closed closure");
         System.out.println("PTX backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true,true);
     }
 
     @Override
@@ -95,10 +90,10 @@ public class PTXBackend extends C99FFIBackend {
 
         // System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
         String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
-        long programHandle = compileProgram(code);
-        if (programOK(programHandle)) {
-            long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
-            CompiledKernel compiledKernel = new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
+        var compilationUnit = backendBridge.compile(code);
+        if (compilationUnit.ok()) {
+            var kernel = compilationUnit.getKernel( kernelCallGraph.entrypoint.method.getName());
+            CompiledKernel compiledKernel = new CompiledKernel(this, kernelCallGraph, kernel, args);
             compiledKernel.dispatch(ndRange,args);
         }
     }
@@ -106,7 +101,7 @@ public class PTXBackend extends C99FFIBackend {
     public String createCode(KernelCallGraph kernelCallGraph, PTXCodeBuilder builder, Object[] args) {
         StringBuilder out = new StringBuilder();
         StringBuilder invokedMethods = new StringBuilder();
-        FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.entrypoint.funcOpWrapper().op());
+        FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op());
         FuncOpWrapper lowered = f.lower();
         HashMap<String, Object> argsMap = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
@@ -118,7 +113,7 @@ public class PTXBackend extends C99FFIBackend {
         out.append(builder.getTextAndReset());
 
         for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
-            FuncOpWrapper calledFunc = new FuncOpWrapper(k.funcOpWrapper().op());
+            FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op());
             FuncOpWrapper loweredFunc = calledFunc.lower();
             loweredFunc = transformPtrs(loweredFunc, argsMap);
             invokedMethods.append(createFunction(new PTXCodeBuilder(addressSize).nl().nl(), loweredFunc, false));
@@ -137,11 +132,11 @@ public class PTXBackend extends C99FFIBackend {
     }
 
     public FuncOpWrapper transformPtrs(FuncOpWrapper func, HashMap<String, Object> argsMap) {
-        return FuncOpWrapper.wrap(func.op().transform((block, op) -> {
+        return FuncOpWrapper.wrap(func.lookup,func.op().transform((block, op) -> {
             CopyContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (op instanceof CoreOp.InvokeOp invokeOp
-                    && OpWrapper.wrap(invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
+                    && OpWrapper.wrap(func.lookup,invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
                 if (invokeOpWrapper.isIfaceBufferMethod()
                         && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
                         && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
@@ -182,7 +177,7 @@ public class PTXBackend extends C99FFIBackend {
         builder.functionPrologue();
 
         out = builder.getTextAndReset();
-        ssa.firstBody().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(OpWrapper::wrap)));
+        ssa.firstBody().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(o->OpWrapper.wrap(lowered.lookup,o))));
 
         builder.functionEpilogue();
         body = builder.getTextAndReset();

@@ -27,6 +27,8 @@ link_directories(
 add_library(spirv_backend SHARED
     ${SHARED_BACKEND}/cpp/shared.cpp
     ${SPIRV_BACKEND}/cpp/spirv_backend.cpp
+    ${SHARED_BACKEND}/cpp/strutil.cpp
+    ${SHARED_BACKEND}/include/strutil.h
 )
 
 add_executable(spirv_info

@@ -25,10 +25,7 @@
 
 package oracle.code.onnx.ir;
 
-import java.util.List;
-import java.util.SequencedMap;
-import java.util.SequencedSet;
-import java.util.Set;
+import java.util.*;
 import jdk.incubator.code.*;
 import jdk.incubator.code.Op.Nested;
 import jdk.incubator.code.op.ExternalizableOp;
@@ -40,7 +37,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
     public static final class If extends OnnxOp implements Nested {
         public static final String NAME = "If";
 
-        final Body elseBody, thenBody;
+        final Body thenBody, elseBody;
 
         // @@@ make or fake elseBody as "else_branch" attribute and thenBody as "then_branch" attribute
         public enum Attribute implements OnnxOp.OnnxAttribute.None { }
@@ -120,15 +117,15 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         public If(ExternalizableOp.ExternalizedOp def) {
             super(SCHEMA, def);
 
-            this.elseBody = def.bodyDefinitions().get(0).build(this);
-            this.thenBody = def.bodyDefinitions().get(1).build(this);
+            this.thenBody = def.bodyDefinitions().get(0).build(this);
+            this.elseBody = def.bodyDefinitions().get(1).build(this);
         }
 
         If(If that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
 
-            this.elseBody = that.elseBody.transform(cc, ot).build(this);
             this.thenBody = that.thenBody.transform(cc, ot).build(this);
+            this.elseBody = that.elseBody.transform(cc, ot).build(this);
         }
 
         @Override
@@ -136,16 +133,16 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new If(this, cc, ot);
         }
 
-        If(TypeElement resultType, Value cond, Body.Builder elseBranch, Body.Builder thenBranch) {
+        If(TypeElement resultType, Value cond, Body.Builder thenBranch, Body.Builder elseBranch) {
             super(SCHEMA, resultType, Set.of(), List.of(cond), List.of());
 
-            this.elseBody = elseBranch.build(this);
             this.thenBody = thenBranch.build(this);
+            this.elseBody = elseBranch.build(this);
         }
 
         @Override
         public List<Body> bodies() {
-            return List.of(elseBody, thenBody);
+            return List.of(thenBody, elseBody);
         }
 
         @Override
@@ -171,7 +168,152 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static If If(TypeElement resultType, Value cond, Body.Builder elseBody, Body.Builder thenBody) {
-        return new If(resultType, cond, elseBody, thenBody);
+    public static If If(TypeElement resultType, Value cond, Body.Builder thenBody, Body.Builder elseBody) {
+        return new If(resultType, cond, thenBody, elseBody);
+    }
+
+    @OpFactory.OpDeclaration(Loop.NAME)
+    public static final class Loop extends OnnxOp implements Op.Loop {
+        public static final String NAME = "Loop";
+
+        final Body body;
+
+        // @@@ make or fake body
+        public enum Attribute implements OnnxOp.OnnxAttribute.None { }
+
+        public enum TypeConstraint implements OnnxOp.OnnxTypeConstraint {
+            V(new OnnxType.TypeVariable("V", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.uint16()), OnnxType.tensor(OnnxType.uint32()), OnnxType.tensor(OnnxType.uint64()), OnnxType.tensor(OnnxType.int8()), OnnxType.tensor(OnnxType.int16()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.int64()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float64()), OnnxType.tensor(OnnxType.bool())))),
+            I(new OnnxType.TypeVariable("I", List.of(OnnxType.tensor(OnnxType.int64())))),
+            B(new OnnxType.TypeVariable("B", List.of(OnnxType.tensor(OnnxType.bool())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxOp.OnnxParameter {
+            // @@@ Onnx spec declares the input parameters as optional, however it is causing problems
+            M(TypeConstraint.I.typeVariable(), OnnxOp.OnnxParameter.Quantifier.REQUIRED),
+            cond(TypeConstraint.B.typeVariable(), OnnxOp.OnnxParameter.Quantifier.REQUIRED),
+            v_initial(TypeConstraint.V.typeVariable(), OnnxOp.OnnxParameter.Quantifier.VARIADIC),
+            ;
+
+            final OnnxType type;
+            final OnnxOp.OnnxParameter.Quantifier quantifier;
+
+            InputParameter(OnnxType type, OnnxOp.OnnxParameter.Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public OnnxOp.OnnxParameter.Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxOp.OnnxParameter {
+            v_final_and_scan_outputs(TypeConstraint.V.typeVariable(), OnnxOp.OnnxParameter.Quantifier.VARIADIC),
+            ;
+
+            final OnnxType type;
+            final OnnxOp.OnnxParameter.Quantifier quantifier;
+
+            OutputParameter(OnnxType type, OnnxOp.OnnxParameter.Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public OnnxOp.OnnxParameter.Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxOp.OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public Loop(ExternalizableOp.ExternalizedOp def) {
+            super(SCHEMA, def);
+
+            this.body = def.bodyDefinitions().get(0).build(this);
+        }
+
+        Loop(ExplicitOnnxOps.Loop that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            this.body = that.body.transform(cc, ot).build(this);
+        }
+
+        @Override
+        public ExplicitOnnxOps.Loop transform(CopyContext cc, OpTransformer ot) {
+            return new ExplicitOnnxOps.Loop(this, cc, ot);
+        }
+
+        Loop(TypeElement resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
+            super(SCHEMA, resultType, Set.of(), List.of(m, cond, v_initial), List.of());
+
+            this.body = body.build(this);
+        }
+
+        @Override
+        public List<Body> bodies() {
+            return List.of(body);
+        }
+
+        @Override
+        public SequencedSet<OnnxOp.OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxOp.OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(cond()));
+        }
+
+        public Value max() {
+            return operands().get(0);
+        }
+
+        public Value cond() {
+            return operands().get(1);
+        }
+
+        public List<Value> v_initial() {
+            return operands().subList(2, operands().size());
+        }
+
+        @Override
+        public Body loopBody() {
+            return body;
+        }
+    }
+
+    public static Loop Loop(TypeElement resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
+        return new Loop(resultType, m, cond, v_initial, body);
     }
 }

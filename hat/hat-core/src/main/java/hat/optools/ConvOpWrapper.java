@@ -27,9 +27,11 @@ package hat.optools;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
 
+import java.lang.invoke.MethodHandles;
+
 public class ConvOpWrapper extends UnaryOpWrapper<CoreOp.ConvOp> {
-    public ConvOpWrapper(CoreOp.ConvOp op) {
-        super(op);
+    public ConvOpWrapper( MethodHandles.Lookup lookup,CoreOp.ConvOp op) {
+        super(lookup,op);
     }
 
     public JavaType resultJavaType() {

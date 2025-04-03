@@ -27,7 +27,7 @@ package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
 import java.util.Optional;
-import java.util.function.Supplier;
+import jdk.incubator.code.Quotable;
 
 class ExplicitOnnxOperators {
 
@@ -77,7 +77,41 @@ class ExplicitOnnxOperators {
 
     // @@@ Constants for value - TENSOR and sparse_value - SPARSE_TENSOR
 
-    public static <T> Tensor<T> If(Tensor<Boolean> cond, Supplier<Tensor<T>> elseBody, Supplier<Tensor<T>> thenBody) {
-        return cond.data().get(ValueLayout.JAVA_BOOLEAN, 0) ? thenBody.get() : elseBody.get();
+
+    public interface IfBody<T> extends Quotable {
+        T invoke();
+    }
+
+    public static <T> T If(Tensor<Boolean> cond, IfBody<T> thenBody, IfBody<T> elseBody) {
+        return booleanValue(cond) ? thenBody.invoke() : elseBody.invoke();
+    }
+
+    public record LoopResult<T>(Tensor<Boolean> cond, T output) {}
+    public interface LoopBody<T> extends Quotable {
+        LoopResult<T> invoke(Tensor<Long> i, Tensor<Boolean> cond, T input);
+    }
+
+    public static <T> T Loop(Tensor<Long> max, Tensor<Boolean> cond, T values, LoopBody<T> loopBody) {
+        long m = max.data().get(ValueLayout.JAVA_LONG, 0);
+        for (var i = Tensor.ofScalar(0l); longValue(i) < m && booleanValue(cond); set(i, longValue(i) + 1)) {
+            LoopResult<T> ret = loopBody.invoke(i, cond, values);
+            cond = ret.cond();
+            values = ret.output();
+        }
+        return values;
+    }
+
+    // @@@ move to Tensor API
+
+    private static boolean booleanValue(Tensor<Boolean> t) {
+        return t.data().get(ValueLayout.JAVA_BOOLEAN, 0);
+    }
+
+    private static long longValue(Tensor<Long> t) {
+        return t.data().get(ValueLayout.JAVA_LONG, 0);
+    }
+
+    private static void set(Tensor<Long> t, long value) {
+        t.data().set(ValueLayout.JAVA_LONG, 0, value);
     }
 }

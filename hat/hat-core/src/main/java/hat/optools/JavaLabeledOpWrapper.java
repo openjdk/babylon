@@ -26,9 +26,11 @@ package hat.optools;
 
 import jdk.incubator.code.op.ExtendedOp;
 
+import java.lang.invoke.MethodHandles;
+
 public class JavaLabeledOpWrapper extends StructuralOpWrapper<ExtendedOp.JavaLabeledOp> {
-    public JavaLabeledOpWrapper(ExtendedOp.JavaLabeledOp op) {
-        super(op);
+    public JavaLabeledOpWrapper( MethodHandles.Lookup lookup,ExtendedOp.JavaLabeledOp op) {
+        super(lookup,op);
     }
 
 }

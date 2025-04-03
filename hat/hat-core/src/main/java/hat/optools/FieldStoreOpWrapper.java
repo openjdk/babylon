@@ -27,11 +27,13 @@ package hat.optools;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.ClassType;
 
+import java.lang.invoke.MethodHandles;
+
 public class FieldStoreOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldStoreOp> implements StoreOpWrapper {
 
 
-    FieldStoreOpWrapper(CoreOp.FieldAccessOp.FieldStoreOp op) {
-        super(op);
+    FieldStoreOpWrapper( MethodHandles.Lookup lookup,CoreOp.FieldAccessOp.FieldStoreOp op) {
+        super(lookup,op);
     }
 
     public boolean isKernelContextAccess() {

@@ -25,7 +25,7 @@
 #include "opencl_backend.h"
 
 int main(){
-    OpenCLBackend backend(OpenCLBackend::OpenCLConfig::GPU_BIT);
+    OpenCLBackend backend(0);
     backend.info();
 }
 

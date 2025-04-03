@@ -100,7 +100,7 @@ public class OpGen {
         w.write("\n");
 
         w.write("@SuppressWarnings({\"OptionalUsedAsFieldOrParameterType\", \"unused\", \"SequencedCollectionMethodCanBeUsed\"})\n");
-        w.write("public final class " + ONNX_OPS_CLASS + " {\n");
+        w.write("public final class " + ONNX_OPS_CLASS + " extends ExplicitOnnxOps {\n");
 
         w.in();
 

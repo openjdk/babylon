@@ -35,7 +35,7 @@ https://github.com/openjdk/babylon/tree/code-reflection/test/jdk/java/lang/refle
 
 public class LambdaTest {
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST_NATIVE);
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
         // TODO: create a test case for these **/
         S32Array s32Array = S32Array.create(accelerator, 10);

@@ -32,7 +32,6 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.TupleType;
 import jdk.incubator.code.writer.OpWriter;
-import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Test;
@@ -46,8 +45,8 @@ import java.util.stream.Stream;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.channels.FileChannel;
-import java.util.HashMap;
 import java.util.function.Function;
+import oracle.code.onnx.compiler.OnnxTransformer;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
@@ -323,13 +322,13 @@ public class CNNTest {
     public void testModels() {
         try (var arena = Arena.ofConfined()) {
             CoreOp.FuncOp f = getFuncOp("cnn");
-            var onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), new HashMap<>(), f);
-            System.out.println(onnxModel.func().toText());
+            var onnxModel = new OnnxTransformer(MethodHandles.lookup(), f).transform();
+            System.out.println(onnxModel.toText());
 
             CoreOp.FuncOp expectedOnnxModel = cnnModel();
             System.out.println(expectedOnnxModel.toText());
 
-            Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel.func()));
+            Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
         }
     }
 
@@ -375,6 +374,8 @@ public class CNNTest {
         }
     }
 
+    private static final long[] IMAGE_SHAPE = new long[]{-1, 1, 28, 28};
+
     private void test(Arena arena, Function<Tensor<Byte>, Tensor<Float>> executor) throws Exception {
         try (RandomAccessFile imagesF = new RandomAccessFile(IMAGES_PATH, "r");
              RandomAccessFile labelsF = new RandomAccessFile(LABELS_PATH, "r")) {
@@ -382,8 +383,7 @@ public class CNNTest {
             MemorySegment imagesIn = imagesF.getChannel().map(FileChannel.MapMode.READ_ONLY, IMAGES_HEADER_SIZE, imagesF.length() - IMAGES_HEADER_SIZE, arena);
             MemorySegment labelsIn = labelsF.getChannel().map(FileChannel.MapMode.READ_ONLY, LABELS_HEADER_SIZE, labelsF.length() - LABELS_HEADER_SIZE, arena);
 
-            long size = imagesF.length() - IMAGES_HEADER_SIZE;
-            Tensor<Byte> inputImage = new Tensor(arena, imagesIn, Tensor.ElementType.UINT8, new long[]{size / (28 * 28), 1, 28, 28});
+            Tensor<Byte> inputImage = new Tensor(arena, imagesIn, Tensor.ElementType.UINT8, IMAGE_SHAPE);
 
             MemorySegment result = executor.apply(inputImage).data();
 

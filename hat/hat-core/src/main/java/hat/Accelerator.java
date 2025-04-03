@@ -47,6 +47,8 @@ import java.util.ServiceLoader;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import static hat.backend.Backend.FIRST;
+
 /**
  * This class provides the developer facing view of HAT, and wraps a <a href="backend/Backend.html">Backend</a> capable of
  * executing <b>NDRange</b> style execution.
@@ -83,8 +85,12 @@ public class Accelerator implements BufferAllocator, BufferTracker {
         return ndRange;
     }
 
+
     protected Accelerator(MethodHandles.Lookup lookup, ServiceLoader.Provider<Backend> provider) {
         this(lookup, provider.get());
+    }
+    public Accelerator(MethodHandles.Lookup lookup) {
+        this(lookup, FIRST);
     }
 
     /**
@@ -136,7 +142,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
             ((BufferTracker) backend).postAccess(b);
         }
     }
-
+/*
     @Override
     public void preEscape(Buffer b) {
         if (backend instanceof BufferTracker) {
@@ -149,7 +155,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
         if (backend instanceof BufferTracker) {
             ((BufferTracker) backend).postEscape(b);
         }
-    }
+    } */
 
     /**
      * An interface used for wrapping the compute entrypoint of work to be performed by the Accelerator.
@@ -191,8 +197,8 @@ public class Accelerator implements BufferAllocator, BufferTracker {
 
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
-        LambdaOpWrapper lambda = OpWrapper.wrap((CoreOp.LambdaOp) quoted.op());
-        Method method = lambda.getQuotableTargetMethod(this.lookup);
+        LambdaOpWrapper lambda = OpWrapper.wrap(lookup,(CoreOp.LambdaOp) quoted.op());
+        Method method = lambda.getQuotableTargetMethod();
 
         // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation

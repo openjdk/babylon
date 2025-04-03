@@ -94,8 +94,11 @@ public class OpSchemaParser {
             case JsonString s when c == String.class -> (T) s.value();
             case JsonString s when c == Object.class -> (T) s.value();
 
+            // Coerce to int when int is declared
             case JsonNumber n when c == int.class -> (T) (Integer) n.value().intValue();
-            case JsonNumber n when n.value() instanceof Integer i && c == Object.class -> (T) i;
+            // Coerce to int when Object is declared and when integral JSON number
+            case JsonNumber n when n.value() instanceof Long i && c == Object.class -> (T) (Integer) i.intValue();
+            // Coerce to float when Object is declared and when real JSON number
             case JsonNumber n when n.value() instanceof Double d && c == Object.class -> (T) (Float) d.floatValue();
 
             case JsonArray a when c == List.class -> switch (gt) {

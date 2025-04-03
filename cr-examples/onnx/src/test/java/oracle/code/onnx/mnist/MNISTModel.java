@@ -49,7 +49,7 @@ public class MNISTModel {
         }
     }
 
-    // Weights
+    // Weights (constant inputs)
     final Tensor<Float> conv1Weights;
     final Tensor<Float> conv1Biases;
     final Tensor<Float> conv2Weights;
@@ -61,6 +61,7 @@ public class MNISTModel {
     final Tensor<Float> fc3Weights;
     final Tensor<Float> fc3Biases;
 
+    // Constructed by the swing application
     public MNISTModel() {
         // Load the weights (constant inputs)
         // The weights were obtained from a trained pytorch model with the MNIST dataset
@@ -76,7 +77,25 @@ public class MNISTModel {
         fc3Biases = load("fc3-bias-float-le", 10);
     }
 
-    // The machine learning model, a convolutional neural network
+    // Invoked every time to predict a number
+    public float[] classify(float[] imageData) {
+        // Manage per-execution data in a confined arena
+        try (Arena arena = Arena.ofConfined()) {
+            // Convert the image to an input tensor
+            var imageTensor = Tensor.ofShape(arena, new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
+
+            // Execute the machine learning model
+            // Translate the Java code to an ONNX model and execute in the ONNX runtime
+            var predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(),
+                    () -> cnn(imageTensor));
+
+            // Convert the output predication tensor to float[]
+            return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);
+        }
+    }
+
+    // The machine learning model, a convolutional neural network,
+    // which is a type of deep learning network.
     // Annotated with code @CodeReflection so that the method's code is accessible
     @CodeReflection
     public Tensor<Float> cnn(Tensor<Float> inputImage) {
@@ -119,21 +138,5 @@ public class MNISTModel {
         var prediction = Softmax(fc3, of(1L));
 
         return prediction;
-    }
-
-    public float[] classify(float[] imageData) {
-        // Manage per-execution data in a confined arena
-        try (Arena arena = Arena.ofConfined()) {
-            // Convert the image to an input tensor
-            var imageTensor = Tensor.ofShape(arena, new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
-
-            // Execute the machine learning model
-            // Translate the Java code to an ONNX model and execute in the ONNX runtime
-            var predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(),
-                    () -> cnn(imageTensor));
-
-            // Convert the output predication to float[]
-            return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);
-        }
     }
 }

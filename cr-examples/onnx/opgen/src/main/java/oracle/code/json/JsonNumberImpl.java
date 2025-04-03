@@ -25,6 +25,8 @@
 
 package oracle.code.json;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Objects;
 
 /**
@@ -88,34 +90,50 @@ final class JsonNumberImpl implements JsonNumber, JsonValueImpl {
     }
 
     Number toNum(String numStr) {
-        // Determine if fp
-        boolean fp = false;
-        for (char c : numStr.toCharArray()) {
-            if (c == 'e' || c == 'E' || c =='.') {
-                fp = true;
-                break;
-            }
+        try {
+            return Long.parseLong(numStr);
+        } catch (NumberFormatException e) {
         }
 
-        // Make conversion
-        if (!fp) {
-            // integral numbers
-            try {
-                return Integer.valueOf(numStr);
-            } catch (NumberFormatException _) {
-                // int overflow. try long
-                try {
-                    return Long.valueOf(numStr);
-                } catch (NumberFormatException _) {
-                    // long overflow. convert to Double
-                }
-            }
+        try {
+            return new BigInteger(numStr);
+        } catch (NumberFormatException e) {
         }
-        var num = Double.valueOf(numStr);
-        if (Double.isInfinite(num)) {
-            throw new NumberFormatException("The number is infinitely large in magnitude");
+
+        if (Double.valueOf(numStr) instanceof double d && !Double.isInfinite(d)) {
+            return d;
         }
-        return num;
+
+        return new BigDecimal(numStr);
+
+//        // Determine if fp
+//        boolean fp = false;
+//        for (char c : numStr.toCharArray()) {
+//            if (c == 'e' || c == 'E' || c =='.') {
+//                fp = true;
+//                break;
+//            }
+//        }
+//
+//        // Make conversion
+//        if (!fp) {
+//            // integral numbers
+//            try {
+//                return Integer.valueOf(numStr);
+//            } catch (NumberFormatException _) {
+//                // int overflow. try long
+//                try {
+//                    return Long.valueOf(numStr);
+//                } catch (NumberFormatException _) {
+//                    // long overflow. convert to Double
+//                }
+//            }
+//        }
+//        var num = Double.valueOf(numStr);
+//        if (Double.isInfinite(num)) {
+//            throw new NumberFormatException("The number is infinitely large in magnitude");
+//        }
+//        return num;
     }
 
     @Override

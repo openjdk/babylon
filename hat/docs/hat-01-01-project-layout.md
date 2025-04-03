@@ -41,7 +41,13 @@ ${BABYLON_JDK}
      |    |    +--opengl
      |    |    +--cuda
      |
-     +--hat                        * Note maven style layout
+     +--hat
+     |    + Script.java
+     |    + run.java + @run
+     |    + bld.java + @bld
+     |    + clean.java + @bld
+     |
+     +--hat-core                      * Note maven style layout
      |    +--src/main/java
      |    |    +--hat/
      |    |

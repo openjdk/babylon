@@ -30,21 +30,18 @@ import hat.buffer.KernelContext;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.ClassType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
 import java.util.Optional;
-import java.util.stream.Stream;
 
-// Is this really a root?
 public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
 
 
-    public InvokeOpWrapper(CoreOp.InvokeOp op) {
-        super(op);
+    public InvokeOpWrapper( MethodHandles.Lookup lookup,CoreOp.InvokeOp op) {
+        super(lookup,op);
     }
 
     public MethodRef methodRef() {
@@ -59,13 +56,11 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         return isIface(javaRefType());
     }
 
-
     public boolean isRawKernelCall() {
-        boolean isRawKernelCall = (operandCount() > 1 && operandNAsValue(0) instanceof Value value
+        return (operandCount() > 1 && operandNAsValue(0) instanceof Value value
                 && value.type() instanceof JavaType javaType
-                && (isAssignable(javaType, hat.KernelContext.class) || isAssignable(javaType, hat.buffer.KernelContext.class))
+                && (isAssignable(javaType, hat.KernelContext.class) || isAssignable(javaType, KernelContext.class))
         );
-        return isRawKernelCall;
     }
 
     public boolean isKernelContextMethod() {
@@ -90,7 +85,7 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
     public boolean returnsVoid() {
         return javaReturnType().equals(JavaType.VOID);
     }
-
+/*
     public Method methodNoLookup() {
         Class<?> declaringClass = javaRefClass().orElseThrow();
         // TODO this is just matching the name....
@@ -108,13 +103,13 @@ public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
         } else {
             throw new IllegalStateException("what were we looking for ?"); // getClass causes this
         }
-    }
-    public Method method(MethodHandles.Lookup lookup) {
+    } */
+    public Method method() {
         Method invokedMethod = null;
         try {
-            invokedMethod = methodRef().resolveToMethod(lookup, op().invokeKind());
-            MethodRef methodRef = methodRef();
-            return invokedMethod;
+            return methodRef().resolveToMethod(lookup, op().invokeKind());
+          //  MethodRef methodRef = methodRef();
+         //   return invokedMethod;
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }

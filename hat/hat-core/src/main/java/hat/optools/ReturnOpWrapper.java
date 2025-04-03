@@ -26,9 +26,11 @@ package hat.optools;
 
 import jdk.incubator.code.op.CoreOp;
 
+import java.lang.invoke.MethodHandles;
+
 public class ReturnOpWrapper extends OpWrapper<CoreOp.ReturnOp> {
-    public ReturnOpWrapper(CoreOp.ReturnOp op) {
-        super(op);
+    public ReturnOpWrapper( MethodHandles.Lookup lookup,CoreOp.ReturnOp op) {
+        super(lookup,op);
     }
 
 

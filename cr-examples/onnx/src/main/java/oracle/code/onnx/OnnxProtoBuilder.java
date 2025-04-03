@@ -3,13 +3,18 @@ package oracle.code.onnx;
 import java.io.ByteArrayOutputStream;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.TupleType;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
@@ -313,14 +318,34 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 21;
 
-    private static final class Indexer extends HashMap<Value, String> {
-        String getName(Value v) {
-            return computeIfAbsent(v, _ -> "#" + size());
+    private static final class Indexer {
+
+        private final HashMap<Value, String> baseNames = new HashMap();
+        private final HashMap<String, String> elementsMap = new HashMap();
+
+
+        private String baseName(Value value, int elementIndex) {
+            var name = baseNames.computeIfAbsent(value, _ -> "#" + baseNames.size());
+            return elementIndex > 0 ? name + '.' + elementIndex : name;
         }
-        String getName(Value v, int subIndex) {
-            var name = getName(v);
-            if (subIndex != 0) name += "." + subIndex;
-            return name;
+
+        String nameOf(Value value) {
+            return nameOf(value, 0);
+        }
+
+        String nameOf(Value tuple, int elementIndex) {
+            var name = baseName(tuple, elementIndex);
+            return elementsMap.getOrDefault(name, name);
+        }
+
+        void mapTupleLoad(Value tupleLoadResult, Value tuple, int elementIndex) {
+            elementsMap.put(baseName(tupleLoadResult, 0), nameOf(tuple, elementIndex));
+        }
+
+        void mapTupleElements(Value tuple, List<Value> elements) {
+            for (int i = 0; i < elements.size(); i++) {
+                elementsMap.put(baseName(tuple, i), nameOf(elements.get(i)));
+            }
         }
     }
 
@@ -330,7 +355,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         entry block only
     static byte[] build(Block block, List<oracle.code.onnx.Tensor> initializers) {
         var indexer = new Indexer();
-        var model = build(graph(indexer, block, initializers));
+        var model = build(graph(indexer, block, initializers, 0));
 //        OnnxProtoPrinter.printModel(model);
         return model;
     }
@@ -347,40 +372,97 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                 .buf.toByteArray();
     }
 
-    static GraphProto graph(Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers) {
+    static List<String> expandTuples(Indexer indexer, List<Value> values) {
+        var names = new ArrayList<String>();
+        expandTuples(indexer, names, values);
+        return names;
+    }
+
+    static void expandTuples(Indexer indexer, List<String> names, List<Value> values) {
+        for (var v : values) {
+            if (v instanceof Op.Result or && or.op() instanceof CoreOp.TupleOp op) {
+                expandTuples(indexer, names, op.operands());
+            } else if (v.type() instanceof TupleType tt) {
+                var ct = tt.componentTypes();
+                for (int i = 0; i < ct.size(); i++) {
+                    names.add(indexer.nameOf(v, i));
+                }
+            } else {
+                names.add(indexer.nameOf(v));
+            }
+        }
+    }
+
+    static GraphProto graph(Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers, int scalarArgs) {
         var params = block.parameters();
-        params.forEach(indexer::getName);
-        int first = params.size() - initializers.size();
-        var args = params.isEmpty() || params.getFirst().type() instanceof OnnxType.TensorType ? params : params.subList(1, params.size());
-        return graph(
-                IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.getName(params.get(i + first)), initializers.get(i))).toList(),
-                args.stream().map(v ->
-                        tensorInfo(indexer.getName(v), ((OnnxType.TensorType)v.type()).eType().id())).toList(),
+        params.forEach(indexer::nameOf);
+        int firstInitializer = params.size() - initializers.size();
+        var args = params.subList(params.isEmpty() || params.getFirst().type() instanceof OnnxType.TensorType ? 0 : 1, firstInitializer);
+        return graph(IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.nameOf(params.get(i + firstInitializer)), initializers.get(i))).toList(),
+                tensorInfos(indexer, args, scalarArgs),
                 block.ops().stream().<NodeProto>mapMulti((op, opNodes) -> {
                     switch (op) {
                         case OnnxOps.If ifOp ->
                             opNodes.accept(node(
                                     ifOp.opName(),
-                                    List.of(indexer.getName(ifOp.operands().getFirst())),
-                                    List.of(indexer.getName(ifOp.result())),
-                                    java.util.Map.of( // @@@ wrong mapping of captured inputs
-                                            "else_branch", graph(indexer, ifOp.elseBranch().entryBlock(), List.of()),
-                                            "then_branch", graph(indexer, ifOp.thenBranch().entryBlock(), List.of()))));
+                                    List.of(indexer.nameOf(ifOp.operands().getFirst())),
+                                    IntStream.range(0, ifOp.resultType() instanceof TupleType tt ? tt.componentTypes().size() : 1).mapToObj(o -> indexer.nameOf(ifOp.result(), o)).toList(),
+                                    java.util.Map.of(
+                                            "then_branch", graph(indexer, ifOp.thenBranch().entryBlock(), List.of(), 0),
+                                            "else_branch", graph(indexer, ifOp.elseBranch().entryBlock(), List.of(), 0))));
+                        case OnnxOps.Loop loopOp -> {
+                            opNodes.accept(node(loopOp.opName(),
+                                    expandTuples(indexer, loopOp.operands()),
+                                    IntStream.range(0, loopOp.resultType() instanceof TupleType tt ? tt.componentTypes().size() : 1).mapToObj(o -> indexer.nameOf(loopOp.result(), o)).toList(),
+                                    java.util.Map.of(
+                                            "body", graph(indexer, loopOp.loopBody().entryBlock(), List.of(), 2))));
+                        }
                         case OnnxOp onnxOp ->
                             opNodes.accept(node(
                                     onnxOp.opName(),
-                                    onnxOp.operands().stream().map(v -> indexer.getName(v)).toList(),
-                                    IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.getName(onnxOp.result(), o)).toList(),
+                                    onnxOp.operands().stream().map(indexer::nameOf).toList(),
+                                    IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.nameOf(onnxOp.result(), o)).toList(),
                                     onnxOp.onnxAttributes()));
-                        case CoreOp.ReturnOp _ -> { // skip
+                        case CoreOp.ReturnOp _, CoreOp.ConstantOp _ -> { // skip
                         }
                         case CoreOp.TupleLoadOp tlo ->
-                            indexer.put(tlo.result(), indexer.getName(tlo.operands().getFirst(), tlo.index()));
-                        default ->
+                            indexer.mapTupleLoad(tlo.result(), tlo.operands().getFirst(), tlo.index());
+                        case CoreOp.TupleOp to ->
+                            indexer.mapTupleElements(to.result(), to.operands());
+                        case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(JavaType.type(List.class)) -> {
+                            if (io.invokeDescriptor().name().equals("get") && io.operands().getLast() instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co && co.value() instanceof Integer i) {
+                                indexer.mapTupleLoad(io.result(), io.operands().getFirst(), i);
+                            } else if (io.invokeDescriptor().name().equals("of")) {
+                                indexer.mapTupleElements(io.result(), io.operands());
+                            } else {
+                                throw new UnsupportedOperationException(op.toText());
+                            }
+                        }
+                        default -> {
                             throw new UnsupportedOperationException(op.toText());
+                        }
                     }
                 }).toList(),
-                List.of(indexer.getName(block.terminatingOp().operands().getFirst())));
+                expandTuples(indexer, block.terminatingOp().operands()));
+    }
+
+    static List<ValueInfoProto> tensorInfos(Indexer indexer, List<Block.Parameter> args, int scalarArgs) {
+        var infos = new ArrayList<ValueInfoProto>();
+        for (var arg : args) {
+            switch (arg.type()) {
+                case OnnxType.TensorType tt ->
+                    infos.add(tensorInfo(indexer.nameOf(arg), tt.eType().id(), infos.size() < scalarArgs));
+                case TupleType tt -> {
+                    var ct = tt.componentTypes();
+                    for (int i = 0; i < ct.size(); i++) {
+                        infos.add(tensorInfo(indexer.nameOf(arg, i), ((OnnxType.TensorType)ct.get(i)).eType().id(), infos.size() < scalarArgs));
+                    }
+                }
+                default ->
+                    throw new UnsupportedOperationException();
+            }
+        }
+        return infos;
     }
 
     static GraphProto graph(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
@@ -400,20 +482,15 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     }
 
     static ValueInfoProto tensorInfo(String name, int tensorElementType) {
-        return new ValueInfoProto()
-                .name(name)
-                .type(new TypeProto()
-                        .tensor_type(new Tensor()
-                                .elem_type(tensorElementType)));
+        return tensorInfo(name, tensorElementType, false);
     }
 
-    static ValueInfoProto scalarInfo(String name, int tensorElementType) {
+    static ValueInfoProto tensorInfo(String name, int tensorElementType, boolean addScalarShape) {
+        var t = new Tensor().elem_type(tensorElementType);
+        if (addScalarShape) t.shape(new TensorShapeProto());
         return new ValueInfoProto()
                 .name(name)
-                .type(new TypeProto()
-                        .tensor_type(new Tensor()
-                                .elem_type(tensorElementType)
-                                .shape(new TensorShapeProto())));
+                .type(new TypeProto().tensor_type(t));
     }
 
     static TensorProto tensorProto(String name, oracle.code.onnx.Tensor tensor) {

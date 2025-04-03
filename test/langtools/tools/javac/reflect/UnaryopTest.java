@@ -99,4 +99,72 @@ public class UnaryopTest {
     static int test5(int v) {
         return ~v;
     }
+
+    @IR("""
+            func @"test6" (%0 : byte)void -> {
+                  %1 : Var<byte> = var %0 @"b";
+                  %2 : byte = var.load %1;
+                  %3 : int = constant @"1";
+                  %4 : byte = conv %3;
+                  %5 : byte = add %2 %4;
+                  var.store %1 %5;
+                  %6 : byte = var.load %1;
+                  %7 : int = constant @"1";
+                  %8 : byte = conv %7;
+                  %9 : byte = sub %6 %8;
+                  var.store %1 %9;
+                  %10 : byte = var.load %1;
+                  %11 : int = constant @"1";
+                  %12 : byte = conv %11;
+                  %13 : byte = add %10 %12;
+                  var.store %1 %13;
+                  %14 : byte = var.load %1;
+                  %15 : int = constant @"1";
+                  %16 : byte = conv %15;
+                  %17 : byte = sub %14 %16;
+                  var.store %1 %17;
+                  return;
+              };
+            """)
+    @CodeReflection
+    static void test6(byte b) {
+        b++;
+        b--;
+        ++b;
+        --b;
+    }
+
+    @IR("""
+            func @"test7" (%0 : short)void -> {
+                  %1 : Var<short> = var %0 @"s";
+                  %2 : short = var.load %1;
+                  %3 : int = constant @"1";
+                  %4 : short = conv %3;
+                  %5 : short = add %2 %4;
+                  var.store %1 %5;
+                  %6 : short = var.load %1;
+                  %7 : int = constant @"1";
+                  %8 : short = conv %7;
+                  %9 : short = sub %6 %8;
+                  var.store %1 %9;
+                  %10 : short = var.load %1;
+                  %11 : int = constant @"1";
+                  %12 : short = conv %11;
+                  %13 : short = add %10 %12;
+                  var.store %1 %13;
+                  %14 : short = var.load %1;
+                  %15 : int = constant @"1";
+                  %16 : short = conv %15;
+                  %17 : short = sub %14 %16;
+                  var.store %1 %17;
+                  return;
+              };
+            """)
+    @CodeReflection
+    static void test7(short s) {
+        s++;
+        s--;
+        ++s;
+        --s;
+    }
 }

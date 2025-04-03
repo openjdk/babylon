@@ -26,9 +26,11 @@ package hat.optools;
 
 import jdk.incubator.code.op.CoreOp;
 
+import java.lang.invoke.MethodHandles;
+
 public class FuncCallOpWrapper extends OpWrapper<CoreOp.FuncCallOp> {
-    public FuncCallOpWrapper(CoreOp.FuncCallOp op) {
-        super(op);
+    public FuncCallOpWrapper( MethodHandles.Lookup lookup,CoreOp.FuncCallOp op) {
+        super(lookup,op);
     }
 
 

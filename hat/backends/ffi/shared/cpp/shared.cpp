@@ -22,6 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+#define shared_cpp
 #include "shared.h"
 
 #define INFO 0
@@ -98,13 +99,6 @@ void Sled::show(std::ostream &out, void *argArray) {
 }
 
 
-extern "C" int getMaxComputeUnits(long backendHandle) {
-    if (INFO){
-        std::cout << "trampolining through backendHandle to backend.getMaxComputeUnits()" << std::endl;
-    }
-    auto *backend = reinterpret_cast<Backend*>(backendHandle);
-    return backend->getMaxComputeUnits();
-}
 
 extern "C" void info(long backendHandle) {
     if (INFO){
@@ -131,32 +125,32 @@ extern "C" void releaseBackend(long backendHandle) {
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
     delete backend;
 }
-extern "C" long compileProgram(long backendHandle, int len, char *source) {
+extern "C" long compile(long backendHandle, int len, char *source) {
     if (INFO){
-       std::cout << "trampolining through backendHandle to backend.compileProgram() "
+       std::cout << "trampolining through backendHandle to backend.compile() "
            <<std::hex<<backendHandle<< std::dec <<std::endl;
     }
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
-    auto programHandle = backend->compileProgram(len, source);
+    auto compilationUnitHandle = backend->compile(len, source);
     if (INFO){
-       std::cout << "programHandle = "<<std::hex<<backendHandle<< std::dec <<std::endl;
+       std::cout << "compilationUnitHandle = "<<std::hex<<compilationUnitHandle<< std::dec <<std::endl;
     }
-    return programHandle;
+    return compilationUnitHandle;
 }
-extern "C" long getKernel(long programHandle, int nameLen, char *name) {
+extern "C" long getKernel(long compilationUnitHandle, int nameLen, char *name) {
     if (INFO){
-        std::cout << "trampolining through programHandle to program.getKernel()"
-            <<std::hex<<programHandle<< std::dec <<std::endl;
+        std::cout << "trampolining through programHandle to compilationUnit.getKernel()"
+            <<std::hex<<compilationUnitHandle<< std::dec <<std::endl;
     }
-    auto program = reinterpret_cast<Backend::Program *>(programHandle);
-    return program->getKernel(nameLen, name);
+    auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
+    return compilationUnit->getKernel(nameLen, name);
 }
 
 extern "C" long ndrange(long kernelHandle, void *argArray) {
     if (INFO){
        std::cout << "trampolining through kernelHandle to kernel.ndrange(...) " << std::endl;
     }
-    auto kernel = reinterpret_cast<Backend::Program::Kernel *>(kernelHandle);
+    auto kernel = reinterpret_cast<Backend::CompilationUnit::Kernel *>(kernelHandle);
     kernel->ndrange( argArray);
     return (long) 0;
 }
@@ -164,23 +158,23 @@ extern "C" void releaseKernel(long kernelHandle) {
     if (INFO){
        std::cout << "trampolining through to releaseKernel " << std::endl;
     }
-    auto kernel = reinterpret_cast<Backend::Program::Kernel *>(kernelHandle);
+    auto kernel = reinterpret_cast<Backend::CompilationUnit::Kernel *>(kernelHandle);
     delete kernel;
 }
 
-extern "C" void releaseProgram(long programHandle) {
+extern "C" void releaseCompilationUnit(long compilationUnitHandle) {
     if (INFO){
-       std::cout << "trampolining through to releaseProgram " << std::endl;
+       std::cout << "trampolining through to releaseCompilationUnit " << std::endl;
     }
-    auto program = reinterpret_cast<Backend::Program *>(programHandle);
-    delete program;
+    auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
+    delete compilationUnit;
 }
-extern "C" bool programOK(long programHandle) {
+extern "C" bool compilationUnitOK(long compilationUnitHandle) {
     if (INFO){
-       std::cout << "trampolining through to programOK " << std::endl;
+       std::cout << "trampolining through to compilationUnitHandleOK " << std::endl;
     }
-    auto program = reinterpret_cast<Backend::Program *>(programHandle);
-    return program->programOK();
+    auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
+    return compilationUnit->compilationUnitOK();
 }
 
 extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmentHandle, long memorySegmentLength) {
@@ -193,3 +187,52 @@ extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmen
 }
 
 
+
+Backend::Config::Config(int configBits):
+        configBits(configBits),
+        minimizeCopies((configBits&MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
+        alwaysCopy(!minimizeCopies),
+        trace((configBits&TRACE_BIT)==TRACE_BIT),
+        traceCopies((configBits&TRACE_COPIES_BIT)==TRACE_COPIES_BIT),
+        traceEnqueues((configBits&TRACE_ENQUEUES_BIT)==TRACE_ENQUEUES_BIT),
+        traceCalls((configBits&TRACE_CALLS_BIT)==TRACE_CALLS_BIT),
+        traceSkippedCopies((configBits&TRACE_SKIPPED_COPIES_BIT)==TRACE_SKIPPED_COPIES_BIT),
+        info((configBits&INFO_BIT)==INFO_BIT),
+        showCode((configBits&SHOW_CODE_BIT)==SHOW_CODE_BIT),
+        profile((configBits&PROFILE_BIT)==PROFILE_BIT),
+        showWhy((configBits&SHOW_WHY_BIT)==SHOW_WHY_BIT),
+        showState((configBits&SHOW_STATE_BIT)==SHOW_STATE_BIT),
+
+        platform((configBits&0xf)),
+        device((configBits&0xf0)>>4){
+    if (info){
+        std::cout << "native showCode " << showCode <<std::endl;
+        std::cout << "native info " << info<<std::endl;
+        std::cout << "native minimizeCopies " << minimizeCopies<<std::endl;
+        std::cout << "native alwaysCopy " << alwaysCopy<<std::endl;
+        std::cout << "native trace " << trace<<std::endl;
+        std::cout << "native traceSkippedCopies " << traceSkippedCopies<<std::endl;
+        std::cout << "native traceCalls " << traceCalls<<std::endl;
+        std::cout << "native traceCopies " << traceCopies<<std::endl;
+        std::cout << "native traceEnqueues " << traceEnqueues<<std::endl;
+        std::cout << "native profile " << profile<<std::endl;
+        std::cout << "native showWhy " << showWhy<<std::endl;
+        std::cout << "native showState " << showState<<std::endl;
+        std::cout << "native platform " << platform<<std::endl;
+        std::cout << "native device " << device<<std::endl;
+    }
+}
+Backend::Config::~Config(){
+}
+
+Backend::Queue::Queue(Backend *backend)
+        :backend(backend),
+         eventMax(10000),
+         eventInfoBits(new int[eventMax]),
+         eventInfoConstCharPtrArgs(new const char *[eventMax]),
+         eventc(0){
+}
+Backend::Queue::~Queue() {
+    delete[]eventInfoBits;
+    delete[]eventInfoConstCharPtrArgs;
+}

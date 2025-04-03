@@ -28,11 +28,12 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.ClassType;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 
 public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldLoadOp> implements LoadOpWrapper {
-    FieldLoadOpWrapper(CoreOp.FieldAccessOp.FieldLoadOp op) {
-        super(op);
+    FieldLoadOpWrapper( MethodHandles.Lookup lookup,CoreOp.FieldAccessOp.FieldLoadOp op) {
+        super(lookup,op);
     }
 
     public Object getStaticFinalPrimitiveValue() {
@@ -42,9 +43,7 @@ public class FieldLoadOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessO
                 Field field = clazz.getField(fieldName());
                 field.setAccessible(true);
                 return field.get(null);
-            } catch (NoSuchFieldException e) {
-                throw new RuntimeException(e);
-            } catch (IllegalAccessException e) {
+            } catch (NoSuchFieldException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
         }

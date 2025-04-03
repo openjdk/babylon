@@ -1,166 +1,337 @@
 package oracle.code.onnx.compiler;
 
-import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.*;
-import oracle.code.onnx.OnnxOperators;
-import oracle.code.onnx.OnnxRuntime;
-import oracle.code.onnx.Tensor;
-import oracle.code.onnx.ir.OnnxOp;
-import oracle.code.onnx.ir.OnnxOps;
-import oracle.code.onnx.ir.OnnxType;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jdk.incubator.code.*;
-import oracle.code.onnx.LambdaToFunc;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.type.*;
+import oracle.code.onnx.OnnxOperators;
+import oracle.code.onnx.Tensor;
+import oracle.code.onnx.ir.OnnxOp;
+import oracle.code.onnx.ir.OnnxOps;
+import oracle.code.onnx.ir.OnnxType;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
+
+/*
+Analysis and Transformations, in order
+
+- Lambda to function, promoting captures to function parameters.
+  (We need to handle captured Var ops modelling Java method parameters.)
+- Inline methods.
+  (We could first choose to transform into a module op of func ops, similar to HAT might do.)
+- Promote (final) tensor field accesses to parameters.
+  Each unique field reference is promoted to a function parameter.
+  (This also accumulates every unique field reference into a list in encounter order,
+   reflection is used to obtain the tensor values for ONNX initializers.)
+- Partially evaluate the Java code model, using a clone of the interpreter.
+- Java code model to ONNX code model.
+  Lambdas expressions transform recursively (need to restrict where expressions are used
+  to arguments of invocations)
+  (Also transforms records to tuples.)
+  (Using results from partial evaluation.)
+- Drop unused parameters (i.e., the receiver).
+  (Could be merged with droping unused operations.)
+- SSA.
+- Drop unused operations.
+
+ */
+
 
 // Transform the Java code model of an ONNX function to an ONNX code model
 public class OnnxTransformer {
 
     static final JavaType ONNX_OPERATORS_CLASS = JavaType.type(OnnxOperators.class);
 
-    private OnnxTransformer() {
-    }
 
-    public record OnnxFuncOp(CoreOp.FuncOp func, List<Object> initializers) {}
+    static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
+    static final JavaType LIST_CLASS = JavaType.type(List.class);
 
-    public static OnnxFuncOp transform(MethodHandles.Lookup l, Map<Value, Object> evaluatedValues, CoreOp.FuncOp in) {
-        OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
-        pe.evaluate(l, in, evaluatedValues);
+    private final MethodHandles.Lookup l;
+    private final CoreOp.FuncOp inputFunc;
+    private final List<FieldRef> inits;
 
-        FunctionType ft = FunctionType.functionType(
-                type(in.invokableType().returnType()),
-                in.invokableType().parameterTypes().stream().map(OnnxTransformer::type).toList()
-        );
-        CoreOp.FuncOp onnxModel = CoreOp.func(in.funcName(), ft).body(b -> {
-            b.transformBody(in.body(), b.parameters(), (bb, op) -> {
-                if (!pe.unevaluatedOperations.contains(op)) {
-                    return bb;
+    public static OnnxTransformer ofQuotedLambda(MethodHandles.Lookup lookup, Quoted quotedLambda) {
+        CoreOp.LambdaOp lambda = (CoreOp.LambdaOp) quotedLambda.op();
+        assert lambda.parameters().isEmpty();
+
+        List<Value> captures = lambda.capturedValues();
+        List<TypeElement> normalizedCaptureTypes = captures.stream()
+                .map(v -> v instanceof Op.Result r &&
+                        r.op() instanceof CoreOp.VarOp vop &&
+                        vop.initOperand() instanceof Block.Parameter p ? p : v)
+                .map(Value::type)
+                .toList();
+        FunctionType ft = FunctionType.functionType(lambda.invokableType().returnType(), normalizedCaptureTypes);
+
+        CoreOp.FuncOp f = CoreOp.FuncOp.func("f", ft).body(b -> {
+            // Map input captured values
+            for (int i = 0; i < captures.size(); i++) {
+                Value inputCapture = captures.get(i);
+                Value output;
+                if (inputCapture instanceof Op.Result r &&
+                        r.op() instanceof CoreOp.VarOp vop &&
+                        vop.initOperand() instanceof Block.Parameter) {
+                    output = b.op(CoreOp.var(b.parameters().get(i)));
+                } else {
+                    output = b.parameters().get(i);
                 }
-                switch (op) {
-                    // Transform invocation to ONNX operator to operation modeling the operator
-                    case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(ONNX_OPERATORS_CLASS) -> {
-                        String operatorName = io.invokeDescriptor().name();
-                        Class<? extends OnnxOp> opClass = onnxOpClassFromName(operatorName);
-                        OnnxOp.OnnxSchema schema = schemaFromOnnxOpClass(opClass);
+                b.context().mapValue(inputCapture, output);
+            }
 
-                        List<Object> attributes = pe.evaluatedAttributes.get(io);
-
-                        Method opMethod = Stream.of(OnnxOps.class.getMethods())
-                                .filter(m -> m.getName().equals(operatorName))
-                                .findFirst().orElseThrow();
-
-                        List<Object> opArgs = new ArrayList<>();
-
-                        // @@@ Operator API currently requires all optional output parameters are required
-                        if (schema.outputs().stream().anyMatch(p -> p.quantifier().isOptional())) {
-                            opArgs.add(recordTypeToTupleType(l, (ClassType) op.resultType()));
-                            Set<? extends OnnxOp.OnnxParameter> optionalOutputs = schema.outputs().stream()
-                                    .filter(p -> p.quantifier().isOptional())
-                                    .collect(Collectors.toSet());
-                            opArgs.add(optionalOutputs);
-                        } else {
-                            opArgs.add(type(op.resultType()));
-                        }
-
-                        for (int i = 0; i < schema.inputs().size(); i++) {
-                            OnnxOp.OnnxParameter p = schema.inputs().get(i);
-                            Value v = io.operands().get(i);
-
-                            switch (p.quantifier()) {
-                                case REQUIRED -> {
-                                    opArgs.add(bb.context().getValue(v));
-                                }
-                                case OPTIONAL -> {
-                                    // Evaluation of expressions Optional.empty and Optional.of() with symbolic values
-                                    if (v instanceof Op.Result r && r.op() instanceof CoreOp.InvokeOp optionalInvoke
-                                            && optionalInvoke.invokeDescriptor().refType().equals(JavaType.type(Optional.class))) {
-                                        switch (optionalInvoke.invokeDescriptor().name()) {
-                                            case "of" -> {
-                                                opArgs.add(Optional.of(bb.context().getValue(optionalInvoke.operands().getFirst())));
-                                            }
-                                            case "empty" -> {
-                                                opArgs.add(Optional.empty());
-                                            }
-                                            default -> throw new UnsupportedOperationException();
-                                        }
-                                    } else {
-                                        throw new UnsupportedOperationException();
-                                    }
-                                }
-                                case VARIADIC -> {
-                                    throw new UnsupportedOperationException();
-                                }
-                            }
-                        }
-                        opArgs.addAll(attributes.stream().map(a -> {
-                            if (a instanceof CoreOp.LambdaOp lo) {
-                                var ltf = LambdaToFunc.fromLambda(l, lo, evaluatedValues);
-                                var cc = bb.context();
-                                var lbb = Body.Builder.of(bb.parentBody(), lo.invokableType(), cc);
-                                var eb = lbb.entryBlock();
-                                var params = ltf.func().func().body().entryBlock().parameters();
-                                var captured = lo.capturedValues();
-                                for (int i = 0; i < params.size(); i++) {
-                                    var param = params.get(i);
-                                    cc.mapValue(param, eb.op(OnnxOps.Identity(param.type(), cc.getValue(traverseUp(captured.get(i))))));
-                                }
-                                ltf.func().func().body().entryBlock().ops().forEach(eb::apply);
-                                return lbb;
-                            }
-                            return a;
-                        }).toList());
-
-                        OnnxOp onnxOp;
-                        try {
-                            onnxOp = (OnnxOp) opMethod.invoke(null, opArgs.toArray());
-                        } catch (ReflectiveOperationException | RuntimeException e) {
-                            throw new RuntimeException(e);
-                        }
-                        Op.Result result = bb.op(onnxOp);
-                        bb.context().mapValue(io.result(), result);
-                    }
-                    // Transform access to the result of an operator that is a record access
-                    case CoreOp.InvokeOp io when
-                            recordComponentAccessToTupleIndex(l, io.invokeDescriptor()) instanceof Integer index -> {
-                        Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
-                        bb.context().mapValue(io.result(), result);
-                    }
-                    case CoreOp.FieldAccessOp.FieldLoadOp fo when fo.fieldDescriptor().type() instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS) -> {
-                        bb.context().mapValue(fo.result(), b.parameter(type(fo.resultType())));
-                    }
-                    // Copy remaining operations, which may be removed later transformations
-                    default -> bb.op(op);
-                }
-                return bb;
-            });
+            b.transformBody(lambda.body(), List.of(), OpTransformer.COPYING_TRANSFORMER);
         });
 
-        return new OnnxFuncOp(SSA.transform(onnxModel).transform((b, op) -> {
+        return new OnnxTransformer(lookup, f);
+    }
+
+    final CoreOp.FuncOp inline(CoreOp.FuncOp func) {
+        return func.transform((bb, op) -> {
+            var cc  = bb.context();
+            switch (op) {
+                case CoreOp.InvokeOp io when resolve(io) instanceof CoreOp.FuncOp inline ->
+                    bb.inline(inline(inline), cc.getValues(io.operands()), (_, v) -> cc.mapValue(io.result(), v));
+                default ->
+                    bb.apply(op);
+            }
+            return bb;
+        });
+    }
+
+    public OnnxTransformer(MethodHandles.Lookup lookup, CoreOp.FuncOp func) {
+        l = lookup;
+
+        var inlinedFunc = inline(func);
+
+        inits = new ArrayList<>();
+        var initMap = new HashMap<FieldRef, Block.Parameter>();
+        var top = new Block.Builder[1];
+        // turning field loads into additiona arguments
+        inputFunc = inlinedFunc.transform((bb, op) -> {
+            // @@@ This is ugly, in this case we could ask the bb for its furthest ancestor block
+            // when we need it
+            if (top[0] == null) top[0] = bb;
+            var cc  = bb.context();
+            switch (op) {
+                case CoreOp.FieldAccessOp.FieldLoadOp flo when op.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS) -> {
+                    // initializers turn into top block parameters
+                    cc.mapValue(op.result(), initMap.computeIfAbsent(flo.fieldDescriptor(), fd -> {
+                        inits.add(fd);
+                        return top[0].parameter(op.resultType());
+                    }));
+                }
+                default -> bb.apply(op);
+            }
+            return bb;
+        });
+    }
+
+    CoreOp.FuncOp resolve(CoreOp.InvokeOp io) {
+        try {
+            var res = Op.ofMethod(io.invokeDescriptor().resolveToDirectMethod(l));
+            if (res.isPresent()) {
+                return SSA.transform(res.get());
+            }
+        } catch (ReflectiveOperationException | IllegalArgumentException _) {}
+        return null;
+    }
+
+    public List<Tensor> initializers(Object receiver) {
+        return inits.stream().map(i -> {
+            try {
+                return (Tensor)(i.resolveToMember(l).accessFlags().contains(AccessFlag.STATIC) ? i.resolveToHandle(l).get() : i.resolveToHandle(l).get(receiver));
+            } catch (ReflectiveOperationException ex) {
+                throw new RuntimeException(ex);
+            }
+        }).toList();
+    }
+
+    public CoreOp.FuncOp transform() {
+        OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
+        pe.evaluate(l, inputFunc);
+
+        // ONNX model transformation
+        FunctionType ft = FunctionType.functionType(type(l, inputFunc.invokableType().returnType()),
+                inputFunc.invokableType().parameterTypes().stream().map(te -> type(l, te)).toList()
+        );
+        CoreOp.FuncOp onnxModel = CoreOp.func(inputFunc.funcName(), ft).body(b -> {
+            b.transformBody(inputFunc.body(), b.parameters(), bodyTransformer(pe));
+        });
+
+        // Drop unused parameters transformation, can be merged with drop unused operations transformation
+        CoreOp.FuncOp cutModel = onnxModel;
+        if (onnxModel.parameters().stream().anyMatch(v -> v.uses().isEmpty())) {
+            List<Block.Parameter> usedParameters = onnxModel.parameters().stream()
+                    .filter(v -> !v.uses().isEmpty())
+                    .toList();
+            List<TypeElement> usedParameterTypes = usedParameters.stream().map(Value::type).toList();
+
+            var funcType = FunctionType.functionType(onnxModel.invokableType().returnType(), usedParameterTypes);
+            cutModel = CoreOp.func(onnxModel.funcName(), funcType).body(bb -> {
+                bb.context().mapValues(usedParameters, bb.parameters());
+                bb.transformBody(onnxModel.body(), List.of(), OpTransformer.COPYING_TRANSFORMER);
+            });
+        }
+
+        // SSA and drop unused operations transformation
+        return SSA.transform(cutModel).transform((b, op) -> {
             // Drop any non-terminating operation whose result is not used
             if (op instanceof Op.Terminating || !op.result().uses().isEmpty()) {
                 b.op(op);
             }
             return b;
-        }), pe.initializers);
+        });
     }
 
-    static Value traverseUp(Value v) {
-        // @@@ when captured value is a VaroOp
-        return v instanceof Op.Result or && or.op() instanceof CoreOp.VarOp vo && !vo.isUninitialized()? vo.initOperand() : v;
+    OpTransformer bodyTransformer(OnnxPartialEvaluator pe) {
+        return (bb, op) -> {
+            if (!pe.unevaluatedOperations.contains(op)) {
+                return bb;
+            }
+            switch (op) {
+                // Transform invocation to ONNX operator to operation modeling the operator
+                case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(ONNX_OPERATORS_CLASS) -> {
+                    String operatorName = io.invokeDescriptor().name();
+                    Class<? extends OnnxOp> opClass = onnxOpClassFromName(operatorName);
+                    OnnxOp.OnnxSchema schema = schemaFromOnnxOpClass(opClass);
+
+                    List<Object> attributes = pe.evaluatedAttributes.get(io);
+
+                    Method opMethod = Stream.of(OnnxOps.class.getMethods())
+                            .filter(m -> m.getName().equals(operatorName))
+                            .findFirst().orElseThrow();
+
+                    List<Object> opArgs = new ArrayList<>();
+
+                    // @@@ Operator API currently requires all optional output parameters are required
+                    if (schema.outputs().stream().anyMatch(p -> p.quantifier().isOptional())) {
+                        opArgs.add(recordTypeToTupleType(l, (ClassType) op.resultType()));
+                        Set<? extends OnnxOp.OnnxParameter> optionalOutputs = schema.outputs().stream()
+                                .filter(p -> p.quantifier().isOptional())
+                                .collect(Collectors.toSet());
+                        opArgs.add(optionalOutputs);
+                    } else {
+                        opArgs.add(type(l, op.resultType()));
+                    }
+
+                    for (int i = 0; i < schema.inputs().size(); i++) {
+                        OnnxOp.OnnxParameter p = schema.inputs().get(i);
+                        Value v = io.operands().get(i);
+
+                        switch (p.quantifier()) {
+                            case REQUIRED -> {
+                                opArgs.add(bb.context().getValue(v));
+                            }
+                            case OPTIONAL -> {
+                                // Evaluation of expressions Optional.empty and Optional.of() with symbolic values
+                                if (v instanceof Op.Result r && r.op() instanceof CoreOp.InvokeOp optionalInvoke
+                                        && optionalInvoke.invokeDescriptor().refType().equals(JavaType.type(Optional.class))) {
+                                    switch (optionalInvoke.invokeDescriptor().name()) {
+                                        case "of" -> {
+                                            opArgs.add(Optional.of(bb.context().getValue(optionalInvoke.operands().getFirst())));
+                                        }
+                                        case "empty" -> {
+                                            opArgs.add(Optional.empty());
+                                        }
+                                        default -> throw new UnsupportedOperationException();
+                                    }
+                                } else {
+                                    throw new UnsupportedOperationException();
+                                }
+                            }
+                            case VARIADIC -> {
+                                // Evaluation of expressions List.of() with symbolic values
+                                if (v instanceof Op.Result r && r.op() instanceof CoreOp.InvokeOp listInvoke
+                                        && listInvoke.invokeDescriptor().refType().equals(JavaType.type(List.class))) {
+                                    switch (listInvoke.invokeDescriptor().name()) {
+                                        case "of" -> {
+                                            opArgs.add(listInvoke.operands().stream().map(o -> bb.context().getValue(o)).toList());
+                                        }
+                                        default -> throw new UnsupportedOperationException();
+                                    }
+                                } else {
+                                    // otherwise pass through a single value
+                                    opArgs.add(bb.context().getValue(v));
+                                }
+                            }
+                        }
+                    }
+                    opArgs.addAll(attributes);
+                    if (opClass == ExplicitOnnxOps.If.class) {
+                        // Explicit transformation of nested bodies
+                        for (int i = 1; i < 3; i++) {
+                            var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
+                            opArgs.add(transformBodyTranslateTypes(l, lambda, bb, bodyTransformer(pe)));
+                        }
+                    } else if (opClass == ExplicitOnnxOps.Loop.class) {
+                        // Explicit transformation of nested body
+                        var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(3)).op());
+                        opArgs.add(transformBodyTranslateTypes(l, lambda, bb, bodyTransformer(pe)));
+                    }
+                    OnnxOp onnxOp;
+                    try {
+                        onnxOp = (OnnxOp) opMethod.invoke(null, opArgs.toArray());
+                    } catch (ReflectiveOperationException | RuntimeException e) {
+                        throw new RuntimeException(e);
+                    }
+                    Op.Result result = bb.op(onnxOp);
+                    bb.context().mapValue(io.result(), result);
+                }
+                // Transform access to the result of an operator that is a record access
+                case CoreOp.InvokeOp io when
+                        recordComponentAccessToTupleIndex(l, io.invokeDescriptor()) instanceof Integer index -> {
+                    Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
+                    bb.context().mapValue(io.result(), result);
+                }
+                // Transform record construction
+                case CoreOp.NewOp no when isRecord(l, no.type()) -> {
+                    Op.Result result = bb.op(CoreOp.tuple(bb.context().getValues(no.operands())));
+                    bb.context().mapValue(no.result(), result);
+                }
+                // Transform access to the result of an operator that is a list access
+                // @@@ raw use of List::get with constant argument
+                case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(LIST_CLASS) && io.invokeDescriptor().name().equals("get") -> {
+                    Op.Result result = bb.op(CoreOp.invoke(
+                            io.invokeDescriptor(),
+                            bb.context().getValue(io.operands().getFirst()),
+                            bb.op(CoreOp.constant(JavaType.INT, pe.evaluatedAttributes.get(io).getLast()))));
+                    bb.context().mapValue(io.result(), result);
+                }
+                // Skip nested lambdas
+                case CoreOp.LambdaOp _ -> {
+                }
+                // Copy remaining operations, which may be removed later transformations
+                default -> bb.op(op);
+            }
+            return bb;
+        };
+    }
+
+    // @@@ Copy of Body::transform content to translate types
+    static Body.Builder transformBodyTranslateTypes(MethodHandles.Lookup l, Op.Invokable iop,
+                                                    Block.Builder ancestor, OpTransformer ot) {
+        // @@@ Pass in function type to override that of body's type?
+//        return iop.body().transform(cc, ot);
+        FunctionType inputType = iop.invokableType();
+        FunctionType outputType = FunctionType.functionType(
+                type(l, inputType.returnType()),
+                inputType.parameterTypes().stream().map(pt -> type(l, pt)).toList());
+
+        // @@@ It's not clear in the API when to pass CopyContext and OpTransformer
+        // @@@ create a Body.Builder structurally connected as a descendant of a Block.Builder
+        // but not yet connected as the child of an operation
+        Body.Builder bb = Body.Builder.of(ancestor.parentBody(),
+                outputType, ancestor.context()); // translate types
+
+        bb.entryBlock().transformBody(iop.body(), bb.entryBlock().parameters(), ot);
+        return bb;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     static Class<? extends OnnxOp> onnxOpClassFromName(String operatorName) {
-        Class<? extends OnnxOp> opClass;
         try {
             return (Class) Class.forName(OnnxOps.class.getName() + "$" + operatorName);
         } catch (ClassNotFoundException e) {
@@ -195,7 +366,7 @@ public class OnnxTransformer {
                     Type elementType = pt.getActualTypeArguments()[0];
                     switch (elementType) {
                         case Class<?> _ -> {
-                            tupleComponentTypes.add(type(JavaType.type(pt)));
+                            tupleComponentTypes.add(type(l, JavaType.type(pt)));
                         }
                         case TypeVariable<?> tv -> {
                             // Resolve type variable
@@ -206,10 +377,21 @@ public class OnnxTransformer {
                                     break;
                                 }
                             }
-                            tupleComponentTypes.add(type(JavaType.parameterized(JavaType.type(Tensor.class), e)));
+                            tupleComponentTypes.add(type(l, JavaType.parameterized(JavaType.type(Tensor.class), e)));
                         }
                         default -> throw new IllegalStateException("Unexpected value: " + elementType);
                     }
+                }
+                case TypeVariable tv -> {
+                    // Resolve type variable
+                    JavaType e = null;
+                    for (int j = 0; j < recordClass.getTypeParameters().length; j++) {
+                        if (recordClass.getTypeParameters()[j].getName().equals(tv.getName())) {
+                            e = recordType.typeArguments().get(j);
+                            break;
+                        }
+                    }
+                    tupleComponentTypes.add(type(l, e));
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + rc.getGenericType());
             }
@@ -218,8 +400,18 @@ public class OnnxTransformer {
         return TupleType.tupleType(tupleComponentTypes);
     }
 
+    static boolean isRecord(MethodHandles.Lookup l, TypeElement type) {
+        try {
+            return type instanceof ClassType ct &&
+                    ct.erasure().resolve(l) instanceof Class c &&
+                    c.isRecord();
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     static Integer recordComponentAccessToTupleIndex(MethodHandles.Lookup l, MethodRef ref) {
-        if (ref.refType() instanceof ClassType ct && ct.toClassName().startsWith("oracle.code.onnx.OnnxOperators$")) {
+        if (ref.refType() instanceof ClassType ct) {
             Class<?> refClass;
             try {
                 refClass = (Class<?>) ct.resolve(l);
@@ -244,23 +436,26 @@ public class OnnxTransformer {
 
     // @@@ Map of Java tensor types to ONNX tensor types
     // @@@ Shape??
-    static TypeElement type(TypeElement type) {
-        if (type instanceof ClassType ct && ct.rawType().equals(TENSOR_RAW_CLASS)) {
-            JavaType elementType = ct.typeArguments().getFirst();
-            if (elementType.equals(JavaType.J_L_INTEGER)) {
-                return OnnxType.TENSOR_INT32;
-            } else if (elementType.equals(JavaType.J_L_FLOAT)) {
-                return OnnxType.TENSOR_FLOAT32;
-            } else if (elementType.equals(JavaType.J_L_LONG)) {
-                return OnnxType.TENSOR_INT64;
-            } else if (elementType.equals(JavaType.J_L_BYTE)) {
-                return OnnxType.TENSOR_UINT8;
-            } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
-                return OnnxType.TENSOR_BOOL;
+    static TypeElement type(MethodHandles.Lookup l, TypeElement type) {
+        if (type instanceof ClassType ct) {
+            if (ct.rawType().equals(TENSOR_RAW_CLASS)) {
+                JavaType elementType = ct.typeArguments().getFirst();
+                if (elementType.equals(JavaType.J_L_INTEGER)) {
+                    return OnnxType.TENSOR_INT32;
+                } else if (elementType.equals(JavaType.J_L_FLOAT)) {
+                    return OnnxType.TENSOR_FLOAT32;
+                } else if (elementType.equals(JavaType.J_L_LONG)) {
+                    return OnnxType.TENSOR_INT64;
+                } else if (elementType.equals(JavaType.J_L_BYTE)) {
+                    return OnnxType.TENSOR_UINT8;
+                } else if (elementType.equals(JavaType.J_L_BOOLEAN)) {
+                    return OnnxType.TENSOR_BOOL;
+                }
+            } else if (isRecord(l, type)) {
+                return recordTypeToTupleType(l, ct);
             }
         }
         return type;
 //        throw new UnsupportedOperationException("Unknown type: " + type);
     }
-
 }

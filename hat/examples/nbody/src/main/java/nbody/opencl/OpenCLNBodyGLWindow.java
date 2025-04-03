@@ -28,9 +28,7 @@ package nbody.opencl;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.backend.ffi.Config;
-import hat.backend.ffi.OpenCLBackend;
-import hat.ifacemapper.SegmentMapper;
+import hat.ifacemapper.BufferState;
 import jdk.incubator.code.CodeReflection;
 import nbody.Mode;
 import nbody.NBodyGLWindow;
@@ -42,6 +40,7 @@ import wrap.glwrap.GLTexture;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 
+import static hat.backend.Backend.FIRST;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 import static opengl.opengl_h.glMatrixMode;
@@ -116,9 +115,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
     public OpenCLNBodyGLWindow(Arena arena, int width, int height, GLTexture particle, int bodyCount, Mode mode) {
         super(arena, width, height, particle, bodyCount, mode);
         final float maxDist = 80f;
-        accelerator = new Accelerator(MethodHandles.lookup(),
-                new OpenCLBackend(Config.of("GPU"))
-        );
+        accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
         universe = Universe.create(accelerator, bodyCount);
         for (int body = 0; body < bodyCount; body++) {
             Universe.Body b = universe.body(body);
@@ -296,10 +293,6 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
                 long elapsed = System.currentTimeMillis() - startTime;
                 float secs = elapsed / 1000f;
                 var FPS = "Mode: " + mode.toString() + " Bodies " + bodyCount + " FPS: " + ((frameCount / secs));
-                // System.out.print(" gw "+glutGet(GLUT_SCREEN_WIDTH())+" gh "+glutGet(GLUT_SCREEN_HEIGHT()));
-                // System.out.print(" a "+aspect+",s "+size);
-                // System.out.println(" w "+width+" h"+height);
-
                 glRasterPos2f(-.8f, .7f);
                 for (int c : FPS.getBytes()) {
                     glutBitmapCharacter(font, c);
@@ -316,13 +309,9 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
     @Override
     protected void moveBodies() {
         if (frameCount == 0) {
-            SegmentMapper.BufferState.of(universe).setHostDirty(true).setDeviceDirty(true);
-            // vel.copyToDevice = true;
-            // pos.copyToDevice = true;
+            BufferState.of(universe).setState(BufferState.HOST_OWNED);
         } else {
-            SegmentMapper.BufferState.of(universe).setHostDirty(false).setDeviceDirty(true);
-            // vel.copyToDevice = false;
-            //pos.copyToDevice = false;
+            BufferState.of(universe).setState(BufferState.DEVICE_OWNED);
         }
         if (mode.equals(Mode.HAT)) {
             float cmass = mass;
@@ -331,17 +320,6 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
             Universe cuniverse = universe;
             accelerator.compute(cc -> nbodyCompute(cc, cuniverse, cmass, cdelT, cespSqr));
         } else if (mode.equals(Mode.OpenCL4) || mode.equals(Mode.OpenCL)) {
-        //    if (frameCount == 0) {
-              //  SegmentMapper.BufferState.of(universe).setHostDirty(true).setDeviceDirty(true);
-               // vel.copyToDevice = true;
-               // pos.copyToDevice = true;
-          //  } else {
-            //    SegmentMapper.BufferState.of(universe).setHostDirty(false).setDeviceDirty(true);
-               // vel.copyToDevice = false;
-                //pos.copyToDevice = false;
-           // }
-           // vel.copyFromDevice = false;
-          //  pos.copyFromDevice = true;
 
             kernel.run(clWrapComputeContext, bodyCount, universe, mass, delT, espSqr);
         } else {
@@ -350,14 +328,5 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
     }
 }
 
-   /* public static void main(String[] args) throws IOException {
-        int particleCount = args.length > 2 ? Integer.parseInt(args[2]) : 32768;
-        Mode mode = Mode.of(args.length > 3 ? args[3] : Mode.OpenCL4.toString());
-        System.out.println("mode" + mode);
-        try (var arena = mode.equals(Mode.JavaMT4) || mode.equals(Mode.JavaMT) ? Arena.ofShared() : Arena.ofConfined()) {
-            var particleTexture = new GLTexture(arena, NBody.class.getResourceAsStream("/particle.png"));
-            new CLNBodyGLWindow( arena, 1000, 1000, particleTexture, particleCount, mode).bindEvents().mainLoop();
-        }
-    } */
 
 

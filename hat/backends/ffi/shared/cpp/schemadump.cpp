@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
         (?:8+ResultTable:{length:s32,atomicResultTableCount:s32,result:[*:Result:{x:f32,y:f32,width:f32,height:f32}]}))";
     char *schema = suaresadd;
     std::cout << "schema = '" << schema << "'" << std::endl;
-    Cursor cursor(schema);
+    SchemaCursor cursor(schema);
     Schema::SchemaNode schemaNode;
     schemaNode.parse(&cursor);
 

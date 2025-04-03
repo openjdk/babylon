@@ -25,12 +25,14 @@
 package hat.optools;
 
 import jdk.incubator.code.op.ExtendedOp;
+
+import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public class WhileOpWrapper extends LoopOpWrapper<ExtendedOp.JavaWhileOp> {
 
-    WhileOpWrapper(ExtendedOp.JavaWhileOp op) {
-        super(op);
+    WhileOpWrapper( MethodHandles.Lookup lookup,ExtendedOp.JavaWhileOp op) {
+        super(lookup,op);
     }
 
     @Override

@@ -74,27 +74,26 @@ public:
 
 class PtxBackend : public Backend {
 public:
+    class PtxBuffer : public Backend::Buffer {
+    public:
+        CUdeviceptr devicePtr;
 
-    class PtxProgram : public Backend::Program {
-        class PtxKernel : public Backend::Program::Kernel {
-            class PtxBuffer : public Backend::Program::Kernel::Buffer {
-            public:
-                CUdeviceptr devicePtr;
+        PtxBuffer(Backend *backend, Arg_s *arg);
 
-                PtxBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
+        void copyToDevice();
 
-                void copyToDevice();
+        void copyFromDevice();
 
-                void copyFromDevice();
+        virtual ~PtxBuffer();
+    };
+    class PtxProgram : public Backend::CompilationUnit {
+        class PtxKernel : public Backend::CompilationUnit::Kernel {
 
-                virtual ~PtxBuffer();
-            };
 
         private:
             CUfunction function;
-            cudaStream_t cudaStream;
         public:
-            PtxKernel(Backend::Program *program, char* name, CUfunction function);
+            PtxKernel(Backend::CompilationUnit *program, char* name, CUfunction function);
 
             ~PtxKernel() override;
 
@@ -106,7 +105,7 @@ public:
         Ptx *ptx;
 
     public:
-        PtxProgram(Backend *backend, BuildInfo *buildInfo, Ptx *ptx, CUmodule module);
+        PtxProgram(Backend *backend, Ptx *ptx, CUmodule module);
 
         ~PtxProgram();
 
@@ -118,6 +117,8 @@ public:
 private:
     CUdevice device;
     CUcontext context;
+
+    cudaStream_t cudaStream;
 public:
 
     PtxBackend(int mode);
@@ -128,7 +129,9 @@ public:
 
     void info();
 
-    long compileProgram(int len, char *source);
+    long compile(int len, char *source);
+    void computeStart();
+    void computeEnd();
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
 
 };

@@ -159,12 +159,12 @@ public class DebugBackend extends BackendAdaptor {
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+                FunctionType functionType = OpsAndTypes.transformTypes(kernelCallGraph.computeContext.accelerator.lookup, ssaInvokeForm);
                 System.out.println("SSA form with types transformed args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
 
-                CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+                CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(kernelCallGraph.computeContext.accelerator.lookup, ssaInvokeForm, functionType);
                 System.out.println("SSA form with invokes replaced by ptrs");
                 System.out.println(ssaPtrForm.toText());
             }

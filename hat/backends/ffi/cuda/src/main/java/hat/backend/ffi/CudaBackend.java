@@ -34,39 +34,53 @@ import java.lang.invoke.MethodHandle;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class CudaBackend extends C99FFIBackend {
+    final Config config;
+    final FFILib.LongIntMethodPtr getBackend_MPtr;
 
-    final MethodHandle getBackend_MH;
-    public long getBackend(int mode, int platform, int device) {
-        try {
-            backendHandle = (long) getBackend_MH.invoke(mode, platform, device);
-        } catch (Throwable throwable) {
-            throw new IllegalStateException(throwable);
-        }
-        return backendHandle;
-    }
-    public CudaBackend() {
+    public CudaBackend(Config config) {
         super("cuda_backend");
-        getBackend_MH  =  nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
-        getBackend(0,0, 0 );
-        info();
+        this.config = config;
+        getBackend_MPtr  =  ffiLib.longIntFunc("getCudaBackend");
+        getBackend(this.config.bits());
+        if (this.config.isINFO()) {
+            System.out.println("CONFIG = " + this.config);
+            backendBridge.info();
+        }
     }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("Cuda backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true,true);
 
     }
+
+    public long getBackend(int configBits) {
+        return backendBridge.handle = getBackend_MPtr.invoke(configBits);
+    }
+
+    public CudaBackend(String configSpec) {
+        this(Config.of(configSpec));
+    }
+
+    public CudaBackend() {
+        this(Config.of());
+    }
+
+
+
+
+
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         // System.out.println("Cuda backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createCode(kernelCallGraph, new CudaHatKernelBuilder(), args, true);
-            long programHandle = compileProgram(code);
-            if (programOK(programHandle)) {
-                long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
-                return new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
+            var compilationUnit = backendBridge.compile(code);
+            if (compilationUnit.ok()) {
+                var kernel = compilationUnit.getKernel(kernelCallGraph.entrypoint.method.getName());
+                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
             } else {
                 throw new IllegalStateException("cuda failed to compile ");
             }

@@ -58,6 +58,8 @@ import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
+import java.lang.invoke.MethodHandles;
+
 import jdk.incubator.code.Op;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.ExtendedOp;
@@ -135,9 +137,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
 
-    public T type(JavaType javaType) {
-       // if (FuncOpWrapper.ParamTable.Info.isIfaceBuffer(javaType) && javaType instanceof ClassType classType)
-        if (InvokeOpWrapper.isIface(javaType) && javaType instanceof ClassType classType) {
+    public T type(CodeBuilderContext buildContext,JavaType javaType) {
+        if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup(),javaType) && javaType instanceof ClassType classType) {
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
             int dollarIdx = name.lastIndexOf('$');
@@ -176,9 +177,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T varDeclaration(CodeBuilderContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) {
         if (varDeclarationOpWrapper.op().isUninitialized()) {
             // Variable is uninitialized
-            type(varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName());
+            type(buildContext,varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName());
         } else {
-            type(varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
+            type(buildContext,varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
             parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
         }
         return self();
@@ -194,9 +195,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T fieldLoad(CodeBuilderContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper) {
         if (fieldLoadOpWrapper.isKernelContextAccess()) {
             identifier("kc").rarrow().identifier(fieldLoadOpWrapper.fieldName());
-        } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {
-
-            Object value = fieldLoadOpWrapper.getStaticFinalPrimitiveValue();
+        } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {    Object value = fieldLoadOpWrapper.getStaticFinalPrimitiveValue();
             literal(value.toString());
         } else {
             throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
@@ -279,9 +278,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     public T conv(CodeBuilderContext buildContext, ConvOpWrapper convOpWrapper) {
         if (convOpWrapper.resultJavaType() == JavaType.DOUBLE) {
-            paren(_ -> type(JavaType.FLOAT));
+            paren(_ -> type(buildContext,JavaType.FLOAT));
         } else {
-            paren(_ -> type(convOpWrapper.resultJavaType()));
+            paren(_ -> type(buildContext,convOpWrapper.resultJavaType()));
         }
         //paren(() -> type(convOpWrapper.resultJavaType()));
         parencedence(buildContext, convOpWrapper, convOpWrapper.operandNAsResult(0).op());
@@ -303,7 +302,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T javaYield(CodeBuilderContext buildContext, YieldOpWrapper yieldOpWrapper) {
         var operand0 = yieldOpWrapper.operandNAsValue(0);
         if (operand0 instanceof Op.Result result) {
-            recurse(buildContext, OpWrapper.wrap(result.op()));
+            recurse(buildContext, OpWrapper.wrap(buildContext.lookup(), result.op()));
         } else {
             // append("/*nothing to yield*/");
         }
@@ -322,7 +321,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 comma().space();
             }
             if (operand instanceof Op.Result result) {
-                recurse(buildContext, OpWrapper.wrap(result.op()));
+                recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),result.op()));
             } else {
                 commented("/*nothing to tuple*/");
             }
@@ -350,11 +349,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T javaLabeled(CodeBuilderContext buildContext, JavaLabeledOpWrapper javaLabeledOpWrapper) {
-        var labelNameOp = OpWrapper.wrap(javaLabeledOpWrapper.firstBlockOfFirstBody().ops().get(0));
+        var labelNameOp = OpWrapper.wrap(buildContext.lookup(),javaLabeledOpWrapper.firstBlockOfFirstBody().ops().get(0));
         CoreOp.ConstantOp constantOp = (CoreOp.ConstantOp) labelNameOp.op();
         literal(constantOp.value().toString()).colon().nl();
         var forLoopOp = javaLabeledOpWrapper.firstBlockOfFirstBody().ops().get(1);
-        recurse(buildContext, OpWrapper.wrap(forLoopOp));
+        recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),forLoopOp));
         // var yieldOp = javaLabeledOpWrapper.firstBlockOfFirstBody().ops().get(2);
         return self();
     }
@@ -595,7 +594,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
                      */
                     }
-                    recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
+                    recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),instanceResult.op()));
                     rarrow().identifier(name);
                     //if (invokeOpWrapper.name().equals("value") || invokeOpWrapper.name().equals("anon")){
                     //System.out.println("value|anon");
@@ -605,7 +604,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         switch (operandCount) {
                             case 2: {
                                 if (invokeOpWrapper.operandNAsResult(1) instanceof Op.Result result1) {
-                                    equals().recurse(buildContext, OpWrapper.wrap(result1.op()));
+                                    equals().recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),result1.op()));
                                 } else {
                                     throw new IllegalStateException("How ");
                                 }
@@ -614,8 +613,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             case 3: {
                                 if (invokeOpWrapper.operandNAsResult(1) instanceof Op.Result result1
                                         && invokeOpWrapper.operandNAsResult(2) instanceof Op.Result result2) {
-                                    sbrace(_ -> recurse(buildContext, OpWrapper.wrap(result1.op())));
-                                    equals().recurse(buildContext, OpWrapper.wrap(result2.op()));
+                                    sbrace(_ -> recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),result1.op())));
+                                    equals().recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),result2.op()));
                                 } else {
                                     throw new IllegalStateException("How ");
                                 }
@@ -627,7 +626,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         }
                     } else {
                         if (invokeOpWrapper.operandNAsResult(1) instanceof Op.Result result1) {
-                            var rhs = OpWrapper.wrap(result1.op());
+                            var rhs = OpWrapper.wrap(buildContext.lookup(),result1.op());
                             sbrace(_ -> recurse(buildContext, rhs));
                         } else {
                             // This is a simple usage.   So scaleTable->multiScaleAccumRange
@@ -642,7 +641,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             identifier(name).paren(_ ->
                     commaSeparated(invokeOpWrapper.operands(), (op) -> {
                         if (op instanceof Op.Result result) {
-                            recurse(buildContext, OpWrapper.wrap(result.op()));
+                            recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),result.op()));
                         } else {
                             throw new IllegalStateException("wtf?");
                         }
@@ -678,13 +677,13 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child) {
         return parenWhen(precedenceOf(parent.op()) < precedenceOf(child.op()), _ -> recurse(buildContext, child));
     }
-
-    public T parencedence(CodeBuilderContext buildContext, Op parent, Op child) {
-        return parenWhen(precedenceOf(parent) < precedenceOf(child), _ -> recurse(buildContext, OpWrapper.wrap(child)));
+@Override
+    public T parencedence(CodeBuilderContext buildContext,  Op parent, Op child) {
+        return parenWhen(precedenceOf(parent) < precedenceOf(child), _ -> recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),child)));
     }
 
     public T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, Op child) {
-        return parenWhen(precedenceOf(parent.op()) < precedenceOf(child), _ -> recurse(buildContext, OpWrapper.wrap(child)));
+        return parenWhen(precedenceOf(parent.op()) < precedenceOf(child), _ -> recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),child)));
     }
 
 

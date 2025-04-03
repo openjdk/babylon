@@ -37,6 +37,7 @@ import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.type.ClassType;
 import jdk.incubator.code.type.JavaType;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -46,56 +47,58 @@ import java.util.stream.Stream;
 
 public class OpWrapper<T extends Op> {
     @SuppressWarnings("unchecked")
-    public static <O extends Op, OW extends OpWrapper<O>> OW wrap(O op) {
+    public static <O extends Op, OW extends OpWrapper<O>> OW wrap(MethodHandles.Lookup lookup,O op) {
         // We have one special case
         // This is possibly a premature optimization. But it allows us to treat vardeclarations differently from params.
         if (op instanceof CoreOp.VarOp varOp && !varOp.isUninitialized()) {
             // this gets called a lot and we can't wrap yet or we recurse so we
-            // use the raw model. Basically we want a different wrapper for VarDeclations
+            // use the raw model. Basically we want a different wrapper for VarDeclarations
             // which  relate to func parameters.
             // This saves us asking each time if a var is indeed a func param.
 
             if (varOp.operands().getFirst() instanceof Block.Parameter parameter &&
                     parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp) {
-                return (OW) new VarFuncDeclarationOpWrapper(varOp, funcOp, parameter);
+                return (OW) new VarFuncDeclarationOpWrapper(lookup,varOp, funcOp, parameter);
             }
         }
         return switch (op) {
-            case CoreOp.ModuleOp $ -> (OW) new ModuleOpWrapper($);
-            case ExtendedOp.JavaForOp $ -> (OW) new ForOpWrapper($);
-            case ExtendedOp.JavaWhileOp $ -> (OW) new WhileOpWrapper($);
-            case ExtendedOp.JavaIfOp $ -> (OW) new IfOpWrapper($);
-            case CoreOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper($);
-            case CoreOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper($);
-            case CoreOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation($);
-            case CoreOp.BinaryTestOp $ -> (OW) new BinaryTestOpWrapper($);
-            case CoreOp.FuncOp $ -> (OW) new FuncOpWrapper($);
-            case CoreOp.VarOp $ -> (OW) new VarDeclarationOpWrapper($);
-            case CoreOp.YieldOp $ -> (OW) new YieldOpWrapper($);
-            case CoreOp.FuncCallOp $ -> (OW) new FuncCallOpWrapper($);
-            case CoreOp.ConvOp $ -> (OW) new ConvOpWrapper($);
-            case CoreOp.ConstantOp $ -> (OW) new ConstantOpWrapper($);
-            case CoreOp.ReturnOp $ -> (OW) new ReturnOpWrapper($);
-            case CoreOp.VarAccessOp.VarStoreOp $ -> (OW) new VarStoreOpWrapper($);
-            case CoreOp.VarAccessOp.VarLoadOp $ -> (OW) new VarLoadOpWrapper($);
-            case CoreOp.FieldAccessOp.FieldStoreOp $ -> (OW) new FieldStoreOpWrapper($);
-            case CoreOp.FieldAccessOp.FieldLoadOp $ -> (OW) new FieldLoadOpWrapper($);
-            case CoreOp.InvokeOp $ -> (OW) new InvokeOpWrapper($);
-            case CoreOp.TupleOp $ -> (OW) new TupleOpWrapper($);
-            case CoreOp.LambdaOp $ -> (OW) new LambdaOpWrapper($);
-            case ExtendedOp.JavaConditionalOp $ -> (OW) new LogicalOpWrapper($);
-            case ExtendedOp.JavaConditionalExpressionOp $ -> (OW) new TernaryOpWrapper($);
-            case ExtendedOp.JavaLabeledOp $ -> (OW) new JavaLabeledOpWrapper($);
-            case ExtendedOp.JavaBreakOp $ -> (OW) new JavaBreakOpWrapper($);
-            case ExtendedOp.JavaContinueOp $ -> (OW) new JavaContinueOpWrapper($);
-            default -> (OW) new OpWrapper<>(op);
+            case CoreOp.ModuleOp $ -> (OW) new ModuleOpWrapper(lookup, $);
+            case ExtendedOp.JavaForOp $ -> (OW) new ForOpWrapper(lookup, $);
+            case ExtendedOp.JavaWhileOp $ -> (OW) new WhileOpWrapper(lookup, $);
+            case ExtendedOp.JavaIfOp $ -> (OW) new IfOpWrapper(lookup, $);
+            case CoreOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper(lookup, $);
+            case CoreOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper(lookup, $);
+            case CoreOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation(lookup, $);
+            case CoreOp.BinaryTestOp $ -> (OW) new BinaryTestOpWrapper(lookup, $);
+            case CoreOp.FuncOp $ -> (OW) new FuncOpWrapper(lookup, $);
+            case CoreOp.VarOp $ -> (OW) new VarDeclarationOpWrapper(lookup, $);
+            case CoreOp.YieldOp $ -> (OW) new YieldOpWrapper(lookup, $);
+            case CoreOp.FuncCallOp $ -> (OW) new FuncCallOpWrapper(lookup, $);
+            case CoreOp.ConvOp $ -> (OW) new ConvOpWrapper(lookup, $);
+            case CoreOp.ConstantOp $ -> (OW) new ConstantOpWrapper(lookup, $);
+            case CoreOp.ReturnOp $ -> (OW) new ReturnOpWrapper(lookup, $);
+            case CoreOp.VarAccessOp.VarStoreOp $ -> (OW) new VarStoreOpWrapper(lookup, $);
+            case CoreOp.VarAccessOp.VarLoadOp $ -> (OW) new VarLoadOpWrapper(lookup, $);
+            case CoreOp.FieldAccessOp.FieldStoreOp $ -> (OW) new FieldStoreOpWrapper(lookup, $);
+            case CoreOp.FieldAccessOp.FieldLoadOp $ -> (OW) new FieldLoadOpWrapper(lookup, $);
+            case CoreOp.InvokeOp $ -> (OW) new InvokeOpWrapper(lookup, $);
+            case CoreOp.TupleOp $ -> (OW) new TupleOpWrapper(lookup, $);
+            case CoreOp.LambdaOp $ -> (OW) new LambdaOpWrapper(lookup, $);
+            case ExtendedOp.JavaConditionalOp $ -> (OW) new LogicalOpWrapper(lookup, $);
+            case ExtendedOp.JavaConditionalExpressionOp $ -> (OW) new TernaryOpWrapper(lookup, $);
+            case ExtendedOp.JavaLabeledOp $ -> (OW) new JavaLabeledOpWrapper(lookup, $);
+            case ExtendedOp.JavaBreakOp $ -> (OW) new JavaBreakOpWrapper(lookup, $);
+            case ExtendedOp.JavaContinueOp $ -> (OW) new JavaContinueOpWrapper(lookup, $);
+            default -> (OW) new OpWrapper<>(lookup,op);
         };
     }
 
     private final T op;
-
-    OpWrapper(T op) {
+public MethodHandles.Lookup lookup;
+    OpWrapper( MethodHandles.Lookup lookup,T op) {
+        this.lookup= lookup;
         this.op = op;
+
     }
 
     public T op() {
@@ -133,7 +136,7 @@ public class OpWrapper<T extends Op> {
     public void selectCalls(Consumer<InvokeOpWrapper> consumer) {
         this.op.traverse(null, (map, op) -> {
             if (op instanceof CoreOp.InvokeOp invokeOp) {
-                consumer.accept(wrap(invokeOp));
+                consumer.accept(wrap(lookup,invokeOp));
             }
             return map;
         });
@@ -141,7 +144,7 @@ public class OpWrapper<T extends Op> {
     public void selectAssignments(Consumer<VarOpWrapper> consumer) {
         this.op.traverse(null, (map, op) -> {
             if (op instanceof CoreOp.VarOp varOp) {
-                consumer.accept(wrap(varOp));
+                consumer.accept(wrap(lookup,varOp));
             }
             return map;
         });
@@ -209,7 +212,7 @@ public class OpWrapper<T extends Op> {
     }
 
     public Stream<OpWrapper<?>> wrappedOpStream(Block block) {
-        return block.ops().stream().map(OpWrapper::wrap);
+        return block.ops().stream().map(o->wrap(lookup,o));
     }
 
     public Stream<OpWrapper<?>> wrappedYieldOpStream(Block block) {
@@ -218,7 +221,7 @@ public class OpWrapper<T extends Op> {
 
     private Stream<OpWrapper<?>> roots(Block block) {
         var rootSet = RootSet.getRootSet(block.ops().stream());
-        return block.ops().stream().filter(rootSet::contains).map(OpWrapper::wrap);
+        return block.ops().stream().filter(rootSet::contains).map(o->wrap(lookup,o));
     }
 
     private Stream<OpWrapper<?>> rootsWithoutVarFuncDeclarations(Block block) {
@@ -248,30 +251,40 @@ public class OpWrapper<T extends Op> {
     public TypeElement resultType() {
         return op.resultType();
     }
-
-    public static boolean isIface(JavaType javaType){
+    public  static boolean isIfaceUsingLookup(MethodHandles.Lookup lookup,JavaType javaType) {
+        return  (isAssignableUsingLookup(lookup,javaType, MappableIface.class));
+    }
+    public  boolean isIface(JavaType javaType) {
         return  (isAssignable(javaType, MappableIface.class));
     }
-    public static Type classTypeToType(ClassType classType){
+
+    public  static Type classTypeToTypeUsingLookup(MethodHandles.Lookup lookup,ClassType classType) {
         Type javaTypeClass = null;
         try {
-            javaTypeClass = classType.resolve(MethodHandles.lookup());
+            javaTypeClass = classType.resolve(lookup);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
         return javaTypeClass;
 
     }
-    public static boolean isAssignable(JavaType javaType, Class<?> ... classes) {
+    public  Type classTypeToType(ClassType classType) {
+       return classTypeToTypeUsingLookup(lookup,classType);
+    }
+    public  static boolean isAssignableUsingLookup(MethodHandles.Lookup lookup,JavaType javaType, Class<?> ... classes) {
         if (javaType instanceof ClassType classType) {
-            Type type = classTypeToType(classType);
+            Type type = classTypeToTypeUsingLookup(lookup,classType);
             for (Class<?> clazz : classes) {
                 if (clazz.isAssignableFrom((Class<?>) type)) {
-                        return true;
+                    return true;
                 }
             }
         }
         return false;
+
+    }
+    public  boolean isAssignable(JavaType javaType, Class<?> ... classes) {
+       return isAssignableUsingLookup(lookup,javaType,classes);
 
     }
 }
