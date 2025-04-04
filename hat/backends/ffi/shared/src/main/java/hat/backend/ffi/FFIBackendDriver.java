@@ -38,7 +38,7 @@ public abstract class FFIBackendDriver implements Backend {
     public boolean isAvailable() {
         return ffiLib.available;
     }
-
+protected final Config config;
 
     public static class BackendBridge {
         // CUDA this combines Device+Stream+Context
@@ -53,12 +53,12 @@ public abstract class FFIBackendDriver implements Backend {
                 long handle;
                 final FFILib.VoidHandleMethodPtr releaseKernel_MPtr;
                 String name;
-                final FFILib.LongLongAddressMethodPtr ndrange_MPtr;
+                final FFILib.LongHandleLongAddressMethodPtr ndrange_MPtr;
                 KernelBridge(CompilationUnitBridge compilationUnitBridge, String name, long handle) {
                     this.compilationUnitBridge = compilationUnitBridge;
                     this.handle = handle;
                     this.releaseKernel_MPtr = compilationUnitBridge.backendBridge.ffiLib.voidHandleFunc("releaseKernel");
-                    this.ndrange_MPtr = compilationUnitBridge.backendBridge.ffiLib.longLongAddressFunc("ndrange");
+                    this.ndrange_MPtr = compilationUnitBridge.backendBridge.ffiLib.longHandleLongAddressFunc("ndrange");
                     this.name = name;
                 }
 
@@ -89,9 +89,6 @@ public abstract class FFIBackendDriver implements Backend {
                 this.releaseCompilationUnit_MPtr = backendBridge.ffiLib.voidHandleFunc("releaseCompilationUnit");
                 this.compilationUnitOK_MPtr = backendBridge.ffiLib.booleanHandleFunc("compilationUnitOK");
                 this.getKernel_MPtr = backendBridge.ffiLib.longHandleIntAddressFunc("getKernel");
-
-
-
             }
 
             void release() {
@@ -108,26 +105,37 @@ public abstract class FFIBackendDriver implements Backend {
                                 getKernel_MPtr.invoke(handle, kernelName.length(), Arena.global().allocateFrom(kernelName)))
                 );
                 return kernelBridge;
-
-
             }
 
 
         }
 
-        FFILib ffiLib;
-        long handle;
+        final FFILib ffiLib;
+        final long handle;
 
-        Map<Long, CompilationUnitBridge> compilationUnits = new HashMap<>();
+        final Map<Long, CompilationUnitBridge> compilationUnits = new HashMap<>();
+        final FFILib.LongHandleIntMethodPtr getBackend_MPtr;
         final FFILib.LongHandleIntAddressMethodPtr compile_MPtr;
         final FFILib.VoidHandleMethodPtr computeStart_MPtr;
         final FFILib.VoidHandleMethodPtr computeEnd_MPtr;
         final FFILib.VoidAddressMethodPtr dumpArgArray_MPtr;
+/*
+  final FFILib.LongIntMethodPtr getBackend_MPtr;
+    getBackend_MPtr = ffiLib.longIntFunc("getBackend");
+    public long getBackend(int configBits) {
+        return backendBridge.handle = getBackend_MPtr.invoke(configBits);
+    }
 
+ */
         final FFILib.VoidHandleMethodPtr info_MPtr;
         final FFILib.BooleanHandleAddressLongMethodPtr getBufferFromDeviceIfDirty_MPtr;
-        BackendBridge(FFILib ffiLib) {
+        BackendBridge(FFILib ffiLib, Config config) {
             this.ffiLib = ffiLib;
+            this.getBackend_MPtr = ffiLib.longHandleIntFunc("getBackend");
+            if (this.getBackend_MPtr.mh == null) {
+                throw new RuntimeException("No getBackend()");
+            }
+            this.handle = getBackend(config.bits());
             this.compile_MPtr = ffiLib.longHandleIntAddressFunc("compile");
             this.dumpArgArray_MPtr = ffiLib.voidAddressFunc("dumpArgArray");
             this.info_MPtr = ffiLib.voidHandleFunc("info");
@@ -139,6 +147,10 @@ public abstract class FFIBackendDriver implements Backend {
 
         void release() {
 
+        }
+
+        public long getBackend(int configBits) {
+            return getBackend_MPtr.invoke(configBits);
         }
 
         private CompilationUnitBridge compilationUnit(long handle, String source) {
@@ -186,9 +198,10 @@ public abstract class FFIBackendDriver implements Backend {
     public final FFILib ffiLib;
     public final BackendBridge backendBridge;
 
-    public FFIBackendDriver(String libName) {
+    public FFIBackendDriver(String libName, Config config) {
         this.ffiLib = new FFILib(libName);
-        this.backendBridge = new BackendBridge(ffiLib);
+        this.config = config;
+        this.backendBridge = new BackendBridge(ffiLib, config);
 
     }
 

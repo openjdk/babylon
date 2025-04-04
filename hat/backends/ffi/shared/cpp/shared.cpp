@@ -131,7 +131,7 @@ extern "C" long compile(long backendHandle, int len, char *source) {
            <<std::hex<<backendHandle<< std::dec <<std::endl;
     }
     auto *backend = reinterpret_cast<Backend*>(backendHandle);
-    auto compilationUnitHandle = backend->compile(len, source);
+    long compilationUnitHandle = reinterpret_cast<long>(backend->compile(len, source));
     if (INFO){
        std::cout << "compilationUnitHandle = "<<std::hex<<compilationUnitHandle<< std::dec <<std::endl;
     }
@@ -143,7 +143,7 @@ extern "C" long getKernel(long compilationUnitHandle, int nameLen, char *name) {
             <<std::hex<<compilationUnitHandle<< std::dec <<std::endl;
     }
     auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
-    return compilationUnit->getKernel(nameLen, name);
+    return reinterpret_cast<long>(compilationUnit->getKernel(nameLen, name));
 }
 
 extern "C" long ndrange(long kernelHandle, void *argArray) {
@@ -235,4 +235,65 @@ Backend::Queue::Queue(Backend *backend)
 Backend::Queue::~Queue() {
     delete[]eventInfoBits;
     delete[]eventInfoConstCharPtrArgs;
+}
+Text::Text(size_t len, char *text, bool isCopy)
+        : len(len), text(text), isCopy(isCopy) {
+    std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
+}
+Text::Text(char *text, bool isCopy)
+        : len(std::strlen(text)), text(text), isCopy(isCopy) {
+    std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
+}
+Text::Text(size_t len)
+        : len(len), text(len > 0 ? new char[len] : nullptr), isCopy(true) {
+    std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
+}
+void Text::write(std::string &filename) const{
+    std::ofstream out;
+    out.open(filename, std::ofstream::trunc);
+    out.write(text, len);
+    out.close();
+}
+void Text::read(std::string &filename){
+    if (isCopy && text){
+        delete[] text;
+    }
+    text = nullptr;
+    isCopy=false;
+    // std::cout << "reading from " << filename << std::endl;
+
+    std::ifstream ptxStream;
+    ptxStream.open(filename);
+
+
+    ptxStream.seekg(0, std::ios::end);
+    len = ptxStream.tellg();
+    ptxStream.seekg(0, std::ios::beg);
+
+    if (len > 0) {
+        text = new char[len];
+        isCopy = true;
+        //std::cerr << "about to read  " << len << std::endl;
+        ptxStream.read(text, len);
+        ptxStream.close();
+        //std::cerr << "read  " << len << std::endl;
+        text[len - 1] = '\0';
+        //std::cerr << "read text " << text << std::endl;
+    }
+}
+
+Text::~Text(){
+    if (isCopy && text){
+        delete[] text;
+    }
+    text = nullptr;
+    isCopy = false;
+    len = 0;
+}
+
+Log::Log(size_t len)
+        : Text(len) {
+}
+Log::Log(char *text)
+        : Text(text, false) {
 }

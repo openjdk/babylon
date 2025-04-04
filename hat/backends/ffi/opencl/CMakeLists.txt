@@ -49,6 +49,7 @@ if(OPENCL_FOUND)
         ${SHARED_BACKEND}/include/fsutil.h
         ${SHARED_BACKEND}/cpp/strutil.cpp
         ${SHARED_BACKEND}/include/strutil.h
+
         ${OPENCL_BACKEND}/include/opencl_backend.h
         ${OPENCL_BACKEND}/cpp/opencl_backend.cpp
         ${OPENCL_BACKEND}/cpp/opencl_backend_buffer.cpp
@@ -64,9 +65,18 @@ if(OPENCL_FOUND)
     )
 
     add_executable(opencl_info
-        ${OPENCL_BACKEND}/cpp/info.cpp
+            ${OPENCL_BACKEND}/include/opencl_backend.h
+            ${OPENCL_BACKEND}/cpp/info.cpp
     )
+    add_executable(opencl_squares
+            ${OPENCL_BACKEND}/include/opencl_backend.h
+            ${OPENCL_BACKEND}/cpp/squares.cpp
+        )
 
+    target_link_libraries(opencl_squares
+        opencl_backend
+        ${OPENCL_LIB}
+    )
     target_link_libraries(opencl_info
         opencl_backend
         ${OPENCL_LIB}

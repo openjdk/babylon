@@ -151,59 +151,69 @@ void OpenCLBackend::computeEnd() {
      std::cout <<"compute end" <<std::endl;
  }
 }
+  OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(OpenCLSource &openclSource){
+    return compileProgram(&openclSource);
+  }
+  OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(OpenCLSource *openclSource){
+      return compileProgram(openclSource->len, openclSource->text);
+  }
 
-long OpenCLBackend::compile(int len, char *source) {
-    size_t srcLen = ::strlen(source);
-    char *src = new char[srcLen + 1];
-    ::strncpy(src, source, srcLen);
-    src[srcLen] = '\0';
-    if(openclConfig.trace){
-        std::cout << "native compiling " << src << std::endl;
-    }
-    cl_int status;
-    cl_program program;
-    if ((program = clCreateProgramWithSource(context, 1, (const char **) &src, nullptr, &status)) == nullptr ||
-        status != CL_SUCCESS) {
-        std::cerr << "clCreateProgramWithSource failed" << std::endl;
-        delete[] src;
-        return 0;
+    OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(int len, char *text){
+        return dynamic_cast<OpenCLProgram *>(compile(len, text));
     }
 
-    cl_int buildStatus = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
-    if (buildStatus != CL_SUCCESS) {
-       std::cerr << "buildStatus =failed" << std::endl;
-    }
-    size_t logLen = 0;
-    OpenCLProgram *openclProgram = nullptr;
-    if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &logLen)) != CL_SUCCESS) {
-        std::cerr << "clGetBuildInfo (getting log size) failed" << std::endl;
-        //openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram, src, nullptr, false);
-       openclProgram= new OpenCLProgram(this,  src,nullptr,buildStatus==CL_SUCCESS,program);
-    } else {
-        cl_build_status buildStatus;
-        clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(buildStatus), &buildStatus, nullptr);
-        if (logLen > 0) {
-            char *log = new char[logLen + 1];
-            if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, (void *) log,
-                                                nullptr)) != CL_SUCCESS) {
-                std::cerr << "clGetBuildInfo (getting log) failed" << std::endl;
-                delete[] log;
-                log = nullptr;
-            } else {
-                log[logLen] = '\0';
-                if (logLen > 1) {
-                    std::cerr << "logLen = " << logLen << " log  = " << log << std::endl;
-                }
-            }
-              openclProgram= new OpenCLProgram(this,  src,log,buildStatus==CL_SUCCESS,program);
-
-        } else {
-          openclProgram= new OpenCLProgram(this, src, nullptr, buildStatus==CL_SUCCESS, program);
+    Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source){
+     size_t srcLen = ::strlen(source);
+        char *src = new char[srcLen + 1];
+        ::strncpy(src, source, srcLen);
+        src[srcLen] = '\0';
+        if(openclConfig.trace){
+            std::cout << "native compiling " << src << std::endl;
         }
+        cl_int status;
+        cl_program program;
+        if ((program = clCreateProgramWithSource(context, 1, (const char **) &src, nullptr, &status)) == nullptr ||
+            status != CL_SUCCESS) {
+            std::cerr << "clCreateProgramWithSource failed" << std::endl;
+            delete[] src;
+            return 0;
+        }
+
+        cl_int buildStatus = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
+        if (buildStatus != CL_SUCCESS) {
+           std::cerr << "buildStatus =failed" << std::endl;
+        }
+        size_t logLen = 0;
+        OpenCLProgram *openclProgram = nullptr;
+        if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &logLen)) != CL_SUCCESS) {
+            std::cerr << "clGetBuildInfo (getting log size) failed" << std::endl;
+            //openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram, src, nullptr, false);
+           openclProgram= new OpenCLProgram(this,  src,nullptr,buildStatus==CL_SUCCESS,program);
+        } else {
+            cl_build_status buildStatus;
+            clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(buildStatus), &buildStatus, nullptr);
+            if (logLen > 0) {
+                char *log = new char[logLen + 1];
+                if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, (void *) log,
+                                                    nullptr)) != CL_SUCCESS) {
+                    std::cerr << "clGetBuildInfo (getting log) failed" << std::endl;
+                    delete[] log;
+                    log = nullptr;
+                } else {
+                    log[logLen] = '\0';
+                    if (logLen > 1) {
+                        std::cerr << "logLen = " << logLen << " log  = " << log << std::endl;
+                    }
+                }
+                  openclProgram= new OpenCLProgram(this,  src,log,buildStatus==CL_SUCCESS,program);
+
+            } else {
+              openclProgram= new OpenCLProgram(this, src, nullptr, buildStatus==CL_SUCCESS, program);
+            }
+        }
+        return openclProgram;
     }
 
-    return reinterpret_cast<long>(openclProgram);
-}
 
 const char *OpenCLBackend::errorMsg(cl_int status) {
     static struct {
@@ -277,8 +287,8 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
 }
 
 
-long getOpenCLBackend(int configBits) {
- // std::cerr << "Opencl Driver mode=" << mode << " platform=" << platform << " device=" << device << std::endl;
+extern "C" long getBackend(int configBits) {
+  std::cerr << "Opencl Driver =" << std::hex<< configBits <<std::dec<< std::endl;
 
     return reinterpret_cast<long>(new OpenCLBackend(configBits));
 }
@@ -291,3 +301,12 @@ void __checkOpenclErrors(cl_int status, const char *file, const int line) {
     }
 }
 
+OpenCLSource::OpenCLSource()
+        : Text(0L) {
+}
+OpenCLSource::OpenCLSource(size_t len)
+        : Text(len) {
+}
+OpenCLSource::OpenCLSource(char *text)
+        : Text(text, false) {
+}

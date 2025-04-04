@@ -41,10 +41,10 @@ import java.util.*;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class PTXBackend extends C99FFIBackend {
-    final FFILib.LongIntMethodPtr getBackend_MPtr;
-    public long getBackend(int mode) {
-          return  backendBridge.handle = getBackend_MPtr.invoke(mode);
-    }
+    //final FFILib.LongIntMethodPtr getBackend_MPtr;
+    //public long getBackend(int mode) {
+      //    return  backendBridge.handle = getBackend_MPtr.invoke(mode);
+   // }
     int major;
     int minor;
     String target;
@@ -54,7 +54,7 @@ public class PTXBackend extends C99FFIBackend {
     final Set<String> usedMathFns;
 
     public PTXBackend() {
-        super("ptx_backend");
+        super("ptx_backend", Config.of(0));
         major = 7;
         minor = 5;
         target = "sm_52";
@@ -62,8 +62,8 @@ public class PTXBackend extends C99FFIBackend {
         mathFns = new HashMap<>();
         usedMathFns = new HashSet<>();
         loadMathFns();
-        getBackend_MPtr  =  ffiLib.longIntFunc("getPtxBackend");
-        getBackend(0);
+     //   getBackend_MPtr  =  ffiLib.longIntFunc("getPtxBackend");
+      //  getBackend(0);
     }
 
     @Override

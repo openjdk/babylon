@@ -37,6 +37,17 @@
 
 #include "shared.h"
 
+
+
+class OpenCLSource:public Text  {
+public:
+    OpenCLSource(size_t len, char *text, bool isCopy);
+    OpenCLSource(size_t len);
+    OpenCLSource(char* text);
+    OpenCLSource();
+    ~OpenCLSource() = default;
+};
+
 extern void __checkOpenclErrors(cl_int status, const char *file, const int line);
 
 #define checkOpenCLErrors(err)  __checkOpenclErrors (err, __FILE__, __LINE__)
@@ -90,12 +101,9 @@ public:
     class OpenCLProgram : public Backend::CompilationUnit {
         public:
         class OpenCLKernel : public Backend::CompilationUnit::Kernel {
-            public:
-
-        private:
-            const char *name;
-            cl_kernel kernel;
         public:
+           // const char *name;
+            cl_kernel kernel;
             OpenCLKernel(Backend::CompilationUnit *compilationUnit, char* name,cl_kernel kernel);
             ~OpenCLKernel();
             long ndrange( void *argArray);
@@ -105,7 +113,9 @@ public:
     public:
         OpenCLProgram(Backend *backend, char *src, char *log, bool ok, cl_program program);
         ~OpenCLProgram();
-        long getKernel(int nameLen, char *name);
+        OpenCLKernel *getOpenCLKernel(char *name);
+        OpenCLKernel *getOpenCLKernel(int nameLen, char *name);
+        CompilationUnit::Kernel *getKernel(int nameLen, char *name) override;
         bool compilationUnitOK();
     };
 
@@ -117,14 +127,20 @@ public:
     OpenCLQueue openclQueue;
     OpenCLBackend(int configBits);
     ~OpenCLBackend();
-    int getMaxComputeUnits();
-    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
-    void info();
-    void computeStart();
-    void computeEnd();
-    void dumpSled(std::ostream &out,void *argArray);
-    char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data);
-    long compile(int len, char *source);
+    //int getMaxComputeUnits() override;
+
+
+   // void dumpSled(std::ostream &out,void *argArray) override;
+   // char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data) override;
+    OpenCLProgram *compileProgram(OpenCLSource &openclSource) ;
+    OpenCLProgram *compileProgram(OpenCLSource *openclSource);
+    OpenCLProgram *compileProgram(int len, char *source);
+
+    CompilationUnit *compile(int len, char *source) override;
+    void computeStart() override;
+    void computeEnd() override;
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
+    void info() override;
 
 public:
     static const char *errorMsg(cl_int status);

@@ -63,19 +63,7 @@
 //extern void __checkCudaErrors(CUresult err, const char *file, const int line);
 
 //#define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)
-class Text {
-public:
-    size_t len;
-    char *text;
-    bool isCopy;
 
-    Text(size_t len, char *text, bool isCopy);
-    Text(char *text, bool isCopy);
-    Text(size_t len);
-    void write(std::string &filename) const;
-    void read(std::string &filename);
-    virtual ~Text();
-};
 
 class PtxSource: public Text  {
 public:
@@ -93,13 +81,6 @@ public:
     CudaSource();
     ~CudaSource() = default;
 };
-class Log:public Text  {
-public:
-    Log(size_t len);
-    Log(char* text);
-    ~Log()  = default;
-};
-
 
 class CudaBackend : public Backend {
 public:
@@ -161,7 +142,6 @@ class CudaQueue: public Backend::Queue {
             ~CudaKernel() override;
             static CudaKernel * of(long kernelHandle);
             static CudaKernel * of(Backend::CompilationUnit::Kernel *kernel);
-
             long ndrange( void *argArray);
         };
         CudaModule(Backend *backend, char *cudaSrc,   char *log, bool ok, CUmodule module);
