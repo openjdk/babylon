@@ -10,7 +10,6 @@ import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
@@ -355,20 +354,26 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         entry block only
     static byte[] build(Block block, List<oracle.code.onnx.Tensor> initializers) {
         var indexer = new Indexer();
-        var model = build(graph(indexer, block, initializers, 0));
+        var model = build(graph(indexer, block, initializers, 0), List.of(), List.of());
 //        OnnxProtoPrinter.printModel(model);
         return model;
     }
 
     static byte[] build(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
-        return build(graph(initializers, inputs, ops, outputNames));
+        return build(graph(initializers, inputs, ops, outputNames), List.of(), List.of());
     }
 
-    static byte[] build(GraphProto graph) {
+    static byte[] build(List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames, List<String> customImportDomains, List<FunctionProto> functions) {
+        return build(graph(initializers, inputs, ops, outputNames), customImportDomains, functions);
+    }
+
+    static byte[] build(GraphProto graph, List<String> customImportDomains, List<FunctionProto> functions) {
         return new ModelProto()
                 .ir_version(IR_VERSION)
-                .graph(graph)
                 .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
+                .forEach(customImportDomains, (m, d) -> m.opset_import(new OperatorSetIdProto().domain(d)))
+                .graph(graph)
+                .forEach(functions, (m, f) -> m.functions(f))
                 .buf.toByteArray();
     }
 
@@ -474,10 +479,15 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     }
 
     static NodeProto node(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
+        return node("", opName, inputNames, outputNames, attributes);
+    }
+
+    static NodeProto node(String domain, String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
         return new NodeProto()
                 .forEach(inputNames, (n, iName) -> n.input(iName))
                 .forEach(outputNames, (n, oName) -> n.output(oName))
                 .op_type(opName)
+                .domain(domain)
                 .forEach(attributes.entrySet(), (n, ae) -> n.attribute(attribute(ae.getKey(), ae.getValue())));
     }
 
