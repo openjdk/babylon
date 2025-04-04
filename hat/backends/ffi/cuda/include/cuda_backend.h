@@ -91,8 +91,9 @@ class CudaConfig : public Backend::Config{
     };
 class CudaQueue: public Backend::Queue {
     public:
-        cudaStream_t cudaStream;
+        CUstream cuStream;
         CudaQueue(Backend *backend);
+        void init();
         void showEvents(int width);
         void wait();
         void release();
@@ -148,7 +149,7 @@ class CudaQueue: public Backend::Queue {
         ~CudaModule();
         static CudaModule * of(long moduleHandle);
         static CudaModule * of(Backend::CompilationUnit *compilationUnit);
-        long getKernel(int nameLen, char *name);
+        Kernel *getKernel(int nameLen, char *name);
         CudaKernel *getCudaKernel(char *name);
         CudaKernel *getCudaKernel(int nameLen, char *name);
         bool programOK();
@@ -157,6 +158,7 @@ class CudaQueue: public Backend::Queue {
     };
 
 private:
+    CUresult initStatus;
     CUdevice device;
     CUcontext context;
 
@@ -167,10 +169,10 @@ public:
     CudaModule * compile(CudaSource *cudaSource);
     CudaModule * compile(CudaSource &cudaSource);
     PtxSource *nvcc(CudaSource *cudaSource);
-    long compile(int len, char *source);
-    void computeStart();
-    void computeEnd();
-    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
+    Backend::CompilationUnit * compile(int len, char *source) override;
+    void computeStart() override;
+    void computeEnd() override;
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
 
     CudaBackend(int mode);
 

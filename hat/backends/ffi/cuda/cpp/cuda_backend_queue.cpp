@@ -28,9 +28,11 @@
 #include "cuda_backend.h"
 
 CudaBackend::CudaQueue::CudaQueue(Backend *backend)
-        : Backend::Queue(backend),cudaStream(){
-    auto status =  cudaStreamCreate(&cudaStream);
-    if (::cudaSuccess != status) {
+        : Backend::Queue(backend),cuStream() {
+}
+void CudaBackend::CudaQueue::init(){
+    auto status =  cuStreamCreate(&cuStream,CU_STREAM_DEFAULT);
+    if (CUDA_SUCCESS != status) {
         std::cerr << "cudaStreamCreate() CUDA error = " << status
                   <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
                   <<" " << __FILE__ << " line " << __LINE__ << std::endl;
@@ -162,9 +164,9 @@ void CudaBackend::CudaQueue::release(){
 CudaBackend::CudaQueue::~CudaQueue(){
    // clReleaseCommandQueue(command_queue);
    // delete []events;
-   auto status = cudaStreamDestroy(cudaStream);
-    if (::cudaSuccess != status) {
-        std::cerr << "cudaStreamDestroy() CUDA error = " << status
+   auto status = cuStreamDestroy(cuStream);
+    if (CUDA_SUCCESS != status) {
+        std::cerr << "cuStreamDestroy() CUDA error = " << status
                   <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
                   <<" " << __FILE__ << " line " << __LINE__ << std::endl;
         exit(-1);
