@@ -136,8 +136,8 @@ void OpenCLBackend::info() {
     std::cerr <<  "}"<<std::endl;
 }
 
-int OpenCLBackend::getMaxComputeUnits() {
-    PlatformInfo platformInfo(this);
-    return platformInfo.deviceInfo.maxComputeUnits;
-}
+//int OpenCLBackend::getMaxComputeUnits() {
+ //   PlatformInfo platformInfo(this);
+ //   return platformInfo.deviceInfo.maxComputeUnits;
+//}
 

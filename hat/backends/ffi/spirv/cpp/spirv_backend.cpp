@@ -36,7 +36,7 @@ public:
             ~SpirvKernel() {
             }
 
-            long ndrange(void *argArray) {
+            long ndrange(void *argArray) override {
                 std::cout << "spirv ndrange() " << std::endl;
                 return 0;
             }
@@ -50,8 +50,8 @@ public:
         ~SpirvProgram() {
         }
 
-        long getKernel(int nameLen, char *name) {
-            return (long) new SpirvKernel(this, name);
+        Kernel *getKernel(int nameLen, char *name) {
+            return new SpirvKernel(this, name);
         }
 
         bool compilationUnitOK() {
@@ -65,26 +65,21 @@ public:
 
     ~SpirvBackend() {
     }
-bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
-    std::cout << "attempting  to get buffer from SpirvBackend "<<std::endl;
-    return false;
-}
-    int getMaxComputeUnits() {
-        std::cout << "spirv getMaxComputeUnits()" << std::endl;
-        return 0;
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override {
+        std::cout << "attempting  to get buffer from SpirvBackend "<<std::endl;
+        return false;
     }
-
-    void info() {
+    void info() override{
         std::cout << "spirv info()" << std::endl;
     }
-     void computeStart(){
+     void computeStart() override{
        std::cout << "spirv compute start()" << std::endl;
      }
-        void computeEnd(){
+        void computeEnd() override {
           std::cout << "spirv compute start()" << std::endl;
         }
 
-    long compile(int len, char *source) {
+    CompilationUnit* compile(int len, char *source) override{
         std::cout << "spirv compile()" << std::endl;
         size_t srcLen = ::strlen(source);
         char *src = new char[srcLen + 1];
@@ -93,10 +88,10 @@ bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
         std::cout << "native compiling " << src << std::endl;
 
         SpirvProgram *spirvProgram = new SpirvProgram(this,  src, nullptr, false);
-        return (long)spirvProgram;
+        return dynamic_cast<CompilationUnit*>(spirvProgram);
     }
 };
 
-long getSpirvBackend(int mode) {
-    return (long) new SpirvBackend(mode);
+long getBackend(int mode) {
+    return reinterpret_cast<long>(new SpirvBackend(mode));
 }

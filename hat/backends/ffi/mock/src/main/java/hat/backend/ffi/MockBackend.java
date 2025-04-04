@@ -34,16 +34,16 @@ import java.lang.invoke.MethodHandle;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class MockBackend extends FFIBackend {
-    final FFILib.LongIntMethodPtr getBackend_MPtr;
-    public long getBackend(int mode) {
-       return getBackend_MPtr.invoke(mode);
-    }
+    //final FFILib.LongIntMethodPtr getBackend_MPtr;
+    //public long getBackend(int mode) {
+      // return getBackend_MPtr.invoke(mode);
+   // }
 
 
     public MockBackend() {
-        super("mock_backend");
-        getBackend_MPtr  =  ffiLib.longIntFunc("getMockBackend");
-        getBackend(0);
+        super("mock_backend", Config.of(0));
+       // getBackend_MPtr  =  ffiLib.longIntFunc("getMockBackend");
+       // getBackend(0);
     }
 
     @Override

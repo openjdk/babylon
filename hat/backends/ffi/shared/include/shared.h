@@ -66,6 +66,26 @@ typedef long s64_t;
 typedef unsigned long u64_t;
 
 extern void hexdump(void *ptr, int buflen);
+class Text {
+public:
+    size_t len;
+    char *text;
+    bool isCopy;
+
+    Text(size_t len, char *text, bool isCopy);
+    Text(char *text, bool isCopy);
+    Text(size_t len);
+    void write(std::string &filename) const;
+    void read(std::string &filename);
+    virtual ~Text();
+};
+
+class Log:public Text  {
+public:
+    Log(size_t len);
+    Log(char* text);
+    ~Log()  = default;
+};
 
 
  #define UNKNOWN_BYTE 0
@@ -419,7 +439,7 @@ public:
         char *src;
         char *log;
         bool ok;
-        virtual long getKernel(int nameLen, char *name) = 0;
+        virtual Kernel *getKernel(int nameLen, char *name) = 0;
 
         bool compilationUnitOK(){
            return ok;
@@ -448,7 +468,7 @@ public:
 
     virtual void computeEnd() = 0;
 
-    virtual long compile(int len, char *source) = 0;
+    virtual CompilationUnit * compile(int len, char *source) = 0;
 
     virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength)=0;
 
@@ -473,3 +493,18 @@ const  char *Backend::Config::bitNames[] = {
               "SHOW_STATE_BIT"
         };
 #endif
+
+template<typename T>
+T *bufferOf(const char*name){
+    size_t lenIncludingBufferState = sizeof(T);
+    size_t lenExcludingBufferState = lenIncludingBufferState - sizeof(BufferState_s);
+    T *buffer = (T*)new unsigned char[lenIncludingBufferState];
+    BufferState_s *bufferState = (BufferState_s*)((char*)buffer+lenExcludingBufferState);
+    bufferState->magic1 = bufferState->magic2 = BufferState_s::MAGIC;
+    bufferState->ptr = buffer;
+    bufferState->length= sizeof(T) - sizeof(BufferState_s);
+    bufferState->state=BufferState_s::NEW_STATE;
+    bufferState->vendorPtr = nullptr;
+    bufferState->dump(name);
+    return buffer;
+}

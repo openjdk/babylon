@@ -34,18 +34,21 @@ import java.lang.invoke.MethodHandle;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class CudaBackend extends C99FFIBackend {
-    final Config config;
-    final FFILib.LongIntMethodPtr getBackend_MPtr;
+   // final Config config;
+   // final FFILib.LongIntMethodPtr getBackend_MPtr;
+    //public long getBackend(int configBits) {
+      //  return backendBridge.handle = getBackend_MPtr.invoke(configBits);
+   // }
 
+    public CudaBackend(String configSpec) {
+        this(Config.of(configSpec));
+    }
+
+    public CudaBackend() {
+        this(Config.of());
+    }
     public CudaBackend(Config config) {
-        super("cuda_backend");
-        this.config = config;
-        getBackend_MPtr  =  ffiLib.longIntFunc("getCudaBackend");
-        getBackend(this.config.bits());
-        if (this.config.isINFO()) {
-            System.out.println("CONFIG = " + this.config);
-            backendBridge.info();
-        }
+        super("cuda_backend", config);
     }
 
     @Override
@@ -55,17 +58,6 @@ public class CudaBackend extends C99FFIBackend {
 
     }
 
-    public long getBackend(int configBits) {
-        return backendBridge.handle = getBackend_MPtr.invoke(configBits);
-    }
-
-    public CudaBackend(String configSpec) {
-        this(Config.of(configSpec));
-    }
-
-    public CudaBackend() {
-        this(Config.of());
-    }
 
 
 

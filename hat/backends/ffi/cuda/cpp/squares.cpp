@@ -34,18 +34,6 @@ struct S32Array1024_s {
     int length;
     int array[1024];
 };
-template<typename T>
-T *bufferOf(const char*name){
-    T *buffer = (T*)new unsigned char[sizeof(T) + sizeof(BufferState_s)+32];
-    auto bs = BufferState_s::of(buffer, sizeof(T));
-    bs->magic1 =  bs->magic2 = BufferState_s::MAGIC;
-    bs->ptr = buffer;
-    bs->length=sizeof(T);
-    bs->state=BufferState_s::NEW_STATE;
-    bs->vendorPtr = nullptr;
-    bs->dump(name);
-    return buffer;
-}
 int main(int argc, char **argv) {
     CudaBackend cudaBackend(0
             | CudaBackend::CudaConfig::Config::INFO_BIT

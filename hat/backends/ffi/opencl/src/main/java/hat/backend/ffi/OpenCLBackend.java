@@ -34,27 +34,16 @@ import hat.ifacemapper.BufferState;
 
 public class OpenCLBackend extends C99FFIBackend implements BufferTracker {
 
-    final Config config;
+   // final Config config;
 
-    final FFILib.LongIntMethodPtr getBackend_MPtr;
-
-    public long getBackend(int configBits) {
-            return backendBridge.handle = getBackend_MPtr.invoke(configBits);
-    }
 
     public OpenCLBackend(String configSpec) {
         this(Config.of(configSpec));
     }
 
     public OpenCLBackend(Config config) {
-        super("opencl_backend");
-        this.config = config;
-        getBackend_MPtr = ffiLib.longIntFunc("getOpenCLBackend");
-        getBackend(this.config.bits());
-        if (this.config.isINFO()) {
-            System.out.println("CONFIG = " + this.config);
-            backendBridge.info();
-        }
+        super("opencl_backend", config);
+
     }
 
 

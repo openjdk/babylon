@@ -47,8 +47,8 @@ public:
         ~MockProgram() {
         }
 
-        long getKernel(int nameLen, char *name) {
-            return (long) new MockKernel(this, name);
+        Kernel* getKernel(int nameLen, char *name) {
+            return new MockKernel(this, name);
         }
 
         bool compilationUnitOK() {
@@ -58,33 +58,31 @@ public:
 
 public:
 
-    MockBackend(int mode): Backend(mode) {
+    MockBackend(int configBits): Backend(configBits) {
     }
 
     ~MockBackend() {
     }
 
-    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override {
         std::cout << "attempting  to get buffer from Mockbackend "<<std::endl;
         return false;
     }
 
-    int getMaxComputeUnits() {
-        std::cout << "mock getMaxComputeUnits()" << std::endl;
-        return 0;
-    }
 
-    void info() {
+    void info() override {
         std::cout << "mock info()" << std::endl;
     }
-     void computeStart(){
-           std::cout << "mock compute start()" << std::endl;
-         }
-            void computeEnd(){
-              std::cout << "mock compute start()" << std::endl;
-            }
 
-    long compile(int len, char *source) {
+    void computeStart() override{
+        std::cout << "mock compute start()" << std::endl;
+    }
+
+    void computeEnd() override{
+        std::cout << "mock compute start()" << std::endl;
+    }
+
+    CompilationUnit *compile(int len, char *source) override{
         std::cout << "mock compileProgram()" << std::endl;
         size_t srcLen = ::strlen(source);
         char *src = new char[srcLen + 1];
@@ -92,10 +90,10 @@ public:
         src[srcLen] = '\0';
         std::cout << "native compiling " << src << std::endl;
         MockProgram *mockProgram = new MockProgram(this,src, nullptr, false);
-        return (long)mockProgram;
+        return dynamic_cast<CompilationUnit*>(mockProgram);
     }
 };
 
-long getMockBackend(int mode) {
-    return (long) new MockBackend(mode);
+long getBackend(int configBits) {
+    return reinterpret_cast<long>(new MockBackend(configBits));
 }

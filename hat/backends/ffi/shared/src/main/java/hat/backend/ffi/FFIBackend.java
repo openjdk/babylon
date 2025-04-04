@@ -62,8 +62,8 @@ public abstract class FFIBackend extends FFIBackendDriver {
         return segmentMapper.allocate(arena, boundSchema);
     }
 
-    public FFIBackend(String libName) {
-        super(libName);
+    public FFIBackend(String libName, Config config) {
+        super(libName, config);
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {

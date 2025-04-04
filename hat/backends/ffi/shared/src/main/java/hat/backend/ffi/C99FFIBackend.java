@@ -43,8 +43,8 @@ import java.util.Set;
 public abstract class C99FFIBackend extends FFIBackend {
 
 
-    public C99FFIBackend(String libName) {
-        super(libName);
+    public C99FFIBackend(String libName, Config config) {
+        super(libName, config);
     }
 
     public static class CompiledKernel {
