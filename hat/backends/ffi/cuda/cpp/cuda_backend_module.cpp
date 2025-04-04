@@ -36,10 +36,10 @@ CudaBackend::CudaModule::~CudaModule() = default;
 CudaBackend::CudaModule * CudaBackend::CudaModule::of(long moduleHandle){
     return reinterpret_cast<CudaBackend::CudaModule *>(moduleHandle);
 }
-long CudaBackend::CudaModule::getKernel(int len, char *name) {
+Backend::CompilationUnit::Kernel * CudaBackend::CudaModule::getKernel(int len, char *name) {
     CudaKernel* cudaKernel= getCudaKernel(len, name);
-    long kernelHandle =  reinterpret_cast<long>(cudaKernel);
-    return kernelHandle;
+    return dynamic_cast<Backend::CompilationUnit::Kernel *>(cudaKernel);
+
 }
 CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(char *name) {
     return getCudaKernel(std::strlen(name), name);

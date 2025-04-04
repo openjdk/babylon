@@ -98,13 +98,13 @@ PtxSource *PtxSource::nvcc(const char *cudaSource, size_t len) {
 
 
 CudaBackend::CudaBackend(int mode)
-        : Backend(mode), cudaConfig(mode), cudaQueue(this), device(),context()  {
+        : Backend(mode), initStatus(cuInit(0)), cudaConfig(mode), cudaQueue(this), device(),context()  {
   //  std::cout << "CudaBackend constructor " << ((cudaConfig == nullptr) ? "cudaConfig== null" : "got cudaConfig")
     //          << std::endl;
     int deviceCount = 0;
-    CUresult status = cuInit(0);
-    if (status == CUDA_SUCCESS) {
-        status  = cuDeviceGetCount(&deviceCount);
+
+    if (initStatus == CUDA_SUCCESS) {
+        CUresult status =  cuDeviceGetCount(&deviceCount);
         if (status != CUDA_SUCCESS) {
             std::cerr
                     << "cuDeviceGetCount() failed we seem to have the runtime library but no device, CUDA error = "
@@ -135,9 +135,10 @@ CudaBackend::CudaBackend(int mode)
             exit(-1);
         }
         std::cout << "CudaBackend context created ok (id="<<context<<")" << std::endl;
+        cudaQueue.init();
     } else {
-        std::cerr << "cuInit() failed we seem to have the runtime library but no device, no context, nada CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
+        std::cerr << "cuInit() failed we seem to have the runtime library but no device, no context, nada CUDA error = " << initStatus
+                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(initStatus))
                   <<" " << __FILE__ << " line " << __LINE__ << std::endl;
         exit(-1);
     }
@@ -228,8 +229,8 @@ CudaBackend::CudaModule * CudaBackend::compile(CudaSource &cudaSource) {
 CudaBackend::CudaModule * CudaBackend::compile(CudaSource *cudaSource) {
     PtxSource *ptx = nvcc(cudaSource);
     CUmodule module;
-    std::cout << "inside compile" << std::endl;
-    std::cout << "cuda " << cudaSource->text << std::endl;
+  //  std::cout << "inside compile" << std::endl;
+   // std::cout << "cuda " << cudaSource->text << std::endl;
     if (ptx->text != nullptr) {
         std::cout << "ptx " << ptx->text << std::endl;
         Log *infLog = new Log(8192);
@@ -263,7 +264,7 @@ CudaBackend::CudaModule * CudaBackend::compile(CudaSource *cudaSource) {
     }
 }
 
-long CudaBackend::compile(int len, char *source) {
+Backend::CompilationUnit * CudaBackend::compile(int len, char *source) {
     PtxSource *ptx = PtxSource::nvcc(source, len);
     CUmodule module;
     std::cout << "inside compileProgram" << std::endl;
@@ -293,8 +294,9 @@ long CudaBackend::compile(int len, char *source) {
             exit(-1);
         }
         printf("> PTX JIT log:\n%s\n", jitLogBuffer);
-        return reinterpret_cast<long>(new CudaModule(this,  ptx->text,jitLogBuffer,true, module));
-
+        return dynamic_cast<Backend::CompilationUnit*>(new CudaModule(this,  ptx->text,jitLogBuffer,true, module));
+  //      return reinterpret_cast<long>(new CudaModule(this,  ptx->text,jitLogBuffer,true, module));
+//
         //delete ptx;
     } else {
         std::cout << "no ptx content!" << std::endl;

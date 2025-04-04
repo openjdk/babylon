@@ -238,15 +238,15 @@ Backend::Queue::~Queue() {
 }
 Text::Text(size_t len, char *text, bool isCopy)
         : len(len), text(text), isCopy(isCopy) {
-    std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
+   // std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
 }
 Text::Text(char *text, bool isCopy)
         : len(std::strlen(text)), text(text), isCopy(isCopy) {
-    std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
+   // std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
 }
 Text::Text(size_t len)
         : len(len), text(len > 0 ? new char[len] : nullptr), isCopy(true) {
-    std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
+  //  std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
 }
 void Text::write(std::string &filename) const{
     std::ofstream out;

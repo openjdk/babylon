@@ -24,15 +24,23 @@
  */
 
 #include "cuda_backend.h"
+class KernelContext{
+public:
+int x;
+int maxX;
+BufferState_s bufferState;
+};
 struct ArgArray_2 {
     int argc;
     u8_t pad12[12];
     Arg_s argv[2];
 };
 
+
 struct S32Array1024_s {
     int length;
     int array[1024];
+    BufferState_s bufferState;
 };
 int main(int argc, char **argv) {
     CudaBackend cudaBackend(0
@@ -132,13 +140,13 @@ int main(int argc, char **argv) {
                ret;
        }
     )");
-
+int maxX = 1024;
     auto *module =cudaBackend.compile(cudaSource);
      auto  *ndrange = bufferOf<NDRange>("ndrange");
     ndrange->x=0;
-    ndrange->maxX=1024;
+    ndrange->maxX=maxX;
     auto *s32Array1024 = bufferOf<S32Array1024_s>("s32Arrayx1024");
-    s32Array1024->length=1024;
+    s32Array1024->length=maxX;
     for (int i=0; i<s32Array1024->length; i++){
         s32Array1024->array[i]=i;
     }
@@ -151,7 +159,8 @@ int main(int argc, char **argv) {
     std::cout << kernel->name <<std::endl;
     kernel->ndrange( reinterpret_cast<ArgArray_s *>(&args2Array));
     for (int i=0; i<s32Array1024->length; i++){
-        std::cout << i << " array["<<i<<"]="<<s32Array1024->array[i] <<std::endl;
+        int sq = s32Array1024->array[i];
+        std::cout << i << " sq="<<sq <<std::endl;
     }
 }
 
