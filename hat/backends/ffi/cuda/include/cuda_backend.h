@@ -64,7 +64,22 @@
 
 //#define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)
 
-
+struct WHERE{
+    const char* f;
+    int l;
+    cudaError_enum e;
+    const char* t;
+    void report() const{
+        if (e == CUDA_SUCCESS){
+           // std::cout << t << "  OK at " << f << " line " << l << std::endl;
+        }else {
+            const char *buf;
+            cuGetErrorName(e, &buf);
+            std::cerr << t << " CUDA error = " << e << " " << buf <<std::endl<< "      " << f << " line " << l << std::endl;
+            exit(-1);
+        }
+    }
+};
 class PtxSource: public Text  {
 public:
     PtxSource();
@@ -112,8 +127,11 @@ class CudaQueue: public Backend::Queue {
         void markAsEndComputeAndInc();
         void markAsEnterKernelDispatchAndInc();
         void markAsLeaveKernelDispatchAndInc();
+      //  void sync(const char *file, int line) const;
         virtual ~CudaQueue();
-    };
+
+
+};
 
     class CudaBuffer : public Backend::Buffer {
     public:

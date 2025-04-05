@@ -23,8 +23,7 @@
  * questions.
  */
 
-#include <sys/wait.h>
-#include <chrono>
+
 #include "cuda_backend.h"
 
 
@@ -41,13 +40,9 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
         std::cout << "ndrange(" <<  ") " << name << std::endl;
     }
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
-  //  Schema::dumpSled(std::cout, argArray);
     void *argslist[argSled.argc()];
 
     NDRange *ndrange = nullptr;
-#ifdef VERBOSE
-    std::cerr << "there are " << argSled.argc() << "args " << std::endl;
-#endif
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         switch (arg->variant) {
@@ -75,7 +70,6 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
             }
         }
     }
-    //argslist[argSled.argc()]= nullptr;
     int range = ndrange->maxX;
     int rangediv1024 = range / 1024;
     int rangemod1024 = range % 1024;
@@ -86,43 +80,18 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
    // std::cout << "   Requested range   = " << range << std::endl;
    // std::cout << "   Range mod 1024    = " << rangemod1024 << std::endl;
    // std::cout << "   Actual range 1024 = " << (rangediv1024 * 1024) << std::endl;
-    auto status= static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cudaStreamSynchronize() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+  //  auto status= static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
 
-    status = cuCtxSetCurrent(cudaBackend->context);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cuCtxSetCurrent() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
-   // std::cout <<" function/kernel id= " << function << " stream = " << cudaBackend->cudaQueue.cuStream<<std::endl;
-    status= cuLaunchKernel(function,
+  //  cudaBackend->cudaQueue.wait();
+    auto status= cuLaunchKernel(function,
                                    rangediv1024, 1, 1,
                                    1024, 1, 1,
                                    0, cudaBackend->cudaQueue.cuStream ,
                     argslist, nullptr);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cuLaunchKernel() CUDA error = " << status
 
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
-    status= static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cudaStreamSynchronize() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+    WHERE{.f=__FILE__, .l=__LINE__, .e=status, .t="cuLaunchKernel"}.report();
+ //   cudaBackend->cudaQueue.wait();
 
-   // std::cout << "Kernel complete..."<<cudaGetErrorString(static_cast<cudaError_t>(status))<<std::endl;
 
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
@@ -132,13 +101,7 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
             cudaBuffer->copyFromDevice();
         }
     }
-    status=   static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cudaStreamSynchronize() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+    cudaBackend->cudaQueue.wait();
 
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);

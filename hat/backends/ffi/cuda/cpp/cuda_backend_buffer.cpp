@@ -38,85 +38,64 @@ CudaBackend::CudaBuffer::CudaBuffer(Backend *backend, Arg_s *arg, BufferState_s 
      */
     auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
     if (cudaBackend->cudaConfig.traceCalls) {
-        std::cout << "cuMemAlloc()" << std::endl;
+        std::cout << "CudaBuffer()" << std::endl;
     }
-    CUresult status = cuMemAlloc(&devicePtr, (size_t) arg->value.buffer.sizeInBytes);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cuMemAlloc() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
+
+    WHERE{.f=__FILE__, .l=__LINE__,
+            .e=cuMemAlloc(&devicePtr, (size_t) arg->value.buffer.sizeInBytes),
+            .t="cuMemAlloc"
+    }.report();
+    if (cudaBackend->cudaConfig.traceCalls) {
+        std::cout << "devptr " << std::hex<<  (long)devicePtr <<std::dec <<std::endl;
     }
-   // std::cout << "devptr " << std::hex<<  (long)devicePtr <<std::dec <<std::endl;
   bufferState->vendorPtr= static_cast<void *>(this);
 }
 
 CudaBackend::CudaBuffer::~CudaBuffer() {
     auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
     if (cudaBackend->cudaConfig.traceCalls) {
-        std::cout << "cuMemFree()"
-                  << "devptr " << std::hex << (long) devicePtr << std::dec
-                  << std::endl;
+        std::cout << "~CudaBuffer()"<< "devptr " << std::hex << (long) devicePtr << std::dec<< std::endl;
     }
-    CUresult  status = cuMemFree(devicePtr);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cuMemFree() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+    WHERE{.f=__FILE__, .l=__LINE__,
+            .e=cuMemFree(devicePtr),
+            .t="cuMemFree"
+    }.report();
     bufferState->vendorPtr= nullptr;
 }
 
 void CudaBackend::CudaBuffer::copyToDevice() {
     auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
     if (cudaBackend->cudaConfig.traceCalls) {
-        std::cout << "copyToDevice() 0x" << std::hex << arg->value.buffer.sizeInBytes << std::dec << " "
+        std::cout << "copyToDevice() 0x"
+                  << std::hex << arg->value.buffer.sizeInBytes << std::dec << "/"
                   << arg->value.buffer.sizeInBytes << " "
                   << "devptr " << std::hex << (long) devicePtr << std::dec
                   << std::endl;
     }
-
-
-    CUresult status = cuMemcpyHtoDAsync(devicePtr, arg->value.buffer.memorySegment,
-                                        arg->value.buffer.sizeInBytes,cudaBackend->cudaQueue.cuStream);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cuMemcpyHtoDAsync() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
-    status = static_cast<CUresult >(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cudaStreamSynchronize() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+    WHERE{.f=__FILE__, .l=__LINE__,
+            .e=cuMemcpyHtoDAsync(devicePtr, arg->value.buffer.memorySegment,
+                                 arg->value.buffer.sizeInBytes,cudaBackend->cudaQueue.cuStream),
+            .t="cuMemcpyHtoDAsync"
+    }.report();
+    cudaBackend->cudaQueue.wait();
 }
 
 void CudaBackend::CudaBuffer::copyFromDevice() {
     auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
     if (cudaBackend->cudaConfig.traceCalls) {
-        std::cout << "copyFromDevice() 0x" << std::hex<<arg->value.buffer.sizeInBytes<<std::dec << " "<< arg->value.buffer.sizeInBytes << " "
+        std::cout << "copyFromDevice() 0x"
+                     << std::hex<<arg->value.buffer.sizeInBytes<<std::dec << "/"
+                     << arg->value.buffer.sizeInBytes << " "
                      << "devptr " << std::hex<<  (long)devicePtr <<std::dec
                     << std::endl;
     }
-    CUresult status =cuMemcpyDtoHAsync(arg->value.buffer.memorySegment, devicePtr, arg->value.buffer.sizeInBytes,
-                                       cudaBackend->cudaQueue.cuStream);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cuMemcpyDtoHAsync() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
-    cudaError_t t1 = cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream);
-    if (static_cast<cudaError_t>(CUDA_SUCCESS) != t1) {
-        std::cerr << "cudaStreamSynchronize() CUDA error = " << t1
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(t1))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+    WHERE{.f=__FILE__, .l=__LINE__,
+            .e=cuMemcpyDtoHAsync(arg->value.buffer.memorySegment, devicePtr, arg->value.buffer.sizeInBytes,
+                                 cudaBackend->cudaQueue.cuStream),
+            .t="cuMemcpyDtoHAsync"
+    }.report();
+
+    cudaBackend->cudaQueue.wait();
 
 }
 
