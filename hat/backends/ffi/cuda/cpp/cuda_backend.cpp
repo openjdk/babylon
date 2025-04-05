@@ -99,48 +99,29 @@ PtxSource *PtxSource::nvcc(const char *cudaSource, size_t len) {
 
 CudaBackend::CudaBackend(int mode)
         : Backend(mode), initStatus(cuInit(0)), cudaConfig(mode), cudaQueue(this), device(),context()  {
-  //  std::cout << "CudaBackend constructor " << ((cudaConfig == nullptr) ? "cudaConfig== null" : "got cudaConfig")
-    //          << std::endl;
     int deviceCount = 0;
 
     if (initStatus == CUDA_SUCCESS) {
-        CUresult status =  cuDeviceGetCount(&deviceCount);
-        if (status != CUDA_SUCCESS) {
-            std::cerr
-                    << "cuDeviceGetCount() failed we seem to have the runtime library but no device, CUDA error = "
-                    << status
-                    << " " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                    << " " << __FILE__ << " line " << __LINE__ << std::endl;
-            exit(-1);
-        }
+        WHERE{.f=__FILE__, .l=__LINE__,
+                .e=cuDeviceGetCount(&deviceCount),
+                .t="cuDeviceGetCount"
+        }.report();
         std::cout << "CudaBackend device count = "<< deviceCount << std::endl;
-        status= cuDeviceGet(&device, 0);
-        if (status != CUDA_SUCCESS) {
-            std::cerr
-                    << "cuDeviceGet() failed we seem to have the runtime library but no device, CUDA error = "
-                    << status
-                    << " " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                    << " " << __FILE__ << " line " << __LINE__ << std::endl;
-            exit(-1);
-        }
-        std::cout << "CudaBackend device ok (id = "<<device<<")" << std::endl;
-
-        status = cuCtxCreate(&context, 0, device);
-        if (status != CUDA_SUCCESS) {
-            std::cerr
-                    << "cuCtxCreate() failed we seem to have the runtime library found a device, but cant create context, CUDA error = "
-                    << status
-                    << " " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                    << " " << __FILE__ << " line " << __LINE__ << std::endl;
-            exit(-1);
-        }
+        WHERE{.f=__FILE__, .l=__LINE__,
+                .e=cuDeviceGet(&device, 0),
+                .t="cuDeviceGet"
+        }.report();
+        WHERE{.f=__FILE__, .l=__LINE__,
+                .e=cuCtxCreate(&context, 0, device),
+                .t="cuCtxCreate"
+        }.report();
         std::cout << "CudaBackend context created ok (id="<<context<<")" << std::endl;
         cudaQueue.init();
     } else {
-        std::cerr << "cuInit() failed we seem to have the runtime library but no device, no context, nada CUDA error = " << initStatus
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(initStatus))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
+        WHERE{.f=__FILE__, .l=__LINE__,
+                .e=initStatus,
+                "cuInit() failed we seem to have the runtime library but no device"
+        }.report();
     }
 }
 
@@ -150,13 +131,10 @@ CudaBackend::CudaBackend(int mode)
 
 CudaBackend::~CudaBackend() {
     std::cout << "freeing context" << std::endl;
-    CUresult status = cuCtxDestroy(context);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cuCtxDestroy(() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+    WHERE{.f=__FILE__, .l=__LINE__,
+            .e=cuCtxDestroy(context),
+            .t="cuCtxDestroy"
+    }.report();
 }
 
 void CudaBackend::info() {
@@ -245,14 +223,11 @@ CudaBackend::CudaModule * CudaBackend::compile(CudaSource *cudaSource) {
         jitOptions[2] = CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES;jitOptVals[2] = (void *) (size_t) errLog->len;
         jitOptions[3] = CU_JIT_ERROR_LOG_BUFFER; jitOptVals[3] = errLog->text;
         jitOptions[4] = CU_JIT_GENERATE_LINE_INFO;jitOptVals[4] = (void *)1;
-        int status = cuModuleLoadDataEx(&module, ptx->text,
-                                        optc, jitOptions, (void **) jitOptVals);
-        if (CUDA_SUCCESS != status) {
-            std::cerr << "cuModuleLoadDataEx() CUDA error = " << status
-                      <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                      <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-            exit(-1);
-        }
+
+        WHERE{.f=__FILE__, .l=__LINE__,
+                .e=cuModuleLoadDataEx(&module, ptx->text, optc, jitOptions, (void **) jitOptVals),
+                .t="cuModuleLoadDataEx"
+        }.report();
         std::cout <<"> PTX JIT inflog:"<<std::endl  << infLog->text << std::endl;
         std::cout <<"> PTX JIT errlog:"<<std::endl  << errLog->text << std::endl;
         return new CudaModule(this,  ptx->text,infLog->text,true, module);
@@ -286,18 +261,17 @@ Backend::CompilationUnit * CudaBackend::compile(int len, char *source) {
         jitOptions[1] = CU_JIT_INFO_LOG_BUFFER;
         char *jitLogBuffer = new char[jitLogBufferSize];
         jitOptVals[1] = jitLogBuffer;
-        int status = cuModuleLoadDataEx(&module, ptx->text, jitNumOptions, jitOptions, (void **) jitOptVals);
-        if (CUDA_SUCCESS != status) {
-            std::cerr << "cuModuleLoadDataEx() CUDA error = " << status
-                      <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                      <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-            exit(-1);
-        }
+        cuCtxSetCurrent(context);
+
+        WHERE{.f=__FILE__, .l=__LINE__,
+              .e=cuModuleLoadDataEx(&module, ptx->text, jitNumOptions, jitOptions, (void **) jitOptVals),
+              .t="cuModuleLoadDataEx"
+        }.report();
         printf("> PTX JIT log:\n%s\n", jitLogBuffer);
         return dynamic_cast<Backend::CompilationUnit*>(new CudaModule(this,  ptx->text,jitLogBuffer,true, module));
   //      return reinterpret_cast<long>(new CudaModule(this,  ptx->text,jitLogBuffer,true, module));
 //
-        //delete ptx;
+        //delete
     } else {
         std::cout << "no ptx content!" << std::endl;
         exit(1);
@@ -305,7 +279,7 @@ Backend::CompilationUnit * CudaBackend::compile(int len, char *source) {
 }
 extern "C" long getBackend(int mode) {
     long backendHandle= reinterpret_cast<long>(new CudaBackend(mode));
-    std::cout << "getBackend() -> backendHandle=" << std::hex << backendHandle << std::dec << std::endl;
+  //  std::cout << "getBackend() -> backendHandle=" << std::hex << backendHandle << std::dec << std::endl;
     return backendHandle;
 }
 

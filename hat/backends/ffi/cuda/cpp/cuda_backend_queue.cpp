@@ -32,26 +32,23 @@ CudaBackend::CudaQueue::CudaQueue(Backend *backend)
 }
 void CudaBackend::CudaQueue::init(){
     auto status =  cuStreamCreate(&cuStream,CU_STREAM_DEFAULT);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cudaStreamCreate() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+    WHERE{.f=__FILE__ , .l=__LINE__, .e=status, .t= "cuStreamCreate"}.report();
     }
 
+//void CudaBackend::CudaQueue::sync(const char *file, int line) const {
 
+//}
 
 void CudaBackend::CudaQueue::showEvents(int width) {
 
 }
 void CudaBackend::CudaQueue::wait(){
+    WHERE{.f=__FILE__, .l=__LINE__,
+          .e=cuStreamSynchronize(cuStream),
+          .t= "cuStreamSynchronize"
+    }.report();
     if (eventc > 0){
-      //  cl_int status = clWaitForEvents(eventc, events);
-      //  if (status != CL_SUCCESS) {
-          //  std::cerr << "failed clWaitForEvents" << CudaBackend::errorMsg(status) << std::endl;
-           // exit(1);
-       // }
+
     }
 }
 
@@ -162,13 +159,9 @@ void CudaBackend::CudaQueue::release(){
 }
 
 CudaBackend::CudaQueue::~CudaQueue(){
-   // clReleaseCommandQueue(command_queue);
    // delete []events;
-   auto status = cuStreamDestroy(cuStream);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cuStreamDestroy() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+    WHERE{.f=__FILE__, .l=__LINE__,
+            .e=cuStreamDestroy(cuStream),
+            .t= "cuStreamDestroy"
+    }.report();
 }

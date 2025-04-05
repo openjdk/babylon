@@ -46,13 +46,10 @@ CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(char
 }
 CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(int nameLen, char *name) {
     CUfunction function;
-    CUresult status= cuModuleGetFunction(&function, module, name);
-    if (CUDA_SUCCESS != status) {
-        std::cerr << "cuModuleGetFunction() CUDA error = " << status
-                  <<" " << cudaGetErrorString(static_cast<cudaError_t>(status))
-                  <<" " << __FILE__ << " line " << __LINE__ << std::endl;
-        exit(-1);
-    }
+    WHERE{.f=__FILE__, .l=__LINE__,
+          .e=cuModuleGetFunction(&function, module, name),
+          .t="cuModuleGetFunction"
+    }.report();
     return new CudaKernel(this,name, function);
 
 }
