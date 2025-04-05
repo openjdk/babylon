@@ -323,17 +323,14 @@ void main(String[] args) {
                         .maven_style_root(example.dir)
                         .javac(hatJavacOpts, javac ->
                                 javac.class_path(targets.hatJar)
-                                        .when(example.dir.matches("^.*(life|nbody)$") && jextractCapability.available() && openclCapability.available(), _ ->
+                                        .when(example.dir.matches("^.*(nbody)$")
+                                           && jextractCapability.available()
+                                           && openclCapability.available()
+                                            && openglCapability.available(), _ ->
                                                 javac.class_path(targets.wrapJar,
-                                                        targets.clWrapJar,
-                                                        openclCapability.jarFile(buildDir),
-                                                        buildDir.jarFile("hat-backend-ffi-opencl-1.0.jar")
-                                                )
-                                        )
-                                        .when(example.dir.matches("^.*(nbody)$") && jextractCapability.available() && openclCapability.available() && openglCapability.available(), _ ->
-                                                javac.class_path(targets.wrapJar,
-                                                        targets.glWrapJar,
-                                                        openglCapability.jarFile(buildDir)
+                                                        targets.clWrapJar, openclCapability.jarFile(buildDir),
+                                                        buildDir.jarFile("hat-backend-ffi-opencl-1.0.jar"),
+                                                        targets.glWrapJar, openglCapability.jarFile(buildDir)
 
                                                 )
                                         )

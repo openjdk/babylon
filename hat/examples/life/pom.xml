@@ -44,16 +44,6 @@ questions.
             <artifactId>hat-backend-ffi-opencl</artifactId>
             <version>1.0</version>
         </dependency>
-        <dependency>
-            <groupId>oracle.code</groupId>
-            <artifactId>hat-clwrap</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>oracle.code</groupId>
-            <artifactId>hat-jextracted-opencl</artifactId>
-            <version>1.0</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>

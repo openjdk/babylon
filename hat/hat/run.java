@@ -87,9 +87,6 @@ void main(String[] argv) {
                   .class_path(jextractedOpenCLJar,jextractedOpenGLJar, wrapJar, clwrapJar, glwrapJar )
                   .start_on_first_thread();
               })
-              .when(jextractedOpenCLJar.exists()  && exampleName.equals("life"), _->{ haveBackend
-                  .class_path(jextractedOpenCLJar, wrapJar, clwrapJar);
-              })
               .main_class(exampleName + ".Main")
               .args(args);
            } else {

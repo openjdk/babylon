@@ -46,6 +46,7 @@ questions.
         <module>heal</module>
         <module>violajones</module>
         <module>squares</module>
-        <!--<module>life</module>-->
+        <module>life</module>
+        <!-- <module>nbody</module>  sadly we need jextracted cl and gl for this -->
     </modules>
 </project>
