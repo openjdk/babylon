@@ -27,16 +27,12 @@ package life;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.backend.ffi.OpenCLBackend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
 import jdk.incubator.code.CodeReflection;
-import wrap.clwrap.CLPlatform;
-import wrap.clwrap.CLWrapComputeContext;
-
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -229,35 +225,6 @@ public class Main {
                 }
             }
         }
-
-        static void nonHatCompute(CLWrapComputeContext clWrapComputeContext,  CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel,Viewer viewer, Control control, CellGrid cellGrid) {
-            int range = cellGrid.width() * cellGrid.height();
-            while (viewer.stillRunning()) {
-
-                long now = System.currentTimeMillis();
-                boolean shouldUpdateUI = viewer.isReadyForUpdate(now);
-
-                if (viewer.state.usingGPU) {
-                    BufferState bufferState = BufferState.of(cellGrid);
-                    if (!viewer.state.minimizingCopies || (viewer.state.generations == 0)){
-                        bufferState.setState(BufferState.HOST_OWNED);
-                    }
-                    BufferState.of(control).setState(BufferState.HOST_OWNED);
-                    kernel.run(clWrapComputeContext, range, cellGrid, control);
-
-
-                } else {
-                    IntStream.range(0, range).parallel().forEach(kcx ->
-                            Compute.lifePerIdx(kcx, control, cellGrid)
-                    );
-                }
-                int to = control.from(); control.from(control.to());control.to(to);
-
-                if (shouldUpdateUI) {
-                    viewer.update(now, cellGrid,control.from());
-                }
-            }
-        }
     }
 
 
@@ -281,16 +248,8 @@ public class Main {
         );
 
         Control control = Control.create(accelerator, cellGrid);
-        CLWrapComputeContext clWrapComputeContext = new CLWrapComputeContext(arena, 20);
-        List<CLPlatform> platforms = CLPlatform.platforms(arena);
-        CLPlatform platform = platforms.get(0);
-        CLPlatform.CLDevice device = platform.devices.get(0);
-        CLPlatform.CLDevice.CLContext context = device.createContext();
 
-        var program = context.buildProgram(Compute.codeHeader + Compute.codeVal + Compute.codeLifePerIdx);
-        CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel = program.getKernel("life");
-        // Set following true to use HAT
-        Viewer.State state = new Viewer.State(true);
+        Viewer.State state = new Viewer.State();
         Viewer viewer = new Viewer("Life", cellGrid, state);
 
         var tempFrom = control.from();
@@ -299,10 +258,7 @@ public class Main {
 
         viewer.mainPanel.repaint();
         viewer.waitForStart();
-        if (state.useHat) {
-            accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
-        } else {
-            Compute.nonHatCompute(clWrapComputeContext, kernel,viewer,control,cellGrid);
-        }
+         accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
+
     }
 }

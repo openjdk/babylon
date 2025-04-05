@@ -96,11 +96,11 @@ public class Viewer extends JFrame {
         public long timeOfLastChange = 0;
         public long timeOfLastUIUpdate;
         public volatile boolean lastUIUpdateCompleted = false;
-        public final boolean useHat;
+
         public volatile boolean deviceOrModeModified = false;
 
-        State(boolean useHat) {
-            this.useHat = useHat;
+        State() {
+
         }
     }
     final Controls controls;
@@ -230,23 +230,7 @@ public class Viewer extends JFrame {
 
             ((JButton) panel.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
             this.startButton = (JButton) panel.add(new JButton("Start"));
-             if (!state.useHat) {
-                this.useGPUToggleButton = addToggle(panel, "Java", "GPU");
-                this.minimizeCopiesToggleButton = addToggle(panel, "Always Copy", "Minimize Moves");
-                this.minimizeCopiesToggleButton.setEnabled(state.minimizingCopies);
-                minimizeCopiesToggleButton.addChangeListener(event -> {
-                    this.state.minimizingCopies = minimizeCopiesToggleButton.isSelected();
-                   // System.out.println("Minimizing Copies " + state.minimizingCopies);
-                  //  System.out.println("Use GPU " + state.usingGPU);
-                });
-                useGPUToggleButton.addChangeListener(event -> {
-                    this.state.usingGPU = useGPUToggleButton.isSelected();
-                    this.minimizeCopiesToggleButton.setEnabled(this.state.usingGPU);
-                    this.state.minimizingCopies = minimizeCopiesToggleButton.isSelected();
-                    System.out.println("Minimizing Copies " + state.minimizingCopies);
-                    System.out.println("Use GPU " + state.usingGPU);
-                });
-            }
+
             panel.add(new JLabel("Generation"));
             this.generationSevenSegment = (SevenSegmentDisplay)
                     panel.add(new SevenSegmentDisplay(6,30,panel.getForeground(),panel.getBackground()));
