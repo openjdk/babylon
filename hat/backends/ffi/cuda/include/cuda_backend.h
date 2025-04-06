@@ -51,7 +51,7 @@
 #include <iostream>
 #include <cuda.h>
 #include <builtin_types.h>
-#include <cuda_runtime_api.h>
+//#include <cuda_runtime_api.h>
 #define CUDA_TYPES
 
 #include "shared.h"
@@ -59,10 +59,6 @@
 #include <fstream>
 
 #include<vector>
-
-//extern void __checkCudaErrors(CUresult err, const char *file, const int line);
-
-//#define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)
 
 struct WHERE{
     const char* f;
@@ -84,6 +80,7 @@ class PtxSource: public Text  {
 public:
     PtxSource();
     PtxSource(size_t len);
+    PtxSource(size_t len, char *text);
     PtxSource(char *text);
     ~PtxSource() = default;
     static PtxSource *nvcc(const char *cudaSource, size_t len);
