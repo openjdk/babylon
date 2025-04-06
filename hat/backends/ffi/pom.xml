@@ -41,7 +41,7 @@ questions.
         </dependency>
     </dependencies>
     <modules>
-        <module>ptx</module>
+        <!--<module>ptx</module>-->
         <module>cuda</module>
         <module>mock</module>
         <module>shared</module>

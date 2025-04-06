@@ -135,5 +135,4 @@ public:
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength);
 
 };
-extern "C" long getPtxBackend(int mode);
 

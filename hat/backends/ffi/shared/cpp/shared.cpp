@@ -202,6 +202,7 @@ Backend::Config::Config(int configBits):
         profile((configBits&PROFILE_BIT)==PROFILE_BIT),
         showWhy((configBits&SHOW_WHY_BIT)==SHOW_WHY_BIT),
         showState((configBits&SHOW_STATE_BIT)==SHOW_STATE_BIT),
+        ptx((configBits&PTX_BIT)==PTX_BIT),
 
         platform((configBits&0xf)),
         device((configBits&0xf0)>>4){
@@ -218,6 +219,7 @@ Backend::Config::Config(int configBits):
         std::cout << "native profile " << profile<<std::endl;
         std::cout << "native showWhy " << showWhy<<std::endl;
         std::cout << "native showState " << showState<<std::endl;
+        std::cout << "native ptx " << ptx<<std::endl;
         std::cout << "native platform " << platform<<std::endl;
         std::cout << "native device " << device<<std::endl;
     }

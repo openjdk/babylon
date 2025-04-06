@@ -37,6 +37,9 @@ PtxSource::PtxSource(size_t len)
 PtxSource::PtxSource(char *text)
         : Text(text, false) {
 }
+PtxSource::PtxSource(size_t len, char *text)
+        : Text(len, text , true) {
+}
 CudaSource::CudaSource(size_t len)
         : Text(len) {
 }
@@ -240,42 +243,64 @@ CudaBackend::CudaModule * CudaBackend::compile(CudaSource *cudaSource) {
 }
 
 Backend::CompilationUnit * CudaBackend::compile(int len, char *source) {
-    PtxSource *ptx = PtxSource::nvcc(source, len);
-    CUmodule module;
-    std::cout << "inside compileProgram" << std::endl;
-    std::cout << "cuda " << source << std::endl;
-    if (ptx->text != nullptr) {
-        std::cout << "ptx " << ptx->text << std::endl;
-
-        // in this branch we use compilation with parameters
-        const unsigned int jitNumOptions = 2;
-        auto jitOptions = new CUjit_option[jitNumOptions];
-        void **jitOptVals = new void *[jitNumOptions];
-
-        // set up size of compilation log buffer
-        jitOptions[0] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-        int jitLogBufferSize = 8192;
-        jitOptVals[0] = (void *) (size_t) jitLogBufferSize;
-
-        // set up pointer to the compilation log buffer
-        jitOptions[1] = CU_JIT_INFO_LOG_BUFFER;
-        char *jitLogBuffer = new char[jitLogBufferSize];
-        jitOptVals[1] = jitLogBuffer;
-        cuCtxSetCurrent(context);
-
-        WHERE{.f=__FILE__, .l=__LINE__,
-              .e=cuModuleLoadDataEx(&module, ptx->text, jitNumOptions, jitOptions, (void **) jitOptVals),
-              .t="cuModuleLoadDataEx"
-        }.report();
-        printf("> PTX JIT log:\n%s\n", jitLogBuffer);
-        return dynamic_cast<Backend::CompilationUnit*>(new CudaModule(this,  ptx->text,jitLogBuffer,true, module));
-  //      return reinterpret_cast<long>(new CudaModule(this,  ptx->text,jitLogBuffer,true, module));
-//
-        //delete
-    } else {
-        std::cout << "no ptx content!" << std::endl;
-        exit(1);
+    if (cudaConfig.traceCalls) {
+        std::cout << "inside compileProgram" << std::endl;
     }
+    PtxSource *ptx = nullptr;
+    if (cudaConfig.ptx){
+        if (cudaConfig.trace) {
+            std::cout << "compiling from ptx " << std::endl;
+        }
+        ptx = new PtxSource(len,source);
+    }else {
+        ptx = PtxSource::nvcc(source, len);
+        if (cudaConfig.traceCalls) {
+            std::cout << "compiling from cuda c99 "<<std::endl;
+        }
+        if (cudaConfig.showCode){
+            std::cout << "cuda " << source << std::endl;
+        }
+
+    }
+    if (cudaConfig.showCode){
+        std::cout << "ptx " << ptx->text << std::endl;
+    }
+        CUmodule module;
+
+
+        if (ptx->text != nullptr) {
+
+            // in this branch we use compilation with parameters
+            const unsigned int jitNumOptions = 2;
+            auto jitOptions = new CUjit_option[jitNumOptions];
+            void **jitOptVals = new void *[jitNumOptions];
+
+            // set up size of compilation log buffer
+            jitOptions[0] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
+            int jitLogBufferSize = 8192;
+            jitOptVals[0] = (void *) (size_t) jitLogBufferSize;
+
+            // set up pointer to the compilation log buffer
+            jitOptions[1] = CU_JIT_INFO_LOG_BUFFER;
+            char *jitLogBuffer = new char[jitLogBufferSize];
+            jitOptVals[1] = jitLogBuffer;
+            cuCtxSetCurrent(context);
+
+            WHERE{.f=__FILE__, .l=__LINE__,
+                    .e=cuModuleLoadDataEx(&module, ptx->text, jitNumOptions, jitOptions, (void **) jitOptVals),
+                    .t="cuModuleLoadDataEx"
+            }.report();
+            std::cout <<"PTX log:"<< jitLogBuffer << std::endl;
+            return dynamic_cast<Backend::CompilationUnit *>(new CudaModule(this, ptx->text, jitLogBuffer, true,
+                                                                           module));
+            //      return reinterpret_cast<long>(new CudaModule(this,  ptx->text,jitLogBuffer,true, module));
+//
+            //delete
+        } else {
+            std::cout << "no ptx content!" << std::endl;
+            exit(1);
+        }
+
 }
 extern "C" long getBackend(int mode) {
     long backendHandle= reinterpret_cast<long>(new CudaBackend(mode));
