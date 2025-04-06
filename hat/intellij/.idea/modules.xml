@@ -11,7 +11,6 @@
       <module fileurl="file://$PROJECT_DIR$/bldr.iml" filepath="$PROJECT_DIR$/bldr.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_cuda.iml" filepath="$PROJECT_DIR$/backend_ffi_cuda.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_mock.iml" filepath="$PROJECT_DIR$/backend_ffi_mock.iml" />
-      <module fileurl="file://$PROJECT_DIR$/backend_ffi_ptx.iml" filepath="$PROJECT_DIR$/backend_ffi_ptx.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_opencl.iml" filepath="$PROJECT_DIR$/backend_ffi_opencl.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_spirv.iml" filepath="$PROJECT_DIR$/backend_ffi_spirv.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_shared.iml" filepath="$PROJECT_DIR$/backend_ffi_shared.iml" />
