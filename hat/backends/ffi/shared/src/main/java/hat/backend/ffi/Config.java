@@ -50,7 +50,8 @@ public record Config(int bits) {
     private static final int TRACE_CALLS_BIT = 1 << 26;
     private static final int SHOW_WHY_BIT = 1 << 27;
     private static final int SHOW_STATE_BIT = 1 << 28;
-    private static final int END_BIT_IDX = 29;
+    private static final int PTX_BIT = 1 << 29;
+    private static final int END_BIT_IDX = 30;
 
     private static String[] bitNames = {
             "MINIMIZE_COPIES",
@@ -66,6 +67,7 @@ public record Config(int bits) {
             "TRACE_CALLS",
             "SHOW_WHY",
             "SHOW_STATE",
+            "PTX"
     };
 
     public static Config of() {
@@ -139,6 +141,13 @@ public record Config(int bits) {
             System.exit(1);
             return Config.of(0);
         }
+    }
+    public static Config PTX() {
+        return new Config(PTX_BIT);
+    }
+
+    public boolean isPTX() {
+        return (bits & PTX_BIT) == PTX_BIT;
     }
     public static Config SHOW_STATE() {
         return new Config(SHOW_STATE_BIT);

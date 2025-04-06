@@ -24,6 +24,11 @@
  */
 package hat.backend.ffi;
 
+import java.util.List;
+import java.util.Set;
+import java.util.HashMap;
+import java.util.HashSet;
+
 
 import hat.ComputeContext;
 import hat.NDRange;
@@ -35,67 +40,49 @@ import hat.optools.*;
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.CoreOp;
 
-import java.lang.invoke.MethodHandle;
-import java.util.*;
-
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class PTXBackend extends C99FFIBackend {
-    //final FFILib.LongIntMethodPtr getBackend_MPtr;
-    //public long getBackend(int mode) {
-      //    return  backendBridge.handle = getBackend_MPtr.invoke(mode);
-   // }
-    int major;
-    int minor;
-    String target;
-    int addressSize;
+    final int major = 7;
+    final int minor = 5;
+    final String target = "sm_52";
+    final int addressSize = 64;
 
-    static HashMap<String, String> mathFns;
-    final Set<String> usedMathFns;
+    final static HashMap<String, String> mathFns = new HashMap<>();
+    final Set<String> usedMathFns = new HashSet<>();
 
     public PTXBackend() {
-        super("ptx_backend", Config.of(0));
-        major = 7;
-        minor = 5;
-        target = "sm_52";
-        addressSize = 64;
-        mathFns = new HashMap<>();
-        usedMathFns = new HashSet<>();
+      this(Config.of());
+    }
+    public PTXBackend(Config config) {
+        super("ptx_backend", config);
         loadMathFns();
-     //   getBackend_MPtr  =  ffiLib.longIntFunc("getPtxBackend");
-      //  getBackend(0);
     }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        System.out.println("PTX backend recieved closed closure");
-        System.out.println("PTX backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
+        System.out.println("PTX backend received computeContext");
         injectBufferTracking(computeContext.computeCallGraph.entrypoint, true,true);
     }
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
-        // System.out.println("PTX dispatch kernel");
-        // Here we recieve a callgraph from the kernel entrypoint
-        // The first time we see this we need to convert the kernel entrypoint
-        // and rechable methods to PTX.
-
-        // sort the dag by rank means that we get the methods called by the entrypoint in dependency order
-        // of course there may not be any of these
+        // System.out.println("PTX  backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         kernelCallGraph.kernelReachableResolvedStream()
                 .sorted((lhs, rhs) -> rhs.rank - lhs.rank)
                 .forEach(kernelReachableResolvedMethod ->
                         System.out.println(" call to -> "+kernelReachableResolvedMethod.method.getName())
                 );
 
-        // System.out.println("Entrypoint ->"+kernelCallGraph.entrypoint.method.getName());
-        String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
-        var compilationUnit = backendBridge.compile(code);
-        if (compilationUnit.ok()) {
-            var kernel = compilationUnit.getKernel( kernelCallGraph.entrypoint.method.getName());
-            CompiledKernel compiledKernel = new CompiledKernel(this, kernelCallGraph, kernel, args);
-            compiledKernel.dispatch(ndRange,args);
-        }
+        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
+            String code = createCode(kernelCallGraph, new PTXCodeBuilder(), args);
+            var compilationUnit = backendBridge.compile(code);
+            if (compilationUnit.ok()) {var kernel = compilationUnit.getKernel(kernelCallGraph.entrypoint.method.getName());
+                return new CompiledKernel(this, kernelCallGraph, kernel, args);
+            } else {
+                throw new IllegalStateException("ptx failed to compile ");
+            }
+        });
+        compiledKernel.dispatch(ndRange,args);
     }
 
     public String createCode(KernelCallGraph kernelCallGraph, PTXCodeBuilder builder, Object[] args) {
