@@ -47,6 +47,7 @@ import com.sun.tools.javac.comp.DeferredAttr.FilterScanner;
 import com.sun.tools.javac.comp.Flow;
 import com.sun.tools.javac.comp.Lower;
 import com.sun.tools.javac.comp.CodeReflectionTransformer;
+import com.sun.tools.javac.comp.Resolve;
 import com.sun.tools.javac.comp.TypeEnvs;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
@@ -131,6 +132,7 @@ public class ReflectMethods extends TreeTranslator {
     private final Types types;
     private final Names names;
     private final Symtab syms;
+    private final Resolve resolve;
     private final Gen gen;
     private final Log log;
     private final Lower lower;
@@ -159,6 +161,7 @@ public class ReflectMethods extends TreeTranslator {
         codeModelStorageOption = CodeModelStorageOption.parse(options.get("codeModelStorageOption"));
         names = Names.instance(context);
         syms = Symtab.instance(context);
+        resolve = Resolve.instance(context);
         types = Types.instance(context);
         gen = Gen.instance(context);
         log = Log.instance(context);
@@ -422,7 +425,7 @@ public class ReflectMethods extends TreeTranslator {
             }
             case CODE_BUILDER -> {
                 var opBuilder = OpBuilder.createBuilderFunction(op);
-                var cmToASTTransformer = new CodeModelToAST(make, names, syms, currentClassSym, crSyms);
+                var cmToASTTransformer = new CodeModelToAST(make, names, syms, resolve, types, typeEnvs.get(currentClassSym), crSyms);
                 return cmToASTTransformer.transformFuncOpToAST(opBuilder, methodName);
             }
             case null, default ->
