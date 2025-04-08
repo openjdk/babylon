@@ -212,7 +212,6 @@ public class CodeModelToAST {
             map(op.result(), varDef);
             return varDef;
         } else {
-            map(op.result(), tree);
             return tree;
         }
     }
