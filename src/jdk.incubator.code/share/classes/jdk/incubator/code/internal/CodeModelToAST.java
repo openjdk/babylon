@@ -1,6 +1,11 @@
 package jdk.incubator.code.internal;
 
 import com.sun.tools.javac.code.*;
+import com.sun.tools.javac.code.Symbol.MethodSymbol;
+import com.sun.tools.javac.code.Symbol.VarSymbol;
+import com.sun.tools.javac.comp.AttrContext;
+import com.sun.tools.javac.comp.Env;
+import com.sun.tools.javac.comp.Resolve;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.*;
@@ -10,8 +15,6 @@ import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.type.*;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,6 +25,9 @@ public class CodeModelToAST {
     private final TreeMaker treeMaker;
     private final Names names;
     private final Symtab syms;
+    private final Env<AttrContext> attrEnv;
+    private final Resolve resolve;
+    private final Types types;
     private final Symbol.ClassSymbol currClassSym;
     private final CodeReflectionSymbols crSym;
     private final Map<Value, Symbol.VarSymbol> valueToVarSym = new HashMap<>();
@@ -29,12 +35,15 @@ public class CodeModelToAST {
     private Symbol.MethodSymbol ms;
     private int localVarCount = 0; // used to name variables we introduce in the AST
 
-    public CodeModelToAST(TreeMaker treeMaker, Names names, Symtab syms,
-                          Symbol.ClassSymbol currClassSym, CodeReflectionSymbols crSym) {
+    public CodeModelToAST(TreeMaker treeMaker, Names names, Symtab syms, Resolve resolve,
+                          Types types, Env<AttrContext> attrEnv, CodeReflectionSymbols crSym) {
         this.treeMaker = treeMaker;
         this.names = names;
         this.syms = syms;
-        this.currClassSym = currClassSym;
+        this.resolve = resolve;
+        this.types = types;
+        this.attrEnv = attrEnv;
+        this.currClassSym = attrEnv.enclClass.sym;
         this.crSym = crSym;
         this.jtToType = mappingFromJavaTypeToType();
     }
@@ -42,7 +51,8 @@ public class CodeModelToAST {
     private Map<JavaType, Type> mappingFromJavaTypeToType() {
         Map<JavaType, Type> m = new HashMap<>();
         Symbol.ModuleSymbol jdk_incubator_code = syms.enterModule(names.jdk_incubator_code);
-        Class<?>[] crTypes = {Body.Builder.class, TypeElement.ExternalizedTypeElement.class, TypeElement.class,
+        Class<?>[] crTypes = {
+                Body.Builder.class, TypeElement.ExternalizedTypeElement.class, TypeElement.class,
                 FunctionType.class, Block.Builder.class, Value.class, Block.Reference.class, Op.Result.class,
                 Op.class, TypeElementFactory.class, OpFactory.class, ExternalizableOp.ExternalizedOp.class,
                 MethodRef.class, Block.Parameter.class, FieldRef.class, CoreOp.InvokeOp.InvokeKind.class,
@@ -53,11 +63,13 @@ public class CodeModelToAST {
             Type t = syms.enterClass(jdk_incubator_code, jt.externalize().toString());
             m.put(jt, t);
         }
-        Class<?>[] javaBaseTypes = {HashMap.class, String.class, Object.class, Map.class, java.util.List.class};
+        Class<?>[] javaBaseTypes = {
+                HashMap.class, String.class, Object.class, Map.class, java.util.List.class
+        };
         for (Class<?> javaBaseType : javaBaseTypes) {
             JavaType jt = JavaType.type(javaBaseType.describeConstable().get());
             Type t = syms.enterClass(syms.java_base, jt.externalize().toString());
-            m.put(jt, t);
+            m.put(jt, types.erasure(t));
         }
 
         m.putAll(Map.ofEntries(
@@ -86,9 +98,7 @@ public class CodeModelToAST {
                 yield new Type.ClassType(typeElementToType(enclosingType), typeArgs.toList(),
                         typeElementToType(ct.rawType()).tsym);
             }
-            case ArrayType at -> {
-                yield new Type.ArrayType(typeElementToType(at.componentType()), syms.arrayClass);
-            }
+            case ArrayType at -> new Type.ArrayType(typeElementToType(at.componentType()), syms.arrayClass);
             case null -> Type.noType;
             default -> {
                 if (!jtToType.containsKey(te)) {
@@ -100,23 +110,15 @@ public class CodeModelToAST {
     }
 
     private JCTree invokeOpToJCMethodInvocation(CoreOp.InvokeOp invokeOp) {
-        Method method;
-        try {
-            method = invokeOp.invokeDescriptor().resolveToDirectMethod(MethodHandles.lookup());
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
-        long flags = method.getModifiers();
-        var name = names.fromString(invokeOp.invokeDescriptor().name());
-        Value receiver = invokeOp.invokeKind() == CoreOp.InvokeOp.InvokeKind.INSTANCE ? invokeOp.operands().get(0) : null;
-        List<Value> arguments = invokeOp.operands().stream().skip(receiver == null ? 0 : 1).collect(List.collector());
-        var paramTypes = invokeOp.invokeDescriptor().type().parameterTypes().stream().map(this::typeElementToType)
+        Value receiver = (invokeOp.invokeKind() == CoreOp.InvokeOp.InvokeKind.INSTANCE) ?
+                invokeOp.operands().get(0) : null;
+        List<Value> arguments = invokeOp.operands().stream()
+                .skip(receiver == null ? 0 : 1)
                 .collect(List.collector());
-        var restype = typeElementToType(invokeOp.resultType());
-        var type = new Type.MethodType(paramTypes, restype, List.nil(), syms.methodClass);
-        var methodSym = new Symbol.MethodSymbol(flags, name, type,
-                typeElementToType(invokeOp.invokeDescriptor().refType()).tsym);
-        var meth = receiver == null ? treeMaker.Ident(methodSym) : treeMaker.Select(exprTree(receiver), methodSym);
+        var methodSym = methodDescriptorToSymbol(invokeOp.invokeDescriptor());
+        var meth = (receiver == null) ?
+                treeMaker.Ident(methodSym) :
+                treeMaker.Select(exprTree(receiver), methodSym);
         var args = new ListBuffer<JCTree.JCExpression>();
         for (Value operand : arguments) {
             args.add(exprTree(operand));
@@ -124,8 +126,11 @@ public class CodeModelToAST {
         var methodInvocation = treeMaker.App(meth, args.toList());
         if (invokeOp.isVarArgs()) {
             var lastParam = invokeOp.invokeDescriptor().type().parameterTypes().getLast();
-            Assert.check(lastParam instanceof ArrayType);
-            methodInvocation.varargsElement = typeElementToType(((ArrayType) lastParam).componentType());
+            if (lastParam instanceof ArrayType varargType) {
+                methodInvocation.varargsElement = typeElementToType(varargType.componentType());
+            } else {
+                Assert.error("Vararg method doesn't have a trailing array type: " + invokeOp.invokeDescriptor());
+            }
         }
         return methodInvocation;
     }
@@ -159,6 +164,7 @@ public class CodeModelToAST {
                     argTypes.add(typeElementToType(operand.type()));
                 }
                 nc.type = ownerType;
+                // TODO: this should be fixed to use a MethodRef in the new op (once that is added)
                 nc.constructorType = new Type.MethodType(argTypes.toList(), syms.voidType, List.nil(), syms.methodClass);
                 nc.constructor = new Symbol.MethodSymbol(PUBLIC, names.init, nc.constructorType, ownerType.tsym);
                 yield nc;
@@ -166,19 +172,9 @@ public class CodeModelToAST {
             case CoreOp.ReturnOp returnOp ->
                     treeMaker.Return(exprTree(returnOp.returnValue()));
             case CoreOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
-                // Type.fieldName
-                // if instance field we will use the same thechnique as in invokeOpToTree
-                int flags;
-                try {
-                    flags = fieldLoadOp.fieldDescriptor().resolveToMember(MethodHandles.lookup()).getModifiers();
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
-                }
-                var name = names.fromString(fieldLoadOp.fieldDescriptor().name());
-                var type = typeElementToType(fieldLoadOp.resultType());
-                var owner = typeElementToType(fieldLoadOp.fieldDescriptor().refType());
-                var sym = new Symbol.VarSymbol(flags, name, type, owner.tsym);
-                yield treeMaker.Select(treeMaker.Ident(owner.tsym), sym);
+                var sym = fieldDescriptorToSymbol(fieldLoadOp.fieldDescriptor());
+                Assert.check(sym.isStatic());
+                yield treeMaker.Select(treeMaker.Ident(sym.owner), sym);
             }
             case CoreOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
                 var array = arrayStoreOp.operands().get(0);
@@ -248,6 +244,23 @@ public class CodeModelToAST {
     // TODO see if we can use LET AST node
     // TODO add vars in OpBuilder (later)
 
+    VarSymbol fieldDescriptorToSymbol(FieldRef fieldRef) {
+        Name name = names.fromString(fieldRef.name());
+        Type site = typeElementToType(fieldRef.refType());
+        return resolve.resolveInternalField(attrEnv.enclClass, attrEnv, site, name);
+    }
 
-    // TODO explore builderOp --> java code (as string)
+    MethodSymbol methodDescriptorToSymbol(MethodRef methodRef) {
+        Name name = names.fromString(methodRef.name());
+        Type site = typeElementToType(methodRef.refType());
+        List<Type> argtypes = methodRef.type().parameterTypes().stream()
+                .map(this::typeElementToType).collect(List.collector());
+        return resolve.resolveInternalMethod(attrEnv.enclClass, attrEnv, site, name, argtypes, List.nil());
+    }
+
+    // TODO: generate AST in SSA form
+    // TODO: drop addVarsWhenNecessary
+    // TODO: fix NewOp to contain MethodRef of constructor
+    // TODO: share method and constructor code
+    // TODO: maybe move back into ReflectMethods
 }
