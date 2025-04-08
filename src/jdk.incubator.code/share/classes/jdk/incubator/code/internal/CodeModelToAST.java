@@ -27,7 +27,7 @@ public class CodeModelToAST {
     private final Map<Value, JCTree> valueToTree = new HashMap<>();
     private final Map<JavaType, Type> jtToType;
     private Symbol.MethodSymbol ms;
-    private int c = 0; // used to name variables we introduce in the AST
+    private int localVarCount = 0; // used to name variables we introduce in the AST
 
     public CodeModelToAST(TreeMaker treeMaker, Names names, Symtab syms,
                           Symbol.ClassSymbol currClassSym, CodeReflectionSymbols crSym) {
@@ -204,7 +204,7 @@ public class CodeModelToAST {
             } else {
                 type = tree.type;
             }
-            var vs = new Symbol.VarSymbol(LocalVarFlags, names.fromString("_$" + c++), type, ms);
+            var vs = new Symbol.VarSymbol(LocalVarFlags, names.fromString("_$" + localVarCount++), type, ms);
             var varDef = treeMaker.VarDef(vs, expr);
             map(op.result(), varDef);
             return varDef;
