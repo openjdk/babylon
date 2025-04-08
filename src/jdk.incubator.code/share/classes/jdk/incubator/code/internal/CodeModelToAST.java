@@ -24,7 +24,7 @@ public class CodeModelToAST {
     private final Symtab syms;
     private final Symbol.ClassSymbol currClassSym;
     private final CodeReflectionSymbols crSym;
-    private final Map<Value, JCTree> valueToTree = new HashMap<>();
+    private final Map<Value, Symbol.VarSymbol> valueToVarSym = new HashMap<>();
     private final Map<JavaType, Type> jtToType;
     private Symbol.MethodSymbol ms;
     private int localVarCount = 0; // used to name variables we introduce in the AST
@@ -206,7 +206,7 @@ public class CodeModelToAST {
             }
             var vs = new Symbol.VarSymbol(LocalVarFlags, names.fromString("_$" + localVarCount++), type, ms);
             var varDef = treeMaker.VarDef(vs, expr);
-            map(op.result(), varDef);
+            map(op.result(), vs);
             return varDef;
         } else {
             return tree;
@@ -214,17 +214,11 @@ public class CodeModelToAST {
     }
 
     private JCTree.JCExpression exprTree(Value v) {
-        JCTree tree = valueToTree.get(v);
-        if (tree instanceof JCTree.JCVariableDecl vd) {
-            return treeMaker.Ident(vd);
-        } else if (tree instanceof JCTree.JCExpression expr) {
-            return expr;
-        }
-        throw new IllegalStateException("Value not mapped to VariableDeclaration nor to an ExpressionStatement");
+        return treeMaker.Ident(valueToVarSym.get(v));
     }
 
-    private void map(Value v, JCTree t) {
-        valueToTree.put(v, t);
+    private void map(Value v, Symbol.VarSymbol vs) {
+        valueToVarSym.put(v, vs);
     }
 
     public JCTree.JCMethodDecl transformFuncOpToAST(CoreOp.FuncOp funcOp, Name methodName) {
@@ -236,7 +230,7 @@ public class CodeModelToAST {
         currClassSym.members().enter(ms);
 
         for (int i = 0; i < funcOp.parameters().size(); i++) {
-            map(funcOp.parameters().get(i), treeMaker.Ident(ms.params().get(i)));
+            map(funcOp.parameters().get(i), ms.params().get(i));
         }
 
         var stats = new ListBuffer<JCTree.JCStatement>();
