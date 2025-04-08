@@ -185,7 +185,6 @@ public class CodeModelToAST {
                 );
                 as.type = typeElementToType(((ArrayType) array.type()).componentType());
                 yield as;
-                // body builder are created but never passed when creating the op, why ?
             }
             default -> throw new IllegalStateException("Op -> JCTree not supported for :" + op.getClass().getName());
         };
@@ -240,9 +239,6 @@ public class CodeModelToAST {
 
         return treeMaker.MethodDef(ms, mb);
     }
-
-    // TODO see if we can use LET AST node
-    // TODO add vars in OpBuilder (later)
 
     VarSymbol fieldDescriptorToSymbol(FieldRef fieldRef) {
         Name name = names.fromString(fieldRef.name());
