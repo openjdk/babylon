@@ -360,6 +360,22 @@ public:
         Config(int mode);
         virtual ~Config();
     };
+
+    class Buffer {
+    public:
+        Backend *backend;
+        BufferState_s *bufferState;
+
+        virtual bool copyToDevice(int accessBits) = 0;
+
+        virtual bool copyFromDevice(int accessBits) = 0;
+
+        Buffer(Backend *backend,  BufferState_s *bufferState)
+                : backend(backend),  bufferState(bufferState) {
+        }
+
+        virtual ~Buffer() {}
+    };
     class Queue {
     public:
         const static  int START_BIT_IDX =20;
@@ -374,47 +390,15 @@ public:
         static const int hasIntArgBits = 1<<28;
         const static  int END_BIT_IDX = 27;
         Backend *backend;
-        size_t eventMax;
-        size_t eventc;
 
-        int *eventInfoBits;
-        const char **eventInfoConstCharPtrArgs;
-        Queue(Backend *openclBackend);
-        virtual void showEvents(int width)=0;
+        Queue(Backend *backend);
         virtual void wait()=0;
         virtual void release()=0;
         virtual void computeStart()=0;
         virtual void computeEnd()=0;
-        virtual void inc(int bits)=0;
-        virtual void inc(int bits, const char *arg)=0;
-        virtual  void inc(int bits, int arg)=0;
-        virtual void marker(int bits)=0;
-        virtual void marker(int bits, const char *arg)=0;
-        virtual void marker(int bits, int arg)=0;
-        virtual void markAsCopyToDeviceAndInc(int argn)=0;
-        virtual  void markAsCopyFromDeviceAndInc(int argn)=0;
-        virtual void markAsNDRangeAndInc()=0;
-        virtual void markAsStartComputeAndInc()=0;
-        virtual  void markAsEndComputeAndInc()=0;
-        virtual  void markAsEnterKernelDispatchAndInc()=0;
-        virtual void markAsLeaveKernelDispatchAndInc()=0;
+        virtual bool copyToDevice(Buffer *buffer, int accessBits);
+        virtual bool copyFromDevice(Buffer *buffer, int accessBits);
          virtual ~Queue();
-    };
-    class Buffer {
-    public:
-        Backend *backend;
-        Arg_s *arg;
-        BufferState_s *bufferState;
-
-        virtual void copyToDevice() = 0;
-
-        virtual void copyFromDevice() = 0;
-
-        Buffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState)
-                : backend(backend), arg(arg), bufferState(bufferState) {
-        }
-
-        virtual ~Buffer() {}
     };
     class CompilationUnit {
     public:
@@ -423,7 +407,8 @@ public:
             char *name;// strduped!
 
             CompilationUnit *compilationUnit;
-
+            virtual bool setArg(Arg_s *arg, Buffer *openCLBuffer) = 0;
+            virtual bool setArg(Arg_s *arg) = 0;
             virtual long ndrange(void *argArray) = 0;
 
             Kernel(CompilationUnit *compilationUnit, char *name)
@@ -460,9 +445,13 @@ public:
            }
         };
     };
-    int mode;
 
-    Backend(int mode): mode(mode){}
+    Config* config;
+    Queue* queue;
+
+    Backend(Config *config, Queue *queue): config(config), queue(queue){}
+
+    virtual Buffer* getOrCreateBuffer(BufferState_s *bufferState) = 0;
 
     virtual void info() = 0;
 

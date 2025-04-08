@@ -228,15 +228,10 @@ Backend::Config::~Config(){
 }
 
 Backend::Queue::Queue(Backend *backend)
-        :backend(backend),
-         eventMax(10000),
-         eventInfoBits(new int[eventMax]),
-         eventInfoConstCharPtrArgs(new const char *[eventMax]),
-         eventc(0){
+        :backend(backend){
 }
 Backend::Queue::~Queue() {
-    delete[]eventInfoBits;
-    delete[]eventInfoConstCharPtrArgs;
+
 }
 Text::Text(size_t len, char *text, bool isCopy)
         : len(len), text(text), isCopy(isCopy) {
@@ -299,3 +294,12 @@ Log::Log(size_t len)
 Log::Log(char *text)
         : Text(text, false) {
 }
+bool Backend::Queue::copyToDevice(Backend::Buffer *buffer, int accessBits) {
+  return buffer->copyToDevice(accessBits);
+}
+
+bool Backend::Queue::copyFromDevice(Backend::Buffer *buffer, int accessBits) {
+  return buffer->copyFromDevice(accessBits);
+}
+
+

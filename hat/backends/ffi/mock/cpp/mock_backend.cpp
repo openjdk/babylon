@@ -26,14 +26,30 @@
 
 class MockBackend : public Backend {
 public:
+
+class MockQueue: public Backend::Queue{
+public:
+     void wait()override{};
+     void release()override{};
+     void computeStart()override{};
+     void computeEnd()override{};
+     explicit MockQueue(Backend *backend):Queue(backend){}
+     ~MockQueue() override =default;
+};
     class MockProgram : public Backend::CompilationUnit {
         class MockKernel : public Backend::CompilationUnit::Kernel {
         public:
             MockKernel(Backend::CompilationUnit *compilationUnit, char *name)
                     : Backend::CompilationUnit::Kernel(compilationUnit, name) {
             }
-            ~MockKernel() {}
-            long ndrange(void *argArray) {
+            ~MockKernel() override = default;
+            bool setArg(Arg_s *arg, Buffer *buffer) override{
+                return false ;
+            }
+            bool setArg(Arg_s *arg) override{
+                return false ;
+            }
+            long ndrange(void *argArray)override {
                 std::cout << "mock ndrange() " << std::endl;
                 return 0;
             }
@@ -58,12 +74,27 @@ public:
 
 public:
 
-    MockBackend(int configBits): Backend(configBits) {
+    MockBackend(int configBits): Backend(new Config(configBits), new MockQueue(this)) {
     }
 
     ~MockBackend() {
     }
+    Buffer * getOrCreateBuffer(BufferState_s *bufferState) override{
+        Buffer *buffer = nullptr;
 
+        /* if (bufferState->vendorPtr == 0L || bufferState->state == BufferState_s::NEW_STATE){
+              openclBuffer = new OpenCLBuffer(this,  bufferState);
+              if (openclConfig.trace){
+                  std::cout << "We allocated arg buffer "<<std::endl;
+              }
+          }else{
+              if (openclConfig.trace){
+                  std::cout << "Were reusing  buffer  buffer "<<std::endl;
+              }
+              openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
+          }*/
+        return buffer;
+    }
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override {
         std::cout << "attempting  to get buffer from Mockbackend "<<std::endl;
         return false;

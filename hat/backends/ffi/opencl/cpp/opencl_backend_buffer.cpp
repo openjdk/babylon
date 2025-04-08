@@ -30,15 +30,15 @@
   OpenCLBuffer
   */
 
-OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState)
-        : Backend::Buffer(backend, arg, bufferState) {
+OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend,  BufferState_s *bufferState)
+        : Backend::Buffer(backend, bufferState) {
     cl_int status;
     OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
     clMem = clCreateBuffer(
         openclBackend->context,
         CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
-        bufferState->length,// arg->value.buffer.sizeInBytes,
-        arg->value.buffer.memorySegment,
+        bufferState->length,
+        bufferState->ptr,
         &status);
 
     if (status != CL_SUCCESS) {
@@ -46,111 +46,87 @@ OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, Arg_s *arg, BufferSt
         exit(1);
     }
      bufferState->vendorPtr =  static_cast<void *>(this);
-    if (openclBackend->openclConfig.traceCopies){
-        std::cout << "created buffer for arg idx "<< arg->idx << std::endl;
+
+
+}
+bool OpenCLBackend::OpenCLBuffer::copyToDevice(int accessBits) {
+    bool kernelWroteToThisArg = (accessBits==WO_BYTE) |  (accessBits==RW_BYTE);
+    if (backend->config->showWhy){
+        std::cout<<
+                 "config.alwaysCopy="<<backend->config->alwaysCopy
+                 << " | arg.WO="<<(accessBits==WO_BYTE)
+                 << " | arg.RW="<<(accessBits==RW_BYTE)
+                 << " | kernel.wroteToThisArg="<<  kernelWroteToThisArg
+                 << "Buffer state = "<< BufferState_s::stateNames[bufferState->state]
+                 <<" so " ;
     }
-
-}
-
-bool OpenCLBackend::OpenCLBuffer::shouldCopyToDevice( Arg_s *arg){
-//std::cout << "shouldCopyToDevice( Arg_s *arg)" <<std::endl;
-// std::cout <<std::hex;
-//// std::cout << "arg=="<<((long) arg) <<std::endl;
-// std::cout << "arg->idx=="<<arg->idx <<std::endl;
- //  std::cout << "bufferState=="<<((long) bufferState) <<std::endl;
-  //  std::cout << "kernel=="<<((long) kernel) <<std::endl;
-  //    std::cout << "kernel->name=="<<kernel->name <<std::endl;
-  //   std::cout << "kernel->program=="<<((long) kernel->program) <<std::endl;
-   //   std::cout << "kernel->program->backend=="<<((long) kernel->program->backend) <<std::endl;
-   //   std::cout <<std::dec;
-         OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
+    bool copying= backend->config->alwaysCopy;
 
 
-   bool kernelReadsFromThisArg = (arg->value.buffer.access==RW_BYTE) || (arg->value.buffer.access==RO_BYTE);
-   bool isAlwaysCopyingOrNewStateOrHostOwned =
-        openclBackend->openclConfig.alwaysCopy
-        ||  (bufferState->state == BufferState_s::NEW_STATE)
-        || ((bufferState->state == BufferState_s::HOST_OWNED));
-
-   if (openclBackend->openclConfig.showWhy){
-       std::cout<<
-                   "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy
-                   << " | arg.RW="<<(arg->value.buffer.access==RW_BYTE)
-                   << " | arg.RO="<<(arg->value.buffer.access==RO_BYTE)
-                   << " | kernel.needsToRead="<<  kernelReadsFromThisArg
-                   << " | Buffer state = "<< BufferState_s::stateNames[bufferState->state]
-                   <<" so "
-                     ;
-     }
-     return isAlwaysCopyingOrNewStateOrHostOwned;
-}
-bool OpenCLBackend::OpenCLBuffer::shouldCopyFromDevice(Arg_s *arg){
-   OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
- bool kernelWroteToThisArg = (arg->value.buffer.access==WO_BYTE) |  (arg->value.buffer.access==RW_BYTE);
-       if (openclBackend->openclConfig.showWhy){
-           std::cout<<
-             "config.alwaysCopy="<<openclBackend->openclConfig.alwaysCopy
-                << " | arg.WO="<<(arg->value.buffer.access==WO_BYTE)
-                << " | arg.RW="<<(arg->value.buffer.access==RW_BYTE)
-                << " | kernel.wroteToThisArg="<<  kernelWroteToThisArg
-                << "Buffer state = "<< BufferState_s::stateNames[bufferState->state]
-                <<" so " ;
-       }
-       return openclBackend->openclConfig.alwaysCopy;
-}
-
-
-void OpenCLBackend::OpenCLBuffer::copyToDevice() {
-  //  OpenCLKernel *openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
-    OpenCLBackend *openclBackend = dynamic_cast<OpenCLBackend *>(backend);
    //  std::cout << "copyTo(" <<std::hex << (long) arg->value.buffer.memorySegment << "," << std::dec<<   bufferState->length <<")"<<std::endl;
+    if (copying) {
+        auto openCLQueue = dynamic_cast<OpenCLQueue *>(backend->queue);
+        cl_int status = clEnqueueWriteBuffer(
+                openCLQueue->command_queue,
+                clMem,
+                CL_FALSE,
+                0,
+                bufferState->length, // arg->value.buffer.sizeInBytes,
+                bufferState->ptr,
+                openCLQueue->eventc,
+                openCLQueue->eventListPtr(),
+                openCLQueue->nextEventPtr()
+        );
 
-    cl_int status = clEnqueueWriteBuffer(
-       openclBackend->openclQueue.command_queue,
-       clMem,
-       CL_FALSE,
-       0,
-       bufferState->length, // arg->value.buffer.sizeInBytes,
-       arg->value.buffer.memorySegment,
-       openclBackend->openclQueue.eventc,
-       openclBackend->openclQueue.eventListPtr(),
-       openclBackend->openclQueue.nextEventPtr()
-    );
-    openclBackend->openclQueue.markAsCopyToDeviceAndInc(arg->idx);
-
-    if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-        exit(1);
+        if (status != CL_SUCCESS) {
+            std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+            exit(1);
+        }
+        openCLQueue->markAsCopyToDeviceAndInc();
     }
-    if(openclBackend->openclConfig.traceCopies){
-        std::cout << "enqueued buffer for arg idx " << arg->idx << " in OpenCLBuffer::copyToDevice()" << std::endl;
-    }
+    return copying;
 }
 
-void OpenCLBackend::OpenCLBuffer::copyFromDevice() {
-//    OpenCLKernel * openclKernel = dynamic_cast<OpenCLKernel *>(kernel);
-    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
- //  std::cout << "copyFrom(" <<std::hex << (long) arg->value.buffer.memorySegment << "," << std::dec<<   bufferState->length <<")"<<std::endl;
+bool OpenCLBackend::OpenCLBuffer::copyFromDevice(int accessBits) {
+    auto * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
 
-    cl_int status = clEnqueueReadBuffer(
-       openclBackend->openclQueue.command_queue,
-       clMem,
-       CL_FALSE,
-       0,
-       bufferState->length,//arg->value.buffer.sizeInBytes,
-       arg->value.buffer.memorySegment,
-       openclBackend->openclQueue.eventc,
-       openclBackend->openclQueue.eventListPtr(),
-       openclBackend->openclQueue.nextEventPtr()
-    );
-    openclBackend->openclQueue.markAsCopyFromDeviceAndInc(arg->idx);
-    if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-        exit(1);
+    bool kernelReadsFromThisArg = (accessBits==RW_BYTE) || (accessBits==RO_BYTE);
+    bool copying =
+            openclBackend->config->alwaysCopy
+            ||  (bufferState->state == BufferState_s::NEW_STATE)
+            || ((bufferState->state == BufferState_s::HOST_OWNED));
+
+    if (openclBackend->config->showWhy){
+        std::cout<<
+                 "config.alwaysCopy="<<openclBackend->config->alwaysCopy
+                 << " | arg.RW="<<(accessBits==RW_BYTE)
+                 << " | arg.RO="<<(accessBits==RO_BYTE)
+                 << " | kernel.needsToRead="<<  kernelReadsFromThisArg
+                 << " | Buffer state = "<< BufferState_s::stateNames[bufferState->state]
+                 <<" so "
+                ;
     }
-    if(openclBackend->openclConfig.traceCopies){
-       std::cout << "enqueued buffer for arg idx " << arg->idx << " in OpenCLBuffer::copyFromDevice()" << std::endl;
+    if (copying) {
+
+        auto openCLQueue = dynamic_cast<OpenCLQueue *>(backend->queue);
+        cl_int status = clEnqueueReadBuffer(
+                openCLQueue->command_queue,
+                clMem,
+                CL_FALSE,
+                0,
+                bufferState->length,//arg->value.buffer.sizeInBytes,
+                bufferState->ptr,
+                openCLQueue->eventc,
+                openCLQueue->eventListPtr(),
+                openCLQueue->nextEventPtr()
+        );
+        if (status != CL_SUCCESS) {
+            std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+            exit(1);
+        }
+        openCLQueue->markAsCopyFromDeviceAndInc();
     }
+    return copying;
 }
 
 OpenCLBackend::OpenCLBuffer::~OpenCLBuffer() {

@@ -44,9 +44,9 @@ struct S32Array1024_s {
 };
 int main(int argc, char **argv) {
     OpenCLBackend openclBackend(0
-            | OpenCLBackend::OpenCLConfig::Config::INFO_BIT
-            | OpenCLBackend::OpenCLConfig::Config::TRACE_CALLS_BIT
-            | OpenCLBackend::OpenCLConfig::Config::TRACE_COPIES_BIT
+            | Backend::Config::INFO_BIT
+            | Backend::Config::Config::TRACE_CALLS_BIT
+            | Backend::Config::Config::TRACE_COPIES_BIT
     );
 
     //std::string cudaPath =  "/home/gfrost/github/grfrost/babylon-grfrost-fork/hat/squares.cuda";

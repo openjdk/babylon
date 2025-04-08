@@ -30,7 +30,11 @@ So
 */
  OpenCLBackend::OpenCLQueue::OpenCLQueue(Backend *backend)
     : Backend::Queue(backend),
-     events(new cl_event[eventMax]){
+      eventMax(10000),
+      eventInfoBits(new int[eventMax]),
+      eventInfoConstCharPtrArgs(new const char *[eventMax]),
+      eventc(0),
+      events(new cl_event[eventMax]){
  }
 
  cl_event *OpenCLBackend::OpenCLQueue::eventListPtr(){
@@ -178,17 +182,7 @@ void OpenCLBackend::OpenCLQueue::wait(){
            }
         inc(bits, arg);
     }
-      void OpenCLBackend::OpenCLQueue::marker(int bits, int arg){
-        cl_int status = clEnqueueMarkerWithWaitList(
-            command_queue,
-            this->eventc, this->eventListPtr(),this->nextEventPtr()
-            );
-              if (status != CL_SUCCESS){
-                   std::cerr << "failed to clEnqueueMarkerWithWaitList "<<errorMsg(status)<< std::endl;
-                   std::exit(1);
-               }
-            inc(bits, arg);
-        }
+
 
  void OpenCLBackend::OpenCLQueue::computeStart(){
    wait(); // should be no-op
@@ -219,14 +213,7 @@ void OpenCLBackend::OpenCLQueue::wait(){
      }
      eventc++;
   }
-  void OpenCLBackend::OpenCLQueue::inc(int bits, int arg){
-      if (eventc+1 >= eventMax){
-         std::cerr << "OpenCLBackend::OpenCLQueue event list overflowed!!" << std::endl;
-      }else{
-          eventInfoBits[eventc]=bits|arg|hasIntArgBits;
-      }
-      eventc++;
-   }
+
 
  void OpenCLBackend::OpenCLQueue::markAsEndComputeAndInc(){
      inc(EndComputeBits);
@@ -237,11 +224,11 @@ void OpenCLBackend::OpenCLQueue::wait(){
  void OpenCLBackend::OpenCLQueue::markAsNDRangeAndInc(){
      inc(NDRangeBits);
  }
- void OpenCLBackend::OpenCLQueue::markAsCopyToDeviceAndInc(int argn){
-     inc(CopyToDeviceBits, argn);
+ void OpenCLBackend::OpenCLQueue::markAsCopyToDeviceAndInc(){
+     inc(CopyToDeviceBits);
  }
- void OpenCLBackend::OpenCLQueue::markAsCopyFromDeviceAndInc(int argn){
-     inc(CopyFromDeviceBits, argn);
+ void OpenCLBackend::OpenCLQueue::markAsCopyFromDeviceAndInc(){
+     inc(CopyFromDeviceBits);
  }
  void OpenCLBackend::OpenCLQueue::markAsEnterKernelDispatchAndInc(){
      inc(EnterKernelDispatchBits);
@@ -265,5 +252,8 @@ void OpenCLBackend::OpenCLQueue::wait(){
  OpenCLBackend::OpenCLQueue::~OpenCLQueue(){
      clReleaseCommandQueue(command_queue);
      delete []events;
+     delete[]eventInfoBits;
+     delete[]eventInfoConstCharPtrArgs;
 
  }
+
