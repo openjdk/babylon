@@ -127,9 +127,6 @@ public class CodeModelToAST {
             Assert.check(lastParam instanceof ArrayType);
             methodInvocation.varargsElement = typeElementToType(((ArrayType) lastParam).componentType());
         }
-        if (invokeOp.result().uses().isEmpty()) {
-            return treeMaker.Exec(methodInvocation);
-        }
         return methodInvocation;
     }
 
