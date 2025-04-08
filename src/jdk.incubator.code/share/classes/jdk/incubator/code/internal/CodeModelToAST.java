@@ -190,7 +190,8 @@ public class CodeModelToAST {
                 var as = treeMaker.Assign(
                         treeMaker.Indexed(exprTree(array), exprTree(index)), exprTree(val)
                 );
-                yield treeMaker.Exec(as);
+                as.type = typeElementToType(((ArrayType) array.type()).componentType());
+                yield as;
                 // body builder are created but never passed when creating the op, why ?
             }
             default -> throw new IllegalStateException("Op -> JCTree not supported for :" + op.getClass().getName());
