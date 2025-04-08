@@ -217,8 +217,6 @@ public class CodeModelToAST {
         JCTree tree = valueToTree.get(v);
         if (tree instanceof JCTree.JCVariableDecl vd) {
             return treeMaker.Ident(vd);
-        } else if (tree instanceof JCTree.JCExpressionStatement exprStat) {
-            return exprStat.expr;
         } else if (tree instanceof JCTree.JCExpression expr) {
             return expr;
         }
