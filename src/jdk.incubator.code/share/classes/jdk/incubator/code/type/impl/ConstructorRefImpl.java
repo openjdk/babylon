@@ -71,7 +71,8 @@ public final class ConstructorRefImpl implements ConstructorRef {
     @Override
     public MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
         Class<?> refC = resolve(l, refType);
-        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l);
+        // MH lookup wants a void-returning lookup type
+        MethodType mt = MethodRef.toNominalDescriptor(type).resolveConstantDesc(l).changeReturnType(void.class);
         return l.findConstructor(refC, mt);
     }
 
@@ -88,7 +89,7 @@ public final class ConstructorRefImpl implements ConstructorRef {
     public String toString() {
         return refType.externalize() + "::<new>" +
             type.parameterTypes().stream().map(t -> t.externalize().toString())
-                    .collect(joining(", ", "(", ")")) + type.returnType().externalize();
+                    .collect(joining(", ", "(", ")"));
     }
 
     @Override

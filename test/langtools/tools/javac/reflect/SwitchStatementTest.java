@@ -323,7 +323,7 @@ public class SwitchStatementTest {
                         yield %8;
                     }
                     ()void -> {
-                        %9 : java.lang.IllegalArgumentException = new @"func<java.lang.IllegalArgumentException>";
+                        %9 : java.lang.IllegalArgumentException = new @"java.lang.IllegalArgumentException::<new>()";
                         throw %9;
                     }
                     (%10 : java.lang.Integer)boolean -> {
@@ -1053,7 +1053,7 @@ public class SwitchStatementTest {
                           yield %17;
                       }
                       ()void -> {
-                          %25 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                          %25 : java.lang.MatchException = new @"java.lang.MatchException::<new>()";
                           throw %25;
                       };
                   %26 : java.lang.String = var.load %3;
@@ -1128,7 +1128,7 @@ public class SwitchStatementTest {
                         yield %17;
                     }
                     ()void -> {
-                        %23 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                        %23 : java.lang.MatchException = new @"java.lang.MatchException::<new>()";
                         throw %23;
                     };
                 %24 : java.lang.String = var.load %3;
@@ -1459,7 +1459,7 @@ public class SwitchStatementTest {
                         yield %10;
                     }
                     ()void -> {
-                        %13 : java.lang.IllegalArgumentException = new @"func<java.lang.IllegalArgumentException>";
+                        %13 : java.lang.IllegalArgumentException = new @"java.lang.IllegalArgumentException::<new>()";
                         throw %13;
                     }
                     (%14 : java.lang.Object)boolean -> {

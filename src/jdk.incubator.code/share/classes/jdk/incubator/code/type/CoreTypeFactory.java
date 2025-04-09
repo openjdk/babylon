@@ -128,10 +128,14 @@ public final class CoreTypeFactory {
                             (ClassType)constructType(parseExTypeElem(parts[0])),
                             constructTypeArgument(tree, 0, NO_WILDCARDS));
                 } else if (parts.length == 3) {
-                    // method type-var
-                    return JavaType.typeVarRef(parts[2],
-                            parseMethodRef(String.format("%s::%s", parts[0], parts[1])),
-                            constructTypeArgument(tree, 0, NO_WILDCARDS));
+                    // method or constructor type-var
+                    String desc = String.format("%s::%s", parts[0], parts[1]);
+                    TypeVarRef.Owner owner = parts[1].startsWith("<new>") ?
+                            parseConstructorRef(desc) :
+                            parseMethodRef(String.format("%s::%s", parts[0], parts[1]));
+                            return JavaType.typeVarRef(parts[2],
+                                    owner,
+                                    constructTypeArgument(tree, 0, NO_WILDCARDS));
                 } else {
                     throw badType(tree, "type variable");
                 }

@@ -1486,16 +1486,19 @@ public class ReflectMethods extends TreeTranslator {
 
             // Create erased method type reference for constructor, where
             // the return type declares the class to instantiate
-            // @@@ require symbol site type?
+            // We need to manually construct the constructor reference,
+            // as the signature of the constructor symbol is not augmented
+            // with enclosing this and captured params.
             MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
             argtypes.addAll(methodRef.type().parameterTypes());
             FunctionType constructorType = FunctionType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
                     argtypes);
+            ConstructorRef constructorRef = ConstructorRef.constructor(constructorType.returnType(), constructorType);
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
-            result = append(CoreOp._new(typeToTypeElement(type), constructorType, args));
+            result = append(CoreOp._new(tree.varargsElement != null, typeToTypeElement(type), constructorRef, args));
         }
 
         @Override

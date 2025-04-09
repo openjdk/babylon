@@ -36,7 +36,7 @@ public class ThrowTest {
     @CodeReflection
     @IR("""
             func @"test1" (%0 : ThrowTest)void -> {
-                %1 : java.lang.RuntimeException = new @"func<java.lang.RuntimeException>";
+                %1 : java.lang.RuntimeException = new @"java.lang.RuntimeException::<new>()";
                 throw %1;
             };
             """)

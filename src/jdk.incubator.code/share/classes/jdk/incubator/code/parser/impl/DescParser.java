@@ -159,8 +159,7 @@ public final class DescParser {
         return CoreTypeFactory.CORE_TYPE_FACTORY.constructType(typeDesc);
     }
 
-    // (T, T, T, T)R
-    static FunctionType parseMethodType(Lexer l) {
+    static List<TypeElement> parseParameterTypes(Lexer l) {
         List<TypeElement> ptypes = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
@@ -170,6 +169,12 @@ public final class DescParser {
             }
         }
         l.accept(Tokens.TokenKind.RPAREN);
+        return ptypes;
+    }
+
+    // (T, T, T, T)R
+    static FunctionType parseMethodType(Lexer l) {
+        List<TypeElement> ptypes = parseParameterTypes(l);
         TypeElement rtype = parseTypeElement(l);
         return FunctionType.functionType(rtype, ptypes);
     }
@@ -194,14 +199,13 @@ public final class DescParser {
         // Constructor reference has the special name "<new>"
         l.accept(Tokens.TokenKind.LT);
         Tokens.Token t = l.accept(Tokens.TokenKind.IDENTIFIER);
-        if (t.name().equals("new")) {
+        if (!t.name().equals("new")) {
             throw new IllegalArgumentException("Invalid name for constructor reference: " + t.name());
         }
         l.accept(Tokens.TokenKind.GT);
 
-        FunctionType mtype = parseMethodType(l);
-
-        return new ConstructorRefImpl(refType, mtype);
+        List<TypeElement> ptypes = parseParameterTypes(l);
+        return new ConstructorRefImpl(refType, FunctionType.functionType(refType, ptypes));
     }
 
     static FieldRef parseFieldRef(Lexer l) {

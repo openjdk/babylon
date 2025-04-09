@@ -1685,7 +1685,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         NewOp(boolean isVarArgs, TypeElement resultType, FunctionType constructorType, List<Value> args) {
-            this(isVarArgs, constructorType.returnType(),
+            this(isVarArgs, resultType,
                     ConstructorRef.constructor(constructorType.returnType(), constructorType), args);
         }
 
