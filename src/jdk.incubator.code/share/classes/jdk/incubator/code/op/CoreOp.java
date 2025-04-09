@@ -1707,6 +1707,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return Collections.unmodifiableMap(m);
         }
 
+        public boolean isVarargs() {
+            return isVarArgs;
+        }
+
         public TypeElement type() {
             return opType().returnType();
         }
