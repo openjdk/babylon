@@ -24,29 +24,29 @@
  */
 
 #include "cuda_backend.h"
-class KernelContext{
+class KernelContextWithBufferState{
 public:
 int x;
 int maxX;
-BufferState_s bufferState;
+BufferState bufferState;
 };
 struct ArgArray_2 {
     int argc;
     u8_t pad12[12];
-    Arg_s argv[2];
+    KernelArg argv[2];
 };
 
 
-struct S32Array1024_s {
+struct S32Array1024WithBufferState {
     int length;
     int array[1024];
-    BufferState_s bufferState;
+    BufferState bufferState;
 };
 int main(int argc, char **argv) {
     CudaBackend cudaBackend(0
-            | CudaBackend::CudaConfig::Config::INFO_BIT
-            | CudaBackend::CudaConfig::Config::TRACE_CALLS_BIT
-            | CudaBackend::CudaConfig::Config::TRACE_COPIES_BIT
+            | Backend::Config::Config::INFO_BIT
+            | Backend::Config::Config::TRACE_CALLS_BIT
+            | Backend::Config::Config::TRACE_COPIES_BIT
     );
 
     //std::string cudaPath =  "/home/gfrost/github/grfrost/babylon-grfrost-fork/hat/squares.cuda";
@@ -142,24 +142,24 @@ int main(int argc, char **argv) {
     )");
 int maxX = 1024;
     auto *module =cudaBackend.compile(cudaSource);
-     auto  *ndrange = bufferOf<NDRange>("ndrange");
-    ndrange->x=0;
-    ndrange->maxX=maxX;
-    auto *s32Array1024 = bufferOf<S32Array1024_s>("s32Arrayx1024");
-    s32Array1024->length=maxX;
-    for (int i=0; i<s32Array1024->length; i++){
-        s32Array1024->array[i]=i;
+     auto  *kernelContextWithBufferState = bufferOf<KernelContextWithBufferState>("kernelcontext");
+    kernelContextWithBufferState->x=0;
+    kernelContextWithBufferState->maxX=maxX;
+    auto *pS32Array1024WithBufferState = bufferOf<S32Array1024WithBufferState>("s32Arrayx1024");
+    pS32Array1024WithBufferState->length=maxX;
+    for (int i=0; i<pS32Array1024WithBufferState->length; i++){
+        pS32Array1024WithBufferState->array[i]=i;
     }
 
     ArgArray_2 args2Array{.argc = 2, .argv={
-            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = (void *) ndrange, .sizeInBytes = sizeof(NDRange), .access = RO_BYTE}}},
-            {.idx = 1, .variant = '&',.value = {.buffer ={.memorySegment = (void *) s32Array1024, .sizeInBytes = sizeof(S32Array1024_s), .access = RW_BYTE}}}
+            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = (void *) kernelContextWithBufferState, .sizeInBytes = sizeof(KernelContextWithBufferState), .access = RO_BYTE}}},
+            {.idx = 1, .variant = '&',.value = {.buffer ={.memorySegment = (void *) pS32Array1024WithBufferState, .sizeInBytes = sizeof(S32Array1024WithBufferState), .access = RW_BYTE}}}
     }};
     auto kernel = module->getCudaKernel((char*)"squareKernel");
     std::cout << kernel->name <<std::endl;
     kernel->ndrange( reinterpret_cast<ArgArray_s *>(&args2Array));
-    for (int i=0; i<s32Array1024->length; i++){
-        int sq = s32Array1024->array[i];
+    for (int i=0; i<pS32Array1024WithBufferState->length; i++){
+        int sq = pS32Array1024WithBufferState->array[i];
         std::cout << i << " sq="<<sq <<std::endl;
     }
 }

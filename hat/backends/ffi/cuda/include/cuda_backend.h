@@ -96,46 +96,33 @@ public:
 
 class CudaBackend : public Backend {
 public:
-class CudaConfig : public Backend::Config{
-    public:
-        CudaConfig(int mode);
-        ~CudaConfig()=default;
-    };
 class CudaQueue: public Backend::Queue {
     public:
         CUstream cuStream;
         CudaQueue(Backend *backend);
         void init();
-        void showEvents(int width);
-        void wait();
-        void release();
-        void computeStart();
-        void computeEnd();
-        void inc(int bits);
-        void inc(int bits, const char *arg);
-        void inc(int bits, int arg);
-        void marker(int bits);
-        void marker(int bits, const char *arg);
-        void marker(int bits, int arg);
-        void markAsCopyToDeviceAndInc(int argn);
-        void markAsCopyFromDeviceAndInc(int argn);
-        void markAsNDRangeAndInc();
-        void markAsStartComputeAndInc();
-        void markAsEndComputeAndInc();
-        void markAsEnterKernelDispatchAndInc();
-        void markAsLeaveKernelDispatchAndInc();
-      //  void sync(const char *file, int line) const;
-        virtual ~CudaQueue();
+         void wait() override;
 
+         void release() override;
+
+         void computeStart() override;
+
+         void computeEnd() override;
+
+         void copyToDevice(Buffer *buffer) override;
+
+         void copyFromDevice(Buffer *buffer) override;
+
+        virtual void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
+
+        virtual ~CudaQueue();
 
 };
 
     class CudaBuffer : public Backend::Buffer {
     public:
         CUdeviceptr devicePtr;
-        CudaBuffer(Backend *backend,Arg_s *arg, BufferState_s *bufferStateS);
-        void copyToDevice();
-        void copyFromDevice();
+        CudaBuffer(Backend *backend, BufferState *bufferState);
         virtual ~CudaBuffer();
     };
 
@@ -150,15 +137,16 @@ class CudaQueue: public Backend::Queue {
     public:
         class CudaKernel : public Backend::CompilationUnit::Kernel {
 
-        private:
-            CUfunction function;
-
         public:
+            bool setArg(KernelArg *arg) override;
+            bool setArg(KernelArg *arg, Buffer *buffer) override;
             CudaKernel(Backend::CompilationUnit *program, char* name, CUfunction function);
             ~CudaKernel() override;
             static CudaKernel * of(long kernelHandle);
             static CudaKernel * of(Backend::CompilationUnit::Kernel *kernel);
-            long ndrange( void *argArray);
+
+            CUfunction function;
+            void *argslist[100];
         };
         CudaModule(Backend *backend, char *cudaSrc,   char *log, bool ok, CUmodule module);
         ~CudaModule();
@@ -168,17 +156,12 @@ class CudaQueue: public Backend::Queue {
         CudaKernel *getCudaKernel(char *name);
         CudaKernel *getCudaKernel(int nameLen, char *name);
         bool programOK();
-
-
     };
 
 private:
     CUresult initStatus;
     CUdevice device;
     CUcontext context;
-
-    CudaConfig cudaConfig;
-    CudaQueue cudaQueue;
 public:
     void info();
     CudaModule * compile(CudaSource *cudaSource);
@@ -187,10 +170,10 @@ public:
     Backend::CompilationUnit * compile(int len, char *source) override;
     void computeStart() override;
     void computeEnd() override;
+    CudaBuffer * getOrCreateBuffer(BufferState *bufferState) override;
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
 
     CudaBackend(int mode);
-
     CudaBackend();
 
     ~CudaBackend();
