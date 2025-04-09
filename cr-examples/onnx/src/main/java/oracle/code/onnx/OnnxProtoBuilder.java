@@ -365,7 +365,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
                                  expandTuples(indexer, f.body().entryBlock().terminatingOp().operands()),
                                  nodes(indexer, f.body().entryBlock().ops()))).toList());
 
-        OnnxProtoPrinter.printModel(model);
+//        OnnxProtoPrinter.printModel(model);
         return model;
     }
 
@@ -422,8 +422,9 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     static GraphProto graph(Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers, int scalarArgs) {
         var params = block.parameters();
         params.forEach(indexer::nameOf);
-        var args = initializers.isEmpty() ? params : params.subList(0, params.size() - 1);
-        return graph(IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.nameOf(params.getLast(), i), initializers.get(i))).toList(),
+        int firstInitializer = params.size() - initializers.size();
+        var args = params.subList(0, firstInitializer);
+        return graph(IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.nameOf(params.get(i + firstInitializer)), initializers.get(i))).toList(),
                 tensorInfos(indexer, args, scalarArgs),
                 nodes(indexer, block.ops()),
                 expandTuples(indexer, block.terminatingOp().operands()));
@@ -510,7 +511,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     }
 
     static FunctionProto function(String domain, String functionName, List<String> inputNames, List<String> outputNames, List<NodeProto> ops) {
-        return new FunctionProto() // @@@ invalid mapping of initilizars
+        return new FunctionProto()
                 .name(functionName)
                 .forEach(inputNames, (f, i) -> f.input(i))
                 .forEach(outputNames, (f, o) -> f.output(o))

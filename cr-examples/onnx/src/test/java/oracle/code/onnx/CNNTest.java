@@ -150,7 +150,7 @@ public class CNNTest {
         return prediction;
     }
 
-    static CoreOp.FuncOp cnnModel() {
+    static CoreOp.ModuleOp cnnModel() {
         // @@@ function type and result types with correct tensor element and shape
 
         FunctionType functionType = FunctionType.functionType(
@@ -168,7 +168,7 @@ public class CNNTest {
                 OnnxType.TENSOR_UINT8 // input
         );
 
-        return CoreOp.func("cnn", functionType).body(b -> {
+        return CoreOp.module(CoreOp.func("cnn", functionType).body(b -> {
             // weights & biases
             Block.Parameter conv1Weights = b.parameters().get(0);
             Block.Parameter conv1Biases = b.parameters().get(1);
@@ -298,7 +298,7 @@ public class CNNTest {
                     of(1L)));
 
             b.op(CoreOp._return(prediction));
-        });
+        }));
     }
 
     static void printImage(int imageIndex, MemorySegment data) {
@@ -325,7 +325,7 @@ public class CNNTest {
             var onnxModel = new OnnxTransformer(MethodHandles.lookup(), f).transform();
             System.out.println(onnxModel.toText());
 
-            CoreOp.FuncOp expectedOnnxModel = cnnModel();
+            var expectedOnnxModel = cnnModel();
             System.out.println(expectedOnnxModel.toText());
 
             Assertions.assertEquals(serialize(expectedOnnxModel), serialize(onnxModel));
