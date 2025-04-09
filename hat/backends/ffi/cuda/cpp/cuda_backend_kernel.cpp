@@ -32,7 +32,7 @@ CudaBackend::CudaModule::CudaKernel::CudaKernel(Backend::CompilationUnit *progra
 }
 
 CudaBackend::CudaModule::CudaKernel::~CudaKernel() = default;
-
+/*
 long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
 
     auto cudaBackend = CudaBackend::of(compilationUnit->backend);
@@ -114,11 +114,18 @@ long CudaBackend::CudaModule::CudaKernel::ndrange(void *argArray) {
     }
 
     return (long) 0;
-}
+} */
 
 CudaBackend::CudaModule::CudaKernel * CudaBackend::CudaModule::CudaKernel::of(long kernelHandle){
     return reinterpret_cast<CudaBackend::CudaModule::CudaKernel *>(kernelHandle);
 }
 CudaBackend::CudaModule::CudaKernel * CudaBackend::CudaModule::CudaKernel::of(Backend::CompilationUnit::Kernel *kernel){
     return dynamic_cast<CudaBackend::CudaModule::CudaKernel *>(kernel);
+}
+
+bool CudaBackend::CudaModule::CudaKernel::setArg(KernelArg *arg){
+    argslist[arg->idx] = static_cast<void *>(&arg->value);
+}
+bool CudaBackend::CudaModule::CudaKernel::setArg(KernelArg *arg, Buffer *buffer) {
+    argslist[arg->idx] = static_cast<void *>(&dynamic_cast<CudaBuffer *>(buffer)->devicePtr);
 }

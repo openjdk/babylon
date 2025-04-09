@@ -39,123 +39,31 @@ void CudaBackend::CudaQueue::init(){
 
 //}
 
-void CudaBackend::CudaQueue::showEvents(int width) {
 
-}
 void CudaBackend::CudaQueue::wait(){
     WHERE{.f=__FILE__, .l=__LINE__,
           .e=cuStreamSynchronize(cuStream),
           .t= "cuStreamSynchronize"
     }.report();
-    if (eventc > 0){
-
-    }
 }
 
-void CudaBackend::CudaQueue::marker(int bits){
-   // cl_int status = clEnqueueMarkerWithWaitList(
-          //  command_queue,
-           // this->eventc, this->eventListPtr(),this->nextEventPtr()
-   // );
-   // if (status != CL_SUCCESS){
-     //   std::cerr << "failed to clEnqueueMarkerWithWaitList "<<errorMsg(status)<< std::endl;
-     //   std::exit(1);
-  //  }
-   // inc(bits);
-}
-void CudaBackend::CudaQueue::marker(int bits, const char* arg){
-   // cl_int status = clEnqueueMarkerWithWaitList(
-          //  command_queue,
-          //  this->eventc, this->eventListPtr(),this->nextEventPtr()
-  //  );
-   // if (status != CL_SUCCESS){
-     //   std::cerr << "failed to clEnqueueMarkerWithWaitList "<<errorMsg(status)<< std::endl;
-      //  std::exit(1);
-   // }
-   // inc(bits, arg);
-}
-void CudaBackend::CudaQueue::marker(int bits, int arg){
-    //cl_int status = clEnqueueMarkerWithWaitList(
-          //  command_queue,
-        //    this->eventc, this->eventListPtr(),this->nextEventPtr()
-  //  );
-   // if (status != CL_SUCCESS){
-    //    std::cerr << "failed to clEnqueueMarkerWithWaitList "<<errorMsg(status)<< std::endl;
-    //    std::exit(1);
-  //  }
- //   inc(bits, arg);
-}
 
 void CudaBackend::CudaQueue::computeStart(){
     wait(); // should be no-op
     release(); // also ;
-    marker(StartComputeBits);
 }
 
 
 
 void CudaBackend::CudaQueue::computeEnd(){
-    marker(EndComputeBits);
+
 }
 
-void CudaBackend::CudaQueue::inc(int bits){
-    if (eventc+1 >= eventMax){
-        std::cerr << "CudaBackend::CudaQueue event list overflowed!!" << std::endl;
-    }else{
-        eventInfoBits[eventc]=bits;
-    }
-    eventc++;
-}
-void CudaBackend::CudaQueue::inc(int bits, const char *arg){
-    if (eventc+1 >= eventMax){
-        std::cerr << "CudaBackend::CudaQueue event list overflowed!!" << std::endl;
-    }else{
-        eventInfoBits[eventc]=bits|HasConstCharPtrArgBits;
-        eventInfoConstCharPtrArgs[eventc]=arg;
-    }
-    eventc++;
-}
-void CudaBackend::CudaQueue::inc(int bits, int arg){
-    if (eventc+1 >= eventMax){
-        std::cerr << "CudaBackend::CudaQueue event list overflowed!!" << std::endl;
-    }else{
-        eventInfoBits[eventc]=bits|arg|hasIntArgBits;
-    }
-    eventc++;
-}
 
-void CudaBackend::CudaQueue::markAsEndComputeAndInc(){
-    inc(EndComputeBits);
-}
-void CudaBackend::CudaQueue::markAsStartComputeAndInc(){
-    inc(StartComputeBits);
-}
-void CudaBackend::CudaQueue::markAsNDRangeAndInc(){
-    inc(NDRangeBits);
-}
-void CudaBackend::CudaQueue::markAsCopyToDeviceAndInc(int argn){
-    inc(CopyToDeviceBits, argn);
-}
-void CudaBackend::CudaQueue::markAsCopyFromDeviceAndInc(int argn){
-    inc(CopyFromDeviceBits, argn);
-}
-void CudaBackend::CudaQueue::markAsEnterKernelDispatchAndInc(){
-    inc(EnterKernelDispatchBits);
-}
-void CudaBackend::CudaQueue::markAsLeaveKernelDispatchAndInc(){
-    inc(LeaveKernelDispatchBits);
-}
+
 
 void CudaBackend::CudaQueue::release(){
-   // cl_int status = CL_SUCCESS;
-  //  for (int i = 0; i < eventc; i++) {
-   //     status = clReleaseEvent(events[i]);
-    //    if (status != CL_SUCCESS) {
-      //      std::cerr << CudaBackend::errorMsg(status) << std::endl;
-      //      exit(1);
-   //     }
-   // }//
- //   eventc = 0;
+
 }
 
 CudaBackend::CudaQueue::~CudaQueue(){
@@ -164,4 +72,71 @@ CudaBackend::CudaQueue::~CudaQueue(){
             .e=cuStreamDestroy(cuStream),
             .t= "cuStreamDestroy"
     }.report();
+}
+
+void CudaBackend::CudaQueue::copyToDevice(Buffer *buffer) {
+    //auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
+    auto *cudaBuffer = dynamic_cast<CudaBuffer *>(buffer);
+    if (backend->config->traceCalls) {
+        std::cout << "copyToDevice() 0x"
+                << std::hex<<cudaBuffer->bufferState->length<<std::dec << "/"
+                << cudaBuffer->bufferState->length << " "
+                << "devptr " << std::hex<<  (long)cudaBuffer->devicePtr <<std::dec
+                  << std::endl;
+    }
+    WHERE{.f=__FILE__, .l=__LINE__,
+            .e=cuMemcpyHtoDAsync(
+                    cudaBuffer->devicePtr,
+                    cudaBuffer->bufferState->ptr,
+                    cudaBuffer->bufferState->length,
+                    dynamic_cast<CudaQueue*>(backend->queue)->cuStream),
+            .t="cuMemcpyHtoDAsync"
+    }.report();
+
+}
+
+void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
+    auto *cudaBuffer = dynamic_cast<CudaBuffer *>(buffer);
+    //auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
+    if (backend->config->traceCalls) {
+        std::cout << "copyFromDevice() 0x"
+                  << std::hex<<cudaBuffer->bufferState->length<<std::dec << "/"
+                  << cudaBuffer->bufferState->length << " "
+                  << "devptr " << std::hex<<  (long)cudaBuffer->devicePtr <<std::dec
+                  << std::endl;
+    }
+    WHERE{.f=__FILE__, .l=__LINE__,
+            .e=cuMemcpyDtoHAsync(
+                    cudaBuffer->bufferState->ptr,
+                    cudaBuffer->devicePtr,
+                    cudaBuffer->bufferState->length,
+                                 dynamic_cast<CudaQueue*>(backend->queue)->cuStream),
+            .t="cuMemcpyDtoHAsync"
+    }.report();
+
+}
+
+void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
+    auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
+
+    int range = kernelContext->maxX;
+    int rangediv1024 = range / 1024;
+    int rangemod1024 = range % 1024;
+    if (rangemod1024 > 0) {
+        rangediv1024++;
+    }
+// std::cout << "Running the kernel..." << std::endl;
+// std::cout << "   Requested range   = " << range << std::endl;
+// std::cout << "   Range mod 1024    = " << rangemod1024 << std::endl;
+// std::cout << "   Actual range 1024 = " << (rangediv1024 * 1024) << std::endl;
+//  auto status= static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
+
+//  cudaBackend->cudaQueue.wait();
+    auto status = cuLaunchKernel(cudaKernel->function,
+                                 rangediv1024, 1, 1,
+                                 1024, 1, 1,
+                                 0, cuStream,
+                                 cudaKernel->argslist, nullptr);
+
+    WHERE{.f=__FILE__, .l=__LINE__, .e=status, .t="cuLaunchKernel"}.report();
 }
