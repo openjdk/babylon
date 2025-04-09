@@ -121,8 +121,8 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public Tensor<Float> concat(Tensor<Float> input1, Tensor<Float> input2, long axis) {
-        return Concat(List.of(input1, input2), axis);
+    public Tensor<Float> concat(Tensor<Float> input1, Tensor<Float> input2) {
+        return Concat(List.of(input1, input2), 0);
     }
 
     @Test
@@ -130,8 +130,8 @@ public class SimpleTest {
         var input1 = Tensor.ofFlat(1f, 2, 3);
         var input2 = Tensor.ofFlat(4f, 5);
         assertEquals(
-                concat(input1, input2, 0),
-                execute(()-> concat(input1, input2, 0)));
+                concat(input1, input2),
+                execute(()-> concat(input1, input2)));
     }
 
     @CodeReflection
