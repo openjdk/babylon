@@ -222,7 +222,7 @@ public class CodeModelToAST {
 
         // TODO add VarOps in OpBuilder
         funcOp = addVarsWhenNecessary(funcOp);
-        //funcOp.writeTo(System.out);
+        funcOp.writeTo(System.out);
         for (int i = 0; i < funcOp.parameters().size(); i++) {
             valueToTree.put(funcOp.parameters().get(i), treeMaker.Ident(ms.params().get(i)));
         }
