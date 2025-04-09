@@ -23,8 +23,8 @@
  * questions.
  */
 #pragma once
+// The following looks like it is not used (at least to CLION) but it is. ;) don't remove
 #define CL_TARGET_OPENCL_VERSION 120
-
 #ifdef __APPLE__
    #include <opencl/opencl.h>
 #else
@@ -34,10 +34,7 @@
        #include "windows.h"
    #endif
 #endif
-
 #include "shared.h"
-
-
 
 class OpenCLSource:public Text  {
 public:
@@ -54,84 +51,71 @@ extern void __checkOpenclErrors(cl_int status, const char *file, const int line)
 
 class OpenCLBackend : public Backend {
 public:
-    class OpenCLConfig : public Backend::Config{
-    public:
-        OpenCLConfig(int mode);
-        virtual ~OpenCLConfig();
-    };
-    class OpenCLQueue : public Backend::Queue {
-    public:
-       cl_command_queue command_queue;
-       cl_event *events;
-       OpenCLQueue(Backend *backend);
-       cl_event *eventListPtr();
-       cl_event *nextEventPtr();
-
-        virtual void showEvents(int width);
-        virtual void wait();
-        virtual void release();
-        virtual void computeStart();
-        virtual void computeEnd();
-        virtual void inc(int bits);
-        virtual void inc(int bits, const char *arg);
-        virtual  void inc(int bits, int arg);
-        virtual void marker(int bits);
-        virtual void marker(int bits, const char *arg);
-        virtual void marker(int bits, int arg);
-        virtual void markAsCopyToDeviceAndInc(int argn);
-        virtual  void markAsCopyFromDeviceAndInc(int argn);
-        virtual void markAsNDRangeAndInc();
-        virtual void markAsStartComputeAndInc();
-        virtual  void markAsEndComputeAndInc();
-        virtual  void markAsEnterKernelDispatchAndInc();
-        virtual void markAsLeaveKernelDispatchAndInc();
-
-       virtual ~OpenCLQueue();
-    };
     class OpenCLBuffer : public Backend::Buffer {
-            public:
-                cl_mem clMem;
-                void copyToDevice();
-                void copyFromDevice();
-                bool shouldCopyToDevice(Arg_s *arg);
-                bool shouldCopyFromDevice(Arg_s *arg);
-                OpenCLBuffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState);
-                virtual ~OpenCLBuffer();
-            };
+    public:
+        cl_mem clMem;
+        OpenCLBuffer(Backend *backend, BufferState *bufferState);
+        virtual ~OpenCLBuffer();
+    };
+
     class OpenCLProgram : public Backend::CompilationUnit {
         public:
         class OpenCLKernel : public Backend::CompilationUnit::Kernel {
         public:
-           // const char *name;
             cl_kernel kernel;
             OpenCLKernel(Backend::CompilationUnit *compilationUnit, char* name,cl_kernel kernel);
-            ~OpenCLKernel();
-            long ndrange( void *argArray);
+            bool setArg(KernelArg *arg) override;
+            bool setArg(KernelArg *arg, Buffer *buffer) override;
+            ~OpenCLKernel() override;
         };
     private:
         cl_program program;
     public:
         OpenCLProgram(Backend *backend, char *src, char *log, bool ok, cl_program program);
-        ~OpenCLProgram();
+        ~OpenCLProgram() override;
         OpenCLKernel *getOpenCLKernel(char *name);
         OpenCLKernel *getOpenCLKernel(int nameLen, char *name);
         CompilationUnit::Kernel *getKernel(int nameLen, char *name) override;
-        bool compilationUnitOK();
     };
+    class OpenCLQueue : public Backend::ProfilableQueue {
+    public:
+        cl_command_queue command_queue;
+        cl_event *events;
 
+        cl_event *eventListPtr();
+        cl_event *nextEventPtr();
+
+        explicit OpenCLQueue(Backend *backend);
+
+         void wait() override;
+         void release() override;
+         void computeStart() override;
+         void computeEnd() override;
+         void showEvents(int width) override;
+         void inc(int bits) override;
+         void inc(int bits, const char *arg) override;
+         void marker(int bits) override;
+         void marker(int bits, const char *arg) override;
+         void markAsStartComputeAndInc() override;
+         void markAsEndComputeAndInc() override;
+         void markAsEnterKernelDispatchAndInc() override;
+         void markAsLeaveKernelDispatchAndInc() override;
+
+         void copyToDevice(Buffer *buffer) override;
+         void copyFromDevice(Buffer *buffer) override;
+
+
+        void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
+         ~OpenCLQueue() override;
+    };
 public:
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
-    OpenCLConfig openclConfig;
-    OpenCLQueue openclQueue;
-    OpenCLBackend(int configBits);
-    ~OpenCLBackend();
-    //int getMaxComputeUnits() override;
+    explicit OpenCLBackend(int configBits);
+    ~OpenCLBackend() override;
 
-
-   // void dumpSled(std::ostream &out,void *argArray) override;
-   // char *dumpSchema(std::ostream &out,int depth, char *ptr, void *data) override;
+    OpenCLBuffer *getOrCreateBuffer(BufferState *bufferState) override;
     OpenCLProgram *compileProgram(OpenCLSource &openclSource) ;
     OpenCLProgram *compileProgram(OpenCLSource *openclSource);
     OpenCLProgram *compileProgram(int len, char *source);
@@ -145,7 +129,6 @@ public:
 public:
     static const char *errorMsg(cl_int status);
 };
-extern "C" long getOpenCLBackend(int configBits);
 
 
 struct PlatformInfo{
@@ -167,7 +150,7 @@ struct PlatformInfo{
       char *extensions;
       char *builtInKernels;
       char *deviceTypeStr;
-      DeviceInfo(OpenCLBackend *openclBackend);
+      explicit DeviceInfo(OpenCLBackend *openclBackend);
       ~DeviceInfo();
     };
   OpenCLBackend *openclBackend;
@@ -176,7 +159,7 @@ struct PlatformInfo{
   char *name;
   DeviceInfo deviceInfo;
 
-  PlatformInfo(OpenCLBackend *openclBackend);
+  explicit PlatformInfo(OpenCLBackend *openclBackend);
   ~PlatformInfo();
 };
 

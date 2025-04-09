@@ -53,7 +53,6 @@ if(OPENCL_FOUND)
         ${OPENCL_BACKEND}/include/opencl_backend.h
         ${OPENCL_BACKEND}/cpp/opencl_backend.cpp
         ${OPENCL_BACKEND}/cpp/opencl_backend_buffer.cpp
-        ${OPENCL_BACKEND}/cpp/opencl_backend_config.cpp
         ${OPENCL_BACKEND}/cpp/opencl_backend_info.cpp
         ${OPENCL_BACKEND}/cpp/opencl_backend_queue.cpp
         ${OPENCL_BACKEND}/cpp/opencl_backend_kernel.cpp

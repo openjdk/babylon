@@ -26,6 +26,7 @@
 
 class SpirvBackend : public Backend {
 public:
+
     class SpirvProgram : public Backend::CompilationUnit {
         class SpirvKernel : public Backend::CompilationUnit::Kernel {
         public:
@@ -35,10 +36,11 @@ public:
 
             ~SpirvKernel() {
             }
-
-            long ndrange(void *argArray) override {
-                std::cout << "spirv ndrange() " << std::endl;
-                return 0;
+            bool setArg(KernelArg *arg, Buffer *buffer) override{
+                return false ;
+            }
+            bool setArg(KernelArg *arg) override{
+                return false ;
             }
         };
 
@@ -53,17 +55,48 @@ public:
         Kernel *getKernel(int nameLen, char *name) {
             return new SpirvKernel(this, name);
         }
-
-        bool compilationUnitOK() {
-            return true;
-        }
     };
+    class SpirvQueue: public Backend::Queue{
+    public:
+        void wait()override{};
+        void release()override{};
+        void computeStart()override{};
+        void computeEnd()override{};
+        void dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) override{
+            std::cout << "spirv dispatch() " << std::endl;
+            size_t dims = 1;
+            if (backend->config->trace | backend->config->traceEnqueues){
+                std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->maxX << std::endl;
+            }
 
+        }
+        void copyToDevice(Buffer *buffer) override{}
+        void copyFromDevice(Buffer *buffer) override{};
+        explicit SpirvQueue(Backend *backend):Queue(backend){}
+        ~SpirvQueue() override =default;
+    };
 public:
-    SpirvBackend(int mode): Backend(mode) {
+    SpirvBackend(int mode): Backend(new Config(mode), new SpirvQueue(this)) {
     }
 
     ~SpirvBackend() {
+    }
+
+    Buffer * getOrCreateBuffer(BufferState *bufferState) override{
+        Buffer *buffer = nullptr;
+
+      /* if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){
+            openclBuffer = new OpenCLBuffer(this,  bufferState);
+            if (openclConfig.trace){
+                std::cout << "We allocated arg buffer "<<std::endl;
+            }
+        }else{
+            if (openclConfig.trace){
+                std::cout << "Were reusing  buffer  buffer "<<std::endl;
+            }
+            openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
+        }*/
+        return buffer;
     }
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override {
         std::cout << "attempting  to get buffer from SpirvBackend "<<std::endl;

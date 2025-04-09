@@ -38,12 +38,6 @@ if ("${SPIRV_BACKEND}EMPTY" STREQUAL "EMPTY")
 endif()
 add_subdirectory(spirv)
 
-#if ("${PTX_BACKEND}EMPTY" STREQUAL "EMPTY")
-#    set (PTX_BACKEND "${CMAKE_SOURCE_DIR}/ptx")
-#    message("PTX_BACKEND=${PTX_BACKEND}")
-#endif()
-#add_subdirectory(ptx)
-
 if ("${HIP_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (HIP_BACKEND "${CMAKE_SOURCE_DIR}/hip")
     message("HIP_BACKEND=${HIP_BACKEND}")

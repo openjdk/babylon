@@ -24,20 +24,34 @@
  */
 
 #include "opencl_backend.h"
-
+OpenCLBackend::OpenCLBuffer * OpenCLBackend::getOrCreateBuffer(BufferState *bufferState) {
+    OpenCLBuffer *openclBuffer = nullptr;
+    if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){
+        openclBuffer = new OpenCLBuffer(this,  bufferState);
+        if (config->trace){
+           std::cout << "We allocated arg buffer "<<std::endl;
+       }
+    }else{
+        if (config->trace){
+            std::cout << "Were reusing  buffer  buffer "<<std::endl;
+        }
+        openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
+    }
+    return openclBuffer;
+}
 bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
-    if (openclConfig.traceCalls){
+    if (config->traceCalls){
       std::cout << "getBufferFromDeviceIfDirty(" <<std::hex << (long)memorySegment << "," << std::dec<< memorySegmentLength <<"){"<<std::endl;
     }
-    if (openclConfig.minimizeCopies){
-       BufferState_s * bufferState = BufferState_s::of(memorySegment,memorySegmentLength);
-       if (bufferState->state == BufferState_s::DEVICE_OWNED){
-          static_cast<OpenCLBackend::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice();
-          if (openclConfig.traceEnqueues | openclConfig.traceCopies){
+    if (config->minimizeCopies){
+       BufferState * bufferState = BufferState::of(memorySegment,memorySegmentLength);
+       if (bufferState->state == BufferState::DEVICE_OWNED){
+           queue->copyFromDevice(static_cast<Backend::Buffer *>(bufferState->vendorPtr));
+          if (config->traceEnqueues | config->traceCopies){
              std::cout << "copying buffer from device (from java access) "<< std::endl;
           }
-          openclQueue.wait();
-          openclQueue.release();
+          queue->wait();
+          queue->release();
        }else{
           std::cout << "HOW DID WE GET HERE 1 attempting  to get buffer but buffer is not device dirty"<<std::endl;
           std::exit(1);
@@ -46,14 +60,14 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
      std::cerr << "HOW DID WE GET HERE ? java side should avoid calling getBufferFromDeviceIfDirty as we are not minimising buffers!"<<std::endl;
      std::exit(1);
     }
-    if (openclConfig.traceCalls){
+    if (config->traceCalls){
       std::cout << "}getBufferFromDeviceIfDirty()"<<std::endl;
     }
     return true;
 }
 
 OpenCLBackend::OpenCLBackend(int configBits )
-        : Backend(configBits), openclConfig(mode), openclQueue(this) {
+        : Backend(new Config(configBits), new OpenCLQueue(this)) {
 
     cl_int status;
     cl_uint platformc = 0;
@@ -63,8 +77,8 @@ OpenCLBackend::OpenCLBackend(int configBits )
         return;
     }
 
-    if (openclConfig.platform >= platformc){
-        std::cerr << "We only have "<<platformc<<" platform"<<((platformc>1)?"s":"")<<" (platform[0]-platform["<<(platformc-1)<<"] inclusive) you requested platform["<<openclConfig.platform<<"]"<< std::endl;
+    if (config->platform >= platformc){
+        std::cerr << "We only have "<<platformc<<" platform"<<((platformc>1)?"s":"")<<" (platform[0]-platform["<<(platformc-1)<<"] inclusive) you requested platform["<<config->platform<<"]"<< std::endl;
         std::exit(1);
         return;
     }
@@ -75,7 +89,7 @@ OpenCLBackend::OpenCLBackend(int configBits )
         return;
     }
     cl_uint devicec = 0;
-        platform_id = platforms[openclConfig.platform];
+        platform_id = platforms[config->platform];
         if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 0, NULL, &devicec)) != CL_SUCCESS) {
             if (status != CL_SUCCESS){
                std::cerr << "clGetDeviceIDs (to get count) failed " << errorMsg(status)<<std::endl;
@@ -83,8 +97,8 @@ OpenCLBackend::OpenCLBackend(int configBits )
             delete[] platforms;
             return;
         }
-       if (openclConfig.device >= devicec){
-            std::cerr << "Platform["<<openclConfig.platform<<"] only has "<<devicec<<" device"<<((devicec>1)?"s":"")<<" (device[0]-device["<<(devicec-1)<<"] inclusive) and you requested device["<<openclConfig.device<<"]"<< std::endl;
+       if (config->device >= devicec){
+            std::cerr << "Platform["<<config->platform<<"] only has "<<devicec<<" device"<<((devicec>1)?"s":"")<<" (device[0]-device["<<(devicec-1)<<"] inclusive) and you requested device["<<config->device<<"]"<< std::endl;
             std::cerr << "No device available " << errorMsg(CL_DEVICE_NOT_AVAILABLE)<<std::endl;
               delete[] platforms;
             std::exit(1);
@@ -104,7 +118,7 @@ OpenCLBackend::OpenCLBackend(int configBits )
         delete[] device_ids;
         return;
     }
-    if ((context = clCreateContext(nullptr, 1, &device_ids[openclConfig.device], NULL, NULL, &status)) == NULL || status != CL_SUCCESS) {
+    if ((context = clCreateContext(nullptr, 1, &device_ids[config->device], NULL, NULL, &status)) == NULL || status != CL_SUCCESS) {
         std::cerr << "clCreateContext failed " << errorMsg(status)<<std::endl;
         delete[] platforms;
         delete[] device_ids;
@@ -112,8 +126,8 @@ OpenCLBackend::OpenCLBackend(int configBits )
     }
 
     cl_command_queue_properties queue_props = CL_QUEUE_PROFILING_ENABLE;
-
-    if ((openclQueue.command_queue = clCreateCommandQueue(context, device_ids[openclConfig.device], queue_props, &status)) == NULL ||
+    auto openCLQueue = dynamic_cast<OpenCLQueue *>(queue);
+    if ((openCLQueue->command_queue = clCreateCommandQueue(context, device_ids[config->device], queue_props, &status)) == NULL ||
         status != CL_SUCCESS) {
         std::cerr << "clCreateCommandQueue failed " << errorMsg(status)<<std::endl;
         clReleaseContext(context);
@@ -122,7 +136,7 @@ OpenCLBackend::OpenCLBackend(int configBits )
         return;
     }
 
-    device_id = device_ids[openclConfig.device];
+    device_id = device_ids[config->device];
     delete[] device_ids;
     delete[] platforms;
 
@@ -134,20 +148,21 @@ OpenCLBackend::~OpenCLBackend() {
 }
 
 void OpenCLBackend::computeStart() {
-  if (openclConfig.trace){
+  if (config->trace){
      std::cout <<"compute start" <<std::endl;
   }
-  openclQueue.computeStart();
+    queue->computeStart();
 }
 void OpenCLBackend::computeEnd() {
-  openclQueue.computeEnd();
- openclQueue.wait();
+  queue->computeEnd();
+    queue->wait();
 
- if (openclConfig.profile){
-     openclQueue.showEvents(100);
+ if (config->profile){
+     auto openCLQueue = dynamic_cast<OpenCLQueue *>(queue);
+     openCLQueue->showEvents(100);
  }
- openclQueue.release();
- if (openclConfig.trace){
+    queue->release();
+ if (config->trace){
      std::cout <<"compute end" <<std::endl;
  }
 }
@@ -167,7 +182,7 @@ void OpenCLBackend::computeEnd() {
         char *src = new char[srcLen + 1];
         ::strncpy(src, source, srcLen);
         src[srcLen] = '\0';
-        if(openclConfig.trace){
+        if(config->trace){
             std::cout << "native compiling " << src << std::endl;
         }
         cl_int status;
