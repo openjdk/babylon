@@ -205,6 +205,10 @@ public final class CoreTypeFactory {
         return jdk.incubator.code.parser.impl.DescParser.parseMethodRef(desc);
     }
 
+    static ConstructorRef parseConstructorRef(String desc) {
+        return jdk.incubator.code.parser.impl.DescParser.parseConstructorRef(desc);
+    }
+
     static TypeElement.ExternalizedTypeElement parseExTypeElem(String desc) {
         return jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(desc);
     }

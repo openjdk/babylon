@@ -32,13 +32,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.ArrayType;
-import jdk.incubator.code.type.FieldRef;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.*;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.VarType;
+
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -472,7 +468,7 @@ public final class Interpreter {
                 }
                 return Array.newInstance(resolveToClass(l, nType), lengths);
             } else {
-                MethodHandle mh = constructorHandle(l, no.constructorType());
+                MethodHandle mh = resolveToConstructorHandle(l, no.constructorDescriptor());
                 return invoke(mh, values);
             }
         } else if (o instanceof CoreOp.QuotedOp qo) {
@@ -704,6 +700,14 @@ public final class Interpreter {
     static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, CoreOp.InvokeOp.InvokeKind kind) {
         try {
             return d.resolveToHandle(l, kind);
+        } catch (ReflectiveOperationException e) {
+            throw interpreterException(e);
+        }
+    }
+
+    static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, ConstructorRef d) {
+        try {
+            return d.resolveToHandle(l);
         } catch (ReflectiveOperationException e) {
             throw interpreterException(e);
         }

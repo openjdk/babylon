@@ -66,10 +66,10 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
 
     // Factories
 
-    static MethodRef method(Executable e) {
-        return method(e.getDeclaringClass(), e.getName(),
-                e instanceof Method m ? m.getReturnType() : e.getDeclaringClass(),
-                e.getParameterTypes());
+    static MethodRef method(Method m) {
+        return method(m.getDeclaringClass(), m.getName(),
+                m.getReturnType(),
+                m.getParameterTypes());
     }
 
     static MethodRef method(Class<?> refType, String name, MethodType mt) {

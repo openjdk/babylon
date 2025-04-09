@@ -30,6 +30,7 @@ import jdk.incubator.code.parser.impl.Tokens.TokenKind;
 import jdk.incubator.code.type.*;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.type.RecordTypeRef;
+import jdk.incubator.code.type.impl.ConstructorRefImpl;
 import jdk.incubator.code.type.impl.FieldRefImpl;
 import jdk.incubator.code.type.impl.MethodRefImpl;
 import jdk.incubator.code.type.impl.RecordTypeRefImpl;
@@ -60,6 +61,18 @@ public final class DescParser {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
         return parseMethodRef(s);
+    }
+
+    /**
+     * Parse a constructor reference from its serialized textual form.
+     *
+     * @param desc the serialized constructor reference
+     * @return the constructor reference
+     */
+    public static ConstructorRef parseConstructorRef(String desc) {
+        Scanner s = Scanner.factory().newScanner(desc);
+        s.nextToken();
+        return parseConstructorRef(s);
     }
 
     /**
@@ -166,19 +179,29 @@ public final class DescParser {
 
         l.accept(Tokens.TokenKind.COLCOL);
 
-        String methodName;
-        if (l.acceptIf(Tokens.TokenKind.LT)) {
-            // Special name such as "<new>"
-            Tokens.Token t = l.accept(Tokens.TokenKind.IDENTIFIER);
-            l.accept(Tokens.TokenKind.GT);
-            methodName = "<" + t.name() + ">";
-        } else {
-            methodName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
-        }
+        String methodName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
 
         FunctionType mtype = parseMethodType(l);
 
         return new MethodRefImpl(refType, methodName, mtype);
+    }
+
+    static ConstructorRef parseConstructorRef(Lexer l) {
+        TypeElement refType = parseTypeElement(l);
+
+        l.accept(Tokens.TokenKind.COLCOL);
+
+        // Constructor reference has the special name "<new>"
+        l.accept(Tokens.TokenKind.LT);
+        Tokens.Token t = l.accept(Tokens.TokenKind.IDENTIFIER);
+        if (t.name().equals("new")) {
+            throw new IllegalArgumentException("Invalid name for constructor reference: " + t.name());
+        }
+        l.accept(Tokens.TokenKind.GT);
+
+        FunctionType mtype = parseMethodType(l);
+
+        return new ConstructorRefImpl(refType, mtype);
     }
 
     static FieldRef parseFieldRef(Lexer l) {

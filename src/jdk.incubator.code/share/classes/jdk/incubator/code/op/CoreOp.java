@@ -27,6 +27,7 @@ package jdk.incubator.code.op;
 
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.*;
@@ -1617,41 +1618,61 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(NewOp.NAME)
     public static final class NewOp extends CoreOp
             implements ReflectiveOp, JavaExpression, JavaStatement {
+
         public static final String NAME = "new";
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
+        public static final String ATTRIBUTE_NEW_VARARGS = NAME + ".varargs";
 
-        final FunctionType constructorType;
+        final boolean isVarArgs;
+        final ConstructorRef constructorDescriptor;
         final TypeElement resultType;
 
         public static NewOp create(ExternalizedOp def) {
-            FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR, true,
-                    v -> switch (v) {
-                        case String s -> {
-                            TypeElement te = CoreTypeFactory.CORE_TYPE_FACTORY
-                                    .constructType(TypeElement.ExternalizedTypeElement.ofString(s));
-                            if (!(te instanceof FunctionType ft)) {
-                                throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
-                            }
-                            yield ft;
-                        }
-                        case FunctionType ct -> ct;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
+            // Required attribute
+            ConstructorRef constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,
+                    true, v -> switch (v) {
+                        case String s -> ConstructorRef.ofString(s);
+                        case ConstructorRef cd -> cd;
+                        case null, default ->
+                                throw new UnsupportedOperationException("Unsupported constructor descriptor value:" + v);
                     });
-            return new NewOp(def, constructorType);
+
+            // If not present defaults to false
+            boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_NEW_VARARGS,
+                    false, v -> switch (v) {
+                        case String s -> Boolean.valueOf(s);
+                        case Boolean b -> b;
+                        case null, default -> false;
+                    });
+
+            return new NewOp(def, isVarArgs, constructorDescriptor);
         }
 
-        NewOp(ExternalizedOp def, FunctionType constructorType) {
+        NewOp(ExternalizedOp def, boolean isVarArgs, ConstructorRef constructorDescriptor) {
             super(def);
 
-            this.constructorType = constructorType;
+            validateArgCount(isVarArgs, constructorDescriptor, def.operands());
+
+            this.isVarArgs = isVarArgs;
+            this.constructorDescriptor = constructorDescriptor;
             this.resultType = def.resultType();
         }
 
         NewOp(NewOp that, CopyContext cc) {
             super(that, cc);
 
-            this.constructorType = that.constructorType;
+            this.isVarArgs = that.isVarArgs;
+            this.constructorDescriptor = that.constructorDescriptor;
             this.resultType = that.resultType;
+        }
+
+        static void validateArgCount(boolean isVarArgs, ConstructorRef constructorDescriptor, List<Value> operands) {
+            int paramCount = constructorDescriptor.type().parameterTypes().size();
+            int argCount = operands.size();
+            if ((!isVarArgs && argCount != paramCount)
+                    || argCount < paramCount - 1) {
+                throw new IllegalArgumentException(isVarArgs + " " + constructorDescriptor);
+            }
         }
 
         @Override
@@ -1659,21 +1680,30 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new NewOp(this, cc);
         }
 
-        NewOp(FunctionType constructorType, List<Value> args) {
-            this(constructorType.returnType(), constructorType, args);
+        NewOp(boolean isVarArgs, FunctionType constructorType, List<Value> args) {
+            this(isVarArgs, constructorType.returnType(), constructorType, args);
         }
 
-        NewOp(TypeElement resultType, FunctionType constructorType, List<Value> args) {
+        NewOp(boolean isVarArgs, TypeElement resultType, FunctionType constructorType, List<Value> args) {
+            this(isVarArgs, constructorType.returnType(),
+                    ConstructorRef.constructor(constructorType.returnType(), constructorType), args);
+        }
+
+        NewOp(boolean isVarargs, TypeElement resultType, ConstructorRef constructorDescriptor, List<Value> args) {
             super(NAME, args);
 
-            this.constructorType = constructorType;
+            this.isVarArgs = isVarargs;
+            this.constructorDescriptor = constructorDescriptor;
             this.resultType = resultType;
         }
 
         @Override
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", constructorType);
+            m.put("", constructorDescriptor);
+            if (isVarArgs) {
+                m.put(ATTRIBUTE_NEW_VARARGS, isVarArgs);
+            }
             return Collections.unmodifiableMap(m);
         }
 
@@ -1681,8 +1711,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return opType().returnType();
         }
 
+        public ConstructorRef constructorDescriptor() {
+            return constructorDescriptor;
+        }
+
         public FunctionType constructorType() {
-            return constructorType;
+            return constructorDescriptor.type();
         }
 
         @Override
@@ -3854,7 +3888,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * @return the instance creation operation
      */
     public static NewOp _new(FunctionType constructorType, List<Value> args) {
-        return new NewOp(constructorType, args);
+        return new NewOp(false, constructorType, args);
     }
 
     /**
@@ -3880,7 +3914,20 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static NewOp _new(TypeElement returnType, FunctionType constructorType,
                              List<Value> args) {
-        return new NewOp(returnType, constructorType, args);
+        return new NewOp(false, returnType, constructorType, args);
+    }
+
+    /**
+     * Creates an instance creation operation.
+     *
+     * @param returnType      the instance type
+     * @param constructorDescriptor the constructor descriptor
+     * @param args            the constructor arguments
+     * @return the instance creation operation
+     */
+    public static NewOp _new(boolean isVarargs, TypeElement returnType, ConstructorRef constructorDescriptor,
+                             List<Value> args) {
+        return new NewOp(isVarargs, returnType, constructorDescriptor, args);
     }
 
     /**

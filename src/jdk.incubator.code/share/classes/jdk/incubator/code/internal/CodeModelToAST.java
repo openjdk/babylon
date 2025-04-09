@@ -55,7 +55,7 @@ public class CodeModelToAST {
                 Body.Builder.class, TypeElement.ExternalizedTypeElement.class, TypeElement.class,
                 FunctionType.class, Block.Builder.class, Value.class, Block.Reference.class, Op.Result.class,
                 Op.class, TypeElementFactory.class, OpFactory.class, ExternalizableOp.ExternalizedOp.class,
-                MethodRef.class, Block.Parameter.class, FieldRef.class, CoreOp.InvokeOp.InvokeKind.class,
+                ConstructorRef.class, MethodRef.class, Block.Parameter.class, FieldRef.class, CoreOp.InvokeOp.InvokeKind.class,
                 ExternalizableOp.class, RecordTypeRef.class
         };
         for (Class<?> crType : crTypes) {
