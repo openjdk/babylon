@@ -25,15 +25,10 @@
 
 #include "opencl_backend.h"
 
-
-/*
-  OpenCLBuffer
-  */
-
-OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend,  BufferState_s *bufferState)
+OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, BufferState *bufferState)
         : Backend::Buffer(backend, bufferState) {
     cl_int status;
-    OpenCLBackend * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
+    auto * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
     clMem = clCreateBuffer(
         openclBackend->context,
         CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
@@ -45,89 +40,9 @@ OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend,  BufferState_s *buff
         std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
         exit(1);
     }
-     bufferState->vendorPtr =  static_cast<void *>(this);
-
-
-}
-bool OpenCLBackend::OpenCLBuffer::copyToDevice(int accessBits) {
-    bool kernelWroteToThisArg = (accessBits==WO_BYTE) |  (accessBits==RW_BYTE);
-    if (backend->config->showWhy){
-        std::cout<<
-                 "config.alwaysCopy="<<backend->config->alwaysCopy
-                 << " | arg.WO="<<(accessBits==WO_BYTE)
-                 << " | arg.RW="<<(accessBits==RW_BYTE)
-                 << " | kernel.wroteToThisArg="<<  kernelWroteToThisArg
-                 << "Buffer state = "<< BufferState_s::stateNames[bufferState->state]
-                 <<" so " ;
-    }
-    bool copying= backend->config->alwaysCopy;
-
-
-   //  std::cout << "copyTo(" <<std::hex << (long) arg->value.buffer.memorySegment << "," << std::dec<<   bufferState->length <<")"<<std::endl;
-    if (copying) {
-        auto openCLQueue = dynamic_cast<OpenCLQueue *>(backend->queue);
-        cl_int status = clEnqueueWriteBuffer(
-                openCLQueue->command_queue,
-                clMem,
-                CL_FALSE,
-                0,
-                bufferState->length, // arg->value.buffer.sizeInBytes,
-                bufferState->ptr,
-                openCLQueue->eventc,
-                openCLQueue->eventListPtr(),
-                openCLQueue->nextEventPtr()
-        );
-
-        if (status != CL_SUCCESS) {
-            std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-            exit(1);
-        }
-        openCLQueue->markAsCopyToDeviceAndInc();
-    }
-    return copying;
+    bufferState->vendorPtr =  static_cast<void *>(this);
 }
 
-bool OpenCLBackend::OpenCLBuffer::copyFromDevice(int accessBits) {
-    auto * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
-
-    bool kernelReadsFromThisArg = (accessBits==RW_BYTE) || (accessBits==RO_BYTE);
-    bool copying =
-            openclBackend->config->alwaysCopy
-            ||  (bufferState->state == BufferState_s::NEW_STATE)
-            || ((bufferState->state == BufferState_s::HOST_OWNED));
-
-    if (openclBackend->config->showWhy){
-        std::cout<<
-                 "config.alwaysCopy="<<openclBackend->config->alwaysCopy
-                 << " | arg.RW="<<(accessBits==RW_BYTE)
-                 << " | arg.RO="<<(accessBits==RO_BYTE)
-                 << " | kernel.needsToRead="<<  kernelReadsFromThisArg
-                 << " | Buffer state = "<< BufferState_s::stateNames[bufferState->state]
-                 <<" so "
-                ;
-    }
-    if (copying) {
-
-        auto openCLQueue = dynamic_cast<OpenCLQueue *>(backend->queue);
-        cl_int status = clEnqueueReadBuffer(
-                openCLQueue->command_queue,
-                clMem,
-                CL_FALSE,
-                0,
-                bufferState->length,//arg->value.buffer.sizeInBytes,
-                bufferState->ptr,
-                openCLQueue->eventc,
-                openCLQueue->eventListPtr(),
-                openCLQueue->nextEventPtr()
-        );
-        if (status != CL_SUCCESS) {
-            std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
-            exit(1);
-        }
-        openCLQueue->markAsCopyFromDeviceAndInc();
-    }
-    return copying;
-}
 
 OpenCLBackend::OpenCLBuffer::~OpenCLBuffer() {
     clReleaseMemObject(clMem);

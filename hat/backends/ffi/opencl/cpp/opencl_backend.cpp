@@ -24,9 +24,9 @@
  */
 
 #include "opencl_backend.h"
-OpenCLBackend::OpenCLBuffer * OpenCLBackend::getOrCreateBuffer(BufferState_s *bufferState) {
+OpenCLBackend::OpenCLBuffer * OpenCLBackend::getOrCreateBuffer(BufferState *bufferState) {
     OpenCLBuffer *openclBuffer = nullptr;
-    if (bufferState->vendorPtr == 0L || bufferState->state == BufferState_s::NEW_STATE){
+    if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){
         openclBuffer = new OpenCLBuffer(this,  bufferState);
         if (config->trace){
            std::cout << "We allocated arg buffer "<<std::endl;
@@ -44,9 +44,9 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
       std::cout << "getBufferFromDeviceIfDirty(" <<std::hex << (long)memorySegment << "," << std::dec<< memorySegmentLength <<"){"<<std::endl;
     }
     if (config->minimizeCopies){
-       BufferState_s * bufferState = BufferState_s::of(memorySegment,memorySegmentLength);
-       if (bufferState->state == BufferState_s::DEVICE_OWNED){
-          static_cast<OpenCLBackend::OpenCLBuffer *>(bufferState->vendorPtr)->copyFromDevice(RW_BYTE);
+       BufferState * bufferState = BufferState::of(memorySegment,memorySegmentLength);
+       if (bufferState->state == BufferState::DEVICE_OWNED){
+           queue->copyFromDevice(static_cast<Backend::Buffer *>(bufferState->vendorPtr));
           if (config->traceEnqueues | config->traceCopies){
              std::cout << "copying buffer from device (from java access) "<< std::endl;
           }

@@ -26,17 +26,7 @@
 
 class SpirvBackend : public Backend {
 public:
-    class SpirvQueue: public Backend::Queue{
-    public:
-        void wait()override{};
-        void release()override{};
-        void computeStart()override{};
-        void computeEnd()override{};
-    //   bool copyToDevice(Buffer *buffer, int accessBits) override {return false;};
-     //   bool copyFromDevice(Buffer *buffer, int accessBits) override {return false;};
-        explicit SpirvQueue(Backend *backend):Queue(backend){}
-        ~SpirvQueue() override =default;
-    };
+
     class SpirvProgram : public Backend::CompilationUnit {
         class SpirvKernel : public Backend::CompilationUnit::Kernel {
         public:
@@ -46,15 +36,11 @@ public:
 
             ~SpirvKernel() {
             }
-            bool setArg(Arg_s *arg, Buffer *buffer) override{
+            bool setArg(KernelArg *arg, Buffer *buffer) override{
                 return false ;
             }
-            bool setArg(Arg_s *arg) override{
+            bool setArg(KernelArg *arg) override{
                 return false ;
-            }
-            long ndrange(void *argArray) override {
-                std::cout << "spirv ndrange() " << std::endl;
-                return 0;
             }
         };
 
@@ -69,12 +55,26 @@ public:
         Kernel *getKernel(int nameLen, char *name) {
             return new SpirvKernel(this, name);
         }
-
-        bool compilationUnitOK() {
-            return true;
-        }
     };
+    class SpirvQueue: public Backend::Queue{
+    public:
+        void wait()override{};
+        void release()override{};
+        void computeStart()override{};
+        void computeEnd()override{};
+        void dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) override{
+            std::cout << "spirv dispatch() " << std::endl;
+            size_t dims = 1;
+            if (backend->config->trace | backend->config->traceEnqueues){
+                std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->maxX << std::endl;
+            }
 
+        }
+        void copyToDevice(Buffer *buffer) override{}
+        void copyFromDevice(Buffer *buffer) override{};
+        explicit SpirvQueue(Backend *backend):Queue(backend){}
+        ~SpirvQueue() override =default;
+    };
 public:
     SpirvBackend(int mode): Backend(new Config(mode), new SpirvQueue(this)) {
     }
@@ -82,10 +82,10 @@ public:
     ~SpirvBackend() {
     }
 
-    Buffer * getOrCreateBuffer(BufferState_s *bufferState) override{
+    Buffer * getOrCreateBuffer(BufferState *bufferState) override{
         Buffer *buffer = nullptr;
 
-      /* if (bufferState->vendorPtr == 0L || bufferState->state == BufferState_s::NEW_STATE){
+      /* if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){
             openclBuffer = new OpenCLBuffer(this,  bufferState);
             if (openclConfig.trace){
                 std::cout << "We allocated arg buffer "<<std::endl;

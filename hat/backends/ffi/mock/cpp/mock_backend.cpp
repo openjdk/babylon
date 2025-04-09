@@ -27,15 +27,7 @@
 class MockBackend : public Backend {
 public:
 
-class MockQueue: public Backend::Queue{
-public:
-     void wait()override{};
-     void release()override{};
-     void computeStart()override{};
-     void computeEnd()override{};
-     explicit MockQueue(Backend *backend):Queue(backend){}
-     ~MockQueue() override =default;
-};
+
     class MockProgram : public Backend::CompilationUnit {
         class MockKernel : public Backend::CompilationUnit::Kernel {
         public:
@@ -43,15 +35,11 @@ public:
                     : Backend::CompilationUnit::Kernel(compilationUnit, name) {
             }
             ~MockKernel() override = default;
-            bool setArg(Arg_s *arg, Buffer *buffer) override{
+            bool setArg(KernelArg *arg, Buffer *buffer) override{
                 return false ;
             }
-            bool setArg(Arg_s *arg) override{
+            bool setArg(KernelArg *arg) override{
                 return false ;
-            }
-            long ndrange(void *argArray)override {
-                std::cout << "mock ndrange() " << std::endl;
-                return 0;
             }
         };
 
@@ -66,12 +54,26 @@ public:
         Kernel* getKernel(int nameLen, char *name) {
             return new MockKernel(this, name);
         }
-
-        bool compilationUnitOK() {
-            return true;
-        }
     };
+    class MockQueue: public Backend::Queue{
+    public:
+        void wait()override{};
+        void release()override{};
+        void computeStart()override{};
+        void computeEnd()override{};
+        void dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) override{
+            std::cout << "mock dispatch() " << std::endl;
+            size_t dims = 1;
+            if (backend->config->trace | backend->config->traceEnqueues){
+                std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->maxX << std::endl;
+            }
 
+        }
+        void copyToDevice(Buffer *buffer) override{}
+        void copyFromDevice(Buffer *buffer) override{};
+        explicit MockQueue(Backend *backend):Queue(backend){}
+        ~MockQueue() override =default;
+    };
 public:
 
     MockBackend(int configBits): Backend(new Config(configBits), new MockQueue(this)) {
@@ -79,10 +81,10 @@ public:
 
     ~MockBackend() {
     }
-    Buffer * getOrCreateBuffer(BufferState_s *bufferState) override{
+    Buffer * getOrCreateBuffer(BufferState *bufferState) override{
         Buffer *buffer = nullptr;
 
-        /* if (bufferState->vendorPtr == 0L || bufferState->state == BufferState_s::NEW_STATE){
+        /* if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){
               openclBuffer = new OpenCLBuffer(this,  bufferState);
               if (openclConfig.trace){
                   std::cout << "We allocated arg buffer "<<std::endl;
