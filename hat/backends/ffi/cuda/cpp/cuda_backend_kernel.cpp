@@ -125,7 +125,9 @@ CudaBackend::CudaModule::CudaKernel * CudaBackend::CudaModule::CudaKernel::of(Ba
 
 bool CudaBackend::CudaModule::CudaKernel::setArg(KernelArg *arg){
     argslist[arg->idx] = static_cast<void *>(&arg->value);
+    return true;
 }
 bool CudaBackend::CudaModule::CudaKernel::setArg(KernelArg *arg, Buffer *buffer) {
     argslist[arg->idx] = static_cast<void *>(&dynamic_cast<CudaBuffer *>(buffer)->devicePtr);
+    return true;
 }
