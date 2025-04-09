@@ -82,13 +82,13 @@ public final class OnnxRuntime {
 
         @Override
         protected Session computeValue(Class<?> type) {
-            var trans = OnnxTransformer.ofQuotedLambda(l, q);
-            var func = trans.transform();
-            byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(),
+            OnnxTransformer trans = OnnxTransformer.ofQuotedLambda(l, q);
+            CoreOp.ModuleOp module = trans.transform();
+            byte[] protobufModel = OnnxProtoBuilder.build(module,
                     trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
 
             if (DEBUG) {
-                System.out.println(func.toText());
+                System.out.println(module.toText());
                 try {
                     var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
                     Files.write(export, protobufModel);

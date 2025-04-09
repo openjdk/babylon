@@ -52,7 +52,7 @@ public class OnnxTransformer {
 
     private final MethodHandles.Lookup l;
     private final CoreOp.FuncOp inputFunc;
-    private final SequencedCollection<FieldRef> inits;
+    private SequencedCollection<FieldRef> inits;
 
     public static OnnxTransformer ofQuotedLambda(MethodHandles.Lookup lookup, Quoted quotedLambda) {
         CoreOp.LambdaOp lambda = (CoreOp.LambdaOp) quotedLambda.op();
@@ -88,20 +88,25 @@ public class OnnxTransformer {
         return new OnnxTransformer(lookup, f);
     }
 
-    final CoreOp.FuncOp inline(CoreOp.FuncOp func) {
-        return func.transform((bb, op) -> {
-            var cc  = bb.context();
-            switch (op) {
-                case CoreOp.InvokeOp io when resolve(io) instanceof CoreOp.FuncOp inline ->
-                    bb.inline(inline(inline), cc.getValues(io.operands()), (_, v) -> cc.mapValue(io.result(), v));
-                default ->
-                    bb.apply(op);
-            }
-            return bb;
-        });
+//    final CoreOp.FuncOp inline(CoreOp.FuncOp func) {
+//        return func.transform((bb, op) -> {
+//            var cc  = bb.context();
+//            switch (op) {
+//                case CoreOp.InvokeOp io when resolve(io) instanceof CoreOp.FuncOp inline ->
+//                    bb.inline(inline(inline), cc.getValues(io.operands()), (_, v) -> cc.mapValue(io.result(), v));
+//                default ->
+//                    bb.apply(op);
+//            }
+//            return bb;
+//        });
+//    }
+
+    public OnnxTransformer(MethodHandles.Lookup lookup, CoreOp.FuncOp func) {
+        this.l = lookup;
+        this.inputFunc = func;
     }
 
-    final void collectFunctions(SequencedMap<MethodRef, CoreOp.FuncOp> moduleFuncs, CoreOp.FuncOp func) {
+    void collectFunctions(SequencedMap<MethodRef, CoreOp.FuncOp> moduleFuncs, CoreOp.FuncOp func) {
         func.traverse(null, (_, op) -> {
             if(op instanceof CoreOp.InvokeOp io && resolve(io) instanceof CoreOp.FuncOp f) {
                 collectFunctions(moduleFuncs, f);
@@ -111,12 +116,10 @@ public class OnnxTransformer {
         });
     }
 
-    public OnnxTransformer(MethodHandles.Lookup lookup, CoreOp.FuncOp func) {
-        l = lookup;
-
+    public CoreOp.ModuleOp transform() {
         var moduleFuncs = new LinkedHashMap<MethodRef, CoreOp.FuncOp>();
-        collectFunctions(moduleFuncs, func);
-        moduleFuncs.putLast(null, func);
+        collectFunctions(moduleFuncs, inputFunc);
+        moduleFuncs.putLast(null, inputFunc);
 
         CoreOp.ModuleOp module = CoreOp.module(moduleFuncs.sequencedValues().stream().map(f -> f.transform((bb, op) -> {
             if (op instanceof CoreOp.InvokeOp io && moduleFuncs.get(io.invokeDescriptor()) instanceof CoreOp.FuncOp fo) {
@@ -171,34 +174,38 @@ public class OnnxTransformer {
         CoreOp.ModuleOp transformedModule = CoreOp.module(initializedModule.functionTable().sequencedValues().stream().map(f ->
                 transform(initializedModule, f)).toList());
 
+        inits = initializers.sequencedKeySet();
+
         System.out.println("----------------- transformed module ------------------");
         System.out.println(transformedModule.toText());
 
+        return transformedModule;
+
 // @@@ work in progress - below is still the old code
 
-        var inlinedFunc = inline(func);
-
-        inits = new ArrayList<>();
-        var initMap = new HashMap<FieldRef, Block.Parameter>();
-        var top = new Block.Builder[1];
-        // turning field loads into additiona arguments
-        inputFunc = inlinedFunc.transform((bb, op) -> {
-            // @@@ This is ugly, in this case we could ask the bb for its furthest ancestor block
-            // when we need it
-            if (top[0] == null) top[0] = bb;
-            var cc  = bb.context();
-            switch (op) {
-                case CoreOp.FieldAccessOp.FieldLoadOp flo when op.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS) -> {
-                    // initializers turn into top block parameters
-                    cc.mapValue(op.result(), initMap.computeIfAbsent(flo.fieldDescriptor(), fd -> {
-                        inits.add(fd);
-                        return top[0].parameter(op.resultType());
-                    }));
-                }
-                default -> bb.apply(op);
-            }
-            return bb;
-        });
+//        var inlinedFunc = inline(func);
+//
+//        inits = new ArrayList<>();
+//        var initMap = new HashMap<FieldRef, Block.Parameter>();
+//        var top = new Block.Builder[1];
+//        // turning field loads into additiona arguments
+//        inputFunc = inlinedFunc.transform((bb, op) -> {
+//            // @@@ This is ugly, in this case we could ask the bb for its furthest ancestor block
+//            // when we need it
+//            if (top[0] == null) top[0] = bb;
+//            var cc  = bb.context();
+//            switch (op) {
+//                case CoreOp.FieldAccessOp.FieldLoadOp flo when op.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS) -> {
+//                    // initializers turn into top block parameters
+//                    cc.mapValue(op.result(), initMap.computeIfAbsent(flo.fieldDescriptor(), fd -> {
+//                        inits.add(fd);
+//                        return top[0].parameter(op.resultType());
+//                    }));
+//                }
+//                default -> bb.apply(op);
+//            }
+//            return bb;
+//        });
     }
 
     CoreOp.FuncOp resolve(CoreOp.InvokeOp io) {
@@ -221,11 +228,11 @@ public class OnnxTransformer {
         }).toList();
     }
 
-    public CoreOp.FuncOp transform() {
-        return transform(null, inputFunc);
-    }
+//    public CoreOp.FuncOp transform() {
+//        return transform(null, inputFunc);
+//    }
 
-    public CoreOp.FuncOp transform(CoreOp.ModuleOp module, CoreOp.FuncOp inputFunc) {
+    CoreOp.FuncOp transform(CoreOp.ModuleOp module, CoreOp.FuncOp inputFunc) {
         OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
         pe.evaluate(l, inputFunc);
 
