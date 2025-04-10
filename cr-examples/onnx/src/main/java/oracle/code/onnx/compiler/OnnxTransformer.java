@@ -62,7 +62,7 @@ public final class OnnxTransformer {
                 .toList();
         FunctionType ft = FunctionType.functionType(lambda.invokableType().returnType(), normalizedCaptureTypes);
 
-        CoreOp.FuncOp f = CoreOp.FuncOp.func("onnx.model", ft).body(b -> {
+        CoreOp.FuncOp f = CoreOp.FuncOp.func("", ft).body(b -> {
             // Map input captured values
             for (int i = 0; i < captures.size(); i++) {
                 Value inputCapture = captures.get(i);
@@ -86,7 +86,6 @@ public final class OnnxTransformer {
         CoreOp.ModuleOp m = collectModuleFunctions(l, inputFunc);
         m = remapInitializers(l, m);
         m = transformModule(l, m);
-        System.out.println(m.toText());
         return m;
     }
 
@@ -113,9 +112,14 @@ public final class OnnxTransformer {
                 .map(f -> mapOrInline(f, funcs, doNotInline)).toList());
     }
 
+    static String findBetterName(SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline) {
+        // find the last inlined func name
+        return funcs.sequencedValues().reversed().stream().filter(f -> !doNotInline.contains(f)).findFirst().map(CoreOp.FuncOp::funcName).orElse("");
+    }
+
     // transform all relevant invocations to func calls or inline
     static CoreOp.FuncOp mapOrInline(CoreOp.FuncOp f, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline) {
-        return f.transform((bb, op) -> {
+        return f.transform(f.funcName().isEmpty() ? findBetterName(funcs, doNotInline): f.funcName(), (bb, op) -> {
             if (op instanceof CoreOp.InvokeOp io && funcs.get(io.invokeDescriptor()) instanceof CoreOp.FuncOp fo) {
                 if (doNotInline.contains(fo)) {
                     bb.context().mapValue(op.result(), bb.op(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
