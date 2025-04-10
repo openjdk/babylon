@@ -67,11 +67,13 @@ public class RuntimeTest {
                     List.of(tensorInfo("cond", BOOL.id), tensorInfo("a", INT64.id), tensorInfo("b", INT64.id)),
                     List.of(node("If", List.of("cond"), List.of("y"), Map.of(
                             "then_branch", graph(
+                                    null,
                                     List.of(),
                                     List.of(),
                                     List.of(node("Identity", List.of("a"), List.of("y"), Map.of())),
                                     List.of("y")),
                             "else_branch", graph(
+                                    null,
                                     List.of(),
                                     List.of(),
                                     List.of(node("Identity", List.of("b"), List.of("y"), Map.of())),
@@ -94,6 +96,7 @@ public class RuntimeTest {
                     List.of(tensorInfo("max", INT64.id), tensorInfo("cond", BOOL.id), tensorInfo("a", INT64.id)),
                     List.of(node("Loop", List.of("max", "cond", "a"), List.of("a_out"), Map.of(
                             "body", graph(
+                                    null,
                                     List.of(),
                                     List.of(tensorInfo("i", INT64.id, true), tensorInfo("cond_in", BOOL.id, true), tensorInfo("a_in", INT64.id)),
                                     List.of(node("Identity", List.of("cond_in"), List.of("cond_out"), Map.of()),

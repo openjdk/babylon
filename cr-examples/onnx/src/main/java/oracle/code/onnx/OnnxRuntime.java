@@ -107,12 +107,13 @@ public final class OnnxRuntime {
                                     .filter(OnnxType.Initializer.class::isInstance)
                                     .map(OnnxType.Initializer.class::cast).toList();
 
-            byte[] protobufModel = OnnxProtoBuilder.build(module, getInitValues(l, initializers, q.capturedValues().sequencedValues()));
+            String domainName = type.getSimpleName().split("\\$")[0];
+            byte[] protobufModel = OnnxProtoBuilder.build(domainName, module, getInitValues(l, initializers, q.capturedValues().sequencedValues()));
 
             if (DEBUG) {
                 System.out.println(module.toText());
                 try {
-                    var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
+                    var export = Path.of(domainName + ".onnx");
                     Files.write(export, protobufModel);
                     System.out.println("Onnx model exported to: " + export.toAbsolutePath());
                 } catch (IOException _) {}
