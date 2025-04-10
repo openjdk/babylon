@@ -29,9 +29,11 @@ import hat.NDRange;
 import hat.backend.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
+import hat.buffer.BufferTracker;
 import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 
 import java.util.Arrays;
@@ -40,7 +42,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-public abstract class C99FFIBackend extends FFIBackend {
+public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
 
 
     public C99FFIBackend(String libName, Config config) {
@@ -106,5 +108,84 @@ public abstract class C99FFIBackend extends FFIBackend {
             System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
         }
         return builder.toString();
+    }
+
+
+    @Override
+    public void preMutate(Buffer b) {
+        switch (b.getState()) {
+            case BufferState.NO_STATE:
+            case BufferState.NEW_STATE:
+            case BufferState.HOST_OWNED:
+            case BufferState.DEVICE_VALID_HOST_HAS_COPY: {
+                if (config.isSHOW_STATE()) {
+                    System.out.println("in preMutate state = " + b.getStateString() + " no action to take");
+                }
+                break;
+            }
+            case BufferState.DEVICE_OWNED: {
+                backendBridge.getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
+                if (config.isSHOW_STATE()) {
+                    System.out.print("in preMutate state = " + b.getStateString() + " we pulled from device ");
+                }
+                b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
+                if (config.isSHOW_STATE()) {
+                    System.out.println("and switched to " + b.getStateString());
+                }
+                break;
+            }
+            default:
+                throw new IllegalStateException("Not expecting this state ");
+        }
+    }
+
+    @Override
+    public void postMutate(Buffer b) {
+        if (config.isSHOW_STATE()) {
+            System.out.print("in postMutate state = " + b.getStateString() + " no action to take ");
+        }
+        if (b.getState() != BufferState.NEW_STATE) {
+            b.setState(BufferState.HOST_OWNED);
+        }
+        if (config.isSHOW_STATE()) {
+            System.out.println("and switched to (or stayed on) " + b.getStateString());
+        }
+    }
+
+    @Override
+    public void preAccess(Buffer b) {
+        switch (b.getState()) {
+            case BufferState.NO_STATE:
+            case BufferState.NEW_STATE:
+            case BufferState.HOST_OWNED:
+            case BufferState.DEVICE_VALID_HOST_HAS_COPY: {
+                if (config.isSHOW_STATE()) {
+                    System.out.println("in preAccess state = " + b.getStateString() + " no action to take");
+                }
+                break;
+            }
+            case BufferState.DEVICE_OWNED: {
+                backendBridge.getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
+
+                if (config.isSHOW_STATE()) {
+                    System.out.print("in preAccess state = " + b.getStateString() + " we pulled from device ");
+                }
+                b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
+                if (config.isSHOW_STATE()) {
+                    System.out.println("and switched to " + b.getStateString());
+                }
+                break;
+            }
+            default:
+                throw new IllegalStateException("Not expecting this state ");
+        }
+    }
+
+
+    @Override
+    public void postAccess(Buffer b) {
+        if (config.isSHOW_STATE()) {
+            System.out.println("in postAccess state = " + b.getStateString());
+        }
     }
 }
