@@ -142,7 +142,7 @@ public class WalkTheMazeTest {
         return outData.path();
     }
 
-//    @Test @@@ temprary disabled
+    @Test
     public void testWalkAroundTheMaze() throws Exception {
         try (var arena = Arena.ofConfined()) {
             var directions = execute(arena, MethodHandles.lookup(), () -> walkAroundTheMaze());

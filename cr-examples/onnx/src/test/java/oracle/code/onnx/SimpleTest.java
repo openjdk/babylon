@@ -117,7 +117,7 @@ public class SimpleTest {
         var x = Tensor.ofShape(new long[]{2, 2, 2}, 1f, 2, 3, 4, 5, 6, 7, 8);
         assertEquals(
                 indicesOfMaxPool(x),
-                execute(() -> MaxPool(x, empty(), empty(), empty(), empty(), empty(), empty(),  new long[]{2}).Indices())); //@@@ problematic tuple in a function
+                execute(() -> indicesOfMaxPool(x)));
     }
 
     @CodeReflection
@@ -145,7 +145,7 @@ public class SimpleTest {
         var split = Tensor.ofFlat(5l);
         assertEquals(
                 split(input, split),
-                execute(()-> Split(input, Optional.of(split), empty(), empty()).get(0))); //@@@ problematic list in a function
+                execute(()-> split(input, split)));
     }
 
     @CodeReflection
@@ -165,7 +165,7 @@ public class SimpleTest {
         return If(cond, () -> new SingleValueTuple<>(Constant(1f)), () -> new SingleValueTuple<>(Constant(-1f)));
     }
 
-//    @Test @@@ problems with mapping to functions
+    @Test
     public void testIfConst() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var expFalse = Tensor.ofScalar(-1f);
@@ -234,7 +234,7 @@ public class SimpleTest {
                         () -> List.of(Identity(initialized4)))).get(0);
     }
 
-//    @Test @@@ problems with lists in functions
+    @Test
     public void testIfInitialized() throws Exception {
         var condFalse = Tensor.ofScalar(false);
         var condTrue = Tensor.ofScalar(true);

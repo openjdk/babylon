@@ -86,14 +86,15 @@ public final class OnnxTransformer {
         CoreOp.ModuleOp m = collectModuleFunctions(l, inputFunc);
         m = remapInitializers(l, m);
         m = transformModule(l, m);
+        System.out.println(m.toText());
         return m;
     }
 
-    static void collectModuleFunctions(MethodHandles.Lookup l, SequencedMap<MethodRef, CoreOp.FuncOp> moduleFuncs, CoreOp.FuncOp func) {
+    static void collectModuleFunctions(MethodHandles.Lookup l, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline, CoreOp.FuncOp func) {
         func.traverse(null, (_, op) -> {
             if(op instanceof CoreOp.InvokeOp io && resolve(l, io) instanceof CoreOp.FuncOp f) {
-                collectModuleFunctions(l, moduleFuncs, f);
-                moduleFuncs.putIfAbsent(io.invokeDescriptor(), f);
+                collectModuleFunctions(l, funcs, doNotInline, f);
+                doNotInline.add(funcs.putIfAbsent(io.invokeDescriptor(), f));
             }
             return null;
         });
@@ -101,19 +102,31 @@ public final class OnnxTransformer {
 
     static CoreOp.ModuleOp collectModuleFunctions(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc) {
         // traverse inputFunc and collect all functions to construct module
-        var moduleFuncs = new LinkedHashMap<MethodRef, CoreOp.FuncOp>();
-        collectModuleFunctions(l, moduleFuncs, inputFunc);
-        moduleFuncs.putLast(null, inputFunc);
+        var funcs = new LinkedHashMap<MethodRef, CoreOp.FuncOp>();
+        var doNotInline = new HashSet<CoreOp.FuncOp>();
+        doNotInline.add(inputFunc);
+        collectModuleFunctions(l, funcs, doNotInline, inputFunc);
+        funcs.putLast(null, inputFunc);
 
-        // transform all relevant invocations to func calls
-        return CoreOp.module(moduleFuncs.sequencedValues().stream().map(f -> f.transform((bb, op) -> {
-            if (op instanceof CoreOp.InvokeOp io && moduleFuncs.get(io.invokeDescriptor()) instanceof CoreOp.FuncOp fo) {
-                bb.context().mapValue(op.result(), bb.op(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
+        return CoreOp.module(funcs.sequencedValues().stream()
+                .filter(f -> doNotInline.contains(f))
+                .map(f -> mapOrInline(f, funcs, doNotInline)).toList());
+    }
+
+    // transform all relevant invocations to func calls or inline
+    static CoreOp.FuncOp mapOrInline(CoreOp.FuncOp f, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline) {
+        return f.transform((bb, op) -> {
+            if (op instanceof CoreOp.InvokeOp io && funcs.get(io.invokeDescriptor()) instanceof CoreOp.FuncOp fo) {
+                if (doNotInline.contains(fo)) {
+                    bb.context().mapValue(op.result(), bb.op(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
+                } else {
+                    bb.inline(mapOrInline(fo, funcs, doNotInline), bb.context().getValues(io.operands()), (_, v) -> bb.context().mapValue(io.result(), v));
+                }
             } else {
                 bb.op(op);
             }
             return bb;
-        })).toList());
+        });
     }
 
     static CoreOp.ModuleOp remapInitializers(MethodHandles.Lookup l, CoreOp.ModuleOp module) {
