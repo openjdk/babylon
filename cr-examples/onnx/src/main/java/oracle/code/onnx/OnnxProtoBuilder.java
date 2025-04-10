@@ -7,13 +7,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.TupleType;
+import jdk.incubator.code.writer.OpWriter;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
@@ -319,12 +322,17 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
 
     private static final class Indexer {
 
-        private final HashMap<Value, String> baseNames = new HashMap();
-        private final HashMap<String, String> elementsMap = new HashMap();
+        private final Function<CodeItem, String> baseNames;
+        private final HashMap<String, String> elementsMap;
 
+
+        Indexer(Function<CodeItem, String> baseNames) {
+            this.baseNames = baseNames;
+            this.elementsMap = new HashMap<>();
+        }
 
         private String baseName(Value value, int elementIndex) {
-            var name = baseNames.computeIfAbsent(value, _ -> "#" + baseNames.size());
+            var name = baseNames.apply(value);
             return elementIndex > 0 ? name + '.' + elementIndex : name;
         }
 
@@ -349,7 +357,8 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     }
 
     static byte[] build(String domainName, CoreOp.ModuleOp module, List<oracle.code.onnx.Tensor> initializers) {
-        var indexer = new Indexer();
+        var indexer = new Indexer(OpWriter.computeGlobalNames(module));
+
         var functions = new ArrayList<>(module.functionTable().sequencedValues());
         var mainFunc = functions.removeLast();
         var mainBlock = mainFunc.body().entryBlock();
@@ -373,7 +382,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
     static byte[] build(Block block, List<oracle.code.onnx.Tensor> initializers) {
-        var indexer = new Indexer();
+        var indexer = new Indexer(OpWriter.computeGlobalNames(block.parentBody().parentOp()));
         var model = build(graph(null, null, indexer, block, initializers, 0), List.of(), List.of());
 //        OnnxProtoPrinter.printModel(model);
         return model;
