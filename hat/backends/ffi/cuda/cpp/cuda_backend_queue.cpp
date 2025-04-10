@@ -25,14 +25,30 @@
 
 #include <sys/wait.h>
 #include <chrono>
+#include <thread>
 #include "cuda_backend.h"
 
 CudaBackend::CudaQueue::CudaQueue(Backend *backend)
-        : Backend::Queue(backend),cuStream() {
+        : Backend::Queue(backend),cuStream(),streamCreationThread() {
 }
 void CudaBackend::CudaQueue::init(){
-    auto status =  cuStreamCreate(&cuStream,CU_STREAM_DEFAULT);
-    WHERE{.f=__FILE__ , .l=__LINE__, .e=status, .t= "cuStreamCreate"}.report();
+    streamCreationThread = std::this_thread::get_id();
+    if (backend->config->traceCalls){
+        std::cout << "init() 0x"
+                  << " thread=" <<streamCreationThread
+                  << std::endl;
+    }
+
+    WHERE{.f=__FILE__ , .l=__LINE__,
+          .e=cuStreamCreate(&cuStream,CU_STREAM_DEFAULT),
+          .t= "cuStreamCreate"
+    }.report();
+
+    if (backend->config->traceCalls){
+        std::cout << "exiting init() 0x"
+                  << " custream=" <<std::hex<<streamCreationThread <<std::dec
+                  << std::endl;
+    }
     }
 
 //void CudaBackend::CudaQueue::sync(const char *file, int line) const {
@@ -77,11 +93,17 @@ CudaBackend::CudaQueue::~CudaQueue(){
 void CudaBackend::CudaQueue::copyToDevice(Buffer *buffer) {
     //auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
     auto *cudaBuffer = dynamic_cast<CudaBuffer *>(buffer);
+    std::thread::id thread_id = std::this_thread::get_id();
+    if (thread_id != streamCreationThread){
+        std::cout << "copyToDevice()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
+    }
     if (backend->config->traceCalls) {
+
         std::cout << "copyToDevice() 0x"
                 << std::hex<<cudaBuffer->bufferState->length<<std::dec << "/"
                 << cudaBuffer->bufferState->length << " "
-                << "devptr " << std::hex<<  (long)cudaBuffer->devicePtr <<std::dec
+                << "devptr=" << std::hex<<  (long)cudaBuffer->devicePtr <<std::dec
+                << " thread=" <<thread_id
                   << std::endl;
     }
     WHERE{.f=__FILE__, .l=__LINE__,
@@ -98,13 +120,21 @@ void CudaBackend::CudaQueue::copyToDevice(Buffer *buffer) {
 void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
     auto *cudaBuffer = dynamic_cast<CudaBuffer *>(buffer);
     //auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
+    std::thread::id thread_id = std::this_thread::get_id();
+    if (thread_id != streamCreationThread){
+        std::cout << "copyFromDevice()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
+    }
     if (backend->config->traceCalls) {
+
         std::cout << "copyFromDevice() 0x"
                   << std::hex<<cudaBuffer->bufferState->length<<std::dec << "/"
                   << cudaBuffer->bufferState->length << " "
-                  << "devptr " << std::hex<<  (long)cudaBuffer->devicePtr <<std::dec
+                  << "devptr=" << std::hex<<  (long)cudaBuffer->devicePtr <<std::dec
+                << " thread=" <<thread_id
                   << std::endl;
     }
+
+
     WHERE{.f=__FILE__, .l=__LINE__,
             .e=cuMemcpyDtoHAsync(
                     cudaBuffer->bufferState->ptr,
@@ -132,6 +162,11 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
 //  auto status= static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
 
 //  cudaBackend->cudaQueue.wait();
+    std::thread::id thread_id = std::this_thread::get_id();
+    if (thread_id != streamCreationThread){
+        std::cout << "dispatch()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
+    }
+
     auto status = cuLaunchKernel(cudaKernel->function,
                                  rangediv1024, 1, 1,
                                  1024, 1, 1,
