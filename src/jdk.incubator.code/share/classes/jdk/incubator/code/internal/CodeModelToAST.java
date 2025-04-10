@@ -19,7 +19,6 @@ import jdk.incubator.code.type.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.sun.tools.javac.code.Flags.*;
 
@@ -33,9 +32,10 @@ public class CodeModelToAST {
     private final Types types;
     private final Symbol.ClassSymbol currClassSym;
     private final CodeReflectionSymbols crSym;
-    private final Map<Value, JCTree> valueToTree = new HashMap<>();
+    private final Map<Value, Symbol.VarSymbol> valueToVarSym = new HashMap<>();
     private final Map<JavaType, Type> jtToType;
     private Symbol.MethodSymbol ms;
+    private int localVarCount = 0; // used to name variables we introduce in the AST
 
     public CodeModelToAST(TreeMaker treeMaker, Names names, Symtab syms, Resolve resolve,
                           Types types, Env<AttrContext> attrEnv, CodeReflectionSymbols crSym) {
@@ -120,10 +120,10 @@ public class CodeModelToAST {
         var methodSym = methodDescriptorToSymbol(invokeOp.invokeDescriptor());
         var meth = (receiver == null) ?
                 treeMaker.Ident(methodSym) :
-                treeMaker.Select((JCTree.JCExpression) valueToTree.get(receiver), methodSym);
+                treeMaker.Select(exprTree(receiver), methodSym);
         var args = new ListBuffer<JCTree.JCExpression>();
         for (Value operand : arguments) {
-            args.add((JCTree.JCExpression) valueToTree.get(operand));
+            args.add(exprTree(operand));
         }
         var methodInvocation = treeMaker.App(meth, args.toList());
         if (invokeOp.isVarArgs()) {
@@ -154,7 +154,7 @@ public class CodeModelToAST {
                 var elemType = treeMaker.Ident(typeElementToType(at.componentType()).tsym);
                 var dims = new ListBuffer<JCTree.JCExpression>();
                 for (int d = 0; d < at.dimensions(); d++) {
-                    dims.add(((JCTree.JCExpression) valueToTree.get(newOp.operands().get(d))));
+                    dims.add(exprTree(newOp.operands().get(d)));
                 }
                 var na = treeMaker.NewArray(elemType, dims.toList(), null);
                 na.type = typeElementToType(at);
@@ -165,7 +165,7 @@ public class CodeModelToAST {
                 var clazz = treeMaker.Ident(ownerType.tsym);
                 var args = new ListBuffer<JCTree.JCExpression>();
                 for (Value operand : newOp.operands()) {
-                    args.add((JCTree.JCExpression) valueToTree.get(operand));
+                    args.add(exprTree(operand));
                 }
                 var nc = treeMaker.NewClass(null, null, clazz, args.toList(), null);
                 if (newOp.isVarargs()) {
@@ -177,18 +177,7 @@ public class CodeModelToAST {
                 yield nc;
             }
             case CoreOp.ReturnOp returnOp ->
-                    treeMaker.Return((JCTree.JCExpression) valueToTree.get(returnOp.returnValue()));
-            case CoreOp.VarOp varOp when varOp.initOperand() instanceof Block.Parameter p -> valueToTree.get(p);
-            case CoreOp.VarOp varOp -> {
-                var name = names.fromString(varOp.varName());
-                var type = typeElementToType(varOp.varValueType());
-                var v = new Symbol.VarSymbol(LocalVarFlags, name, type, ms);
-                yield treeMaker.VarDef(v, (JCTree.JCExpression) valueToTree.get(varOp.initOperand()));
-            }
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                    when varLoadOp.varOp().initOperand() instanceof Block.Parameter p2 -> valueToTree.get(p2);
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
-                    treeMaker.Ident((JCTree.JCVariableDecl) valueToTree.get(varLoadOp.varOperand()));
+                    treeMaker.Return(exprTree(returnOp.returnValue()));
             case CoreOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
                 var sym = fieldDescriptorToSymbol(fieldLoadOp.fieldDescriptor());
                 Assert.check(sym.isStatic());
@@ -199,17 +188,39 @@ public class CodeModelToAST {
                 var val = arrayStoreOp.operands().get(1);
                 var index = arrayStoreOp.operands().get(2);
                 var as = treeMaker.Assign(
-                        treeMaker.Indexed((JCTree.JCExpression) valueToTree.get(array),
-                                (JCTree.JCExpression) valueToTree.get(index)),
-                                (JCTree.JCExpression) valueToTree.get(val)
+                        treeMaker.Indexed(exprTree(array), exprTree(index)), exprTree(val)
                 );
-                yield treeMaker.Exec(as);
-                // body builder are created but never passed when creating the op, why ?
+                as.type = typeElementToType(((ArrayType) array.type()).componentType());
+                yield as;
             }
             default -> throw new IllegalStateException("Op -> JCTree not supported for :" + op.getClass().getName());
         };
-        valueToTree.put(op.result(), tree);
-        return tree;
+        if (tree instanceof JCTree.JCExpression expr) {
+            // introduce a local variable to hold the expr, to make sure an op's tree is inserted right away
+            // for some operations this is essential, e.g. to ensure the correct order of operations
+            Type type;
+            if (op instanceof CoreOp.ConstantOp cop && cop.value() == null) {
+                // if ConstantOp value is null, tree.type will be null_type
+                // if null_type is used to create a VarSymbol, an exception will be thrown
+                type = typeElementToType(cop.resultType());
+            } else {
+                type = tree.type;
+            }
+            var vs = new Symbol.VarSymbol(LocalVarFlags, names.fromString("_$" + localVarCount++), type, ms);
+            var varDef = treeMaker.VarDef(vs, expr);
+            map(op.result(), vs);
+            return varDef;
+        } else {
+            return tree;
+        }
+    }
+
+    private JCTree.JCExpression exprTree(Value v) {
+        return treeMaker.Ident(valueToVarSym.get(v));
+    }
+
+    private void map(Value v, Symbol.VarSymbol vs) {
+        valueToVarSym.put(v, vs);
     }
 
     public JCTree.JCMethodDecl transformFuncOpToAST(CoreOp.FuncOp funcOp, Name methodName) {
@@ -220,11 +231,8 @@ public class CodeModelToAST {
         ms = new Symbol.MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currClassSym);
         currClassSym.members().enter(ms);
 
-        // TODO add VarOps in OpBuilder
-        funcOp = addVarsWhenNecessary(funcOp);
-        funcOp.writeTo(System.out);
         for (int i = 0; i < funcOp.parameters().size(); i++) {
-            valueToTree.put(funcOp.parameters().get(i), treeMaker.Ident(ms.params().get(i)));
+            map(funcOp.parameters().get(i), ms.params().get(i));
         }
 
         var stats = new ListBuffer<JCTree.JCStatement>();
@@ -237,49 +245,6 @@ public class CodeModelToAST {
         var mb = treeMaker.Block(0, stats.toList());
 
         return treeMaker.MethodDef(ms, mb);
-    }
-
-    public static CoreOp.FuncOp addVarsWhenNecessary(CoreOp.FuncOp funcOp) {
-        // using cc only is not possible
-        // because at first opr --> varOpRes
-        // at the first usage we would have to opr --> varLoad
-        // meaning we would have to back up the mapping, update it, then restore it before transforming the next op
-
-        Map<Value, CoreOp.VarOp> valueToVar = new HashMap<>();
-        AtomicInteger varCounter = new AtomicInteger();
-
-        return CoreOp.func(funcOp.funcName(), funcOp.body().bodyType()).body(block -> {
-            var newParams = block.parameters();
-            var oldParams = funcOp.parameters();
-            for (int i = 0; i < newParams.size(); i++) {
-                Op.Result var = block.op(CoreOp.var("_$" + varCounter.getAndIncrement(), newParams.get(i)));
-                valueToVar.put(oldParams.get(i), ((CoreOp.VarOp) var.op()));
-            }
-
-            block.transformBody(funcOp.body(), java.util.List.of(), (Block.Builder b, Op op) -> {
-                var cc = b.context();
-                for (Value operand : op.operands()) {
-                    if (valueToVar.containsKey(operand)) {
-                        var varLoadRes = b.op(CoreOp.varLoad(valueToVar.get(operand).result()));
-                        cc.mapValue(operand, varLoadRes);
-                    }
-                }
-                var opr = b.op(op);
-                var M_BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op", Op.Result.class, Op.class);
-                var M_BLOCK_BUILDER_PARAM = MethodRef.method(Block.Builder.class, "parameter", Block.Parameter.class, TypeElement.class);
-                // we introduce VarOp to hold an opr that's used multiple times
-                // or to mark that an InvokeOp must be mapped to a Statement
-                // specifically call to Bloc.Builder#op, we want this call to map to a statement so that it get added
-                // to the opMethod body immediately to ensure correct order of operations
-                var isBlockOpInvocation = op instanceof CoreOp.InvokeOp invokeOp && M_BLOCK_BUILDER_OP.equals(invokeOp.invokeDescriptor());
-                var isBlockParamInvocation = op instanceof CoreOp.InvokeOp invokeOp && M_BLOCK_BUILDER_PARAM.equals(invokeOp.invokeDescriptor());
-                if (!(op instanceof CoreOp.VarOp) && (op.result().uses().size() > 1 || isBlockOpInvocation || isBlockParamInvocation)) {
-                    var varOpRes = b.op(CoreOp.var("_$" + varCounter.getAndIncrement(), opr));
-                    valueToVar.put(op.result(), ((CoreOp.VarOp) varOpRes.op()));
-                }
-                return b;
-            });
-        });
     }
 
     VarSymbol fieldDescriptorToSymbol(FieldRef fieldRef) {

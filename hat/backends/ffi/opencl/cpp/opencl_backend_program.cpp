@@ -49,8 +49,4 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel *OpenCLBackend::OpenCLProgram::getOpe
    return getOpenCLKernel(::strlen(name), name);
 }
 
-bool OpenCLBackend::OpenCLProgram::compilationUnitOK() {
-    return true;
-}
-
 

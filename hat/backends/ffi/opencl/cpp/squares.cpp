@@ -24,29 +24,29 @@
  */
 
 #include "opencl_backend.h"
-class KernelContext {
+class KernelContextWithBufferState {
 public:
     int x;
     int maxX;
-    BufferState_s bufferState;
+    BufferState bufferState;
 };
 struct ArgArray_2 {
     int argc;
     u8_t pad12[12];
-    Arg_s argv[2];
+    KernelArg argv[2];
 };
 
 
-struct S32Array1024_s {
+struct S32Array1024WithBufferState {
     int length;
     int array[1024];
-    BufferState_s bufferState;
+    BufferState bufferState;
 };
 int main(int argc, char **argv) {
     OpenCLBackend openclBackend(0
-            | OpenCLBackend::OpenCLConfig::Config::INFO_BIT
-            | OpenCLBackend::OpenCLConfig::Config::TRACE_CALLS_BIT
-            | OpenCLBackend::OpenCLConfig::Config::TRACE_COPIES_BIT
+            | Backend::Config::INFO_BIT
+            | Backend::Config::Config::TRACE_CALLS_BIT
+            | Backend::Config::Config::TRACE_COPIES_BIT
     );
 
     //std::string cudaPath =  "/home/gfrost/github/grfrost/babylon-grfrost-fork/hat/squares.cuda";
@@ -105,26 +105,26 @@ int main(int argc, char **argv) {
 
     auto *program =openclBackend.compileProgram(openclSource);
     int maxX = 32;
-    auto *kernelContext = bufferOf<KernelContext>("kernelContext");
-    kernelContext->x=0;
-    kernelContext->maxX=maxX;
+    auto *kernelContextWithBufferState = bufferOf<KernelContextWithBufferState>("kernelContext");
+    kernelContextWithBufferState->x=0;
+    kernelContextWithBufferState->maxX=maxX;
 
-    auto *s32Array1024 = bufferOf<S32Array1024_s>("s32Arrayx1024");
+    auto *s32Array1024WithBufferState = bufferOf<S32Array1024WithBufferState>("s32ArrayX1024");
 
-    s32Array1024->length=maxX;
+    s32Array1024WithBufferState->length=maxX;
 
-    for (int i=0; i<s32Array1024->length; i++){
-        s32Array1024->array[i]=i;
+    for (int i=0; i < s32Array1024WithBufferState->length; i++){
+        s32Array1024WithBufferState->array[i]=i;
     }
 
     ArgArray_2 args2Array{.argc = 2, .argv={
-            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = (void *) kernelContext, .sizeInBytes = sizeof(KernelContext), .access = RO_BYTE}}},
-            {.idx = 1, .variant = '&',.value = {.buffer ={.memorySegment = (void *) s32Array1024, .sizeInBytes = sizeof(S32Array1024_s), .access = RW_BYTE}}}
+            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = (void *) kernelContextWithBufferState, .sizeInBytes = sizeof(KernelContextWithBufferState), .access = RO_BYTE}}},
+            {.idx = 1, .variant = '&',.value = {.buffer ={.memorySegment = (void *) s32Array1024WithBufferState, .sizeInBytes = sizeof(S32Array1024WithBufferState), .access = RW_BYTE}}}
     }};
     auto kernel = program->getOpenCLKernel((char*)"squareKernel");
     kernel->ndrange( reinterpret_cast<ArgArray_s *>(&args2Array));
-    for (int i=0; i<s32Array1024->length; i++){
-        std::cout << i << " array["<<i<<"]="<<s32Array1024->array[i] <<std::endl;
+    for (int i=0; i < s32Array1024WithBufferState->length; i++){
+        std::cout << i << " array[" << i << "]=" << s32Array1024WithBufferState->array[i] << std::endl;
     }
 }
 

@@ -29,8 +29,9 @@ While based on OpenCL's event list, I think we need to use a MOD eventMax queue.
 So
 */
  OpenCLBackend::OpenCLQueue::OpenCLQueue(Backend *backend)
-    : Backend::Queue(backend),
-     events(new cl_event[eventMax]){
+    : Backend::ProfilableQueue(backend, 10000),
+      command_queue(),
+      events(new cl_event[eventMax]){
  }
 
  cl_event *OpenCLBackend::OpenCLQueue::eventListPtr(){
@@ -152,15 +153,17 @@ void OpenCLBackend::OpenCLQueue::wait(){
        }
     }
  }
- void clCallback(void *){
-      std::cerr<<"start of compute"<<std::endl;
- }
+// void clCallback(void *){
+  //    std::cerr<<"start of compute"<<std::endl;
+// }
 
   void OpenCLBackend::OpenCLQueue::marker(int bits){
-  cl_int status = clEnqueueMarkerWithWaitList(
-      command_queue,
-      this->eventc, this->eventListPtr(),this->nextEventPtr()
-      );
+      cl_int status = clEnqueueMarkerWithWaitList(
+          command_queue,
+          this->eventc,
+          this->eventListPtr(),
+          this->nextEventPtr()
+          );
         if (status != CL_SUCCESS){
              std::cerr << "failed to clEnqueueMarkerWithWaitList "<<errorMsg(status)<< std::endl;
              std::exit(1);
@@ -178,25 +181,13 @@ void OpenCLBackend::OpenCLQueue::wait(){
            }
         inc(bits, arg);
     }
-      void OpenCLBackend::OpenCLQueue::marker(int bits, int arg){
-        cl_int status = clEnqueueMarkerWithWaitList(
-            command_queue,
-            this->eventc, this->eventListPtr(),this->nextEventPtr()
-            );
-              if (status != CL_SUCCESS){
-                   std::cerr << "failed to clEnqueueMarkerWithWaitList "<<errorMsg(status)<< std::endl;
-                   std::exit(1);
-               }
-            inc(bits, arg);
-        }
+
 
  void OpenCLBackend::OpenCLQueue::computeStart(){
    wait(); // should be no-op
    release(); // also ;
    marker(StartComputeBits);
  }
-
-
 
  void OpenCLBackend::OpenCLQueue::computeEnd(){
    marker(EndComputeBits);
@@ -219,14 +210,7 @@ void OpenCLBackend::OpenCLQueue::wait(){
      }
      eventc++;
   }
-  void OpenCLBackend::OpenCLQueue::inc(int bits, int arg){
-      if (eventc+1 >= eventMax){
-         std::cerr << "OpenCLBackend::OpenCLQueue event list overflowed!!" << std::endl;
-      }else{
-          eventInfoBits[eventc]=bits|arg|hasIntArgBits;
-      }
-      eventc++;
-   }
+
 
  void OpenCLBackend::OpenCLQueue::markAsEndComputeAndInc(){
      inc(EndComputeBits);
@@ -234,15 +218,7 @@ void OpenCLBackend::OpenCLQueue::wait(){
  void OpenCLBackend::OpenCLQueue::markAsStartComputeAndInc(){
      inc(StartComputeBits);
  }
- void OpenCLBackend::OpenCLQueue::markAsNDRangeAndInc(){
-     inc(NDRangeBits);
- }
- void OpenCLBackend::OpenCLQueue::markAsCopyToDeviceAndInc(int argn){
-     inc(CopyToDeviceBits, argn);
- }
- void OpenCLBackend::OpenCLQueue::markAsCopyFromDeviceAndInc(int argn){
-     inc(CopyFromDeviceBits, argn);
- }
+
  void OpenCLBackend::OpenCLQueue::markAsEnterKernelDispatchAndInc(){
      inc(EnterKernelDispatchBits);
  }
@@ -265,5 +241,73 @@ void OpenCLBackend::OpenCLQueue::wait(){
  OpenCLBackend::OpenCLQueue::~OpenCLQueue(){
      clReleaseCommandQueue(command_queue);
      delete []events;
-
  }
+
+void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel){
+    size_t dims = 1;
+    cl_int status = clEnqueueNDRangeKernel(
+            command_queue,
+            dynamic_cast<OpenCLProgram::OpenCLKernel*>(kernel)->kernel,
+            dims,
+            nullptr,
+            reinterpret_cast<const size_t *>(&kernelContext->maxX),
+            nullptr,
+            eventc,
+            eventListPtr(),
+            nextEventPtr());
+    inc(NDRangeBits);
+   // markAsNDRangeAndInc();
+    if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
+    }
+    if (backend->config->trace | backend->config->traceEnqueues){
+        std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->maxX << std::endl;
+    }
+
+}
+
+
+void OpenCLBackend::OpenCLQueue::copyToDevice(Backend::Buffer *buffer) {
+
+    auto openclBuffer = dynamic_cast<OpenCLBuffer *>(buffer);
+    cl_int status = clEnqueueWriteBuffer(
+            command_queue,
+            openclBuffer->clMem,
+            CL_FALSE,
+            0,
+            buffer->bufferState->length,
+            buffer->bufferState->ptr,
+            eventc,
+            eventListPtr(),
+            nextEventPtr()
+    );
+
+    if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
+    }
+    inc(CopyToDeviceBits);
+  //  markAsCopyToDeviceAndInc();
+}
+
+void  OpenCLBackend::OpenCLQueue::copyFromDevice(Backend::Buffer *buffer) {
+    auto openclBuffer = dynamic_cast<OpenCLBuffer *>(buffer);
+    cl_int status = clEnqueueReadBuffer(
+            command_queue,
+            openclBuffer->clMem,
+            CL_FALSE,
+            0,
+            buffer->bufferState->length,
+            buffer->bufferState->ptr,
+            eventc,
+            eventListPtr(),
+            nextEventPtr()
+    );
+    if (status != CL_SUCCESS) {
+        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        exit(1);
+    }
+    inc(CopyFromDeviceBits);
+    //markAsCopyFromDeviceAndInc();
+}

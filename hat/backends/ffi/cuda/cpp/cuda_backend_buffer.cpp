@@ -30,22 +30,19 @@
 /*
 //http://mercury.pr.erau.edu/~siewerts/extra/code/digital-media/CUDA/cuda_work/samples/0_Simple/matrixMulDrv/matrixMulDrv.cpp
  */
-CudaBackend::CudaBuffer::CudaBuffer(Backend *backend, Arg_s *arg, BufferState_s *bufferState)
-        : Buffer(backend, arg,bufferState), devicePtr() {
-    /*
-     *   (void *) arg->value.buffer.memorySegment,
-     *   (size_t) arg->value.buffer.sizeInBytes);
-     */
+CudaBackend::CudaBuffer::CudaBuffer(Backend *backend,  BufferState *bufferState)
+        : Buffer(backend, bufferState), devicePtr() {
+
     auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
-    if (cudaBackend->cudaConfig.traceCalls) {
+    if (cudaBackend->config->traceCalls) {
         std::cout << "CudaBuffer()" << std::endl;
     }
 
     WHERE{.f=__FILE__, .l=__LINE__,
-            .e=cuMemAlloc(&devicePtr, (size_t) arg->value.buffer.sizeInBytes),
+            .e=cuMemAlloc(&devicePtr, (size_t) bufferState->length),
             .t="cuMemAlloc"
     }.report();
-    if (cudaBackend->cudaConfig.traceCalls) {
+    if (cudaBackend->config->traceCalls) {
         std::cout << "devptr " << std::hex<<  (long)devicePtr <<std::dec <<std::endl;
     }
   bufferState->vendorPtr= static_cast<void *>(this);
@@ -53,7 +50,7 @@ CudaBackend::CudaBuffer::CudaBuffer(Backend *backend, Arg_s *arg, BufferState_s 
 
 CudaBackend::CudaBuffer::~CudaBuffer() {
     auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
-    if (cudaBackend->cudaConfig.traceCalls) {
+    if (cudaBackend->config->traceCalls) {
         std::cout << "~CudaBuffer()"<< "devptr " << std::hex << (long) devicePtr << std::dec<< std::endl;
     }
     WHERE{.f=__FILE__, .l=__LINE__,
@@ -63,39 +60,4 @@ CudaBackend::CudaBuffer::~CudaBuffer() {
     bufferState->vendorPtr= nullptr;
 }
 
-void CudaBackend::CudaBuffer::copyToDevice() {
-    auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
-    if (cudaBackend->cudaConfig.traceCalls) {
-        std::cout << "copyToDevice() 0x"
-                  << std::hex << arg->value.buffer.sizeInBytes << std::dec << "/"
-                  << arg->value.buffer.sizeInBytes << " "
-                  << "devptr " << std::hex << (long) devicePtr << std::dec
-                  << std::endl;
-    }
-    WHERE{.f=__FILE__, .l=__LINE__,
-            .e=cuMemcpyHtoDAsync(devicePtr, arg->value.buffer.memorySegment,
-                                 arg->value.buffer.sizeInBytes,cudaBackend->cudaQueue.cuStream),
-            .t="cuMemcpyHtoDAsync"
-    }.report();
-    cudaBackend->cudaQueue.wait();
-}
-
-void CudaBackend::CudaBuffer::copyFromDevice() {
-    auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
-    if (cudaBackend->cudaConfig.traceCalls) {
-        std::cout << "copyFromDevice() 0x"
-                     << std::hex<<arg->value.buffer.sizeInBytes<<std::dec << "/"
-                     << arg->value.buffer.sizeInBytes << " "
-                     << "devptr " << std::hex<<  (long)devicePtr <<std::dec
-                    << std::endl;
-    }
-    WHERE{.f=__FILE__, .l=__LINE__,
-            .e=cuMemcpyDtoHAsync(arg->value.buffer.memorySegment, devicePtr, arg->value.buffer.sizeInBytes,
-                                 cudaBackend->cudaQueue.cuStream),
-            .t="cuMemcpyDtoHAsync"
-    }.report();
-
-    cudaBackend->cudaQueue.wait();
-
-}
 

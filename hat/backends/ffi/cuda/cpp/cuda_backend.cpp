@@ -100,8 +100,8 @@ PtxSource *PtxSource::nvcc(const char *cudaSource, size_t len) {
 }
 
 
-CudaBackend::CudaBackend(int mode)
-        : Backend(mode), initStatus(cuInit(0)), cudaConfig(mode), cudaQueue(this), device(),context()  {
+CudaBackend::CudaBackend(int configBits)
+        : Backend(new Config(configBits), new CudaQueue(this)), initStatus(cuInit(0)), device(),context()  {
     int deviceCount = 0;
 
     if (initStatus == CUDA_SUCCESS) {
@@ -119,7 +119,7 @@ CudaBackend::CudaBackend(int mode)
                 .t="cuCtxCreate"
         }.report();
         std::cout << "CudaBackend context created ok (id="<<context<<")" << std::endl;
-        cudaQueue.init();
+        dynamic_cast<CudaQueue *>(queue)->init();
     } else {
         WHERE{.f=__FILE__, .l=__LINE__,
                 .e=initStatus,
@@ -243,26 +243,26 @@ CudaBackend::CudaModule * CudaBackend::compile(CudaSource *cudaSource) {
 }
 
 Backend::CompilationUnit * CudaBackend::compile(int len, char *source) {
-    if (cudaConfig.traceCalls) {
+    if (config->traceCalls) {
         std::cout << "inside compileProgram" << std::endl;
     }
     PtxSource *ptx = nullptr;
-    if (cudaConfig.ptx){
-        if (cudaConfig.trace) {
+    if (config->ptx){
+        if (config->trace) {
             std::cout << "compiling from ptx " << std::endl;
         }
         ptx = new PtxSource(len,source);
     }else {
         ptx = PtxSource::nvcc(source, len);
-        if (cudaConfig.traceCalls) {
+        if (config->traceCalls) {
             std::cout << "compiling from cuda c99 "<<std::endl;
         }
-        if (cudaConfig.showCode){
+        if (config->showCode){
             std::cout << "cuda " << source << std::endl;
         }
 
     }
-    if (cudaConfig.showCode){
+    if (config->showCode){
         std::cout << "ptx " << ptx->text << std::endl;
     }
         CUmodule module;
@@ -314,18 +314,39 @@ void clCallback(void *){
 
 
 
-CudaBackend::CudaConfig::CudaConfig(int mode)
-   : Backend::Config(mode){
-
-}
 void CudaBackend::computeEnd(){
+    queue->computeEnd();
 
 }
 void CudaBackend::computeStart(){
-
+    queue->computeStart();
 }
-bool CudaBackend::getBufferFromDeviceIfDirty(void *memorySegment, long size){
-return true;
+bool CudaBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength){
+    if (config->traceCalls){
+        std::cout << "getBufferFromDeviceIfDirty(" <<std::hex << (long)memorySegment << "," << std::dec<< memorySegmentLength <<"){"<<std::endl;
+    }
+    if (config->minimizeCopies){
+        BufferState * bufferState = BufferState::of(memorySegment,memorySegmentLength);
+        if (bufferState->state == BufferState::DEVICE_OWNED){
+            queue->copyFromDevice(static_cast<Backend::Buffer *>(bufferState->vendorPtr));
+            if (config->traceEnqueues | config->traceCopies){
+                std::cout << "copying buffer from device (from java access) "<< std::endl;
+            }
+            queue->wait();
+            queue->release();
+        }else{
+            std::cout << "HOW DID WE GET HERE 1 attempting  to get buffer but buffer is not device dirty"<<std::endl;
+            std::exit(1);
+        }
+    }else{
+        std::cerr << "HOW DID WE GET HERE ? java side should avoid calling getBufferFromDeviceIfDirty as we are not minimising buffers!"<<std::endl;
+        std::exit(1);
+    }
+    if (config->traceCalls){
+        std::cout << "}getBufferFromDeviceIfDirty()"<<std::endl;
+    }
+    return true;
+
 }
 
 CudaBackend * CudaBackend::of(long backendHandle){
@@ -333,4 +354,20 @@ CudaBackend * CudaBackend::of(long backendHandle){
 }
 CudaBackend * CudaBackend::of(Backend *backend){
     return dynamic_cast<CudaBackend *>(backend);
+}
+
+CudaBackend::CudaBuffer * CudaBackend::getOrCreateBuffer(BufferState *bufferState) {
+    CudaBuffer *cudaBuffer = nullptr;
+    if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){
+        cudaBuffer = new CudaBuffer(this,  bufferState);
+        if (config->trace){
+            std::cout << "We allocated arg buffer "<<std::endl;
+        }
+    }else{
+        if (config->trace){
+            std::cout << "Were reusing  buffer  buffer "<<std::endl;
+        }
+        cudaBuffer=  static_cast<CudaBuffer*>(bufferState->vendorPtr);
+    }
+    return cudaBuffer;
 }
