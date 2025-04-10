@@ -38,7 +38,6 @@ import jdk.incubator.code.TypeElement;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -457,20 +456,8 @@ public final class Interpreter {
             return invoke(mh, values);
         } else if (o instanceof CoreOp.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            JavaType nType = (JavaType) no.constructorType().returnType();
-            if (nType instanceof ArrayType at) {
-                if (values.length > at.dimensions()) {
-                    throw interpreterException(new IllegalArgumentException("Bad constructor NewOp: " + no));
-                }
-                int[] lengths = Stream.of(values).mapToInt(v -> (int) v).toArray();
-                for (int length : lengths) {
-                    nType = ((ArrayType)nType).componentType();
-                }
-                return Array.newInstance(resolveToClass(l, nType), lengths);
-            } else {
-                MethodHandle mh = resolveToConstructorHandle(l, no.constructorDescriptor());
-                return invoke(mh, values);
-            }
+            MethodHandle mh = resolveToConstructorHandle(l, no.constructorDescriptor());
+            return invoke(mh, values);
         } else if (o instanceof CoreOp.QuotedOp qo) {
             SequencedMap<Value, Object> capturedValues = qo.capturedValues().stream()
                     .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
@@ -659,23 +646,6 @@ public final class Interpreter {
             return MethodHandles.lookup().findStatic(InvokableLeafOps.class, opName, mt);
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw interpreterException(e);
-        }
-    }
-
-    static MethodHandle constructorHandle(MethodHandles.Lookup l, FunctionType ft) {
-        MethodType mt = resolveToMethodType(l, ft);
-
-        if (mt.returnType().isArray()) {
-            if (mt.parameterCount() != 1 || mt.parameterType(0) != int.class) {
-                throw interpreterException(new IllegalArgumentException("Bad constructor descriptor: " + ft));
-            }
-            return MethodHandles.arrayConstructor(mt.returnType());
-        } else {
-            try {
-                return l.findConstructor(mt.returnType(), mt.changeReturnType(void.class));
-            } catch (NoSuchMethodException | IllegalAccessException e) {
-                throw interpreterException(e);
-            }
         }
     }
 
