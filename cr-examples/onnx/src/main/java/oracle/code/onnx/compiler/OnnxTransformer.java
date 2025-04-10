@@ -53,7 +53,6 @@ public class OnnxTransformer {
 
     private final MethodHandles.Lookup l;
     private final CoreOp.FuncOp inputFunc;
-    private SequencedCollection<FieldRef> inits;
 
     public static OnnxTransformer ofQuotedLambda(MethodHandles.Lookup lookup, Quoted quotedLambda) {
         CoreOp.LambdaOp lambda = (CoreOp.LambdaOp) quotedLambda.op();
@@ -121,19 +120,18 @@ public class OnnxTransformer {
         })).toList());
 
         // collect initializers (field load ops of tensors)
-        record TI(ClassType type, int index) {}
+        record TI(OnnxType.Initializer type, int index) {}
         var initializers = module.traverse(new LinkedHashMap<FieldRef, TI>(), (i, op) -> {
             if (op instanceof CoreOp.FieldAccessOp.FieldLoadOp flo && flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)) {
-                i.putIfAbsent(flo.fieldDescriptor(), new TI(ct, i.size()));
+                i.putIfAbsent(flo.fieldDescriptor(), new TI(new OnnxType.Initializer((OnnxType)type(l, ct), ((ClassType)flo.fieldDescriptor().refType()).rawType().toClassName() + "." + flo.fieldDescriptor().name()), i.size()));
             }
             return i;
         });
-        inits = initializers.sequencedKeySet();
 
         CoreOp.ModuleOp initializedModule;
         if (!initializers.isEmpty()) {
             // map all initializers field loads into additional arguments
-            List<ClassType> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
+            List<OnnxType.Initializer> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
             initializedModule = CoreOp.module(module.functionTable().sequencedValues().stream().map(f -> {
                 var ft = f.invokableType();
                 int argsSize = ft.parameterTypes().size();
@@ -177,16 +175,6 @@ public class OnnxTransformer {
             }
         } catch (ReflectiveOperationException | IllegalArgumentException _) {}
         return null;
-    }
-
-    public List<Tensor> initializers(Object receiver) {
-        return inits.stream().map(i -> {
-            try {
-                return (Tensor)(i.resolveToMember(l).accessFlags().contains(AccessFlag.STATIC) ? i.resolveToHandle(l).get() : i.resolveToHandle(l).get(receiver));
-            } catch (ReflectiveOperationException ex) {
-                throw new RuntimeException(ex);
-            }
-        }).toList();
     }
 
     CoreOp.ModuleOp transform(CoreOp.ModuleOp module) {
