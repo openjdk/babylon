@@ -322,7 +322,7 @@ public class CNNTest {
     public void testModels() {
         try (var arena = Arena.ofConfined()) {
             CoreOp.FuncOp f = getFuncOp("cnn");
-            var onnxModel = new OnnxTransformer(MethodHandles.lookup(), f).transform();
+            CoreOp.ModuleOp onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), f);
             System.out.println(onnxModel.toText());
 
             var expectedOnnxModel = cnnModel();

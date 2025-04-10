@@ -97,8 +97,7 @@ public final class OnnxRuntime {
 
         @Override
         protected Session computeValue(Class<?> type) {
-            OnnxTransformer trans = OnnxTransformer.ofQuotedLambda(l, q);
-            CoreOp.ModuleOp module = trans.transform();
+            CoreOp.ModuleOp module = OnnxTransformer.transform(l, q);
 
             // initializers filtered from the model main function parameters
             List<OnnxType.Initializer> initializers =
