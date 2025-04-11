@@ -27,6 +27,7 @@ package jdk.incubator.code.op;
 
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.*;
@@ -1650,8 +1651,19 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new NewOp(def, constructorType, isVarArgs);
         }
 
+        static void validateArgCount(boolean isVarArgs, FunctionType constructorType, List<Value> operands) {
+            int paramCount = constructorType.parameterTypes().size();
+            int argCount = operands.size();
+            if ((!isVarArgs && argCount != paramCount)
+                    || argCount < paramCount - 1) {
+                throw new IllegalArgumentException(isVarArgs + " " + constructorType);
+            }
+        }
+
         NewOp(ExternalizedOp def, FunctionType constructorType, boolean isVarArgs) {
             super(def);
+
+            validateArgCount(isVarArgs, constructorType, def.operands());
 
             this.constructorType = constructorType;
             this.isVarArgs = isVarArgs;
@@ -1673,6 +1685,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         NewOp(TypeElement resultType, boolean isVarArgs, FunctionType constructorType, List<Value> args) {
             super(NAME, args);
+
+            validateArgCount(isVarArgs, constructorType, args);
 
             this.constructorType = constructorType;
             this.isVarArgs = isVarArgs;
