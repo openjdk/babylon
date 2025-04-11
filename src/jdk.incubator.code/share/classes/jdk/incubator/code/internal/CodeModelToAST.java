@@ -44,8 +44,7 @@ public class CodeModelToAST {
         this.crSym = crSym;
     }
 
-    private Type typeElementToType(TypeElement te) {
-        JavaType jt = (JavaType) te;
+    private Type typeElementToType(TypeElement jt) {
         return switch (jt) {
             case PrimitiveType pt when pt == JavaType.BOOLEAN -> syms.booleanType;
             case PrimitiveType pt when pt == JavaType.BYTE -> syms.byteType;
@@ -61,7 +60,7 @@ public class CodeModelToAST {
             }
             case ClassType ct -> types.erasure(syms.enterClass(attrEnv.toplevel.modle, ct.toClassName()));
             case ArrayType at -> new Type.ArrayType(typeElementToType(at.componentType()), syms.arrayClass);
-            default -> throw new IllegalStateException("Unsupported type: " + te);
+            default -> throw new IllegalStateException("Unsupported type: " + jt);
         };
     }
 
