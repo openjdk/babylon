@@ -11,8 +11,6 @@ import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.*;
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.type.*;
 
 import java.util.HashMap;
@@ -31,7 +29,6 @@ public class CodeModelToAST {
     private final Symbol.ClassSymbol currClassSym;
     private final CodeReflectionSymbols crSym;
     private final Map<Value, Symbol.VarSymbol> valueToVarSym = new HashMap<>();
-    private final Map<JavaType, Type> jtToType;
     private Symbol.MethodSymbol ms;
     private int localVarCount = 0; // used to name variables we introduce in the AST
 
@@ -45,67 +42,25 @@ public class CodeModelToAST {
         this.attrEnv = attrEnv;
         this.currClassSym = attrEnv.enclClass.sym;
         this.crSym = crSym;
-        this.jtToType = mappingFromJavaTypeToType();
     }
 
-    private Map<JavaType, Type> mappingFromJavaTypeToType() {
-        Map<JavaType, Type> m = new HashMap<>();
-        Symbol.ModuleSymbol jdk_incubator_code = syms.enterModule(names.jdk_incubator_code);
-        Class<?>[] crTypes = {
-                Body.Builder.class, TypeElement.ExternalizedTypeElement.class, TypeElement.class,
-                FunctionType.class, Block.Builder.class, Value.class, Block.Reference.class, Op.Result.class,
-                Op.class, TypeElementFactory.class, OpFactory.class, ExternalizableOp.ExternalizedOp.class,
-                MethodRef.class, Block.Parameter.class, FieldRef.class, CoreOp.InvokeOp.InvokeKind.class,
-                ExternalizableOp.class, RecordTypeRef.class
-        };
-        for (Class<?> crType : crTypes) {
-            JavaType jt = JavaType.type(crType.describeConstable().get());
-            Type t = syms.enterClass(jdk_incubator_code, jt.externalize().toString());
-            m.put(jt, t);
-        }
-        Class<?>[] javaBaseTypes = {
-                HashMap.class, String.class, Object.class, Map.class, java.util.List.class
-        };
-        for (Class<?> javaBaseType : javaBaseTypes) {
-            JavaType jt = JavaType.type(javaBaseType.describeConstable().get());
-            Type t = syms.enterClass(syms.java_base, jt.externalize().toString());
-            m.put(jt, types.erasure(t));
-        }
-
-        m.putAll(Map.ofEntries(
-                Map.entry(JavaType.BOOLEAN, syms.booleanType),
-                Map.entry(JavaType.BYTE, syms.byteType),
-                Map.entry(JavaType.SHORT, syms.shortType),
-                Map.entry(JavaType.CHAR, syms.charType),
-                Map.entry(JavaType.INT, syms.intType),
-                Map.entry(JavaType.LONG, syms.longType),
-                Map.entry(JavaType.FLOAT, syms.floatType),
-                Map.entry(JavaType.DOUBLE, syms.doubleType)
-        ));
-
-        return m;
-    }
-
-    private Type typeElementToType(TypeElement te) {
-        JavaType jt = (JavaType) te;
+    private Type typeElementToType(TypeElement jt) {
         return switch (jt) {
+            case PrimitiveType pt when pt == JavaType.BOOLEAN -> syms.booleanType;
+            case PrimitiveType pt when pt == JavaType.BYTE -> syms.byteType;
+            case PrimitiveType pt when pt == JavaType.CHAR -> syms.charType;
+            case PrimitiveType pt when pt == JavaType.INT -> syms.intType;
+            case PrimitiveType pt when pt == JavaType.LONG -> syms.longType;
+            case PrimitiveType pt when pt == JavaType.FLOAT -> syms.floatType;
+            case PrimitiveType pt when pt == JavaType.DOUBLE -> syms.doubleType;
             case ClassType ct when ct.hasTypeArguments() -> {
-                ClassType enclosingType = ct.enclosingType().orElse(null);
-                ListBuffer<Type> typeArgs = new ListBuffer<>();
-                for (JavaType typeArgument : ct.typeArguments()) {
-                    typeArgs.add(typeElementToType(typeArgument));
-                }
-                yield new Type.ClassType(typeElementToType(enclosingType), typeArgs.toList(),
-                        typeElementToType(ct.rawType()).tsym);
+                Type enclosing = ct.enclosingType().map(this::typeElementToType).orElse(Type.noType);
+                List<Type> typeArgs = List.from(ct.typeArguments()).map(this::typeElementToType);
+                yield new Type.ClassType(enclosing, typeArgs, typeElementToType(ct.rawType()).tsym);
             }
+            case ClassType ct -> types.erasure(syms.enterClass(attrEnv.toplevel.modle, ct.toClassName()));
             case ArrayType at -> new Type.ArrayType(typeElementToType(at.componentType()), syms.arrayClass);
-            case null -> Type.noType;
-            default -> {
-                if (!jtToType.containsKey(te)) {
-                    throw new IllegalStateException("JavaType -> Type not found for: " + te.externalize().toString());
-                }
-                yield jtToType.get(te);
-            }
+            default -> throw new IllegalStateException("Unsupported type: " + jt);
         };
     }
 
