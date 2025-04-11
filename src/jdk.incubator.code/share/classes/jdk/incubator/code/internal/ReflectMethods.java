@@ -1495,7 +1495,7 @@ public class ReflectMethods extends TreeTranslator {
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
-            result = append(CoreOp._new(typeToTypeElement(type), constructorType, args));
+            result = append(CoreOp._new(typeToTypeElement(type), tree.varargsElement != null, constructorType, args));
         }
 
         @Override

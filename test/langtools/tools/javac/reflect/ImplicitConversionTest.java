@@ -529,7 +529,7 @@ public class ImplicitConversionTest {
                 %2 : Var<int> = var %1 @"i";
                 %3 : int = var.load %2;
                 %4 : int = var.load %2;
-                %5 : ImplicitConversionTest$Box = new %3 %4 @"func<ImplicitConversionTest$Box, int, int, long[]>";
+                %5 : ImplicitConversionTest$Box = new %3 %4 @"func<ImplicitConversionTest$Box, int, int, long[]>" @new.varargs="true";
                 return;
             };
             """)
@@ -545,7 +545,7 @@ public class ImplicitConversionTest {
                %4 : int = var.load %2;
                %5 : int = var.load %2;
                %6 : long = conv %5;
-               %7 : ImplicitConversionTest$Box = new %3 %4 %6 @"func<ImplicitConversionTest$Box, int, int, long[]>";
+               %7 : ImplicitConversionTest$Box = new %3 %4 %6 @"func<ImplicitConversionTest$Box, int, int, long[]>" @new.varargs="true";
                return;
            };
            """)
@@ -563,7 +563,7 @@ public class ImplicitConversionTest {
                 %6 : long = conv %5;
                 %7 : int = var.load %2;
                 %8 : long = conv %7;
-                %9 : ImplicitConversionTest$Box = new %3 %4 %6 %8 @"func<ImplicitConversionTest$Box, int, int, long[]>";
+                %9 : ImplicitConversionTest$Box = new %3 %4 %6 %8 @"func<ImplicitConversionTest$Box, int, int, long[]>" @new.varargs="true";
                 return;
             };
             """)
