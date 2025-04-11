@@ -84,9 +84,6 @@ public class CodeModelToAST {
         if (invokeOp.isVarArgs()) {
             setVarargs(methodInvocation, invokeOp.invokeDescriptor().type());
         }
-        if (invokeOp.result().uses().isEmpty()) {
-            return treeMaker.Exec(methodInvocation);
-        }
         return methodInvocation;
     }
 
