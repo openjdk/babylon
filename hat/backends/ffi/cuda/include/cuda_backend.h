@@ -59,6 +59,7 @@
 #include <fstream>
 
 #include<vector>
+#include <thread>
 
 struct WHERE{
     const char* f;
@@ -98,6 +99,7 @@ class CudaBackend : public Backend {
 public:
 class CudaQueue: public Backend::Queue {
     public:
+         std::thread::id streamCreationThread;
         CUstream cuStream;
         CudaQueue(Backend *backend);
         void init();

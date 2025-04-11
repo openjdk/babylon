@@ -25,6 +25,7 @@
 
 #include <sys/wait.h>
 #include <chrono>
+#include <thread>
 #include "cuda_backend.h"
 
 /*
@@ -43,15 +44,25 @@ CudaBackend::CudaBuffer::CudaBuffer(Backend *backend,  BufferState *bufferState)
             .t="cuMemAlloc"
     }.report();
     if (cudaBackend->config->traceCalls) {
-        std::cout << "devptr " << std::hex<<  (long)devicePtr <<std::dec <<std::endl;
+        std::cout << "devptr=" << std::hex<<  (long)devicePtr << "stream=" <<dynamic_cast<CudaQueue *>(backend->queue)->cuStream <<std::dec <<std::endl;
     }
+    // Attempt to solve healing brush crash (where thread for creation of stream differs from the one where we are copying).
+  //  WHERE{.f=__FILE__, .l=__LINE__,
+    //        .e=cuStreamAttachMemAsync(dynamic_cast<CudaQueue *>(backend->queue)->cuStream, devicePtr, 0,  CU_MEM_ATTACH_GLOBAL),
+    //        .t="cuStreamAttachMemAsync"
+   // }.report();
+
   bufferState->vendorPtr= static_cast<void *>(this);
 }
 
 CudaBackend::CudaBuffer::~CudaBuffer() {
     auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
     if (cudaBackend->config->traceCalls) {
-        std::cout << "~CudaBuffer()"<< "devptr " << std::hex << (long) devicePtr << std::dec<< std::endl;
+        std::thread::id thread_id = std::this_thread::get_id();
+
+        std::cout << "~CudaBuffer()"<< "devptr =" << std::hex << (long) devicePtr << std::dec
+                << " thread=" <<thread_id
+        <<std::endl;
     }
     WHERE{.f=__FILE__, .l=__LINE__,
             .e=cuMemFree(devicePtr),
