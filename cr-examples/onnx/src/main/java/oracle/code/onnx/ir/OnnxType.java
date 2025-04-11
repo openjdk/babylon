@@ -86,6 +86,14 @@ public abstract sealed class OnnxType implements TypeElement {
                             (OnnxElementType) constructType(tree.arguments().getFirst()),
                             List.of());
                 }
+                case Initializer.NAME: {
+                    if (tree.arguments().size() != 2) {
+                        throw new IllegalArgumentException();
+                    }
+                    return new Initializer(
+                            constructType(tree.arguments().getFirst()),
+                            tree.arguments().get(1).toString());
+                }
                 case Float16Type.NAME: {
                     if (!tree.arguments().isEmpty()) {
                         throw new IllegalArgumentException();
@@ -466,6 +474,30 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
+    public static final class Initializer extends OnnxType {
+        static final String NAME = "init";
+
+        final OnnxType type;
+        final String name;
+
+        public Initializer(OnnxType type, String name) {
+            this.type = type;
+            this.name = name;
+        }
+
+        public OnnxType type() {
+            return type;
+        }
+
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public ExternalizedTypeElement externalize() {
+            return new ExternalizedTypeElement(NAME, List.of(type.externalize(), ExternalizedTypeElement.ofString(name)));
+        }
+    }
 
     public static abstract sealed class OnnxElementType extends OnnxType {
         public abstract int id();

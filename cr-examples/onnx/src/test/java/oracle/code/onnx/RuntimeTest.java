@@ -67,11 +67,13 @@ public class RuntimeTest {
                     List.of(tensorInfo("cond", BOOL.id), tensorInfo("a", INT64.id), tensorInfo("b", INT64.id)),
                     List.of(node("If", List.of("cond"), List.of("y"), Map.of(
                             "then_branch", graph(
+                                    null,
                                     List.of(),
                                     List.of(),
                                     List.of(node("Identity", List.of("a"), List.of("y"), Map.of())),
                                     List.of("y")),
                             "else_branch", graph(
+                                    null,
                                     List.of(),
                                     List.of(),
                                     List.of(node("Identity", List.of("b"), List.of("y"), Map.of())),
@@ -94,6 +96,7 @@ public class RuntimeTest {
                     List.of(tensorInfo("max", INT64.id), tensorInfo("cond", BOOL.id), tensorInfo("a", INT64.id)),
                     List.of(node("Loop", List.of("max", "cond", "a"), List.of("a_out"), Map.of(
                             "body", graph(
+                                    null,
                                     List.of(),
                                     List.of(tensorInfo("i", INT64.id, true), tensorInfo("cond_in", BOOL.id, true), tensorInfo("a_in", INT64.id)),
                                     List.of(node("Identity", List.of("cond_in"), List.of("cond_out"), Map.of()),
@@ -103,6 +106,31 @@ public class RuntimeTest {
 
             SimpleTest.assertEquals(Tensor.ofScalar(arena, 65536l),
                     forOp.run(arena, List.of(Tensor.ofScalar(arena, 15l), Tensor.ofScalar(arena, true), Tensor.ofScalar(arena, 2l))).getFirst());
+        }
+    }
+
+
+    @Test
+    public void testCustomFunction() throws Exception {
+        String customDomain = RuntimeTest.class.getName();
+        var ort = OnnxRuntime.getInstance();
+        try (Arena arena = Arena.ofConfined()) {
+            var customFunction = ort.createSession(arena, build(
+                    List.of(),
+                    List.of(tensorInfo("x", INT64.id)),
+                    List.of(node(customDomain, "CustomFunction", List.of("x"), List.of("y"), Map.of())),
+                    List.of("y"),
+                    List.of(customDomain),
+                    List.of(new FunctionProto()
+                            .name("CustomFunction")
+                            .input("a")
+                            .output("b")
+                            .node(node("Identity", List.of("a"), List.of("b"), Map.of()))
+                            .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
+                            .domain(customDomain))));
+
+            var a = Tensor.ofScalar(arena, 1l);
+            SimpleTest.assertEquals(a, customFunction.run(arena, List.of(a)).getFirst());
         }
     }
 }
