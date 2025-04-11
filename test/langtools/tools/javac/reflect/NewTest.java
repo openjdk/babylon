@@ -234,4 +234,86 @@ public class NewTest {
     void test11(int i) {
         String[][][] s = new String[i][i + 1][i + 2];
     }
+
+    static class V {
+        V(int i, int... values) { }
+    }
+
+
+    @CodeReflection
+    @IR("""
+            func @"test12" (%0 : NewTest, %1 : int)void -> {
+                %2 : Var<int> = var %1 @"i";
+                %3 : int = var.load %2;
+                %4 : NewTest$V = new %3 @"func<NewTest$V, int, int[]>" @new.varargs="true";
+                return;
+            };
+            """)
+    void test12(int i) {
+        new V(i);
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test13" (%0 : NewTest, %1 : int)void -> {
+                %2 : Var<int> = var %1 @"i";
+                %3 : int = var.load %2;
+                %4 : int = var.load %2;
+                %5 : NewTest$V = new %3 %4 @"func<NewTest$V, int, int[]>" @new.varargs="true";
+                return;
+            };
+            """)
+    void test13(int i) {
+        new V(i, i);
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test14" (%0 : NewTest, %1 : int)void -> {
+                %2 : Var<int> = var %1 @"i";
+                %3 : int = var.load %2;
+                %4 : int = var.load %2;
+                %5 : int = var.load %2;
+                %6 : NewTest$V = new %3 %4 %5 @"func<NewTest$V, int, int[]>" @new.varargs="true";
+                return;
+            };
+            """)
+    void test14(int i) {
+        new V(i, i, i);
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test15" (%0 : NewTest, %1 : int)void -> {
+                %2 : Var<int> = var %1 @"i";
+                %3 : int = var.load %2;
+                %4 : int[] = constant @null;
+                %5 : NewTest$V = new %3 %4 @"func<NewTest$V, int, int[]>";
+                return;
+            };
+            """)
+    void test15(int i) {
+        new V(i, null);
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"test16" (%0 : NewTest, %1 : int)void -> {
+                %2 : Var<int> = var %1 @"i";
+                %3 : int = var.load %2;
+                %4 : int = constant @"2";
+                %5 : int[] = new %4 @"func<int[], int>";
+                %6 : int = var.load %2;
+                %7 : int = constant @"0";
+                array.store %5 %7 %6;
+                %8 : int = var.load %2;
+                %9 : int = constant @"1";
+                array.store %5 %9 %8;
+                %10 : NewTest$V = new %3 %5 @"func<NewTest$V, int, int[]>";
+                return;
+            };
+            """)
+    void test16(int i) {
+        new V(i, new int[] { i, i});
+    }
 }
