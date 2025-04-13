@@ -1,4 +1,4 @@
-Example using code reflection with a Java-based ONNX programming model.
+MavenStyleProject using code reflection with a Java-based ONNX programming model.
 
 Running the demo:
 ```

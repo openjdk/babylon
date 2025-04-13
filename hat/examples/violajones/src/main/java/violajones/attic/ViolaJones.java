@@ -26,7 +26,6 @@ package violajones.attic;
 
 
 import hat.Accelerator;
-import hat.backend.java.JavaMultiThreadedBackend;
 import hat.backend.java.WorkStealer;
 import hat.buffer.F32Array2D;
 import org.xml.sax.SAXException;
@@ -48,7 +47,7 @@ public class ViolaJones {
 
     public static void main(String[] _args) throws IOException, ParserConfigurationException, SAXException {
         //  Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend::isJava);
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), (backend -> backend instanceof JavaMultiThreadedBackend));
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup());
 
 
         BufferedImage nasa = ImageIO.read(Objects.requireNonNull(ViolaJones.class.getResourceAsStream("/images/Nasa1996.jpg")));

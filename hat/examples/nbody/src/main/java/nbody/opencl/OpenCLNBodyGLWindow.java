@@ -114,6 +114,9 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
 
     public OpenCLNBodyGLWindow(Arena arena, int width, int height, GLTexture particle, int bodyCount, Mode mode) {
         super(arena, width, height, particle, bodyCount, mode);
+        if (mode == Mode.HAT) {
+            System.out.println("mode = "+mode);
+        }
         final float maxDist = 80f;
         accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
         universe = Universe.create(accelerator, bodyCount);

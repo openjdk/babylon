@@ -495,6 +495,12 @@ public class Script {
         public static SourceDir of(Path path) {
             return new SourceDir(path);
         }
+        public static SourceDir of(DirEntry dirEntry) {
+            return new SourceDir(dirEntry.path());
+        }
+        public static SourceDir of(BuildDir buildDir) {
+            return new SourceDir(buildDir.path());
+        }
 
         public Stream<Path> javaFiles() {
             return findFilesBySuffix(".java");
@@ -954,6 +960,7 @@ public class Script {
         public DirEntry jdk = java.home;
         public Boolean enablePreview;
         public Strings modules;
+        protected boolean justShowCommandline;
 
         record FromModulePackageToModule(String fromModule, String pkg, String toModule) {
         }
@@ -1031,11 +1038,19 @@ public class Script {
             return self();
         }
 
+        public T justShowCommandline(boolean justShowCommandline) {
+            this.justShowCommandline=justShowCommandline;
+            return self();
+        }
+        public T justShowCommandline() {
+            return justShowCommandline(true);
+        }
 
     }
 
     public abstract sealed static class JavaToolBuilder<T extends JavaToolBuilder<T>> extends JavaOpts<T> permits JavacBuilder, JavaBuilder {
         public ClassPath classPath;
+
 
         protected T dontCallThisCopy(T other) {
             super.dontCallThisCopy(other);
@@ -1314,9 +1329,11 @@ public class Script {
         public String mainClass;
         public DirPath libraryPath;
         public boolean startOnFirstThread;
+        public Strings vmargs = new Strings();
         public Strings args = new Strings();
         public Strings nativeAccessModules = new Strings();
         private boolean headless;
+
 
         public JavaBuilder enable_native_access(String module) {
             nativeAccessModules.add(module);
@@ -1326,11 +1343,21 @@ public class Script {
         public JavaBuilder enable_native_access_to_all_unnamed() {
             return enable_native_access("ALL-UNNAMED");
         }
+        public JavaBuilder vmargs(List<String> args) {
+            this.vmargs.add(args);
+            return self();
+        }
+
+        public JavaBuilder vmargs(String... args) {
+            vmargs(Arrays.asList(args));
+            return self();
+        }
 
         public JavaBuilder args(List<String> args) {
             this.args.add(args);
             return self();
         }
+
 
         public JavaBuilder args(String... args) {
             args(Arrays.asList(args));
@@ -1408,18 +1435,31 @@ public class Script {
         if (javaBuilder.libraryPath != null) {
             result.opts.add("-Djava.library.path=" + javaBuilder.libraryPath.charSeparated());
         }
+        result.opts.add(javaBuilder.vmargs.strings);
         result.opts.add(javaBuilder.mainClass);
         result.opts.add(javaBuilder.args.strings);
 
-        try {
-            var processBuilder = new ProcessBuilder().inheritIO().command(result.opts.strings);
-            var process = processBuilder.start();
-            if (javaBuilder.verbose) {
-                println(result.opts.spaceSeparated());
+        if (javaBuilder.justShowCommandline) {
+            println(result.opts.spaceSeparated());
+            result.ok = false;
+        }else {
+            try {
+                var processBuilder = new ProcessBuilder().inheritIO().command(result.opts.strings);
+                var process = processBuilder.start();
+                if (javaBuilder.verbose) {
+                    println(result.opts.spaceSeparated());
+                }
+                process.waitFor();
+                result.ok = (process.exitValue() == 0);
+                if (!result.ok) {
+                    // println("java ok ");
+                    //}else{
+                    println("java returned error " + process.exitValue());
+                }
+
+            } catch (InterruptedException | IOException ie) {
+                System.out.println(ie);
             }
-            process.waitFor();
-        } catch (InterruptedException | IOException ie) {
-            System.out.println(ie);
         }
 
         return javaBuilder;
@@ -2003,7 +2043,7 @@ public class Script {
         }
 
         public JExtractBuilder capability(Capabilities.Jextractable jextractable, BuildDir stageDir) {
-             output(jextractable.stage(stageDir))
+             output(stageDir)
                     .target_package(jextractable.packageName())
                     .header_class_name(jextractable.headerClassName());
               jextractable.inversionOfControl(this);
@@ -2476,6 +2516,12 @@ public class Script {
 
     public static class Capabilities {
 
+        public String tickOrCheck() {
+            StringBuilder stringBuilder = new StringBuilder();
+            capabilities().forEach(capability -> stringBuilder.append(capability.tickOrCheck()));
+            return stringBuilder.toString();
+        }
+
         interface Probe {
 
         }
@@ -2497,6 +2543,10 @@ public class Script {
             public Capability capability() {
                 return this;
             }
+
+            public String tickOrCheck() {
+                return "[" +  name + (available() ? "\u2714" : "\u2715") + "]";
+            }
         }
 
         public interface CMakeProbeable extends Consumer<Script.CMakeProbe> {
@@ -2511,9 +2561,6 @@ public class Script {
             String name();
 
 
-            default BuildDir stage(BuildDir stage) {
-                return stage.buildDir(packageName() + "_jextracted");
-            }
 
 
             default String packageName() {
@@ -2525,9 +2572,7 @@ public class Script {
                 return packageName() + "_h";
             }
 
-            default JarFile jarFile(BuildDir buildDir) {
-                return buildDir.jarFile("hat-jextracted-"+packageName() + "-1.0.jar");
-            }
+
 
             void inversionOfControl(JExtractBuilder jextractBuilder);
         }
@@ -2837,6 +2882,13 @@ public class Script {
             public static JExtract of() {
                 return new JExtract();
             }
+            public static JExtract required() {
+                JExtract jExtract = of();
+                if (!jExtract.available()) {
+                    throw new RuntimeException("jextract is reuired");
+                }
+                return jExtract;
+            }
 
             public static JExtract of(Path executable) {
                 return new JExtract(executable);
@@ -2870,6 +2922,14 @@ public class Script {
 
             public static CMake of() {
                 return new CMake();
+            }
+
+            public static CMake required() {
+                CMake cmake = of();
+                if (!cmake.available()) {
+                    throw new RuntimeException("cmake is required");
+                }
+                return cmake;
             }
 
             public void probe(BuildDir buildDir, Capabilities capabilities) {
