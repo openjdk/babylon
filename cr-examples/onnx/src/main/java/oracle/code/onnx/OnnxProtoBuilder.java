@@ -332,7 +332,7 @@ sealed class OnnxProtoBuilder<T extends OnnxProtoBuilder> {
         }
 
         private String baseName(Value value, int elementIndex) {
-            var name = baseNames.apply(value);
+            var name = "%" + baseNames.apply(value);
             return elementIndex > 0 ? name + '.' + elementIndex : name;
         }
 

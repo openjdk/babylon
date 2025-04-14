@@ -19,7 +19,6 @@ import jdk.incubator.code.*;
 
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.JavaType;
 import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
