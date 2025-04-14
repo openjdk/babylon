@@ -192,7 +192,7 @@ public class NewTest {
                 %5 : java.util.List<java.lang.String> = var.load %3;
                 %6 : .<NewTest, NewTest$BG<java.lang.String>> = new %0 %5 @".<NewTest, NewTest$BG>::<new>(NewTest, java.util.List)";
                 %7 : java.util.List<java.lang.Number> = var.load %4;
-                %8 : .<.<NewTest, NewTest$BG<java.lang.String>>, NewTest$BG$CG<java.lang.Number>> = new %6 %7 @".<.<NewTest, NewTest$BG>, NewTest$BG$CG>::<new>(.<NewTest, NewTest$BG<java.lang.String>>, java.util.List)";                
+                %8 : .<.<NewTest, NewTest$BG<java.lang.String>>, NewTest$BG$CG<java.lang.Number>> = new %6 %7 @".<.<NewTest, NewTest$BG>, NewTest$BG$CG>::<new>(.<NewTest, NewTest$BG<java.lang.String>>, java.util.List)";
                 %9 : Var<.<.<NewTest, NewTest$BG<java.lang.String>>, NewTest$BG$CG<java.lang.Number>>> = var %8 @"numberCG";
                 return;
             };
