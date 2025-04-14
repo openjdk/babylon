@@ -1686,7 +1686,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         NewOp(boolean isVarArgs, TypeElement resultType, FunctionType constructorType, List<Value> args) {
             this(isVarArgs, resultType,
-                    ConstructorRef.constructor(constructorType.returnType(), constructorType), args);
+                    ConstructorRef.constructor(constructorType), args);
         }
 
         NewOp(boolean isVarargs, TypeElement resultType, ConstructorRef constructorDescriptor, List<Value> args) {
@@ -1713,7 +1713,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         public TypeElement type() {
             return opType().returnType();
-        }
+        } // @@@ duplication, same as resultType()
 
         public ConstructorRef constructorDescriptor() {
             return constructorDescriptor;

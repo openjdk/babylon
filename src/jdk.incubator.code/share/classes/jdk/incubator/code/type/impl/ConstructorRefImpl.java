@@ -42,8 +42,8 @@ import java.lang.reflect.Constructor;
 import static java.util.stream.Collectors.joining;
 
 public final class ConstructorRefImpl implements ConstructorRef {
-    final TypeElement refType;
     final FunctionType type;
+    final TypeElement refType;
 
     static final MethodHandle MULTI_NEW_ARRAY_MH;
 
@@ -56,9 +56,10 @@ public final class ConstructorRefImpl implements ConstructorRef {
         }
     }
 
-    public ConstructorRefImpl(TypeElement refType, FunctionType type) {
-        this.refType = refType;
-        this.type = type;
+
+    public ConstructorRefImpl(FunctionType functionType) {
+        this.type = functionType;
+        this.refType = functionType.returnType();
     }
 
     @Override

@@ -1494,7 +1494,7 @@ public class ReflectMethods extends TreeTranslator {
             FunctionType constructorType = FunctionType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
                     argtypes);
-            ConstructorRef constructorRef = ConstructorRef.constructor(constructorType.returnType(), constructorType);
+            ConstructorRef constructorRef = ConstructorRef.constructor(constructorType);
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 

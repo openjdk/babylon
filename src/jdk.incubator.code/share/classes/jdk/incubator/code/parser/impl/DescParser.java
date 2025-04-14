@@ -205,7 +205,7 @@ public final class DescParser {
         l.accept(Tokens.TokenKind.GT);
 
         List<TypeElement> ptypes = parseParameterTypes(l);
-        return new ConstructorRefImpl(refType, FunctionType.functionType(refType, ptypes));
+        return new ConstructorRefImpl(FunctionType.functionType(refType, ptypes));
     }
 
     static FieldRef parseFieldRef(Lexer l) {

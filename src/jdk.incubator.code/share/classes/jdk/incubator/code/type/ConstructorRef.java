@@ -72,17 +72,12 @@ public sealed interface ConstructorRef extends TypeVarRef.Owner permits Construc
         return constructor(JavaType.type(refType), params.stream().map(JavaType::type).toList());
     }
 
-
-    static ConstructorRef constructor(TypeElement refType, FunctionType type) {
-        return new ConstructorRefImpl(refType, type);
-    }
-
-    static ConstructorRef constructor(TypeElement refType, TypeElement... params) {
-        return constructor(refType, functionType(refType, params));
-    }
-
     static ConstructorRef constructor(TypeElement refType, List<? extends TypeElement> params) {
-        return constructor(refType, functionType(refType, params));
+        return constructor(functionType(refType, params));
+    }
+
+    static ConstructorRef constructor(FunctionType type) {
+        return new ConstructorRefImpl(type);
     }
 
     static ConstructorRef ofString(String s) {
