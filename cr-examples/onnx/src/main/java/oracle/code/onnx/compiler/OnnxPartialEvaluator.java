@@ -482,6 +482,11 @@ final class OnnxPartialEvaluator {
                 unevaluatedOperations.add(o);
                 return null;
             }
+            case CoreOp.FuncOp funcOp -> {
+                interpretEntryBlock(l, funcOp.body().entryBlock(), oc, new HashMap<>());
+                unevaluatedOperations.add(o);
+                return null;
+            }
             case null, default -> throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o.opName()));
         }

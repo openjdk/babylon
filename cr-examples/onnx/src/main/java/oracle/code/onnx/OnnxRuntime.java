@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,6 +25,7 @@ import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
 
 import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
+import oracle.code.onnx.ir.OnnxType;
 
 public final class OnnxRuntime {
 
@@ -72,25 +76,43 @@ public final class OnnxRuntime {
             }
         }
 
-        // @@@ heuristic assumption the first non-tensor and non-varbox captured value is receiver
-        private static Object getReceiver(SequencedCollection<Object> values) {
-            for (var v : values) {
-                if (!(v instanceof Tensor || v instanceof CoreOp.Var)) return v;
-            }
-            return null;
+        static List<Tensor> getInitValues(MethodHandles.Lookup lookup, List<OnnxType.Initializer> initializers, SequencedCollection<Object> possibleReceivers) {
+            return initializers.stream().map(i -> {
+                try {
+                    int split = i.name().lastIndexOf('.');
+                    Class<?> initializerClass = lookup.findClass(i.name().substring(0, split));
+                    Field initializerField = initializerClass.getDeclaredField(i.name().substring(split + 1, i.name().length()));
+                    VarHandle handle = lookup.unreflectVarHandle(initializerField);
+                    if (initializerField.accessFlags().contains(AccessFlag.STATIC)) {
+                        return (Tensor)handle.get();
+                    } else {
+                        return (Tensor)handle.get(possibleReceivers.stream().filter(initializerClass::isInstance).findFirst().orElseThrow());
+                    }
+                } catch (ReflectiveOperationException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }).toList();
         }
 
         @Override
         protected Session computeValue(Class<?> type) {
-            var trans = OnnxTransformer.ofQuotedLambda(l, q);
-            var func = trans.transform();
-            byte[] protobufModel = OnnxProtoBuilder.build(func.body().entryBlock(),
-                    trans.initializers(getReceiver(q.capturedValues().sequencedValues())));
+            CoreOp.ModuleOp module = OnnxTransformer.transform(l, q);
+
+            // initializers filtered from the model main function parameters
+            List<OnnxType.Initializer> initializers =
+                    module.functionTable().sequencedValues().getLast()
+                            .parameters().stream()
+                                    .map(Block.Parameter::type)
+                                    .filter(OnnxType.Initializer.class::isInstance)
+                                    .map(OnnxType.Initializer.class::cast).toList();
+
+            String domainName = type.getSimpleName().split("\\$")[0];
+            byte[] protobufModel = OnnxProtoBuilder.build(domainName, module, getInitValues(l, initializers, q.capturedValues().sequencedValues()));
 
             if (DEBUG) {
-                System.out.println(func.toText());
+                System.out.println(module.toText());
                 try {
-                    var export = Path.of(type.getSimpleName().split("\\$")[0] + ".onnx");
+                    var export = Path.of(domainName + ".onnx");
                     Files.write(export, protobufModel);
                     System.out.println("Onnx model exported to: " + export.toAbsolutePath());
                 } catch (IOException _) {}
