@@ -6,7 +6,8 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 
-public enum OnnxProtoPrinter {
+// @@@ for tests and debug purposes, later it can be moved to tests
+enum OnnxProtoPrinter {
     BYTES, INT, INTS, FLOAT, FLOATS, DOUBLE, DOUBLES, STRING,
     Attribute, ValueInfoProto, NodeProto, TrainingInfoProto, ModelProto, StringStringEntryProto, TensorAnnotation,
     GraphProto, TensorProto, Segment, SparseTensorProto, TensorShapeProto, Dimension, TypeProto, Tensor, Sequence,
@@ -14,150 +15,150 @@ public enum OnnxProtoPrinter {
 
     static {
         init(Attribute,
-                1, "name", STRING,
-                2, "f", FLOAT,
-                3, "i", INT,
-                4, "s", BYTES,
-                5, "t", TensorProto,
-                6, "g", GraphProto,
-                7, "floats", FLOATS,
-                8, "ints", INTS,
-                9, "strings", BYTES,
-               10, "tensors", TensorProto,
-               11, "graphs", GraphProto,
-               13, "doc_string", STRING,
-               14, "tp", TypeProto,
-               15, "type_protos", TypeProto,
-               20, "type", INT,
-               21, "ref_attr_name", STRING,
-               22, "sparse_tensor", SparseTensorProto,
-               23, "sparse_tensors", SparseTensorProto);
+                1, "name", STRING, false,
+                2, "f", FLOAT, false,
+                3, "i", INT, false,
+                4, "s", BYTES, false,
+                5, "t", TensorProto, false,
+                6, "g", GraphProto, false,
+                7, "floats", FLOATS, true,
+                8, "ints", INTS, true,
+                9, "strings", BYTES, true,
+               10, "tensors", TensorProto, true,
+               11, "graphs", GraphProto, true,
+               13, "doc_string", STRING, false,
+               14, "tp", TypeProto, false,
+               15, "type_protos", TypeProto, true,
+               20, "type", INT, false,
+               21, "ref_attr_name", STRING, false,
+               22, "sparse_tensor", SparseTensorProto, false,
+               23, "sparse_tensors", SparseTensorProto, true);
         init(ValueInfoProto,
-                1, "name", STRING,
-                2, "type", TypeProto,
-                3, "doc_string", STRING,
-                4, "metadata_props", StringStringEntryProto);
+                1, "name", STRING, false,
+                2, "type", TypeProto, false,
+                3, "doc_string", STRING, false,
+                4, "metadata_props", StringStringEntryProto, true);
         init(NodeProto,
-                1, "input", STRING,
-                2, "output", STRING,
-                3, "name", STRING,
-                4, "op_type", STRING,
-                5, "attribute", Attribute,
-                6, "doc_string", STRING,
-                7, "domain", STRING,
-                8, "overload", STRING,
-                9, "metadata_props", StringStringEntryProto);
+                1, "input", STRING, true,
+                2, "output", STRING, true,
+                3, "name", STRING, false,
+                4, "op_type", STRING, false,
+                5, "attribute", Attribute, true,
+                6, "doc_string", STRING, false,
+                7, "domain", STRING, false,
+                8, "overload", STRING, false,
+                9, "metadata_props", StringStringEntryProto, true);
         init(TrainingInfoProto,
-                1, "initialization", GraphProto,
-                2, "algorithm", GraphProto,
-                3, "initialization_binding", StringStringEntryProto,
-                4, "update_binding", StringStringEntryProto);
+                1, "initialization", GraphProto, false,
+                2, "algorithm", GraphProto, false,
+                3, "initialization_binding", StringStringEntryProto, true,
+                4, "update_binding", StringStringEntryProto, true);
         init(ModelProto,
-                1, "ir_version", INT,
-                2, "producer_name", STRING,
-                3, "producer_version", STRING,
-                4, "domain", STRING,
-                5, "model_version", INT,
-                6, "doc_string", STRING,
-                7, "graph", GraphProto,
-                8, "opset_import", OperatorSetIdProto,
-                14, "metadata_props", StringStringEntryProto,
-                20, "training_info", TrainingInfoProto,
-                25, "functions", FunctionProto);
+                1, "ir_version", INT, false,
+                2, "producer_name", STRING, false,
+                3, "producer_version", STRING, false,
+                4, "domain", STRING, false,
+                5, "model_version", INT, false,
+                6, "doc_string", STRING, false,
+                7, "graph", GraphProto, false,
+                8, "opset_import", OperatorSetIdProto, true,
+                14, "metadata_props", StringStringEntryProto, true,
+                20, "training_info", TrainingInfoProto, true,
+                25, "functions", FunctionProto, true);
         init(StringStringEntryProto,
-                1, "key", STRING,
-                2, "value", STRING);
+                1, "key", STRING, false,
+                2, "value", STRING, false);
         init(TensorAnnotation,
-                1, "tensor_name", STRING,
-                2, "quant_parameter_tensor_names", StringStringEntryProto);
+                1, "tensor_name", STRING, false,
+                2, "quant_parameter_tensor_names", StringStringEntryProto, true);
         init(GraphProto,
-                1, "node", NodeProto,
-                2, "name", STRING,
-                5, "initializer", TensorProto,
-                10, "doc_string", STRING,
-                11, "input", ValueInfoProto,
-                12, "output", ValueInfoProto,
-                13, "value_info", ValueInfoProto,
-                14, "quantization_annotation", TensorAnnotation,
-                15, "sparse_initializer", SparseTensorProto,
-                16, "metadata_props", StringStringEntryProto);
+                1, "node", NodeProto, true,
+                2, "name", STRING, false,
+                5, "initializer", TensorProto, true,
+                10, "doc_string", STRING, false,
+                11, "input", ValueInfoProto, true,
+                12, "output", ValueInfoProto, true,
+                13, "value_info", ValueInfoProto, true,
+                14, "quantization_annotation", TensorAnnotation, true,
+                15, "sparse_initializer", SparseTensorProto, true,
+                16, "metadata_props", StringStringEntryProto, true);
         init(TensorProto,
-                1, "dims", INTS,
-                2, "data_type", INT,
-                3, "segment", Segment,
-                4, "float_data", FLOATS,
-                5, "int32_data", INTS,
-                6, "string_data", BYTES,
-                7, "int64_data", INTS,
-                8, "name", STRING,
-                9, "raw_data", BYTES,
-                10, "double_data", DOUBLES,
-                11, "uint64_data", INTS,
-                12, "doc_string", STRING,
-                13, "external_data", StringStringEntryProto,
-                14, "data_location", INT,
-                16, "metadata_props", StringStringEntryProto);
+                1, "dims", INTS, true,
+                2, "data_type", INT, false,
+                3, "segment", Segment, false,
+                4, "float_data", FLOATS, true,
+                5, "int32_data", INTS, true,
+                6, "string_data", BYTES, true,
+                7, "int64_data", INTS, true,
+                8, "name", STRING, false,
+                9, "raw_data", BYTES, false,
+                10, "double_data", DOUBLES, true,
+                11, "uint64_data", INTS, true,
+                12, "doc_string", STRING, false,
+                13, "external_data", StringStringEntryProto, true,
+                14, "data_location", INT, false,
+                16, "metadata_props", StringStringEntryProto, true);
         init(Segment,
-                1, "begin", INT,
-                2, "end", INT);
+                1, "begin", INT, false,
+                2, "end", INT, false);
         init(SparseTensorProto,
-                1, "values", TensorProto,
-                2, "indices", TensorProto,
-                3, "dims", INTS);
+                1, "values", TensorProto, false,
+                2, "indices", TensorProto, false,
+                3, "dims", INTS, true);
         init(TensorShapeProto,
-                1, "dim", Dimension);
+                1, "dim", Dimension, true);
         init(Dimension,
-                1, "dim_value", INT,
-                2, "dim_param", STRING,
-                3, "denotation", STRING);
+                1, "dim_value", INT, false,
+                2, "dim_param", STRING, false,
+                3, "denotation", STRING, false);
         init(TypeProto,
-                1, "tensor_type", Tensor,
-                4, "sequence_type", Sequence,
-                5, "map_type", Map,
-                6, "denotation", STRING,
-                8, "sparse_tensor_type", SparseTensor,
-                9, "optional_type", Optional);
+                1, "tensor_type", Tensor, false,
+                4, "sequence_type", Sequence, false,
+                5, "map_type", Map, false,
+                6, "denotation", STRING, false,
+                8, "sparse_tensor_type", SparseTensor, false,
+                9, "optional_type", Optional, false);
         init(Tensor,
-                1, "elem_type", INT,
-                2, "shape", TensorShapeProto);
+                1, "elem_type", INT, false,
+                2, "shape", TensorShapeProto, false);
         init(Sequence,
-                1, "elem_type", TypeProto);
+                1, "elem_type", TypeProto, false);
         init(Map,
-                1, "key_type", INT,
-                2, "value_type", TypeProto);
+                1, "key_type", INT, false,
+                2, "value_type", TypeProto, false);
         init(Optional,
-                1, "elem_type", TypeProto);
+                1, "elem_type", TypeProto, false);
         init(SparseTensor,
-                1, "elem_type", INT,
-                2, "shape", TensorShapeProto);
+                1, "elem_type", INT, false,
+                2, "shape", TensorShapeProto, false);
         init(OperatorSetIdProto,
-                1, "domain", STRING,
-                2, "version", INT);
+                1, "domain", STRING, false,
+                2, "version", INT, false);
         init(FunctionProto,
-                1, "name", STRING,
-                4, "input", STRING,
-                5, "output", STRING,
-                6, "attribute", STRING,
-                7, "node", NodeProto,
-                8, "doc_string", STRING,
-                9, "opset_import", OperatorSetIdProto,
-                10, "domain", STRING,
-                11, "attribute_proto", Attribute,
-                12, "value_info", ValueInfoProto,
-                13, "overload", STRING,
-                14, "metadata_props", StringStringEntryProto);
+                1, "name", STRING, false,
+                4, "input", STRING, true,
+                5, "output", STRING, true,
+                6, "attribute", STRING, true,
+                7, "node", NodeProto, true,
+                8, "doc_string", STRING, false,
+                9, "opset_import", OperatorSetIdProto, true,
+                10, "domain", STRING, false,
+                11, "attribute_proto", Attribute, true,
+                12, "value_info", ValueInfoProto, true,
+                13, "overload", STRING, false,
+                14, "metadata_props", StringStringEntryProto, true);
     }
 
-    private record Field(String name, OnnxProtoPrinter type) {}
+    record Field(String name, OnnxProtoPrinter type, boolean repeated) {}
 
     private static void init(OnnxProtoPrinter proto, Object... fields) {
-        proto.fields = new Field[(int)fields[fields.length - 3]];
-        for (int i = 0; i < fields.length; i += 3) {
-            proto.fields[(int)fields[i] - 1] = new Field((String)fields[i + 1], (OnnxProtoPrinter)fields[i + 2]);
+        proto.fields = new Field[(int)fields[fields.length - 4]];
+        for (int i = 0; i < fields.length; i += 4) {
+            proto.fields[(int)fields[i] - 1] = new Field((String)fields[i + 1], (OnnxProtoPrinter)fields[i + 2], (boolean)fields[i + 3]);
         }
     }
 
-    private static long decodeVarint(ByteBuffer data) {
+    static long decodeVarint(ByteBuffer data) {
         int i, shift = 0;
         long value = 0;
         do {
@@ -167,7 +168,7 @@ public enum OnnxProtoPrinter {
         return value;
     }
 
-    private Field[] fields;
+    Field[] fields;
 
     public void print(int indent, ByteBuffer data) {
         data = data.order(ByteOrder.nativeOrder());
