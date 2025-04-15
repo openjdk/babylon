@@ -149,12 +149,12 @@ enum OnnxProtoPrinter {
                 14, "metadata_props", StringStringEntryProto, true);
     }
 
-    record Field(String name, OnnxProtoPrinter type, boolean repeated) {}
+    record Field(int fieldNum, String name, OnnxProtoPrinter type, boolean repeated) {}
 
     private static void init(OnnxProtoPrinter proto, Object... fields) {
         proto.fields = new Field[(int)fields[fields.length - 4]];
         for (int i = 0; i < fields.length; i += 4) {
-            proto.fields[(int)fields[i] - 1] = new Field((String)fields[i + 1], (OnnxProtoPrinter)fields[i + 2], (boolean)fields[i + 3]);
+            proto.fields[(int)fields[i] - 1] = new Field(i / 4, (String)fields[i + 1], (OnnxProtoPrinter)fields[i + 2], (boolean)fields[i + 3]);
         }
     }
 
