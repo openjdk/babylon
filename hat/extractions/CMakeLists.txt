@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(extractions)
 
-set(OSX_SDK ${CMAKE_OSX_SYSROOT})
-set(OSX_SDK_LIBRARY_FRAMEWORKS ${OSX_SDK}/System/Library/Frameworks)
-set(OSX_SYS_LIBRARY_FRAMEWORKS /System/Library/Frameworks)
+if (Apple)
+   set(OSX_SDK ${CMAKE_OSX_SYSROOT})
+   set(OSX_SDK_LIBRARY_FRAMEWORKS ${OSX_SDK}/System/Library/Frameworks)
+   set(OSX_SYS_LIBRARY_FRAMEWORKS /System/Library/Frameworks)
+else()
 
+endif()
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()
 set(EXTRACTIONS "")
 
 find_package(OpenGL)
@@ -23,8 +30,8 @@ else()
    message("NO OPENCL")
 endif()
 
-find_package(CUDA)
-if(CUDA_FOUND)
+find_package(CUDAToolkit)
+if(CUDATOOLKIT_FOUND)
    add_subdirectory(cuda)
    set(EXTRACTIONS ${EXTRACTIONS} extract_cuda)
 else()
@@ -32,5 +39,3 @@ else()
 endif()
 
 add_custom_target(extract DEPENDS ${EXTRACTIONS})
-
-
