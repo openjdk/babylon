@@ -28,7 +28,7 @@
 import static java.lang.System.out;
 
 void main(String[] args) {
-    var layout = """     
+    var layout = """
             └──./
                 ├──hat                         All build scripts in each case 'foo' has java options for (and points to) 'foo.java'
                 │    ├──bld                    --enable-preview --source 24 hat/bld.java
@@ -126,7 +126,7 @@ void main(String[] args) {
             .forEach(capability -> {
                 var extractedDir = stageDir.buildDir(capability.packageName() + "_jextracted");
                 if (!extractedDir.exists()) {
-                    Script.jextract(jextractCapability.executable, $ -> $.capability(capability, extractedDir));
+                    Script.jextract(jextractCapability.executable, $ -> $.verbose(true).capability(capability, extractedDir));
                 } else {
                     out.println("Using previously extracted  " + extractedDir.fileName());
                 }

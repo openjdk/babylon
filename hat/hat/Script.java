@@ -482,6 +482,12 @@ public class Script {
         public BuildDir existingBuildDir(String subdir) {
             return assertExists(BuildDir.of(path(subdir)));
         }
+
+
+            public CMakeBuildDir cMakeBuildDir(String name) {
+                return CMakeBuildDir.of(path().resolve(name));
+            }
+
     }
 
     public interface SourcePathEntryProvider {
@@ -1930,6 +1936,10 @@ public class Script {
         public CMakeBuilder build(CMakeBuildDir cmakeBuildDir) {
             this.cmakeBuildDir = cmakeBuildDir;
             opts("--build", cmakeBuildDir.path().toString());
+            return this;
+        }
+        public CMakeBuilder target(String target) {
+            opts("--target", target);
             return this;
         }
     }

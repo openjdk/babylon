@@ -73,7 +73,7 @@ static class MavenStyleProject implements Script.ClassPathEntryProvider {
         return new MavenStyleProject(jarFile, dir, dir.fileName(),classPathEntryProviders);
     }
 
-    boolean canWeBuild(){
+    boolean canBeBuilt(){
         if (hasJavaSources && failedDependencies.isEmpty()) {
            return true;
         }else if (!hasJavaSources) {
@@ -93,7 +93,7 @@ static class MavenStyleProject implements Script.ClassPathEntryProvider {
     }
 
     public MavenStyleProject build() {
-        if (canWeBuild()) {
+        if (canBeBuilt()) {
             Script.jar(jar -> jar
                     .verbose(false)
                     .jarFile(jarFile)
@@ -119,7 +119,7 @@ static class MavenStyleProject implements Script.ClassPathEntryProvider {
 }
 
 void main(String[] args) {
-    var layout = """     
+    var layout = """
        └──./
            ├──hat                                      //  All build scripts in each case 'foo' has java options for (and points to) 'foo.java'
            │    ├──bld                                 //  --enable-preview --source 24 hat/bld.java
@@ -193,6 +193,13 @@ void main(String[] args) {
     cmakeCapability.probe(buildDir, capabilities);
     out.println(capabilities.tickOrCheck());
 
+   
+ //   if (false){
+
+
+   //}
+
+
     var hatCore = MavenStyleProject.of(
             dir.existingDir("hat-core"),
             buildDir.jarFile("hat-core-1.0.jar")
@@ -203,18 +210,41 @@ void main(String[] args) {
     var wrap = MavenStyleProject.of(wrapsDir.existingDir("wrap"), buildDir.jarFile("hat-wrap-1.0.jar")
     ).build();
 
+    // Here is where we need to jextract
+    var extractionsDir = dir.existingDir("extractions");
 
+    var extractionsCmakeBuildDir = extractionsDir.cMakeBuildDir("cmake-build-debug");
+    if (!extractionsCmakeBuildDir.exists()) {
+        Script.cmake($ -> $
+                .verbose(false)
+                .source_dir(extractionsDir)
+                .build_dir(extractionsCmakeBuildDir)
+        );
+    }
+    Script.cmake($ -> $
+            .build(extractionsCmakeBuildDir)
+            .target("extract")
+    );
+    var jextractedOpenCLDir = extractionsDir.dir("opencl");
     var extractedOpenCLJar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
+    if (jextractedOpenCLDir.exists()) {
+        MavenStyleProject.of(jextractedOpenCLDir,extractedOpenCLJar).build();
+    }
+    var extractedOpenGLJar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
 
+    var jextractedOpenGLDir = extractionsDir.dir("opengl");
+    if (jextractedOpenGLDir.exists()) {
+        MavenStyleProject.of(jextractedOpenGLDir,extractedOpenGLJar).build();
+    }
     var clWrap = MavenStyleProject.of(wrapsDir.dir("clwrap"), buildDir.jarFile("hat-clwrap-1.0.jar"),
             wrap, hatCore, extractedOpenCLJar
     ).build();
 
-    var extractedOpenGLJar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
+
     var glWrap = MavenStyleProject.of(wrapsDir.dir("glwrap"), buildDir.jarFile("hat-glwrap-1.0.jar"),
             wrap, hatCore, extractedOpenGLJar
-    ); // we can't use build, we need a custom build
-    if (glWrap.canWeBuild()) {
+    ); // we can't use build, we need a custom build because of the file exclusions
+    if (glWrap.canBeBuilt()) {
         Script.jar(jar -> jar
                 .jarFile(glWrap.jarFile)
                 .maven_style_root(glWrap.dir)
@@ -288,7 +318,7 @@ void main(String[] args) {
             )
             .forEach(MavenStyleProject::build);
 
-    if (cmakeCapability.available()) {
+
         var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");
         if (!cmakeBuildDir.exists()) {
             Script.cmake($ -> $
@@ -301,9 +331,7 @@ void main(String[] args) {
         Script.cmake($ -> $
                 .build(cmakeBuildDir)
         );
-    } else {
-        out.println("No cmake available so we did not build ffi backend shared libs");
-    }
+
 
 }
 
