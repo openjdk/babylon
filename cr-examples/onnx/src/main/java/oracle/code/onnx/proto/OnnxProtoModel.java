@@ -1,4 +1,29 @@
-package oracle.code.onnx;
+/*
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
+package oracle.code.onnx.proto;
 
 import java.io.RandomAccessFile;
 import java.lang.annotation.ElementType;
@@ -13,8 +38,9 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
-public record ModelProto (
+public record OnnxProtoModel (
         @f(1) Long ir_version,
         @f(2) String producer_name,
         @f(3) String producer_version,
@@ -195,8 +221,7 @@ public record ModelProto (
     }
 
     private static long decodeVarint(ByteBuffer data) {
-        int i, shift = 0;
-        long value = 0;
+        long i, shift = 0, value = 0;
         do {
             value |= ((i = data.get()) & 0x7f) << shift;
             shift += 7;
@@ -205,7 +230,7 @@ public record ModelProto (
     }
 
     private static long[] readPackedLongs(ByteBuffer data) {
-        var ret = new long[(int)(decodeVarint(data)/4)];
+        var ret = new long[(int)(decodeVarint(data))];
         for (int i = 0; i < ret.length; i++) {
             ret[i] = decodeVarint(data);
         }
@@ -299,54 +324,62 @@ public record ModelProto (
         }
     }
 
-    private static void print(int indent, String name, Object value) throws ReflectiveOperationException {
+    private static void print(StringBuilder out, int indent, String name, Object value) throws ReflectiveOperationException {
         if (value == null) return;
-        System.out.print("  ".repeat(indent) + name);
+        out.append("  ".repeat(indent)).append(name);
         switch (value) {
             case List l -> {
-                System.out.println(name.matches(".*[shxz]") ? "es:" : "s:");
-                for (var el : l) print(indent + 1, "- " + name, el);
+                out.append(name.matches(".*[shxz]") ? "es:" : "s:").append(System.lineSeparator());
+                for (var el : l) print(out, indent + 1, "- " + name, el);
             }
             case Record r -> {
-                System.out.println(":");
+                out.append(':').append(System.lineSeparator());
                 for (var rc : r.getClass().getRecordComponents()) {
-                    print(indent + 2, rc.getName(), rc.getAccessor().invoke(r));
+                    print(out, indent + 2, rc.getName(), rc.getAccessor().invoke(r));
                 }
             }
             case byte[] a ->
-                System.out.println(a.length > PRINT_LIMIT ? ": [] # data too big to print" : ": " + Arrays.toString(a));
+                out.append(checkSize(a.length, () -> Arrays.toString(a)));
             case long[] a ->
-                System.out.println(a.length > PRINT_LIMIT ? ": [] # data too big to print" : ": " + Arrays.toString(a));
+                out.append(checkSize(a.length, () -> Arrays.toString(a)));
             case float[] a ->
-                System.out.println(a.length > PRINT_LIMIT ? ": [] # data too big to print" : ": " + Arrays.toString(a));
+                out.append(checkSize(a.length, () -> Arrays.toString(a)));
             case double[] a ->
-                System.out.println(a.length > PRINT_LIMIT ? ": [] # data too big to print" : ": " + Arrays.toString(a));
+                out.append(checkSize(a.length, () -> Arrays.toString(a)));
             case String s ->
-                System.out.println(": \"" + s + "\"");
+                out.append(": \"").append(s).append('"').append(System.lineSeparator());
             default ->
-                System.out.println(": " + value);
+                out.append(": ").append(value).append(System.lineSeparator());
         }
     }
 
-    static final int PRINT_LIMIT = 1000;
+    static String checkSize(int size, Supplier<String> sup) {
+        return ": " + (size > 1000 ? "# skipped " + size + " values" : ": " + sup.get()) + System.lineSeparator();
+    }
 
-    public void print() {
+    public String toText() {
         try {
-            print(0, "model", this);
+            var sb = new StringBuilder();
+            print(sb, 0, "OnnxProtoModel", this);
+            return sb.toString();
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static ModelProto readFrom(ByteBuffer onnxProtoModel) {
-        return readFrom(ModelProto.class, onnxProtoModel);
+    public static OnnxProtoModel readFrom(byte[] onnxProtoModel) {
+        return readFrom(ByteBuffer.wrap(onnxProtoModel).order(ByteOrder.LITTLE_ENDIAN));
+    }
+
+    public static OnnxProtoModel readFrom(ByteBuffer onnxProtoModel) {
+        return readFrom(OnnxProtoModel.class, onnxProtoModel);
     }
 
     public static void main(String... args) throws Exception {
         for (var fName : args) {
             try (var in = new RandomAccessFile(fName, "r")) {
-                ModelProto model = readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()).order(ByteOrder.LITTLE_ENDIAN));
-                model.print();
+                OnnxProtoModel model = readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()).order(ByteOrder.LITTLE_ENDIAN));
+                System.out.println(model.toText());
             }
         }
     }
