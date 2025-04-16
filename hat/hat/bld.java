@@ -193,12 +193,6 @@ void main(String[] args) {
     cmakeCapability.probe(buildDir, capabilities);
     out.println(capabilities.tickOrCheck());
 
-   
- //   if (false){
-
-
-   //}
-
 
     var hatCore = MavenStyleProject.of(
             dir.existingDir("hat-core"),
@@ -210,7 +204,6 @@ void main(String[] args) {
     var wrap = MavenStyleProject.of(wrapsDir.existingDir("wrap"), buildDir.jarFile("hat-wrap-1.0.jar")
     ).build();
 
-    // Here is where we need to jextract
     var extractionsDir = dir.existingDir("extractions");
 
     var extractionsCmakeBuildDir = extractionsDir.cMakeBuildDir("cmake-build-debug");
