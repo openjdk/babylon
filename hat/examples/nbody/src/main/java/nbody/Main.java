@@ -31,6 +31,9 @@ import java.lang.foreign.Arena;
 
 public class Main {
     public static void main(String[] args)  {
+        for (var arg : args) {
+            System.out.println("arg = "+arg);
+        }
         int particleCount = args.length > 2 ? Integer.parseInt(args[2]) : 32768;
         Mode mode = Mode.of(args.length > 3 ? args[3] : Mode.HAT.toString());
         try (var arena = mode.equals(Mode.JavaMT4) || mode.equals(Mode.JavaMT) ? Arena.ofShared() : Arena.ofConfined()) {

@@ -27,11 +27,12 @@
 void main(String[] args){
   Script.DirEntry.current()
     .subDirs()
-    .filter(dir -> dir.matches("^.*(hat|wrap|examples|backends|docs|bldr)$"))
+    .filter(dir -> dir.matches("^.*(hat|wrap|examples|backends|docs|bldr|hat-core|extractions)$"))
     .forEach(dir->dir
        .findFiles()
-          .filter((path)->Pattern.matches("^.*\\.(java|cpp|h|hpp|md)$", path.toString()))
-          .filter((path)->!Pattern.matches("^.*examples/life/src/main/java/io.*$", path.toString()))
+          .filter((path)->Pattern.matches("^.*/.*\\.(java|cpp|h|hpp|md)$", path.toString()))
+          .filter((path)->!Pattern.matches("^.*examples/life/src/main/java/io.*$", path.toString())) // Life example has some open source files
+          .filter((path)->!Pattern.matches("^.*CMakeFiles.*$", path.toString()))
           .map(path->new Script.SearchableTextFile(path))
           .forEach(textFile ->{
              if (!textFile.hasSuffix("md")

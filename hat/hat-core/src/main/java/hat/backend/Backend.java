@@ -27,8 +27,8 @@ package hat.backend;
 
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.backend.java.JavaMultiThreadedBackend;
-import hat.backend.java.JavaSequentialBackend;
+//import hat.backend.java.JavaMultiThreadedBackend;
+//import hat.backend.java.JavaSequentialBackend;
 import hat.buffer.BufferAllocator;
 import hat.callgraph.KernelCallGraph;
 
@@ -52,8 +52,8 @@ public interface Backend extends BufferAllocator {
         return (backendName.equals(requestedBackendName));
     };
     Predicate<Backend> FIRST = backend -> true;
-     Predicate<Backend> JAVA_MULTITHREADED = backend -> backend instanceof JavaMultiThreadedBackend;
-    Predicate<Backend> JAVA_SEQUENTIAL = backend -> backend instanceof JavaSequentialBackend;
+   //  Predicate<Backend> JAVA_MULTITHREADED = backend -> backend instanceof JavaMultiThreadedBackend;
+   // Predicate<Backend> JAVA_SEQUENTIAL = backend -> backend instanceof JavaSequentialBackend;
 
     static Backend getBackend(Predicate<Backend> backendPredicate) {
         return ServiceLoader.load(Backend.class)

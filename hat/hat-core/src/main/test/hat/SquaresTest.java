@@ -23,7 +23,7 @@ package hat;
  * questions.
  */
 
-import hat.backend.java.JavaMultiThreadedBackend;
+
 import hat.buffer.S32Array;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -57,7 +57,7 @@ public class SquaresTest {
   @Test
        void    testSquares(){
 
-        var accelerator = new Accelerator(MethodHandles.lookup(), new JavaMultiThreadedBackend());
+        var accelerator = new Accelerator(MethodHandles.lookup());
         var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);

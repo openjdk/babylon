@@ -81,4 +81,17 @@ if(OPENCL_FOUND)
         ${OPENCL_LIB}
     )
 
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/extractFile
+            COMMAND echo jextract stuff
+            #COMMAND BANNER jextract stuff
+            COMMAND touch ${CMAKE_BINARY_DIR}/extractFile
+            #COMMAND ${CMAKE_COMMAND} -E touch ${LIBFOO_TAR_HEADERS}
+            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+            #DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/libfoo/foo.tar"
+            COMMENT "Extracting opencl"
+            VERBATIM
+    )
+
+    add_custom_target(extract DEPENDS ${CMAKE_BINARY_DIR}/extractFile)
+
 endif()

@@ -1,5 +1,5 @@
 
-# More Complex Interface Mapping Example - The Cascade
+# More Complex Interface Mapping MavenStyleProject - The Cascade
 
 ----
 
@@ -19,7 +19,7 @@
 
 ----
 
-# More Complex Interface Mapping Example - The Cascade
+# More Complex Interface Mapping MavenStyleProject - The Cascade
 
 Previously we showed probably the minimal useful mapping with S32Array
 

@@ -402,7 +402,7 @@ void compute(Accelerator accelerator, MemorySegment gameState, int width, int he
 
 
 
-### Example babylon transform to track buffer mutations.
+### MavenStyleProject babylon transform to track buffer mutations.
 
 One goal of hat was to automate the movement of buffers from Java to device.
 

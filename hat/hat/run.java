@@ -22,7 +22,92 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+class Config{
+     boolean headless=false;
+     boolean verbose = false;
+     boolean startOnFirstThread = false;
+     boolean justShowCommandline = false;
+     String backendName = null;
+     Script.JarFile backendJar= null;
+     String exampleName = null;
+     String examplePackageName = null;
+     String exampleClassName =  null;
+     Script.JarFile exampleJar= null;
+     List<Script.ClassPathEntryProvider> classpath = new ArrayList<>();
+     List<String> vmargs = new ArrayList<>();
+     List<String> appargs = new ArrayList<>();
+     Config(Script.BuildDir buildDir,  String[] args){
 
+        classpath.add(buildDir.jarFile("hat-core-1.0.jar"));
+        for (int arg=0;arg<args.length;arg++){
+            if (args[arg].startsWith("ffi-")) {
+                backendName = args[arg];
+                backendJar = buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar");
+                classpath.add(buildDir.jarFile("hat-backend-ffi-shared-1.0.jar"));
+                classpath.add(backendJar);
+                if (verbose){
+                    println("backend "+backendName);
+                }
+            }else if (args[arg].startsWith("ext--")){
+                backendName = args[arg];
+                backendJar = buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar");
+                classpath.add(buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar"));
+                classpath.add(backendJar);
+                if (verbose){
+                    println("backend "+backendName);
+                }
+            }else if (args[arg].startsWith("java-")){
+                backendName = args[arg];
+                backendJar = buildDir.jarFile("hat-backend-"+backendName+"-1.0.jar");
+                classpath.add(backendJar);
+                if (verbose){
+                    println("backend "+backendName);
+                }
+            }else{
+                switch (args[arg]) {
+                   case "headless" -> headless = true;
+                   case "verbose" -> verbose = true;
+                   case "justShowCommandLine" -> justShowCommandline = true;
+                   case "startOnFirstThread" -> startOnFirstThread = true;
+                   default ->{
+                       var proposedExampleName = args[arg];
+                       int lastDot = proposedExampleName.lastIndexOf('.');
+                       var proposedExampleClass="Main";
+                       var proposedPackageName=args[arg];
+                       if (lastDot != -1){
+                           proposedExampleClass = proposedExampleName.substring(lastDot + 1);
+                           proposedPackageName = proposedExampleName.substring(0,lastDot);
+                       }
+                       var proposedJar = buildDir.jarFile("hat-example-"+proposedPackageName+"-1.0.jar");
+                       if (proposedJar.exists()) {
+                           exampleClassName = proposedExampleClass;
+                           examplePackageName =exampleName = proposedPackageName;
+                           exampleJar = proposedJar;
+                           if (exampleJar.exists()){
+                               classpath.add(exampleJar);
+                               if (verbose){
+                                   println("example "+examplePackageName+"."+exampleClassName);
+                               }
+                           }else{
+                               if (exampleClassName == null) {
+                                   this.vmargs.add(args[arg]);
+                               }else{
+                                   this.appargs.add(args[arg]);
+                               }
+                           }
+                       }else{
+                           if (exampleClassName == null) {
+                               this.vmargs.add(args[arg]);
+                           }else{
+                               this.appargs.add(args[arg]);
+                           }
+                       }
+                   }
+                }
+            }
+        }
+    }
+}
 
 
 void main(String[] argv) {
@@ -43,58 +128,50 @@ void main(String[] argv) {
          java @bldr/args java-opencl life
   """;
 
-  var hatDir =  Script.DirEntry.current();
-  var backends = hatDir.existingDir("backends");
-  var examples = hatDir.dir("examples");
-  var buildDir = hatDir.existingBuildDir("build");
-  var ffiBackendSharedJar = buildDir.jarFile("hat-backend-ffi-shared-1.0.jar");
-  var jextractedOpenCLJar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
-  var jextractedOpenGLJar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
-  var wrapJar = buildDir.jarFile("hat-wrap-1.0.jar");
-  var clwrapJar = buildDir.jarFile("hat-clwrap-1.0.jar");
-  var glwrapJar = buildDir.jarFile("hat-glwrap-1.0.jar");
-  var verbose = false;
+      var hatDir = Script.DirEntry.current();
+      var buildDir = hatDir.existingBuildDir("build");
 
-  var args = new ArrayList<>(List.of(argv));
-  Script.java(java -> java
-     .enable_preview()
-     .verbose(verbose)
-     //.add_exports("java.base", "jdk.internal", "ALL-UNNAMED")
-     .enable_native_access("ALL-UNNAMED")
-     .library_path(buildDir)
-     .class_path(buildDir.jarFile("hat-core-1.0.jar"))
-     .when((!args.isEmpty() && args.getFirst().equals("headless")), ifHeadless -> {
-        ifHeadless.headless();
-        args.removeFirst();
-     })
-     .either(!args.isEmpty(), haveBackend -> {
-        var backendName = args.removeFirst();
-        if (backends.dir(backendName.replace('-','/')) instanceof Script.DirEntry backend && backend.exists()) {
-           haveBackend.class_path(buildDir.jarFile("hat-backend-" + backendName + "-1.0.jar"));
-           if (backendName.equals("ffi-opencl")){
-               haveBackend.class_path(wrapJar, clwrapJar, jextractedOpenCLJar, ffiBackendSharedJar );
-           }
-           if (backendName.equals("ffi-cuda")){
-               haveBackend.class_path(ffiBackendSharedJar );
-           }
-        } else {
-           throw new RuntimeException("No such backend " + backendName);
-        }
-        if (!args.isEmpty() && args.removeFirst() instanceof String exampleName) {
-           if (examples.dir(exampleName) instanceof Script.DirEntry example && example.exists()) { haveBackend
-              .class_path(buildDir.jarFile("hat-example-" + exampleName + "-1.0.jar"))
-              .when(jextractedOpenCLJar.exists() && jextractedOpenGLJar.exists() && exampleName.equals("nbody"), _->{ haveBackend
-                  .class_path(jextractedOpenCLJar,jextractedOpenGLJar, wrapJar, clwrapJar, glwrapJar )
-                  .start_on_first_thread();
-              })
-              .main_class(exampleName + ".Main")
-              .args(args);
-           } else {
-              throw new RuntimeException("no such example " + exampleName);
-           }
-        }
-     }, _ -> {
-        throw new RuntimeException("No backend provided...\n" + usage);
-     })
-  );
+      Config config = new Config(buildDir,argv);
+      if (config.classpath.isEmpty() ) {
+          println("Classpath is empty!");
+      }else if (config.backendJar == null || !config.backendJar.exists()) {
+          println("No backend !");
+      }else if (!config.exampleJar.exists()){
+          println("No example !");
+      }else{
+          var jextractedOpenCLJar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
+          var jextractedOpenGLJar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
+          var wrapJar = buildDir.jarFile("hat-wrap-1.0.jar");
+          var clwrapJar = buildDir.jarFile("hat-clwrap-1.0.jar");
+          var glwrapJar = buildDir.jarFile("hat-glwrap-1.0.jar");
+          switch (config.backendName){
+             default -> {}
+          }
+          switch (config.exampleName){
+              case "nbody" -> {
+                  config.startOnFirstThread = true;
+                  config.classpath.addAll(List.of(
+                          wrapJar,
+                          clwrapJar, jextractedOpenCLJar,
+                          glwrapJar, jextractedOpenGLJar,
+                          clwrapJar, jextractedOpenCLJar)
+                  );
+              }
+              default -> {}
+          }
+      }
+      Script.java(java -> java
+              .enable_preview()
+              .verbose(config.verbose)
+              .enable_native_access("ALL-UNNAMED")
+              .library_path(buildDir)
+              .when(config.headless, Script.JavaBuilder::headless)
+              .when(config.startOnFirstThread, Script.JavaBuilder::start_on_first_thread)
+              .class_path(config.classpath)
+              .vmargs(config.vmargs)
+              .main_class(config.examplePackageName + "."+config.exampleClassName)
+              .args(config.appargs)
+              .justShowCommandline(config.justShowCommandline)
+      );
+
 }

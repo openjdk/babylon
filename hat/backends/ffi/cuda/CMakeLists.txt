@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(CUDAToolkit)
 if(CUDAToolkit_FOUND)
     message("CUDA")
-
     if ("${CUDA_BACKEND}EMPTY" STREQUAL "EMPTY")
 	    set (CUDA_BACKEND "${CMAKE_SOURCE_DIR}")
 	    message("CUDA_BACKEND=${CUDA_BACKEND}")
@@ -54,7 +53,6 @@ if(CUDAToolkit_FOUND)
     )
 
     target_link_libraries(cuda_backend
-            -lcudart
             -lcuda
     )
 
@@ -68,13 +66,11 @@ if(CUDAToolkit_FOUND)
 
     target_link_libraries(cuda_squares
             cuda_backend
-            -lcudart
             -lcuda
     )
 
     target_link_libraries(cuda_info
             cuda_backend
-            -lcudart
             -lcuda
     )
 endif()
