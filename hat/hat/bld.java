@@ -137,17 +137,19 @@ void main(String[] args) {
            │        ├── lib*_backend.[dylib|so]        // ffi library backends
            │        └── *(no suffix)                   // various generated executables (opencl_info, cuda_info, cuda_squares)
            ├──stage/
-           │   ├── repo/
-           │   │   └── *                               // Maven artifacts (poms and jars)
-           │   ├── opencl_jextracted/                  // All jextracted files (created using java @hat/extract
-           │   │   ├── compile_flags.txt
-           │   │   └── opencl
-           │   ├── cuda_jextracted/
-           │   │   ├── compile_flags.txt
-           │   │   └── cuda
-           │   └── opengl_jextracted/
-           │       ├── compile_flags.txt
-           │       └── opengl
+           │   └── repo/
+           │       └── *                               // Maven artifacts (poms and jars)
+           ├──extractions/
+           │   ├──CMakeFiles.txt
+           │   ├── opencl/                             // Maven style layout
+           │   │   ├── CMakeFiles.txt
+           │   │   └── src/main/java/opencl            // created by cmake
+           │   ├── cuda/                               // Maven style layout
+           │   │   ├── CMakeFiles.txt
+           │   │   └── src/main/java/cuda              // created by cmake
+           │   └── opengl/                             // Maven style layout
+           │       ├── CMakeFiles.txt
+           │       └── src/main/java/opengl            // created by cmake
            ├──wrap/
            │    └──wrap/
            │         ├──wrap/                          // Maven style layout
@@ -220,15 +222,23 @@ void main(String[] args) {
     );
     var jextractedOpenCLDir = extractionsDir.dir("opencl");
     var extractedOpenCLJar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
-    if (jextractedOpenCLDir.exists()) {
+    if (jextractedOpenCLDir.dir("src").exists()) {
         MavenStyleProject.of(jextractedOpenCLDir,extractedOpenCLJar).build();
     }
+
     var extractedOpenGLJar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
 
     var jextractedOpenGLDir = extractionsDir.dir("opengl");
-    if (jextractedOpenGLDir.exists()) {
+    if (jextractedOpenGLDir.dir("src").exists()) {
         MavenStyleProject.of(jextractedOpenGLDir,extractedOpenGLJar).build();
     }
+
+    var extractedCudaJar = buildDir.jarFile("hat-jextracted-cuda-1.0.jar");
+    var jextractedCudaDir = extractionsDir.dir("cuda");
+    if (jextractedCudaDir.dir("src").exists()) {
+        MavenStyleProject.of(jextractedCudaDir,extractedCudaJar).build();
+    }
+
     var clWrap = MavenStyleProject.of(wrapsDir.dir("clwrap"), buildDir.jarFile("hat-clwrap-1.0.jar"),
             wrap, hatCore, extractedOpenCLJar
     ).build();
@@ -251,10 +261,9 @@ void main(String[] args) {
         println(glWrap.jarFile.fileName()+" OK");
     }
 
-    var extractedCudaJar = buildDir.jarFile("hat-jextracted-cuda-1.0.jar");
-    var cuWrap = MavenStyleProject.of(wrapsDir.dir("cuwrap"), buildDir.jarFile("hat-cuwrap-1.0.jar"),
-            extractedCudaJar
-    ).build();
+    //var cuWrap = MavenStyleProject.of(wrapsDir.dir("cuwrap"), buildDir.jarFile("hat-cuwrap-1.0.jar"),
+     //       extractedCudaJar
+    //).build();
 
 
     var backendsDir = dir.existingDir("backends");
