@@ -49,7 +49,9 @@ public final class OnnxTransformer {
     static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
     static final JavaType LIST_CLASS = JavaType.type(List.class);
 
-    public static CoreOp.ModuleOp transform(MethodHandles.Lookup l, Quoted quotedLambda) {
+    public record ModuleAndInitializers(CoreOp.ModuleOp module, SequencedCollection<FieldRef> initializers) {}
+
+    public static ModuleAndInitializers transform(MethodHandles.Lookup l, Quoted quotedLambda) {
         CoreOp.LambdaOp lambda = (CoreOp.LambdaOp) quotedLambda.op();
         assert lambda.parameters().isEmpty();
 
@@ -82,11 +84,11 @@ public final class OnnxTransformer {
 
         return OnnxTransformer.transform(l, f);
     }
-    public static CoreOp.ModuleOp transform(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc) {
+
+    public static ModuleAndInitializers transform(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc) {
         CoreOp.ModuleOp m = collectModuleFunctions(l, inputFunc);
-        m = remapInitializers(l, m);
-        m = transformModule(l, m);
-        return m;
+        ModuleAndInitializers mi = remapInitializers(l, m);
+        return new ModuleAndInitializers(transformModule(l, mi.module()), mi.initializers());
     }
 
     static void collectModuleFunctions(MethodHandles.Lookup l, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline, CoreOp.FuncOp func) {
@@ -133,23 +135,24 @@ public final class OnnxTransformer {
         });
     }
 
-    static CoreOp.ModuleOp remapInitializers(MethodHandles.Lookup l, CoreOp.ModuleOp module) {
+
+    static ModuleAndInitializers remapInitializers(MethodHandles.Lookup l, CoreOp.ModuleOp module) {
         // collect initializers (field load ops of tensors)
-        record TI(OnnxType.Initializer type, int index) {}
+        record TI(OnnxType type, int index) {}
         var initializers = module.traverse(new LinkedHashMap<FieldRef, TI>(), (i, op) -> {
             if (op instanceof CoreOp.FieldAccessOp.FieldLoadOp flo && flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)) {
-                i.putIfAbsent(flo.fieldDescriptor(), new TI(new OnnxType.Initializer((OnnxType)convertType(l, ct), ((ClassType)flo.fieldDescriptor().refType()).rawType().toClassName() + "." + flo.fieldDescriptor().name()), i.size()));
+                i.putIfAbsent(flo.fieldDescriptor(), new TI((OnnxType)convertType(l, ct), i.size()));
             }
             return i;
         });
 
         if (initializers.isEmpty()) {
-            return module;
+            return new ModuleAndInitializers(module, List.of());
         }
 
         // map all initializers field loads into additional arguments
-        List<OnnxType.Initializer> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
-        return CoreOp.module(module.functionTable().sequencedValues().stream().map(f -> {
+        List<OnnxType> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
+        return new ModuleAndInitializers(CoreOp.module(module.functionTable().sequencedValues().stream().map(f -> {
             var ft = f.invokableType();
             int argsSize = ft.parameterTypes().size();
             return CoreOp.func(f.funcName(), FunctionType.functionType(ft.returnType(), Stream.concat(ft.parameterTypes().stream(), initTypes.stream()).toList()))
@@ -174,7 +177,7 @@ public final class OnnxTransformer {
                         }
                         return bb;
                     }));
-        }).toList());
+        }).toList()), initializers.sequencedKeySet());
     }
 
     static CoreOp.FuncOp resolve(MethodHandles.Lookup l, CoreOp.InvokeOp io) {
