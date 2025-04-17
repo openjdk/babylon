@@ -348,28 +348,28 @@ public record OnnxProtoModel (
         }
     }
 
-    private static void print(StringBuilder out, int indent, String name, Object value) throws ReflectiveOperationException {
+    private static void print(StringBuilder out, int indent, String name, Object value, boolean skipBigData) throws ReflectiveOperationException {
         if (value == null) return;
         out.append("  ".repeat(indent)).append(name);
         switch (value) {
             case List l -> {
                 out.append(name.matches(".*[shxz]") ? "es:" : "s:").append(System.lineSeparator());
-                for (var el : l) print(out, indent + 1, "- " + name, el);
+                for (var el : l) print(out, indent + 1, "- " + name, el, skipBigData);
             }
             case Record r -> {
                 out.append(':').append(System.lineSeparator());
                 for (var rc : r.getClass().getRecordComponents()) {
-                    print(out, indent + 2, rc.getName(), rc.getAccessor().invoke(r));
+                    print(out, indent + 2, rc.getName(), rc.getAccessor().invoke(r), skipBigData);
                 }
             }
             case byte[] a ->
-                out.append(checkSize(a.length, () -> Arrays.toString(a)));
+                out.append(checkSize(a.length, () -> Arrays.toString(a), skipBigData));
             case long[] a ->
-                out.append(checkSize(a.length, () -> Arrays.toString(a)));
+                out.append(checkSize(a.length, () -> Arrays.toString(a), skipBigData));
             case float[] a ->
-                out.append(checkSize(a.length, () -> Arrays.toString(a)));
+                out.append(checkSize(a.length, () -> Arrays.toString(a), skipBigData));
             case double[] a ->
-                out.append(checkSize(a.length, () -> Arrays.toString(a)));
+                out.append(checkSize(a.length, () -> Arrays.toString(a), skipBigData));
             case String s ->
                 out.append(": \"").append(s).append('"').append(System.lineSeparator());
             default ->
@@ -377,14 +377,20 @@ public record OnnxProtoModel (
         }
     }
 
-    static String checkSize(int size, Supplier<String> sup) {
-        return ": " + (size > 1000 ? "# skipped " + size + " values" : ": " + sup.get()) + System.lineSeparator();
+    private static final int SKIP_LIMIT = 1000;
+
+    private static String checkSize(int size, Supplier<String> sup, boolean skipBigData) {
+        return ": " + (skipBigData && size > SKIP_LIMIT ? "# skipped " + size + " values" : ": " + sup.get()) + System.lineSeparator();
     }
 
     public String toText() {
+        return toText(true);
+    }
+
+    public String toText(boolean skipBigData) {
         try {
             var sb = new StringBuilder();
-            print(sb, 0, "OnnxProtoModel", this);
+            print(sb, 0, "OnnxProtoModel", this, skipBigData);
             return sb.toString();
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
