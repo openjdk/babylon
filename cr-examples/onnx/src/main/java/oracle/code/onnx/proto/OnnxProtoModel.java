@@ -125,10 +125,10 @@ public record OnnxProtoModel (
 
     public record TensorProto (
             @f(1) List<long[]> dims,
-            @f(2) Long data_type,
+            @f(2) Integer data_type,
             @f(3) Segment segment,
             @f(4) List<float[]> float_data,
-            @f(5) List<long[]> int32_data,
+            @f(5) List<int[]> int32_data,
             @f(6) List<byte[]> string_data,
             @f(7) List<long[]> int64_data,
             @f(8) String name,
@@ -171,7 +171,7 @@ public record OnnxProtoModel (
             @f(9) Optional optional_type) {
 
         public record Tensor (
-                @f(1) Long elem_type,
+                @f(1) Integer elem_type,
                 @f(2) TensorShapeProto shape) {
         }
 
@@ -180,7 +180,7 @@ public record OnnxProtoModel (
         }
 
         public record Map (
-                @f(1) Long key_type,
+                @f(1) Integer key_type,
                 @f(2) TypeProto value_type) {
         }
 
@@ -189,7 +189,7 @@ public record OnnxProtoModel (
         }
 
         public record SparseTensor (
-                @f(1) Long elem_type,
+                @f(1) Integer elem_type,
                 @f(2) TensorShapeProto shape) {
         }
     }
@@ -229,8 +229,28 @@ public record OnnxProtoModel (
         return value;
     }
 
+    private static int countVarInts(ByteBuffer data) {
+        long end  = decodeVarint(data);
+        int start = data.position();
+        end += start;
+        int count = 0;
+        while (data.position() < end) {
+            if ((data.get() & 0x80) == 0) count++;
+        }
+        data.position(start);
+        return count;
+    }
+
+    private static int[] readPackedInts(ByteBuffer data) {
+        var ret = new int[countVarInts(data)];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = (int)decodeVarint(data);
+        }
+        return ret;
+    }
+
     private static long[] readPackedLongs(ByteBuffer data) {
-        var ret = new long[(int)(decodeVarint(data))];
+        var ret = new long[countVarInts(data)];
         for (int i = 0; i < ret.length; i++) {
             ret[i] = decodeVarint(data);
         }
@@ -260,7 +280,11 @@ public record OnnxProtoModel (
     }
 
     private static Object readData(Class<?> baseType, boolean packed, ByteBuffer bb) {
-        if (baseType == Long.class) {
+        if (baseType == Integer.class) {
+            return (int)decodeVarint(bb);
+        } else if (baseType == int[].class) {
+            return packed ? readPackedInts(bb) : new int[]{(int)decodeVarint(bb)};
+        } else if (baseType == Long.class) {
             return decodeVarint(bb);
         } else if (baseType == long[].class) {
             return packed ? readPackedLongs(bb) : new long[]{decodeVarint(bb)};
@@ -368,17 +392,17 @@ public record OnnxProtoModel (
     }
 
     public static OnnxProtoModel readFrom(byte[] onnxProtoModel) {
-        return readFrom(ByteBuffer.wrap(onnxProtoModel).order(ByteOrder.LITTLE_ENDIAN));
+        return readFrom(ByteBuffer.wrap(onnxProtoModel));
     }
 
     public static OnnxProtoModel readFrom(ByteBuffer onnxProtoModel) {
-        return readFrom(OnnxProtoModel.class, onnxProtoModel);
+        return readFrom(OnnxProtoModel.class, onnxProtoModel.order(ByteOrder.LITTLE_ENDIAN));
     }
 
     public static void main(String... args) throws Exception {
         for (var fName : args) {
             try (var in = new RandomAccessFile(fName, "r")) {
-                OnnxProtoModel model = readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()).order(ByteOrder.LITTLE_ENDIAN));
+                OnnxProtoModel model = readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
                 System.out.println(model.toText());
             }
         }
