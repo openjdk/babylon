@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2024, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2025, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -50,9 +50,8 @@ m4_define(jvm_features_valid, m4_normalize( \
 ))
 
 # Deprecated JVM features (these are ignored, but with a warning)
-m4_define(jvm_features_deprecated, m4_normalize(
-    cmsgc trace \
-))
+# This list is empty at the moment.
+m4_define(jvm_features_deprecated, m4_normalize( ))
 
 # Feature descriptions
 m4_define(jvm_feature_desc_cds, [enable class data sharing (CDS)])
@@ -480,6 +479,22 @@ AC_DEFUN([JVM_FEATURES_CALCULATE_ACTIVE],
 ])
 
 ################################################################################
+# Filter the unsupported feature combinations.
+# This is called after JVM_FEATURES_ACTIVE are fully populated.
+#
+AC_DEFUN([JVM_FEATURES_FILTER_UNSUPPORTED],
+[
+  # G1 late barrier expansion in C2 is not implemented for some platforms.
+  # Choose not to support G1 in this configuration.
+  if JVM_FEATURES_IS_ACTIVE(compiler2); then
+    if test "x$OPENJDK_TARGET_CPU" = "xx86"; then
+      AC_MSG_NOTICE([G1 cannot be used with C2 on this platform, disabling G1])
+      UTIL_GET_NON_MATCHING_VALUES(JVM_FEATURES_ACTIVE, $JVM_FEATURES_ACTIVE, "g1gc")
+    fi
+  fi
+])
+
+################################################################################
 # Helper function for JVM_FEATURES_VERIFY. Check if the specified JVM
 # feature is active. To be used in shell if constructs, like this:
 # 'if JVM_FEATURES_IS_ACTIVE(jvmti); then'
@@ -553,6 +568,9 @@ AC_DEFUN_ONCE([JVM_FEATURES_SETUP],
     # Calculate the resulting set of enabled features for this variant.
     # The result is stored in JVM_FEATURES_ACTIVE.
     JVM_FEATURES_CALCULATE_ACTIVE($variant)
+
+    # Filter unsupported feature combinations from JVM_FEATURES_ACTIVE.
+    JVM_FEATURES_FILTER_UNSUPPORTED
 
     # Verify consistency for JVM_FEATURES_ACTIVE.
     JVM_FEATURES_VERIFY($variant)

@@ -403,7 +403,7 @@ public class ReflectMethods extends TreeTranslator {
 
         public static CodeModelStorageOption parse(String s) {
             if (s == null) {
-                return CodeModelStorageOption.CODE_BUILDER;
+                return CodeModelStorageOption.TEXT;
             }
             return CodeModelStorageOption.valueOf(s);
         }

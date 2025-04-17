@@ -112,7 +112,7 @@ or files without appropriate licence headers
 This is run using
 
 ```
-java @bldr/sanity
+java @hat/sanity
 ```
 
 
@@ -133,7 +133,7 @@ The `hat/run.java` script can also be used which simply needs the backend
 name `ffi-opencl|ffi-java|ffi-cuda|ffi-ptx|ffi-mock` and the package name `mandel`
 
 ```bash
-java @hat/run.java ffi-opencl mandel
+java @hat/run ffi-opencl mandel
 ```
 
 If you pass `headless` as the first arg
@@ -157,22 +157,22 @@ We rely on java's ability to launch java source directly (without needing to jav
 The `hat/bld.java` script (really java source) can be run like this
 
 ```bash
-java --add-modules jdk.incubator.code --enable-preview --source 24 bld
+java --add-modules jdk.incubator.code --enable-preview --source 25 bld
 ```
 
 In our case the  magic is under the `hat`subdir
 
-We also have a handy `hat/XXXX` which allows us to avoid specifying common args `--enable-preview --source 24` eash time we launch a script
+We also have a handy `hat/XXXX` which allows us to avoid specifying common args `--enable-preview --source 25` eash time we launch a script
 
 ```
 hat
 ├── hat
 |   ├── Script.java
-|   ├── sanity      (the args for sanity.java)  "--enable-preview --source 24 sanity"
+|   ├── sanity      (the args for sanity.java)  "--enable-preview --source 25 sanity"
 |   |-- sanity.java (the script)
-|   ├── run         (the args for sanity.java)  "--enable-preview --source 24 hatrun"
+|   ├── run         (the args for sanity.java)  "--enable-preview --source 25 hatrun"
 |   |-- run.java    (the script)
-|   ├── bld         (the args for bld.java)      "--enable-preview --source 24 bld"
+|   ├── bld         (the args for bld.java)      "--enable-preview --source 25 bld"
 |   ├── bld.java    (the script)
 
 ```
@@ -184,5 +184,5 @@ java @hat/bld
 
 Is just a shortcut for
 ```bash
-java --enable-preview --source 24 hat/bld.java
+java --enable-preview --source 25 hat/bld.java
 ```

@@ -96,8 +96,8 @@ void main(String[] argv) {
                           "--add-exports=java.base/jdk.internal=ALL-UNNAMED",
                           "--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED"
                       )
-                      .source("24")
-                      .target("24")
+                      .source("25")
+                      .target("25")
                       .showDeprecation("true")
                       .failOnError("true")
                       .showWarnings("true")
