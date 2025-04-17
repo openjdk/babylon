@@ -42,8 +42,8 @@ questions.
         <module>hat-core</module>
         <module>backends</module>
         <module>examples</module>
-        <!--<module>extractions</module>
-        <module>wrap</module>-->
+        <module>extractions</module>
+        <module>wrap</module>
     </modules>
     <build>
         <plugins>
