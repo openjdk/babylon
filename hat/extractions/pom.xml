@@ -34,9 +34,25 @@ questions.
         <version>1.0</version>
     </parent>
 
-    <modules>
-        <module>opencl</module>
-        <module>opengl</module>
-        <!--<module>cuda</module>-->
-    </modules>
+    <profiles>
+        <profile>
+            <id>cuda</id>
+            <modules>
+               <module>cuda</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>opencl</id>
+            <modules>
+               <module>opencl</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>opengl</id>
+            <modules>
+               <module>opengl</module>
+            </modules>
+        </profile>
+    </profiles>
+
 </project>
