@@ -33,6 +33,7 @@ void main(String[] args){
           .filter((path)->Pattern.matches("^.*/.*\\.(java|cpp|h|hpp|md)$", path.toString()))
           .filter((path)->!Pattern.matches("^.*examples/life/src/main/java/io.*$", path.toString())) // Life example has some open source files
           .filter((path)->!Pattern.matches("^.*CMakeFiles.*$", path.toString()))
+          .filter((path)->!Pattern.matches("^.*extractions.*/src/main/.*$", path.toString()))
           .map(path->new Script.SearchableTextFile(path))
           .forEach(textFile ->{
              if (!textFile.hasSuffix("md")
