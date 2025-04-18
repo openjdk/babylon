@@ -253,7 +253,7 @@ public class BlockTest {
                      }
                      ^then()void -> {
                          java.block ()void -> {
-                             %3 : java.lang.RuntimeException = new @"func<java.lang.RuntimeException>";
+                             %3 : java.lang.RuntimeException = new @"java.lang.RuntimeException::<new>()";
                              throw %3;
                          };
                          yield;

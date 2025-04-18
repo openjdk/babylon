@@ -21,6 +21,7 @@
  * questions.
  */
 
+import jdk.incubator.code.type.ConstructorRef;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -50,8 +51,6 @@ public class TestReferences {
                 {"a::b(Func<String, Number>, Entry<List<String>, val>, int, long)void", "a", "b"},
                 {"java.io.PrintStream::println(java.lang.String)void", "java.io.PrintStream", "println"},
                 {"MethodReferenceTest$A::m(java.lang.Object)java.lang.Object", "MethodReferenceTest$A", "m"},
-                {"MethodReferenceTest$X::<new>(int)MethodReferenceTest$X", "MethodReferenceTest$X", "<new>"},
-                {"MethodReferenceTest$A[]::<new>(int)MethodReferenceTest$A[]", "MethodReferenceTest$A[]", "<new>"},
                 {"R<#R::T<java.lang.Number>>::n()#R::T<java.lang.Number>", "R<#R::T<java.lang.Number>>", "n"}
         };
     }
@@ -64,6 +63,20 @@ public class TestReferences {
         Assert.assertEquals(mr.name(), name);
     }
 
+    @DataProvider
+    public Object[][] constructorRefs() {
+        return new Object[][]{
+                {"MethodReferenceTest$X::<new>(int)", "MethodReferenceTest$X"},
+                {"MethodReferenceTest$A[]::<new>(int)", "MethodReferenceTest$A[]"},
+        };
+    }
+
+    @Test(dataProvider = "constructorRefs")
+    public void testConstructorRef(String cds, String refType) {
+        ConstructorRef cr = ConstructorRef.ofString(cds);
+        Assert.assertEquals(cr.toString(), cds);
+        Assert.assertEquals(cr.refType().externalize().toString(), refType);
+    }
 
     @DataProvider
     public Object[][] fieldRefs() {

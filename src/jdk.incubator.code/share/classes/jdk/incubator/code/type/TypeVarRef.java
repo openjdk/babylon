@@ -27,6 +27,7 @@ package jdk.incubator.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -50,6 +51,10 @@ public final class TypeVarRef implements JavaType {
     @Override
     public Type resolve(Lookup lookup) throws ReflectiveOperationException {
         TypeVariable<?>[] typeVariables = switch (owner) {
+            case ConstructorRef constructorRef -> {
+                Constructor<?> constructor = constructorRef.resolveToConstructor(lookup);
+                yield constructor.getTypeParameters();
+            }
             case MethodRef methodRef -> {
                 Method method = methodRef.resolveToDirectMethod(lookup);
                 yield method.getTypeParameters();
@@ -130,5 +135,5 @@ public final class TypeVarRef implements JavaType {
     /**
      * The owner of a type-variable - either a class or a method.
      */
-    public sealed interface Owner permits ClassType, MethodRef { }
+    public sealed interface Owner permits ClassType, MethodRef, ConstructorRef { }
 }

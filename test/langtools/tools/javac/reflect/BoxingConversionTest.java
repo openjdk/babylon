@@ -130,7 +130,7 @@ public class BoxingConversionTest {
     @CodeReflection
     @IR("""
             func @"test7" (%0 : BoxingConversionTest)void -> {
-                %1 : BoxingConversionTest$Box = new @"func<BoxingConversionTest$Box>";
+                %1 : BoxingConversionTest$Box = new @"BoxingConversionTest$Box::<new>()";
                 %2 : java.lang.Integer = field.load %1 @"BoxingConversionTest$Box::i()java.lang.Integer";
                 %3 : int = constant @"1";
                 %4 : int = invoke %2 @"java.lang.Integer::intValue()int";
@@ -147,7 +147,7 @@ public class BoxingConversionTest {
     @CodeReflection
     @IR("""
             func @"test8" (%0 : BoxingConversionTest)void -> {
-                %1 : BoxingConversionTest$Box = new @"func<BoxingConversionTest$Box>";
+                %1 : BoxingConversionTest$Box = new @"BoxingConversionTest$Box::<new>()";
                 %2 : java.lang.Integer = field.load %1 @"BoxingConversionTest$Box::i()java.lang.Integer";
                 %3 : int = constant @"3";
                 %4 : int = invoke %2 @"java.lang.Integer::intValue()int";
@@ -602,7 +602,7 @@ public class BoxingConversionTest {
                 %2 : Var<int> = var %1 @"i";
                 %3 : int = var.load %2;
                 %4 : java.lang.Integer = invoke %3 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                %5 : BoxingConversionTest$Box2 = new %4 @"func<BoxingConversionTest$Box2, java.lang.Integer>";
+                %5 : BoxingConversionTest$Box2 = new %4 @"BoxingConversionTest$Box2::<new>(java.lang.Integer)";
                 return;
             };
             """)
@@ -616,7 +616,7 @@ public class BoxingConversionTest {
                 %2 : Var<int> = var %1 @"i";
                 %3 : int = var.load %2;
                 %4 : int = var.load %2;
-                %5 : BoxingConversionTest$Box2 = new %3 %4 @"func<BoxingConversionTest$Box2, int, int, java.lang.Integer[]>";
+                %5 : BoxingConversionTest$Box2 = new %3 %4 @new.varargs="true" @"BoxingConversionTest$Box2::<new>(int,int,java.lang.Integer[])";
                 return;
             };
             """)
@@ -632,7 +632,7 @@ public class BoxingConversionTest {
                 %4 : int = var.load %2;
                 %5 : int = var.load %2;
                 %6 : java.lang.Integer = invoke %5 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                %7 : BoxingConversionTest$Box2 = new %3 %4 %6 @"func<BoxingConversionTest$Box2, int, int, java.lang.Integer[]>";
+                %7 : BoxingConversionTest$Box2 = new %3 %4 %6 @new.varargs="true" @"BoxingConversionTest$Box2::<new>(int,int,java.lang.Integer[])";
                 return;
             };
             """)
@@ -650,7 +650,7 @@ public class BoxingConversionTest {
                 %6 : java.lang.Integer = invoke %5 @"java.lang.Integer::valueOf(int)java.lang.Integer";
                 %7 : int = var.load %2;
                 %8 : java.lang.Integer = invoke %7 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                %9 : BoxingConversionTest$Box2 = new %3 %4 %6 %8 @"func<BoxingConversionTest$Box2, int, int, java.lang.Integer[]>";
+                %9 : BoxingConversionTest$Box2 = new %3 %4 %6 %8 @new.varargs="true" @"BoxingConversionTest$Box2::<new>(int,int,java.lang.Integer[])";
                 return;
             };
             """)

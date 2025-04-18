@@ -29,12 +29,8 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.reflect.Executable;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.GenericDeclaration;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
+import java.lang.reflect.*;
+
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.type.WildcardType.BoundKind;
 import java.util.List;
@@ -210,7 +206,8 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
 
     private static TypeVarRef.Owner owner(GenericDeclaration genDecl) {
         return switch (genDecl) {
-            case Executable e -> MethodRef.method(e);
+            case Constructor<?> c -> ConstructorRef.constructor(c);
+            case Method m -> MethodRef.method(m);
             case Class<?> t -> (ClassType)type(t);
             default -> throw new InternalError();
         };
