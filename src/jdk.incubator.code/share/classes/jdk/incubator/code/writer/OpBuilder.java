@@ -225,7 +225,7 @@ public class OpBuilder {
                 buildType(resultType),
                 buildAttributeMap(attributes),
                 buildList(type(Body.Builder.class), bodies));
-        return builder.op(_new(EXTERNALIZED_OP_F_TYPE, args));
+        return builder.op(_new(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
     }
 
     Value buildBody(Value ancestorBodyValue, Body inputBody) {
@@ -361,7 +361,8 @@ public class OpBuilder {
         if (keysAndValues.isEmpty()) {
             return builder.op(invoke(MAP_OF));
         } else {
-            Value map = builder.op(_new(mapType, functionType(J_U_HASH_MAP)));
+            ConstructorRef constructorRef = ConstructorRef.constructor(HashMap.class);
+            Value map = builder.op(_new(mapType, constructorRef));
             for (int i = 0; i < keysAndValues.size(); i += 2) {
                 Value key = keysAndValues.get(i);
                 Value value = keysAndValues.get(i + 1);

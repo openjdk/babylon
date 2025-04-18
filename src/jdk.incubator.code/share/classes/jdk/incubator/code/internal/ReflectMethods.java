@@ -1526,9 +1526,9 @@ public class ReflectMethods extends TreeTranslator {
                 }
 
                 JavaType arrayType = typeToTypeElement(tree.type);
-                FunctionType constructorType = FunctionType.functionType(arrayType,
+                ConstructorRef constructorRef = ConstructorRef.constructor(arrayType,
                         indexes.stream().map(Value::type).toList());
-                result = append(CoreOp._new(arrayType, constructorType, indexes));
+                result = append(CoreOp._new(constructorRef, indexes));
             }
         }
 
@@ -1724,7 +1724,7 @@ public class ReflectMethods extends TreeTranslator {
                 // body
                 pushBody(tree, caseBodyType);
                 append(CoreOp._throw(
-                        append(CoreOp._new(FunctionType.functionType(JavaType.type(MatchException.class))))
+                        append(CoreOp._new(ConstructorRef.constructor(MatchException.class)))
                 ));
                 bodies.add(stack.body);
                 popBody();

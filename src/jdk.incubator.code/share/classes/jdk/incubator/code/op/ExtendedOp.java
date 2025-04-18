@@ -943,7 +943,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             if (!(selectorExpression.type() instanceof PrimitiveType) && !haveNullCase()) {
                 Block.Builder throwBlock = b.block();
                 throwBlock.op(_throw(
-                        throwBlock.op(_new(FunctionType.functionType(JavaType.type(NullPointerException.class))))
+                        throwBlock.op(_new(ConstructorRef.constructor(NullPointerException.class)))
                 ));
 
                 Block.Builder continueBlock = b.block();

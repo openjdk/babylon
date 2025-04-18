@@ -41,7 +41,9 @@ import static jdk.incubator.code.type.FunctionType.functionType;
  */
 public sealed interface ConstructorRef extends TypeVarRef.Owner permits ConstructorRefImpl {
 
-    TypeElement refType();
+    default TypeElement refType() {
+        return type().returnType();
+    }
 
     FunctionType type();
 
@@ -60,8 +62,8 @@ public sealed interface ConstructorRef extends TypeVarRef.Owner permits Construc
                 c.getParameterTypes());
     }
 
-    static ConstructorRef constructor(Class<?> refType, MethodType mt) {
-        return constructor(refType, mt.parameterList());
+    static ConstructorRef constructor(MethodType mt) {
+        return constructor(mt.returnType(), mt.parameterList());
     }
 
     static ConstructorRef constructor(Class<?> refType, Class<?>... params) {
@@ -73,6 +75,10 @@ public sealed interface ConstructorRef extends TypeVarRef.Owner permits Construc
     }
 
     static ConstructorRef constructor(TypeElement refType, List<? extends TypeElement> params) {
+        return constructor(functionType(refType, params));
+    }
+
+    static ConstructorRef constructor(TypeElement refType, TypeElement... params) {
         return constructor(functionType(refType, params));
     }
 

@@ -1680,15 +1680,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new NewOp(this, cc);
         }
 
-        NewOp(boolean isVarArgs, FunctionType constructorType, List<Value> args) {
-            this(isVarArgs, constructorType.returnType(), constructorType, args);
-        }
-
-        NewOp(boolean isVarArgs, TypeElement resultType, FunctionType constructorType, List<Value> args) {
-            this(isVarArgs, resultType,
-                    ConstructorRef.constructor(constructorType), args);
-        }
-
         NewOp(boolean isVarargs, TypeElement resultType, ConstructorRef constructorDescriptor, List<Value> args) {
             super(NAME, args);
 
@@ -1717,10 +1708,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         public ConstructorRef constructorDescriptor() {
             return constructorDescriptor;
-        }
-
-        public FunctionType constructorType() {
-            return constructorDescriptor.type();
         }
 
         @Override
@@ -3876,49 +3863,49 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * Creates an instance creation operation.
      *
-     * @param constructorType the constructor type
+     * @param constructorDescriptor the constructor descriptor
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(FunctionType constructorType, Value... args) {
-        return _new(constructorType, List.of(args));
+    public static NewOp _new(ConstructorRef constructorDescriptor, Value... args) {
+        return _new(constructorDescriptor, List.of(args));
     }
 
     /**
      * Creates an instance creation operation.
      *
-     * @param constructorType the constructor type
+     * @param constructorDescriptor the constructor descriptor
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(FunctionType constructorType, List<Value> args) {
-        return new NewOp(false, constructorType, args);
+    public static NewOp _new(ConstructorRef constructorDescriptor, List<Value> args) {
+        return new NewOp(false, constructorDescriptor.refType(), constructorDescriptor, args);
     }
 
     /**
      * Creates an instance creation operation.
      *
      * @param returnType      the instance type
-     * @param constructorType the constructor type
+     * @param constructorDescriptor the constructor descriptor
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeElement returnType, FunctionType constructorType,
+    public static NewOp _new(TypeElement returnType, ConstructorRef constructorDescriptor,
                              Value... args) {
-        return _new(returnType, constructorType, List.of(args));
+        return _new(returnType, constructorDescriptor, List.of(args));
     }
 
     /**
      * Creates an instance creation operation.
      *
      * @param returnType      the instance type
-     * @param constructorType the constructor type
+     * @param constructorDescriptor the constructor descriptor
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp _new(TypeElement returnType, FunctionType constructorType,
+    public static NewOp _new(TypeElement returnType, ConstructorRef constructorDescriptor,
                              List<Value> args) {
-        return new NewOp(false, returnType, constructorType, args);
+        return new NewOp(false, returnType, constructorDescriptor, args);
     }
 
     /**
@@ -3942,7 +3929,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * @return the array creation operation
      */
     public static NewOp newArray(TypeElement arrayType, Value length) {
-        return _new(FunctionType.functionType(arrayType, JavaType.INT), length);
+        ConstructorRef constructorDescriptor = ConstructorRef.constructor(arrayType, JavaType.INT);
+        return _new(constructorDescriptor, length);
     }
 
     // @@@ Add field load/store overload with explicit fieldType

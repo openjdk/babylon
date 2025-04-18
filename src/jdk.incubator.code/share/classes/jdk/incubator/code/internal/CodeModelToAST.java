@@ -121,7 +121,7 @@ public class CodeModelToAST {
                 }
                 var nc = treeMaker.NewClass(null, null, clazz, args.toList(), null);
                 if (newOp.isVarargs()) {
-                    setVarargs(nc, newOp.constructorType());
+                    setVarargs(nc, newOp.constructorDescriptor().type());
                 }
                 nc.type = ownerType;
                 nc.constructor = constructorDescriptorToSymbol(newOp.constructorDescriptor());
