@@ -27,6 +27,7 @@ package jdk.incubator.code.op;
 
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.type.FieldRef;
 import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.*;
@@ -1619,9 +1620,11 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             implements ReflectiveOp, JavaExpression, JavaStatement {
         public static final String NAME = "new";
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
+        public static final String ATTRIBUTE_NEW_VARARGS = NAME + ".varargs";
 
         final FunctionType constructorType;
         final TypeElement resultType;
+        final boolean isVarArgs;
 
         public static NewOp create(ExternalizedOp def) {
             FunctionType constructorType = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR, true,
@@ -1637,13 +1640,33 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                         case FunctionType ct -> ct;
                         case null, default -> throw new UnsupportedOperationException("Unsupported new descriptor value:" + v);
                     });
-            return new NewOp(def, constructorType);
+
+            // If not present defaults to false
+            boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_NEW_VARARGS,
+                    false, v -> switch (v) {
+                        case String s -> Boolean.valueOf(s);
+                        case Boolean b -> b;
+                        case null, default -> false;
+                    });
+            return new NewOp(def, constructorType, isVarArgs);
         }
 
-        NewOp(ExternalizedOp def, FunctionType constructorType) {
+        static void validateArgCount(boolean isVarArgs, FunctionType constructorType, List<Value> operands) {
+            int paramCount = constructorType.parameterTypes().size();
+            int argCount = operands.size();
+            if ((!isVarArgs && argCount != paramCount)
+                    || argCount < paramCount - 1) {
+                throw new IllegalArgumentException(isVarArgs + " " + constructorType);
+            }
+        }
+
+        NewOp(ExternalizedOp def, FunctionType constructorType, boolean isVarArgs) {
             super(def);
 
+            validateArgCount(isVarArgs, constructorType, def.operands());
+
             this.constructorType = constructorType;
+            this.isVarArgs = isVarArgs;
             this.resultType = def.resultType();
         }
 
@@ -1651,6 +1674,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             super(that, cc);
 
             this.constructorType = that.constructorType;
+            this.isVarArgs = that.isVarArgs;
             this.resultType = that.resultType;
         }
 
@@ -1659,14 +1683,13 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new NewOp(this, cc);
         }
 
-        NewOp(FunctionType constructorType, List<Value> args) {
-            this(constructorType.returnType(), constructorType, args);
-        }
-
-        NewOp(TypeElement resultType, FunctionType constructorType, List<Value> args) {
+        NewOp(TypeElement resultType, boolean isVarArgs, FunctionType constructorType, List<Value> args) {
             super(NAME, args);
 
+            validateArgCount(isVarArgs, constructorType, args);
+
             this.constructorType = constructorType;
+            this.isVarArgs = isVarArgs;
             this.resultType = resultType;
         }
 
@@ -1674,7 +1697,14 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         public Map<String, Object> attributes() {
             HashMap<String, Object> m = new HashMap<>(super.attributes());
             m.put("", constructorType);
+            if (isVarArgs) {
+                m.put(ATTRIBUTE_NEW_VARARGS, isVarArgs);
+            }
             return Collections.unmodifiableMap(m);
+        }
+
+        public boolean isVarArgs() {
+            return isVarArgs;
         }
 
         public TypeElement type() {
@@ -3854,7 +3884,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * @return the instance creation operation
      */
     public static NewOp _new(FunctionType constructorType, List<Value> args) {
-        return new NewOp(constructorType, args);
+        return _new(constructorType.returnType(), constructorType, args);
     }
 
     /**
@@ -3880,7 +3910,21 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static NewOp _new(TypeElement returnType, FunctionType constructorType,
                              List<Value> args) {
-        return new NewOp(returnType, constructorType, args);
+        return _new(returnType, false, constructorType, args);
+    }
+
+    /**
+     * Creates an instance creation operation.
+     *
+     * @param returnType      the instance type
+     * @param isVarArgs       true if an invocation to a variable argument constructor
+     * @param constructorType the constructor type
+     * @param args            the constructor arguments
+     * @return the instance creation operation
+     */
+    public static NewOp _new(TypeElement returnType, boolean isVarArgs, FunctionType constructorType,
+                             List<Value> args) {
+        return new NewOp(returnType, isVarArgs, constructorType, args);
     }
 
     /**
