@@ -1,17 +1,6 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(extractions)
 
-if (APPLE)
-   set(OSX_SDK ${CMAKE_OSX_SYSROOT})
-   set(OSX_SDK_LIBRARY_FRAMEWORKS ${OSX_SDK}/System/Library/Frameworks)
-   set(OSX_SYS_LIBRARY_FRAMEWORKS /System/Library/Frameworks)
-else()
-
-endif()
-get_cmake_property(_variableNames VARIABLES)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
 set(EXTRACTIONS "")
 
 find_package(OpenGL)

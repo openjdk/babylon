@@ -35,25 +35,63 @@ questions.
     </parent>
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-                <executions>
-                    <execution>
-                        <id>1</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <copy file="target/${project.artifactId}-${project.version}.jar" toDir="${hat.build}"/>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+           <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>exec-maven-plugin</artifactId>
+              <version>3.1.0</version>
+              <executions>
+                 <execution>
+                   <id>cmake-B</id>
+                   <phase>generate-sources</phase>
+                   <goals>
+                      <goal>exec</goal>
+                   </goals>
+                   <configuration>
+                     <executable>cmake</executable>
+                     <arguments>
+                        <argument>-DHAT_TARGET=${hat.build}</argument>
+                        <argument>-B</argument>
+                        <argument>${hat.build}/extract-opencl-cmake-build-debug</argument>
+                     </arguments>
+                   </configuration>
+                </execution>
+                <execution>
+                   <id>cmake--build</id>
+                   <phase>generate-sources</phase>
+                   <goals>
+                      <goal>exec</goal>
+                   </goals>
+                   <configuration>
+                      <executable>cmake</executable>
+                      <arguments>
+                         <argument>--build</argument>
+                         <argument>${hat.build}/extract-opencl-cmake-build-debug</argument>
+                         <argument>--target</argument>
+                         <argument>extract_opencl</argument>
+                      </arguments>
+                   </configuration>
+                </execution>
+             </executions>
+          </plugin>
+          <plugin>
+             <groupId>org.apache.maven.plugins</groupId>
+             <artifactId>maven-antrun-plugin</artifactId>
+             <version>1.8</version>
+             <executions>
+                <execution>
+                   <id>1</id>
+                   <phase>package</phase>
+                   <goals>
+                       <goal>run</goal>
+                   </goals>
+                   <configuration>
+                       <target>
+                          <copy file="target/${project.artifactId}-${project.version}.jar" toDir="${hat.build}"/>
+                       </target>
+                    </configuration>
+                </execution>
+             </executions>
+           </plugin>
         </plugins>
     </build>
 </project>
