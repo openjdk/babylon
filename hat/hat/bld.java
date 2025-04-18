@@ -190,11 +190,6 @@ void main(String[] args) {
 
     var dir = Script.DirEntry.current();
     var buildDir = Script.BuildDir.of(dir.path("build")).create();
-    var cmakeCapability = Script.Capabilities.CMake.required();
-    Script.Capabilities capabilities = Script.Capabilities.of( cmakeCapability);
-    cmakeCapability.probe(buildDir, capabilities);
-    out.println(capabilities.tickOrCheck());
-
 
     var hatCore = MavenStyleProject.of(
             dir.existingDir("hat-core"),
@@ -203,7 +198,9 @@ void main(String[] args) {
 
     var wrapsDir = dir.existingDir("wrap");
 
-    var wrap = MavenStyleProject.of(wrapsDir.existingDir("wrap"), buildDir.jarFile("hat-wrap-1.0.jar")
+    var wrap = MavenStyleProject.of(
+         wrapsDir.existingDir("wrap"),
+          buildDir.jarFile("hat-wrap-1.0.jar")
     ).build();
 
     var extractionsDir = dir.existingDir("extractions");
