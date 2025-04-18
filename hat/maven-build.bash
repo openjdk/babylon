@@ -25,11 +25,4 @@ cat >/dev/null<<LICENSE
  */
 LICENSE
 
-echo We need to run cmake in extractions dir first 
-pushd extractions
-rm -rf cmake-build-debug
-cmake -B  cmake-build-debug
-cmake --build cmake-build-debug --target extract 
-popd
-echo Now we can use maven 
 mvn -e clean compile package install
