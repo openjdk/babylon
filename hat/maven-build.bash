@@ -25,4 +25,4 @@ cat >/dev/null<<LICENSE
  */
 LICENSE
 
-mvn -e clean compile package install
+mvn -e clean compile package install -Popencl,opengl
