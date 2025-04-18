@@ -1634,7 +1634,7 @@ public class Script {
                 jar(jar -> jar
                         .jarFile(testNGBuilder.testJar)
                         .javac(javac -> javac
-                                .source(24)
+                                .source(25)
                                 .enable_preview()
                                 .class_path(testNGBuilder.classPath, mavenJars)
                                 .source_path(testNGBuilder.sourcePath)

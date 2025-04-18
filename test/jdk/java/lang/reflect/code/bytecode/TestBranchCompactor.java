@@ -24,7 +24,7 @@
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Instruction;
-import java.lang.classfile.components.ClassPrinter;
+import jdk.internal.classfile.components.ClassPrinter;
 import static java.lang.classfile.Opcode.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
@@ -36,6 +36,7 @@ import org.testng.annotations.Test;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @modules java.base/jdk.internal.classfile.components
  * @enablePreview
  * @run testng TestBranchCompactor
  */

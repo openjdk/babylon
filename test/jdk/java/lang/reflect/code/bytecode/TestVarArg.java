@@ -7,7 +7,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.classfile.ClassFile;
-import java.lang.classfile.components.ClassPrinter;
+import jdk.internal.classfile.components.ClassPrinter;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -19,6 +19,7 @@ import java.util.stream.Stream;
  * @test
  * @enablePreview
  * @modules jdk.incubator.code
+ * @modules java.base/jdk.internal.classfile.components
  * @run testng TestVarArg
  *
  */
