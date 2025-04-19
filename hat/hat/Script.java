@@ -23,45 +23,17 @@
  * questions.
  */
 
-
-
 import com.sun.source.util.JavacTask;
-import org.w3c.dom.Attr;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticListener;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -69,16 +41,12 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -319,22 +287,6 @@ public class Script {
         }
     }
 
-    public record CMakeBuildDir(Path path) implements BuildDirHolder<CMakeBuildDir> {
-        public static CMakeBuildDir of(Path path) {
-            return new CMakeBuildDir(path);
-        }
-
-        @Override
-        public CMakeBuildDir create() {
-            return CMakeBuildDir.of(mkdir(path()));
-        }
-
-        @Override
-        public CMakeBuildDir remove() {
-            return CMakeBuildDir.of(rmdir(path()));
-        }
-    }
-
     public sealed interface BuildDirHolder<T extends BuildDirHolder<T>> extends DirPathHolder<T> {
         T create();
 
@@ -423,6 +375,10 @@ public class Script {
         public DirEntry dir(String subdir) {
             return DirEntry.of(path(subdir));
         }
+        public DirEntry optionalDir(String subdir) {
+            var possible =  DirEntry.of(path(subdir));
+            return possible.exists()? possible: null;
+        }
 
         public FileEntry file(String fileName) {
             return FileEntry.of(path(fileName));
@@ -440,12 +396,8 @@ public class Script {
         public BuildDir existingBuildDir(String subdir) {
             return assertExists(BuildDir.of(path(subdir)));
         }
-            public CMakeBuildDir cMakeBuildDir(String name) {
-                return CMakeBuildDir.of(path().resolve(name));
-            }
-
-        public MavenStyleProject mavenStyleProject(JarFile jarFile,ClassPathEntryProvider ... classPathEntryProviders ) {
-            return Script.mavenStyleProject(this, jarFile,classPathEntryProviders);
+        public MavenStyleProject mavenStyleProject(BuildDir buildDir,JarFile jarFile,ClassPathEntryProvider ... classPathEntryProviders ) {
+            return Script.mavenStyleProject(buildDir,this, jarFile,classPathEntryProviders);
         }
     }
 
@@ -496,11 +448,6 @@ public class Script {
             var classPath = ClassPath.of();
             Stream.of(names).forEach(name -> classPath.add(JarFile.of(path().resolve(name))));
             return classPath;
-        }
-
-
-        public CMakeBuildDir cMakeBuildDir(String name) {
-            return CMakeBuildDir.of(path().resolve(name));
         }
 
         public ClassDir classDir(String name) {
@@ -571,6 +518,10 @@ public class Script {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        public MavenStyleProject mavenStyleBuild(DirEntry dirEntry, String jarName, ClassPathEntryProvider ...classPathEntryProvider) {
+            return mavenStyleProject(this, dirEntry, jarFile(jarName), classPathEntryProvider).build();
         }
     }
 
@@ -645,13 +596,6 @@ public class Script {
             return path;
         }
     }
-
-   // public record JExtractExecutable(Path path) implements Executable {
-     //   public static JExtractExecutable of(Path path) {
-       //     return new JExtractExecutable(path);
-       // }
-   // }
-
 
     public record ObjectFile(Path path) implements FilePathHolder {
         public static ObjectFile of(Path path) {
@@ -817,7 +761,6 @@ public class Script {
                 case OS.Mac mac -> macConsumer.accept(mac);
                 default -> throw new IllegalStateException("Unexpected value: " + Script.os);
             }
-            ;
             return self();
         }
     }
@@ -1136,9 +1079,6 @@ public class Script {
             } else if (javacBuilder.modulePath != null) {
                 //https://dev.java/learn/modules/building/
                 result.opts.add("--module-path", javacBuilder.modulePath.charSeparated());
-            } else {
-                // println("Warning no class path or module path ");
-                //throw new RuntimeException("No class path or module path provided");
             }
             var mavenStyleRoot =
                     ((javacBuilder.parent instanceof JarBuilder jarBuilder) && jarBuilder.mavenStyleRoot instanceof DirEntry fromJarBuilder)
@@ -1368,8 +1308,6 @@ public class Script {
                 process.waitFor();
                 result.ok = (process.exitValue() == 0);
                 if (!result.ok) {
-                    // println("java ok ");
-                    //}else{
                     println("java returned error " + process.exitValue());
                 }
 
@@ -1462,7 +1400,6 @@ public class Script {
         public JarFile jar;
         public JavacResult javacResult;
         public DirPath dirList;
-        //  public String mainClass;
         public Manifest manifest;
 
         public JarBuilder jarFile(JarFile jar) {
@@ -1635,7 +1572,7 @@ public class Script {
 
     public static final class CMakeBuilder extends Builder<CMakeBuilder> {
         public List<String> libraries = new ArrayList<>();
-        public CMakeBuildDir cmakeBuildDir;
+        public BuildDir cmakeBuildDir;
         public DirEntry sourceDir;
         private Path output;
         public BuildDir copyToDir;
@@ -1655,7 +1592,7 @@ public class Script {
             opts.add("cmake");
         }
 
-        public CMakeBuilder build_dir(CMakeBuildDir cmakeBuildDir) {
+        public CMakeBuilder build_dir(BuildDir cmakeBuildDir) {
             this.cmakeBuildDir = cmakeBuildDir;
             opts("-B", cmakeBuildDir.path.toString());
             return this;
@@ -1673,7 +1610,7 @@ public class Script {
             return this;
         }
 
-        public CMakeBuilder build(CMakeBuildDir cmakeBuildDir) {
+        public CMakeBuilder build(BuildDir cmakeBuildDir) {
             this.cmakeBuildDir = cmakeBuildDir;
             opts("--build", cmakeBuildDir.path().toString());
             return this;
@@ -1831,694 +1768,7 @@ public class Script {
             throw new IllegalStateException("FAILED: " + path + " does not exist");
         }
     }
-/*
-    public static class CMakeProbe implements Capabilities.Probe {
-        public interface CMakeVar<T> {
-            String name();
 
-            T value();
-        }
-
-        public record CMakeTypedVar(String name, String type, String value, String comment)
-                implements CMakeVar<String> {
-            static final Regex regex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+):([^=]*)=(.*)$");
-
-            CMakeTypedVar(Matcher matcher, String comment) {
-                this(
-                        "CMAKE_" + matcher.group(1).trim(),
-                        matcher.group(2).trim(),
-                        matcher.group(3).trim(),
-                        comment.substring(2).trim());
-            }
-
-            static boolean onMatch(String line, String comment, Consumer<CMakeTypedVar> consumer) {
-                return regex.matches(line, matcher -> consumer.accept(new CMakeTypedVar(matcher, comment)));
-            }
-        }
-
-        public record CMakeSimpleVar(String name, String value) implements CMakeVar {
-            static final Regex regex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{(.*)\\}>\\}$");
-
-            CMakeSimpleVar(Matcher matcher) {
-                this(
-                        "CMAKE_" + matcher.group(1).trim(),
-                        (matcher.group(2).isEmpty()) ? "" : matcher.group(2).trim());
-            }
-
-            static boolean onMatch(String line, String comment, Consumer<CMakeSimpleVar> consumer) {
-                return regex.matches(line, matcher -> consumer.accept(new CMakeSimpleVar(matcher)));
-            }
-        }
-
-        public record CMakeDirVar(String name, DirPathHolder value) implements CMakeVar {
-            static final Regex regex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{(.*)\\}>\\}$");
-
-            static boolean onMatch(String line, String comment, Consumer<CMakeSimpleVar> consumer) {
-                return regex.matches(line, matcher -> consumer.accept(new CMakeSimpleVar(matcher)));
-            }
-        }
-
-        public record CMakeContentVar(String name, String value) implements CMakeVar {
-            static final Regex startRegex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{(.*)$");
-            static final Regex endRegex = Regex.of("^(.*)\\}>\\}$");
-        }
-
-        public record CMakeRecipeVar(String name, String value) implements CMakeVar<String> {
-            static final Regex varPattern = Regex.of("<([^>]*)>");
-            static final Regex regex = Regex.of("^_*(?:CMAKE_)?([A-Za-z0-9_]+)=\\{<\\{<(.*)>\\}>\\}$");
-
-            CMakeRecipeVar(Matcher matcher) {
-                this(
-                        "CMAKE_" + matcher.group(1).trim(),
-                        "<" + ((matcher.group(2).isEmpty()) ? "" : matcher.group(2).trim()) + ">");
-            }
-
-            public String expandRecursively(Map<String, CMakeVar<?>> varMap, String value) { // recurse
-                String result = value;
-                if (varPattern.pattern().matcher(value) instanceof Matcher matcher && matcher.find()) {
-                    var v = matcher.group(1);
-                    if (varMap.containsKey(v)) {
-                        String replacement = varMap.get(v).value().toString();
-                        result =
-                                expandRecursively(
-                                        varMap,
-                                        value.substring(0, matcher.start())
-                                                + replacement
-                                                + value.substring(matcher.end()));
-                    }
-                }
-                return result;
-            }
-
-            public String expand(Map<String, CMakeVar<?>> vars) {
-                return expandRecursively(vars, value());
-            }
-
-            static boolean onMatch(String line, String comment, Consumer<CMakeRecipeVar> consumer) {
-                return regex.matches(line, matcher -> consumer.accept(new CMakeRecipeVar(matcher)));
-            }
-        }
-
-        BuildDir dir;
-
-        Map<String, CMakeVar<?>> varMap = new HashMap<>();
-
-        public CMakeProbe(BuildDir dir, Capabilities capabilities) {
-            this.dir = BuildDir.of(dir.path("cmakeprobe"));
-            this.dir.clean();
-
-            try {
-                this.dir.cmakeLists(cmakeLists -> {
-                    cmakeLists.append(
-                            """
-                                    cmake_minimum_required(VERSION 3.21)
-                                    project(cmakeprobe)
-                                    set(CMAKE_CXX_STANDARD 14)
-                                    """
-                    );
-
-                    capabilities.capabilities()
-                            .filter(capability -> capability instanceof Capabilities.CMakeProbeable)
-                            .map(capability -> (Capabilities.CMakeProbeable) capability)
-                            .forEach(p ->
-                                    cmakeLists.append(p.cmakeStanza()).append("\n")
-                            );
-                    cmakeLists.append(
-                            """
-                                    get_cmake_property(_variableNames VARIABLES ${VarNames})
-                                    foreach(VarName ${_variableNames})
-                                        message("${VarName}={<{${${VarName}}}>}")
-                                    endforeach()
-                                    """
-                    );
-                });
-
-                var cmakeProcessBuilder =
-                        new ProcessBuilder()
-                                .directory(this.dir.path().toFile())
-                                .redirectErrorStream(true)
-                                .command("cmake", "-LAH")
-                                .start();
-                List<String> stdinlines =
-                        new BufferedReader(new InputStreamReader(cmakeProcessBuilder.getInputStream()))
-                                .lines()
-                                .toList();
-                cmakeProcessBuilder.waitFor();
-                this.dir.textFile("rawlines", sb -> {
-                    stdinlines.forEach(line -> sb.append(line).append("\n"));
-                    // stderrlines.forEach(line-> sb.append("ERR").append(line).append("\n"));
-                });
-
-                String comment = null;
-                String contentName = null;
-                StringBuilder content = null;
-
-                for (String line : stdinlines) {
-                    if (line.startsWith("//")) {
-                        comment = line;
-                        content = null;
-
-                    } else if (comment != null) {
-                        if (CMakeTypedVar.onMatch(
-                                line,
-                                comment,
-                                v -> {
-                                    if (varMap.containsKey(v.name())) {
-                                        var theVar = varMap.get(v.name());
-                                        if (theVar.value().equals(v.value())) {
-                                          //  println(
-                                          //          "replacing duplicate variable with typed variant with the name same value"
-                                          //                  + v
-                                          //                  + theVar);
-                                        } else {
-                                            throw new IllegalStateException(
-                                                    "Duplicate variable name different value: " + v + theVar);
-                                        }
-                                        varMap.put(v.name(), v);
-                                    } else {
-                                        varMap.put(v.name(), v);
-                                    }
-                                })) {
-                        } else {
-                            println("failed to parse " + line);
-                        }
-                        comment = null;
-                        content = null;
-                        contentName = null;
-                    } else if (!line.isEmpty()) {
-                        if (content != null) {
-                            if (CMakeContentVar.endRegex.pattern().matcher(line) instanceof Matcher matcher
-                                    && matcher.matches()) {
-                                content.append("\n").append(matcher.group(1));
-                                var v = new CMakeContentVar(contentName, content.toString());
-                                contentName = null;
-                                content = null;
-                                varMap.put(v.name(), v);
-                            } else {
-                                content.append("\n").append(line);
-                            }
-                        } else if (!line.endsWith("}>}")
-                                && CMakeContentVar.startRegex.pattern().matcher(line) instanceof Matcher matcher
-                                && matcher.matches()) {
-                            contentName = "CMAKE_" + matcher.group(1);
-                            content = new StringBuilder(matcher.group(2));
-                        } else if (CMakeRecipeVar.regex.pattern().matcher(line) instanceof Matcher matcher
-                                && matcher.matches()) {
-                            CMakeVar<String> v = new CMakeRecipeVar(matcher);
-                            if (varMap.containsKey(v.name())) {
-                                var theVar = varMap.get(v.name());
-                                if (theVar.value().equals(v.value())) {
-                                    //  println("Skipping duplicate variable name different value: " + v + theVar);
-                                } else {
-                                    throw new IllegalStateException(
-                                            "Duplicate variable name different value: " + v + theVar);
-                                }
-                                varMap.put(v.name(), v);
-                            } else {
-                                varMap.put(v.name(), v);
-                            }
-                        } else if (CMakeSimpleVar.regex.pattern().matcher(line) instanceof Matcher matcher
-                                && matcher.matches()) {
-                            var v = new CMakeSimpleVar(matcher);
-                            if (varMap.containsKey(v.name())) {
-                                var theVar = varMap.get(v.name());
-                                if (theVar.value().equals(v.value())) {
-                                    // println("Skipping duplicate variable name different value: " + v + theVar);
-                                } else {
-                                    //throw new IllegalStateException(
-                                    //      "Duplicate variable name different vars: " + v + theVar);
-                                }
-                                // note we don't replace a Typed with a Simple
-                            } else {
-                                varMap.put(v.name(), v);
-                            }
-                        } else {
-                            // println("Skipping " + line);
-                        }
-                    }
-                }
-
-            } catch (IOException ioe) {
-                throw new RuntimeException(ioe);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            this.dir.textFile("vars", sb -> {
-                varMap.values().forEach(v -> sb.append(v.name()).append("<{<").append(v.value().toString()).append(">}>").append("\n"));
-            });
-
-            capabilities
-                    .capabilities()
-                    .filter(capability -> capability instanceof Capabilities.CMakeProbeable)
-                    .map(capability -> (Capabilities.CMakeProbeable) capability)
-                    .forEach(capability -> capability.accept(this));
-
-        }
-
-
-
-        public String value(String key) {
-            var v = varMap.get(key);
-            return v.value().toString();
-        }
-
-        public void dump() {
-            varMap.forEach((k,v)->System.out.println("'"+k+"'='"+v+"'"));
-        }
-        public boolean hasKey(String includeDirKey) {
-            return varMap.containsKey(includeDirKey);
-        }
-
-    }
-*/
-//    public interface CapabilityHolder {
- //       Capabilities.Capability capability();
- //   }
-/*
-    public static class Capabilities {
-
-        public String tickOrCheck() {
-            StringBuilder stringBuilder = new StringBuilder();
-            capabilities().forEach(capability -> stringBuilder.append(capability.tickOrCheck()));
-            return stringBuilder.toString();
-        }
-
-        interface Probe {
-
-        }
-/*
-        public static abstract class Capability implements CapabilityHolder {
-            final public String name;
-
-            protected Capability(String name) {
-                this.name = name;
-            }
-
-            public String name() {
-                return name;
-            }
-
-            public abstract boolean available();
-
-            @Override
-            public Capability capability() {
-                return this;
-            }
-
-            public String tickOrCheck() {
-                return "[" +  name + (available() ? "\u2714" : "\u2715") + "]";
-            }
-        }
-
-        public interface CMakeProbeable extends Consumer<Script.CMakeProbe> {
-
-            String cmakeStanza();
-        }
-
-        public interface Jextractable {
-
-
-            String name();
-
-
-
-
-            default String packageName() {
-                return name().toLowerCase();
-            }
-
-
-            default String headerClassName() {
-                return packageName() + "_h";
-            }
-
-
-
-         //  void inversionOfControl(JExtractBuilder jextractBuilder);
-        }
-
-        public Map<String, Capability> capabilityMap = new HashMap<>();
-
-        public static Capabilities of(CapabilityHolder... capabilityHolders) {
-            return new Capabilities(capabilityHolders);
-        }
-
-        public Stream<Capability> capabilities() {
-            return capabilityMap.values().stream();
-        }
-
-        public Stream<Capability> capabilities(Predicate<Capability> filter) {
-            return capabilities().filter(filter);
-        }
-
-        public boolean capabilityIsAvailable(String name) {
-            return capabilities().anyMatch(c -> c.name.equalsIgnoreCase(name));
-        }
-
-        private Capabilities(CapabilityHolder... capabilityHolders) {
-            List.of(capabilityHolders).forEach(capabilityHolder ->
-                    capabilityMap.put(capabilityHolder.capability().name, capabilityHolder.capability())
-            );
-
-        }
-
-        public static final class OpenCL extends Capability implements CMakeProbeable, Jextractable {
-            public static String includeDirKey = "CMAKE_OpenCL_INCLUDE_DIR";
-            public static String libKey = "CMAKE_OpenCL_LIBRARY";
-            public static String foundKey = "CMAKE_OPENCL_FOUND";
-            public static String osxSysroot = "CMAKE_OSX_SYSROOT";
-
-            public OpenCL() {
-                super("OpenCL");
-            }
-
-            public static OpenCL of() {
-                return new OpenCL();
-            }
-
-            @Override
-            public String cmakeStanza() {
-                return
-                        """
-                                find_package(OpenCL)
-                                if(OPENCL_FOUND)
-                                    if (APPLE)
-                                       set(OPENCL_INCLUDE_DIR "-framework OpenCL")
-                                       set(OPENCL_LIBRARY_DIR "-framework OpenCL")
-                                    else()
-                                       set(OPENCL_LIB "OpenCL")
-                                    endif()
-                                endif()
-                                """;
-            }
-
-            public String appLibFrameworks() {
-                return cmakeProbe.value(osxSysroot);
-            }
-
-            @Override
-            public boolean available() {
-                return cmakeProbe.hasKey(foundKey) && cmakeProbe.value(foundKey).equals("TRUE");
-            }
-
-            public String lib() {
-                return cmakeProbe.value(libKey);
-            }
-
-            public String includeDir() {
-                return cmakeProbe.value(includeDirKey);
-            }
-
-            public Script.CMakeProbe cmakeProbe;
-
-            @Override
-            public void accept(Script.CMakeProbe cmakeProbe) {
-                this.cmakeProbe = cmakeProbe;
-            }
-
-        }
-
-        public static final class OpenGL extends Capability implements CMakeProbeable, Jextractable {
-            public static String glutIncludeDirKey = "CMAKE_GLUT_INCLUDE_DIR";
-            public static String openGLIncludeDirKey = "CMAKE_OPENGL_INCLUDE_DIR";
-            public static String libKey = "CMAKE_OPENGL_LIBRARY";
-            public static String osxSysroot = "CMAKE_OSX_SYSROOT";
-
-            public OpenGL() {
-                super("OpenGL");
-            }
-
-            public static OpenGL of() {
-                return new OpenGL();
-            }
-
-            @Override
-            public boolean available() {
-                return cmakeProbe.hasKey(openGLIncludeDirKey);
-            }
-
-            public DirEntry openglIncludeDir() {
-                return DirEntry.of(Path.of(cmakeProbe.value(openGLIncludeDirKey)) + "/Headers");
-            }
-
-            public DirEntry glutIncludeDir() {
-                return DirEntry.of(cmakeProbe.value(osxSysroot)+"/System/Library/Frameworks/GLUT.framework/Headers");
-            }
-
-            public String appLibFrameworks() {
-                return cmakeProbe.value(osxSysroot);
-            }
-
-            public List<Path> libs() {
-                return Arrays.stream(cmakeProbe.value(libKey).split(";"))
-                        .map(s->Path.of(s)).toList();
-
-            }
-
-            public Path lib(String frameworkName) {
-                var split = cmakeProbe.value(libKey).split(";");
-                return Path.of(split[0]).resolve(frameworkName + ".framework/" + frameworkName);
-            }
-
-            @Override
-            public String cmakeStanza() {
-                return
-                        """
-                                find_package(OpenGL)
-                                if(OPENGL_FOUND)
-                                    if (APPLE)
-                                       set(OPENGL_FRAMEWORK "-framework OpenGL")
-                                    else()
-                                       set(OPENCL_LIB "OpenCL")
-                                    endif()
-                                else()
-                                    message("NO OPENGL FOUND")
-                                endif()
-                                """;
-            }
-
-            public Script.CMakeProbe cmakeProbe;
-
-            @Override
-            public void accept(Script.CMakeProbe cmakeProbe) {
-
-                this.cmakeProbe = cmakeProbe;
-
-            }
-
-        }
-
-        public static final class HIP extends Capability implements CMakeProbeable, Jextractable {
-            public HIP() {
-                super("HIP");
-            }
-
-            public static HIP of() {
-                return new HIP();
-            }
-
-            @Override
-            public boolean available() {
-                return false;
-            }
-
-            @Override
-            public String cmakeStanza() {
-                return
-                        """
-                                find_package(HIP)
-                                if(HIP_FOUND)
-
-                                else()
-                                    message("NO HIP FOUND")
-                                endif()
-                                """;
-            }
-
-            public Script.CMakeProbe cmakeProbe;
-
-            @Override
-            public void accept(Script.CMakeProbe cmakeProbe) {
-
-                this.cmakeProbe = cmakeProbe;
-            }
-
-        }
-
-        public static final class CUDA extends Capability implements CMakeProbeable, Jextractable {
-            public static String sdkRootDirKey = "CMAKE_CUDA_SDK_ROOT_DIR";
-            public static String sdkRootDirNotFoundValue = "CUDA_SDK_ROOT_DIR-NOTFOUND";
-
-            public CUDA() {
-                super("CUDA");
-            }
-
-            public static CUDA of() {
-                return new CUDA();
-            }
-
-            @Override
-            public boolean available() {
-                return cmakeProbe.hasKey(sdkRootDirKey) && !cmakeProbe.value(sdkRootDirKey).equals(sdkRootDirNotFoundValue);
-            }
-
-            @Override
-            public String cmakeStanza() {
-                return
-                        """
-                                find_package(CUDAToolkit)
-                                if(CUDAToolkit_FOUND)
-                                    set(CUDA_FOUND true)
-                                    set(CUDA_INCLUDE_DIR ${CUDAToolkit_INCLUDE_DIR})
-                                    set(CUDA_LIBRARY_DIR ${CUDAToolkit_LIBRARY_DIR})
-                                    set(CUDA_LIBRARIES "-lcudart -lcuda")
-                                else()
-                                    message("NO CUDA FOUND")
-                                endif()
-                                """;
-            }
-
-            public Script.CMakeProbe cmakeProbe;
-
-            @Override
-            public void accept(Script.CMakeProbe cmakeProbe) {
-                this.cmakeProbe = cmakeProbe;
-            }
-
-        }
-
-       /* public static final class JExtract extends Capability implements Executable {
-            public JExtractExecutable executable;
-
-            JExtract() {
-                super("JExtract");
-                var optionalExe = fromPATH("jextract");
-                if (optionalExe.isEmpty()) {
-                    //  println("jextract not in path");
-                } else {
-                    executable = JExtractExecutable.of(optionalExe.get());
-                }
-
-            }
-
-            JExtract(Path executable) {
-                super("JExtract");
-                this.executable = JExtractExecutable.of(executable);
-            }
-
-            @Override
-            public boolean available() {
-                return executable != null && executable.exists();
-            }
-
-            public static JExtract of() {
-                return new JExtract();
-            }
-            public static JExtract required() {
-                JExtract jExtract = of();
-                if (!jExtract.available()) {
-                    throw new RuntimeException("jextract is reuired");
-                }
-                return jExtract;
-            }
-
-            public static JExtract of(Path executable) {
-                return new JExtract(executable);
-            }
-
-
-            @Override
-            public Path path() {
-                return executable.path;
-            }
-        }
-
-        public static final class CMake extends Capability implements Executable {
-            public ExecutableFile executable;
-            public Script.CMakeProbe cmakeProbe;
-
-            CMake() {
-                super("CMake");
-                var optionalExe = fromPATH("cmake");
-                if (optionalExe.isEmpty()) {
-                    throw new IllegalStateException("cmake not in path");
-                }else{
-                    executable = ExecutableFile.of(optionalExe.get());
-                }
-            }
-
-            @Override
-            public boolean available() {
-                return executable != null && executable.exists();
-            }
-
-            public static CMake of() {
-                return new CMake();
-            }
-
-            public static CMake required() {
-                CMake cmake = of();
-                if (!cmake.available()) {
-                    throw new RuntimeException("cmake is required");
-                }
-                return cmake;
-            }
-
-            public void probe(BuildDir buildDir, Capabilities capabilities) {
-                this.cmakeProbe = new Script.CMakeProbe(buildDir, capabilities);
-            }
-
-            @Override
-            public Path path() {
-                return executable.path();
-            }
-        }
-
-    }
-*/
-    /*
-public static final class CMake implements Script.Executable {
-    public Script.ExecutableFile executable;
-   // public Script.CMakeProbe cmakeProbe;
-
-    CMake() {
-     //   super("CMake");
-        var optionalExe = fromPATH("cmake");
-        if (optionalExe.isEmpty()) {
-            throw new IllegalStateException("cmake not in path");
-        }else{
-            executable = Script.ExecutableFile.of(optionalExe.get());
-        }
-    }
-
-   // @Override
-   // public boolean available() {
-   //     return executable != null && executable.exists();
-   // }
-
-    public static Script.CMake of() {
-        return new Script.CMake();
-    }
-
-    public static Script.CMake required() {
-        Script.CMake cmake = of();
-             if (cmake.executable.exists()) {
-            throw new RuntimeException("cmake is required");
-        }
-        return cmake;
-    }
-
-  //  public void probe(Script.BuildDir buildDir, Capabilities capabilities) {
-    //    this.cmakeProbe = new Script.CMakeProbe(buildDir, capabilities);
-   // }
-
-    @Override
-    public Path path() {
-        return executable.path();
-    }
-}
-
-*/
     public record Regex(Pattern pattern) {
         Regex(String regex) {
             this(Pattern.compile(regex));
@@ -2540,6 +1790,7 @@ public static final class CMake implements Script.Executable {
 
 
     public static class MavenStyleProject implements Script.ClassPathEntryProvider {
+        final BuildDir buildDir;
         final Script.JarFile jarFile;
         final Script.DirEntry dir;
         final String name;
@@ -2548,7 +1799,8 @@ public static final class CMake implements Script.Executable {
 
         final List<Script.ClassPathEntryProvider> classPath = new ArrayList<>();
         final List<Script.ClassPathEntryProvider> failedDependencies = new ArrayList<>();
-        MavenStyleProject(Script.JarFile jarFile, Script.DirEntry dir, String name,  Script.ClassPathEntryProvider ...classPathEntryProviders) {
+        MavenStyleProject(BuildDir buildDir,Script.JarFile jarFile, Script.DirEntry dir, String name,  Script.ClassPathEntryProvider ...classPathEntryProviders) {
+            this.buildDir = buildDir;
             this.jarFile = jarFile;
             this.dir = dir;
             this.name = name;
@@ -2560,11 +1812,8 @@ public static final class CMake implements Script.Executable {
                     }
                 });
             }
-            this.hasJavaSources = dir.sourceDir("src/main/java").javaFiles().findAny().isPresent();     }
-
-      //  static MavenStyleProject of(  Script.DirEntry dir, Script.JarFile jarFile, Script.ClassPathEntryProvider ...classPathEntryProviders) {
-
-       // }
+            this.hasJavaSources = dir.sourceDir("src/main/java").javaFiles().findAny().isPresent();
+        }
 
         boolean canBeBuilt(){
             if (!failedDependencies.isEmpty()){
@@ -2614,9 +1863,9 @@ public static final class CMake implements Script.Executable {
         }
     }
 
-    static MavenStyleProject mavenStyleProject( Script.DirEntry dir, Script.JarFile jarFile,
+    static MavenStyleProject mavenStyleProject( BuildDir buildDir, Script.DirEntry dir, Script.JarFile jarFile,
                                                 Script.ClassPathEntryProvider ...classPathEntryProviders) {
-        return new MavenStyleProject(jarFile, dir, dir.fileName(),classPathEntryProviders);
+        return new MavenStyleProject(buildDir,jarFile, dir, dir.fileName(),classPathEntryProviders);
 
     }
 }
