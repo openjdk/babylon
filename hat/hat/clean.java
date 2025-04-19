@@ -27,7 +27,5 @@
 
 
 void main(String[] args) {
- var hatDir = Script.DirEntry.current();
- hatDir.buildDir("build").remove();
- hatDir.buildDir("stage").remove();
+ Script.DirEntry.current().buildDir("build").remove();
 }
