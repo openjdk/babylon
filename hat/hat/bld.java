@@ -25,99 +25,6 @@
  */
 
 
-import static java.io.IO.println;
-import static java.lang.System.out;
-
-
-static class MavenStyleProject implements Script.ClassPathEntryProvider {
-    final Script.JarFile jarFile;
-    final Script.DirEntry dir;
-    final String name;
-
-    final boolean hasJavaSources;
-
-    final List<Script.ClassPathEntryProvider> classPath = new ArrayList<>();
-    final List<Script.ClassPathEntryProvider> failedDependencies = new ArrayList<>();
-    MavenStyleProject(Script.JarFile jarFile, Script.DirEntry dir, String name,  Script.ClassPathEntryProvider ...classPathEntryProviders) {
-        this.jarFile = jarFile;
-        this.dir = dir;
-        this.name = name;
-
-        this.classPath.addAll(List.of(classPathEntryProviders ));
-
-        for (Script.ClassPathEntryProvider classPathEntryProvider : classPathEntryProviders) {
-            classPathEntryProvider.classPathEntries().forEach(classPathEntry -> {
-                if (!classPathEntry.exists()){
-                    failedDependencies.add(classPathEntry);
-                }
-            });
-        }
-        this.hasJavaSources = dir.sourceDir("src/main/java").javaFiles().findAny().isPresent();
-      //  println(name+" failedDependencies.isEmpty()="+failedDependencies.isEmpty()+ " hasJavaSources="+hasJavaSources);
-    }
-
-    static MavenStyleProject example(Script.BuildDir buildDir, Script.DirEntry dir,  Script.ClassPathEntryProvider ...classPathEntryProviders) {
-        return new MavenStyleProject(buildDir.jarFile("hat-example-" + dir.fileName() + "-1.0.jar"), dir, dir.fileName(), classPathEntryProviders);
-    }
-    static MavenStyleProject javaBackend(Script.BuildDir buildDir, Script.DirEntry dir,  Script.ClassPathEntryProvider ...classPathEntryProviders) {
-        return new MavenStyleProject(buildDir.jarFile("hat-backend-java-" + dir.fileName() + "-1.0.jar"), dir, dir.fileName(),classPathEntryProviders);
-    }
-    static MavenStyleProject ffiBackend(Script.BuildDir buildDir, Script.DirEntry dir,  Script.ClassPathEntryProvider ...classPathEntryProviders) {
-        return new MavenStyleProject(buildDir.jarFile("hat-backend-ffi-" + dir.fileName() + "-1.0.jar"), dir, dir.fileName(),classPathEntryProviders);
-    }
-    static MavenStyleProject jextractedBackend(Script.BuildDir buildDir, Script.DirEntry dir,  Script.ClassPathEntryProvider ...classPathEntryProviders) {
-        return new MavenStyleProject(buildDir.jarFile("hat-backend-jextracted-" + dir.fileName() + "-1.0.jar"), dir, dir.fileName(),classPathEntryProviders);
-    }
-
-    static MavenStyleProject of(  Script.DirEntry dir, Script.JarFile jarFile, Script.ClassPathEntryProvider ...classPathEntryProviders) {
-        return new MavenStyleProject(jarFile, dir, dir.fileName(),classPathEntryProviders);
-    }
-
-    boolean canBeBuilt(){
-        if (hasJavaSources && failedDependencies.isEmpty()) {
-           return true;
-        }else if (!hasJavaSources) {
-            println("Skipping " + jarFile.fileName() + " no java sources");
-        }else  if (!failedDependencies.isEmpty()){
-            print("Skipping "+jarFile.fileName()+" failed dependencies ");
-            for (Script.ClassPathEntryProvider classPathEntryProvider : failedDependencies) {
-                classPathEntryProvider.classPathEntries().forEach(classPathEntry ->
-                   print(classPathEntry.fileName())
-                );
-            }
-            println("");
-        }else{
-            println("Skipping "+jarFile.fileName()+"why!");
-        }
-        return false;
-    }
-
-    public MavenStyleProject build() {
-        if (canBeBuilt()) {
-            Script.jar(jar -> jar
-                    .verbose(false)
-                    .jarFile(jarFile)
-                    .maven_style_root(dir)
-                    .javac(javac -> javac
-                            .enable_preview()
-                            .add_modules("jdk.incubator.code")
-                            .current_source()
-                            .class_path(classPath)
-                    )
-            );
-            println(jarFile.fileName() + " OK");
-        }
-        return this;
-    }
-
-
-
-    @Override
-    public List<Script.ClassPathEntry> classPathEntries() {
-        return List.of(jarFile);
-    }
-}
-
 void main(String[] args) {
     var layout = """
        └──./
@@ -136,9 +43,6 @@ void main(String[] args) {
            │        ├── hat-jextracted-opencl-1.0.jar  // Raw jextracted jars (hat-jextracted-opencl-1.0.jar ....)
            │        ├── lib*_backend.[dylib|so]        // ffi library backends
            │        └── *(no suffix)                   // various generated executables (opencl_info, cuda_info, cuda_squares)
-           ├──stage/
-           │   └── repo/
-           │       └── *                               // Maven artifacts (poms and jars)
            ├──extractions/
            │   ├──CMakeFiles.txt
            │   ├── opencl/                             // Maven style layout
@@ -191,20 +95,14 @@ void main(String[] args) {
     var dir = Script.DirEntry.current();
     var buildDir = Script.BuildDir.of(dir.path("build")).create();
 
-    var hatCore = MavenStyleProject.of(
-            dir.existingDir("hat-core"),
-            buildDir.jarFile("hat-core-1.0.jar")
-    ).build();
+    var hatCore = dir.existingDir("hat-core").mavenStyleProject(buildDir.jarFile("hat-core-1.0.jar")).build();
+
 
     var wrapsDir = dir.existingDir("wrap");
 
-    var wrap = MavenStyleProject.of(
-         wrapsDir.existingDir("wrap"),
-          buildDir.jarFile("hat-wrap-1.0.jar")
-    ).build();
+    var wrap =  wrapsDir.existingDir("wrap").mavenStyleProject(buildDir.jarFile("hat-wrap-1.0.jar")).build();
 
     var extractionsDir = dir.existingDir("extractions");
-
     var extractionsCmakeBuildDir = extractionsDir.cMakeBuildDir("cmake-build-debug");
     if (!extractionsCmakeBuildDir.exists()) {
         Script.cmake($ -> $
@@ -220,70 +118,74 @@ void main(String[] args) {
     var jextractedOpenCLDir = extractionsDir.dir("opencl");
     var extractedOpenCLJar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
     if (jextractedOpenCLDir.dir("src").exists()) {
-        MavenStyleProject.of(jextractedOpenCLDir,extractedOpenCLJar).build();
+        Script.mavenStyleProject(jextractedOpenCLDir,extractedOpenCLJar).build();
     }
 
     var extractedOpenGLJar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
 
     var jextractedOpenGLDir = extractionsDir.dir("opengl");
     if (jextractedOpenGLDir.dir("src").exists()) {
-        MavenStyleProject.of(jextractedOpenGLDir,extractedOpenGLJar).build();
+        Script.mavenStyleProject(jextractedOpenGLDir,extractedOpenGLJar).build();
     }
 
     var extractedCudaJar = buildDir.jarFile("hat-jextracted-cuda-1.0.jar");
     var jextractedCudaDir = extractionsDir.dir("cuda");
     if (jextractedCudaDir.dir("src").exists()) {
-        MavenStyleProject.of(jextractedCudaDir,extractedCudaJar).build();
+        Script.mavenStyleProject(jextractedCudaDir,extractedCudaJar).build();
     }
 
-    var clWrap = MavenStyleProject.of(wrapsDir.dir("clwrap"), buildDir.jarFile("hat-clwrap-1.0.jar"),
+    var clWrap = Script.mavenStyleProject(
+            wrapsDir.dir("clwrap"),
+            buildDir.jarFile("hat-clwrap-1.0.jar"),
             wrap, hatCore, extractedOpenCLJar
     ).build();
 
 
-    var glWrap = MavenStyleProject.of(wrapsDir.dir("glwrap"), buildDir.jarFile("hat-glwrap-1.0.jar"),
+    var glWrap = Script.mavenStyleProject(
+            wrapsDir.dir("glwrap"),
+            buildDir.jarFile("hat-glwrap-1.0.jar"),
             wrap, hatCore, extractedOpenGLJar
-    ); // we can't use build, we need a custom build because of the file exclusions
-    if (glWrap.canBeBuilt()) {
-        Script.jar(jar -> jar
-                .jarFile(glWrap.jarFile)
-                .maven_style_root(glWrap.dir)
-                .javac(javac -> javac
-                        .current_source()
-                        .exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLCallbackEventHandler\\.java$"))
-                        //.exclude(javaSrc -> javaSrc.matches("^.*/wrap/glwrap/GLFuncEventHandler\\.java$"))
-                        .class_path(wrap, extractedOpenGLJar)
-                )
-        );
-        println(glWrap.jarFile.fileName()+" OK");
-    }
+    ).buildExcluding(javaSrc -> javaSrc.matches(
+            "^.*/wrap/glwrap/GLCallbackEventHandler\\.java$"
+           // "^.*/wrap/glwrap/GLFuncEventHandler\\.java$"
+    ));
 
-    //var cuWrap = MavenStyleProject.of(wrapsDir.dir("cuwrap"), buildDir.jarFile("hat-cuwrap-1.0.jar"),
-     //       extractedCudaJar
-    //).build();
+
+    var cuWrap = Script.mavenStyleProject(
+            wrapsDir.dir("cuwrap"),
+            buildDir.jarFile("hat-cuwrap-1.0.jar"),
+            extractedCudaJar
+    ).build();
 
 
     var backendsDir = dir.existingDir("backends");
 
     var ffiBackendsDir = backendsDir.existingDir("ffi");
 
-    var ffiBackendShared = MavenStyleProject.of(ffiBackendsDir.existingDir("shared"),
+    var ffiBackendShared = Script.mavenStyleProject(
+            ffiBackendsDir.existingDir("shared"),
             buildDir.jarFile("hat-backend-ffi-shared-1.0.jar"),
             hatCore
     ).build();
 
     ffiBackendsDir.subDirs()
             .filter(ffiBackend -> ffiBackend.matches("^.*(mock|opencl)$"))
-            .map(ffiBackend->MavenStyleProject.ffiBackend(buildDir,ffiBackend,hatCore,ffiBackendShared))
-            .forEach(MavenStyleProject::build);
+            .map(ffiBackend->Script.mavenStyleProject(
+                    ffiBackend,
+                    buildDir.jarFile("hat-backend-ffi-" + ffiBackend.fileName() + "-1.0.jar"),
+                    hatCore, ffiBackendShared)
+            )
+            .forEach(Script.MavenStyleProject::build);
 
     var jextractedBackends = backendsDir.existingDir("jextracted");
-    var jextractedBackendShared = MavenStyleProject.jextractedBackend(buildDir,
+
+    var jextractedBackendShared = Script.mavenStyleProject(
             jextractedBackends.existingDir("shared"),
+            buildDir.jarFile("hat-backend-jextracted-shared-1.0.jar"),
             hatCore
     ).build();
 
-    var jextractedBackendOpenCL = MavenStyleProject.jextractedBackend(buildDir,
+    var jextractedBackendOpenCL = Script.mavenStyleProject(
             jextractedBackends.dir("opencl"),
             buildDir.jarFile("hat-backend-jextracted-opencl-1.0.jar"),
             hatCore, extractedOpenCLJar, jextractedBackendShared
@@ -293,21 +195,30 @@ void main(String[] args) {
     javaBackendsDir
             .subDirs()
             .filter(backend -> backend.matches("^.*(mt|seq)$"))
-            .map(javaBackend->MavenStyleProject.javaBackend(buildDir,javaBackend,hatCore))
-            .forEach(MavenStyleProject::build);
+            .map(javaBackend->Script.mavenStyleProject(
+                    javaBackend,
+                    buildDir.jarFile("hat-backend-java-"+ javaBackend.fileName()+"-1.0.jar")
+                    ,hatCore)
+            )
+            .forEach(Script.MavenStyleProject::build);
 
     var examplesDir = dir.existingDir("examples");
     examplesDir
             .subDirs()
             .filter(exampleDir -> exampleDir.failsToMatch("^.*(experiments|nbody|target|.idea)$"))
-            .map(exampleDir ->  MavenStyleProject.example(buildDir, exampleDir, hatCore))
-            .forEach(MavenStyleProject::build);
+            .map(exampleDir ->  Script.mavenStyleProject(
+                    exampleDir,
+                    buildDir.jarFile("hat-example-"+exampleDir.fileName()+"-1.0.jar"),
+                    hatCore)
+            )
+            .forEach(Script.MavenStyleProject::build);
 
     var ffiOpenCLBackendJar = buildDir.jarFile("hat-backend-ffi-opencl-1.0.jar");
     examplesDir
             .subDirs()
             .filter(exampleDir -> exampleDir.matches("^.*(nbody)$"))
-            .map(exampleDir ->  MavenStyleProject.example(buildDir,exampleDir,
+            .map(exampleDir ->  Script.mavenStyleProject(exampleDir,
+                            buildDir.jarFile("hat-example-"+exampleDir.fileName()+"-1.0.jar"),
                             hatCore,
                             wrap,
                             clWrap, extractedOpenCLJar,
@@ -315,7 +226,7 @@ void main(String[] args) {
                             glWrap, extractedOpenGLJar
                             )
             )
-            .forEach(MavenStyleProject::build);
+            .forEach(Script.MavenStyleProject::build);
 
 
         var cmakeBuildDir = buildDir.cMakeBuildDir("cmake-build-debug");

@@ -443,6 +443,10 @@ public class Script {
             public CMakeBuildDir cMakeBuildDir(String name) {
                 return CMakeBuildDir.of(path().resolve(name));
             }
+
+        public MavenStyleProject mavenStyleProject(JarFile jarFile,ClassPathEntryProvider ... classPathEntryProviders ) {
+            return Script.mavenStyleProject(this, jarFile,classPathEntryProviders);
+        }
     }
 
     public interface SourcePathEntryProvider {
@@ -2535,4 +2539,84 @@ public static final class CMake implements Script.Executable {
     }
 
 
+    public static class MavenStyleProject implements Script.ClassPathEntryProvider {
+        final Script.JarFile jarFile;
+        final Script.DirEntry dir;
+        final String name;
+
+        final boolean hasJavaSources;
+
+        final List<Script.ClassPathEntryProvider> classPath = new ArrayList<>();
+        final List<Script.ClassPathEntryProvider> failedDependencies = new ArrayList<>();
+        MavenStyleProject(Script.JarFile jarFile, Script.DirEntry dir, String name,  Script.ClassPathEntryProvider ...classPathEntryProviders) {
+            this.jarFile = jarFile;
+            this.dir = dir;
+            this.name = name;
+            this.classPath.addAll(List.of(classPathEntryProviders ));
+            for (Script.ClassPathEntryProvider classPathEntryProvider : classPathEntryProviders) {
+                classPathEntryProvider.classPathEntries().forEach(classPathEntry -> {
+                    if (!classPathEntry.exists()){
+                        failedDependencies.add(classPathEntry);
+                    }
+                });
+            }
+            this.hasJavaSources = dir.sourceDir("src/main/java").javaFiles().findAny().isPresent();     }
+
+      //  static MavenStyleProject of(  Script.DirEntry dir, Script.JarFile jarFile, Script.ClassPathEntryProvider ...classPathEntryProviders) {
+
+       // }
+
+        boolean canBeBuilt(){
+            if (!failedDependencies.isEmpty()){
+                print("Skipping "+jarFile.fileName()+" failed dependencies ");
+                for (Script.ClassPathEntryProvider classPathEntryProvider : failedDependencies) {
+                    classPathEntryProvider.classPathEntries().forEach(classPathEntry ->
+                            print(classPathEntry.fileName())
+                    );
+                }
+                println("");
+                return false;
+            }else if (!hasJavaSources) {
+                println("Skipping " + jarFile.fileName() + " no java sources");
+                return false;
+            }
+            return true;
+        }
+
+
+
+        public MavenStyleProject buildExcluding(Predicate<JavaSourceFile> sourceFilePredicate) {
+            if (canBeBuilt()) {
+                Script.jar(jar -> jar
+                        .verbose(false)
+                        .jarFile(jarFile)
+                        .maven_style_root(dir)
+                        .javac(javac -> javac
+                                .enable_preview()
+                                .add_modules("jdk.incubator.code")
+                                .when(sourceFilePredicate != null, _-> javac.exclude(sourceFilePredicate))
+                                .current_source()
+                                .class_path(classPath)
+                        )
+                );
+                println(jarFile.fileName() + " OK");
+            }
+            return this;
+        }
+        public MavenStyleProject build() {
+            return buildExcluding(null); // slight hack
+        }
+
+
+        @Override
+        public List<Script.ClassPathEntry> classPathEntries() {
+            return List.of(jarFile);
+        }
+    }
+
+    static MavenStyleProject mavenStyleProject( Script.DirEntry dir, Script.JarFile jarFile,
+                                                Script.ClassPathEntryProvider ...classPathEntryProviders) {
+        return new MavenStyleProject(jarFile, dir, dir.fileName(),classPathEntryProviders);
+
+    }
 }
