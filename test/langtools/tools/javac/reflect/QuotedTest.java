@@ -86,7 +86,7 @@ public class QuotedTest {
     @IR("""
             func @"f" ()void -> {
                 %0 : func<java.lang.Object> = closure ()java.lang.Object -> {
-                    %2 : java.lang.AssertionError = new @"func<java.lang.AssertionError>";
+                    %2 : java.lang.AssertionError = new @"java.lang.AssertionError::<new>()";
                     throw %2;
                 };
                 return;

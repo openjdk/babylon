@@ -97,7 +97,7 @@ public class QuotableSubtypeTest {
     @IR("""
             func @"f" ()void -> {
                 %0 : QuotableSubtypeTest$QuotableRunnable = lambda ()void -> {
-                    %2 : java.lang.AssertionError = new @"func<java.lang.AssertionError>";
+                    %2 : java.lang.AssertionError = new @"java.lang.AssertionError::<new>()";
                     throw %2;
                 };
                 return;
@@ -223,7 +223,7 @@ public class QuotableSubtypeTest {
                 %0 : QuotableSubtypeTest$QuotableIntFunction<int[]> = lambda (%2 : int)int[] -> {
                     %3 : Var<int> = var %2 @"x$0";
                     %4 : int = var.load %3;
-                    %5 : int[] = new %4 @"func<int[], int>";
+                    %5 : int[] = new %4 @"int[]::<new>(int)";
                     return %5;
                 };
                 return;

@@ -81,6 +81,9 @@ public class OpBuilder {
     static final MethodRef METHOD_REF_OF_STRING = MethodRef.method(MethodRef.class, "ofString",
             MethodRef.class, String.class);
 
+    static final MethodRef CONSTRUCTOR_REF_OF_STRING = MethodRef.method(ConstructorRef.class, "ofString",
+            ConstructorRef.class, String.class);
+
     static final MethodRef FIELD_REF_OF_STRING = MethodRef.method(FieldRef.class, "ofString",
             FieldRef.class, String.class);
 
@@ -214,7 +217,7 @@ public class OpBuilder {
                 buildType(resultType),
                 buildAttributeMap(attributes),
                 buildList(type(Body.Builder.class), bodies));
-        return builder.op(_new(EXTERNALIZED_OP_F_TYPE, args));
+        return builder.op(_new(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
     }
 
     Value buildBody(Value ancestorBodyValue, Body inputBody) {
@@ -305,6 +308,10 @@ public class OpBuilder {
             }
             case String s -> {
                 yield builder.op(constant(J_L_STRING, value));
+            }
+            case ConstructorRef r -> {
+                Value string = builder.op(constant(J_L_STRING, value.toString()));
+                yield builder.op(invoke(CONSTRUCTOR_REF_OF_STRING, string));
             }
             case MethodRef r -> {
                 Value string = builder.op(constant(J_L_STRING, value.toString()));

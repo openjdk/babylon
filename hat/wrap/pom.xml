@@ -37,12 +37,12 @@ questions.
         <module>wrap</module>
     </modules>
   <profiles>
-        <profile>
+  <!--      <profile>
             <id>cuda</id>
             <modules>
                <module>cuwrap</module>
             </modules>
-        </profile>
+        </profile> -->
         <profile>
             <id>opencl</id>
             <modules>

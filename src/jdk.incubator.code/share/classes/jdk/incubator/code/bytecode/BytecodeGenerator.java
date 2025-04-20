@@ -400,7 +400,7 @@ public final class BytecodeGenerator {
             // When there is no next operation
             case null -> false;
             // New object cannot use first operand from stack, new array fall through to the default
-            case NewOp op when !(op.constructorType().returnType() instanceof ArrayType) ->
+            case NewOp op when !(op.constructorDescriptor().type().returnType() instanceof ArrayType) ->
                 false;
             // For lambda the effective operands are captured values
             case LambdaOp op ->
@@ -744,7 +744,7 @@ public final class BytecodeGenerator {
                         // Processing is deferred to the CondBrOp, do not process the op result
                     }
                     case NewOp op -> {
-                        switch (op.constructorType().returnType()) {
+                        switch (op.constructorDescriptor().type().returnType()) {
                             case ArrayType at -> {
                                 processOperands(op);
                                 if (at.dimensions() == 1) {
@@ -765,12 +765,12 @@ public final class BytecodeGenerator {
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
-                                        MethodRef.toNominalDescriptor(op.constructorType())
+                                        MethodRef.toNominalDescriptor(op.constructorDescriptor().type())
                                                  .changeReturnType(ConstantDescs.CD_void));
                             }
                             default ->
                                 throw new IllegalArgumentException("Invalid return type: "
-                                                                    + op.constructorType().returnType());
+                                                                    + op.constructorDescriptor().type().returnType());
                         }
                         push(op.result());
                     }

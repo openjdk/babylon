@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.bytecode;
 
+import jdk.incubator.code.type.*;
 import jdk.internal.classfile.impl.BytecodeHelpers;
 
 import java.lang.classfile.Attributes;
@@ -55,12 +56,7 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
-import jdk.incubator.code.type.FieldRef;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.PrimitiveType;
-import jdk.incubator.code.type.VarType;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -435,7 +431,7 @@ public final class BytecodeLift {
                             if (inst.owner().asSymbol().equals(newStack.peek()) && inst.name().equalsString(ConstantDescs.INIT_NAME)) {
                                 newStack.pop();
                                 yield op(CoreOp._new(
-                                        FunctionType.functionType(
+                                        ConstructorRef.constructor(
                                                 mDesc.refType(),
                                                 mType.parameterTypes()),
                                         operands.reversed()));
@@ -588,7 +584,7 @@ public final class BytecodeLift {
                 }
                 case NewMultiArrayInstruction inst -> {
                     stack.push(op(CoreOp._new(
-                            FunctionType.functionType(
+                            ConstructorRef.constructor(
                                     JavaType.type(inst.arrayType().asSymbol()),
                                     Collections.nCopies(inst.dimensions(), JavaType.INT)),
                             IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));
