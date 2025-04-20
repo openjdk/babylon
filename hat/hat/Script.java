@@ -30,8 +30,11 @@ import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -49,6 +52,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -539,6 +543,20 @@ public class Script {
         @Override
         public List<ClassPathEntry> classPathEntries() {
             return List.of(this);
+        }
+
+        public boolean contains(String entryName) {
+            java.util.jar.JarFile jarFile = null;
+            try {
+             //   println("looking for "+entryName);
+                jarFile = new java.util.jar.JarFile(path.toFile());
+
+                JarEntry entry = jarFile.getJarEntry(entryName);
+              //  println("entry = "+entry);
+                return entry != null;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
