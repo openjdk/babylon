@@ -92,11 +92,13 @@ void main(String[] args) {
                 └──violajones                          // Maven style layout
        """;
     class Artifacts{
-         static Script.MavenStyleProject javaSeqBackend;
+        static Script.MavenStyleProject javaSeqBackend;
         static Script.MavenStyleProject javaMTBackend;
         static Script.MavenStyleProject exampleNbody;
+        static Script.MavenStyleProject ffiBackendCuda;
         static Script.MavenStyleProject ffiBackendMock;
         static Script.MavenStyleProject ffiBackendOpenCL;
+        static Script.MavenStyleProject jextractedBackendCuda;
         static Script.MavenStyleProject jextractedBackendOpenCL;
         static Script.MavenStyleProject jextractedBackendShared;
         static Script.MavenStyleProject ffiBackendShared;
@@ -144,7 +146,8 @@ void main(String[] args) {
     var jextractedOpenGLDir = extractionsDir.dir("opengl");
     if (jextractedOpenGLDir.dir("src").exists()) {
         Artifacts.jextractedOpenGL = buildDir.mavenStyleBuild(
-                jextractedOpenGLDir, "hat-jextracted-opengl-1.0.jar");
+                jextractedOpenGLDir,
+                "hat-jextracted-opengl-1.0.jar");
     }
 
     var jextractedCudaDir = extractionsDir.dir("cuda");
@@ -163,22 +166,43 @@ void main(String[] args) {
             "hat-wrap-1.0.jar"
     );
 
+    if (Artifacts.jextractedOpenCL != null){
     Artifacts.clWrap = buildDir.mavenStyleBuild(
             wrapsDir.dir("clwrap"), "hat-clwrap-1.0.jar",
             Artifacts.wrap, Artifacts.hatCore, Artifacts.jextractedOpenCL
     );
+}
+// on jetson
+// ls extractions/opengl/src/main/java/opengl/glutKeyboardFunc*
+//  -> extractions/opengl/src/main/java/opengl/glutKeyboardFunc$callback.java
+//  so we exclude "^.*/wrap/glwrap/GLFuncEventHandler\\.java$"
+// on mac
+//    ls extractions/opengl/src/main/java/opengl/glutKeyboardFunc*
+//  -> extractions/opengl/src/main/java/opengl/glutKeyboardFunc$func.java
+//  So we exclude  "^.*/wrap/glwrap/GLCallbackEventHandler\\.java$"
+//
 
+if (Artifacts.jextractedOpenGL != null
+        && Artifacts.jextractedOpenGL.jarFile.exists()) {
+    String exclude = null;
+    if (Artifacts.jextractedOpenGL.jarFile.contains("opengl/glutKeyboardFunc$func.class")) {
+        exclude = "Callback";
+    }else if (Artifacts.jextractedOpenGL.jarFile.contains("opengl/glutKeyboardFunc$callback.class")) {
+        exclude = "Func";
+    }else {
+        println("We can't build glwrap because we need to exclude one of GLFuncEventHandler or GLCallbackEventHandler something");
+    }
+    if (exclude != null) {
+        final var excludeMeSigh = "^.*/wrap/glwrap/GL"+exclude+"EventHandler\\.java$";
+        Artifacts.glWrap = Script.mavenStyleProject(buildDir,
+                wrapsDir.dir("glwrap"),
+                buildDir.jarFile("hat-glwrap-1.0.jar"),
+                Artifacts.wrap, Artifacts.hatCore, Artifacts.jextractedOpenGL
+        ).buildExcluding(javaSrc -> javaSrc.matches(excludeMeSigh));
+    }
+}
 
-    Artifacts.glWrap = Script.mavenStyleProject(buildDir,
-            wrapsDir.dir("glwrap"),
-            buildDir.jarFile("hat-glwrap-1.0.jar"),
-            Artifacts.wrap, Artifacts.hatCore, Artifacts.jextractedOpenGL
-    ).buildExcluding(javaSrc -> javaSrc.matches(
-            "^.*/wrap/glwrap/GLCallbackEventHandler\\.java$"
-           // "^.*/wrap/glwrap/GLFuncEventHandler\\.java$"
-    ));
-//Objects.nonNull(Artifacts.jextractedOpenCL,Artifacts.jextractedCuda);
-    if (Artifacts.jextractedCuda != null) {
+    if (false && Artifacts.jextractedCuda != null ) {
         Artifacts.cuWrap = buildDir.mavenStyleBuild(
                 wrapsDir.dir("cuwrap"), "hat-cuwrap-1.0.jar",
                 Artifacts.jextractedCuda
@@ -197,11 +221,19 @@ void main(String[] args) {
         Artifacts.ffiBackendOpenCL = buildDir.mavenStyleBuild(
                 ffiBackendDir,
                 "hat-backend-ffi-"+ffiBackendDir.fileName()+ "-1.0.jar",
-                Artifacts.hatCore, Artifacts.ffiBackendShared,Artifacts.jextractedOpenCL
+                Artifacts.hatCore, Artifacts.ffiBackendShared
         );
     }
     if (ffiBackendsDir.optionalDir("mock") instanceof Script.DirEntry ffiBackendDir) {
         Artifacts.ffiBackendMock = buildDir.mavenStyleBuild(
+                ffiBackendDir,
+                "hat-backend-ffi-"+ffiBackendDir.fileName()+ "-1.0.jar",
+                Artifacts.hatCore, Artifacts.ffiBackendShared
+        );
+    }
+
+    if (ffiBackendsDir.optionalDir("cuda") instanceof Script.DirEntry ffiBackendDir) {
+        Artifacts.ffiBackendCuda = buildDir.mavenStyleBuild(
                 ffiBackendDir,
                 "hat-backend-ffi-"+ffiBackendDir.fileName()+ "-1.0.jar",
                 Artifacts.hatCore, Artifacts.ffiBackendShared
@@ -216,11 +248,19 @@ void main(String[] args) {
             Artifacts.hatCore
     );
 
-    if (jextractedBackendsDir.optionalDir("opencl") instanceof Script.DirEntry jextractedBackendDir) {
+    if (Artifacts.jextractedOpenCL != null && jextractedBackendsDir.optionalDir("opencl") instanceof Script.DirEntry jextractedBackendDir) {
         Artifacts.jextractedBackendOpenCL = buildDir.mavenStyleBuild(
                 jextractedBackendDir,
                 "hat-backend-jextracted-" + jextractedBackendDir.fileName() + "-1.0.jar",
                 Artifacts.hatCore, Artifacts.jextractedOpenCL, Artifacts.jextractedBackendShared
+        );
+    }
+
+    if (Artifacts.jextractedCuda != null && jextractedBackendsDir.optionalDir("cuda") instanceof Script.DirEntry jextractedBackendDir) {
+        Artifacts.jextractedBackendCuda = buildDir.mavenStyleBuild(
+                jextractedBackendDir,
+                "hat-backend-jextracted-" + jextractedBackendDir.fileName() + "-1.0.jar",
+                Artifacts.hatCore, Artifacts.jextractedCuda, Artifacts.jextractedBackendShared
         );
     }
 
@@ -251,7 +291,7 @@ void main(String[] args) {
                     )
             );
 
-    var nbodyDependencies = List.of(
+    var nbodyDependencies = new Script.MavenStyleProject[]{
             Artifacts.hatCore,
             Artifacts.wrap,
             Artifacts.clWrap,
@@ -259,13 +299,20 @@ void main(String[] args) {
             Artifacts.ffiBackendOpenCL,
             Artifacts.glWrap,
             Artifacts.jextractedOpenGL
-    );
-    if (nbodyDependencies.stream().filter(Objects::isNull).count()>1){
+    };
+    boolean foundNull = false;
+
+    for (var o:nbodyDependencies){
+       if (o == null){
+          foundNull = true;
+       }
+    }
+    if (foundNull){
         print("incomplete nbody dependencies ");
     }else {
         Artifacts.exampleNbody = buildDir.mavenStyleBuild(examplesDir.existingDir("nbody"),
                 "hat-example-nbody-1.0.jar",
-                nbodyDependencies.toArray(new Script.ClassPathEntryProvider[0])
+                nbodyDependencies
         );
     }
 
