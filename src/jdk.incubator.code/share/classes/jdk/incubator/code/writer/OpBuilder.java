@@ -95,21 +95,13 @@ public class OpBuilder {
 
     static final JavaType J_U_MAP = type(Map.class);
 
-    static final JavaType J_U_HASH_MAP = type(HashMap.class);
-
     static final JavaType J_U_MAP_ENTRY = type(Map.Entry.class);
 
     static final MethodRef MAP_ENTRY = MethodRef.method(J_U_MAP, "entry",
             J_U_MAP, J_L_OBJECT, J_L_OBJECT);
 
-    static final MethodRef MAP_OF = MethodRef.method(J_U_MAP, "of",
-            J_U_MAP);
-
     static final MethodRef MAP_OF_ARRAY = MethodRef.method(J_U_MAP, "of",
             J_U_MAP, array(J_U_MAP_ENTRY, 1));
-
-    static final MethodRef MAP_PUT = MethodRef.method(J_U_MAP, "put",
-            J_L_OBJECT, J_L_OBJECT, J_L_OBJECT);
 
 
     static final FunctionType EXTERNALIZED_OP_F_TYPE = functionType(
@@ -351,16 +343,21 @@ public class OpBuilder {
 
     Value buildMap(JavaType keyType, JavaType valueType, List<Value> keysAndValues) {
         JavaType mapType = parameterized(J_U_MAP, keyType, valueType);
-        if (keysAndValues.isEmpty()) {
-            return builder.op(invoke(MAP_OF));
+        if (keysAndValues.size() < 21) {
+            MethodRef mapOf = MethodRef.method(J_U_MAP, "of",
+                    J_U_MAP, Collections.nCopies(keysAndValues.size(), J_L_OBJECT));
+            return builder.op(invoke(mapType, mapOf, keysAndValues));
         } else {
-            Value map = builder.op(_new(mapType, functionType(J_U_HASH_MAP)));
+            JavaType mapEntryType = parameterized(J_U_MAP_ENTRY, keyType, valueType);
+            List<Value> elements = new ArrayList<>(keysAndValues.size() / 2);
             for (int i = 0; i < keysAndValues.size(); i += 2) {
                 Value key = keysAndValues.get(i);
                 Value value = keysAndValues.get(i + 1);
-                builder.op(invoke(MAP_PUT, map, key, value));
+                Value entry = builder.op(invoke(mapEntryType, MAP_ENTRY, key, value));
+                elements.add(entry);
             }
-            return map;
+            Value array = buildArray(mapEntryType, elements);
+            return builder.op(invoke(mapType, MAP_OF_ARRAY, array));
         }
     }
 
