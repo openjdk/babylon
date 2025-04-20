@@ -116,6 +116,13 @@ public class OpBuilder {
             J_U_MAP,
             J_U_LIST);
 
+    static final FunctionType EXTERNALIZED_OP_2_F_TYPE = functionType(
+            J_C_O_EXTERNALIZED_OP,
+            J_L_STRING,
+            J_U_LIST,
+            type(TypeElement.class),
+            J_U_MAP);
+
     static final FunctionType BUILDER_F_TYPE = functionType(type(Op.class),
             type(OpFactory.class),
             type(TypeElementFactory.class));
@@ -124,6 +131,8 @@ public class OpBuilder {
     Map<Value, Value> valueMap;
 
     Map<Block, Value> blockMap;
+
+    Map<TypeElement, Value> typeElementMap;
 
     Block.Builder builder;
 
@@ -144,6 +153,7 @@ public class OpBuilder {
     OpBuilder() {
         this.valueMap = new HashMap<>();
         this.blockMap = new HashMap<>();
+        this.typeElementMap = new HashMap<>();
     }
 
     FuncOp build(Op op) {
@@ -210,14 +220,23 @@ public class OpBuilder {
                             TypeElement resultType,
                             Map<String, Object> attributes,
                             List<Value> bodies) {
-        List<Value> args = List.of(
-                builder.op(constant(J_L_STRING, name)),
-                buildList(type(Value.class), operands),
-                buildList(type(Block.Reference.class), successors),
-                buildType(resultType),
-                buildAttributeMap(attributes),
-                buildList(type(Body.Builder.class), bodies));
-        return builder.op(_new(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
+        if (successors.isEmpty() && bodies.isEmpty()) {
+            List<Value> args = List.of(
+                    builder.op(constant(J_L_STRING, name)),
+                    buildList(type(Value.class), operands),
+                    buildType(resultType),
+                    buildAttributeMap(attributes));
+            return builder.op(_new(ConstructorRef.constructor(EXTERNALIZED_OP_2_F_TYPE), args));
+        } else {
+            List<Value> args = List.of(
+                    builder.op(constant(J_L_STRING, name)),
+                    buildList(type(Value.class), operands),
+                    buildList(type(Block.Reference.class), successors),
+                    buildType(resultType),
+                    buildAttributeMap(attributes),
+                    buildList(type(Body.Builder.class), bodies));
+            return builder.op(_new(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
+        }
     }
 
     Value buildBody(Value ancestorBodyValue, Body inputBody) {
@@ -260,10 +279,12 @@ public class OpBuilder {
         return body;
     }
 
-    Value buildType(TypeElement t) {
-        Value typeString = builder.op(constant(J_L_STRING, t.externalize().toString()));
-        Value exTypeElem = builder.op(invoke(EX_TYPE_ELEMENT_OF_STRING, typeString));
-        return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, exTypeElem));
+    Value buildType(TypeElement _t) {
+        return typeElementMap.computeIfAbsent(_t, t -> {
+            Value typeString = builder.op(constant(J_L_STRING, t.externalize().toString()));
+            Value exTypeElem = builder.op(invoke(EX_TYPE_ELEMENT_OF_STRING, typeString));
+            return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, exTypeElem));
+        });
     }
 
     Value buildAttributeMap(Map<String, Object> attributes) {
