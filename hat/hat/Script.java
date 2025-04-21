@@ -30,11 +30,8 @@ import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -45,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -52,7 +50,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -548,12 +545,19 @@ public class Script {
         public boolean contains(String entryName) {
             java.util.jar.JarFile jarFile = null;
             try {
-             //   println("looking for "+entryName);
                 jarFile = new java.util.jar.JarFile(path.toFile());
-
                 JarEntry entry = jarFile.getJarEntry(entryName);
-              //  println("entry = "+entry);
                 return entry != null;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        public List<JarEntry> select(Regex regex) {
+            java.util.jar.JarFile jarFile = null;
+            try {
+                jarFile = new java.util.jar.JarFile(path.toFile());
+                return jarFile.stream().filter(je->regex.matches(je.getName())).toList();
+
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -783,45 +787,133 @@ public class Script {
         }
     }
 
-    public abstract static sealed class Result<T extends Builder<T>> permits  JarResult, JavaResult, JavacResult {
+    public abstract static sealed class Result<T extends Builder<T>> implements DiagnosticListener <JavaFileObject>  permits  JarResult, JavaResult, JavacResult {
         public boolean ok;
         public T builder;
-
+        public List<Diagnostic<? extends JavaFileObject>> diagnostics = new ArrayList<>();
         Result(T builder) {
             this.builder = builder;
         }
+        @Override public void report(Diagnostic<? extends JavaFileObject> diagnostic){
+            if (diagnostic.getKind().equals(Diagnostic.Kind.ERROR)) {
+                ok = false;
+            }
+           diagnostics.add(diagnostic);
+        }
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            diagnostics.forEach(diagnostic -> {
+                        builder
+                                .append("\n")
+                                .append(switch (diagnostic.getKind()){
+                                    case ERROR -> "\u001B[31mERR :";  //RED
+                                    case WARNING -> "\u001B[33mWARN:"; //YELLOW
+                                    case NOTE -> "\u001B[32mNOTE:"; // GREEN
+                                    default -> "diagnostic.getKind()";
+                                })
+                                .append(" ");
+                        if (diagnostic.getSource() instanceof JavaSourceFile sourceFile) {
+                            builder.
+                                    append(sourceFile.path())
+                                    .append(" ");
+                        }
+                        builder
+                                .append(diagnostic.getLineNumber())
+                                .append(":")
+                                .append(diagnostic.getColumnNumber())
+                                .append("\n")
+                                .append(diagnostic.getMessage(null))
+                                .append("\u001B[0m");
+
+                    }
+            );
+            return builder.toString();
+        }
+
+        public void note(JavaSourceFile javaSourceFile, String message) {
+            diagnostics.add(new Diagnostic<JavaFileObject>() {
+                                       @Override
+                                       public Kind getKind() {
+                                           return Kind.NOTE;
+                                       }
+
+                                       @Override
+                                       public JavaFileObject getSource() {
+                                           return javaSourceFile;
+                                       }
+
+                                       @Override
+                                       public long getPosition() {
+                                           return 0;
+                                       }
+
+                                       @Override
+                                       public long getStartPosition() {
+                                           return 0;
+                                       }
+
+                                       @Override
+                                       public long getEndPosition() {
+                                           return 0;
+                                       }
+
+                                       @Override
+                                       public long getLineNumber() {
+                                           return 0;
+                                       }
+
+                                       @Override
+                                       public long getColumnNumber() {
+                                           return 0;
+                                       }
+
+                                       @Override
+                                       public String getCode() {
+                                           return "";
+                                       }
+
+                                       @Override
+                                       public String getMessage(Locale locale) {
+                                           return message;
+                                       }
+                                   }
+            );
+            //    println("Excluded " + javaSourceFile);
+        }
+
     }
 
-    public static class Strings {
+    public static class StringList {
         public List<String> strings = new ArrayList<>();
 
-        Strings() {
+        StringList() {
         }
 
-        Strings(Strings strings) {
+        StringList(StringList stringList) {
+            add(stringList);
+        }
+
+        StringList(List<String> strings) {
             add(strings);
         }
 
-        Strings(List<String> strings) {
+        StringList(String... strings) {
             add(strings);
         }
 
-        Strings(String... strings) {
-            add(strings);
-        }
-
-        public Strings add(List<String> strings) {
+        public StringList add(List<String> strings) {
             this.strings.addAll(strings);
             return this;
         }
 
-        public Strings add(String... strings) {
+        public StringList add(String... strings) {
             add(Arrays.asList(strings));
             return this;
         }
 
-        public Strings add(Strings strings) {
-            add(strings.strings);
+        public StringList add(StringList stringList) {
+            add(stringList.strings);
             return this;
         }
 
@@ -836,7 +928,7 @@ public class Script {
     public static sealed class JavaOpts<T extends JavaOpts<T>> extends Builder<T> {
         public DirEntry jdk = java.home;
         public Boolean enablePreview;
-        public Strings modules;
+        public StringList modules;
         protected boolean justShowCommandline;
 
         record FromModulePackageToModule(String fromModule, String pkg, String toModule) {
@@ -853,7 +945,7 @@ public class Script {
                 this.enablePreview = other.enablePreview;
             }
             if (other.modules != null) {
-                this.modules = new Strings(other.modules);
+                this.modules = new StringList(other.modules);
             }
             if (other.exports != null) {
                 this.exports = new ArrayList<>(other.exports);
@@ -889,7 +981,7 @@ public class Script {
 
         public T add_modules(String... modules) {
             if (this.modules == null) {
-                this.modules = new Strings();
+                this.modules = new StringList();
             }
             this.modules.add(modules);
 
@@ -1057,7 +1149,8 @@ public class Script {
     }
 
     public static final class JavacResult extends Result<JavacBuilder> {
-        Strings opts = new Strings();
+        StringList opts = new StringList();
+
         List<JavaSourceFile> sourceFiles = new ArrayList<>();
         List<JavaFileObject> classes = new ArrayList<>();
         public ClassDir classDir;
@@ -1065,6 +1158,7 @@ public class Script {
         JavacResult(JavacBuilder builder) {
             super(builder);
         }
+
     }
 
     public static JavacResult javac(JavacBuilder javacBuilder) {
@@ -1126,26 +1220,8 @@ public class Script {
                     throw new RuntimeException("You have specified --source-path AND provided maven_style_root ");
                 }
             }
-            boolean[] failed = {false};
+           result.ok = true;
 
-            DiagnosticListener<JavaFileObject> diagnosticListener =
-                    (diagnostic) -> {
-                        if (diagnostic.getKind().equals(Diagnostic.Kind.ERROR)) {
-                            failed[0] = true;
-                        }
-                        if (!diagnostic.getKind().equals(Diagnostic.Kind.NOTE)) {
-                            System.out.println("javac "
-                                    + diagnostic.getKind()
-                                    + " "
-                                    + ((JavaSourceFile) (diagnostic.getSource())).path().toString()
-                                    + "  "
-                                    + diagnostic.getLineNumber()
-                                    + ":"
-                                    + diagnostic.getColumnNumber()
-                                    + " "
-                                    + diagnostic.getMessage(null));
-                        }
-                    };
 
             JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
             if (javacBuilder.exclusionFilters != null) {
@@ -1154,7 +1230,7 @@ public class Script {
                             javaSourceFile -> {
                                 var kill = p.test(javaSourceFile);
                                 if (kill) {
-                                    println("Excluded " + javaSourceFile);
+                                    result.note(javaSourceFile, "Excluded");
                                 }
                                 return !kill;
                             }
@@ -1162,6 +1238,7 @@ public class Script {
                 });
             }
             if (javacBuilder.verbose || javacBuilder.parent instanceof JarBuilder jarBuilder && jarBuilder.verbose) {
+
                 print("javac " + result.opts.spaceSeparated());
                 result.sourceFiles.forEach(s -> print(s + " "));
                 println("");
@@ -1169,8 +1246,8 @@ public class Script {
             JavaCompiler.CompilationTask compilationTask =
                     (javac.getTask(
                             new PrintWriter(System.err),
-                            javac.getStandardFileManager(diagnosticListener, null, null),
-                            diagnosticListener,
+                            javac.getStandardFileManager(result, null, null),
+                            result,
                             result.opts.strings,
                             null,
                             result.sourceFiles
@@ -1180,8 +1257,8 @@ public class Script {
             javacTask.generate().forEach(javaFileObject -> {
                 result.classes.add(javaFileObject);
             });
-            if (failed[0]) {
-                throw new RuntimeException("javac failed");
+            if (!result.ok) {
+                throw new RuntimeException("javac failed to compile "+result);
             }
             return result;
         } catch (IOException e) {
@@ -1203,9 +1280,9 @@ public class Script {
         public String mainClass;
         public DirPath libraryPath;
         public boolean startOnFirstThread;
-        public Strings vmargs = new Strings();
-        public Strings args = new Strings();
-        public Strings nativeAccessModules = new Strings();
+        public StringList vmargs = new StringList();
+        public StringList args = new StringList();
+        public StringList nativeAccessModules = new StringList();
         private boolean headless;
 
 
@@ -1268,7 +1345,7 @@ public class Script {
     }
 
     public static final class JavaResult extends Result<JavaBuilder> {
-        Strings opts = new Strings();
+        StringList opts = new StringList();
 
         JavaResult(JavaBuilder javaBuilder) {
             super(javaBuilder);
@@ -1277,6 +1354,7 @@ public class Script {
 
     public static JavaBuilder java(JavaBuilder javaBuilder) {
         JavaResult result = new JavaResult(javaBuilder);
+        result.ok = true;
         result.opts.add(javaBuilder.jdk.path().resolve("bin/java").toString());
         if (javaBuilder.enablePreview != null && javaBuilder.enablePreview) {
             result.opts.add("--enable-preview");
@@ -1330,6 +1408,7 @@ public class Script {
                 }
 
             } catch (InterruptedException | IOException ie) {
+                result.ok = false;
                 System.out.println(ie);
             }
         }
@@ -1492,74 +1571,75 @@ public class Script {
     }
 
     public static final class JarResult extends Result<JarBuilder> implements ClassPathEntryProvider {
-        public Strings opts = new Strings();
+        public StringList opts = new StringList();
         public List<RootDirAndSubPath> pathsToJar = new ArrayList<>();
         public List<Path> paths = new ArrayList<>();
-        public JarFile jarFile;
-
 
         public JarResult(JarBuilder jarBuilder) {
             super(jarBuilder);
-            this.jarFile = jarBuilder.jar;
         }
 
         @Override
         public List<ClassPathEntry> classPathEntries() {
-            return List.of(jarFile);
+            return List.of(builder.jar);
         }
 
         @Override
         public String toString() {
-            return jarFile.path.toString();
+            return builder.jar.path.toString();
         }
     }
 
     public static JarResult jar(JarBuilder jarBuilder) {
 
         JarResult result = new JarResult(jarBuilder);
+        result.ok = true;
         try {
 
             var jarStream = new JarOutputStream(Files.newOutputStream(jarBuilder.jar.path()));
             if (jarBuilder.dirList == null) {
-                throw new RuntimeException("Nothing to jar ");
+               result.ok=false;
             }
-            if (jarBuilder.manifest != null) {
-                // We must add manifest
-                var entry = new JarEntry("META-INF/MANIFEST.MF");
-                // entry.setTime(Files.getLastModifiedTime(rootAndPath.path()).toMillis());
+            if (result.ok) {
+                if (jarBuilder.manifest != null) {
+                    // We must add manifest
+                    var entry = new JarEntry("META-INF/MANIFEST.MF");
+                    // entry.setTime(Files.getLastModifiedTime(rootAndPath.path()).toMillis());
+                    result.note(null, "Added manifest entry");
+                    jarStream.putNextEntry(entry);
+                    jarBuilder.manifest.writeTo(jarStream);
+                    jarStream.closeEntry();
 
-                jarStream.putNextEntry(entry);
-                jarBuilder.manifest.writeTo(jarStream);
-                jarStream.closeEntry();
+                }
 
-            }
-            jarBuilder.dirList.entries.forEach(
-                    root ->
-                            root.findFiles()
-                                    .map(path -> new RootDirAndSubPath(root, path))
-                                    .forEach(result.pathsToJar::add));
-            result.pathsToJar.stream()
-                    .sorted(Comparator.comparing(RootDirAndSubPath::path))
-                    .forEach(
-                            rootAndPath -> {
-                                try {
-                                    result.paths.add(rootAndPath.path);
-                                    var entry = new JarEntry(rootAndPath.relativize().toString());
-                                    entry.setTime(Files.getLastModifiedTime(rootAndPath.path()).toMillis());
-                                    jarStream.putNextEntry(entry);
-                                    Files.newInputStream(rootAndPath.path()).transferTo(jarStream);
-                                    jarStream.closeEntry();
-                                    if (jarBuilder.verbose) {
-                                        println("INFO: adding " + rootAndPath.relativize().toString());
+                jarBuilder.dirList.entries.forEach(
+                        root ->
+                                root.findFiles()
+                                        .map(path -> new RootDirAndSubPath(root, path))
+                                        .forEach(result.pathsToJar::add));
+                result.pathsToJar.stream()
+                        .sorted(Comparator.comparing(RootDirAndSubPath::path))
+                        .forEach(
+                                rootAndPath -> {
+                                    try {
+                                        result.paths.add(rootAndPath.path);
+                                        var entry = new JarEntry(rootAndPath.relativize().toString());
+                                        entry.setTime(Files.getLastModifiedTime(rootAndPath.path()).toMillis());
+                                        jarStream.putNextEntry(entry);
+                                        Files.newInputStream(rootAndPath.path()).transferTo(jarStream);
+                                        jarStream.closeEntry();
+                                        if (jarBuilder.verbose) {
+                                            println("INFO: adding " + rootAndPath.relativize().toString());
+                                        }
+                                    } catch (IOException e) {
+                                        throw new RuntimeException(e);
                                     }
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
-            jarStream.finish();
-            jarStream.close();
-            if (jarBuilder.verbose) {
-                println("INFO: created " + jarBuilder.jar.path.toString());
+                                });
+                jarStream.finish();
+                jarStream.close();
+                if (jarBuilder.verbose) {
+                    println("INFO: created " + jarBuilder.jar.path.toString());
+                }
             }
             return result;
         } catch (IOException e) {
@@ -1804,15 +1884,20 @@ public class Script {
                 return false;
             }
         }
+
+        boolean matches(String text) {
+            return pattern().matcher(text) instanceof Matcher matcher && matcher.matches();
+        }
     }
 
 
     public static class MavenStyleProject implements Script.ClassPathEntryProvider {
+
         final BuildDir buildDir;
         final Script.JarFile jarFile;
         final Script.DirEntry dir;
         final String name;
-
+        JarResult result =null;
         final boolean hasJavaSources;
 
         final List<Script.ClassPathEntryProvider> classPath = new ArrayList<>();
@@ -1854,26 +1939,31 @@ public class Script {
 
         public MavenStyleProject buildExcluding(Predicate<JavaSourceFile> sourceFilePredicate) {
             if (canBeBuilt()) {
-                Script.jar(jar -> jar
+                result = Script.jar(jar -> jar
                         .verbose(false)
                         .jarFile(jarFile)
                         .maven_style_root(dir)
                         .javac(javac -> javac
                                 .enable_preview()
                                 .add_modules("jdk.incubator.code")
-                                .when(sourceFilePredicate != null, _-> javac.exclude(sourceFilePredicate))
+                                .when(sourceFilePredicate != null, _ -> javac.exclude(sourceFilePredicate))
                                 .current_source()
                                 .class_path(classPath)
                         )
                 );
-                println(jarFile.fileName() + " OK");
+              //  print(result.builder.javacResult);
+                if ((result.ok && result.builder.javacResult.ok)){
+                    println("Created \u001b[32m"+jarFile.fileName()+"\u001b[0m" );
+                }else{
+                    print(result.builder.javacResult);
+                    println("Failed to create \u001b[31m"+jarFile.fileName()+"\u001b[0m" );
+                }
             }
             return this;
         }
         public MavenStyleProject build() {
             return buildExcluding(null); // slight hack
         }
-
 
         @Override
         public List<Script.ClassPathEntry> classPathEntries() {
