@@ -67,13 +67,6 @@ public abstract class ExternalizableOp extends Op {
                                  Map<String, Object> attributes,
                                  List<Body.Builder> bodyDefinitions) {
 
-        public ExternalizedOp(String name,
-                              List<Value> operands,
-                              TypeElement resultType,
-                              Map<String, Object> attributes) {
-            this(name, operands, List.of(), resultType, attributes, List.of());
-        }
-
         public ExternalizedOp {
             attributes = Map.copyOf(attributes);
         }
