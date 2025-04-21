@@ -185,9 +185,9 @@ void main(String[] args) {
 if (Artifacts.jextractedOpenGL != null
         && Artifacts.jextractedOpenGL.jarFile.exists()) {
     String exclude = null;
-    if (Artifacts.jextractedOpenGL.jarFile.contains("opengl/glutKeyboardFunc$func.class")) {
+    if (!Artifacts.jextractedOpenGL.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$func.class$")).isEmpty()) {
         exclude = "Callback";
-    }else if (Artifacts.jextractedOpenGL.jarFile.contains("opengl/glutKeyboardFunc$callback.class")) {
+    }else if (!Artifacts.jextractedOpenGL.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$callback.class$")).isEmpty()) {
         exclude = "Func";
     }else {
         println("We can't build glwrap because we need to exclude one of GLFuncEventHandler or GLCallbackEventHandler something");
