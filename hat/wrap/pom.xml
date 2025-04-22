@@ -35,9 +35,27 @@ questions.
     </parent>
     <modules>
         <module>wrap</module>
-        <module>clwrap</module>
-        <module>glwrap</module>
-        <!--<module>cuwrap</module>-->
     </modules>
+  <profiles>
+  <!--      <profile>
+            <id>cuda</id>
+            <modules>
+               <module>cuwrap</module>
+            </modules>
+        </profile> -->
+        <profile>
+            <id>opencl</id>
+            <modules>
+               <module>clwrap</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>opengl</id>
+            <modules>
+               <module>glwrap</module>
+            </modules>
+        </profile>
+    </profiles>
+
    
 </project>

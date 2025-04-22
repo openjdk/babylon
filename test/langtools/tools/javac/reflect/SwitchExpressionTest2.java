@@ -247,7 +247,7 @@ public class SwitchExpressionTest2 {
                         yield %7;
                     }
                     ()java.lang.String -> {
-                        %8 : java.lang.IllegalArgumentException = new @"func<java.lang.IllegalArgumentException>";
+                        %8 : java.lang.IllegalArgumentException = new @"java.lang.IllegalArgumentException::<new>()";
                         throw %8;
                     }
                     (%9 : java.lang.Integer)boolean -> {
@@ -439,7 +439,7 @@ public class SwitchExpressionTest2 {
                         yield %29;
                     }
                     ()int -> {
-                        %28 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                        %28 : java.lang.MatchException = new @"java.lang.MatchException::<new>()";
                         throw %28;
                     };
                 return %3;
@@ -793,7 +793,7 @@ public class SwitchExpressionTest2 {
                         yield %13;
                     }
                     ()java.lang.String -> {
-                        %12 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                        %12 : java.lang.MatchException = new @"java.lang.MatchException::<new>()";
                         throw %12;
                     };
                 return %3;
@@ -899,7 +899,7 @@ public class SwitchExpressionTest2 {
                         yield %19;
                     }
                     ()java.lang.String -> {
-                        %18 : java.lang.MatchException = new @"func<java.lang.MatchException>";
+                        %18 : java.lang.MatchException = new @"java.lang.MatchException::<new>()";
                         throw %18;
                     };
                 return %7;

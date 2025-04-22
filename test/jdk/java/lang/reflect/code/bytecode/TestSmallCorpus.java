@@ -28,7 +28,7 @@ import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.attribute.CodeAttribute;
-import java.lang.classfile.components.ClassPrinter;
+import jdk.internal.classfile.components.ClassPrinter;
 import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -50,8 +50,9 @@ import org.testng.annotations.Test;
 /*
  * @test
  * @modules jdk.incubator.code
- * @enablePreview
  * @modules java.base/java.lang.invoke:open
+ * @modules java.base/jdk.internal.classfile.components
+ * @enablePreview
  * @run testng TestSmallCorpus
  */
 public class TestSmallCorpus {

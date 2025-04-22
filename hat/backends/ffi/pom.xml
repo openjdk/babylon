@@ -65,7 +65,7 @@ questions.
                             <arguments>
                                 <argument>-DHAT_TARGET=${hat.build}</argument>
                                 <argument>-B</argument>
-                                <argument>${hat.build}/cmake-build-debug</argument>
+                                <argument>${hat.build}/ffi-cmake-build-debug</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -79,7 +79,7 @@ questions.
                             <executable>cmake</executable>
                             <arguments>
                                 <argument>--build</argument>
-                                <argument>${hat.build}/cmake-build-debug</argument>
+                                <argument>${hat.build}/ffi-cmake-build-debug</argument>
                             </arguments>
                         </configuration>
                     </execution>

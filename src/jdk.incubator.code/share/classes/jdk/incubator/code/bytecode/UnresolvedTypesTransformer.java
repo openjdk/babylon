@@ -148,7 +148,7 @@ final class UnresolvedTypesTransformer {
                     case CoreOp.VarAccessOp.VarStoreOp vso ->
                         resolveTo(ut, vso.varType().valueType());
                     case CoreOp.NewOp no ->
-                        resolveTo(ut, no.constructorType().parameterTypes().get(i));
+                        resolveTo(ut, no.constructorDescriptor().type().parameterTypes().get(i));
                     case CoreOp.ArrayAccessOp.ArrayLoadOp alo ->
                         resolveTo(ut, toArray(alo.resultType()));
                     case CoreOp.ArrayAccessOp.ArrayStoreOp aso ->

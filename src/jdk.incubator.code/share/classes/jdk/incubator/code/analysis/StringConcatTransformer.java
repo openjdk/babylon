@@ -27,10 +27,8 @@ package jdk.incubator.code.analysis;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.type.*;
+
 import java.util.*;
 
 /**
@@ -51,7 +49,7 @@ public final class StringConcatTransformer implements OpTransformer {
         switch (op) {
             case CoreOp.ConcatOp cz when isRootConcat(cz) -> {
                 // Create a string builder and build by traversing tree of operands
-                Op.Result builder = block.apply(CoreOp._new(FunctionType.functionType(J_L_STRING_BUILDER)));
+                Op.Result builder = block.apply(CoreOp._new(ConstructorRef.constructor(J_L_STRING_BUILDER)));
                 buildFromTree(block, builder, cz);
                 // Convert to string
                 Value s = block.op(CoreOp.invoke(SB_TO_STRING_REF, builder));

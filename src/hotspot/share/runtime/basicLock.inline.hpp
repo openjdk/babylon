@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +26,7 @@
 #define SHARE_RUNTIME_BASICLOCK_INLINE_HPP
 
 #include "runtime/basicLock.hpp"
+#include "runtime/objectMonitor.inline.hpp"
 
 inline markWord BasicLock::displaced_header() const {
   assert(LockingMode == LM_LEGACY, "must be");
@@ -39,7 +40,7 @@ inline void BasicLock::set_displaced_header(markWord header) {
 
 inline ObjectMonitor* BasicLock::object_monitor_cache() const {
   assert(UseObjectMonitorTable, "must be");
-#if defined(X86) || defined(AARCH64) || defined(RISCV64) || defined(PPC64) || defined(S390)
+#if !defined(ZERO) && (defined(X86) || defined(AARCH64) || defined(RISCV64) || defined(PPC64) || defined(S390))
   return reinterpret_cast<ObjectMonitor*>(get_metadata());
 #else
   // Other platforms do not make use of the cache yet,

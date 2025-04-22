@@ -47,6 +47,14 @@ questions.
         <module>violajones</module>
         <module>squares</module>
         <module>life</module>
-        <!-- <module>nbody</module>  sadly we need jextracted cl and gl for this -->
     </modules>
+    <profiles>
+        <profile>
+            <id>opengl</id>
+            <modules>
+               <module>nbody</module>
+            </modules>
+        </profile>
+    </profiles>
+
 </project>

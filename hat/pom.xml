@@ -42,8 +42,8 @@ questions.
         <module>hat-core</module>
         <module>backends</module>
         <module>examples</module>
-        <!--<module>extractions</module>
-        <module>wrap</module>-->
+        <module>extractions</module>
+        <module>wrap</module>
     </modules>
     <build>
         <plugins>
@@ -58,8 +58,8 @@ questions.
                         <!-- <arg>- -add-exports=java.base/jdk.internal=ALL-UNNAMED</arg> -->
                         <!-- <arg>- -add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg> -->
                     </compilerArgs>
-                    <source>24</source>
-                    <target>24</target>
+                    <source>25</source>
+                    <target>25</target>
                     <showDeprecation>true</showDeprecation>
                     <failOnError>true</failOnError>
                     <showWarnings>true</showWarnings>

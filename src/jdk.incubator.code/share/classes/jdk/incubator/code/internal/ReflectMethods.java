@@ -403,7 +403,7 @@ public class ReflectMethods extends TreeTranslator {
 
         public static CodeModelStorageOption parse(String s) {
             if (s == null) {
-                return CodeModelStorageOption.CODE_BUILDER;
+                return CodeModelStorageOption.TEXT;
             }
             return CodeModelStorageOption.valueOf(s);
         }
@@ -1486,16 +1486,19 @@ public class ReflectMethods extends TreeTranslator {
 
             // Create erased method type reference for constructor, where
             // the return type declares the class to instantiate
-            // @@@ require symbol site type?
+            // We need to manually construct the constructor reference,
+            // as the signature of the constructor symbol is not augmented
+            // with enclosing this and captured params.
             MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
             argtypes.addAll(methodRef.type().parameterTypes());
             FunctionType constructorType = FunctionType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
                     argtypes);
+            ConstructorRef constructorRef = ConstructorRef.constructor(constructorType);
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
-            result = append(CoreOp._new(typeToTypeElement(type), constructorType, args));
+            result = append(CoreOp._new(tree.varargsElement != null, typeToTypeElement(type), constructorRef, args));
         }
 
         @Override
@@ -1523,9 +1526,9 @@ public class ReflectMethods extends TreeTranslator {
                 }
 
                 JavaType arrayType = typeToTypeElement(tree.type);
-                FunctionType constructorType = FunctionType.functionType(arrayType,
+                ConstructorRef constructorRef = ConstructorRef.constructor(arrayType,
                         indexes.stream().map(Value::type).toList());
-                result = append(CoreOp._new(arrayType, constructorType, indexes));
+                result = append(CoreOp._new(constructorRef, indexes));
             }
         }
 
@@ -1721,7 +1724,7 @@ public class ReflectMethods extends TreeTranslator {
                 // body
                 pushBody(tree, caseBodyType);
                 append(CoreOp._throw(
-                        append(CoreOp._new(FunctionType.functionType(JavaType.type(MatchException.class))))
+                        append(CoreOp._new(ConstructorRef.constructor(MatchException.class)))
                 ));
                 bodies.add(stack.body);
                 popBody();

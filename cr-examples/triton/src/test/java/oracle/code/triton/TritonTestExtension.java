@@ -32,6 +32,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.ScopedValue;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -111,7 +112,7 @@ public class TritonTestExtension implements ParameterResolver {
                   List<? extends TypeElement> argTypes,
                   TritonOps.ModuleOp expectedTritonKernel,
                   boolean doSSA) {
-            TritonOps.ModuleOp actualTritonKernel = ScopedValue.callWhere(TritonTransformer.SV_SSA, doSSA,() -> {
+            TritonOps.ModuleOp actualTritonKernel = ScopedValue.where(TritonTransformer.SV_SSA, doSSA).call(() -> {
                 return TritonTransformer.tritonModule(javaKernel, JavaType.VOID, argTypes);
             });
 

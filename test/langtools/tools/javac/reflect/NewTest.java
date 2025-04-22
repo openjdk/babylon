@@ -40,7 +40,7 @@ public class NewTest {
     @IR("""
             func @"test0" (%0 : NewTest)void -> {
                 %1 : java.lang.String = constant @"1";
-                %2 : java.math.BigDecimal = new %1 @"func<java.math.BigDecimal, java.lang.String>";
+                %2 : java.math.BigDecimal = new %1 @"java.math.BigDecimal::<new>(java.lang.String)";
                 %3 : Var<java.math.BigDecimal> = var %2 @"a";
                 return;
             };
@@ -58,7 +58,7 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test1" (%0 : NewTest)void -> {
-                %1 : NewTest$A = new @"func<NewTest$A>";
+                %1 : NewTest$A = new @"NewTest$A::<new>()";
                 %2 : Var<NewTest$A> = var %1 @"a";
                 return;
             };
@@ -72,7 +72,7 @@ public class NewTest {
             func @"test2" (%0 : NewTest)void -> {
                 %1 : int = constant @"1";
                 %2 : int = constant @"2";
-                %3 : NewTest$A = new %1 %2 @"func<NewTest$A, int, int>";
+                %3 : NewTest$A = new %1 %2 @"NewTest$A::<new>(int, int)";
                 %4 : Var<NewTest$A> = var %3 @"a";
                 return;
             };
@@ -97,7 +97,7 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test3" (%0 : NewTest)void -> {
-                %1 : .<NewTest, NewTest$B> = new %0 @"func<.<NewTest, NewTest$B>, NewTest>";
+                %1 : .<NewTest, NewTest$B> = new %0 @".<NewTest, NewTest$B>::<new>(NewTest)";
                 %2 : Var<.<NewTest, NewTest$B>> = var %1 @"b";
                 return;
             };
@@ -111,7 +111,7 @@ public class NewTest {
             func @"test4" (%0 : NewTest)void -> {
                 %1 : int = constant @"1";
                 %2 : int = constant @"2";
-                %3 : .<NewTest, NewTest$B> = new %0 %1 %2 @"func<.<NewTest, NewTest$B>, NewTest, int, int>";
+                %3 : .<NewTest, NewTest$B> = new %0 %1 %2 @".<NewTest, NewTest$B>::<new>(NewTest, int, int)";
                 %4 : Var<.<NewTest, NewTest$B>> = var %3 @"b";
                 return;
             };
@@ -123,7 +123,7 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test5" (%0 : NewTest)void -> {
-                %1 : .<NewTest, NewTest$B> = new %0 @"func<.<NewTest, NewTest$B>, NewTest>";
+                %1 : .<NewTest, NewTest$B> = new %0 @".<NewTest, NewTest$B>::<new>(NewTest)";
                 %2 : Var<.<NewTest, NewTest$B>> = var %1 @"b";
                 return;
             };
@@ -136,7 +136,7 @@ public class NewTest {
     @IR("""
             func @"test6" (%0 : NewTest)void -> {
                 %1 : .<NewTest, NewTest$B> = field.load %0 @"NewTest::f().<NewTest, NewTest$B>";
-                %2 : .<.<NewTest, NewTest$B>, NewTest$B$C> = new %1 @"func<.<.<NewTest, NewTest$B>, NewTest$B$C>, .<NewTest, NewTest$B>>";
+                %2 : .<.<NewTest, NewTest$B>, NewTest$B$C> = new %1 @".<.<NewTest, NewTest$B>, NewTest$B$C>::<new>(.<NewTest, NewTest$B>)";
                 %3 : Var<.<.<NewTest, NewTest$B>, NewTest$B$C>> = var %2 @"c";
                 return;
             };
@@ -149,7 +149,7 @@ public class NewTest {
     @IR("""
             func @"test7" (%0 : NewTest)void -> {
                 %1 : .<NewTest, NewTest$B> = invoke %0 @"NewTest::b().<NewTest, NewTest$B>";
-                %2 : .<.<NewTest, NewTest$B>, NewTest$B$C> = new %1 @"func<.<.<NewTest, NewTest$B>, NewTest$B$C>, .<NewTest, NewTest$B>>";
+                %2 : .<.<NewTest, NewTest$B>, NewTest$B$C> = new %1 @".<.<NewTest, NewTest$B>, NewTest$B$C>::<new>(.<NewTest, NewTest$B>)";
                 %3 : Var<.<.<NewTest, NewTest$B>, NewTest$B$C>> = var %2 @"c";
                 return;
             };
@@ -167,7 +167,7 @@ public class NewTest {
             func @"test8" (%0 : NewTest, %1 : java.util.List<java.lang.String>)void -> {
                 %2 : Var<java.util.List<java.lang.String>> = var %1 @"l";
                 %3 : java.util.List<java.lang.String> = var.load %2;
-                %4 : NewTest$AG<java.lang.String> = new %3 @"func<NewTest$AG, java.util.List>";
+                %4 : NewTest$AG<java.lang.String> = new %3 @"NewTest$AG::<new>(java.util.List)";
                 %5 : Var<NewTest$AG<java.lang.String>> = var %4 @"a";
                 return;
             };
@@ -190,9 +190,9 @@ public class NewTest {
                 %3 : Var<java.util.List<java.lang.String>> = var %1 @"l1";
                 %4 : Var<java.util.List<java.lang.Number>> = var %2 @"l2";
                 %5 : java.util.List<java.lang.String> = var.load %3;
-                %6 : .<NewTest, NewTest$BG<java.lang.String>> = new %0 %5 @"func<.<NewTest, NewTest$BG>, NewTest, java.util.List>";
+                %6 : .<NewTest, NewTest$BG<java.lang.String>> = new %0 %5 @".<NewTest, NewTest$BG>::<new>(NewTest, java.util.List)";
                 %7 : java.util.List<java.lang.Number> = var.load %4;
-                %8 : .<.<NewTest, NewTest$BG<java.lang.String>>, NewTest$BG$CG<java.lang.Number>> = new %6 %7 @"func<.<.<NewTest, NewTest$BG>, NewTest$BG$CG>, .<NewTest, NewTest$BG<java.lang.String>>, java.util.List>";
+                %8 : .<.<NewTest, NewTest$BG<java.lang.String>>, NewTest$BG$CG<java.lang.Number>> = new %6 %7 @".<.<NewTest, NewTest$BG>, NewTest$BG$CG>::<new>(.<NewTest, NewTest$BG<java.lang.String>>, java.util.List)";
                 %9 : Var<.<.<NewTest, NewTest$BG<java.lang.String>>, NewTest$BG$CG<java.lang.Number>>> = var %8 @"numberCG";
                 return;
             };
@@ -206,7 +206,7 @@ public class NewTest {
     @IR("""
             func @"test10" (%0 : NewTest)void -> {
                 %1 : int = constant @"10";
-                %2 : int[] = new %1 @"func<int[], int>";
+                %2 : int[] = new %1 @"int[]::<new>(int)";
                 %3 : Var<int[]> = var %2 @"i";
                 return;
             };
@@ -226,7 +226,7 @@ public class NewTest {
                 %7 : int = var.load %2;
                 %8 : int = constant @"2";
                 %9 : int = add %7 %8;
-                %10 : java.lang.String[][][] = new %3 %6 %9 @"func<java.lang.String[][][], int, int, int>";
+                %10 : java.lang.String[][][] = new %3 %6 %9 @"java.lang.String[][][]::<new>(int, int, int)";
                 %11 : Var<java.lang.String[][][]> = var %10 @"s";
                 return;
             };
