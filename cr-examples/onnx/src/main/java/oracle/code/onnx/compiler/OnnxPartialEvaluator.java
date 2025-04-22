@@ -361,7 +361,7 @@ final class OnnxPartialEvaluator {
             }
             case CoreOp.NewOp no -> {
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();
-                JavaType nType = (JavaType) no.constructorType().returnType();
+                JavaType nType = (JavaType) no.resultType();
                 if (nType instanceof ArrayType at) {
                     if (values.length > at.dimensions()) {
                         throw interpreterException(new IllegalArgumentException("Bad constructor NewOp: " + no));
@@ -372,7 +372,7 @@ final class OnnxPartialEvaluator {
                     }
                     return Array.newInstance(resolveToClass(l, nType), lengths);
                 } else {
-                    MethodHandle mh = constructorHandle(l, no.constructorType());
+                    MethodHandle mh = constructorHandle(l, no.constructorDescriptor().type());
                     return invoke(mh, values);
                 }
             }
