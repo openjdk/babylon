@@ -41,16 +41,16 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public record OnnxProtoModel (
-        @f(1) Long ir_version,
-        @f(2) String producer_name,
-        @f(3) String producer_version,
+        @f(1) Long irVersion,
+        @f(2) String producerName,
+        @f(3) String producerVersion,
         @f(4) String domain,
-        @f(5) Long model_version,
-        @f(6) String doc_string,
+        @f(5) Long modelVersion,
+        @f(6) String docString,
         @f(7) GraphProto graph,
-        @f(8) List<OperatorSetIdProto> opset_import,
-        @f(14) List<StringStringEntryProto> metadata_props,
-        @f(20) List<TrainingInfoProto> training_info,
+        @f(8) List<OperatorSetIdProto> opsetImports,
+        @f(14) List<StringStringEntryProto> metadataProps,
+        @f(20) List<TrainingInfoProto> trainingInfos,
         @f(25) List<FunctionProto> functions) {
 
     public record Attribute (
@@ -65,39 +65,39 @@ public record OnnxProtoModel (
             @f(9) List<byte[]> strings,
             @f(10) List<TensorProto> tensors,
             @f(11) List<GraphProto> graphs,
-            @f(13) String doc_string,
+            @f(13) String docString,
             @f(14) TypeProto tp,
-            @f(15) List<TypeProto> type_protos,
+            @f(15) List<TypeProto> typeProtos,
             @f(20) Long type,
-            @f(21) String ref_attr_name,
-            @f(22) SparseTensorProto sparse_tensor,
-            @f(23) List<SparseTensorProto> sparse_tensors) {
+            @f(21) String refAttrName,
+            @f(22) SparseTensorProto sparseTensor,
+            @f(23) List<SparseTensorProto> sparseTensors) {
     }
 
     public record ValueInfoProto (
             @f(1) String name,
             @f(2) TypeProto type,
-            @f(3) String doc_string,
-            @f(4) List<StringStringEntryProto> metadata_props) {
+            @f(3) String docString,
+            @f(4) List<StringStringEntryProto> metadataProps) {
     }
 
     public record NodeProto (
-            @f(1) List<String> input,
-            @f(2) List<String> output,
+            @f(1) List<String> inputs,
+            @f(2) List<String> outputs,
             @f(3) String name,
-            @f(4) String op_type,
-            @f(5) List<Attribute> attribute,
-            @f(6) String doc_string,
+            @f(4) String opType,
+            @f(5) List<Attribute> attributes,
+            @f(6) String docString,
             @f(7) String domain,
             @f(8) String overload,
-            @f(9) List<StringStringEntryProto> metadata_props) {
+            @f(9) List<StringStringEntryProto> metadataProps) {
     }
 
     public record TrainingInfoProto (
             @f(1) GraphProto initialization,
             @f(2) GraphProto algorithm,
-            @f(3) List<StringStringEntryProto> initialization_binding,
-            @f(4) List<StringStringEntryProto> update_binding) {
+            @f(3) List<StringStringEntryProto> initializationBindings,
+            @f(4) List<StringStringEntryProto> updateBindings) {
     }
 
     public record StringStringEntryProto (
@@ -106,39 +106,39 @@ public record OnnxProtoModel (
     }
 
     public record TensorAnnotation (
-            @f(1) String tensor_name,
-            @f(2) List<StringStringEntryProto> quant_parameter_tensor_names) {
+            @f(1) String tensorName,
+            @f(2) List<StringStringEntryProto> quantParameterTensorNames) {
     }
 
     public record GraphProto (
-            @f(1) List<NodeProto> node,
+            @f(1) List<NodeProto> nodes,
             @f(2) String name,
-            @f(5) List<TensorProto> initializer,
-            @f(10) String doc_string,
-            @f(11) List<ValueInfoProto> input,
-            @f(12) List<ValueInfoProto> output,
-            @f(13) List<ValueInfoProto> value_info,
-            @f(14) List<TensorAnnotation> quantization_annotation,
-            @f(15) List<SparseTensorProto> sparse_initializer,
-            @f(16) List<StringStringEntryProto> metadata_props) {
+            @f(5) List<TensorProto> initializers,
+            @f(10) String docString,
+            @f(11) List<ValueInfoProto> inputs,
+            @f(12) List<ValueInfoProto> outputs,
+            @f(13) List<ValueInfoProto> valueInfos,
+            @f(14) List<TensorAnnotation> quantizationAnnotations,
+            @f(15) List<SparseTensorProto> sparseInitializers,
+            @f(16) List<StringStringEntryProto> metadataProps) {
     }
 
     public record TensorProto (
             @f(1) List<long[]> dims,
-            @f(2) Integer data_type,
+            @f(2) Integer dataType,
             @f(3) Segment segment,
-            @f(4) List<float[]> float_data,
-            @f(5) List<int[]> int32_data,
-            @f(6) List<byte[]> string_data,
-            @f(7) List<long[]> int64_data,
+            @f(4) List<float[]> floatData,
+            @f(5) List<int[]> int32Data,
+            @f(6) List<byte[]> stringData,
+            @f(7) List<long[]> int64Data,
             @f(8) String name,
-            @f(9) byte[] raw_data,
-            @f(10) List<double[]> double_data,
-            @f(11) List<long[]> uint64_data,
-            @f(12) String doc_string,
-            @f(13) List<StringStringEntryProto> external_data,
-            @f(14) Long data_location,
-            @f(16) List<StringStringEntryProto> metadata_props) {
+            @f(9) byte[] rawData,
+            @f(10) List<double[]> doubleData,
+            @f(11) List<long[]> uint64Data,
+            @f(12) String docString,
+            @f(13) List<StringStringEntryProto> externalData,
+            @f(14) Long dataLocation,
+            @f(16) List<StringStringEntryProto> metadataProps) {
 
         public record Segment (
                 @f(1) Long begin,
@@ -153,43 +153,43 @@ public record OnnxProtoModel (
     }
 
     public record TensorShapeProto (
-            @f(1) List<Dimension> dim) {
+            @f(1) List<Dimension> dims) {
 
         public record Dimension (
-                @f(1) Long dim_value,
-                @f(2) String dim_param,
+                @f(1) Long dimValue,
+                @f(2) String dimParam,
                 @f(3) String denotation) {
         }
     }
 
     public record TypeProto (
-            @f(1) Tensor tensor_type,
-            @f(4) Sequence sequence_type,
-            @f(5) Map map_type,
+            @f(1) Tensor tensorType,
+            @f(4) Sequence sequenceType,
+            @f(5) Map mapType,
             @f(6) String denotation,
-            @f(8) SparseTensor sparse_tensor_type,
-            @f(9) Optional optional_type) {
+            @f(8) SparseTensor sparseTensorType,
+            @f(9) Optional optionalType) {
 
         public record Tensor (
-                @f(1) Integer elem_type,
+                @f(1) Integer elemType,
                 @f(2) TensorShapeProto shape) {
         }
 
         public record Sequence (
-                @f(1) TypeProto elem_type) {
+                @f(1) TypeProto elemType) {
         }
 
         public record Map (
-                @f(1) Integer key_type,
-                @f(2) TypeProto value_type) {
+                @f(1) Integer keyType,
+                @f(2) TypeProto valueType) {
         }
 
         public record Optional (
-                @f(1) TypeProto elem_type) {
+                @f(1) TypeProto elemType) {
         }
 
         public record SparseTensor (
-                @f(1) Integer elem_type,
+                @f(1) Integer elemType,
                 @f(2) TensorShapeProto shape) {
         }
     }
@@ -201,17 +201,17 @@ public record OnnxProtoModel (
 
     public record FunctionProto (
             @f(1) String name,
-            @f(4) List<String> input,
-            @f(5) List<String> output,
-            @f(6) List<String> attribute,
-            @f(7) List<NodeProto> node,
-            @f(8) String doc_string,
-            @f(9) List<OperatorSetIdProto> opset_import,
+            @f(4) List<String> inputs,
+            @f(5) List<String> outputs,
+            @f(6) List<String> attributes,
+            @f(7) List<NodeProto> nodes,
+            @f(8) String docString,
+            @f(9) List<OperatorSetIdProto> opsetImports,
             @f(10) String domain,
-            @f(11) List<Attribute> attribute_proto,
-            @f(12) List<ValueInfoProto> value_info,
+            @f(11) List<Attribute> attributeProtos,
+            @f(12) List<ValueInfoProto> valueInfos,
             @f(13) String overload,
-            @f(14) List<StringStringEntryProto> metadata_props) {
+            @f(14) List<StringStringEntryProto> metadataProps) {
     }
 
     @Retention(RetentionPolicy.RUNTIME)
@@ -353,8 +353,8 @@ public record OnnxProtoModel (
         out.append("  ".repeat(indent)).append(name);
         switch (value) {
             case List l -> {
-                out.append(name.matches(".*[shxz]") ? "es:" : "s:").append(System.lineSeparator());
-                for (var el : l) print(out, indent + 1, "- " + name, el, skipBigData);
+                out.append(name.endsWith("s") ? ":" : "s:").append(System.lineSeparator());
+                for (var el : l) print(out, indent + 1, "- " + (name.endsWith("s") ? name.substring(0, name.length() - 1) : name), el, skipBigData);
             }
             case Record r -> {
                 out.append(':').append(System.lineSeparator());
@@ -380,7 +380,7 @@ public record OnnxProtoModel (
     private static final int SKIP_LIMIT = 1000;
 
     private static String checkSize(int size, Supplier<String> sup, boolean skipBigData) {
-        return ": " + (skipBigData && size > SKIP_LIMIT ? "# skipped " + size + " values" : ": " + sup.get()) + System.lineSeparator();
+        return ": " + (skipBigData && size > SKIP_LIMIT ? "# skipped " + size + " values" : sup.get()) + System.lineSeparator();
     }
 
     public String toText() {
