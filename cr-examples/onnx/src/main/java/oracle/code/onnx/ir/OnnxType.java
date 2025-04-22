@@ -461,7 +461,7 @@ public abstract sealed class OnnxType implements TypeElement {
                     args.add(new ExternalizedTypeElement("x" + i, List.of()));
                 }
             }
-            args.add(eType.externalize());
+            if (eType != null) args.add(eType.externalize());
             return new ExternalizedTypeElement(NAME, args);
         }
     }
