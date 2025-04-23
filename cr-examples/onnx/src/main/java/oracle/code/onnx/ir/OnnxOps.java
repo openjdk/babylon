@@ -3581,7 +3581,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long to() {
-            long to = Attribute.to.access(long.class, onnxAttributes);
+            long to = Attribute.to.access(Long.class, onnxAttributes);
             return to;
         }
 

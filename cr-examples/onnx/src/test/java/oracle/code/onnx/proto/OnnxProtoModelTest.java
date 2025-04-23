@@ -40,11 +40,12 @@ import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.TupleType;
+import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 
 
-public class OnnxProtoToModelTest {
+public class OnnxProtoModelTest {
 
     static OnnxType toOnnxType(OnnxProtoModel.TypeProto tp) {
         if (tp.tensorType() instanceof OnnxProtoModel.TypeProto.Tensor t) {
@@ -71,7 +72,7 @@ public class OnnxProtoToModelTest {
         }
         var returnType = g.outputs().size() == 1
                 ? toOnnxType(g.outputs().getFirst().type())
-                : TupleType.tupleType(g.outputs().stream().map(OnnxProtoModel.ValueInfoProto::type).map(OnnxProtoToModelTest::toOnnxType).toList());
+                : TupleType.tupleType(g.outputs().stream().map(OnnxProtoModel.ValueInfoProto::type).map(OnnxProtoModelTest::toOnnxType).toList());
         return FunctionType.functionType(returnType, paramTypes);
     }
 
@@ -136,18 +137,36 @@ public class OnnxProtoToModelTest {
             }
 
             for (OnnxProtoModel.NodeProto n : g.nodes()) {
+                // get the op
                 ExternalizableOp.ExternalizedOp extOp = new ExternalizableOp.ExternalizedOp(
                         n.opType(),
                         n.inputs() == null ? List.of() : n.inputs().stream().map(valueMap::get).toList(),
                         List.of(),
-                        new OnnxType.TensorType(null), // @@@ infer return types
-                        n.attributes() == null ? Map.of() : n.attributes().stream().collect(Collectors.toMap(OnnxProtoModel.Attribute::name, OnnxProtoToModelTest::toAttributeValue)),
+                        new OnnxType.TensorType(null),
+                        n.attributes() == null ? Map.of() : n.attributes().stream().collect(Collectors.toMap(OnnxProtoModel.Attribute::name, OnnxProtoModelTest::toAttributeValue)),
                         List.of());
-                System.out.println(extOp);
-                Op.Result res = fb.op(ONNX_FACTORY.constructOpOrFail(extOp));
-                // @@@ handle tuples
-                for (String output : n.outputs()) {
-                    valueMap.put(output, res);
+                OnnxOp rawOp = (OnnxOp)ONNX_FACTORY.constructOpOrFail(extOp);
+
+                // patch the op return type
+                TypeElement returnType = rawOp.onnxOutputs().size() == 1
+                        ? inferTypeVariableType(rawOp.onnxOutputs().getFirst().type(), rawOp, n)
+                        : TupleType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
+                extOp = new ExternalizableOp.ExternalizedOp(
+                        extOp.name(),
+                        extOp.operands(),
+                        extOp.successors(),
+                        returnType,
+                        extOp.attributes(),
+                        extOp.bodyDefinitions());
+                Op.Result res = fb.op((OnnxOp)ONNX_FACTORY.constructOpOrFail(extOp));
+
+                // map outputs
+                if (rawOp.onnxOutputs().size() == 1) {
+                    valueMap.put(n.outputs().getFirst(), res);
+                } else {
+                    for (int i = 0; i < n.outputs().size(); i++) {
+                        valueMap.put(n.outputs().get(i), fb.op(CoreOp.tupleLoad(res, i)));
+                    }
                 }
             }
 
@@ -157,6 +176,39 @@ public class OnnxProtoToModelTest {
                 fb.op(CoreOp._return(fb.op(CoreOp.tuple(g.outputs().stream().map(OnnxProtoModel.ValueInfoProto::name).map(valueMap::get).toList()))));
             }
         });
+    }
+
+    static OnnxType inferTypeVariableType(OnnxType type, OnnxOp op, OnnxProtoModel.NodeProto n) {
+        if (type instanceof OnnxType.TypeVariable tv) {
+            if (tv.types().size() == 1) {
+                return tv.types().getFirst();
+            }
+            // search for the same type variable across inputs
+            for (var ie : op.onnxInputs().entrySet()) {
+                if (ie.getKey().type().equals(tv)) {
+                    if (ie.getValue() instanceof Value v && v.type() instanceof OnnxType ot) {
+                        return ot;
+                    } else if (ie.getValue() instanceof List l && !l.isEmpty() && l.getFirst() instanceof Value v && v.type() instanceof OnnxType ot) {
+                        return ot;
+                    }
+                }
+            }
+
+            // special cases
+            return switch (op) {
+                case OnnxOps.Cast c ->
+                    toTensorType((int)c.to());
+                case OnnxOps.ConstantOfShape cos -> // get tensor type from tensor attribute
+                    n.attributes() != null
+                    && !n.attributes().isEmpty()
+                    && n.attributes().getFirst().t() instanceof OnnxProtoModel.TensorProto tp
+                            ? toTensorType(tp.dataType())
+                            : OnnxType.TENSOR_FLOAT32; // default
+                default ->
+                    throw new IllegalArgumentException("Could not infer op type for: " + op.toText());
+            };
+        }
+        return type;
     }
 
     static Object toAttributeValue(OnnxProtoModel.Attribute a) {
@@ -203,7 +255,7 @@ public class OnnxProtoToModelTest {
         for (var fName : args) {
             try (var in = new RandomAccessFile(fName, "r")) {
                 OnnxProtoModel model = OnnxProtoModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
-                System.out.println(model.toText());
+//                System.out.println(model.toText());
                 System.out.println(toFuncOp(model.graph()).toText());
             }
         }

@@ -371,8 +371,8 @@ public abstract class OnnxOp extends ExternalizableOp {
         assert schema.inputs().size() == inputArguments.size();
         if (!inputArguments.isEmpty()) {
             SequencedMap<OnnxParameter, Object> inputs = new LinkedHashMap<>();
-            for (int i = 0; i < schema.outputs().size(); i++) {
-                inputs.put(schema.outputs().get(i), inputArguments.get(i));
+            for (int i = 0; i < schema.inputs().size(); i++) {
+                inputs.put(schema.inputs().get(i), inputArguments.get(i));
             }
             return inputs;
         } else {
