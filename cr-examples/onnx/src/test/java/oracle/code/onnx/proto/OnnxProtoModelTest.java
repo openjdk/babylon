@@ -216,7 +216,7 @@ public class OnnxProtoModelTest {
             case 1 -> a.f();
             case 2 -> a.i();
             case 3 -> a.s();
-            case 4 -> a.t().rawData();
+            case 4 -> a.t().rawData(); // @@@ need to store all tensor info + data
 //    GRAPH = 5;
 //    SPARSE_TENSOR = 11;
 //    TYPE_PROTO = 13;
