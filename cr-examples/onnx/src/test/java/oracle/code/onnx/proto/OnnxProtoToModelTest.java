@@ -141,7 +141,7 @@ public class OnnxProtoToModelTest {
                         n.inputs() == null ? List.of() : n.inputs().stream().map(valueMap::get).toList(),
                         List.of(),
                         new OnnxType.TensorType(null), // @@@ infer return types
-                        n.attributes() == null ? Map.of() : n.attributes().stream().collect(Collectors.toMap(OnnxProtoModel.Attribute::name, OnnxProtoToModelTest::toValue)),
+                        n.attributes() == null ? Map.of() : n.attributes().stream().collect(Collectors.toMap(OnnxProtoModel.Attribute::name, OnnxProtoToModelTest::toAttributeValue)),
                         List.of());
                 System.out.println(extOp);
                 Op.Result res = fb.op(ONNX_FACTORY.constructOpOrFail(extOp));
@@ -159,7 +159,7 @@ public class OnnxProtoToModelTest {
         });
     }
 
-    static Object toValue(OnnxProtoModel.Attribute a) {
+    static Object toAttributeValue(OnnxProtoModel.Attribute a) {
         return switch (a.type()) {
             case 1 -> a.f();
             case 2 -> a.i();
@@ -168,8 +168,8 @@ public class OnnxProtoToModelTest {
 //    GRAPH = 5;
 //    SPARSE_TENSOR = 11;
 //    TYPE_PROTO = 13;
-            case 6 -> a.floats();
-            case 7 -> a.ints();
+            case 6 -> joinFloatArray(a.floats());
+            case 7 -> joinLongArray(a.ints());
             case 8 -> a.strings();
 //    TENSORS = 9;
 //    GRAPHS = 10;
@@ -177,6 +177,26 @@ public class OnnxProtoToModelTest {
 //    TYPE_PROTOS = 14;
             default -> throw new UnsupportedOperationException("Unsupported " + a.type());
         };
+    }
+
+    static float[] joinFloatArray(List<float[]> floats) {
+        float[] join = new float[floats.stream().mapToInt(f -> f.length).sum()];
+        int i = 0;
+        for (float[] f : floats) {
+            System.arraycopy(f, 0, join, i, f.length);
+            i += f.length;
+        }
+        return join;
+    }
+
+    static long[] joinLongArray(List<long[]> floats) {
+        long[] join = new long[floats.stream().mapToInt(f -> f.length).sum()];
+        int i = 0;
+        for (long[] f : floats) {
+            System.arraycopy(f, 0, join, i, f.length);
+            i += f.length;
+        }
+        return join;
     }
 
     public static void main(String[] args) throws Exception {
