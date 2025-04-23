@@ -3576,7 +3576,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public java.util.Optional<Long> saturate() {
-            Long saturate = Attribute.saturate.access(long.class, onnxAttributes);
+            Long saturate = Attribute.saturate.access(Long.class, onnxAttributes);
             return java.util.Optional.ofNullable(saturate);
         }
 
