@@ -28,8 +28,10 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.stream.Collectors;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -40,6 +42,7 @@ import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.TupleType;
+import jdk.incubator.code.writer.OpWriter;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
@@ -122,9 +125,19 @@ public class OnnxProtoModelTest {
 
     static final OpFactory ONNX_FACTORY = OpFactory.OP_FACTORY.get(OnnxOps.class);
 
-    static CoreOp.FuncOp toFuncOp(OnnxProtoModel.GraphProto g) {
-        return CoreOp.FuncOp.func(g.name(), toFunctionType(g)).body(fb -> {
-            var valueMap = new HashMap<String, Value>();
+
+    record OpWithNames<T extends Op> (T op, List<String> names) {
+        public String toText() {
+            var defNamer = OpWriter.CodeItemNamerOption.defaultValue().namer();
+            var namer = new HashMap<Value, Integer>();
+            return OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(ci -> ci instanceof Value v ? names.get(namer.computeIfAbsent(v, _ -> namer.size())) : defNamer.apply(ci)));
+
+        }
+    }
+
+    static OpWithNames toFuncOp(OnnxProtoModel.GraphProto g) {
+        var valueMap = new LinkedHashMap<String, Value>();
+        var func = CoreOp.FuncOp.func(g.name(), toFunctionType(g)).body(fb -> {
 
             { // fill value map for parameters and initializers
                 Iterator<Block.Parameter> params = fb.entryBlock().parameters().iterator();
@@ -164,6 +177,7 @@ public class OnnxProtoModelTest {
                 if (rawOp.onnxOutputs().size() == 1) {
                     valueMap.put(n.outputs().getFirst(), res);
                 } else {
+                    valueMap.put(n.name(), res);
                     for (int i = 0; i < n.outputs().size(); i++) {
                         valueMap.put(n.outputs().get(i), fb.op(CoreOp.tupleLoad(res, i)));
                     }
@@ -173,9 +187,13 @@ public class OnnxProtoModelTest {
             if (g.outputs().size() == 1) {
                 fb.op(CoreOp._return(valueMap.get(g.outputs().getFirst().name())));
             } else {
-                fb.op(CoreOp._return(fb.op(CoreOp.tuple(g.outputs().stream().map(OnnxProtoModel.ValueInfoProto::name).map(valueMap::get).toList()))));
+                Op.Result ret = fb.op(CoreOp.tuple(g.outputs().stream().map(OnnxProtoModel.ValueInfoProto::name).map(valueMap::get).toList()));
+                valueMap.put(g.name() + "_return", ret);
+                fb.op(CoreOp._return(ret));
             }
         });
+
+        return new OpWithNames(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)));
     }
 
     static OnnxType inferTypeVariableType(OnnxType type, OnnxOp op, OnnxProtoModel.NodeProto n) {
