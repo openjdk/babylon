@@ -33,6 +33,10 @@ public class CodeModelToAST {
     private Symbol.MethodSymbol ms;
     private int localVarCount = 0; // used to name variables we introduce in the AST
     private final Map<Value, JCTree> valueToTree = new HashMap<>();
+    private static final MethodRef M_BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
+            Op.Result.class, Op.class);
+    private static final MethodRef M_BLOCK_BUILDER_PARAM = MethodRef.method(Block.Builder.class, "parameter",
+            Block.Parameter.class, TypeElement.class);
 
     public CodeModelToAST(TreeMaker treeMaker, Names names, Symtab syms, Resolve resolve,
                           Types types, Env<AttrContext> attrEnv, CodeReflectionSymbols crSym) {
@@ -67,13 +71,11 @@ public class CodeModelToAST {
     }
 
     private JCExpression toExpr(JCTree t) {
-        if (t instanceof JCExpression e) {
-            return e;
-        } else if (t instanceof JCTree.JCVariableDecl vd) {
-            return treeMaker.Ident(vd);
-        } else {
-            throw new IllegalArgumentException();
-        }
+        return switch (t) {
+            case JCExpression e -> e;
+            case JCTree.JCVariableDecl vd -> treeMaker.Ident(vd);
+            case null, default -> throw new IllegalArgumentException();
+        };
     }
 
     private JCTree invokeOpToJCMethodInvocation(CoreOp.InvokeOp invokeOp) {
@@ -118,37 +120,23 @@ public class CodeModelToAST {
             valueToTree.put(funcOp.parameters().get(i), treeMaker.Ident(ms.params().get(i)));
         }
 
-        final MethodRef BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
-                Op.Result.class, Op.class);
-        final MethodRef BLOCK_BUILDER_PARAM = MethodRef.method(Block.Builder.class, "parameter",
-                Block.Parameter.class, TypeElement.class);
-        Set<Value> vals = funcOp.traverse(new HashSet<>(), (l, ce) -> {
-           if (ce instanceof CoreOp.InvokeOp invokeOp && (invokeOp.invokeDescriptor().equals(BLOCK_BUILDER_OP)
-                   || invokeOp.invokeDescriptor().equals(BLOCK_BUILDER_PARAM))) {
+        java.util.List<Value> rootValues = funcOp.traverse(new ArrayList<>(), (l, ce) -> {
+            if (ce instanceof Op op && op.result() != null && op.result().uses().size() != 1) {
+                l.add(op.result());
+            } else if (ce instanceof CoreOp.InvokeOp invokeOp && (invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_OP)
+                   || invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_PARAM))) {
                l.add(invokeOp.result());
-           }
+            }
             return l;
         });
-        Map<Value, Node<Value>> prunedGraphs = prunedExpressionGraphs(funcOp, vals);
-        java.util.List<Node<Value>> prunedRootGraphs = prunedGraphs.values().stream()
-                .filter(n -> n.value() instanceof Op.Result opr &&
-                        switch (opr.op()) {
-                            // Variable declarations modeling local variables
-                            case CoreOp.VarOp vop -> vop.operands().get(0) instanceof Op.Result;
-                            // An operation result with no uses or more than one
-                            default -> opr.uses().size() != 1 || vals.contains(opr);
-                        })
-                .toList();
 
         var stats = new ListBuffer<JCTree.JCStatement>();
-        // instead, we will traverse the root expr graphs
-        for (Node<Value> root : prunedRootGraphs) {
-            JCTree tree = opToTree(root.value());
-            // in the code model we don't have VarOp
+        for (Value root : rootValues) {
+            JCTree tree = opToTree(root);
             if (tree instanceof JCExpression e) {
                 var vs = new Symbol.VarSymbol(LocalVarFlags, names.fromString("_$" + localVarCount++), tree.type, ms);
                 tree = treeMaker.VarDef(vs, e);
-                valueToTree.put(root.value(), tree);
+                valueToTree.put(root, tree);
             }
             stats.add((JCTree.JCStatement) tree);
         }
@@ -216,57 +204,6 @@ public class CodeModelToAST {
         valueToTree.put(v, tree);
         return tree;
     }
-
-    static Map<Value, Node<Value>> prunedExpressionGraphs(CoreOp.FuncOp f, Set<Value> vals) {
-        return prunedExpressionGraphs(f.body(), vals);
-    }
-
-    static Map<Value, Node<Value>> prunedExpressionGraphs(Body b, Set<Value> vals) {
-        // Traverse the model building structurally shared expression graphs
-        return b.traverse(new LinkedHashMap<>(), (graphs, codeElement) -> {
-            switch (codeElement) {
-                case Body _ -> {
-                    // Do nothing
-                }
-                case Block block -> {
-                    // Create the expression graphs for each block parameter
-                    // A block parameter has no outgoing edges
-                    for (Block.Parameter parameter : block.parameters()) {
-                        graphs.put(parameter, new Node<>(parameter, java.util.List.of()));
-                    }
-                }
-                // Prune graph for variable load operation
-                case CoreOp.VarAccessOp.VarLoadOp op -> {
-                    // Ignore edge for the variable value operand
-                    graphs.put(op.result(), new Node<>(op.result(), java.util.List.of()));
-                }
-                // Prune graph for variable store operation
-                case CoreOp.VarAccessOp.VarStoreOp op -> {
-                    // Ignore edge for the variable value operand
-                    // Add edge for value to store
-                    java.util.List<Node<Value>> edges = java.util.List.of(graphs.get(op.operands().get(1)));
-                    graphs.put(op.result(), new Node<>(op.result(), edges));
-                }
-                case Op op -> {
-                    // Find the expression graphs for each operand
-                    java.util.List<Node<Value>> edges = new ArrayList<>();
-                    for (Value operand : op.result().dependsOn()) {
-                        // Ignore edge for operand if also used by other operations
-                        if (operand.uses().size() == 1 && !vals.contains(operand)) {
-                            // Get expression graph for the operand
-                            // It must be previously computed since we encounter the
-                            // declaration of values before their use
-                            edges.add(graphs.get(operand));
-                        }
-                    }
-                    // Create the expression graph for this operation result
-                    graphs.put(op.result(), new Node<>(op.result(), edges));
-                }
-            }
-            return graphs;
-        });
-    }
-    record Node<T>(T value, java.util.List<Node<T>> edges) {}
 
     VarSymbol fieldDescriptorToSymbol(FieldRef fieldRef) {
         Name name = names.fromString(fieldRef.name());
