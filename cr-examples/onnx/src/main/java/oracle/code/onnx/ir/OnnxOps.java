@@ -3581,7 +3581,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long to() {
-            long to = Attribute.to.access(Long.class, onnxAttributes);
+            long to = Attribute.to.access(long.class, onnxAttributes);
             return to;
         }
 
@@ -5053,7 +5053,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long axis() {
-            long axis = Attribute.axis.access(Long.class, onnxAttributes);
+            long axis = Attribute.axis.access(long.class, onnxAttributes);
             return axis;
         }
 
@@ -5200,7 +5200,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long axis() {
-            long axis = Attribute.axis.access(Long.class, onnxAttributes);
+            long axis = Attribute.axis.access(long.class, onnxAttributes);
             return axis;
         }
 
@@ -6988,7 +6988,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long blocksize() {
-            long blocksize = Attribute.blocksize.access(Long.class, onnxAttributes);
+            long blocksize = Attribute.blocksize.access(long.class, onnxAttributes);
             return blocksize;
         }
 
@@ -11215,7 +11215,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long num_groups() {
-            long num_groups = Attribute.num_groups.access(Long.class, onnxAttributes);
+            long num_groups = Attribute.num_groups.access(long.class, onnxAttributes);
             return num_groups;
         }
 
@@ -12922,7 +12922,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long size() {
-            long size = Attribute.size.access(Long.class, onnxAttributes);
+            long size = Attribute.size.access(long.class, onnxAttributes);
             return size;
         }
 
@@ -16709,17 +16709,17 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public float norm_coefficient() {
-            float norm_coefficient = Attribute.norm_coefficient.access(Float.class, onnxAttributes);
+            float norm_coefficient = Attribute.norm_coefficient.access(float.class, onnxAttributes);
             return norm_coefficient;
         }
 
         public float alpha() {
-            float alpha = Attribute.alpha.access(Float.class, onnxAttributes);
+            float alpha = Attribute.alpha.access(float.class, onnxAttributes);
             return alpha;
         }
 
         public float beta() {
-            float beta = Attribute.beta.access(Float.class, onnxAttributes);
+            float beta = Attribute.beta.access(float.class, onnxAttributes);
             return beta;
         }
 
@@ -27016,7 +27016,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long blocksize() {
-            long blocksize = Attribute.blocksize.access(Long.class, onnxAttributes);
+            long blocksize = Attribute.blocksize.access(long.class, onnxAttributes);
             return blocksize;
         }
 
@@ -28607,7 +28607,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long min_gram_length() {
-            long min_gram_length = Attribute.min_gram_length.access(Long.class, onnxAttributes);
+            long min_gram_length = Attribute.min_gram_length.access(long.class, onnxAttributes);
             return min_gram_length;
         }
 
@@ -28622,12 +28622,12 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
 
         public long max_gram_length() {
-            long max_gram_length = Attribute.max_gram_length.access(Long.class, onnxAttributes);
+            long max_gram_length = Attribute.max_gram_length.access(long.class, onnxAttributes);
             return max_gram_length;
         }
 
         public long max_skip_count() {
-            long max_skip_count = Attribute.max_skip_count.access(Long.class, onnxAttributes);
+            long max_skip_count = Attribute.max_skip_count.access(long.class, onnxAttributes);
             return max_skip_count;
         }
 

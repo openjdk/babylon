@@ -663,7 +663,16 @@ public class OpGen {
                     }
                 }
             };
-
+            String typeLiteralString = switch (aType) {
+                // @@@ sub-graphs have inputs and outputs
+                default -> {
+                    if (a.required()) {
+                        yield aType.type().getSimpleName();
+                    } else {
+                        yield toBoxType(aType.type()).getSimpleName();
+                    }
+                }
+            };
             if (a.required()) {
                 w.write(typeString);
             } else {
@@ -674,9 +683,6 @@ public class OpGen {
             w.write(" ");
             w.write(a.name() + "() {\n");
             w.in();
-
-            // @@@ sub-graphs have inputs and outputs
-            String typeLiteralString = toBoxType(aType.type()).getSimpleName();
 
             w.write(typeString + " ");
             w.write(a.name() + " = ");
