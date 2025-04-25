@@ -11,12 +11,12 @@ import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.*;
+import com.sun.tools.javac.util.List;
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.type.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.sun.tools.javac.code.Flags.*;
 
@@ -30,9 +30,13 @@ public class CodeModelToAST {
     private final Types types;
     private final Symbol.ClassSymbol currClassSym;
     private final CodeReflectionSymbols crSym;
-    private final Map<Value, Symbol.VarSymbol> valueToVarSym = new HashMap<>();
     private Symbol.MethodSymbol ms;
     private int localVarCount = 0; // used to name variables we introduce in the AST
+    private final Map<Value, JCTree> valueToTree = new HashMap<>();
+    private static final MethodRef M_BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
+            Op.Result.class, Op.class);
+    private static final MethodRef M_BLOCK_BUILDER_PARAM = MethodRef.method(Block.Builder.class, "parameter",
+            Block.Parameter.class, TypeElement.class);
 
     public CodeModelToAST(TreeMaker treeMaker, Names names, Symtab syms, Resolve resolve,
                           Types types, Env<AttrContext> attrEnv, CodeReflectionSymbols crSym) {
@@ -66,6 +70,14 @@ public class CodeModelToAST {
         };
     }
 
+    private JCExpression toExpr(JCTree t) {
+        return switch (t) {
+            case JCExpression e -> e;
+            case JCTree.JCVariableDecl vd -> treeMaker.Ident(vd);
+            case null, default -> throw new IllegalArgumentException();
+        };
+    }
+
     private JCTree invokeOpToJCMethodInvocation(CoreOp.InvokeOp invokeOp) {
         Value receiver = (invokeOp.invokeKind() == CoreOp.InvokeOp.InvokeKind.INSTANCE) ?
                 invokeOp.operands().get(0) : null;
@@ -75,10 +87,10 @@ public class CodeModelToAST {
         var methodSym = methodDescriptorToSymbol(invokeOp.invokeDescriptor());
         var meth = (receiver == null) ?
                 treeMaker.Ident(methodSym) :
-                treeMaker.Select(exprTree(receiver), methodSym);
+                treeMaker.Select(toExpr(opToTree(receiver)), methodSym);
         var args = new ListBuffer<JCTree.JCExpression>();
         for (Value operand : arguments) {
-            args.add(exprTree(operand));
+            args.add(toExpr(opToTree(operand)));
         }
         var methodInvocation = treeMaker.App(meth, args.toList());
         if (invokeOp.isVarArgs()) {
@@ -96,7 +108,48 @@ public class CodeModelToAST {
         }
     }
 
-    private JCTree opToTree(Op op) {
+    public JCTree.JCMethodDecl transformFuncOpToAST(CoreOp.FuncOp funcOp, Name methodName) {
+        Assert.check(funcOp.body().blocks().size() == 1);
+
+        var paramTypes = List.of(crSym.opFactoryType, crSym.typeElementFactoryType);
+        var mt = new Type.MethodType(paramTypes, crSym.opType, List.nil(), syms.methodClass);
+        ms = new Symbol.MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currClassSym);
+        currClassSym.members().enter(ms);
+
+        for (int i = 0; i < funcOp.parameters().size(); i++) {
+            valueToTree.put(funcOp.parameters().get(i), treeMaker.Ident(ms.params().get(i)));
+        }
+
+        java.util.List<Value> rootValues = funcOp.traverse(new ArrayList<>(), (l, ce) -> {
+            if (ce instanceof Op op && op.result() != null && op.result().uses().size() != 1) {
+                l.add(op.result());
+            } else if (ce instanceof CoreOp.InvokeOp invokeOp && (invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_OP)
+                   || invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_PARAM))) {
+               l.add(invokeOp.result());
+            }
+            return l;
+        });
+
+        var stats = new ListBuffer<JCTree.JCStatement>();
+        for (Value root : rootValues) {
+            JCTree tree = opToTree(root);
+            if (tree instanceof JCExpression e) {
+                var vs = new Symbol.VarSymbol(LocalVarFlags | SYNTHETIC, names.fromString("_$" + localVarCount++), tree.type, ms);
+                tree = treeMaker.VarDef(vs, e);
+                valueToTree.put(root, tree);
+            }
+            stats.add((JCTree.JCStatement) tree);
+        }
+        var mb = treeMaker.Block(0, stats.toList());
+
+        return treeMaker.MethodDef(ms, mb);
+    }
+
+    private JCTree opToTree(Value v) {
+        if (valueToTree.containsKey(v)) {
+            return valueToTree.get(v);
+        }
+        Op op = ((Op.Result) v).op();
         JCTree tree = switch (op) {
             case CoreOp.ConstantOp constantOp when constantOp.value() == null ->
                     treeMaker.Literal(TypeTag.BOT, null).setType(syms.botType);
@@ -106,7 +159,7 @@ public class CodeModelToAST {
                 var elemType = treeMaker.Ident(typeElementToType(at.componentType()).tsym);
                 var dims = new ListBuffer<JCTree.JCExpression>();
                 for (int d = 0; d < at.dimensions(); d++) {
-                    dims.add(exprTree(newOp.operands().get(d)));
+                    dims.add(toExpr(opToTree(newOp.operands().get(d))));
                 }
                 var na = treeMaker.NewArray(elemType, dims.toList(), null);
                 na.type = typeElementToType(at);
@@ -117,7 +170,7 @@ public class CodeModelToAST {
                 var clazz = treeMaker.Ident(ownerType.tsym);
                 var args = new ListBuffer<JCTree.JCExpression>();
                 for (Value operand : newOp.operands()) {
-                    args.add(exprTree(operand));
+                    args.add(toExpr(opToTree(operand)));
                 }
                 var nc = treeMaker.NewClass(null, null, clazz, args.toList(), null);
                 if (newOp.isVarargs()) {
@@ -129,7 +182,7 @@ public class CodeModelToAST {
                 yield nc;
             }
             case CoreOp.ReturnOp returnOp ->
-                    treeMaker.Return(exprTree(returnOp.returnValue()));
+                    treeMaker.Return(toExpr(opToTree(returnOp.returnValue())));
             case CoreOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
                 var sym = fieldDescriptorToSymbol(fieldLoadOp.fieldDescriptor());
                 Assert.check(sym.isStatic());
@@ -140,63 +193,16 @@ public class CodeModelToAST {
                 var val = arrayStoreOp.operands().get(1);
                 var index = arrayStoreOp.operands().get(2);
                 var as = treeMaker.Assign(
-                        treeMaker.Indexed(exprTree(array), exprTree(index)), exprTree(val)
+                        treeMaker.Indexed(
+                                toExpr(opToTree(array)), toExpr(opToTree(index))), toExpr(opToTree(val))
                 );
                 as.type = typeElementToType(((ArrayType) array.type()).componentType());
                 yield as;
             }
             default -> throw new IllegalStateException("Op -> JCTree not supported for :" + op.getClass().getName());
         };
-        if (tree instanceof JCTree.JCExpression expr) {
-            // introduce a local variable to hold the expr, to make sure an op's tree is inserted right away
-            // for some operations this is essential, e.g. to ensure the correct order of operations
-            Type type;
-            if (op instanceof CoreOp.ConstantOp cop && cop.value() == null) {
-                // if ConstantOp value is null, tree.type will be null_type
-                // if null_type is used to create a VarSymbol, an exception will be thrown
-                type = typeElementToType(cop.resultType());
-            } else {
-                type = tree.type;
-            }
-            var vs = new Symbol.VarSymbol(LocalVarFlags, names.fromString("_$" + localVarCount++), type, ms);
-            var varDef = treeMaker.VarDef(vs, expr);
-            map(op.result(), vs);
-            return varDef;
-        } else {
-            return tree;
-        }
-    }
-
-    private JCTree.JCExpression exprTree(Value v) {
-        return treeMaker.Ident(valueToVarSym.get(v));
-    }
-
-    private void map(Value v, Symbol.VarSymbol vs) {
-        valueToVarSym.put(v, vs);
-    }
-
-    public JCTree.JCMethodDecl transformFuncOpToAST(CoreOp.FuncOp funcOp, Name methodName) {
-        Assert.check(funcOp.body().blocks().size() == 1);
-
-        var paramTypes = List.of(crSym.opFactoryType, crSym.typeElementFactoryType);
-        var mt = new Type.MethodType(paramTypes, crSym.opType, List.nil(), syms.methodClass);
-        ms = new Symbol.MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currClassSym);
-        currClassSym.members().enter(ms);
-
-        for (int i = 0; i < funcOp.parameters().size(); i++) {
-            map(funcOp.parameters().get(i), ms.params().get(i));
-        }
-
-        var stats = new ListBuffer<JCTree.JCStatement>();
-        for (Op op : funcOp.body().entryBlock().ops()) {
-            var tree = opToTree(op);
-            if (tree instanceof JCTree.JCStatement stat) {
-                stats.add(stat);
-            }
-        }
-        var mb = treeMaker.Block(0, stats.toList());
-
-        return treeMaker.MethodDef(ms, mb);
+        valueToTree.put(v, tree);
+        return tree;
     }
 
     VarSymbol fieldDescriptorToSymbol(FieldRef fieldRef) {
