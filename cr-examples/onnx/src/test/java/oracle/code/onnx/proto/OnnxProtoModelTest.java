@@ -23,9 +23,14 @@
 
 package oracle.code.onnx.proto;
 
+import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.lang.foreign.Arena;
+import java.lang.foreign.ValueLayout;
+import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -43,9 +48,13 @@ import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.TupleType;
 import jdk.incubator.code.writer.OpWriter;
+import oracle.code.onnx.CNNTest;
+import oracle.code.onnx.OnnxRuntime;
+import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
+import org.junit.jupiter.api.Test;
 
 
 public class OnnxProtoModelTest {
@@ -267,6 +276,45 @@ public class OnnxProtoModelTest {
             i += f.length;
         }
         return join;
+    }
+
+    @Test
+    public void cnnLiftTest() throws Exception {
+        try (InputStream in = CNNTest.class.getResourceAsStream("lenet-torchscript.onnx")) {
+
+            // parse onnx protobuf model
+            OnnxProtoModel protoModel = OnnxProtoModel.readFrom(in.readAllBytes());
+
+//            System.out.println(model.toText());
+
+            // lift the cnnFuncOp from Onnx protobuf model
+            OpWithNames<CoreOp.FuncOp> cnnFuncOp = toFuncOp(protoModel.graph());
+
+            System.out.println(cnnFuncOp.toText());
+//            System.out.println(cnnFuncOp.op().toText());
+
+            // test the lifted model
+            try (Arena a = Arena.ofConfined()) {
+                List<Tensor> inputValues = new ArrayList<>();
+
+                // initializers are extracted from the proto model directly
+                for (OnnxProtoModel.TensorProto init : protoModel.graph().initializers()) {
+                    inputValues.add(Tensor.ofShape(a, joinLongArray(init.dims()), init.rawData(), Tensor.ElementType.fromOnnxId(init.dataType())));
+                }
+
+                // fake image
+                float[] image = new float[28 * 28];
+                for (int i = 13; i < 28 * 28; i+=28) {
+                    image[i] = 1f;
+                }
+                inputValues.add(Tensor.ofShape(a, new long[] {1, 1, 28, 28}, image));
+
+                // run
+                List<Tensor> res = OnnxRuntime.getInstance().run(a, cnnFuncOp.op().body().entryBlock(), inputValues, inputValues.size() - 1);
+
+                System.out.println(Arrays.toString(res.getFirst().data().toArray(ValueLayout.JAVA_FLOAT)));
+            }
+        }
     }
 
     public static void main(String[] args) throws Exception {
