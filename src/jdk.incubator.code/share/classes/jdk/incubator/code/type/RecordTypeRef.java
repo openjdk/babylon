@@ -33,7 +33,8 @@ import java.util.stream.Stream;
 /**
  * The symbolic reference to a Java record type.
  */
-public sealed interface RecordTypeRef permits RecordTypeRefImpl {
+public sealed interface RecordTypeRef extends JavaRef
+        permits RecordTypeRefImpl {
     TypeElement recordType();
 
     /**
