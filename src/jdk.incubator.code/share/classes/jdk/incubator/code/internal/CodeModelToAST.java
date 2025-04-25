@@ -134,7 +134,7 @@ public class CodeModelToAST {
         for (Value root : rootValues) {
             JCTree tree = opToTree(root);
             if (tree instanceof JCExpression e) {
-                var vs = new Symbol.VarSymbol(LocalVarFlags, names.fromString("_$" + localVarCount++), tree.type, ms);
+                var vs = new Symbol.VarSymbol(LocalVarFlags | SYNTHETIC, names.fromString("_$" + localVarCount++), tree.type, ms);
                 tree = treeMaker.VarDef(vs, e);
                 valueToTree.put(root, tree);
             }
