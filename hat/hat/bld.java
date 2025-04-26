@@ -141,6 +141,8 @@ void main(String[] args) {
                 jextractedOpenCLDir,
                 "hat-jextracted-opencl-1.0.jar"
         );
+    }else{
+        print("no src for jextractedOpenCL");
     }
 
     var jextractedOpenGLDir = extractionsDir.dir("opengl");
@@ -148,6 +150,8 @@ void main(String[] args) {
         Artifacts.jextractedOpenGL = buildDir.mavenStyleBuild(
                 jextractedOpenGLDir,
                 "hat-jextracted-opengl-1.0.jar");
+    }else{
+        print("no src for jextractedOpenGL");
     }
 
     var jextractedCudaDir = extractionsDir.dir("cuda");
