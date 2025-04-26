@@ -5,16 +5,16 @@ project(extract_cuda)
 
 set(JEXTRACT_PACKAGE cuda)
 set(JEXTRACT_SOURCE ${CMAKE_SOURCE_DIR}/${JEXTRACT_PACKAGE}/src/main/java)
-set(JEXTRACT_HEADER ${JEXTRACT_SOURCE}/${JEXTRACT_PACKAGE}/${JEXTRACT_PACKAGE}_h.java)  
+set(JEXTRACT_HEADER ${JEXTRACT_SOURCE}/${JEXTRACT_PACKAGE}/${JEXTRACT_PACKAGE}_h.java)
 
 if (Apple)
 
 else()
 add_custom_command(OUTPUT  ${JEXTRACT_HEADER}
    COMMAND mkdir -p ${JEXTRACT_SOURCE}
-   COMMAND jextract 
-       --target-package ${JEXTRACT_PACKAGE} 
-       --output ${JEXTRACT_SOURCE} 
+   COMMAND jextract
+       --target-package ${JEXTRACT_PACKAGE}
+       --output ${JEXTRACT_SOURCE}
        --library :${CUDA_cuda_driver_LIBRARY}
        --header-class-name ${JEXTRACT_PACKAGE}_h
        ${CUDAToolkit_INCLUDE_DIR}/cuda.h

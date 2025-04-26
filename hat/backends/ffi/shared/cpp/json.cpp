@@ -23,6 +23,7 @@
  * questions.
  */
 #include <vector>
+#include <iterator>
 
 #include <string.h>
 #include <map>

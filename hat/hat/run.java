@@ -149,7 +149,10 @@ void main(String[] argv) {
           }
           switch (config.exampleName){
               case "nbody" -> {
-                  config.startOnFirstThread = true;
+                  if (Script.os instanceof Script.OS.Mac){
+                     println("For MAC we added  --startOnFirstThread");
+                     config.startOnFirstThread = true;
+                  }
                   config.classpath.addAll(List.of(
                           wrapJar,
                           clwrapJar, jextractedOpenCLJar,
