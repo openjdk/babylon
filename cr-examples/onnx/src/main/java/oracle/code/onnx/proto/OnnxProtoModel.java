@@ -68,7 +68,7 @@ public record OnnxProtoModel (
             @f(13) String docString,
             @f(14) TypeProto tp,
             @f(15) List<TypeProto> typeProtos,
-            @f(20) Long type,
+            @f(20) Integer type,
             @f(21) String refAttrName,
             @f(22) SparseTensorProto sparseTensor,
             @f(23) List<SparseTensorProto> sparseTensors) {
