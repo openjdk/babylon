@@ -121,11 +121,15 @@ public class CodeModelToAST {
         }
 
         java.util.List<Value> rootValues = funcOp.traverse(new ArrayList<>(), (l, ce) -> {
-            if (ce instanceof Op op && op.result() != null && op.result().uses().size() != 1) {
-                l.add(op.result());
-            } else if (ce instanceof CoreOp.InvokeOp invokeOp && (invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_OP)
-                   || invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_PARAM))) {
-               l.add(invokeOp.result());
+            boolean isRoot = switch (ce) {
+                case CoreOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_OP)
+                        || invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_PARAM) -> true;
+                case CoreOp.ReturnOp _, CoreOp.ArrayAccessOp.ArrayStoreOp _ -> true;
+                case Op op when op.result() != null && op.result().uses().size() > 1 -> true;
+                default -> false;
+            };
+            if (isRoot) {
+                l.add(((Op)ce).result());
             }
             return l;
         });
@@ -134,9 +138,13 @@ public class CodeModelToAST {
         for (Value root : rootValues) {
             JCTree tree = opToTree(root);
             if (tree instanceof JCExpression e) {
-                var vs = new Symbol.VarSymbol(LocalVarFlags | SYNTHETIC, names.fromString("_$" + localVarCount++), tree.type, ms);
-                tree = treeMaker.VarDef(vs, e);
-                valueToTree.put(root, tree);
+                if (!root.uses().isEmpty()) {
+                    var vs = new Symbol.VarSymbol(LocalVarFlags | SYNTHETIC, names.fromString("_$" + localVarCount++), tree.type, ms);
+                    tree = treeMaker.VarDef(vs, e);
+                    valueToTree.put(root, tree);
+                } else {
+                    tree = treeMaker.Exec(e);
+                }
             }
             stats.add((JCTree.JCStatement) tree);
         }
