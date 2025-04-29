@@ -143,7 +143,6 @@ public class TestReferences {
                 {"&f<a.b, c, int>", "a.b", "c", "int"},
                 {"&f<a.b.c, d, int>", "a.b.c", "d", "int"},
                 {"&f<java.lang.System, out, java.io.PrintStream>", "java.lang.System", "out", "java.io.PrintStream"},
-                // @@@ Fails because of externalize().toString()
                 {"&f<R<#T<R, java.lang.Number>>, n, #T<R, java.lang.Number>>", "R<#T<R, java.lang.Number>>", "n", "#T<R, java.lang.Number>"}
         };
     }
