@@ -102,25 +102,13 @@ public final class TypeVarRef implements JavaType {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        if (true) {
-            ExternalizedTypeElement eOwner = switch (owner) {
-                // @@@ Should be able to use TypeElement
-                case ClassType classType -> classType.externalize();
-                case ConstructorRef constructorRef -> constructorRef.externalize();
-                case MethodRef methodRef -> methodRef.externalize();
-            };
-            return new ExternalizedTypeElement("#" + name,
-                    List.of(eOwner, bound.externalize()));
-
-        } else {
-            String ownerString = switch (owner) {
-                case ClassType classType -> classType.externalize().toString();
-                case ConstructorRef constructorRef -> constructorRef.toString();
-                case MethodRef methodRef -> methodRef.toString();
-            };
-            return new ExternalizedTypeElement(String.format("#%s::%s", ownerString, name),
-                    List.of(bound.externalize()));
-        }
+        ExternalizedTypeElement eOwner = switch (owner) {
+            // @@@ Should be able to use single case matching TypeElement
+            case JavaRef ref -> ref.externalize();
+            case ClassType classType -> classType.externalize();
+        };
+        return new ExternalizedTypeElement("#" + name,
+                List.of(eOwner, bound.externalize()));
     }
 
     @Override
