@@ -243,14 +243,14 @@ public class OnnxProtoModelTest {
             case 1 -> a.f();
             case 2 -> a.i();
             case 3 -> a.s();
-            case 4 -> a.t().rawData(); // @@@ need to store all tensor info + data
+            case 4 -> toTensor(a.t());
 //    GRAPH = 5;
 //    SPARSE_TENSOR = 11;
 //    TYPE_PROTO = 13;
             case 6 -> joinFloatArray(a.floats());
             case 7 -> joinLongArray(a.ints());
             case 8 -> a.strings();
-//    TENSORS = 9;
+            case 9 -> a.tensors().stream().map(OnnxProtoModelTest::toTensor).toArray(Tensor[]::new);
 //    GRAPHS = 10;
 //    SPARSE_TENSORS = 12;
 //    TYPE_PROTOS = 14;
@@ -258,7 +258,15 @@ public class OnnxProtoModelTest {
         };
     }
 
+    static Tensor toTensor(OnnxProtoModel.TensorProto tensorProto) {
+        // @@@ floatData, longData, stringData...
+        // @@@ externalData
+        // @@@ segments
+        return Tensor.ofShape(joinLongArray(tensorProto.dims()), tensorProto.rawData(), Tensor.ElementType.fromOnnxId(tensorProto.dataType()));
+    }
+
     static float[] joinFloatArray(List<float[]> floats) {
+        if (floats == null) return new float[0];
         float[] join = new float[floats.stream().mapToInt(f -> f.length).sum()];
         int i = 0;
         for (float[] f : floats) {
@@ -268,10 +276,11 @@ public class OnnxProtoModelTest {
         return join;
     }
 
-    static long[] joinLongArray(List<long[]> floats) {
-        long[] join = new long[floats.stream().mapToInt(f -> f.length).sum()];
+    static long[] joinLongArray(List<long[]> longs) {
+        if (longs == null) return new long[0];
+        long[] join = new long[longs.stream().mapToInt(f -> f.length).sum()];
         int i = 0;
-        for (long[] f : floats) {
+        for (long[] f : longs) {
             System.arraycopy(f, 0, join, i, f.length);
             i += f.length;
         }
