@@ -42,11 +42,11 @@ import static jdk.incubator.code.type.FunctionType.functionType;
 public sealed interface ConstructorRef extends JavaRef, TypeVarRef.Owner
         permits ConstructorRefImpl {
 
+    FunctionType type();
+
     default TypeElement refType() {
         return type().returnType();
     }
-
-    FunctionType type();
 
     // Resolutions to constructors and method handles
 

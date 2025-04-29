@@ -91,8 +91,9 @@ public final class CoreTypeFactory {
      * The Java type factory.
      */
     public static final TypeElementFactory JAVA_TYPE_FACTORY = new TypeElementFactory() {
+        // Returns JavaType or JavaRef
         @Override
-        public JavaType constructType(TypeElement.ExternalizedTypeElement tree) {
+        public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
             String identifier = tree.identifier();
 
             if (identifier.startsWith("[")) {
@@ -105,7 +106,7 @@ public final class CoreTypeFactory {
                         throw badType(tree, "array type");
                     }
                 }
-                JavaType elemType = constructType(tree.arguments().getFirst());
+                JavaType elemType = (JavaType) constructType(tree.arguments().getFirst());
                 return JavaType.array(elemType, identifier.length());
             } else if (identifier.equals("+") || identifier.equals("-")) {
                 // wildcard type
@@ -118,26 +119,81 @@ public final class CoreTypeFactory {
                         constructTypeArgument(tree, 0, NO_WILDCARDS));
             } else if (identifier.startsWith("#")) {
                 // type-var
-                if (tree.arguments().size() != 1) {
+                if (tree.arguments().size() != 2) {
                     throw badType(tree, "type variable");
                 }
-                String[] parts = identifier.substring(1).split("::");
-                if (parts.length == 2) {
-                    // class type-var
-                    return JavaType.typeVarRef(parts[1],
-                            (ClassType)constructType(parseExTypeElem(parts[0])),
-                            constructTypeArgument(tree, 0, NO_WILDCARDS));
-                } else if (parts.length == 3) {
-                    // method or constructor type-var
-                    String desc = String.format("%s::%s", parts[0], parts[1]);
-                    TypeVarRef.Owner owner = parts[1].startsWith("<new>") ?
-                            parseConstructorRef(desc) :
-                            parseMethodRef(String.format("%s::%s", parts[0], parts[1]));
-                            return JavaType.typeVarRef(parts[2],
-                                    owner,
-                                    constructTypeArgument(tree, 0, NO_WILDCARDS));
-                } else {
+
+                String name = tree.identifier().substring(1);
+                if (name.isEmpty()) {
                     throw badType(tree, "type variable");
+                }
+
+                if (!(constructType(tree.arguments().get(0)) instanceof TypeVarRef.Owner owner)) {
+                    throw badType(tree, "type variable");
+                }
+
+                return JavaType.typeVarRef(name,
+                        owner,
+                        constructTypeArgument(tree, 1, NO_WILDCARDS));
+            } else if (identifier.startsWith("&")) {
+                if (identifier.equals("&m")) {
+                    if (tree.arguments().size() != 3) {
+                        throw badType(tree, "method reference");
+                    }
+
+                    ExternalizedTypeElement name = tree.arguments().get(1);
+                    if (!name.arguments().isEmpty()) {
+                        throw badType(tree, "method reference");
+                    }
+                    if (!(CORE_TYPE_FACTORY.constructType(tree.arguments().get(2)) instanceof FunctionType type)) {
+                        throw badType(tree, "method reference");
+                    }
+                    return MethodRef.method(
+                            constructType(tree.arguments().get(0)),
+                            name.identifier(),
+                            type
+                    );
+                } else if (identifier.startsWith("&c")) {
+                    if (tree.arguments().size() != 1) {
+                        throw badType(tree, "constructor reference");
+                    }
+
+                    if (!(CORE_TYPE_FACTORY.constructType(tree.arguments().get(0)) instanceof FunctionType type)) {
+                        throw badType(tree, "method reference");
+                    }
+                    return ConstructorRef.constructor(type);
+                } else if (identifier.startsWith("&f")) {
+                    if (tree.arguments().size() != 3) {
+                        throw badType(tree, "field reference");
+                    }
+
+                    ExternalizedTypeElement name = tree.arguments().get(1);
+                    if (!name.arguments().isEmpty()) {
+                        throw badType(tree, "field reference");
+                    }
+                    return FieldRef.field(
+                            constructType(tree.arguments().get(0)),
+                            name.identifier(),
+                            constructType(tree.arguments().get(2))
+                            );
+                } else if (identifier.startsWith("&r")) {
+                    if (tree.arguments().isEmpty()) {
+                        throw badType(tree, "record reference");
+                    }
+
+                    List<RecordTypeRef.ComponentRef> cs = new ArrayList<>();
+                    for (int i = 1; i < tree.arguments().size(); i += 2) {
+                        ExternalizedTypeElement cname = tree.arguments().get(i + 1);
+                        if (!cname.arguments().isEmpty()) {
+                            throw badType(tree, "record reference");
+                        }
+                        cs.add(new RecordTypeRef.ComponentRef(
+                                constructType(tree.arguments().get(i)),
+                                cname.identifier()));
+                    }
+                    return RecordTypeRef.recordType(constructType(tree.arguments().get(0)), cs);
+                } else {
+                    throw badType(tree, "unknown reference");
                 }
             } else if (identifier.equals(".")) {
                 // qualified type
@@ -172,7 +228,7 @@ public final class CoreTypeFactory {
                         throw new IllegalArgumentException("primitive type: " + tree);
                     }
                     return JavaType.parameterized(t,
-                            tree.arguments().stream().map(this::constructType).toList());
+                            tree.arguments().stream().map(ete -> (JavaType) constructType(ete)).toList());
                 } else {
                     return t;
                 }
@@ -185,7 +241,7 @@ public final class CoreTypeFactory {
 
         private JavaType constructTypeArgument(ExternalizedTypeElement element, int index, Predicate<JavaType> filter) {
             ExternalizedTypeElement arg = element.arguments().get(index);
-            JavaType type = constructType(arg);
+            JavaType type = (JavaType) constructType(arg);
             if (!filter.test(type)) {
                 throw new IllegalArgumentException(String.format("Unexpected argument %s", element));
             } else {

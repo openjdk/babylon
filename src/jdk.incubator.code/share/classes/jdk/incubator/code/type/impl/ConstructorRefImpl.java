@@ -38,10 +38,13 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
+import java.util.List;
 
 import static java.util.stream.Collectors.joining;
 
 public final class ConstructorRefImpl implements ConstructorRef {
+    static final String NAME = "&c";
+
     final FunctionType type;
     final TypeElement refType;
 
@@ -63,13 +66,13 @@ public final class ConstructorRefImpl implements ConstructorRef {
     }
 
     @Override
-    public TypeElement refType() {
-        return refType;
+    public FunctionType type() {
+        return type;
     }
 
     @Override
-    public FunctionType type() {
-        return type;
+    public TypeElement refType() {
+        return refType;
     }
 
     @Override
@@ -109,6 +112,12 @@ public final class ConstructorRefImpl implements ConstructorRef {
             // @@@
             throw new ReflectiveOperationException();
         }
+    }
+
+    @Override
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(NAME,
+                List.of(type.externalize()));
     }
 
     @Override
