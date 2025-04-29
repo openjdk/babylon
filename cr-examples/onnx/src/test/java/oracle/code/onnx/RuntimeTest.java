@@ -29,6 +29,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static oracle.code.onnx.OnnxProtoBuilder.*;
+import static oracle.code.onnx.proto.OnnxBuilder.*;
 import static oracle.code.onnx.Tensor.ElementType.*;
 
 import static org.junit.jupiter.api.Assertions.*;
