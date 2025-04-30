@@ -37,7 +37,7 @@ import jdk.incubator.code.type.ArrayType;
 import jdk.incubator.code.type.ClassType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.PrimitiveType;
-import jdk.incubator.code.type.TypeVarRef;
+import jdk.incubator.code.type.TypeVariableType;
 import jdk.incubator.code.type.WildcardType.BoundKind;
 import java.util.ArrayList;
 import java.util.List;
@@ -152,8 +152,8 @@ public class TestErasure {
         return arrayTypes;
     }
 
-    static List<TypeAndErasure<TypeVarRef>> typeVars() {
-        List<TypeAndErasure<TypeVarRef>> typeVars = new ArrayList<>();
+    static List<TypeAndErasure<TypeVariableType>> typeVars() {
+        List<TypeAndErasure<TypeVariableType>> typeVars = new ArrayList<>();
         for (int dims = 1 ; dims <= 3 ; dims++) {
             for (TypeAndErasure<ClassType> t : references()) {
                 typeVars.add(new TypeAndErasure<>(JavaType.typeVarRef("X", JavaType.J_L_OBJECT, t.type), t.erasure));

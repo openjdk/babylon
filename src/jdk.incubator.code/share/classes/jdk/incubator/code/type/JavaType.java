@@ -44,7 +44,7 @@ import java.util.stream.Stream;
  *     <li>{@linkplain ClassType class types}, e.g. {@code String}, {@code List<? extends Number>}</li>
  *     <li>{@linkplain ArrayType array types}, e.g. {@code Object[][]}, {@code List<Runnable>[]}</li>
  *     <li>{@linkplain WildcardType wildcard types}, e.g. {@code ? extends Number}, {@code ? super ArrayList<String>}</li>
- *     <li>{@linkplain TypeVarRef type-variables}, e.g. {@code T extends Runnable}</li>
+ *     <li>{@linkplain TypeVariableType type-variables}, e.g. {@code T extends Runnable}</li>
  * </ul>
  * Java types can be constructed from either {@linkplain ClassDesc nominal descriptors} or
  * {@linkplain Type reflective type mirrors}. Conversely, Java types can be
@@ -53,7 +53,7 @@ import java.util.stream.Stream;
  * @sealedGraph
  */
 public sealed interface JavaType extends TypeElement permits ClassType, ArrayType,
-                                                             PrimitiveType, WildcardType, TypeVarRef {
+                                                             PrimitiveType, WildcardType, TypeVariableType {
 
     /** {@link JavaType} representing {@code void} */
     PrimitiveType VOID = new PrimitiveType(ConstantDescs.CD_void);
@@ -204,7 +204,7 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
         };
     }
 
-    private static TypeVarRef.Owner owner(GenericDeclaration genDecl) {
+    private static TypeVariableType.Owner owner(GenericDeclaration genDecl) {
         return switch (genDecl) {
             case Constructor<?> c -> ConstructorRef.constructor(c);
             case Method m -> MethodRef.method(m);
@@ -343,8 +343,8 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      * @param owner the type-variable owner.
      * @return a type-variable reference.
      */
-    static TypeVarRef typeVarRef(String name, TypeVarRef.Owner owner, JavaType bound) {
-        return new TypeVarRef(name, owner, bound);
+    static TypeVariableType typeVarRef(String name, TypeVariableType.Owner owner, JavaType bound) {
+        return new TypeVariableType(name, owner, bound);
     }
 
     /**

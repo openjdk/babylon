@@ -32,18 +32,16 @@ import jdk.incubator.code.type.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import jdk.incubator.code.TypeElement;
 import java.util.List;
-import java.util.Optional;
 
 import static jdk.incubator.code.type.FunctionType.functionType;
 
 /**
  * The symbolic reference to a Java method.
  */
-public sealed interface MethodRef extends JavaRef, TypeVarRef.Owner
+public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
         permits MethodRefImpl {
 
     TypeElement refType();

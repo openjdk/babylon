@@ -25,8 +25,6 @@
 
 package jdk.incubator.code.type;
 
-import jdk.incubator.code.TypeElement;
-
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Constructor;
@@ -38,13 +36,13 @@ import java.util.List;
 /**
  * A type-variable reference.
  */
-public final class TypeVarRef implements JavaType {
+public final class TypeVariableType implements JavaType {
 
     final String name;
     final Owner owner;
     final JavaType bound;
 
-    TypeVarRef(String name, Owner owner, JavaType bound) {
+    TypeVariableType(String name, Owner owner, JavaType bound) {
         this.name = name;
         this.owner = owner;
         this.bound = bound;
@@ -120,7 +118,7 @@ public final class TypeVarRef implements JavaType {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        return o instanceof TypeVarRef that &&
+        return o instanceof TypeVariableType that &&
                 name.equals(that.name) &&
                 bound.equals(that.bound);
     }

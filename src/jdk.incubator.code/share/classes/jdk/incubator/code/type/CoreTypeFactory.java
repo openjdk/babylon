@@ -128,7 +128,7 @@ public final class CoreTypeFactory {
                     throw badType(tree, "type variable");
                 }
 
-                if (!(constructType(tree.arguments().get(0)) instanceof TypeVarRef.Owner owner)) {
+                if (!(constructType(tree.arguments().get(0)) instanceof TypeVariableType.Owner owner)) {
                     throw badType(tree, "type variable");
                 }
 
