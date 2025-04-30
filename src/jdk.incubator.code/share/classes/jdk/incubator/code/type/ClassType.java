@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 /**
  * A class type.
  */
-public final class ClassType implements TypeVarRef.Owner, JavaType {
+public final class ClassType implements TypeVariableType.Owner, JavaType {
     // Enclosing class type (might be null)
     private final ClassType enclosing;
     // Fully qualified name
