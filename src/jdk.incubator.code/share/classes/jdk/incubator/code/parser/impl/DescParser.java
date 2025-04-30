@@ -101,7 +101,7 @@ public final class DescParser {
 
     public static TypeElement.ExternalizedTypeElement parseExTypeElem(Lexer l) {
         StringBuilder identifier = new StringBuilder();
-        if (l.token().kind == TokenKind.HASH) {
+        if (l.token().kind == TokenKind.HASH || l.token().kind == TokenKind.AMP) {
             // Quoted identifier
             Token t = l.token();
             while (t.kind != TokenKind.LT) {

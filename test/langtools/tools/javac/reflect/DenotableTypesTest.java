@@ -135,9 +135,9 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test7" ()void -> {
-                  %0 : #DenotableTypesTest::test7()void::X<java.lang.Object> = constant @null;
-                  %1 : Var<#DenotableTypesTest::test7()void::X<java.lang.Object>> = var %0 @"x";
-                  %2 : #DenotableTypesTest::test7()void::X<java.lang.Object> = var.load %1;
+                  %0 : #X<&m<DenotableTypesTest, test7, func<void>>, java.lang.Object> = constant @null;
+                  %1 : Var<#X<&m<DenotableTypesTest, test7, func<void>>, java.lang.Object>> = var %0 @"x";
+                  %2 : #X<&m<DenotableTypesTest, test7, func<void>>, java.lang.Object> = var.load %1;
                   %3 : java.lang.Runnable = cast %2 @"java.lang.Runnable";
                   invoke %3 @"DenotableTypesTest::consume(java.lang.Runnable)void";
                   return;

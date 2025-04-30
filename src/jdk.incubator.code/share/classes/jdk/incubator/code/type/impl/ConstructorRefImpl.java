@@ -38,12 +38,15 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
+import java.util.List;
+import java.util.Objects;
 
 import static java.util.stream.Collectors.joining;
 
 public final class ConstructorRefImpl implements ConstructorRef {
+    static final String NAME = "&c";
+
     final FunctionType type;
-    final TypeElement refType;
 
     static final MethodHandle MULTI_NEW_ARRAY_MH;
 
@@ -59,12 +62,6 @@ public final class ConstructorRefImpl implements ConstructorRef {
 
     public ConstructorRefImpl(FunctionType functionType) {
         this.type = functionType;
-        this.refType = functionType.returnType();
-    }
-
-    @Override
-    public TypeElement refType() {
-        return refType;
     }
 
     @Override
@@ -80,8 +77,8 @@ public final class ConstructorRefImpl implements ConstructorRef {
 
     @Override
     public MethodHandle resolveToHandle(MethodHandles.Lookup l) throws ReflectiveOperationException {
-        Class<?> refC = resolve(l, refType);
-        if (refType instanceof ArrayType at) {
+        Class<?> refC = resolve(l, type.returnType());
+        if (type.returnType() instanceof ArrayType at) {
             if (at.dimensions() == 1) {
                 return MethodHandles.arrayConstructor(refC);
             } else {
@@ -112,27 +109,26 @@ public final class ConstructorRefImpl implements ConstructorRef {
     }
 
     @Override
+    public ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(NAME,
+                List.of(type.externalize()));
+    }
+
+    @Override
     public String toString() {
-        return refType.externalize() + "::<new>" +
+        return type.returnType().externalize() + "::<new>" +
             type.parameterTypes().stream().map(t -> t.externalize().toString())
                     .collect(joining(", ", "(", ")"));
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ConstructorRefImpl that = (ConstructorRefImpl) o;
-
-        if (!refType.equals(that.refType)) return false;
-        return type.equals(that.type);
+        if (!(o instanceof ConstructorRefImpl that)) return false;
+        return Objects.equals(type, that.type);
     }
 
     @Override
     public int hashCode() {
-        int result = refType.hashCode();
-        result = 31 * result + type.hashCode();
-        return result;
+        return Objects.hashCode(type);
     }
 }

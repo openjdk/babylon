@@ -25,6 +25,8 @@
 
 package jdk.incubator.code.type;
 
+import jdk.incubator.code.TypeElement;
+
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Constructor;
@@ -100,12 +102,18 @@ public final class TypeVarRef implements JavaType {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(String.format("#%s::%s", owner, name),
-                List.of(bound.externalize()));
+        ExternalizedTypeElement eOwner = switch (owner) {
+            // @@@ Should be able to use single case matching TypeElement
+            case JavaRef ref -> ref.externalize();
+            case ClassType classType -> classType.externalize();
+        };
+        return new ExternalizedTypeElement("#" + name,
+                List.of(eOwner, bound.externalize()));
     }
 
     @Override
     public String toString() {
+        // @@@ required to pass TestJavaType.java
         return name;
     }
 

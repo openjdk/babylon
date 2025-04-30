@@ -97,8 +97,8 @@ public non-sealed interface TypeElement extends CodeItem {
          * @param s the string
          * @return the externalized code type.
          */
-            public static ExternalizedTypeElement ofString(String s) {
-        return jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(s);
+        public static ExternalizedTypeElement ofString(String s) {
+            return jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(s);
         }
     }
 
