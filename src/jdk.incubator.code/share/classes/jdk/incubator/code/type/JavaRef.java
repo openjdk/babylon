@@ -17,7 +17,7 @@ public sealed interface JavaRef extends TypeElement
     //     - Uniform tree traversal and transformation independent of
     //       externalization.
     // @@@ Make RecordTypeRef.ComponentRef implement JavaRef?
-    //     - resolve to accessor method
+    //     - resolve to RecordComponent
     //     - (RecordTypeRef resolves to Type.)
     // @@@ AnnotatedElement is the common top type for resolved Java refs and types
 }
