@@ -31,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -104,7 +105,7 @@ public class ProtoGen {
         throw new IllegalArgumentException(line);
     }
 
-    static void generateBuilder(String source, PrintStream out) {
+    static void generateBuilder(List<String> source, PrintStream out) {
         out.print(COPYRIGHT_NOTICE);
         out.println("package " + PROTOGEN_PACKAGE + ";");
         out.print("""
@@ -122,7 +123,7 @@ public class ProtoGen {
         var docLines = new ArrayList<String>();
         var stack = new ArrayDeque<Token>();
         String indent = "    ";
-        for (String line : source.split("\\R")) {
+        for (String line : source) {
             Token token = parse(line);
             switch (token.type()) {
                 case COMMENT -> docLines.add(token.matcher().group("comment"));
@@ -343,7 +344,7 @@ public class ProtoGen {
 
     public static void main(String[] args) throws Exception {
         try (var out = new PrintStream(new FileOutputStream("src/main/java/oracle/code/onnx/proto/" + PROTOGEN_BUILDER_CLASS + ".java"))) {
-            generateBuilder(Files.readString(Path.of("opgen/onnx.in.proto")), out);
+            generateBuilder(Files.readAllLines(Path.of("opgen/onnx.in.proto")), out);
         }
     }
 }
