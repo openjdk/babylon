@@ -30,6 +30,7 @@ import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.*;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static jdk.incubator.code.op.CoreOp.*;
 import static jdk.incubator.code.type.FunctionType.functionType;
@@ -95,6 +96,12 @@ public class OpBuilder {
             J_U_MAP, array(J_U_MAP_ENTRY, 1));
 
 
+    static final JavaType EX_TYPE_ELEM = type(ExternalizedTypeElement.class);
+
+    static final MethodRef EX_TYPE_ELEM_OF_LIST = MethodRef.method(EX_TYPE_ELEM, "of",
+            EX_TYPE_ELEM, J_L_STRING, J_U_LIST);
+
+
     static final FunctionType EXTERNALIZED_OP_F_TYPE = functionType(
             J_C_O_EXTERNALIZED_OP,
             J_L_STRING,
@@ -112,6 +119,8 @@ public class OpBuilder {
     Map<Value, Value> valueMap;
 
     Map<Block, Value> blockMap;
+
+    Map<ExternalizedTypeElement, Value> exTypeElementMap;
 
     Map<TypeElement, Value> typeElementMap;
 
@@ -134,6 +143,7 @@ public class OpBuilder {
     OpBuilder() {
         this.valueMap = new HashMap<>();
         this.blockMap = new HashMap<>();
+        this.exTypeElementMap = new HashMap<>();
         this.typeElementMap = new HashMap<>();
     }
 
@@ -253,10 +263,37 @@ public class OpBuilder {
 
     Value buildType(TypeElement _t) {
         return typeElementMap.computeIfAbsent(_t, t -> {
-            Value typeString = builder.op(constant(J_L_STRING, t.externalize().toString()));
-            Value exTypeElem = builder.op(invoke(EX_TYPE_ELEMENT_OF_STRING, typeString));
+            Value exTypeElem = buildExternalizedType(t.externalize());
             return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, exTypeElem));
         });
+    }
+
+    Value buildExternalizedType(ExternalizedTypeElement e) {
+        // Cannot use computeIfAbsent due to recursion
+        if (exTypeElementMap.get(e) instanceof Value v) {
+            return v;
+        }
+
+        List<Value> arguments = new ArrayList<>();
+        for (ExternalizedTypeElement a : e.arguments()) {
+            arguments.add(buildExternalizedType(a));
+        }
+
+        Value identifier = builder.op(constant(J_L_STRING, e.identifier()));
+        Value ve;
+        if (e.arguments().size() < 5) {
+            MethodRef elemOf = MethodRef.method(EX_TYPE_ELEM, "of",
+                    EX_TYPE_ELEM, Stream.concat(Stream.of(J_L_STRING),
+                            Collections.nCopies(e.arguments().size(), EX_TYPE_ELEM).stream()).toList());
+            arguments.addFirst(identifier);
+            ve = builder.op(invoke(elemOf, arguments));
+        } else {
+            Value list = buildList(EX_TYPE_ELEM, arguments);
+            ve = builder.op(invoke(EX_TYPE_ELEM_OF_LIST, identifier, list));
+        }
+
+        exTypeElementMap.put(e, ve);
+        return ve;
     }
 
     Value buildAttributeMap(Map<String, Object> attributes) {
@@ -363,8 +400,10 @@ public class OpBuilder {
         Value array = builder.op(newArray(JavaType.array(elementType),
                 builder.op(constant(INT, elements.size()))));
         for (int i = 0; i < elements.size(); i++) {
-            builder.op(arrayStoreOp(array, elements.get(i),
-                    builder.op(constant(INT, i))));
+            builder.op(arrayStoreOp(
+                    array,
+                    builder.op(constant(INT, i)),
+                    elements.get(i)));
         }
         return array;
     }

@@ -3,6 +3,7 @@ package jdk.incubator.code;
 import jdk.incubator.code.type.TypeElementFactory;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A type, that defines a set of values.
@@ -85,6 +86,42 @@ public non-sealed interface TypeElement extends CodeItem {
         }
 
         // Factories
+
+        public static ExternalizedTypeElement of(String s) {
+            return new ExternalizedTypeElement(s, List.of());
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement a) {
+            return new ExternalizedTypeElement(s, List.of(a));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement a1, ExternalizedTypeElement a2) {
+            return new ExternalizedTypeElement(s, List.of(a1, a2));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement a1, ExternalizedTypeElement a2,
+                                                 ExternalizedTypeElement a3) {
+            return new ExternalizedTypeElement(s, List.of(a1, a2, a3));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement a1, ExternalizedTypeElement a2,
+                                                 ExternalizedTypeElement a3, ExternalizedTypeElement a4) {
+            return new ExternalizedTypeElement(s, List.of(a1, a2, a3, a4));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement... arguments) {
+            return new ExternalizedTypeElement(s, List.of(arguments));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 List<ExternalizedTypeElement> arguments) {
+            return new ExternalizedTypeElement(s, arguments);
+        }
 
         /**
          * Parses a string as an externalized type element.
