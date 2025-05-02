@@ -198,8 +198,8 @@ public class CodeModelToAST {
             }
             case CoreOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
                 var array = arrayStoreOp.operands().get(0);
-                var val = arrayStoreOp.operands().get(1);
-                var index = arrayStoreOp.operands().get(2);
+                var index = arrayStoreOp.operands().get(1);
+                var val = arrayStoreOp.operands().get(2);
                 var as = treeMaker.Assign(
                         treeMaker.Indexed(
                                 toExpr(opToTree(array)), toExpr(opToTree(index))), toExpr(opToTree(val))
