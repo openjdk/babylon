@@ -78,18 +78,6 @@ public class OpBuilder {
     static final MethodRef FUNCTION_TYPE_FUNCTION_TYPE = MethodRef.method(FunctionType.class, "functionType",
             FunctionType.class, TypeElement.class, TypeElement[].class);
 
-    static final MethodRef METHOD_REF_OF_STRING = MethodRef.method(MethodRef.class, "ofString",
-            MethodRef.class, String.class);
-
-    static final MethodRef CONSTRUCTOR_REF_OF_STRING = MethodRef.method(ConstructorRef.class, "ofString",
-            ConstructorRef.class, String.class);
-
-    static final MethodRef FIELD_REF_OF_STRING = MethodRef.method(FieldRef.class, "ofString",
-            FieldRef.class, String.class);
-
-    static final MethodRef RECORD_TYPE_REF_OF_STRING = MethodRef.method(RecordTypeRef.class, "ofString",
-            RecordTypeRef.class, String.class);
-
 
     static final JavaType J_U_LIST = type(List.class);
 
@@ -313,22 +301,6 @@ public class OpBuilder {
             }
             case String s -> {
                 yield builder.op(constant(J_L_STRING, value));
-            }
-            case ConstructorRef r -> {
-                Value string = builder.op(constant(J_L_STRING, value.toString()));
-                yield builder.op(invoke(CONSTRUCTOR_REF_OF_STRING, string));
-            }
-            case MethodRef r -> {
-                Value string = builder.op(constant(J_L_STRING, value.toString()));
-                yield builder.op(invoke(METHOD_REF_OF_STRING, string));
-            }
-            case FieldRef r -> {
-                Value string = builder.op(constant(J_L_STRING, value.toString()));
-                yield builder.op(invoke(FIELD_REF_OF_STRING, string));
-            }
-            case RecordTypeRef r -> {
-                Value string = builder.op(constant(J_L_STRING, value.toString()));
-                yield builder.op(invoke(RECORD_TYPE_REF_OF_STRING, string));
             }
             case TypeElement f -> {
                 yield buildType(f);
