@@ -3,7 +3,6 @@ package jdk.incubator.code;
 import jdk.incubator.code.type.TypeElementFactory;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * A type, that defines a set of values.
