@@ -52,9 +52,6 @@ public class OpBuilder {
     static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
             TypeElement.class, ExternalizedTypeElement.class);
 
-    static final MethodRef EX_TYPE_ELEMENT_OF_STRING = MethodRef.method(ExternalizedTypeElement.class, "ofString",
-            ExternalizedTypeElement.class, String.class);
-
     static final MethodRef BODY_BUILDER_OF = MethodRef.method(Body.Builder.class, "of",
             Body.Builder.class, Body.Builder.class, FunctionType.class);
 
