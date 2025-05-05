@@ -49,7 +49,7 @@ import jdk.incubator.code.type.JavaType;
 import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
-import oracle.code.onnx.proto.OnnxProtoModel;
+import oracle.code.onnx.proto.OnnxModel;
 
 import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
@@ -128,7 +128,7 @@ public final class OnnxRuntime {
 
             if (DEBUG) {
                 System.out.println(mi.module().toText());
-//                System.out.println(OnnxProtoModel.readFrom(protobufModel).toText());
+//                System.out.println(OnnxModel.readFrom(protobufModel).toText());
                 try {
                     var export = Path.of(domainName + ".onnx");
                     Files.write(export, protobufModel);
