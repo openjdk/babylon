@@ -114,14 +114,14 @@ public class ProtoGen {
 
     static void generateConstants(List<TreeNode> tree, PrintStream out) {
         out.print(COPYRIGHT_NOTICE);
-        out.println("package " + PROTOGEN_PACKAGE + ";");
         out.print("""
+                package %1$s;
 
                 import java.util.function.IntSupplier;
 
                 // Generated from onnx.in.proto
-                """);
-        out.println("public final class " + PROTOGEN_CONSTANTS_CLASS + " {");
+                public final class %2$s {
+                """.formatted(PROTOGEN_PACKAGE, PROTOGEN_CONSTANTS_CLASS));
         for (TreeNode en : tree.stream().flatMap(n -> Stream.concat(Stream.of(n), n.nested().stream())).filter(n -> n.token().type() == TokenType.ENUM).toList()) {
             out.println();
             String name = en.token().matcher().group("name");
@@ -138,27 +138,29 @@ public class ProtoGen {
                     out.println("        " + ev.token().matcher().group("name") + "(" + ev.token().matcher().group("value") + "),");
                 }
             }
-            out.println("        ;");
-            out.println();
-            out.println("        final int value;");
-            out.println();
-            out.println("        " + name + "(int value) {");
-            out.println("            this.value = value;");
-            out.println("        }");
-            out.println();
-            out.println("        @Override");
-            out.println("        public int getAsInt() {");
-            out.println("            return value;");
-            out.println("        }");
-            out.println("    }");
+            out.print("""
+                            ;
+
+                            final int value;
+
+                            %1$s(int value) {
+                                this.value = value;
+                            }
+
+                            @Override
+                            public int getAsInt() {
+                                return value;
+                            }
+                        }
+                    """.formatted(name));
         }
         out.println("}");
     }
 
     static void generateBuilder(List<TreeNode> tree, PrintStream out) {
         out.print(COPYRIGHT_NOTICE);
-        out.println("package " + PROTOGEN_PACKAGE + ";");
         out.print("""
+                package %1$s;
 
                 import java.io.ByteArrayOutputStream;
                 import java.nio.charset.StandardCharsets;
@@ -166,13 +168,11 @@ public class ProtoGen {
                 import java.util.function.BiConsumer;
                 import java.util.function.IntSupplier;
 
-                """);
-        out.println("import " + PROTOGEN_PACKAGE + "." + PROTOGEN_CONSTANTS_CLASS + ".*;");
-        out.print("""
+                import %1$s.%2$s.*;
 
                 // Generated from onnx.in.proto
-                """);
-        out.println("public sealed class " + PROTOGEN_BUILDER_CLASS + "<T extends " + PROTOGEN_BUILDER_CLASS + "> {");
+                public sealed class %3$s<T extends %3$s> {
+                """.formatted(PROTOGEN_PACKAGE, PROTOGEN_CONSTANTS_CLASS, PROTOGEN_BUILDER_CLASS));
         generateBuilderCode(null, "    ", tree, out);
         out.print("""
 
@@ -243,9 +243,7 @@ public class ProtoGen {
                         if (values.length == 1) {
                             return _f(fieldIndex, values[0]);
                         }
-                """);
-        out.println("        var b = new " + PROTOGEN_BUILDER_CLASS + "();");
-        out.print("""
+                        var b = new %1$s();
                         for (var v : values) b._encode(v);
                         _f(fieldIndex, b);
                         return (T)this;
@@ -263,9 +261,7 @@ public class ProtoGen {
                         if (values.length == 1) {
                             return _f(fieldIndex, values[0]);
                         }
-                """);
-        out.println("        var b = new " + PROTOGEN_BUILDER_CLASS + "();");
-        out.print("""
+                        var b = new %1$s();
                         for (var v : values) b._encode(v);
                         _f(fieldIndex, b);
                         return (T)this;
@@ -283,9 +279,7 @@ public class ProtoGen {
                         if (values.length == 1) {
                             return _f(fieldIndex, values[0]);
                         }
-                """);
-        out.println("        var b = new " + PROTOGEN_BUILDER_CLASS + "();");
-        out.print("""
+                        var b = new %1$s();
                         for (var v : values) b._encode(v);
                         _f(fieldIndex, b);
                         return (T)this;
@@ -296,18 +290,14 @@ public class ProtoGen {
                         if (values.length == 1) {
                             return _f(fieldIndex, values[0]);
                         }
-                """);
-        out.println("        var b = new " + PROTOGEN_BUILDER_CLASS + "();");
-        out.print("""
+                        var b = new %1$s();
                         for (var v : values) b._encode(v);
                         _f(fieldIndex, b);
                         return (T)this;
                     }
 
                     @SuppressWarnings("unchecked")
-                """);
-        out.println("    T _f(int fieldIndex, " + PROTOGEN_BUILDER_CLASS + " value) {");
-        out.print("""
+                    T _f(int fieldIndex, %1$s value) {
                         return _f(fieldIndex, value.buf.toByteArray());
                     }
 
@@ -316,7 +306,7 @@ public class ProtoGen {
                         return _f(fieldIndex, value.getAsInt());
                     }
                 }
-                """);
+                """.formatted(PROTOGEN_BUILDER_CLASS));
     }
 
     static void generateBuilderCode(String parentName, String indent, List<TreeNode> tree, PrintStream out) {
@@ -353,8 +343,8 @@ public class ProtoGen {
 
     static void generateModel(List<TreeNode> tree, PrintStream out) {
         out.print(COPYRIGHT_NOTICE);
-        out.println("package " + PROTOGEN_PACKAGE + ";");
         out.print("""
+                package %1$s;
 
                 import java.io.RandomAccessFile;
                 import java.lang.annotation.ElementType;
@@ -372,13 +362,11 @@ public class ProtoGen {
                 import java.util.function.IntSupplier;
                 import java.util.function.Supplier;
 
-                """);
-        out.println("import " + PROTOGEN_PACKAGE + "." + PROTOGEN_CONSTANTS_CLASS + ".*;");
-        out.print("""
+                import %1$s.%2$s.*;
 
                 // Generated from onnx.in.proto
-                """);
-        out.println("public sealed interface " + PROTOGEN_MODEL_CLASS + " {");
+                public sealed interface %3$s {
+                """.formatted(PROTOGEN_PACKAGE, PROTOGEN_CONSTANTS_CLASS, PROTOGEN_MODEL_CLASS));
         generateModelCode("    ", tree, out);
         out.print("""
 
@@ -471,7 +459,7 @@ public class ProtoGen {
                             return readBytes(bb);
                         } else if (baseType == String.class) {
                             return new String(readBytes(bb));
-                        } else if (baseType.getEnclosingClass() == OnnxConstants.class) {
+                        } else if (baseType.getEnclosingClass() == %1$s.class) {
                             int value = (int)decodeVarint(bb);
                             for (Object cs : baseType.getEnumConstants()) {
                                 if (cs instanceof IntSupplier is && is.getAsInt() == value) {
@@ -569,31 +557,31 @@ public class ProtoGen {
                     default String toText(boolean skipBigData) {
                         try {
                             var sb = new StringBuilder();
-                            print(sb, 0, "OnnxModel", this, skipBigData);
+                            print(sb, 0, "%2$s", this, skipBigData);
                             return sb.toString();
                         } catch (ReflectiveOperationException e) {
                             throw new RuntimeException(e);
                         }
                     }
 
-                    public static OnnxModel.ModelProto readFrom(byte[] onnxProtoModel) {
+                    public static %2$s.ModelProto readFrom(byte[] onnxProtoModel) {
                         return readFrom(ByteBuffer.wrap(onnxProtoModel));
                     }
 
-                    public static OnnxModel.ModelProto readFrom(ByteBuffer onnxProtoModel) {
-                        return readFrom(OnnxModel.ModelProto.class, onnxProtoModel.order(ByteOrder.LITTLE_ENDIAN));
+                    public static %2$s.ModelProto readFrom(ByteBuffer onnxProtoModel) {
+                        return readFrom(%2$s.ModelProto.class, onnxProtoModel.order(ByteOrder.LITTLE_ENDIAN));
                     }
 
                     public static void main(String... args) throws Exception {
                         for (var fName : args) {
                             try (var in = new RandomAccessFile(fName, "r")) {
-                                OnnxModel.ModelProto model = readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
+                                %2$s.ModelProto model = readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
                                 System.out.println(model.toText());
                             }
                         }
                     }
                 }
-                """);
+                """.formatted(PROTOGEN_CONSTANTS_CLASS, PROTOGEN_MODEL_CLASS));
     }
 
     static void generateModelCode(String indent, List<TreeNode> tree, PrintStream out) {
