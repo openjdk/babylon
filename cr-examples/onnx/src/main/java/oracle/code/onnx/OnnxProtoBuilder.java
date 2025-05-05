@@ -43,6 +43,7 @@ import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 import oracle.code.onnx.proto.OnnxBuilder.*;
+import oracle.code.onnx.proto.OnnxConstants.*;
 
 public final class OnnxProtoBuilder {
 
@@ -300,20 +301,20 @@ public final class OnnxProtoBuilder {
         var attr = new AttributeProto().name(name);
         switch (value) {
             case Float f -> {
-                attr.type(AttributeProto.AttributeType.FLOAT).f(f);
+                attr.type(AttributeType.FLOAT).f(f);
             }
             case Long l -> {
-                attr.type(AttributeProto.AttributeType.INT).i(l);
+                attr.type(AttributeType.INT).i(l);
             }
             case GraphProto g -> {
-                attr.type(AttributeProto.AttributeType.GRAPH).g(g.name(name));
+                attr.type(AttributeType.GRAPH).g(g.name(name));
             }
             case float[] floats -> {
-                attr.type(AttributeProto.AttributeType.FLOATS);
+                attr.type(AttributeType.FLOATS);
                 attr.floats(floats);
             }
             case long[] longs -> {
-                attr.type(AttributeProto.AttributeType.INTS);
+                attr.type(AttributeType.INTS);
                 attr.ints(longs);
             }
             default -> {

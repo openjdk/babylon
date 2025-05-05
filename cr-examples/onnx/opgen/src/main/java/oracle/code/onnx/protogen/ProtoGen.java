@@ -29,11 +29,12 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class ProtoGen {
 
@@ -66,7 +67,11 @@ public class ProtoGen {
             """;
 
     static final String PROTOGEN_PACKAGE = "oracle.code.onnx.proto";
+    static final String PROTOGEN_CONSTANTS_CLASS = "OnnxConstants";
     static final String PROTOGEN_BUILDER_CLASS = "OnnxBuilder";
+    static final String PROTOGEN_MODEL_CLASS = "OnnxModel";
+
+    static final String SOURCES_PATH = "src/main/java/" +PROTOGEN_PACKAGE.replace(".", "/") + "/";
 
     private static final String E = "\\s*";
     private static final String C = "\\s*(?<comment>//.*)";
@@ -95,7 +100,9 @@ public class ProtoGen {
 
     record Token(TokenType type, Matcher matcher) {}
 
-    static Token parse(String line) {
+    record TreeNode(List<String> comments, Token token, List<TreeNode> nested) {}
+
+    static Token lineToToken(String line) {
         for (var tt : TokenType.values()) {
             var m = tt.pattern.matcher(line);
             if (m.matches()) {
@@ -105,7 +112,50 @@ public class ProtoGen {
         throw new IllegalArgumentException(line);
     }
 
-    static void generateBuilder(List<String> source, PrintStream out) {
+    static void generateConstants(List<TreeNode> tree, PrintStream out) {
+        out.print(COPYRIGHT_NOTICE);
+        out.println("package " + PROTOGEN_PACKAGE + ";");
+        out.print("""
+
+                import java.util.function.IntSupplier;
+
+                // Generated from onnx.in.proto
+                """);
+        out.println("public final class " + PROTOGEN_CONSTANTS_CLASS + " {");
+        for (TreeNode en : tree.stream().flatMap(n -> Stream.concat(Stream.of(n), n.nested().stream())).filter(n -> n.token().type() == TokenType.ENUM).toList()) {
+            out.println();
+            String name = en.token().matcher().group("name");
+            for (String c : en.comments()) {
+                out.println("    /" + c);
+            }
+            out.println("    public enum " + name + " implements IntSupplier {");
+            for (TreeNode ev : en.nested()) {
+                if (ev.token().type() == TokenType.ENUM_ELEMENT) {
+                    out.println();
+                    for (String c : ev.comments()) {
+                        out.println("        /" + c);
+                    }
+                    out.println("        " + ev.token().matcher().group("name") + "(" + ev.token().matcher().group("value") + "),");
+                }
+            }
+            out.println("        ;");
+            out.println();
+            out.println("        final int value;");
+            out.println();
+            out.println("        " + name + "(int value) {");
+            out.println("            this.value = value;");
+            out.println("        }");
+            out.println();
+            out.println("        @Override");
+            out.println("        public int getAsInt() {");
+            out.println("            return value;");
+            out.println("        }");
+            out.println("    }");
+        }
+        out.println("}");
+    }
+
+    static void generateBuilder(List<TreeNode> tree, PrintStream out) {
         out.print(COPYRIGHT_NOTICE);
         out.println("package " + PROTOGEN_PACKAGE + ";");
         out.print("""
@@ -116,91 +166,18 @@ public class ProtoGen {
                 import java.util.function.BiConsumer;
                 import java.util.function.IntSupplier;
 
+                """);
+        out.println("import " + PROTOGEN_PACKAGE + "." + PROTOGEN_CONSTANTS_CLASS + ".*;");
+        out.print("""
+
                 // Generated from onnx.in.proto
                 """);
         out.println("public sealed class " + PROTOGEN_BUILDER_CLASS + "<T extends " + PROTOGEN_BUILDER_CLASS + "> {");
-        out.println();
-        var docLines = new ArrayList<String>();
-        var stack = new ArrayDeque<Token>();
-        String indent = "    ";
-        for (String line : source) {
-            Token token = parse(line);
-            switch (token.type()) {
-                case COMMENT -> docLines.add(token.matcher().group("comment"));
-                case EMPTY, SYNTAX, PACKAGE, RESERVED -> docLines.clear();
-                case END -> {
-                    docLines.clear();
-                    var b = stack.pop();
-                    switch (b.type) {
-                        case ENUM -> {
-                            out.println(indent + ";");
-                            out.println();
-                            out.println(indent +"final int value;");
-                            out.println();
-                            out.println(indent + b.matcher().group("name") + "(int value) {");
-                            out.println(indent + "    this.value = value;");
-                            out.println(indent + "}");
-                            out.println();
-                            out.println(indent + "@Override");
-                            out.println(indent + "public int getAsInt() {");
-                            out.println(indent + "    return value;");
-                            out.println(indent + "}");
-                            indent = " ".repeat(indent.length() - 4);
-                            out.println(indent + "}");
-                            out.println();
-                        }
-                        case MESSAGE -> {
-                            indent = " ".repeat(indent.length() - 4);
-                            out.println(indent + "}");
-                            out.println();
-                        }
-                        case ONEOF -> {}
-                    }
-                }
-                case ENUM, MESSAGE, ENUM_ELEMENT, FIELD -> {
-                    if (token.matcher().group("comment") instanceof String cmt) {
-                        docLines.add(cmt);
-                    }
-                    for (String dl : docLines) out.println(indent + '/' + dl);
-                    docLines.clear();
-                    String name = token.matcher().group("name");
-                    switch (token.type) {
-                        case ENUM -> {
-                            out.println(indent + "public enum " + name + " implements IntSupplier {");
-                            indent += "    ";
-                            stack.push(token);
-                        }
-                        case MESSAGE -> {
-                            out.println(indent + "public static final class " + name + " extends " + PROTOGEN_BUILDER_CLASS + "<" + name + "> {");
-                            indent += "    ";
-                            stack.push(token);
-                        }
-                        case ENUM_ELEMENT ->
-                            out.println(indent + token.matcher().group("name") + "(" + token.matcher().group("value") + "),");
-                        case FIELD -> {
-                            String type = token.matcher().group("type");
-                            type = switch (type) {
-                                case "string" -> "String";
-                                case "int32" -> "int";
-                                case "int64" -> "long";
-                                case "uint64" -> "long";
-                                case "bytes" -> "byte[]";
-                                default -> type;
-                            };
-                            if (Character.isLowerCase(type.charAt(0)) && !type.equals("byte[]") && token.matcher().group("flag").equals("repeated ")) {
-                                type += "...";
-                            }
-                            String index = token.matcher().group("index");
-                            String parentName = stack.stream().filter(t -> t.type() != TokenType.ONEOF).findFirst().orElseThrow().matcher().group("name");
-                            out.println(indent + "public " + parentName + " " + name + "(" + type + " " + name + ") {return _f(" + index + ", " + name + ");}");
-                        }
-                    }
-                    out.println();
-                }
-                case ONEOF -> stack.push(token);
-            }
-        }
+        generateBuilderCode(null, "    ", tree, out);
         out.print("""
+
+                    // Implementation
+
                     final ByteArrayOutputStream buf = new ByteArrayOutputStream();
 
                     public byte[] getBytes() {
@@ -342,9 +319,75 @@ public class ProtoGen {
                 """);
     }
 
-    public static void main(String[] args) throws Exception {
-        try (var out = new PrintStream(new FileOutputStream("src/main/java/oracle/code/onnx/proto/" + PROTOGEN_BUILDER_CLASS + ".java"))) {
-            generateBuilder(Files.readAllLines(Path.of("opgen/onnx.in.proto")), out);
+    static void generateBuilderCode(String parentName, String indent, List<TreeNode> tree, PrintStream out) {
+        for (TreeNode n : tree) {
+            switch (n.token().type()) {
+                case MESSAGE, FIELD -> {
+                    out.println();
+                    for (String c : n.comments()) out.println(indent + '/' + c);
+                    String name = n.token().matcher().group("name");
+                    if (n.token().type() == TokenType.MESSAGE) {
+                        out.println(indent + "public static final class " + name + " extends " + PROTOGEN_BUILDER_CLASS + "<" + name + "> {");
+                        generateBuilderCode(name, indent + "    ", n.nested(), out);
+                        out.println(indent + "}");
+                    } else {
+                        String type = n.token().matcher().group("type");
+                        type = switch (type) {
+                            case "string" -> "String";
+                            case "int32" -> "int";
+                            case "int64" -> "long";
+                            case "uint64" -> "long";
+                            case "bytes" -> "byte[]";
+                            default -> type;
+                        };
+                        if (Character.isLowerCase(type.charAt(0)) && !type.equals("byte[]") && n.token().matcher().group("flag").equals("repeated ")) {
+                            type += "...";
+                        }
+                        String index = n.token().matcher().group("index");
+                        out.println(indent + "public " + parentName + " " + name + "(" + type + " " + name + ") {return _f(" + index + ", " + name + ");}");
+                    }
+                }
+            }
         }
+    }
+
+    static List<TreeNode> toTree(Iterator<Token> tokens) {
+        List<TreeNode> nodes = new ArrayList<>();
+        List<String> comments = new ArrayList<>();
+        int oneofs = 0;
+        while (tokens.hasNext()) {
+            Token t = tokens.next();
+            switch (t.type()) {
+                case COMMENT -> comments.add(t.matcher().group("comment"));
+                case EMPTY -> comments.clear(); // do not merge isolated comment blocks
+                case ONEOF -> oneofs++; // flat ONEOF
+                case ENUM_ELEMENT, FIELD, RESERVED, SYNTAX, PACKAGE -> {
+                    if (t.matcher().group("comment") instanceof String c) comments.add(c);
+                    nodes.add(new TreeNode(comments, t, List.of()));
+                    comments = new ArrayList<>();
+                }
+                case ENUM, MESSAGE -> {
+                    nodes.add(new TreeNode(comments, t, toTree(tokens)));
+                    comments = new ArrayList<>();
+                }
+                case END -> {
+                    if (oneofs-- == 0) return nodes;
+                }
+            }
+        }
+        return nodes;
+    }
+
+    public static void main(String[] args) throws Exception {
+        List<TreeNode> tree = toTree(Files.lines(Path.of("opgen/onnx.in.proto")).map(ProtoGen::lineToToken).iterator());
+        try (var constants = new PrintStream(new FileOutputStream(SOURCES_PATH + PROTOGEN_CONSTANTS_CLASS + ".java"))) {
+            generateConstants(tree, constants);
+        }
+        try (var builder = new PrintStream(new FileOutputStream(SOURCES_PATH + PROTOGEN_BUILDER_CLASS + ".java"))) {
+            generateBuilder(tree, builder);
+        }
+//        try (var model = new PrintStream(new FileOutputStream(SOURCES_PATH + PROTOGEN_MODEL_CLASS + ".java"))) {
+//            generateModel(source, model);
+//        }
     }
 }
