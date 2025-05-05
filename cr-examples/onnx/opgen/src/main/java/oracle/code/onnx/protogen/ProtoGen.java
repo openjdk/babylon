@@ -325,7 +325,7 @@ public class ProtoGen {
                 case MESSAGE, FIELD -> {
                     out.println();
                     for (String c : n.comments()) out.println(indent + '/' + c);
-                    String name = n.token().matcher().group("name");
+                    String name = snakeToCamelCase(n.token().matcher().group("name"));
                     if (n.token().type() == TokenType.MESSAGE) {
                         out.println(indent + "public static final class " + name + " extends " + PROTOGEN_BUILDER_CLASS + "<" + name + "> {");
                         generateBuilderCode(name, indent + "    ", n.nested(), out);
@@ -613,7 +613,7 @@ public class ProtoGen {
                         }
                         out.println();
                         for (String c : nn.comments()) out.println(indent + "    /" + c);
-                        String name = nn.token().matcher().group("name");
+                        String name = snakeToCamelCase(nn.token().matcher().group("name"));
                         String type = nn.token().matcher().group("type");
                         if (nn.token().matcher().group("flag").equals("repeated ")) {
                             type = switch (type) {
@@ -672,6 +672,12 @@ public class ProtoGen {
             }
         }
         return nodes;
+    }
+
+    static final Pattern SNAKE = Pattern.compile("_([a-z])");
+
+    static String snakeToCamelCase(String name) {
+        return SNAKE.matcher(name).replaceAll(mr -> mr.group(1).toUpperCase());
     }
 
     public static void main(String[] args) throws Exception {

@@ -128,9 +128,9 @@ public final class OnnxProtoBuilder {
 
     static byte[] build(GraphProto graph, List<String> customImportDomains, List<FunctionProto> functions) {
         return new ModelProto()
-                .ir_version(IR_VERSION)
-                .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
-                .forEach(customImportDomains, (m, d) -> m.opset_import(new OperatorSetIdProto().domain(d)))
+                .irVersion(IR_VERSION)
+                .opsetImport(new OperatorSetIdProto().version(OPSET_VERSION))
+                .forEach(customImportDomains, (m, d) -> m.opsetImport(new OperatorSetIdProto().domain(d)))
                 .forEach(functions, (m, f) -> m.functions(f))
                 .graph(graph)
                 .getBytes();
@@ -257,13 +257,13 @@ public final class OnnxProtoBuilder {
                 .forEach(inputNames, (f, i) -> f.input(i))
                 .forEach(ops, (g, op) -> g.node(op))
                 .forEach(outputNames, (f, o) -> f.output(o))
-                .opset_import(new OperatorSetIdProto().version(OPSET_VERSION));
+                .opsetImport(new OperatorSetIdProto().version(OPSET_VERSION));
     }
 
     static NodeProto node(String domain, String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
         return new NodeProto()
                 .domain(domain)
-                .op_type(opName)
+                .opType(opName)
                 .forEach(inputNames, (n, iName) -> n.input(iName))
                 .forEach(attributes.entrySet(), (n, ae) -> n.attribute(attribute(ae.getKey(), ae.getValue())))
                 .forEach(outputNames, (n, oName) -> n.output(oName));
@@ -271,7 +271,7 @@ public final class OnnxProtoBuilder {
 
     static NodeProto node(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
         return new NodeProto()
-                .op_type(opName)
+                .opType(opName)
                 .forEach(inputNames, (n, iName) -> n.input(iName))
                 .forEach(attributes.entrySet(), (n, ae) -> n.attribute(attribute(ae.getKey(), ae.getValue())))
                 .forEach(outputNames, (n, oName) -> n.output(oName));
@@ -282,19 +282,19 @@ public final class OnnxProtoBuilder {
     }
 
     static ValueInfoProto tensorInfo(String name, int tensorElementType, boolean addScalarShape) {
-        var t = new TypeProto.Tensor().elem_type(tensorElementType);
+        var t = new TypeProto.Tensor().elemType(tensorElementType);
         if (addScalarShape) t.shape(new TensorShapeProto());
         return new ValueInfoProto()
                 .name(name)
-                .type(new TypeProto().tensor_type(t));
+                .type(new TypeProto().tensorType(t));
     }
 
     static TensorProto tensorProto(String name, oracle.code.onnx.Tensor tensor) {
         return new TensorProto()
                 .name(name)
-                .data_type(tensor.elementType().id)
+                .dataType(tensor.elementType().id)
                 .dims(tensor.shape())
-                .raw_data(tensor.data().toArray(ValueLayout.JAVA_BYTE));
+                .rawData(tensor.data().toArray(ValueLayout.JAVA_BYTE));
     }
 
     static AttributeProto attribute(String name, Object value) {

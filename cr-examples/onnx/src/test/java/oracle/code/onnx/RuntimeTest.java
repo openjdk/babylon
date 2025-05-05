@@ -150,7 +150,7 @@ public class RuntimeTest {
                             .input("a")
                             .output("b")
                             .node(node("Identity", List.of("a"), List.of("b"), Map.of()))
-                            .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
+                            .opsetImport(new OperatorSetIdProto().version(OPSET_VERSION))
                             .domain(customDomain))));
 
             var a = Tensor.ofScalar(arena, 1l);

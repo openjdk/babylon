@@ -62,10 +62,10 @@ public sealed interface OnnxModel {
         /// In this case, this AttributeProto does not contain data, and it's a reference of attribute
         /// in parent scope.
         /// NOTE: This should ONLY be used in function (sub-graph). It's invalid to be used in main graph.
-        @f(21) String ref_attr_name,
+        @f(21) String refAttrName,
 
         /// A human-readable documentation for this attribute. Markdown is allowed.
-        @f(13) String doc_string,
+        @f(13) String docString,
 
         /// The type field MUST be present for this version of the IR.
         /// For 0.0.1 versions of the IR, this field was not defined, and
@@ -93,7 +93,7 @@ public sealed interface OnnxModel {
         @f(6) GraphProto g,
 
         /// sparse tensor value
-        @f(22) SparseTensorProto sparse_tensor,
+        @f(22) SparseTensorProto sparseTensor,
 
         /// Do not use field below, it's deprecated.
         /// optional ValueProto v = 12;         // value - subsumes everything but graph
@@ -116,10 +116,10 @@ public sealed interface OnnxModel {
         @f(11) List<GraphProto> graphs,
 
         /// list of sparse tensors
-        @f(23) List<SparseTensorProto> sparse_tensors,
+        @f(23) List<SparseTensorProto> sparseTensors,
 
         /// list of type protos
-        @f(15) List<TypeProto> type_protos) implements OnnxModel {
+        @f(15) List<TypeProto> typeProtos) implements OnnxModel {
     }
 
     /// Defines information on value, including the name, the type, and
@@ -135,10 +135,10 @@ public sealed interface OnnxModel {
         @f(2) TypeProto type,
 
         /// A human-readable documentation for this value. Markdown is allowed.
-        @f(3) String doc_string,
+        @f(3) String docString,
 
         /// Named metadata values; keys should be distinct.
-        @f(4) List<StringStringEntryProto> metadata_props) implements OnnxModel {
+        @f(4) List<StringStringEntryProto> metadataProps) implements OnnxModel {
     }
 
     /// Nodes
@@ -163,7 +163,7 @@ public sealed interface OnnxModel {
 
         /// The symbolic identifier of the Operator to execute.
         /// namespace Operator
-        @f(4) String op_type,
+        @f(4) String opType,
 
         /// The domain of the OperatorSet that specifies the operator named by op_type.
         /// namespace Domain
@@ -176,10 +176,10 @@ public sealed interface OnnxModel {
         @f(5) List<AttributeProto> attribute,
 
         /// A human-readable documentation for this node. Markdown is allowed.
-        @f(6) String doc_string,
+        @f(6) String docString,
 
         /// Named metadata values; keys should be distinct.
-        @f(9) List<StringStringEntryProto> metadata_props) implements OnnxModel {
+        @f(9) List<StringStringEntryProto> metadataProps) implements OnnxModel {
     }
 
     /// Training information
@@ -256,7 +256,7 @@ public sealed interface OnnxModel {
         ///
         /// By default, this field is empty and no initializer would be changed
         /// by the execution of "initialization".
-        @f(3) List<StringStringEntryProto> initialization_binding,
+        @f(3) List<StringStringEntryProto> initializationBinding,
 
         /// Gradient-based training is usually an iterative procedure. In one gradient
         /// descent iteration, we apply
@@ -298,7 +298,7 @@ public sealed interface OnnxModel {
         ///
         /// By default, this field is empty and no initializer would be changed
         /// by the execution of "algorithm".
-        @f(4) List<StringStringEntryProto> update_binding) implements OnnxModel {
+        @f(4) List<StringStringEntryProto> updateBinding) implements OnnxModel {
     }
 
     /// Models
@@ -311,7 +311,7 @@ public sealed interface OnnxModel {
 
         /// The version of the IR this model targets. See Version enum above.
         /// This field MUST be present.
-        @f(1) Long ir_version,
+        @f(1) Long irVersion,
 
         /// The OperatorSets this model relies on.
         /// All ModelProtos MUST have at least one entry that
@@ -321,17 +321,17 @@ public sealed interface OnnxModel {
         /// All nodes in the ModelProto's graph will bind against the operator
         /// with the same-domain/same-op_type operator with the HIGHEST version
         /// in the referenced operator sets.
-        @f(8) List<OperatorSetIdProto> opset_import,
+        @f(8) List<OperatorSetIdProto> opsetImport,
 
         /// The name of the framework or tool used to generate this model.
         /// This field SHOULD be present to indicate which implementation/tool/framework
         /// emitted the model.
-        @f(2) String producer_name,
+        @f(2) String producerName,
 
         /// The version of the framework or tool used to generate this model.
         /// This field SHOULD be present to indicate which implementation/tool/framework
         /// emitted the model.
-        @f(3) String producer_version,
+        @f(3) String producerVersion,
 
         /// Domain name of the model.
         /// We use reverse domain names as name space indicators. For example:
@@ -342,16 +342,16 @@ public sealed interface OnnxModel {
         @f(4) String domain,
 
         /// The version of the graph encoded. See Version enum below.
-        @f(5) Long model_version,
+        @f(5) Long modelVersion,
 
         /// A human-readable documentation for this model. Markdown is allowed.
-        @f(6) String doc_string,
+        @f(6) String docString,
 
         /// The parameterized graph that is evaluated to execute the model.
         @f(7) GraphProto graph,
 
         /// Named metadata values; keys should be distinct.
-        @f(14) List<StringStringEntryProto> metadata_props,
+        @f(14) List<StringStringEntryProto> metadataProps,
 
         /// Training-specific information. Sequentially executing all stored
         /// `TrainingInfoProto.algorithm`s and assigning their outputs following
@@ -362,7 +362,7 @@ public sealed interface OnnxModel {
         /// using `TrainingInfoProto.initialization_binding`s.
         ///
         /// If this field is empty, the training behavior of the model is undefined.
-        @f(20) List<TrainingInfoProto> training_info,
+        @f(20) List<TrainingInfoProto> trainingInfo,
 
         /// A list of function protos local to the model.
         ///
@@ -394,13 +394,13 @@ public sealed interface OnnxModel {
 
     public record TensorAnnotation (
 
-        @f(1) String tensor_name,
+        @f(1) String tensorName,
 
         /// <key, value> pairs to annotate tensor specified by <tensor_name> above.
         /// The keys used in the mapping below must be pre-defined in ONNX spec.
         /// For example, for 8-bit linear quantization case, 'SCALE_TENSOR', 'ZERO_POINT_TENSOR' will be pre-defined as
         /// quantization parameter keys.
-        @f(2) List<StringStringEntryProto> quant_parameter_tensor_names) implements OnnxModel {
+        @f(2) List<StringStringEntryProto> quantParameterTensorNames) implements OnnxModel {
     }
 
     /// Graphs
@@ -425,10 +425,10 @@ public sealed interface OnnxModel {
         @f(5) List<TensorProto> initializer,
 
         /// Initializers (see above) stored in sparse format.
-        @f(15) List<SparseTensorProto> sparse_initializer,
+        @f(15) List<SparseTensorProto> sparseInitializer,
 
         /// A human-readable documentation for this graph. Markdown is allowed.
-        @f(10) String doc_string,
+        @f(10) String docString,
 
         /// The inputs and outputs of the graph.
         @f(11) List<ValueInfoProto> input,
@@ -437,16 +437,16 @@ public sealed interface OnnxModel {
 
         /// Information for the values in the graph. The ValueInfoProto.name's
         /// must be distinct. It is optional for a value to appear in value_info list.
-        @f(13) List<ValueInfoProto> value_info,
+        @f(13) List<ValueInfoProto> valueInfo,
 
         /// This field carries information to indicate the mapping among a tensor and its
         /// quantization parameter tensors. For example:
         /// For tensor 'a', it may have {'SCALE_TENSOR', 'a_scale'} and {'ZERO_POINT_TENSOR', 'a_zero_point'} annotated,
         /// which means, tensor 'a_scale' and tensor 'a_zero_point' are scale and zero point of tensor 'a' in the model.
-        @f(14) List<TensorAnnotation> quantization_annotation,
+        @f(14) List<TensorAnnotation> quantizationAnnotation,
 
         /// Named metadata values; keys should be distinct.
-        @f(16) List<StringStringEntryProto> metadata_props) implements OnnxModel {
+        @f(16) List<StringStringEntryProto> metadataProps) implements OnnxModel {
     }
 
     /// Tensors
@@ -459,7 +459,7 @@ public sealed interface OnnxModel {
 
         /// The data type of the tensor.
         /// This field MUST have a valid TensorProto.DataType value
-        @f(2) Integer data_type,
+        @f(2) Integer dataType,
 
         @f(3) Segment segment,
 
@@ -470,7 +470,7 @@ public sealed interface OnnxModel {
         /// subsequent even numbered position. (e.g., [1.0 + 2.0i, 3.0 + 4.0i]
         /// is encoded as [1.0, 2.0 ,3.0 ,4.0]
         /// When this field is present, the data_type field MUST be FLOAT or COMPLEX64.
-        @f(4) List<float[]> float_data,
+        @f(4) List<float[]> floatData,
 
         /// For int32, uint8, int8, uint16, int16, uint4, int4, bool, (b)float16, float8, and float4:
         /// - (b)float16 and float8 values MUST be converted bit-wise into an unsigned integer
@@ -485,25 +485,25 @@ public sealed interface OnnxModel {
         ///
         /// When this field is present, the data_type field MUST be
         /// INT32, INT16, INT8, INT4, UINT16, UINT8, UINT4, BOOL, FLOAT16, BFLOAT16, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT4E2M1
-        @f(5) List<int[]> int32_data,
+        @f(5) List<int[]> int32Data,
 
         /// For strings.
         /// Each element of string_data is a UTF-8 encoded Unicode
         /// string. No trailing null, no leading BOM. The protobuf "string"
         /// scalar type is not used to match ML community conventions.
         /// When this field is present, the data_type field MUST be STRING
-        @f(6) List<byte[]> string_data,
+        @f(6) List<byte[]> stringData,
 
         /// For int64.
         /// When this field is present, the data_type field MUST be INT64
-        @f(7) List<long[]> int64_data,
+        @f(7) List<long[]> int64Data,
 
         /// Optionally, a name for the tensor.
         /// namespace Value
         @f(8) String name,
 
         /// A human-readable documentation for this tensor. Markdown is allowed.
-        @f(12) String doc_string,
+        @f(12) String docString,
 
         /// Serializations can either use one of the fields above, or use this
         /// raw bytes field. The only exception is the string case, where one is
@@ -521,7 +521,7 @@ public sealed interface OnnxModel {
         /// that in some cases (e.g. int data), protobuf does a better packing via
         /// variable length storage, and may lead to smaller binary footprint.
         /// When this field is present, the data_type field MUST NOT be STRING or UNDEFINED
-        @f(9) byte[] raw_data,
+        @f(9) byte[] rawData,
 
         /// Data can be stored inside the protobuf file using type-specific fields or raw_data.
         /// Alternatively, raw bytes data can be stored in an external file, using the external_data field.
@@ -532,10 +532,10 @@ public sealed interface OnnxModel {
         ///                         Offset values SHOULD be multiples 4096 (page size) to enable mmap support.
         /// - "length" (optional) - number of bytes containing data. Integer stored as string.
         /// - "checksum" (optional) - SHA1 digest of file specified in under 'location' key.
-        @f(13) List<StringStringEntryProto> external_data,
+        @f(13) List<StringStringEntryProto> externalData,
 
         /// If value not set, data is stored in raw_data (if set) otherwise in type-specified field.
-        @f(14) DataLocation data_location,
+        @f(14) DataLocation dataLocation,
 
         /// For double
         /// Complex128 tensors are encoded as a single array of doubles,
@@ -544,15 +544,15 @@ public sealed interface OnnxModel {
         /// subsequent even numbered position. (e.g., [1.0 + 2.0i, 3.0 + 4.0i]
         /// is encoded as [1.0, 2.0 ,3.0 ,4.0]
         /// When this field is present, the data_type field MUST be DOUBLE or COMPLEX128
-        @f(10) List<double[]> double_data,
+        @f(10) List<double[]> doubleData,
 
         /// For uint64 and uint32 values
         /// When this field is present, the data_type field MUST be
         /// UINT32 or UINT64
-        @f(11) List<long[]> uint64_data,
+        @f(11) List<long[]> uint64Data,
 
         /// Named metadata values; keys should be distinct.
-        @f(16) List<StringStringEntryProto> metadata_props) implements OnnxModel {
+        @f(16) List<StringStringEntryProto> metadataProps) implements OnnxModel {
 
         /// For very large tensors, we may want to store them in chunks, in which
         /// case the following fields will specify the segment that is stored in
@@ -599,10 +599,10 @@ public sealed interface OnnxModel {
 
         public record Dimension (
 
-            @f(1) Long dim_value,
+            @f(1) Long dimValue,
 
             /// namespace Shape
-            @f(2) String dim_param,
+            @f(2) String dimParam,
 
             /// Standard denotation can optionally be used to denote tensor
             /// dimensions with standard semantic descriptions to ensure
@@ -619,21 +619,21 @@ public sealed interface OnnxModel {
     public record TypeProto (
 
         /// The type of a tensor.
-        @f(1) Tensor tensor_type,
+        @f(1) Tensor tensorType,
 
         /// The type of a sequence.
-        @f(4) Sequence sequence_type,
+        @f(4) Sequence sequenceType,
 
         /// The type of a map.
-        @f(5) Map map_type,
+        @f(5) Map mapType,
 
         /// The type of an optional.
-        @f(9) Optional optional_type,
+        @f(9) Optional optionalType,
 
         /// Type of the sparse tensor
-        @f(8) SparseTensor sparse_tensor_type,
+        @f(8) SparseTensor sparseTensorType,
 
-        @f(7) Opaque opaque_type,
+        @f(7) Opaque opaqueType,
 
         /// An optional denotation can be used to denote the whole
         /// type with a standard semantic description as to what is
@@ -646,7 +646,7 @@ public sealed interface OnnxModel {
             /// This field MUST NOT have the value of UNDEFINED
             /// This field MUST have a valid TensorProto.DataType value
             /// This field MUST be present for this version of the IR.
-            @f(1) Integer elem_type,
+            @f(1) Integer elemType,
 
             @f(2) TensorShapeProto shape) implements OnnxModel {
         }
@@ -656,7 +656,7 @@ public sealed interface OnnxModel {
 
             /// The type and optional shape of each element of the sequence.
             /// This field MUST be present for this version of the IR.
-            @f(1) TypeProto elem_type) implements OnnxModel {
+            @f(1) TypeProto elemType) implements OnnxModel {
         }
 
         /// map<K,V>
@@ -665,10 +665,10 @@ public sealed interface OnnxModel {
             /// This field MUST have a valid TensorProto.DataType value
             /// This field MUST be present for this version of the IR.
             /// This field MUST refer to an integral type ([U]INT{8|16|32|64}) or STRING
-            @f(1) Integer key_type,
+            @f(1) Integer keyType,
 
             /// This field MUST be present for this version of the IR.
-            @f(2) TypeProto value_type) implements OnnxModel {
+            @f(2) TypeProto valueType) implements OnnxModel {
         }
 
         /// wrapper for Tensor, Sequence, or Map
@@ -677,7 +677,7 @@ public sealed interface OnnxModel {
             /// The type and optional shape of the element wrapped.
             /// This field MUST be present for this version of the IR.
             /// Possible values correspond to OptionalProto.DataType enum
-            @f(1) TypeProto elem_type) implements OnnxModel {
+            @f(1) TypeProto elemType) implements OnnxModel {
         }
 
         public record SparseTensor (
@@ -685,7 +685,7 @@ public sealed interface OnnxModel {
             /// This field MUST NOT have the value of UNDEFINED
             /// This field MUST have a valid TensorProto.DataType value
             /// This field MUST be present for this version of the IR.
-            @f(1) Integer elem_type,
+            @f(1) Integer elemType,
 
             @f(2) TensorShapeProto shape) implements OnnxModel {
         }
@@ -735,15 +735,15 @@ public sealed interface OnnxModel {
         /// It is for function attributes with default values.
         /// A function attribute shall be represented either as
         /// a string attribute or an AttributeProto, not both.
-        @f(11) List<AttributeProto> attribute_proto,
+        @f(11) List<AttributeProto> attributeProto,
 
         /// The nodes in the function.
         @f(7) List<NodeProto> node,
 
         /// A human-readable documentation for this function. Markdown is allowed.
-        @f(8) String doc_string,
+        @f(8) String docString,
 
-        @f(9) List<OperatorSetIdProto> opset_import,
+        @f(9) List<OperatorSetIdProto> opsetImport,
 
         /// The domain which this function belongs to.
         /// This is part of the unique-id (domain, name, overload) of FunctionProtos in a model.
@@ -757,10 +757,10 @@ public sealed interface OnnxModel {
         /// must be distinct and refer to names in the function (including inputs,
         /// outputs, and intermediate values). It is optional for a value to appear
         /// in value_info list.
-        @f(12) List<ValueInfoProto> value_info,
+        @f(12) List<ValueInfoProto> valueInfo,
 
         /// Named metadata values; keys should be distinct.
-        @f(14) List<StringStringEntryProto> metadata_props) implements OnnxModel {
+        @f(14) List<StringStringEntryProto> metadataProps) implements OnnxModel {
     }
 
     // Implementation

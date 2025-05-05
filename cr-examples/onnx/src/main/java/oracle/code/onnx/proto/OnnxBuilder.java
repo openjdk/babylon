@@ -52,10 +52,10 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// In this case, this AttributeProto does not contain data, and it's a reference of attribute
         /// in parent scope.
         /// NOTE: This should ONLY be used in function (sub-graph). It's invalid to be used in main graph.
-        public AttributeProto ref_attr_name(String ref_attr_name) {return _f(21, ref_attr_name);}
+        public AttributeProto refAttrName(String refAttrName) {return _f(21, refAttrName);}
 
         /// A human-readable documentation for this attribute. Markdown is allowed.
-        public AttributeProto doc_string(String doc_string) {return _f(13, doc_string);}
+        public AttributeProto docString(String docString) {return _f(13, docString);}
 
         /// The type field MUST be present for this version of the IR.
         /// For 0.0.1 versions of the IR, this field was not defined, and
@@ -83,7 +83,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         public AttributeProto g(GraphProto g) {return _f(6, g);}
 
         /// sparse tensor value
-        public AttributeProto sparse_tensor(SparseTensorProto sparse_tensor) {return _f(22, sparse_tensor);}
+        public AttributeProto sparseTensor(SparseTensorProto sparseTensor) {return _f(22, sparseTensor);}
 
         /// Do not use field below, it's deprecated.
         /// optional ValueProto v = 12;         // value - subsumes everything but graph
@@ -106,10 +106,10 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         public AttributeProto graphs(GraphProto graphs) {return _f(11, graphs);}
 
         /// list of sparse tensors
-        public AttributeProto sparse_tensors(SparseTensorProto sparse_tensors) {return _f(23, sparse_tensors);}
+        public AttributeProto sparseTensors(SparseTensorProto sparseTensors) {return _f(23, sparseTensors);}
 
         /// list of type protos
-        public AttributeProto type_protos(TypeProto type_protos) {return _f(15, type_protos);}
+        public AttributeProto typeProtos(TypeProto typeProtos) {return _f(15, typeProtos);}
     }
 
     /// Defines information on value, including the name, the type, and
@@ -125,10 +125,10 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         public ValueInfoProto type(TypeProto type) {return _f(2, type);}
 
         /// A human-readable documentation for this value. Markdown is allowed.
-        public ValueInfoProto doc_string(String doc_string) {return _f(3, doc_string);}
+        public ValueInfoProto docString(String docString) {return _f(3, docString);}
 
         /// Named metadata values; keys should be distinct.
-        public ValueInfoProto metadata_props(StringStringEntryProto metadata_props) {return _f(4, metadata_props);}
+        public ValueInfoProto metadataProps(StringStringEntryProto metadataProps) {return _f(4, metadataProps);}
     }
 
     /// Nodes
@@ -153,7 +153,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
         /// The symbolic identifier of the Operator to execute.
         /// namespace Operator
-        public NodeProto op_type(String op_type) {return _f(4, op_type);}
+        public NodeProto opType(String opType) {return _f(4, opType);}
 
         /// The domain of the OperatorSet that specifies the operator named by op_type.
         /// namespace Domain
@@ -166,10 +166,10 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         public NodeProto attribute(AttributeProto attribute) {return _f(5, attribute);}
 
         /// A human-readable documentation for this node. Markdown is allowed.
-        public NodeProto doc_string(String doc_string) {return _f(6, doc_string);}
+        public NodeProto docString(String docString) {return _f(6, docString);}
 
         /// Named metadata values; keys should be distinct.
-        public NodeProto metadata_props(StringStringEntryProto metadata_props) {return _f(9, metadata_props);}
+        public NodeProto metadataProps(StringStringEntryProto metadataProps) {return _f(9, metadataProps);}
     }
 
     /// Training information
@@ -246,7 +246,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         ///
         /// By default, this field is empty and no initializer would be changed
         /// by the execution of "initialization".
-        public TrainingInfoProto initialization_binding(StringStringEntryProto initialization_binding) {return _f(3, initialization_binding);}
+        public TrainingInfoProto initializationBinding(StringStringEntryProto initializationBinding) {return _f(3, initializationBinding);}
 
         /// Gradient-based training is usually an iterative procedure. In one gradient
         /// descent iteration, we apply
@@ -288,7 +288,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         ///
         /// By default, this field is empty and no initializer would be changed
         /// by the execution of "algorithm".
-        public TrainingInfoProto update_binding(StringStringEntryProto update_binding) {return _f(4, update_binding);}
+        public TrainingInfoProto updateBinding(StringStringEntryProto updateBinding) {return _f(4, updateBinding);}
     }
 
     /// Models
@@ -301,7 +301,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
         /// The version of the IR this model targets. See Version enum above.
         /// This field MUST be present.
-        public ModelProto ir_version(long ir_version) {return _f(1, ir_version);}
+        public ModelProto irVersion(long irVersion) {return _f(1, irVersion);}
 
         /// The OperatorSets this model relies on.
         /// All ModelProtos MUST have at least one entry that
@@ -311,17 +311,17 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// All nodes in the ModelProto's graph will bind against the operator
         /// with the same-domain/same-op_type operator with the HIGHEST version
         /// in the referenced operator sets.
-        public ModelProto opset_import(OperatorSetIdProto opset_import) {return _f(8, opset_import);}
+        public ModelProto opsetImport(OperatorSetIdProto opsetImport) {return _f(8, opsetImport);}
 
         /// The name of the framework or tool used to generate this model.
         /// This field SHOULD be present to indicate which implementation/tool/framework
         /// emitted the model.
-        public ModelProto producer_name(String producer_name) {return _f(2, producer_name);}
+        public ModelProto producerName(String producerName) {return _f(2, producerName);}
 
         /// The version of the framework or tool used to generate this model.
         /// This field SHOULD be present to indicate which implementation/tool/framework
         /// emitted the model.
-        public ModelProto producer_version(String producer_version) {return _f(3, producer_version);}
+        public ModelProto producerVersion(String producerVersion) {return _f(3, producerVersion);}
 
         /// Domain name of the model.
         /// We use reverse domain names as name space indicators. For example:
@@ -332,16 +332,16 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         public ModelProto domain(String domain) {return _f(4, domain);}
 
         /// The version of the graph encoded. See Version enum below.
-        public ModelProto model_version(long model_version) {return _f(5, model_version);}
+        public ModelProto modelVersion(long modelVersion) {return _f(5, modelVersion);}
 
         /// A human-readable documentation for this model. Markdown is allowed.
-        public ModelProto doc_string(String doc_string) {return _f(6, doc_string);}
+        public ModelProto docString(String docString) {return _f(6, docString);}
 
         /// The parameterized graph that is evaluated to execute the model.
         public ModelProto graph(GraphProto graph) {return _f(7, graph);}
 
         /// Named metadata values; keys should be distinct.
-        public ModelProto metadata_props(StringStringEntryProto metadata_props) {return _f(14, metadata_props);}
+        public ModelProto metadataProps(StringStringEntryProto metadataProps) {return _f(14, metadataProps);}
 
         /// Training-specific information. Sequentially executing all stored
         /// `TrainingInfoProto.algorithm`s and assigning their outputs following
@@ -352,7 +352,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// using `TrainingInfoProto.initialization_binding`s.
         ///
         /// If this field is empty, the training behavior of the model is undefined.
-        public ModelProto training_info(TrainingInfoProto training_info) {return _f(20, training_info);}
+        public ModelProto trainingInfo(TrainingInfoProto trainingInfo) {return _f(20, trainingInfo);}
 
         /// A list of function protos local to the model.
         ///
@@ -384,13 +384,13 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
     public static final class TensorAnnotation extends OnnxBuilder<TensorAnnotation> {
 
-        public TensorAnnotation tensor_name(String tensor_name) {return _f(1, tensor_name);}
+        public TensorAnnotation tensorName(String tensorName) {return _f(1, tensorName);}
 
         /// <key, value> pairs to annotate tensor specified by <tensor_name> above.
         /// The keys used in the mapping below must be pre-defined in ONNX spec.
         /// For example, for 8-bit linear quantization case, 'SCALE_TENSOR', 'ZERO_POINT_TENSOR' will be pre-defined as
         /// quantization parameter keys.
-        public TensorAnnotation quant_parameter_tensor_names(StringStringEntryProto quant_parameter_tensor_names) {return _f(2, quant_parameter_tensor_names);}
+        public TensorAnnotation quantParameterTensorNames(StringStringEntryProto quantParameterTensorNames) {return _f(2, quantParameterTensorNames);}
     }
 
     /// Graphs
@@ -415,10 +415,10 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         public GraphProto initializer(TensorProto initializer) {return _f(5, initializer);}
 
         /// Initializers (see above) stored in sparse format.
-        public GraphProto sparse_initializer(SparseTensorProto sparse_initializer) {return _f(15, sparse_initializer);}
+        public GraphProto sparseInitializer(SparseTensorProto sparseInitializer) {return _f(15, sparseInitializer);}
 
         /// A human-readable documentation for this graph. Markdown is allowed.
-        public GraphProto doc_string(String doc_string) {return _f(10, doc_string);}
+        public GraphProto docString(String docString) {return _f(10, docString);}
 
         /// The inputs and outputs of the graph.
         public GraphProto input(ValueInfoProto input) {return _f(11, input);}
@@ -427,16 +427,16 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
         /// Information for the values in the graph. The ValueInfoProto.name's
         /// must be distinct. It is optional for a value to appear in value_info list.
-        public GraphProto value_info(ValueInfoProto value_info) {return _f(13, value_info);}
+        public GraphProto valueInfo(ValueInfoProto valueInfo) {return _f(13, valueInfo);}
 
         /// This field carries information to indicate the mapping among a tensor and its
         /// quantization parameter tensors. For example:
         /// For tensor 'a', it may have {'SCALE_TENSOR', 'a_scale'} and {'ZERO_POINT_TENSOR', 'a_zero_point'} annotated,
         /// which means, tensor 'a_scale' and tensor 'a_zero_point' are scale and zero point of tensor 'a' in the model.
-        public GraphProto quantization_annotation(TensorAnnotation quantization_annotation) {return _f(14, quantization_annotation);}
+        public GraphProto quantizationAnnotation(TensorAnnotation quantizationAnnotation) {return _f(14, quantizationAnnotation);}
 
         /// Named metadata values; keys should be distinct.
-        public GraphProto metadata_props(StringStringEntryProto metadata_props) {return _f(16, metadata_props);}
+        public GraphProto metadataProps(StringStringEntryProto metadataProps) {return _f(16, metadataProps);}
     }
 
     /// Tensors
@@ -449,7 +449,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
         /// The data type of the tensor.
         /// This field MUST have a valid TensorProto.DataType value
-        public TensorProto data_type(int data_type) {return _f(2, data_type);}
+        public TensorProto dataType(int dataType) {return _f(2, dataType);}
 
         /// For very large tensors, we may want to store them in chunks, in which
         /// case the following fields will specify the segment that is stored in
@@ -470,7 +470,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// subsequent even numbered position. (e.g., [1.0 + 2.0i, 3.0 + 4.0i]
         /// is encoded as [1.0, 2.0 ,3.0 ,4.0]
         /// When this field is present, the data_type field MUST be FLOAT or COMPLEX64.
-        public TensorProto float_data(float... float_data) {return _f(4, float_data);}
+        public TensorProto floatData(float... floatData) {return _f(4, floatData);}
 
         /// For int32, uint8, int8, uint16, int16, uint4, int4, bool, (b)float16, float8, and float4:
         /// - (b)float16 and float8 values MUST be converted bit-wise into an unsigned integer
@@ -485,25 +485,25 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         ///
         /// When this field is present, the data_type field MUST be
         /// INT32, INT16, INT8, INT4, UINT16, UINT8, UINT4, BOOL, FLOAT16, BFLOAT16, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT4E2M1
-        public TensorProto int32_data(int... int32_data) {return _f(5, int32_data);}
+        public TensorProto int32Data(int... int32Data) {return _f(5, int32Data);}
 
         /// For strings.
         /// Each element of string_data is a UTF-8 encoded Unicode
         /// string. No trailing null, no leading BOM. The protobuf "string"
         /// scalar type is not used to match ML community conventions.
         /// When this field is present, the data_type field MUST be STRING
-        public TensorProto string_data(byte[] string_data) {return _f(6, string_data);}
+        public TensorProto stringData(byte[] stringData) {return _f(6, stringData);}
 
         /// For int64.
         /// When this field is present, the data_type field MUST be INT64
-        public TensorProto int64_data(long... int64_data) {return _f(7, int64_data);}
+        public TensorProto int64Data(long... int64Data) {return _f(7, int64Data);}
 
         /// Optionally, a name for the tensor.
         /// namespace Value
         public TensorProto name(String name) {return _f(8, name);}
 
         /// A human-readable documentation for this tensor. Markdown is allowed.
-        public TensorProto doc_string(String doc_string) {return _f(12, doc_string);}
+        public TensorProto docString(String docString) {return _f(12, docString);}
 
         /// Serializations can either use one of the fields above, or use this
         /// raw bytes field. The only exception is the string case, where one is
@@ -521,7 +521,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// that in some cases (e.g. int data), protobuf does a better packing via
         /// variable length storage, and may lead to smaller binary footprint.
         /// When this field is present, the data_type field MUST NOT be STRING or UNDEFINED
-        public TensorProto raw_data(byte[] raw_data) {return _f(9, raw_data);}
+        public TensorProto rawData(byte[] rawData) {return _f(9, rawData);}
 
         /// Data can be stored inside the protobuf file using type-specific fields or raw_data.
         /// Alternatively, raw bytes data can be stored in an external file, using the external_data field.
@@ -532,10 +532,10 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         ///                         Offset values SHOULD be multiples 4096 (page size) to enable mmap support.
         /// - "length" (optional) - number of bytes containing data. Integer stored as string.
         /// - "checksum" (optional) - SHA1 digest of file specified in under 'location' key.
-        public TensorProto external_data(StringStringEntryProto external_data) {return _f(13, external_data);}
+        public TensorProto externalData(StringStringEntryProto externalData) {return _f(13, externalData);}
 
         /// If value not set, data is stored in raw_data (if set) otherwise in type-specified field.
-        public TensorProto data_location(DataLocation data_location) {return _f(14, data_location);}
+        public TensorProto dataLocation(DataLocation dataLocation) {return _f(14, dataLocation);}
 
         /// For double
         /// Complex128 tensors are encoded as a single array of doubles,
@@ -544,15 +544,15 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// subsequent even numbered position. (e.g., [1.0 + 2.0i, 3.0 + 4.0i]
         /// is encoded as [1.0, 2.0 ,3.0 ,4.0]
         /// When this field is present, the data_type field MUST be DOUBLE or COMPLEX128
-        public TensorProto double_data(double... double_data) {return _f(10, double_data);}
+        public TensorProto doubleData(double... doubleData) {return _f(10, doubleData);}
 
         /// For uint64 and uint32 values
         /// When this field is present, the data_type field MUST be
         /// UINT32 or UINT64
-        public TensorProto uint64_data(long... uint64_data) {return _f(11, uint64_data);}
+        public TensorProto uint64Data(long... uint64Data) {return _f(11, uint64Data);}
 
         /// Named metadata values; keys should be distinct.
-        public TensorProto metadata_props(StringStringEntryProto metadata_props) {return _f(16, metadata_props);}
+        public TensorProto metadataProps(StringStringEntryProto metadataProps) {return _f(16, metadataProps);}
     }
 
     /// A serialized sparse-tensor value
@@ -587,10 +587,10 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
         public static final class Dimension extends OnnxBuilder<Dimension> {
 
-            public Dimension dim_value(long dim_value) {return _f(1, dim_value);}
+            public Dimension dimValue(long dimValue) {return _f(1, dimValue);}
 
             /// namespace Shape
-            public Dimension dim_param(String dim_param) {return _f(2, dim_param);}
+            public Dimension dimParam(String dimParam) {return _f(2, dimParam);}
 
             /// Standard denotation can optionally be used to denote tensor
             /// dimensions with standard semantic descriptions to ensure
@@ -613,7 +613,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
             /// This field MUST NOT have the value of UNDEFINED
             /// This field MUST have a valid TensorProto.DataType value
             /// This field MUST be present for this version of the IR.
-            public Tensor elem_type(int elem_type) {return _f(1, elem_type);}
+            public Tensor elemType(int elemType) {return _f(1, elemType);}
 
             public Tensor shape(TensorShapeProto shape) {return _f(2, shape);}
         }
@@ -623,7 +623,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
             /// The type and optional shape of each element of the sequence.
             /// This field MUST be present for this version of the IR.
-            public Sequence elem_type(TypeProto elem_type) {return _f(1, elem_type);}
+            public Sequence elemType(TypeProto elemType) {return _f(1, elemType);}
         }
 
         /// map<K,V>
@@ -632,10 +632,10 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
             /// This field MUST have a valid TensorProto.DataType value
             /// This field MUST be present for this version of the IR.
             /// This field MUST refer to an integral type ([U]INT{8|16|32|64}) or STRING
-            public Map key_type(int key_type) {return _f(1, key_type);}
+            public Map keyType(int keyType) {return _f(1, keyType);}
 
             /// This field MUST be present for this version of the IR.
-            public Map value_type(TypeProto value_type) {return _f(2, value_type);}
+            public Map valueType(TypeProto valueType) {return _f(2, valueType);}
         }
 
         /// wrapper for Tensor, Sequence, or Map
@@ -644,7 +644,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
             /// The type and optional shape of the element wrapped.
             /// This field MUST be present for this version of the IR.
             /// Possible values correspond to OptionalProto.DataType enum
-            public Optional elem_type(TypeProto elem_type) {return _f(1, elem_type);}
+            public Optional elemType(TypeProto elemType) {return _f(1, elemType);}
         }
 
         public static final class SparseTensor extends OnnxBuilder<SparseTensor> {
@@ -652,7 +652,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
             /// This field MUST NOT have the value of UNDEFINED
             /// This field MUST have a valid TensorProto.DataType value
             /// This field MUST be present for this version of the IR.
-            public SparseTensor elem_type(int elem_type) {return _f(1, elem_type);}
+            public SparseTensor elemType(int elemType) {return _f(1, elemType);}
 
             public SparseTensor shape(TensorShapeProto shape) {return _f(2, shape);}
         }
@@ -667,21 +667,21 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         }
 
         /// The type of a tensor.
-        public TypeProto tensor_type(Tensor tensor_type) {return _f(1, tensor_type);}
+        public TypeProto tensorType(Tensor tensorType) {return _f(1, tensorType);}
 
         /// The type of a sequence.
-        public TypeProto sequence_type(Sequence sequence_type) {return _f(4, sequence_type);}
+        public TypeProto sequenceType(Sequence sequenceType) {return _f(4, sequenceType);}
 
         /// The type of a map.
-        public TypeProto map_type(Map map_type) {return _f(5, map_type);}
+        public TypeProto mapType(Map mapType) {return _f(5, mapType);}
 
         /// The type of an optional.
-        public TypeProto optional_type(Optional optional_type) {return _f(9, optional_type);}
+        public TypeProto optionalType(Optional optionalType) {return _f(9, optionalType);}
 
         /// Type of the sparse tensor
-        public TypeProto sparse_tensor_type(SparseTensor sparse_tensor_type) {return _f(8, sparse_tensor_type);}
+        public TypeProto sparseTensorType(SparseTensor sparseTensorType) {return _f(8, sparseTensorType);}
 
-        public TypeProto opaque_type(Opaque opaque_type) {return _f(7, opaque_type);}
+        public TypeProto opaqueType(Opaque opaqueType) {return _f(7, opaqueType);}
 
         /// An optional denotation can be used to denote the whole
         /// type with a standard semantic description as to what is
@@ -725,15 +725,15 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// It is for function attributes with default values.
         /// A function attribute shall be represented either as
         /// a string attribute or an AttributeProto, not both.
-        public FunctionProto attribute_proto(AttributeProto attribute_proto) {return _f(11, attribute_proto);}
+        public FunctionProto attributeProto(AttributeProto attributeProto) {return _f(11, attributeProto);}
 
         /// The nodes in the function.
         public FunctionProto node(NodeProto node) {return _f(7, node);}
 
         /// A human-readable documentation for this function. Markdown is allowed.
-        public FunctionProto doc_string(String doc_string) {return _f(8, doc_string);}
+        public FunctionProto docString(String docString) {return _f(8, docString);}
 
-        public FunctionProto opset_import(OperatorSetIdProto opset_import) {return _f(9, opset_import);}
+        public FunctionProto opsetImport(OperatorSetIdProto opsetImport) {return _f(9, opsetImport);}
 
         /// The domain which this function belongs to.
         /// This is part of the unique-id (domain, name, overload) of FunctionProtos in a model.
@@ -747,10 +747,10 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// must be distinct and refer to names in the function (including inputs,
         /// outputs, and intermediate values). It is optional for a value to appear
         /// in value_info list.
-        public FunctionProto value_info(ValueInfoProto value_info) {return _f(12, value_info);}
+        public FunctionProto valueInfo(ValueInfoProto valueInfo) {return _f(12, valueInfo);}
 
         /// Named metadata values; keys should be distinct.
-        public FunctionProto metadata_props(StringStringEntryProto metadata_props) {return _f(14, metadata_props);}
+        public FunctionProto metadataProps(StringStringEntryProto metadataProps) {return _f(14, metadataProps);}
     }
 
     // Implementation
