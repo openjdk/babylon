@@ -71,7 +71,7 @@ public class ProtoGen {
     static final String PROTOGEN_BUILDER_CLASS = "OnnxBuilder";
     static final String PROTOGEN_MODEL_CLASS = "OnnxModel";
 
-    static final String SOURCES_PATH = "src/main/java/" +PROTOGEN_PACKAGE.replace(".", "/") + "/";
+    static final String SOURCES_PATH = "src/main/java/" + PROTOGEN_PACKAGE.replace(".", "/") + "/";
 
     private static final String E = "\\s*";
     private static final String C = "\\s*(?<comment>//.*)";
