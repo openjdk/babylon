@@ -950,7 +950,7 @@ public sealed interface OnnxModel {
     default String toText(boolean skipBigData) {
         try {
             var sb = new StringBuilder();
-            print(sb, 0, "OnnxModel", this, skipBigData);
+            print(sb, 0, getClass().getSimpleName(), this, skipBigData);
             return sb.toString();
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
