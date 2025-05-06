@@ -30,7 +30,7 @@ public final class VarType implements TypeElement {
 
     @Override
     public String toString() {
-        return externalize().toString();
+        return String.format("%s<%s>", NAME, valueType);
     }
 
     @Override

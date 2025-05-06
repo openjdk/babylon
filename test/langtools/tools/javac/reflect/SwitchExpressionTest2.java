@@ -859,8 +859,8 @@ public class SwitchExpressionTest2 {
                 %2 : SwitchExpressionTest2$A = var.load %1;
                 %3 : SwitchExpressionTest2$B = constant @null;
                 %4 : Var<SwitchExpressionTest2$B> = var %3 @"b";
-                %5 : .<SwitchExpressionTest2, SwitchExpressionTest2$C> = constant @null;
-                %6 : Var<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> = var %5 @"c";
+                %5 : SwitchExpressionTest2$C = constant @null;
+                %6 : Var<SwitchExpressionTest2$C> = var %5 @"c";
                 %7 : java.lang.String = java.switch.expression %2
                     (%8 : SwitchExpressionTest2$A)boolean -> {
                         %9 : boolean = pattern.match %8
@@ -880,11 +880,11 @@ public class SwitchExpressionTest2 {
                     }
                     (%13 : SwitchExpressionTest2$A)boolean -> {
                         %14 : boolean = pattern.match %13
-                            ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> -> {
-                                %15 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<.<SwitchExpressionTest2, SwitchExpressionTest2$C>> = pattern.type @"c";
+                            ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchExpressionTest2$C> -> {
+                                %15 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchExpressionTest2$C> = pattern.type @"c";
                                 yield %15;
                             }
-                            (%16 : .<SwitchExpressionTest2, SwitchExpressionTest2$C>)void -> {
+                            (%16 : SwitchExpressionTest2$C)void -> {
                                 var.store %6 %16;
                                 yield;
                             };

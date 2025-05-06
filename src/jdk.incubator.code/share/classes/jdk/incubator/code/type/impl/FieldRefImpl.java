@@ -123,7 +123,7 @@ public final class FieldRefImpl implements FieldRef {
 
     @Override
     public String toString() {
-        return refType.externalize() + "::" + name + "()" + type.externalize();
+        return refType + "::" + name + "()" + type;
     }
 
     @Override

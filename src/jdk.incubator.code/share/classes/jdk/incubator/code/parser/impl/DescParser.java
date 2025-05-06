@@ -30,12 +30,16 @@ import jdk.incubator.code.parser.impl.Tokens.TokenKind;
 import jdk.incubator.code.type.*;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.type.RecordTypeRef;
+import jdk.incubator.code.type.WildcardType.BoundKind;
 import jdk.incubator.code.type.impl.ConstructorRefImpl;
 import jdk.incubator.code.type.impl.FieldRefImpl;
 import jdk.incubator.code.type.impl.MethodRefImpl;
 import jdk.incubator.code.type.impl.RecordTypeRefImpl;
+
+import java.lang.constant.ClassDesc;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public final class DescParser {
     private DescParser() {}
@@ -49,6 +53,17 @@ public final class DescParser {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
         return parseExTypeElem(s);
+    }
+
+    /**
+     * Parse a type element from its readable textual form.
+     * @param desc the textual form of the type element to be parsed
+     * @return the type element
+     */
+    public static TypeElement parseTypeElem(String desc) {
+        Scanner s = Scanner.factory().newScanner(desc);
+        s.nextToken();
+        return parseTypeElem(s);
     }
 
     /**
@@ -154,18 +169,148 @@ public final class DescParser {
         }
     }
 
-    static TypeElement parseTypeElement(Lexer l) {
-        TypeElement.ExternalizedTypeElement typeDesc = parseExTypeElem(l);
-        return CoreTypeFactory.CORE_TYPE_FACTORY.constructType(typeDesc);
+//    Type:
+//    TypeNoPackage
+//    Package TypeNoPackage
+//
+//    Package:
+//    ident ('.' ident)
+//
+//    TypeNoPackage:
+//    ident						// class type
+//    ident '<' TypeArg* '>'				// parameterized class type
+//    TypeNoPackage '[]'				// array type
+//    TypeNoPackage '$' TypeNoPackage		// nested type
+//
+//    TypeArg:
+//            '?' 						// bivariant type argument
+//            '?' 'extends' Type				// covariant type argument
+//            '?' 'super' Type				// contravariant type argument
+//            Type						// invariant type argument
+//
+//    Ref:
+//    Type `::` ident '(' Type* ')' Type 		// method/field
+//    Type `::` '<new>' '(' Type* ')' Type 		// constructor
+
+    static final Map<String, JavaType> PRIMITIVE_TYPES = Map.of(
+            "boolean", JavaType.BOOLEAN,
+            "char", JavaType.CHAR,
+            "short", JavaType.SHORT,
+            "int", JavaType.INT,
+            "float", JavaType.FLOAT,
+            "long", JavaType.LONG,
+            "double", JavaType.DOUBLE,
+            "void", JavaType.VOID);
+
+    public static JavaType parseJavaType(Lexer l) {
+        JavaType type = null;
+        if (l.token().kind == TokenKind.IDENTIFIER) {
+            type = PRIMITIVE_TYPES.get(l.token().name());
+            if (type != null) {
+                // primitive type
+                l.nextToken();
+            } else {
+                // class type
+                do {
+                    StringBuilder className = new StringBuilder();
+                    className.append(type == null ?
+                            l.token().name() :
+                            l.token().name().substring(1));
+                    l.nextToken();
+                    while (type == null && l.token().kind == TokenKind.DOT) {
+                        l.accept(TokenKind.DOT);
+                        className.append(".");
+                        className.append(l.token().name());
+                        l.nextToken();
+                    }
+                    type = (type == null) ?
+                            JavaType.type(ClassDesc.of(className.toString())) :
+                            JavaType.qualified(type, className.toString());
+                    if (l.acceptIf(TokenKind.LT)) {
+                        List<JavaType> typeargs = new ArrayList<>();
+                        if (l.token().kind != TokenKind.GT) {
+                            typeargs.add(parseTypeArgument(l));
+                            while (l.acceptIf(TokenKind.COMMA)) {
+                                typeargs.add(parseTypeArgument(l));
+                            }
+                        }
+                        l.accept(TokenKind.GT);
+                        type = JavaType.parameterized(type, typeargs);
+                    }
+                } while (l.token().kind == TokenKind.IDENTIFIER && l.token().name().startsWith("$"));
+                //        if (l.token().kind == TokenKind.COLCOL) {
+                //            // this is a type-variable reference
+                //            l.nextToken();
+                //            String name = l.token().name();
+                //            l.nextToken();
+                //            TypeVariableType.Owner owner = (TypeVariableType.Owner)type;
+                //            if (l.token().kind == TokenKind.LPAREN) {
+                //                // constructor or method reference
+                //                List<TypeElement> params = parseParameterTypes(l);
+                //                if (name.equals("<new>")) {
+                //                    owner = ConstructorRef.constructor(type, params);
+                //                } else {
+                //                    JavaType restype = parseTypeElem(l);
+                //                    owner = MethodRef.method(type, name, restype, params);
+                //                }
+                //                l.accept(TokenKind.COLCOL);
+                //                name = l.token().name();
+                //                l.nextToken();
+                //            }
+                //            if (!l.token().name().equals("extends")) {
+                //                throw new IllegalArgumentException();
+                //            }
+                //            l.nextToken();
+                //            JavaType bound = parseTypeElem(l);
+                //            return JavaType.typeVarRef(name, owner, bound);
+                //        }
+            }
+        }
+        while (l.token().kind == TokenKind.LBRACKET) {
+            l.accept(TokenKind.LBRACKET);
+            l.accept(TokenKind.RBRACKET);
+            type = JavaType.array(type);
+        }
+        return type;
+    }
+
+    public static JavaType parseTypeArgument(Lexer l) {
+        if (l.token().kind == TokenKind.QUES) {
+            // wildcard
+            l.nextToken();
+            if (l.token().kind == TokenKind.IDENTIFIER) {
+                WildcardType.BoundKind bk = switch (l.token().name()) {
+                    case "extends" -> BoundKind.EXTENDS;
+                    case "super" -> BoundKind.SUPER;
+                    default -> throw new IllegalArgumentException("Bad wildcard bound");
+                };
+                l.nextToken();
+                JavaType bound = parseJavaType(l);
+                return JavaType.wildcard(bk, bound);
+            } else {
+                return JavaType.wildcard(BoundKind.EXTENDS, JavaType.J_L_OBJECT);
+            }
+        } else {
+            return parseJavaType(l);
+        }
+    }
+
+    public static TypeElement parseTypeElem(Lexer l) {
+        // human-readable form
+        JavaType javaType = parseJavaType(l);
+        // make sure we didn't accidentally parse Var or Tuple
+        TypeElement coreType = CoreTypeFactory.CORE_TYPE_FACTORY.constructType(javaType.externalize());
+        return (coreType != null) ?
+                coreType : javaType;
     }
 
     static List<TypeElement> parseParameterTypes(Lexer l) {
         List<TypeElement> ptypes = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
-            ptypes.add(parseTypeElement(l));
+            ptypes.add(parseTypeElem(l));
             while (l.acceptIf(Tokens.TokenKind.COMMA)) {
-                ptypes.add(parseTypeElement(l));
+                ptypes.add(parseTypeElem(l));
             }
         }
         l.accept(Tokens.TokenKind.RPAREN);
@@ -175,12 +320,12 @@ public final class DescParser {
     // (T, T, T, T)R
     static FunctionType parseMethodType(Lexer l) {
         List<TypeElement> ptypes = parseParameterTypes(l);
-        TypeElement rtype = parseTypeElement(l);
+        TypeElement rtype = parseTypeElem(l);
         return FunctionType.functionType(rtype, ptypes);
     }
 
     static MethodRef parseMethodRef(Lexer l) {
-        TypeElement refType = parseTypeElement(l);
+        TypeElement refType = parseTypeElem(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
 
@@ -192,7 +337,7 @@ public final class DescParser {
     }
 
     static ConstructorRef parseConstructorRef(Lexer l) {
-        TypeElement refType = parseTypeElement(l);
+        TypeElement refType = parseTypeElem(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
 
@@ -209,7 +354,7 @@ public final class DescParser {
     }
 
     static FieldRef parseFieldRef(Lexer l) {
-        TypeElement refType = parseTypeElement(l);
+        TypeElement refType = parseTypeElem(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
 
@@ -227,14 +372,14 @@ public final class DescParser {
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
             do {
-                TypeElement componentType = parseTypeElement(l);
+                TypeElement componentType = parseTypeElem(l);
                 String componentName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
 
                 components.add(new RecordTypeRef.ComponentRef(componentType, componentName));
             } while(l.acceptIf(Tokens.TokenKind.COMMA));
         }
         l.accept(Tokens.TokenKind.RPAREN);
-        TypeElement recordType = parseTypeElement(l);
+        TypeElement recordType = parseTypeElem(l);
         return new RecordTypeRefImpl(recordType, components);
     }
 }

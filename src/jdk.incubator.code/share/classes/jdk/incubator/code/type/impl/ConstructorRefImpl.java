@@ -116,8 +116,8 @@ public final class ConstructorRefImpl implements ConstructorRef {
 
     @Override
     public String toString() {
-        return type.returnType().externalize() + "::<new>" +
-            type.parameterTypes().stream().map(t -> t.externalize().toString())
+        return type.returnType() + "::<new>" +
+            type.parameterTypes().stream().map(Object::toString)
                     .collect(joining(", ", "(", ")"));
     }
 

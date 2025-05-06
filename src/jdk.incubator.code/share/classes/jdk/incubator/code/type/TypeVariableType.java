@@ -112,7 +112,7 @@ public final class TypeVariableType implements JavaType {
     @Override
     public String toString() {
         // @@@ required to pass TestJavaType.java
-        return name;
+        return String.format("%s::%s extends %s", owner, name, bound);
     }
 
     @Override

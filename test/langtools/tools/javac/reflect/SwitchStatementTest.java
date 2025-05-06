@@ -1488,7 +1488,7 @@ public class SwitchStatementTest {
                     ()void -> {
                         %21 : java.lang.String = var.load %3;
                         %22 : java.lang.Object = var.load %1;
-                        %23 : java.lang.Class<+<java.lang.Object>> = invoke %22 @"java.lang.Object::getClass()java.lang.Class";
+                        %23 : java.lang.Class<? extends java.lang.Object> = invoke %22 @"java.lang.Object::getClass()java.lang.Class";
                         %24 : java.lang.String = invoke %23 @"java.lang.Class::getName()java.lang.String";
                         %25 : java.lang.String = concat %21 %24;
                         var.store %3 %25;
@@ -1912,7 +1912,7 @@ public class SwitchStatementTest {
                             }
                             ()boolean -> {
                                 %31 : java.lang.Number = var.load %8;
-                                %32 : java.lang.Class<+<java.lang.Object>> = invoke %31 @"java.lang.Object::getClass()java.lang.Class";
+                                %32 : java.lang.Class<? extends java.lang.Object> = invoke %31 @"java.lang.Object::getClass()java.lang.Class";
                                 %33 : java.lang.Class = constant @"java.lang.Double";
                                 %34 : boolean = invoke %32 %33 @"java.lang.Object::equals(java.lang.Object)boolean";
                                 yield %34;
