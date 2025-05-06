@@ -164,7 +164,6 @@ public class ProtoGen {
 
                 import java.io.ByteArrayOutputStream;
                 import java.nio.charset.StandardCharsets;
-                import java.util.List;
                 import java.util.function.BiConsumer;
                 import java.util.function.IntSupplier;
 
@@ -651,6 +650,7 @@ public class ProtoGen {
                     comments = new ArrayList<>();
                 }
                 case ENUM, MESSAGE -> {
+                    if (t.matcher().group("comment") instanceof String c) comments.add(c);
                     nodes.add(new TreeNode(comments, t, toTree(tokens)));
                     comments = new ArrayList<>();
                 }

@@ -27,7 +27,6 @@ package oracle.code.onnx.proto;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.IntSupplier;
 
