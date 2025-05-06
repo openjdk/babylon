@@ -97,6 +97,7 @@ public class OpGen {
 
                 import java.util.*;
                 """);
+        w.write("import " + ONNX_PACKAGE + ".Tensor;\n");
         w.write("\n");
 
         w.write("@SuppressWarnings({\"OptionalUsedAsFieldOrParameterType\", \"unused\", \"SequencedCollectionMethodCanBeUsed\"})\n");

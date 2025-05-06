@@ -29,6 +29,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static oracle.code.onnx.OnnxProtoBuilder.*;
+import static oracle.code.onnx.proto.OnnxBuilder.*;
 import static oracle.code.onnx.Tensor.ElementType.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -149,7 +150,7 @@ public class RuntimeTest {
                             .input("a")
                             .output("b")
                             .node(node("Identity", List.of("a"), List.of("b"), Map.of()))
-                            .opset_import(new OperatorSetIdProto().version(OPSET_VERSION))
+                            .opsetImport(new OperatorSetIdProto().version(OPSET_VERSION))
                             .domain(customDomain))));
 
             var a = Tensor.ofScalar(arena, 1l);

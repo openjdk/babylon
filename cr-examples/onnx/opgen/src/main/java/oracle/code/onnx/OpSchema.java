@@ -61,7 +61,7 @@ public record OpSchema(
         INT(long.class),
         STRING(String.class),
         // @@@ proto
-        TENSOR(byte[].class),
+        TENSOR(Tensor.class),
         // proto
         GRAPH(byte[].class),
         SPARSE_TENSOR(byte[].class),
@@ -72,7 +72,7 @@ public record OpSchema(
         INTS(long[].class),
         STRINGS(String[].class),
         // @@@ proto
-        TENSORS(byte[][].class),
+        TENSORS(Tensor[].class),
         // @@@ proto
         GRAPHS(byte[][].class),
         // @@@ proto
