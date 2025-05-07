@@ -438,28 +438,6 @@ import sun.invoke.util.Wrapper;
             }
         });
     }
-    /**
-     * Generate a static field and a static initializer that sets this field to an instance of the lambda
-     */
-    private void generateClassInitializer(ClassBuilder clb) {
-        ClassDesc lambdaTypeDescriptor = classDesc(factoryType.returnType());
-
-        // Generate the static final field that holds the lambda singleton
-        clb.withField(LAMBDA_INSTANCE_FIELD, lambdaTypeDescriptor, ACC_PRIVATE | ACC_STATIC | ACC_FINAL);
-
-        // Instantiate the lambda and store it to the static final field
-        clb.withMethodBody(CLASS_INIT_NAME, MTD_void, ACC_STATIC, new Consumer<>() {
-            @Override
-            public void accept(CodeBuilder cob) {
-                assert factoryType.parameterCount() == 0;
-                cob.new_(lambdaClassEntry)
-                   .dup()
-                   .invokespecial(pool.methodRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(INIT_NAME, constructorTypeDesc)))
-                   .putstatic(pool.fieldRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(LAMBDA_INSTANCE_FIELD, lambdaTypeDescriptor)))
-                   .return_();
-            }
-        });
-    }
 
     /**
      * Generate the constructor for the class
