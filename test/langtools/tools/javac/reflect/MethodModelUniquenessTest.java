@@ -9,10 +9,10 @@ import java.lang.reflect.Method;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng MethodModelTest
+ * @run testng MethodModelUniquenessTest
  */
 
-public class MethodModelTest {
+public class MethodModelUniquenessTest {
 
     @CodeReflection
     static void f() {
