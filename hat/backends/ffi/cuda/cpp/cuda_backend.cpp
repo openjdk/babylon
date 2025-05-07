@@ -74,7 +74,8 @@ PtxSource *PtxSource::nvcc(const char *cudaSource, size_t len) {
     int pid;
     cSource.write(cudaPath);
     if ((pid = fork()) == 0) {
-        const char *path = "/usr/local/cuda-12.2/bin/nvcc";
+        //const char *path = "/usr/local/cuda-12.2/bin/nvcc";
+        const char *path = "/usr/local/cuda/bin/nvcc";
         const char *argv[]{"nvcc", "-ptx", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
        // std::cerr << "child about to exec nvcc" << std::endl;
        // std::cerr << "path " << path<< " " << argv[1]<< " " << argv[2]<< " " << argv[3]<< " " << argv[4]<< std::endl;

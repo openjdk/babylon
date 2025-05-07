@@ -17,7 +17,7 @@ if(CUDAToolkit_FOUND)
     endif()
 
     include_directories(
-            ${CUDAToolkit_INCLUDE_DIR}
+            ${CUDAToolkit_INCLUDE_DIRS} # was ${CUDAToolkit_INCLUDE_DIR}
 	        ${SHARED_BACKEND}/include
 	        ${CUDA_BACKEND}/include
     )
