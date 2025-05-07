@@ -2,6 +2,8 @@ package jdk.incubator.code.type;
 
 import jdk.incubator.code.TypeElement;
 
+import java.util.List;
+
 /**
  * A symbolic reference to a Java class member or a Java type including members,
  * commonly containing symbolic names together with {@link JavaType symbolic descriptions}
@@ -20,4 +22,9 @@ public sealed interface JavaRef extends TypeElement
     //     - resolve to RecordComponent
     //     - (RecordTypeRef resolves to Type.)
     // @@@ AnnotatedElement is the common top type for resolved Java refs and types
+
+    @Override
+    default ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(String.format("java.ref:\"%s\"", this), List.of());
+    }
 }

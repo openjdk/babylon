@@ -168,6 +168,11 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      */
     ClassDesc toNominalDescriptor();
 
+    @Override
+    default ExternalizedTypeElement externalize() {
+        return new ExternalizedTypeElement(String.format("java.type:\"%s\"", this), List.of());
+    }
+
     /**
      * Resolve this Java type to a reflective type mirror.
      * @param lookup the lookup used to create the reflective type mirror
@@ -354,6 +359,6 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      * @return a Java type corresponding to the provided string representation
      */
     static JavaType ofString(String s) {
-        return (JavaType) DescParser.parseTypeElem(s);
+        return (JavaType) DescParser.parseJavaType(s);
     }
 }

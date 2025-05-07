@@ -35,7 +35,6 @@ import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.TypeElement;
 
 public final class FieldRefImpl implements FieldRef {
-    static final String NAME = "&f";
 
     final TypeElement refType;
     final String name;
@@ -116,14 +115,8 @@ public final class FieldRefImpl implements FieldRef {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME,
-                List.of(refType.externalize(), ExternalizedTypeElement.ofString(name), type.externalize()));
-    }
-
-    @Override
     public String toString() {
-        return refType + "::" + name + "()" + type;
+        return refType + "::" + name + ":" + type;
     }
 
     @Override

@@ -553,7 +553,7 @@ public final class OpParser {
 
         lexer.accept(Tokens.TokenKind.COLON);
 
-        TypeElement.ExternalizedTypeElement type = parseTypeElem();
+        TypeElement.ExternalizedTypeElement type = parseExTypeElem();
 
         return new ValueNode(valueName, type);
     }
@@ -602,10 +602,6 @@ public final class OpParser {
 
     TypeElement.ExternalizedTypeElement parseExTypeElem() {
         return DescParser.parseExTypeElem(lexer);
-    }
-
-    TypeElement.ExternalizedTypeElement parseTypeElem() {
-        return DescParser.parseTypeElem(lexer).externalize();
     }
 }
 

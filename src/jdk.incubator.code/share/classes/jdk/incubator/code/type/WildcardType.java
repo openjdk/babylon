@@ -72,12 +72,6 @@ public final class WildcardType implements JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        String prefix = kind == BoundKind.EXTENDS ? "+" : "-";
-        return new ExternalizedTypeElement(prefix, List.of(boundType.externalize()));
-    }
-
-    @Override
     public String toString() {
         return boundKind() == BoundKind.EXTENDS &&
                 boundType.equals(J_L_OBJECT) ?
