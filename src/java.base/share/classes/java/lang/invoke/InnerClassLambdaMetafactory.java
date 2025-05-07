@@ -89,7 +89,6 @@ import sun.invoke.util.Wrapper;
     private static final boolean disableEagerInitialization;
 
     private static final String NAME_METHOD_QUOTED = "__internal_quoted";
-    private static final String quotedInstanceFieldName = "quoted";
     private static final String COMPILER_GENERATED_MODEL_FIELD_NAME = "COMPILER_GENERATED_MODEL";
 
     static {
@@ -336,11 +335,6 @@ import sun.invoke.util.Wrapper;
                     clb.withField(argName(i), argDescs[i], ACC_PRIVATE | ACC_FINAL);
                 }
 
-                // if quotable, generate the field that will hold the value of quoted
-                if (quotableOpGetter != null) {
-                    clb.withField(quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted, ACC_PRIVATE + ACC_FINAL);
-                }
-
                 generateConstructor(clb);
 
                 generateClassInitializationMethod(clb);
@@ -484,45 +478,9 @@ import sun.invoke.util.Wrapper;
                                .loadLocal(TypeKind.from(factoryType.parameterType(i)), cob.parameterSlot(i))
                                .putfield(pool.fieldRefEntry(lambdaClassEntry, pool.nameAndTypeEntry(argName(i), argDescs[i])));
                         }
-                        if (quotableOpGetter != null) {
-                            generateQuotedFieldInitializer(cob);
-                        }
                         cob.return_();
                     }
                 });
-    }
-
-    private void generateQuotedFieldInitializer(CodeBuilder cob) {
-        ConstantPoolBuilder cp = cob.constantPool();
-        MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
-        NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
-        // push the receiver on the stack for operand of put field instruction
-        cob.aload(0)
-                // load class data: CodeReflectionSupport.HANDLE_MAKE_QUOTED
-                .ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(2))), natMH))
-                .getstatic(lambdaClassEntry.asSymbol(), COMPILER_GENERATED_MODEL_FIELD_NAME,
-                        CodeReflectionSupport.FUNC_OP_CLASS.describeConstable().get());
-
-
-        // load captured args in array
-
-        int capturedArity = factoryType.parameterCount();
-        cob.loadConstant(capturedArity)
-           .anewarray(CD_Object);
-        // initialize quoted captures
-        for (int i = 0; i < capturedArity; i++) {
-            cob.dup()
-               .loadConstant(i)
-               .aload(0)
-               .getfield(lambdaClassEntry.asSymbol(), argName(i), argDescs[i]);
-            TypeConvertingMethodAdapter.boxIfTypePrimitive(cob, TypeKind.from(argDescs[i]));
-            cob.aastore();
-        }
-
-        // Create a Quoted from FuncOp and captured args Object[]
-
-        cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(CodeReflectionSupport.HANDLE_MAKE_QUOTED.type()))
-           .putfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted);
     }
 
     static class CodeReflectionSupport {
@@ -639,9 +597,36 @@ import sun.invoke.util.Wrapper;
         clb.withMethod(NAME_METHOD_QUOTED, CodeReflectionSupport.MTD_Quoted, ACC_PUBLIC + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
             @Override
             public void accept(CodeBuilder cob) {
+                ConstantPoolBuilder cp = cob.constantPool();
+                MethodHandleEntry bsmDataAt = cp.methodHandleEntry(BSM_CLASS_DATA_AT);
+                NameAndTypeEntry natMH = cp.nameAndTypeEntry(DEFAULT_NAME, CD_MethodHandle);
+                // push the receiver on the stack for operand of put field instruction
                 cob.aload(0)
-                   .getfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted)
-                   .areturn();
+                        // load class data: CodeReflectionSupport.HANDLE_MAKE_QUOTED
+                        .ldc(cp.constantDynamicEntry(cp.bsmEntry(bsmDataAt, List.of(cp.intEntry(2))), natMH))
+                        .getstatic(lambdaClassEntry.asSymbol(), COMPILER_GENERATED_MODEL_FIELD_NAME,
+                                CodeReflectionSupport.FUNC_OP_CLASS.describeConstable().get());
+
+
+                // load captured args in array
+
+                int capturedArity = factoryType.parameterCount();
+                cob.loadConstant(capturedArity)
+                        .anewarray(CD_Object);
+                // initialize quoted captures
+                for (int i = 0; i < capturedArity; i++) {
+                    cob.dup()
+                            .loadConstant(i)
+                            .aload(0)
+                            .getfield(lambdaClassEntry.asSymbol(), argName(i), argDescs[i]);
+                    TypeConvertingMethodAdapter.boxIfTypePrimitive(cob, TypeKind.from(argDescs[i]));
+                    cob.aastore();
+                }
+
+                // Create a Quoted from FuncOp and captured args Object[]
+
+                cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(CodeReflectionSupport.HANDLE_MAKE_QUOTED.type()))
+                        .areturn();
             }
         }));
     }
