@@ -343,7 +343,7 @@ import sun.invoke.util.Wrapper;
 
                 generateConstructor(clb);
 
-                generateStaticInitializer(clb);
+                generateClassInitializationMethod(clb);
 
 
                 // Forward the SAM method
@@ -393,7 +393,10 @@ import sun.invoke.util.Wrapper;
         }
     }
 
-    private void generateStaticInitializer(ClassBuilder clb) {
+    private void generateClassInitializationMethod(ClassBuilder clb) {
+        if (!(factoryType.parameterCount() == 0 && disableEagerInitialization) && quotableOpGetter == null) {
+            return;
+        }
         clb.withMethodBody(CLASS_INIT_NAME, MTD_void, ACC_STATIC, new Consumer<CodeBuilder>() {
             @Override
             public void accept(CodeBuilder cob) {
