@@ -21,6 +21,9 @@
  * questions.
  */
 
+import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.type.TypeVariableType;
+import jdk.incubator.code.type.WildcardType;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -177,11 +180,35 @@ public class TestJavaType {
         Assert.assertEquals(javaType, CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(javaType.externalize()));
     }
 
-//    @Test(dataProvider = "types")
-//    public void testTypeString(Type type) throws ReflectiveOperationException {
-//        JavaType javaType = JavaType.type(type);
-//        Assert.assertEquals(type.getTypeName(), javaType.toString());
-//    }
+    @Test(dataProvider = "types")
+    public void testTypeString(Type type) throws ReflectiveOperationException {
+        JavaType javaType = JavaType.type(type);
+        Assert.assertEquals(type.getTypeName(), replaceTypeVariables(javaType).toString());
+    }
+
+    JavaType replaceTypeVariables(JavaType type) {
+        // This type transformation replaces type variables with simple class types.
+        // This obtains a JavaType whose toString behaves the same as Type::getTypeName
+        return switch (type) {
+            case PrimitiveType p -> p;
+            case WildcardType w -> JavaType.wildcard(w.boundKind(), replaceTypeVariables(w.boundType()));
+            case ArrayType a -> JavaType.array(replaceTypeVariables(a.componentType()));
+            case ClassType c -> {
+                ClassType res = c.rawType();
+                if (c.enclosingType().isPresent()) {
+                    JavaType encl = replaceTypeVariables(c.enclosingType().get());
+                    String nestedName = c.toClassName().substring(encl.toNominalDescriptor().displayName().length() + 1);
+                    res = JavaType.qualified(replaceTypeVariables(c.enclosingType().get()), nestedName);
+                }
+                if (c.hasTypeArguments()) {
+                    res = JavaType.parameterized(res,
+                            c.typeArguments().stream().map(this::replaceTypeVariables).toList());
+                }
+                yield res;
+            }
+            case TypeVariableType t -> JavaType.type(ClassDesc.of(t.name()));
+        };
+    }
 
     @DataProvider
     public Object[][] types() throws ReflectiveOperationException {
