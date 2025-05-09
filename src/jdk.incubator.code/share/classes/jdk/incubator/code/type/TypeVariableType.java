@@ -100,8 +100,12 @@ public final class TypeVariableType implements JavaType {
 
     @Override
     public String toString() {
-        // @@@ required to pass TestJavaType.java
-        return String.format("%s::%s extends %s", owner, name, bound);
+        String ownerString = (owner instanceof ClassType) ?
+                owner.toString() :
+                String.format("(%s)", owner);
+        return (bound.equals(JavaType.J_L_OBJECT)) ?
+                String.format("%s::<%s>", ownerString, name) :
+                String.format("%s::<%s extends %s>", ownerString, name, bound);
     }
 
     @Override

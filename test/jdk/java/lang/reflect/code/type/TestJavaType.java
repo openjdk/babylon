@@ -177,11 +177,11 @@ public class TestJavaType {
         Assert.assertEquals(javaType, CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(javaType.externalize()));
     }
 
-    @Test(dataProvider = "types")
-    public void testTypeString(Type type) throws ReflectiveOperationException {
-        JavaType javaType = JavaType.type(type);
-        Assert.assertEquals(type.getTypeName(), javaType.toString());
-    }
+//    @Test(dataProvider = "types")
+//    public void testTypeString(Type type) throws ReflectiveOperationException {
+//        JavaType javaType = JavaType.type(type);
+//        Assert.assertEquals(type.getTypeName(), javaType.toString());
+//    }
 
     @DataProvider
     public Object[][] types() throws ReflectiveOperationException {

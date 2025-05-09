@@ -36,22 +36,22 @@ public class ConditionalAndOrTest {
 
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : ConditionalAndOrTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
-                %3 : boolean = java.cand
-                    ()boolean -> {
-                        %4 : int = var.load %2;
-                        %5 : int = constant @"1";
-                        %6 : boolean = gt %4 %5;
+            func @"test1" (%0 : java.type:"ConditionalAndOrTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
+                %3 : java.type:"boolean" = java.cand
+                    ()java.type:"boolean" -> {
+                        %4 : java.type:"int" = var.load %2;
+                        %5 : java.type:"int" = constant @"1";
+                        %6 : java.type:"boolean" = gt %4 %5;
                         yield %6;
                     }
-                    ()boolean -> {
-                        %7 : int = var.load %2;
-                        %8 : int = constant @"10";
-                        %9 : boolean = lt %7 %8;
+                    ()java.type:"boolean" -> {
+                        %7 : java.type:"int" = var.load %2;
+                        %8 : java.type:"int" = constant @"10";
+                        %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     };
-                %10 : Var<boolean> = var %3 @"b";
+                %10 : Var<java.type:"boolean"> = var %3 @"b";
                 return;
             };
             """)
@@ -61,22 +61,22 @@ public class ConditionalAndOrTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : ConditionalAndOrTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
-                %3 : boolean = java.cor
-                    ()boolean -> {
-                        %4 : int = var.load %2;
-                        %5 : int = constant @"1";
-                        %6 : boolean = gt %4 %5;
+            func @"test2" (%0 : java.type:"ConditionalAndOrTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
+                %3 : java.type:"boolean" = java.cor
+                    ()java.type:"boolean" -> {
+                        %4 : java.type:"int" = var.load %2;
+                        %5 : java.type:"int" = constant @"1";
+                        %6 : java.type:"boolean" = gt %4 %5;
                         yield %6;
                     }
-                    ()boolean -> {
-                        %7 : int = var.load %2;
-                        %8 : int = constant @"10";
-                        %9 : boolean = lt %7 %8;
+                    ()java.type:"boolean" -> {
+                        %7 : java.type:"int" = var.load %2;
+                        %8 : java.type:"int" = constant @"10";
+                        %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     };
-                %10 : Var<boolean> = var %3 @"b";
+                %10 : Var<java.type:"boolean"> = var %3 @"b";
                 return;
             };
             """)
@@ -86,32 +86,32 @@ public class ConditionalAndOrTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : ConditionalAndOrTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
-                %3 : boolean = java.cor
-                    ()boolean -> {
-                        %4 : boolean = java.cand
-                            ()boolean -> {
-                                %5 : int = var.load %2;
-                                %6 : int = constant @"1";
-                                %7 : boolean = gt %5 %6;
+            func @"test3" (%0 : java.type:"ConditionalAndOrTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
+                %3 : java.type:"boolean" = java.cor
+                    ()java.type:"boolean" -> {
+                        %4 : java.type:"boolean" = java.cand
+                            ()java.type:"boolean" -> {
+                                %5 : java.type:"int" = var.load %2;
+                                %6 : java.type:"int" = constant @"1";
+                                %7 : java.type:"boolean" = gt %5 %6;
                                 yield %7;
                             }
-                            ()boolean -> {
-                                %8 : int = var.load %2;
-                                %9 : int = constant @"10";
-                                %10 : boolean = lt %8 %9;
+                            ()java.type:"boolean" -> {
+                                %8 : java.type:"int" = var.load %2;
+                                %9 : java.type:"int" = constant @"10";
+                                %10 : java.type:"boolean" = lt %8 %9;
                                 yield %10;
                             };
                         yield %4;
                     }
-                    ()boolean -> {
-                        %11 : int = var.load %2;
-                        %12 : int = constant @"100";
-                        %13 : boolean = eq %11 %12;
+                    ()java.type:"boolean" -> {
+                        %11 : java.type:"int" = var.load %2;
+                        %12 : java.type:"int" = constant @"100";
+                        %13 : java.type:"boolean" = eq %11 %12;
                         yield %13;
                     };
-                %14 : Var<boolean> = var %3 @"b";
+                %14 : Var<java.type:"boolean"> = var %3 @"b";
                 return;
             };
             """)

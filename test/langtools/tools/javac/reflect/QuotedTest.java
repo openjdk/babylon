@@ -35,8 +35,8 @@ import jdk.incubator.code.CodeReflection;
 
 public class QuotedTest {
     @IR("""
-            func @"f" ()void -> {
-                 %0 : func<void> = closure ()void -> {
+            func @"f" ()java.type:"void" -> {
+                %0 : func<java.type:"void"> = closure ()java.type:"void" -> {
                     return;
                 };
                 return;
@@ -46,10 +46,10 @@ public class QuotedTest {
     };
 
     @IR("""
-            func @"f" ()void -> {
-                %0 : func<int> = closure ()int -> {
-                    %2 : int = constant @"1";
-                    return %2;
+            func @"f" ()java.type:"void" -> {
+                %0 : func<java.type:"int"> = closure ()java.type:"int" -> {
+                    %1 : java.type:"int" = constant @"1";
+                    return %1;
                 };
                 return;
             };
@@ -57,11 +57,11 @@ public class QuotedTest {
     static final Quoted QUOTED_NO_PARAM_CONST = () -> 1;
 
     @IR("""
-            func @"f" ()void -> {
-                %0 : func<int, int> = closure (%2 : int)int -> {
-                    %3 : Var<int> = var %2 @"x";
-                    %4 : int = var.load %3;
-                    return %4;
+            func @"f" ()java.type:"void" -> {
+                %0 : func<java.type:"int", java.type:"int"> = closure (%1 : java.type:"int")java.type:"int" -> {
+                    %2 : Var<java.type:"int"> = var %1 @"x";
+                    %3 : java.type:"int" = var.load %2;
+                    return %3;
                 };
                 return;
             };
@@ -69,14 +69,14 @@ public class QuotedTest {
     static final Quoted QUOTED_ID = (int x) -> x;
 
     @IR("""
-            func @"f" ()void -> {
-                %0 : func<int, int, int> = closure (%2 : int, %3 : int)int -> {
-                    %4 : Var<int> = var %2 @"x";
-                    %5 : Var<int> = var %3 @"y";
-                    %6 : int = var.load %4;
-                    %7 : int = var.load %5;
-                    %8 : int = add %6 %7;
-                    return %8;
+            func @"f" ()java.type:"void" -> {
+                %0 : func<java.type:"int", java.type:"int", java.type:"int"> = closure (%1 : java.type:"int", %2 : java.type:"int")java.type:"int" -> {
+                    %3 : Var<java.type:"int"> = var %1 @"x";
+                    %4 : Var<java.type:"int"> = var %2 @"y";
+                    %5 : java.type:"int" = var.load %3;
+                    %6 : java.type:"int" = var.load %4;
+                    %7 : java.type:"int" = add %5 %6;
+                    return %7;
                 };
                 return;
             };
@@ -84,10 +84,10 @@ public class QuotedTest {
     static final Quoted QUOTED_PLUS = (int x, int y) -> x + y;
 
     @IR("""
-            func @"f" ()void -> {
-                %0 : func<java.lang.Object> = closure ()java.lang.Object -> {
-                    %2 : java.lang.AssertionError = new @"java.lang.AssertionError::<new>()";
-                    throw %2;
+            func @"f" ()java.type:"void" -> {
+                %0 : func<java.type:"java.lang.Object"> = closure ()java.type:"java.lang.Object" -> {
+                    %1 : java.type:"java.lang.AssertionError" = new @"java.lang.AssertionError::()";
+                    throw %1;
                 };
                 return;
             };
@@ -99,13 +99,13 @@ public class QuotedTest {
     // can we write out the root op then extract the closure ?
 
     @IR("""
-            func @"f" (%1: Var<int>)void -> {
-                %0 : func<int, int> = closure (%4 : int)int -> {
-                    %5 : Var<int> = var %4 @"y";
-                    %6 : int = var.load %1;
-                    %7 : int = var.load %5;
-                    %8 : int = add %6 %7;
-                    return %8;
+            func @"f" (%0 : Var<java.type:"int">)java.type:"void" -> {
+                %1 : func<java.type:"int", java.type:"int"> = closure (%2 : java.type:"int")java.type:"int" -> {
+                    %3 : Var<java.type:"int"> = var %2 @"y";
+                    %4 : java.type:"int" = var.load %0;
+                    %5 : java.type:"int" = var.load %3;
+                    %6 : java.type:"int" = add %4 %5;
+                    return %6;
                 };
                 return;
             };
@@ -125,15 +125,15 @@ public class QuotedTest {
     }
 
     @IR("""
-            func @"f" (%0 : QuotedTest$Context)void -> {
-                %1 : func<int, int> = closure (%3 : int)int -> {
-                    %4 : Var<int> = var %3 @"z";
-                    %5 : int = field.load %0 @"QuotedTest$Context::x()int";
-                    %6 : int = field.load %0 @"QuotedTest$Context::y()int";
-                    %7 : int = add %5 %6;
-                    %8 : int = var.load %4;
-                    %9 : int = add %7 %8;
-                    return %9;
+            func @"f" (%0 : java.type:"QuotedTest$Context")java.type:"void" -> {
+                %1 : func<java.type:"int", java.type:"int"> = closure (%2 : java.type:"int")java.type:"int" -> {
+                    %3 : Var<java.type:"int"> = var %2 @"z";
+                    %4 : java.type:"int" = field.load %0 @"QuotedTest$Context::x:int";
+                    %5 : java.type:"int" = field.load %0 @"QuotedTest$Context::y:int";
+                    %6 : java.type:"int" = add %4 %5;
+                    %7 : java.type:"int" = var.load %3;
+                    %8 : java.type:"int" = add %6 %7;
+                    return %8;
                 };
                 return;
             };
@@ -142,19 +142,19 @@ public class QuotedTest {
 
     @CodeReflection
     @IR("""
-            func @"captureParam" (%0 : int)void -> {
-                %1 : Var<int> = var %0 @"x";
-                %2 : jdk.incubator.code.Quoted = quoted ()void -> {
-                    %3 : func<int, int> = closure (%4 : int)int -> {
-                        %5 : Var<int> = var %4 @"y";
-                        %6 : int = var.load %1;
-                        %7 : int = var.load %5;
-                        %8 : int = add %6 %7;
+            func @"captureParam" (%0 : java.type:"int")java.type:"void" -> {
+                %1 : Var<java.type:"int"> = var %0 @"x";
+                %2 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+                    %3 : func<java.type:"int", java.type:"int"> = closure (%4 : java.type:"int")java.type:"int" -> {
+                        %5 : Var<java.type:"int"> = var %4 @"y";
+                        %6 : java.type:"int" = var.load %1;
+                        %7 : java.type:"int" = var.load %5;
+                        %8 : java.type:"int" = add %6 %7;
                         return %8;
                     };
                     yield %3;
                 };
-                %9 : Var<jdk.incubator.code.Quoted> = var %2 @"op";
+                %9 : Var<java.type:"jdk.incubator.code.Quoted"> = var %2 @"op";
                 return;
             };
             """)
@@ -166,20 +166,20 @@ public class QuotedTest {
 
     @CodeReflection
     @IR("""
-            func @"captureField" (%0 : QuotedTest)void -> {
-                %1 : jdk.incubator.code.Quoted = quoted ()void -> {
-                    %2 : func<int, int> = closure (%3 : int)int -> {
-                        %4 : Var<int> = var %3 @"z";
-                        %5 : int = field.load %0 @"QuotedTest::x()int";
-                        %6 : int = field.load %0 @"QuotedTest::y()int";
-                        %7 : int = add %5 %6;
-                        %8 : int = var.load %4;
-                        %9 : int = add %7 %8;
+            func @"captureField" (%0 : java.type:"QuotedTest")java.type:"void" -> {
+                %1 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+                    %2 : func<java.type:"int", java.type:"int"> = closure (%3 : java.type:"int")java.type:"int" -> {
+                        %4 : Var<java.type:"int"> = var %3 @"z";
+                        %5 : java.type:"int" = field.load %0 @"QuotedTest::x:int";
+                        %6 : java.type:"int" = field.load %0 @"QuotedTest::y:int";
+                        %7 : java.type:"int" = add %5 %6;
+                        %8 : java.type:"int" = var.load %4;
+                        %9 : java.type:"int" = add %7 %8;
                         return %9;
                     };
                     yield %2;
                 };
-                %10 : Var<jdk.incubator.code.Quoted> = var %1 @"op";
+                %10 : Var<java.type:"jdk.incubator.code.Quoted"> = var %1 @"op";
                 return;
             };
             """)

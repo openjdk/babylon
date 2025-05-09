@@ -35,21 +35,21 @@ import jdk.incubator.code.CodeReflection;
 public class IfTest {
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : IfTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test1" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.if
-                    ()boolean -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : boolean = lt %3 %4;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
-                    ^then()void -> {
-                        %6 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = constant @"1";
                         var.store %2 %6;
                         yield;
                     }
-                    ^else()void -> {
+                    ()java.type:"void" -> {
                         yield;
                     };
                 return;
@@ -63,22 +63,22 @@ public class IfTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : IfTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test2" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.if
-                    ()boolean -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : boolean = lt %3 %4;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
-                    ^then()void -> {
-                        %6 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = constant @"1";
                         var.store %2 %6;
                         yield;
                     }
-                    ^else()void -> {
-                        %7 : int = constant @"2";
+                    ()java.type:"void" -> {
+                        %7 : java.type:"int" = constant @"2";
                         var.store %2 %7;
                         yield;
                     };
@@ -95,32 +95,32 @@ public class IfTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : IfTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test3" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.if
-                    ()boolean -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : boolean = lt %3 %4;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
-                    ^then()void -> {
-                        %6 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = constant @"1";
                         var.store %2 %6;
                         yield;
                     }
-                    ^else_if()boolean -> {
-                        %7 : int = var.load %2;
-                        %8 : int = constant @"2";
-                        %9 : boolean = lt %7 %8;
+                    ()java.type:"boolean" -> {
+                        %7 : java.type:"int" = var.load %2;
+                        %8 : java.type:"int" = constant @"2";
+                        %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     }
-                    ^then()void -> {
-                        %10 : int = constant @"2";
+                    ()java.type:"void" -> {
+                        %10 : java.type:"int" = constant @"2";
                         var.store %2 %10;
                         yield;
                     }
-                    ^else()void -> {
+                    ()java.type:"void" -> {
                         yield;
                     };
                 return;
@@ -136,33 +136,33 @@ public class IfTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : IfTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test4" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.if
-                    ()boolean -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : boolean = lt %3 %4;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
-                    ^then()void -> {
-                        %6 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = constant @"1";
                         var.store %2 %6;
                         yield;
                     }
-                    ^else_if()boolean -> {
-                        %7 : int = var.load %2;
-                        %8 : int = constant @"2";
-                        %9 : boolean = lt %7 %8;
+                    ()java.type:"boolean" -> {
+                        %7 : java.type:"int" = var.load %2;
+                        %8 : java.type:"int" = constant @"2";
+                        %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     }
-                    ^then()void -> {
-                        %10 : int = constant @"2";
+                    ()java.type:"void" -> {
+                        %10 : java.type:"int" = constant @"2";
                         var.store %2 %10;
                         yield;
                     }
-                    ^else()void -> {
-                        %11 : int = constant @"3";
+                    ()java.type:"void" -> {
+                        %11 : java.type:"int" = constant @"3";
                         var.store %2 %11;
                         yield;
                     };
@@ -180,34 +180,34 @@ public class IfTest {
     }
 
     @IR("""
-            func @"test5" (%0 : IfTest, %1 : int)int -> {
-              %2 : Var<int> = var %1 @"i";
-              java.if
-                  ()boolean -> {
-                      %3 : int = var.load %2;
-                      %4 : int = constant @"1";
-                      %5 : boolean = lt %3 %4;
-                      yield %5;
-                  }
-                  ^then()void -> {
-                      %6 : int = constant @"1";
-                      return %6;
-                  }
-                  ^else_if()boolean -> {
-                      %7 : int = var.load %2;
-                      %8 : int = constant @"2";
-                      %9 : boolean = lt %7 %8;
-                      yield %9;
-                  }
-                  ^then()void -> {
-                      %10 : int = constant @"2";
-                      return %10;
-                  }
-                  ^else()void -> {
-                      %11 : int = constant @"3";
-                      return %11;
-                  };
-              unreachable;
+            func @"test5" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"int" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
+                java.if
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"boolean" = lt %3 %4;
+                        yield %5;
+                    }
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = constant @"1";
+                        return %6;
+                    }
+                    ()java.type:"boolean" -> {
+                        %7 : java.type:"int" = var.load %2;
+                        %8 : java.type:"int" = constant @"2";
+                        %9 : java.type:"boolean" = lt %7 %8;
+                        yield %9;
+                    }
+                    ()java.type:"void" -> {
+                        %10 : java.type:"int" = constant @"2";
+                        return %10;
+                    }
+                    ()java.type:"void" -> {
+                        %11 : java.type:"int" = constant @"3";
+                        return %11;
+                    };
+                unreachable;
             };
             """)
     @CodeReflection
@@ -223,21 +223,21 @@ public class IfTest {
 
     @CodeReflection
     @IR("""
-            func @"test6" (%0 : IfTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test6" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.if
-                    ()boolean -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : boolean = lt %3 %4;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
-                    ^then()void -> {
-                        %6 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = constant @"1";
                         var.store %2 %6;
                         yield;
                     }
-                    ^else()void -> {
+                    ()java.type:"void" -> {
                         yield;
                     };
                 return;
@@ -250,22 +250,22 @@ public class IfTest {
 
     @CodeReflection
     @IR("""
-            func @"test7" (%0 : IfTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test7" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.if
-                    ()boolean -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : boolean = lt %3 %4;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
-                    ^then()void -> {
-                        %6 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = constant @"1";
                         var.store %2 %6;
                         yield;
                     }
-                    ^else()void -> {
-                        %7 : int = constant @"2";
+                    ()java.type:"void" -> {
+                        %7 : java.type:"int" = constant @"2";
                         var.store %2 %7;
                         yield;
                     };
@@ -281,33 +281,33 @@ public class IfTest {
 
     @CodeReflection
     @IR("""
-            func @"test8" (%0 : IfTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test8" (%0 : java.type:"IfTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.if
-                    ()boolean -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : boolean = lt %3 %4;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
-                    ^then()void -> {
-                        %6 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = constant @"1";
                         var.store %2 %6;
                         yield;
                     }
-                    ^else_if()boolean -> {
-                        %7 : int = var.load %2;
-                        %8 : int = constant @"2";
-                        %9 : boolean = lt %7 %8;
+                    ()java.type:"boolean" -> {
+                        %7 : java.type:"int" = var.load %2;
+                        %8 : java.type:"int" = constant @"2";
+                        %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     }
-                    ^then()void -> {
-                        %10 : int = constant @"2";
+                    ()java.type:"void" -> {
+                        %10 : java.type:"int" = constant @"2";
                         var.store %2 %10;
                         yield;
                     }
-                    ^else()void -> {
-                        %11 : int = constant @"3";
+                    ()java.type:"void" -> {
+                        %11 : java.type:"int" = constant @"3";
                         var.store %2 %11;
                         yield;
                     };
@@ -324,23 +324,23 @@ public class IfTest {
     }
 
     @IR("""
-            func @"test9" (%0 : java.lang.Boolean)void -> {
-                %1 : Var<java.lang.Boolean> = var %0 @"b";
-                %3 : Var<int> = var @"i";
+            func @"test9" (%0 : java.type:"java.lang.Boolean")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Boolean"> = var %0 @"b";
+                %2 : Var<java.type:"int"> = var @"i";
                 java.if
-                    ()boolean -> {
-                        %4 : java.lang.Boolean = var.load %1;
-                        %5 : boolean = invoke %4 @"java.lang.Boolean::booleanValue()boolean";
-                        yield %5;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"java.lang.Boolean" = var.load %1;
+                        %4 : java.type:"boolean" = invoke %3 @"java.lang.Boolean::booleanValue():boolean";
+                        yield %4;
                     }
-                    ()void -> {
-                        %6 : int = constant @"1";
-                        var.store %3 %6;
+                    ()java.type:"void" -> {
+                        %5 : java.type:"int" = constant @"1";
+                        var.store %2 %5;
                         yield;
                     }
-                    ()void -> {
-                        %7 : int = constant @"2";
-                        var.store %3 %7;
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = constant @"2";
+                        var.store %2 %6;
                         yield;
                     };
                 return;

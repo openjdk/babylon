@@ -39,44 +39,44 @@ public class SwitchExpressionTest {
 
     @CodeReflection
     @IR("""
-            func @"constantCaseLabelRule" (%0 : java.lang.String)java.lang.Object -> {
-                %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = var.load %1;
-                %3 : java.lang.Object = java.switch.expression %2
-                    ^constantCaseLabel(%4 : java.lang.String)boolean -> {
-                        %5 : java.lang.String = constant @"FOO";
-                        %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+            func @"constantCaseLabelRule" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
+                %2 : java.type:"java.lang.String" = var.load %1;
+                %3 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %5 : java.type:"java.lang.String" = constant @"FOO";
+                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
-                    ()java.lang.Object -> {
-                        %7 : java.lang.String = constant @"FOO";
+                    ()java.type:"java.lang.Object" -> {
+                        %7 : java.type:"java.lang.String" = constant @"FOO";
                         yield %7;
                     }
-                    ^constantCaseLabel(%8 : java.lang.String)boolean -> {
-                        %9 : java.lang.String = constant @"BAR";
-                        %10 : boolean = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                    (%8 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %9 : java.type:"java.lang.String" = constant @"BAR";
+                        %10 : java.type:"boolean" = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %10;
                     }
-                    ()java.lang.Object -> {
-                        %11 : java.lang.String = constant @"FOO";
+                    ()java.type:"java.lang.Object" -> {
+                        %11 : java.type:"java.lang.String" = constant @"FOO";
                         yield %11;
                     }
-                    ^constantCaseLabel(%12 : java.lang.String)boolean -> {
-                        %13 : java.lang.String = constant @"BAZ";
-                        %14 : boolean = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                    (%12 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %13 : java.type:"java.lang.String" = constant @"BAZ";
+                        %14 : java.type:"boolean" = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %14;
                     }
-                    ()java.lang.Object -> {
-                        %15 : java.lang.String = constant @"FOO";
+                    ()java.type:"java.lang.Object" -> {
+                        %15 : java.type:"java.lang.String" = constant @"FOO";
                         yield %15;
                     }
-                    ^defaultCaseLabel()boolean -> {
-                        %17 : boolean = constant @"true";
-                        yield %17;
-                    }
-                    ()java.lang.Object -> {
-                        %16 : java.lang.String = constant @"";
+                    ()java.type:"boolean" -> {
+                        %16 : java.type:"boolean" = constant @"true";
                         yield %16;
+                    }
+                    ()java.type:"java.lang.Object" -> {
+                        %17 : java.type:"java.lang.String" = constant @"";
+                        yield %17;
                     };
                 return %3;
             };
@@ -92,40 +92,40 @@ public class SwitchExpressionTest {
 
     @CodeReflection
     @IR("""
-            func @"constantCaseLabelsRule" (%0 : java.lang.String)java.lang.Object -> {
-                %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = var.load %1;
-                %3 : java.lang.Object = java.switch.expression %2
-                    ^constantCaseLabel(%4 : java.lang.String)boolean -> {
-                        %5 : boolean = java.cor
-                            ()boolean -> {
-                                %6 : java.lang.String = constant @"FOO";
-                                %7 : boolean = invoke %4 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+            func @"constantCaseLabelsRule" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
+                %2 : java.type:"java.lang.String" = var.load %1;
+                %3 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %5 : java.type:"boolean" = java.cor
+                            ()java.type:"boolean" -> {
+                                %6 : java.type:"java.lang.String" = constant @"FOO";
+                                %7 : java.type:"boolean" = invoke %4 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %7;
                             }
-                            ()boolean -> {
-                                %8 : java.lang.String = constant @"BAR";
-                                %9 : boolean = invoke %4 %8 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                            ()java.type:"boolean" -> {
+                                %8 : java.type:"java.lang.String" = constant @"BAR";
+                                %9 : java.type:"boolean" = invoke %4 %8 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %9;
                             }
-                            ()boolean -> {
-                                %10 : java.lang.String = constant @"BAZ";
-                                %11 : boolean = invoke %4 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                            ()java.type:"boolean" -> {
+                                %10 : java.type:"java.lang.String" = constant @"BAZ";
+                                %11 : java.type:"boolean" = invoke %4 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %11;
                             };
                         yield %5;
                     }
-                    ()java.lang.Object -> {
-                        %12 : java.lang.String = constant @"FOO";
+                    ()java.type:"java.lang.Object" -> {
+                        %12 : java.type:"java.lang.String" = constant @"FOO";
                         yield %12;
                     }
-                    ^defaultCaseLabel()boolean -> {
-                        %14 : boolean = constant @"true";
-                        yield %14;
+                    ()java.type:"boolean" -> {
+                        %13 : java.type:"boolean" = constant @"true";
+                        yield %13;
                     }
-                    ()java.lang.Object -> {
-                        %13 : java.lang.String = constant @"";
-                        java.yield %13;
+                    ()java.type:"java.lang.Object" -> {
+                        %14 : java.type:"java.lang.String" = constant @"";
+                        java.yield %14;
                     };
                 return %3;
             };
@@ -141,44 +141,44 @@ public class SwitchExpressionTest {
 
     @CodeReflection
     @IR("""
-            func @"constantCaseLabelStatement" (%0 : java.lang.String)java.lang.Object -> {
-                %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = var.load %1;
-                %3 : java.lang.Object = java.switch.expression %2
-                    ^constantCaseLabel(%4 : java.lang.String)boolean -> {
-                        %5 : java.lang.String = constant @"FOO";
-                        %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+            func @"constantCaseLabelStatement" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
+                %2 : java.type:"java.lang.String" = var.load %1;
+                %3 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %5 : java.type:"java.lang.String" = constant @"FOO";
+                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
-                    ()java.lang.Object -> {
-                        %7 : java.lang.String = constant @"FOO";
+                    ()java.type:"java.lang.Object" -> {
+                        %7 : java.type:"java.lang.String" = constant @"FOO";
                         java.yield %7;
                     }
-                    ^constantCaseLabel(%8 : java.lang.String)boolean -> {
-                        %9 : java.lang.String = constant @"BAR";
-                        %10 : boolean = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                    (%8 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %9 : java.type:"java.lang.String" = constant @"BAR";
+                        %10 : java.type:"boolean" = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %10;
                     }
-                    ()java.lang.Object -> {
-                        %11 : java.lang.String = constant @"FOO";
+                    ()java.type:"java.lang.Object" -> {
+                        %11 : java.type:"java.lang.String" = constant @"FOO";
                         java.yield %11;
                     }
-                    ^constantCaseLabel(%12 : java.lang.String)boolean -> {
-                        %13 : java.lang.String = constant @"BAZ";
-                        %14 : boolean = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                    (%12 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %13 : java.type:"java.lang.String" = constant @"BAZ";
+                        %14 : java.type:"boolean" = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %14;
                     }
-                    ()java.lang.Object -> {
-                        %15 : java.lang.String = constant @"FOO";
+                    ()java.type:"java.lang.Object" -> {
+                        %15 : java.type:"java.lang.String" = constant @"FOO";
                         java.yield %15;
                     }
-                    ^defaultCaseLabel()boolean -> {
-                        %17 : boolean = constant @"true";
-                        yield %17;
+                    ()java.type:"boolean" -> {
+                        %16 : java.type:"boolean" = constant @"true";
+                        yield %16;
                     }
-                    ()java.lang.Object -> {
-                        %16 : java.lang.String = constant @"";
-                        java.yield %16;
+                    ()java.type:"java.lang.Object" -> {
+                        %17 : java.type:"java.lang.String" = constant @"";
+                        java.yield %17;
                     };
                 return %3;
             };
@@ -194,41 +194,41 @@ public class SwitchExpressionTest {
 
     @CodeReflection
     @IR("""
-            func @"constantCaseLabelsStatement" (%0 : java.lang.String)java.lang.Object -> {
-                %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = var.load %1;
-                %3 : java.lang.Object = java.switch.expression %2
-                    ^constantCaseLabel(%4 : java.lang.String)boolean -> {
-                        %5 : boolean = java.cor
-                            ()boolean -> {
-                                %6 : java.lang.String = constant @"FOO";
-                                %7 : boolean = invoke %4 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+            func @"constantCaseLabelsStatement" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
+                %2 : java.type:"java.lang.String" = var.load %1;
+                %3 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %5 : java.type:"boolean" = java.cor
+                            ()java.type:"boolean" -> {
+                                %6 : java.type:"java.lang.String" = constant @"FOO";
+                                %7 : java.type:"boolean" = invoke %4 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %7;
                             }
-                            ()boolean -> {
-                                %8 : java.lang.String = constant @"BAR";
-                                %9 : boolean = invoke %4 %8 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                            ()java.type:"boolean" -> {
+                                %8 : java.type:"java.lang.String" = constant @"BAR";
+                                %9 : java.type:"boolean" = invoke %4 %8 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %9;
                             }
-                            ()boolean -> {
-                                %10 : java.lang.String = constant @"BAZ";
-                                %11 : boolean = invoke %4 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                            ()java.type:"boolean" -> {
+                                %10 : java.type:"java.lang.String" = constant @"BAZ";
+                                %11 : java.type:"boolean" = invoke %4 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %11;
                             };
                         yield %5;
                     }
-                    ()java.lang.Object -> {
-                        %12 : java.lang.String = constant @"FOO";
+                    ()java.type:"java.lang.Object" -> {
+                        %12 : java.type:"java.lang.String" = constant @"FOO";
                         java.yield %12;
                     }
-                    ^defaultCaseLabel()boolean -> {
-                        %17 : boolean = constant @"true";
-                        yield %17;
+                    ()java.type:"boolean" -> {
+                        %13 : java.type:"boolean" = constant @"true";
+                        yield %13;
                     }
-                    ()java.lang.Object -> {
-                        java.block ()void -> {
-                            %13 : java.lang.String = constant @"";
-                            java.yield %13;
+                    ()java.type:"java.lang.Object" -> {
+                        java.block ()java.type:"void" -> {
+                            %14 : java.type:"java.lang.String" = constant @"";
+                            java.yield %14;
                         };
                         unreachable;
                     };
@@ -244,35 +244,35 @@ public class SwitchExpressionTest {
 
     @CodeReflection
     @IR("""
-            func @"constantCaseLabelStatements" (%0 : java.lang.String)java.lang.Object -> {
-                %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = var.load %1;
-                %3 : java.lang.Object = java.switch.expression %2
-                    ^constantCaseLabel(%4 : java.lang.String)boolean -> {
-                        %5 : java.lang.String = constant @"FOO";
-                        %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+            func @"constantCaseLabelStatements" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
+                %2 : java.type:"java.lang.String" = var.load %1;
+                %3 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %5 : java.type:"java.lang.String" = constant @"FOO";
+                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
-                    ()java.lang.Object -> {
-                        java.block ()void -> {
-                            %7 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                            %8 : java.lang.String = constant @"FOO";
-                            invoke %7 %8 @"java.io.PrintStream::println(java.lang.String)void";
+                    ()java.type:"java.lang.Object" -> {
+                        java.block ()java.type:"void" -> {
+                            %7 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                            %8 : java.type:"java.lang.String" = constant @"FOO";
+                            invoke %7 %8 @"java.io.PrintStream::println(java.lang.String):void";
                             yield;
                         };
-                        java.block ()void -> {
-                            %9 : java.lang.String = constant @"FOO";
+                        java.block ()java.type:"void" -> {
+                            %9 : java.type:"java.lang.String" = constant @"FOO";
                             java.yield %9;
                         };
                         unreachable;
                     }
-                    ^defaultCaseLabel()boolean -> {
-                        %11 : boolean = constant @"true";
-                        yield %11;
+                    ()java.type:"boolean" -> {
+                        %10 : java.type:"boolean" = constant @"true";
+                        yield %10;
                     }
-                    ()java.lang.Object -> {
-                        %10 : java.lang.String = constant @"";
-                        java.yield %10;
+                    ()java.type:"java.lang.Object" -> {
+                        %11 : java.type:"java.lang.String" = constant @"";
+                        java.yield %11;
                     };
                 return %3;
             };
@@ -291,31 +291,31 @@ public class SwitchExpressionTest {
 
     @CodeReflection
     @IR("""
-            func @"constantCaseLabelFallthrough" (%0 : java.lang.String)java.lang.Object -> {
-                %1 : Var<java.lang.String> = var %0 @"r";
-                %2 : java.lang.String = var.load %1;
-                %3 : java.lang.Object = java.switch.expression %2
-                    ^constantCaseLabel(%4 : java.lang.String)boolean -> {
-                        %5 : java.lang.String = constant @"FOO";
-                        %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+            func @"constantCaseLabelFallthrough" (%0 : java.type:"java.lang.String")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"java.lang.String"> = var %0 @"r";
+                %2 : java.type:"java.lang.String" = var.load %1;
+                %3 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %5 : java.type:"java.lang.String" = constant @"FOO";
+                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
-                    ()java.lang.Object -> {
-                        java.block ()void -> {
-                            %7 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                            %8 : java.lang.String = constant @"FOO";
-                            invoke %7 %8 @"java.io.PrintStream::println(java.lang.String)void";
+                    ()java.type:"java.lang.Object" -> {
+                        java.block ()java.type:"void" -> {
+                            %7 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                            %8 : java.type:"java.lang.String" = constant @"FOO";
+                            invoke %7 %8 @"java.io.PrintStream::println(java.lang.String):void";
                             yield;
                         };
                         java.switch.fallthrough;
                     }
-                    ^defaultCaseLabel()boolean -> {
-                        %10 : boolean = constant @"true";
-                        yield %10;
+                    ()java.type:"boolean" -> {
+                        %9 : java.type:"boolean" = constant @"true";
+                        yield %9;
                     }
-                    ()java.lang.Object -> {
-                        %9 : java.lang.String = constant @"";
-                        java.yield %9;
+                    ()java.type:"java.lang.Object" -> {
+                        %10 : java.type:"java.lang.String" = constant @"";
+                        java.yield %10;
                     };
                 return %3;
             };
@@ -334,54 +334,54 @@ public class SwitchExpressionTest {
 
     @CodeReflection
     @IR("""
-            func @"patternCaseLabel" (%0 : java.lang.Object)java.lang.Object -> {
-                %1 : Var<java.lang.Object> = var %0 @"r";
-                %2 : java.lang.Object = var.load %1;
-                %3 : java.lang.Number = constant @null;
-                %4 : Var<java.lang.Number> = var %3 @"n";
-                %5 : java.lang.String = constant @null;
-                %6 : Var<java.lang.String> = var %5 @"s";
-                %7 : java.lang.Object = java.switch.expression %2
-                    ^patternCaseLabel(%8 : java.lang.Object)boolean -> {
-                        %9 : boolean = pattern.match %8
-                            ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> -> {
-                                %10 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
-                                %11 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> = pattern.record %10 @"(java.lang.Number n)SwitchExpressionTest$A";
+            func @"patternCaseLabel" (%0 : java.type:"java.lang.Object")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"r";
+                %2 : java.type:"java.lang.Object" = var.load %1;
+                %3 : java.type:"java.lang.Number" = constant @null;
+                %4 : Var<java.type:"java.lang.Number"> = var %3 @"n";
+                %5 : java.type:"java.lang.String" = constant @null;
+                %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
+                %7 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%8 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %9 : java.type:"boolean" = pattern.match %8
+                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A>" -> {
+                                %10 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                %11 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %10 @"(java.lang.Number n)SwitchExpressionTest$A";
                                 yield %11;
                             }
-                            ^match(%12 : java.lang.Number)void -> {
+                            (%12 : java.type:"java.lang.Number")java.type:"void" -> {
                                 var.store %4 %12;
                                 yield;
                             };
                         yield %9;
                     }
-                    ()java.lang.Object -> {
-                        %13 : java.lang.Number = var.load %4;
+                    ()java.type:"java.lang.Object" -> {
+                        %13 : java.type:"java.lang.Number" = var.load %4;
                         java.yield %13;
                     }
-                    ^patternCaseLabel(%14 : java.lang.Object)boolean -> {
-                        %15 : boolean = pattern.match %14
-                            ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
-                                %16 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
+                    (%14 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %15 : java.type:"boolean" = pattern.match %14
+                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
+                                %16 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %16;
                             }
-                            ^match(%17 : java.lang.String)void -> {
+                            (%17 : java.type:"java.lang.String")java.type:"void" -> {
                                 var.store %6 %17;
                                 yield;
                             };
                         yield %15;
                     }
-                    ()java.lang.Object -> {
-                        %18 : java.lang.String = var.load %6;
+                    ()java.type:"java.lang.Object" -> {
+                        %18 : java.type:"java.lang.String" = var.load %6;
                         java.yield %18;
                     }
-                    ^defaultCaseLabel()boolean -> {
-                        %10 : boolean = constant @"true";
-                        yield %10;
+                    ()java.type:"boolean" -> {
+                        %19 : java.type:"boolean" = constant @"true";
+                        yield %19;
                     }
-                    ()java.lang.Object -> {
-                        %19 : java.lang.String = constant @"";
-                        java.yield %19;
+                    ()java.type:"java.lang.Object" -> {
+                        %20 : java.type:"java.lang.String" = constant @"";
+                        java.yield %20;
                     };
                 return %7;
             };
@@ -402,94 +402,94 @@ public class SwitchExpressionTest {
 
     @CodeReflection
     @IR("""
-            func @"patternCaseLabelGuard" (%0 : java.lang.Object)java.lang.Object -> {
-                %1 : Var<java.lang.Object> = var %0 @"r";
-                %2 : java.lang.Object = var.load %1;
-                %3 : java.lang.Number = constant @null;
-                %4 : Var<java.lang.Number> = var %3 @"n";
-                %5 : java.lang.String = constant @null;
-                %6 : Var<java.lang.String> = var %5 @"s";
-                %7 : java.lang.String = constant @null;
-                %8 : Var<java.lang.String> = var %7 @"s";
-                %9 : java.lang.Object = java.switch.expression %2
-                    ^patternCaseLabel(%10 : java.lang.Object)boolean -> {
-                        %11 : boolean = pattern.match %10
-                            ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> -> {
-                                %12 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
-                                %13 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A> = pattern.record %12 @"(java.lang.Number n)SwitchExpressionTest$A";
+            func @"patternCaseLabelGuard" (%0 : java.type:"java.lang.Object")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"r";
+                %2 : java.type:"java.lang.Object" = var.load %1;
+                %3 : java.type:"java.lang.Number" = constant @null;
+                %4 : Var<java.type:"java.lang.Number"> = var %3 @"n";
+                %5 : java.type:"java.lang.String" = constant @null;
+                %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
+                %7 : java.type:"java.lang.String" = constant @null;
+                %8 : Var<java.type:"java.lang.String"> = var %7 @"s";
+                %9 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%10 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %11 : java.type:"boolean" = pattern.match %10
+                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A>" -> {
+                                %12 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                %13 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %12 @"(java.lang.Number n)SwitchExpressionTest$A";
                                 yield %13;
                             }
-                            ^match(%14 : java.lang.Number)void -> {
+                            (%14 : java.type:"java.lang.Number")java.type:"void" -> {
                                 var.store %4 %14;
                                 yield;
                             };
                         yield %11;
                     }
-                    ()java.lang.Object -> {
-                        %15 : java.lang.Number = var.load %4;
+                    ()java.type:"java.lang.Object" -> {
+                        %15 : java.type:"java.lang.Number" = var.load %4;
                         java.yield %15;
                     }
-                    ^patternCaseLabel(%16 : java.lang.Object)boolean -> {
-                        %17 : boolean = java.cand
-                            ()boolean -> {
-                                %18 : boolean = pattern.match %16
-                                    ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
-                                        %19 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
+                    (%16 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %17 : java.type:"boolean" = java.cand
+                            ()java.type:"boolean" -> {
+                                %18 : java.type:"boolean" = pattern.match %16
+                                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
+                                        %19 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                         yield %19;
                                     }
-                                    ^match(%20 : java.lang.String)void -> {
+                                    (%20 : java.type:"java.lang.String")java.type:"void" -> {
                                         var.store %6 %20;
                                         yield;
                                     };
                                 yield %18;
                             }
-                            ()boolean -> {
-                                %21 : java.lang.String = var.load %6;
-                                %22 : int = invoke %21 @"java.lang.String::length()int";
-                                %23 : int = constant @"5";
-                                %24 : boolean = lt %22 %23;
+                            ()java.type:"boolean" -> {
+                                %21 : java.type:"java.lang.String" = var.load %6;
+                                %22 : java.type:"int" = invoke %21 @"java.lang.String::length():int";
+                                %23 : java.type:"int" = constant @"5";
+                                %24 : java.type:"boolean" = lt %22 %23;
                                 yield %24;
                             };
                         yield %17;
                     }
-                    ()java.lang.Object -> {
-                        %25 : java.lang.String = var.load %6;
+                    ()java.type:"java.lang.Object" -> {
+                        %25 : java.type:"java.lang.String" = var.load %6;
                         java.yield %25;
                     }
-                    ^patternCaseLabel(%26 : java.lang.Object)boolean -> {
-                        %27 : boolean = java.cand
-                            ()boolean -> {
-                                %28 : boolean = pattern.match %26
-                                    ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
-                                        %29 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
+                    (%26 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %27 : java.type:"boolean" = java.cand
+                            ()java.type:"boolean" -> {
+                                %28 : java.type:"boolean" = pattern.match %26
+                                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
+                                        %29 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                         yield %29;
                                     }
-                                    ^match(%30 : java.lang.String)void -> {
+                                    (%30 : java.type:"java.lang.String")java.type:"void" -> {
                                         var.store %8 %30;
                                         yield;
                                     };
                                 yield %28;
                             }
-                            ()boolean -> {
-                                %31 : java.lang.String = var.load %8;
-                                %32 : int = invoke %31 @"java.lang.String::length()int";
-                                %33 : int = constant @"10";
-                                %34 : boolean = lt %32 %33;
+                            ()java.type:"boolean" -> {
+                                %31 : java.type:"java.lang.String" = var.load %8;
+                                %32 : java.type:"int" = invoke %31 @"java.lang.String::length():int";
+                                %33 : java.type:"int" = constant @"10";
+                                %34 : java.type:"boolean" = lt %32 %33;
                                 yield %34;
                             };
                         yield %27;
                     }
-                    ()java.lang.Object -> {
-                        %35 : java.lang.String = var.load %8;
+                    ()java.type:"java.lang.Object" -> {
+                        %35 : java.type:"java.lang.String" = var.load %8;
                         java.yield %35;
                     }
-                    ^defaultCaseLabel()boolean -> {
-                        %37 : boolean = constant @"true";
-                        yield %37;
+                    ()java.type:"boolean" -> {
+                        %36 : java.type:"boolean" = constant @"true";
+                        yield %36;
                     }
-                    ()java.lang.Object -> {
-                        %36 : java.lang.String = constant @"";
-                        java.yield %36;
+                    ()java.type:"java.lang.Object" -> {
+                        %37 : java.type:"java.lang.String" = constant @"";
+                        java.yield %37;
                     };
                 return %9;
             };
