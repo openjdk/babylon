@@ -167,10 +167,10 @@ public final class DescParser {
             "void", JavaType.VOID);
 
     //    JavaType:
-    //        ClassType					            			    // class type
+    //        ClassType                                             // class type
     //        PrimitiveType                                         // primitive type
-    //        TypeVar				        	    			    // type variable
-    //        JavaType '['']'		    			    		    // array type
+    //        TypeVar                                               // type variable
+    //        JavaType '[' ']'                                      // array type
     //
     //    ClassType:
     //        ClassTypeNoPackage
@@ -181,9 +181,9 @@ public final class DescParser {
     //        Package '.' ident
     //
     //    ClassTypeNoPackage:
-    //        ident								                    // simple class type
-    //        ident '<' TypeArg* '>'		        		    	// parameterized class type
-    //        ClassType '$' ClassType             		    		// nested class type
+    //        ident                                                 // simple class type
+    //        ident '<' TypeArg* '>'                                // parameterized class type
+    //        ClassType '$' ClassType                               // nested class type
     //
     //    PrimitiveType:
     //        'boolean'
@@ -197,17 +197,17 @@ public final class DescParser {
     //        'void'
     //
     //    TypeVar:
-    //        '(' JavaRef ')' TypeVarRest			            		// method/constructor type variable
-    //        ClassType TypeVarRest			            			// class type variable
+    //        '(' JavaRef ')' TypeVarRest                           // method/constructor type variable
+    //        ClassType TypeVarRest                                 // class type variable
     //
     //    TypeVarRest:
     //        '::' '<' ident '>'
     //        '::' '<' ident 'extends' JavaType '>'
     //
     //    TypeArg:
-    //        '?' 							    	                // bivariant type argument
-    //        '?' 'extends' JavaType	    			        	// covariant type argument
-    //        '?' 'super' JavaType  					    	    // contravariant type argument
+    //        '?'                                                   // bivariant type argument
+    //        '?' 'extends' JavaType                                // covariant type argument
+    //        '?' 'super' JavaType                                  // contravariant type argument
     //        JavaType
     public static JavaType parseJavaType(Lexer l) {
         JavaType type = null;
@@ -315,9 +315,9 @@ public final class DescParser {
     }
 
     //    JavaRef:
-    //        JavaType `::` ident ':' JavaType			    		// field reference
+    //        JavaType `::` ident ':' JavaType                      // field reference
     //        JavaType `::` ident '(' JavaType* ')' ':' JavaType    // method reference
-    //        JavaType `::` '(' JavaType* ')'						// constructor reference
+    //        JavaType `::` '(' JavaType* ')'                       // constructor reference
     //        '(' RecordComponent* ')' JavaType                     // record reference
     //
     //    RecordComponent:
