@@ -35,7 +35,6 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.joining;
 
 public final class RecordTypeRefImpl implements RecordTypeRef {
-    static final String NAME = "&r";
 
     final TypeElement recordType;
     final List<ComponentRef> components;
