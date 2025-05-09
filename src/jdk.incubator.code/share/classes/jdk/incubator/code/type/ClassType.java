@@ -148,7 +148,9 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
      * type arguments}
      */
     public ClassType rawType() {
-        return new ClassType(type);
+        return enclosing == null ?
+                new ClassType(type) :
+                new ClassType(enclosing.rawType(), type);
     }
 
     /**
