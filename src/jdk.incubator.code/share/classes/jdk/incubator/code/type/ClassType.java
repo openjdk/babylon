@@ -84,19 +84,6 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        List<ExternalizedTypeElement> args = typeArguments.stream()
-                .map(TypeElement::externalize)
-                .toList();
-
-        ExternalizedTypeElement td = new ExternalizedTypeElement(toClassName(), args);
-        if (enclosing != null) {
-            td = new ExternalizedTypeElement(".", List.of(enclosing.externalize(), td));
-        }
-        return td;
-    }
-
-    @Override
     public String toString() {
         String prefix = enclosing != null ?
                 enclosing + "$":
@@ -161,7 +148,9 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
      * type arguments}
      */
     public ClassType rawType() {
-        return new ClassType(type);
+        return enclosing == null ?
+                new ClassType(type) :
+                new ClassType(enclosing.rawType(), type);
     }
 
     /**

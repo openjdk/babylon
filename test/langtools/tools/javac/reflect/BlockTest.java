@@ -37,18 +37,18 @@ import java.util.function.Consumer;
 public class BlockTest {
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : BlockTest)void -> {
-                java.block ()void -> {
-                    %1 : int = constant @"0";
-                    %2 : Var<int> = var %1 @"i";
+            func @"test1" (%0 : java.type:"BlockTest")java.type:"void" -> {
+                java.block ()java.type:"void" -> {
+                    %1 : java.type:"int" = constant @"0";
+                    %2 : Var<java.type:"int"> = var %1 @"i";
                     yield;
                 };
-                java.block ()void -> {
-                    %3 : int = constant @"1";
-                    %4 : Var<int> = var %3 @"i";
-                    java.block ()void -> {
-                        %5 : int = constant @"2";
-                        %6 : Var<int> = var %5 @"j";
+                java.block ()java.type:"void" -> {
+                    %3 : java.type:"int" = constant @"1";
+                    %4 : Var<java.type:"int"> = var %3 @"i";
+                    java.block ()java.type:"void" -> {
+                        %5 : java.type:"int" = constant @"2";
+                        %6 : Var<java.type:"int"> = var %5 @"j";
                         yield;
                     };
                     yield;
@@ -72,46 +72,46 @@ public class BlockTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : BlockTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test2" (%0 : java.type:"BlockTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.if
-                    ()boolean -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : boolean = lt %3 %4;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
-                    ^then()void -> {
-                        java.block ()void -> {
-                            %6 : int = var.load %2;
-                            %7 : int = constant @"1";
-                            %8 : int = add %6 %7;
+                    ()java.type:"void" -> {
+                        java.block ()java.type:"void" -> {
+                            %6 : java.type:"int" = var.load %2;
+                            %7 : java.type:"int" = constant @"1";
+                            %8 : java.type:"int" = add %6 %7;
                             var.store %2 %8;
                             yield;
                         };
                         yield;
                     }
-                    ^else_if()boolean -> {
-                        %9 : int = var.load %2;
-                        %10 : int = constant @"2";
-                        %11 : boolean = lt %9 %10;
+                    ()java.type:"boolean" -> {
+                        %9 : java.type:"int" = var.load %2;
+                        %10 : java.type:"int" = constant @"2";
+                        %11 : java.type:"boolean" = lt %9 %10;
                         yield %11;
                     }
-                    ^then()void -> {
-                        java.block ()void -> {
-                            %12 : int = var.load %2;
-                            %13 : int = constant @"2";
-                            %14 : int = add %12 %13;
+                    ()java.type:"void" -> {
+                        java.block ()java.type:"void" -> {
+                            %12 : java.type:"int" = var.load %2;
+                            %13 : java.type:"int" = constant @"2";
+                            %14 : java.type:"int" = add %12 %13;
                             var.store %2 %14;
                             yield;
                         };
                         yield;
                     }
-                    ^else()void -> {
-                        java.block ()void -> {
-                            %15 : int = var.load %2;
-                            %16 : int = constant @"3";
-                            %17 : int = add %15 %16;
+                    ()java.type:"void" -> {
+                        java.block ()java.type:"void" -> {
+                            %15 : java.type:"int" = var.load %2;
+                            %16 : java.type:"int" = constant @"3";
+                            %17 : java.type:"int" = add %15 %16;
                             var.store %2 %17;
                             yield;
                         };
@@ -138,22 +138,22 @@ public class BlockTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : BlockTest)void -> {
+            func @"test3" (%0 : java.type:"BlockTest")java.type:"void" -> {
                 java.for
-                    ^init()void -> {
+                    ()java.type:"void" -> {
                         yield;
                     }
-                    ^cond()boolean -> {
-                        %1 : boolean = constant @"true";
+                    ()java.type:"boolean" -> {
+                        %1 : java.type:"boolean" = constant @"true";
                         yield %1;
                     }
-                    ^update()void -> {
+                    ()java.type:"void" -> {
                         yield;
                     }
-                    ^body()void -> {
-                        java.block ()void -> {
-                            %2 : int = constant @"0";
-                            %3 : Var<int> = var %2 @"i";
+                    ()java.type:"void" -> {
+                        java.block ()java.type:"void" -> {
+                            %2 : java.type:"int" = constant @"0";
+                            %3 : Var<java.type:"int"> = var %2 @"i";
                             yield;
                         };
                         java.continue;
@@ -171,22 +171,22 @@ public class BlockTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : BlockTest, %1 : int[])void -> {
-                %2 : Var<int[]> = var %1 @"ia";
+            func @"test4" (%0 : java.type:"BlockTest", %1 : java.type:"int[]")java.type:"void" -> {
+                %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 java.enhancedFor
-                    ^expr()int[] -> {
-                        %3 : int[] = var.load %2;
+                    ()java.type:"int[]" -> {
+                        %3 : java.type:"int[]" = var.load %2;
                         yield %3;
                     }
-                    ^def(%4 : int)Var<int> -> {
-                        %5 : Var<int> = var %4 @"i";
+                    (%4 : java.type:"int")Var<java.type:"int"> -> {
+                        %5 : Var<java.type:"int"> = var %4 @"i";
                         yield %5;
                     }
-                    ^body(%6 : Var<int>)void -> {
-                        java.block ()void -> {
-                            %7 : int = var.load %6;
-                            %8 : int = constant @"1";
-                            %9 : int = add %7 %8;
+                    (%6 : Var<java.type:"int">)java.type:"void" -> {
+                        java.block ()java.type:"void" -> {
+                            %7 : java.type:"int" = var.load %6;
+                            %8 : java.type:"int" = constant @"1";
+                            %9 : java.type:"int" = add %7 %8;
                             var.store %6 %9;
                             yield;
                         };
@@ -205,18 +205,18 @@ public class BlockTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : BlockTest)void -> {
-                %1 : java.util.function.Consumer<java.lang.String> = lambda (%2 : java.lang.String)void -> {
-                    %3 : Var<java.lang.String> = var %2 @"s";
-                    java.block ()void -> {
-                        %4 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %5 : java.lang.String = var.load %3;
-                        invoke %4 %5 @"java.io.PrintStream::println(java.lang.String)void";
+            func @"test5" (%0 : java.type:"BlockTest")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
+                    %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
+                    java.block ()java.type:"void" -> {
+                        %4 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %5 : java.type:"java.lang.String" = var.load %3;
+                        invoke %4 %5 @"java.io.PrintStream::println(java.lang.String):void";
                         yield;
                     };
                     return;
                 };
-                %6 : Var<java.util.function.Consumer<java.lang.String>> = var %1 @"c";
+                %6 : Var<java.type:"java.util.function.Consumer<java.lang.String>"> = var %1 @"c";
                 return;
             };
             """)
@@ -231,39 +231,39 @@ public class BlockTest {
 
     @CodeReflection
     @IR("""
-            func @"test6" (%0 : BlockTest)void -> {
-                 java.if
-                     ()boolean -> {
-                         %1 : boolean = constant @"true";
-                         yield %1;
-                     }
-                     ^then()void -> {
-                         java.block ()void -> {
-                             return;
-                         };
-                         yield;
-                     }
-                     ^else()void -> {
-                         yield;
-                     };
-                 java.if
-                     ()boolean -> {
-                         %2 : boolean = constant @"true";
-                         yield %2;
-                     }
-                     ^then()void -> {
-                         java.block ()void -> {
-                             %3 : java.lang.RuntimeException = new @"java.lang.RuntimeException::<new>()";
-                             throw %3;
-                         };
-                         yield;
-                     }
-                     ^else()void -> {
-                         yield;
-                     };
-                 return;
-             };
-             """)
+            func @"test6" (%0 : java.type:"BlockTest")java.type:"void" -> {
+                java.if
+                    ()java.type:"boolean" -> {
+                        %1 : java.type:"boolean" = constant @"true";
+                        yield %1;
+                    }
+                    ()java.type:"void" -> {
+                        java.block ()java.type:"void" -> {
+                            return;
+                        };
+                        yield;
+                    }
+                    ()java.type:"void" -> {
+                        yield;
+                    };
+                java.if
+                    ()java.type:"boolean" -> {
+                        %2 : java.type:"boolean" = constant @"true";
+                        yield %2;
+                    }
+                    ()java.type:"void" -> {
+                        java.block ()java.type:"void" -> {
+                            %3 : java.type:"java.lang.RuntimeException" = new @"java.lang.RuntimeException::()";
+                            throw %3;
+                        };
+                        yield;
+                    }
+                    ()java.type:"void" -> {
+                        yield;
+                    };
+                return;
+            };
+            """)
     void test6() {
         if (true) {
             {
