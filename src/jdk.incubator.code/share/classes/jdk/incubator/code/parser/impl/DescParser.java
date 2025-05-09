@@ -155,6 +155,17 @@ public final class DescParser {
         return new TypeElement.ExternalizedTypeElement(identifier.toString(), args);
     }
 
+    static final Map<String, JavaType> PRIMITIVE_TYPES = Map.of(
+            "boolean", JavaType.BOOLEAN,
+            "char", JavaType.CHAR,
+            "byte", JavaType.BYTE,
+            "short", JavaType.SHORT,
+            "int", JavaType.INT,
+            "float", JavaType.FLOAT,
+            "long", JavaType.LONG,
+            "double", JavaType.DOUBLE,
+            "void", JavaType.VOID);
+
     //    JavaType:
     //        ClassType					            			    // class type
     //        PrimitiveType                                         // primitive type
@@ -186,7 +197,7 @@ public final class DescParser {
     //        'void'
     //
     //    TypeVar:
-    //        '(' Ref ')' TypeVarRest			            		// method/constructor type variable
+    //        '(' JavaRef ')' TypeVarRest			            		// method/constructor type variable
     //        ClassType TypeVarRest			            			// class type variable
     //
     //    TypeVarRest:
@@ -197,29 +208,7 @@ public final class DescParser {
     //        '?' 							    	                // bivariant type argument
     //        '?' 'extends' JavaType	    			        	// covariant type argument
     //        '?' 'super' JavaType  					    	    // contravariant type argument
-    //        JavaType	    						                // invariant type argument
-    //
-    //    Ref:
-    //        JavaType `::` ident ':' JavaType			    		// field reference
-    //        JavaType `::` ident '(' JavaType* ')' ':' JavaType    // method reference
-    //        JavaType `::` '(' JavaType* ')'						// constructor reference
-    //        '(' RecordComponent* ')' JavaType                     // record reference
-    //
-    //    RecordComponent:
-    //        JavaType ident
-
-
-    static final Map<String, JavaType> PRIMITIVE_TYPES = Map.of(
-            "boolean", JavaType.BOOLEAN,
-            "char", JavaType.CHAR,
-            "byte", JavaType.BYTE,
-            "short", JavaType.SHORT,
-            "int", JavaType.INT,
-            "float", JavaType.FLOAT,
-            "long", JavaType.LONG,
-            "double", JavaType.DOUBLE,
-            "void", JavaType.VOID);
-
+    //        JavaType
     public static JavaType parseJavaType(Lexer l) {
         JavaType type = null;
         if (l.token().kind == TokenKind.LPAREN) {
@@ -325,6 +314,14 @@ public final class DescParser {
         return ptypes;
     }
 
+    //    JavaRef:
+    //        JavaType `::` ident ':' JavaType			    		// field reference
+    //        JavaType `::` ident '(' JavaType* ')' ':' JavaType    // method reference
+    //        JavaType `::` '(' JavaType* ')'						// constructor reference
+    //        '(' RecordComponent* ')' JavaType                     // record reference
+    //
+    //    RecordComponent:
+    //        JavaType ident
     static JavaRef parseJavaRef(Lexer l) {
         if (l.token().kind == TokenKind.LPAREN) {
             // record type reference
