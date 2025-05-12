@@ -25,15 +25,36 @@
 
 package jdk.incubator.code.internal;
 
-import jdk.incubator.code.Quoted;
+import jdk.incubator.code.*;
 import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.parser.OpParser;
 
-import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 
 public class QuotedHelper {
-    public static Quoted makeQuoted(MethodHandles.Lookup lookup, FuncOp op, Object[] args) {
-        return (Quoted)Interpreter.invoke(lookup, op, args);
+
+    public static Quoted makeQuoted(FuncOp op, Object[] args) {
+
+        CoreOp.QuotedOp qop = (CoreOp.QuotedOp) op.body().entryBlock().ops().stream()
+                .filter(o -> o instanceof CoreOp.QuotedOp).findFirst().orElseThrow();
+
+        Iterator<Object> argsIterator = Arrays.stream(args).iterator();
+        LinkedHashMap<Value, Object> m = new LinkedHashMap<>();
+        for (Value capturedValue : qop.capturedValues()) {
+            if (capturedValue instanceof Block.Parameter) {
+                m.put(capturedValue, argsIterator.next());
+            } else if (capturedValue instanceof Op.Result opr && opr.op() instanceof CoreOp.VarOp varOp) {
+                if (varOp.initOperand() instanceof Block.Parameter) {
+                    m.put(capturedValue, new Interpreter.VarBox(argsIterator.next()));
+                } else if (varOp.initOperand() instanceof Op.Result opr2 && opr2.op() instanceof CoreOp.ConstantOp cop) {
+                    m.put(capturedValue, new Interpreter.VarBox(cop.value()));
+                }
+            }
+        }
+
+        return new Quoted(qop.quotedOp(), m);
     }
 }

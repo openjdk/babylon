@@ -521,9 +521,8 @@ import sun.invoke.util.Wrapper;
                 QUOTABLE_CLASS = cl.loadClass("jdk.incubator.code.Quotable");
                 Class<?> quotedHelper = cl.loadClass("jdk.incubator.code.internal.QuotedHelper");
                 FUNC_OP_CLASS = cl.loadClass("jdk.incubator.code.op.CoreOp$FuncOp");
-                MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
-                        MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, FUNC_OP_CLASS, Object[].class));
-                HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
+                HANDLE_MAKE_QUOTED = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
+                        MethodType.methodType(QUOTED_CLASS, FUNC_OP_CLASS, Object[].class));
                 EXTENDED_OP_CLASS = cl.loadClass("jdk.incubator.code.op.ExtendedOp");
                 OP_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.op.OpFactory");
                 CORE_TYPE_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.type.CoreTypeFactory");
