@@ -117,7 +117,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(FuncOp.NAME)
     public static final class FuncOp extends CoreOp
-            implements Op.Invokable, Op.Isolated, Op.Lowerable {
+            implements Op.Invokable, Op.Isolated, Op.Lowerable, Op.Root {
 
         public static class Builder {
             final Body.Builder ancestorBody;

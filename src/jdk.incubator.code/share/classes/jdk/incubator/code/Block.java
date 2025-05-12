@@ -827,6 +827,10 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Op.Result op(Op op, OpTransformer transformer) {
             check();
+            if (op instanceof Op.Root) {
+               throw new IllegalStateException("Operation %s is root and can't be inserted in a block".formatted(op.getClass().getSimpleName()));
+            }
+
             final Op.Result oprToTransform = op.result();
 
             Op transformedOp = op;
