@@ -25,6 +25,8 @@
 
 package oracle.code.json;
 
+import oracle.code.json.impl.JsonBooleanImpl;
+
 /**
  * The interface that represents JSON boolean.
  * <p>
@@ -32,12 +34,13 @@ package oracle.code.json;
  * <p> Alternatively, {@link #of(boolean)} can be used to
  * obtain a {@code JsonBoolean}.
  *
+ * @since 99
  */
-public sealed interface JsonBoolean extends JsonValue permits JsonBooleanImpl {
+public non-sealed interface JsonBoolean extends JsonValue {
 
     /**
      * {@return the {@code boolean} value represented by this
-     * {@code JsonBoolean} value}
+     * {@code JsonBoolean}}
      */
     boolean value();
 
@@ -50,4 +53,27 @@ public sealed interface JsonBoolean extends JsonValue permits JsonBooleanImpl {
     static JsonBoolean of(boolean src) {
         return src ? JsonBooleanImpl.TRUE : JsonBooleanImpl.FALSE;
     }
+
+    /**
+     * {@return {@code true} if the given object is also a {@code JsonBoolean}
+     * and the two {@code JsonBoolean}s represent the same boolean value} Two
+     * {@code JsonBoolean}s {@code jb1} and {@code jb2} represent the same
+     * boolean values if {@code jb1.value().equals(jb2.value())}.
+     *
+     * @see #value()
+     */
+    @Override
+    boolean equals(Object obj);
+
+    /**
+     * {@return the hash code value for this {@code JsonBoolean}} The hash code value
+     * of a {@code JsonBoolean} is defined to be the hash code of {@code JsonBoolean}'s
+     * {@link #value()}. Thus, for two {@code JsonBooleans}s {@code jb1} and {@code jb2},
+     * {@code jb1.equals(jb2)} implies that {@code jb1.hashCode() == jb2.hashCode()}
+     * as required by the general contract of {@link Object#hashCode}.
+     *
+     * @see #value()
+     */
+    @Override
+    int hashCode();
 }

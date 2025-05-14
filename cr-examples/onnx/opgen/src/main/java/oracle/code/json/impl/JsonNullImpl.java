@@ -23,26 +23,35 @@
  * questions.
  */
 
-package oracle.code.json;
+package oracle.code.json.impl;
+
+import oracle.code.json.JsonNull;
+
+import java.util.Objects;
 
 /**
- * Implementation methods/fields common to JsonXXXImpl classes
+ * JsonNull implementation class
  */
-sealed interface JsonValueImpl permits JsonArrayImpl, JsonBooleanImpl, JsonNullImpl, JsonNumberImpl, JsonObjectImpl, JsonStringImpl {
-    // default indentation for display string
-    int INDENT = 2;
+public final class JsonNullImpl implements JsonNull {
 
-    // obtaining end index
-    int getEndIndex();
+    public static final JsonNullImpl NULL = new JsonNullImpl();
+    private static final String VALUE = "null";
+    private static final int HASH = Objects.hash(VALUE);
 
-    // Json.toUntyped() implementations
-    Object toUntyped();
+    private JsonNullImpl() {}
 
-    // Display string default implementations
-    default String toDisplayString() {
-        return toDisplayString(0, false);
+    @Override
+    public String toString() {
+        return VALUE;
     }
-    default String toDisplayString(int indent, boolean isField) {
-        return " ".repeat(isField ? 1 : indent) + toString();
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof JsonNull;
+    }
+
+    @Override
+    public int hashCode() {
+        return HASH;
     }
 }

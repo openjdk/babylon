@@ -25,36 +25,75 @@
 
 package oracle.code.json;
 
+import oracle.code.json.impl.JsonStringImpl;
+
 import java.util.Objects;
 
 /**
- * The interface that represents JSON string.
+ * The interface that represents JSON string. Any character may be escaped,
+ * see the JSON string <a href="https://datatracker.ietf.org/doc/html/rfc8259#section-6">
+ * syntax</a> for the full list of two-character sequence escapes as well as
+ * the characters that must be escaped.
  * <p>
  * A {@code JsonString} can be produced by a {@link Json#parse(String)}.
  * <p> Alternatively, {@link #of(String)} can be used to obtain a {@code JsonString}
  * from a {@code String}.
  *
+ * @spec https://datatracker.ietf.org/doc/html/rfc8259#section-7 RFC 8259:
+ *      The JavaScript Object Notation (JSON) Data Interchange Format - Strings
+ * @since 99
  */
-public sealed interface JsonString extends JsonValue permits JsonStringImpl {
-
-    /**
-     * {@return the {@code String} value represented by this
-     * {@code JsonString} value} This value is an unescaped version of the
-     * underlying {@code String} value. For example,
-     * {@snippet lang=java:
-     *     JsonString.of("fo\\u006f").value(); // returns "foo"
-     * }
-     */
-    String value();
+public non-sealed interface JsonString extends JsonValue {
 
     /**
      * {@return the {@code JsonString} created from the given
      * {@code String}}
      *
      * @param src the given {@code String}. Non-null.
+     * @throws IllegalArgumentException if the given {@code src} is
+     *          not a valid JSON string.
+     * @throws NullPointerException if {@code src} is {@code null}
      */
     static JsonString of(String src) {
         Objects.requireNonNull(src);
         return new JsonStringImpl(src);
     }
+
+    /**
+     * {@return the {@code String} value represented by this {@code JsonString}}
+     * Any escaped characters in the original JSON string are converted to their
+     * unescaped form in the returned {@code String}.
+     *
+     * @see #toString()
+     */
+    String value();
+
+    /**
+     * {@return the {@code String} value represented by this {@code JsonString}
+     * surrounded by quotation marks} Any escaped characters in the original JSON
+     * string are converted to their unescaped form in the returned {@code String}.
+     *
+     * @see #value()
+     */
+    @Override
+    String toString();
+
+    /**
+     * {@return true if the given {@code obj} is equal to this {@code JsonString}}
+     * Two {@code JsonString}s {@code js1} and {@code js2} represent the same value
+     * if {@code js1.value().equals(js2.value())}.
+     *
+     * @see #value()
+     */
+    @Override
+    boolean equals(Object obj);
+
+    /**
+     * {@return the hash code value of this {@code JsonString}} The hash code of a
+     * {@code JsonString} is calculated by {@code Objects.hash(JsonString.value())}.
+     *
+     * @see #value()
+     */
+    @Override
+    int hashCode();
 }

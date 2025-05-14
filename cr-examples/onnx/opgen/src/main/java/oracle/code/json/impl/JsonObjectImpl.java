@@ -23,54 +23,53 @@
  * questions.
  */
 
-package oracle.code.json;
+package oracle.code.json.impl;
 
+import oracle.code.json.JsonObject;
+import oracle.code.json.JsonValue;
+
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 /**
- * JsonNull implementation class
+ * JsonObject implementation class
  */
-final class JsonNullImpl implements JsonNull, JsonValueImpl {
+public final class JsonObjectImpl implements JsonObject {
 
-    private final JsonDocumentInfo docInfo;
-    private final int endIndex;
+    private final Map<String, JsonValue> theMembers;
 
-    static final JsonNullImpl NULL = new JsonNullImpl();
-    static final String VALUE = "null";
-    static final int HASH = Objects.hash(VALUE);
-
-    JsonNullImpl() {
-        endIndex = 0;
-        docInfo = null;
-    }
-
-    JsonNullImpl(JsonDocumentInfo doc, int index) {
-        docInfo = doc;
-        endIndex = docInfo.nextIndex(index);
+    public JsonObjectImpl(Map<String, JsonValue> map) {
+        theMembers = map;
     }
 
     @Override
-    public int getEndIndex() {
-        return endIndex;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o instanceof JsonNullImpl;
-    }
-
-    @Override
-    public int hashCode() {
-        return HASH;
-    }
-
-    @Override
-    public Object toUntyped() {
-        return null;
+    public Map<String, JsonValue> members() {
+        return Collections.unmodifiableMap(theMembers);
     }
 
     @Override
     public String toString() {
-        return VALUE;
+        var s = new StringBuilder("{");
+        for (Map.Entry<String, JsonValue> kv: members().entrySet()) {
+            s.append("\"").append(kv.getKey()).append("\":")
+             .append(kv.getValue().toString())
+             .append(",");
+        }
+        if (!members().isEmpty()) {
+            s.setLength(s.length() - 1); // trim final comma
+        }
+        return s.append("}").toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof JsonObject ojo &&
+                Objects.equals(members(), ojo.members());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(members());
     }
 }
