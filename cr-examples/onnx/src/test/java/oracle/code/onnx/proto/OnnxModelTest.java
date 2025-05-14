@@ -178,10 +178,9 @@ public class OnnxModelTest {
 
             for (OnnxModel.NodeProto n : g.node()) {
                 String opType = n.opType();
-
+                System.out.println(opType);
                 switch (opType) {
-                    case "SimplifiedLayerNormalization" -> opType = "LayerNormalization"; // @@@ an old alias ?
-                    case "MatMulNBits" -> opType = "MatMul"; // @@@ model contrib oprators
+                    case "SimplifiedLayerNormalization" -> opType = "LayerNormalization"; // @@@ an old alias ? could not find the spec
                 }
 
                 OnnxOp.OnnxSchema schema = ONNX_SCHEMA_REGISTRY.computeIfAbsent(opType, ot -> {throw new IllegalArgumentException("Unknown op type: " + ot);});
@@ -405,7 +404,7 @@ public class OnnxModelTest {
             try (var in = new RandomAccessFile(fName, "r")) {
                 OnnxModel.ModelProto model = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
 //                System.out.println(model.toText());
-                System.out.println(toFuncOp(model.graph()).toText());
+                System.out.println(toFuncOp(model.graph()).op().toText());
             }
         }
     }

@@ -33,6 +33,7 @@ import jdk.incubator.code.op.OpFactory;
 
 public sealed class ExplicitOnnxOps permits OnnxOps {
 
+    // @@@ this should be generated from contrib operators
     @OpFactory.OpDeclaration(GroupQueryAttention.NAME)
     public static final class GroupQueryAttention extends OnnxOp {
         public static final String NAME = "GroupQueryAttention";
@@ -225,6 +226,344 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
     public static GroupQueryAttention GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache) {
         return new GroupQueryAttention(resultType, query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache);
     }
+
+    // @@@ this should be generated from contrib operators
+    @OpFactory.OpDeclaration(MatMulNBits.NAME)
+    public static final class MatMulNBits extends OnnxOp {
+        public static final String NAME = "MatMulNBits";
+
+        public enum Attribute implements OnnxAttribute {
+            K(Long.class, false, null),
+            N(Long.class, false, null),
+            accuracy_level(Long.class, true, 0),
+            bits(Long.class, false, null),
+            block_size(Long.class, false, null),
+            ;
+
+                final Class<?> t;
+                final boolean optional;
+                final Object defaultValue;
+
+                Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                    this.t = type;
+                    this.optional = optional;
+                    this.defaultValue = defaultValue;
+                    assert optional || defaultValue == null;
+                }
+
+                public Class<?> type() {
+                    return t;
+                }
+
+                public boolean isOptional() {
+                    return optional;
+                }
+
+                public Object defaultValue() {
+                    return defaultValue;
+                }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T1(new OnnxType.TypeVariable("T1", List.of(OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float16())))),
+            T2(new OnnxType.TypeVariable("T2", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.int32())))),
+            T3(new OnnxType.TypeVariable("T3", List.of(OnnxType.tensor(OnnxType.uint8()), OnnxType.tensor(OnnxType.int32()), OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32())))),
+            T4(new OnnxType.TypeVariable("T4", List.of(OnnxType.tensor(OnnxType.int32())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            A(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
+            B(TypeConstraint.T2.typeVariable(), Quantifier.REQUIRED),
+            scales(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
+            zero_points(TypeConstraint.T3.typeVariable(), Quantifier.OPTIONAL),
+            g_idx(TypeConstraint.T4.typeVariable(), Quantifier.OPTIONAL),
+            bias(TypeConstraint.T1.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            Y(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public MatMulNBits(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        MatMulNBits(MatMulNBits that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public MatMulNBits transform(CopyContext cc, OpTransformer ot) {
+            return new MatMulNBits(this, cc);
+        }
+
+        MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias) {
+            super(SCHEMA, resultType, Collections.emptySet(), List.of(a, b, scales), List.of(zero_points, g_idx, bias));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+                    return onnxInputs(SCHEMA, List.of(a(), b(), scales(), zero_points(), g_idx(), bias()));
+        }
+
+        public Value a() {
+            return operands().get(0);
+        }
+
+        public Value b() {
+            return operands().get(1);
+        }
+
+        public Value scales() {
+            return operands().get(2);
+        }
+
+        public java.util.Optional<Value> zero_points() {
+            int i = optionalInputArguments.indexOf(InputParameter.zero_points);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> g_idx() {
+            int i = optionalInputArguments.indexOf(InputParameter.g_idx);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> bias() {
+            int i = optionalInputArguments.indexOf(InputParameter.bias);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+    }
+
+    public static MatMulNBits MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias) {
+        return new MatMulNBits(resultType, a, b, scales, zero_points, g_idx, bias);
+    }
+
+    // @@@ this should be generated from contrib operators
+    @OpFactory.OpDeclaration(SkipSimplifiedLayerNormalization.NAME)
+    public static final class SkipSimplifiedLayerNormalization extends OnnxOp {
+        public static final String NAME = "SkipSimplifiedLayerNormalization";
+
+        public enum Attribute implements OnnxAttribute {
+            epsilon(Float.class, true, null),
+            ;
+
+                final Class<?> t;
+                final boolean optional;
+                final Object defaultValue;
+
+                Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                    this.t = type;
+                    this.optional = optional;
+                    this.defaultValue = defaultValue;
+                    assert optional || defaultValue == null;
+                }
+
+                public Class<?> type() {
+                    return t;
+                }
+
+                public boolean isOptional() {
+                    return optional;
+                }
+
+                public Object defaultValue() {
+                    return defaultValue;
+                }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float16())))),
+            U(new OnnxType.TypeVariable("U", List.of(OnnxType.tensor(OnnxType.float32())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            input(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            skip(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            gamma(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            bias(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            output(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            mean(TypeConstraint.U.typeVariable(), Quantifier.OPTIONAL),
+            inv_std_var(TypeConstraint.U.typeVariable(), Quantifier.OPTIONAL),
+            input_skip_bias_sum(TypeConstraint.U.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public SkipSimplifiedLayerNormalization(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        SkipSimplifiedLayerNormalization(SkipSimplifiedLayerNormalization that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public SkipSimplifiedLayerNormalization transform(CopyContext cc, OpTransformer ot) {
+            return new SkipSimplifiedLayerNormalization(this, cc);
+        }
+
+        SkipSimplifiedLayerNormalization(TypeElement resultType, Value input, Value skip, Value gamma, java.util.Optional<Value> bias) {
+            super(SCHEMA, resultType, Collections.emptySet(), List.of(input, skip, gamma), List.of(bias));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(input(), skip(), gamma(), bias()));
+        }
+
+        public Value input() {
+            return operands().get(0);
+        }
+
+        public Value skip() {
+            return operands().get(1);
+        }
+
+        public Value gamma() {
+            return operands().get(2);
+        }
+
+        public java.util.Optional<Value> bias() {
+            int i = optionalInputArguments.indexOf(InputParameter.bias);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+    }
+
+    public static SkipSimplifiedLayerNormalization SkipSimplifiedLayerNormalization(TypeElement resultType, Value input, Value skip, Value gamma, java.util.Optional<Value> bias) {
+        return new SkipSimplifiedLayerNormalization(resultType, input, skip, gamma, bias);
+    }
+
+
+
 
     @OpFactory.OpDeclaration(If.NAME)
     public static final class If extends OnnxOp implements Nested {
