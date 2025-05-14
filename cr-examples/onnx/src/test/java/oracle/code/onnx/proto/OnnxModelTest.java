@@ -178,7 +178,6 @@ public class OnnxModelTest {
 
             for (OnnxModel.NodeProto n : g.node()) {
                 String opType = n.opType();
-                System.out.println(opType);
                 switch (opType) {
                     case "SimplifiedLayerNormalization" -> opType = "LayerNormalization"; // @@@ an old alias ? could not find the spec
                 }
@@ -219,12 +218,16 @@ public class OnnxModelTest {
                 }
 
                 // map outputs
+                List<OnnxOp.OnnxParameter> optionalOutputs = new ArrayList<>();
+                List<String> outputNames = new ArrayList<>();
                 if (n.output() != null) {
-                    List<OnnxOp.OnnxParameter> optionalOutputs = new ArrayList<>();
                     for (int i = 0; i < n.output().size(); i++) {
                         OnnxOp.OnnxParameter param = schema.outputs().get(i);
-                        if (param.quantifier() == OnnxOp.OnnxParameter.Quantifier.OPTIONAL) {
-                            optionalOutputs.add(param);
+                        if (!n.output().get(i).isEmpty()) {
+                            outputNames.add(n.output().get(i));
+                            if (param.quantifier() == OnnxOp.OnnxParameter.Quantifier.OPTIONAL) {
+                                optionalOutputs.add(param);
+                            }
                         }
                     }
                     if (!optionalOutputs.isEmpty()) {
@@ -256,12 +259,12 @@ public class OnnxModelTest {
                 Op.Result res = fb.op((OnnxOp)ONNX_OP_FACTORY.constructOpOrFail(extOp));
 
                 // map outputs
-                if (rawOp.onnxOutputs().size() == 1) {
+                if (outputNames.size() == 1) {
                     valueMap.put(n.output().getFirst(), res);
                 } else {
                     valueMap.put(n.name(), res);
-                    for (int i = 0; i < n.output().size(); i++) {
-                        valueMap.put(n.output().get(i), fb.op(CoreOp.tupleLoad(res, i)));
+                    for (int i = 0; i < outputNames.size(); i++) {
+                        valueMap.put(outputNames.get(i), fb.op(CoreOp.tupleLoad(res, i)));
                     }
                 }
             }
@@ -404,7 +407,7 @@ public class OnnxModelTest {
             try (var in = new RandomAccessFile(fName, "r")) {
                 OnnxModel.ModelProto model = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
 //                System.out.println(model.toText());
-                System.out.println(toFuncOp(model.graph()).op().toText());
+                System.out.println(toFuncOp(model.graph()).toText());
             }
         }
     }
