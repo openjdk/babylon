@@ -86,7 +86,7 @@ public final class OnnxProtoBuilder {
         }
     }
 
-    static byte[] build(String domainName, CoreOp.ModuleOp module, List<oracle.code.onnx.Tensor> initializers) {
+    public static byte[] build(String domainName, CoreOp.ModuleOp module, List<oracle.code.onnx.Tensor> initializers) {
         var indexer = new Indexer(OpWriter.computeGlobalNames(module));
 
         var functions = new ArrayList<>(module.functionTable().sequencedValues());
@@ -297,6 +297,13 @@ public final class OnnxProtoBuilder {
                 .rawData(tensor.data().toArray(ValueLayout.JAVA_BYTE));
     }
 
+    static TensorProto tensorProto(oracle.code.onnx.Tensor tensor) {
+        return new TensorProto()
+                .dataType(tensor.elementType().id)
+                .dims(tensor.shape())
+                .rawData(tensor.data().toArray(ValueLayout.JAVA_BYTE));
+    }
+
     static AttributeProto attribute(String name, Object value) {
         var attr = new AttributeProto().name(name);
         switch (value) {
@@ -316,6 +323,10 @@ public final class OnnxProtoBuilder {
             case long[] longs -> {
                 attr.type(AttributeType.INTS);
                 attr.ints(longs);
+            }
+            case Tensor<?> t -> {
+                attr.type(AttributeType.TENSOR);
+                attr.t(tensorProto(t));
             }
             default -> {
                 throw new UnsupportedOperationException(value.getClass().toString()); // @@@ ToDo

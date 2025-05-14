@@ -48,6 +48,7 @@ import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.TupleType;
 import jdk.incubator.code.writer.OpWriter;
 import oracle.code.onnx.CNNTest;
+import oracle.code.onnx.OnnxProtoBuilder;
 import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
@@ -162,7 +163,7 @@ public class OnnxModelTest {
         }
     }
 
-    static OpWithNames toFuncOp(OnnxModel.GraphProto g) {
+    static OpWithNames<CoreOp.FuncOp> toFuncOp(OnnxModel.GraphProto g) {
         var valueMap = new LinkedHashMap<String, Value>();
         var func = CoreOp.FuncOp.func(g.name(), toFunctionType(g)).body(fb -> {
 
@@ -278,7 +279,7 @@ public class OnnxModelTest {
             }
         });
 
-        return new OpWithNames(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)));
+        return new OpWithNames<>(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)));
     }
 
     static OnnxType inferTypeVariableType(OnnxType type, OnnxOp op, OnnxModel.NodeProto n) {
@@ -407,7 +408,13 @@ public class OnnxModelTest {
             try (var in = new RandomAccessFile(fName, "r")) {
                 OnnxModel.ModelProto model = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
 //                System.out.println(model.toText());
-                System.out.println(toFuncOp(model.graph()).toText());
+                var liftedModel = toFuncOp(model.graph());
+//                System.out.println(liftedModel.toText());
+                byte[] protoModel = OnnxProtoBuilder.build("whatever", CoreOp.module(liftedModel.op()), List.of());
+//                System.out.println(OnnxModel.readFrom(protoModel).toText());
+                try (Arena arena = Arena.ofConfined()) {
+                    OnnxRuntime.getInstance().createSession(arena, protoModel);
+                }
             }
         }
     }
