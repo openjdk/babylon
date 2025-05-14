@@ -33,6 +33,199 @@ import jdk.incubator.code.op.OpFactory;
 
 public sealed class ExplicitOnnxOps permits OnnxOps {
 
+    @OpFactory.OpDeclaration(GroupQueryAttention.NAME)
+    public static final class GroupQueryAttention extends OnnxOp {
+        public static final String NAME = "GroupQueryAttention";
+
+        public enum Attribute implements OnnxAttribute {
+            do_rotary(Long.class, true, 0),
+            kv_num_heads(Long.class, false, null),
+            local_window_size(Long.class, true, -1),
+            num_heads(Long.class, false, null),
+            rotary_interleaved(Long.class, true, 0),
+            scale(Float.class, true, null), // @@@ Default value is 1/sqrt(head_size)
+            ;
+
+                final Class<?> t;
+                final boolean optional;
+                final Object defaultValue;
+
+                Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                    this.t = type;
+                    this.optional = optional;
+                    this.defaultValue = defaultValue;
+                    assert optional || defaultValue == null;
+                }
+
+                public Class<?> type() {
+                    return t;
+                }
+
+                public boolean isOptional() {
+                    return optional;
+                }
+
+                public Object defaultValue() {
+                    return defaultValue;
+                }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.bfloat16()), OnnxType.tensor(OnnxType.float32())))),
+            M(new OnnxType.TypeVariable("M", List.of(OnnxType.tensor(OnnxType.int32())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            query(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            key(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            value(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            past_key(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            past_value(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            seqlens_k(TypeConstraint.M.typeVariable(), Quantifier.REQUIRED),
+            total_sequence_length(TypeConstraint.M.typeVariable(), Quantifier.REQUIRED),
+            cos_cache(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            sin_cache(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            output(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            present_key(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            present_value(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public GroupQueryAttention(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        GroupQueryAttention(GroupQueryAttention that, CopyContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public GroupQueryAttention transform(CopyContext cc, OpTransformer ot) {
+            return new GroupQueryAttention(this, cc);
+        }
+
+        GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache) {
+            super(SCHEMA, resultType, Collections.emptySet(), List.of(query, seqlens_k, total_sequence_length), List.of(key, value, past_key, past_value, cos_cache, sin_cache));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(query(), seqlens_k(), total_sequence_length(), key(), value(), past_key(), past_value(), cos_cache(), sin_cache()));
+        }
+
+        public Value query() {
+            return operands().get(0);
+        }
+
+        public Value seqlens_k() {
+            return operands().get(1);
+        }
+
+        public Value total_sequence_length() {
+            return operands().get(2);
+        }
+
+        public java.util.Optional<Value> key() {
+            int i = optionalInputArguments.indexOf(InputParameter.key);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> value() {
+            int i = optionalInputArguments.indexOf(InputParameter.value);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> past_key() {
+            int i = optionalInputArguments.indexOf(InputParameter.past_key);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> past_value() {
+            int i = optionalInputArguments.indexOf(InputParameter.past_value);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> cos_cache() {
+            int i = optionalInputArguments.indexOf(InputParameter.cos_cache);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> sin_cache() {
+            int i = optionalInputArguments.indexOf(InputParameter.sin_cache);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+    }
+
+    public static GroupQueryAttention GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache) {
+        return new GroupQueryAttention(resultType, query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache);
+    }
+
     @OpFactory.OpDeclaration(If.NAME)
     public static final class If extends OnnxOp implements Nested {
         public static final String NAME = "If";
