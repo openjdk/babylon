@@ -23,36 +23,59 @@
  * questions.
  */
 
-package oracle.code.json;
+package oracle.code.json.impl;
 
-import oracle.code.json.impl.JsonNullImpl;
+import oracle.code.json.JsonString;
+
+import java.util.Objects;
 
 /**
- * The interface that represents JSON null.
- * <p>
- * A {@code JsonNull} can be produced by {@link Json#parse(String)}.
- * <p> Alternatively, {@link #of()} can be used to obtain a {@code JsonNull}.
- *
- * @since 99
+ * JsonString implementation class
  */
-public non-sealed interface JsonNull extends JsonValue {
+public final class JsonStringImpl implements JsonString {
 
-    /**
-     * {@return the {@code JsonNull} that represents a "null" JSON value}
-     */
-    static JsonNull of() {
-        return JsonNullImpl.NULL;
+    private final char[] doc;
+    private final int startOffset;
+    private final int endOffset;
+    private final String str;// = StableSupplier.of(this::unescape);
+
+    public JsonStringImpl(String str) {
+        doc = ("\"" + str + "\"").toCharArray();
+        startOffset = 0;
+        endOffset = doc.length;
+        this.str = unescape();
     }
 
-    /**
-     * {@return true if the given {@code obj} is a {@code JsonNull}}
-     */
-    @Override
-    boolean equals(Object obj);
+    public JsonStringImpl(char[] doc, int start, int end) {
+        this.doc = doc;
+        startOffset = start;
+        endOffset = end;
+        str = unescape();
+    }
 
-    /**
-     * {@return the hash code value of this {@code JsonNull}}
-     */
     @Override
-    int hashCode();
+    public String value() {
+        var ret = str;
+        return str.substring(1, ret.length() - 1);
+    }
+
+    @Override
+    public String toString() {
+        return str;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof JsonString ojs &&
+                Objects.equals(value(), ojs.value());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value());
+    }
+
+    private String unescape() {
+        return Utils.unescape(doc, startOffset, endOffset);
+    }
 }

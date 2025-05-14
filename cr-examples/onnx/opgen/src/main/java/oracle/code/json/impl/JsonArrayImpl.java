@@ -23,36 +23,51 @@
  * questions.
  */
 
-package oracle.code.json;
+package oracle.code.json.impl;
 
-import oracle.code.json.impl.JsonNullImpl;
+import oracle.code.json.JsonArray;
+import oracle.code.json.JsonValue;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 /**
- * The interface that represents JSON null.
- * <p>
- * A {@code JsonNull} can be produced by {@link Json#parse(String)}.
- * <p> Alternatively, {@link #of()} can be used to obtain a {@code JsonNull}.
- *
- * @since 99
+ * JsonArray implementation class
  */
-public non-sealed interface JsonNull extends JsonValue {
+public final class JsonArrayImpl implements JsonArray {
 
-    /**
-     * {@return the {@code JsonNull} that represents a "null" JSON value}
-     */
-    static JsonNull of() {
-        return JsonNullImpl.NULL;
+    private final List<JsonValue> theValues;
+
+    public JsonArrayImpl(List<JsonValue> from) {
+        theValues = from;
     }
 
-    /**
-     * {@return true if the given {@code obj} is a {@code JsonNull}}
-     */
     @Override
-    boolean equals(Object obj);
+    public List<JsonValue> values() {
+        return Collections.unmodifiableList(theValues);
+    }
 
-    /**
-     * {@return the hash code value of this {@code JsonNull}}
-     */
     @Override
-    int hashCode();
+    public String toString() {
+        var s = new StringBuilder("[");
+        for (JsonValue v: values()) {
+            s.append(v.toString()).append(",");
+        }
+        if (!values().isEmpty()) {
+            s.setLength(s.length() - 1); // trim final comma
+        }
+        return s.append("]").toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof JsonArray oja &&
+                Objects.equals(values(), oja.values());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(values());
+    }
 }

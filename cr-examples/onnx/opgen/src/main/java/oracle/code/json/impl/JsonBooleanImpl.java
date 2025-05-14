@@ -23,68 +23,44 @@
  * questions.
  */
 
-package oracle.code.json;
+package oracle.code.json.impl;
+
+import oracle.code.json.JsonBoolean;
 
 import java.util.Objects;
 
 /**
  * JsonBoolean implementation class
  */
-final class JsonBooleanImpl implements JsonBoolean, JsonValueImpl {
+public final class JsonBooleanImpl implements JsonBoolean {
 
-    private final JsonDocumentInfo docInfo;
-    private final int startOffset;
-    private final int endIndex;
-    private Boolean theBoolean;
+    private final Boolean theBoolean;
 
-    static final JsonBooleanImpl TRUE = new JsonBooleanImpl(true);
-    static final JsonBooleanImpl FALSE = new JsonBooleanImpl(false);
+    public static final JsonBooleanImpl TRUE = new JsonBooleanImpl(true);
+    public static final JsonBooleanImpl FALSE = new JsonBooleanImpl(false);
 
-    JsonBooleanImpl(Boolean bool) {
+    private JsonBooleanImpl(Boolean bool) {
         theBoolean = bool;
-        startOffset = 0;
-        endIndex = 0;
-        docInfo = null;
-    }
-
-    JsonBooleanImpl(JsonDocumentInfo doc, int offset, int index) {
-        docInfo = doc;
-        startOffset = offset;
-        endIndex = docInfo.nextIndex(index);
     }
 
     @Override
     public boolean value() {
-        if (theBoolean == null) {
-            theBoolean = docInfo.charAt(startOffset) == 't';
-        }
         return theBoolean;
-    }
-
-    @Override
-    public int getEndIndex() {
-        return endIndex;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return this == o ||
-            o instanceof JsonBooleanImpl ojbi &&
-            Objects.equals(value(), ojbi.value());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value());
-    }
-
-    @Override
-    public Boolean toUntyped() {
-        return value();
     }
 
     @Override
     public String toString() {
         return String.valueOf(value());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof JsonBoolean ojb &&
+                Objects.equals(value(), ojb.value());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value());
     }
 }
