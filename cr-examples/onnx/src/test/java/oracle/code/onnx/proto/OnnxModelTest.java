@@ -415,8 +415,8 @@ public class OnnxModelTest {
 //                System.out.println(model.toText());
                 var liftedModel = toFuncOp(model.graph());
 //                System.out.println(liftedModel.toText());
-                byte[] protoModel = OnnxProtoBuilder.buildModel("com.microsoft", CoreOp.module(liftedModel.op()), List.of());
-                System.out.println(OnnxModel.readFrom(protoModel).toText());
+                byte[] protoModel = OnnxProtoBuilder.buildModel(null, CoreOp.module(liftedModel.op()), List.of());
+//                System.out.println(OnnxModel.readFrom(protoModel).toText());
                 try (Arena arena = Arena.ofConfined()) {
                     OnnxRuntime.getInstance().createSession(arena, protoModel);
                 }
