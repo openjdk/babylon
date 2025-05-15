@@ -80,7 +80,7 @@ public final class ArrayType implements JavaType {
 
     @Override
     public String toString() {
-        return componentType.toString() + "[]";
+        return "[" + componentType.toString() + "]";
     }
 
     @Override

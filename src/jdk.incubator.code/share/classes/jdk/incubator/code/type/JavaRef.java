@@ -1,6 +1,7 @@
 package jdk.incubator.code.type;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.parser.impl.DescParser;
 
 import java.util.List;
 
@@ -25,6 +26,6 @@ public sealed interface JavaRef extends TypeElement
 
     @Override
     default ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(String.format("java.ref:\"%s\"", this), List.of());
+        return DescParser.parseExTypeElem(toString());
     }
 }

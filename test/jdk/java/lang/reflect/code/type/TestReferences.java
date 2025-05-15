@@ -46,13 +46,13 @@ public class TestReferences {
     @DataProvider
     public Object[][] methodRefs() {
         return new Object[][]{
-                {"a::b():void", "a", "b"},
+                {"a::b(void):void", "a", "b"},
                 {"a.b::c(int):int", "a.b", "c"},
                 {"a.b.c::d(int, int):int", "a.b.c", "d"},
                 {"a::b(Func<String, Number>, Entry<List<String>, val>, int, long):void", "a", "b"},
                 {"java.io.PrintStream::println(java.lang.String):void", "java.io.PrintStream", "println"},
                 {"MethodReferenceTest$A::m(java.lang.Object):java.lang.Object", "MethodReferenceTest$A", "m"},
-                {"R<R::<T extends java.lang.Number>>::n():R::<T extends java.lang.Number>", "R<R::<T extends java.lang.Number>>", "n"}
+                {"R<R::<T extends java.lang.Number>>::n(void):R::<T extends java.lang.Number>", "R<R::<T extends java.lang.Number>>", "n"}
         };
     }
 
@@ -64,35 +64,11 @@ public class TestReferences {
         Assert.assertEquals(mr.name(), name);
     }
 
-
-    @DataProvider
-    public Object[][] externalizedMethodRefs() {
-        return new Object[][]{
-                {"java.ref:\"a::b():void\"", "a", "b"},
-                {"java.ref:\"a.b::c(int):int\"", "a.b", "c"},
-                {"java.ref:\"a.b.c::d(int, int):int\"", "a.b.c", "d"},
-                {"java.ref:\"a::b(Func<String, Number>, Entry<List<String>, val>, int, long):void\"", "a", "b"},
-                {"java.ref:\"java.io.PrintStream::println(java.lang.String):void\"", "java.io.PrintStream", "println"},
-                {"java.ref:\"MethodReferenceTest$A::m(java.lang.Object):java.lang.Object\"", "MethodReferenceTest$A", "m"},
-                {"java.ref:\"R<R::<T extends java.lang.Number>>::n():R::<T extends java.lang.Number>\"", "R<R::<T extends java.lang.Number>>", "n"}
-        };
-    }
-
-    @Test(dataProvider = "externalizedMethodRefs")
-    public void testExternalizedMethodRef(String mds, String refType, String name) {
-        TypeElement.ExternalizedTypeElement emr = TypeElement.ExternalizedTypeElement.ofString(mds);
-        MethodRef mr = (MethodRef) CoreTypeFactory.CORE_TYPE_FACTORY.constructType(emr);
-        Assert.assertEquals(mr.externalize().toString(), mds);
-        Assert.assertEquals(mr.refType().toString(), refType);
-        Assert.assertEquals(mr.name(), name);
-    }
-
-
     @DataProvider
     public Object[][] constructorRefs() {
         return new Object[][]{
                 {"MethodReferenceTest$X::(int)", "MethodReferenceTest$X"},
-                {"MethodReferenceTest$A[]::(int)", "MethodReferenceTest$A[]"},
+                {"[MethodReferenceTest$A]::(int)", "[MethodReferenceTest$A]"},
         };
     }
 
@@ -102,24 +78,6 @@ public class TestReferences {
         Assert.assertEquals(cr.toString(), cds);
         Assert.assertEquals(cr.refType().toString(), refType);
     }
-
-    @DataProvider
-    public Object[][] externalizedConstructorRefs() {
-        return new Object[][]{
-                {"java.ref:\"MethodReferenceTest$X::(int)\"", "MethodReferenceTest$X"},
-                {"java.ref:\"MethodReferenceTest$A[]::(int)\"", "MethodReferenceTest$A[]"},
-        };
-    }
-
-    @Test(dataProvider = "externalizedConstructorRefs")
-    public void testExternalizedConstructorRef(String crs, String refType) {
-        TypeElement.ExternalizedTypeElement ecr = TypeElement.ExternalizedTypeElement.ofString(crs);
-        ConstructorRef cr = (ConstructorRef) CoreTypeFactory.CORE_TYPE_FACTORY.constructType(ecr);
-
-        Assert.assertEquals(cr.externalize().toString(), crs);
-        Assert.assertEquals(cr.refType().toString(), refType);
-    }
-
 
     @DataProvider
     public Object[][] fieldRefs() {
@@ -141,35 +99,13 @@ public class TestReferences {
     }
 
     @DataProvider
-    public Object[][] externalizedFieldRefs() {
-        return new Object[][]{
-                {"java.ref:\"a.b::c:int\"", "a.b", "c", "int"},
-                {"java.ref:\"a.b.c::d:int\"", "a.b.c", "d", "int"},
-                {"java.ref:\"java.lang.System::out:java.io.PrintStream\"", "java.lang.System", "out", "java.io.PrintStream"},
-                {"java.ref:\"R<R::<T extends java.lang.Number>>::n:R::<T extends java.lang.Number>\"", "R<R::<T extends java.lang.Number>>", "n", "R::<T extends java.lang.Number>"}
-        };
-    }
-
-    @Test(dataProvider = "externalizedFieldRefs")
-    public void testExternalizedFieldRef(String frs, String refType, String name, String type) {
-        TypeElement.ExternalizedTypeElement efr = TypeElement.ExternalizedTypeElement.ofString(frs);
-        FieldRef fr = (FieldRef) CoreTypeFactory.CORE_TYPE_FACTORY.constructType(efr);
-
-        Assert.assertEquals(fr.externalize().toString(), frs);
-        Assert.assertEquals(fr.refType().toString(), refType);
-        Assert.assertEquals(fr.name(), name);
-        Assert.assertEquals(fr.type().toString(), type);
-    }
-
-
-    @DataProvider
     public Object[][] recordTypeRefs() {
         return new Object[][]{
-                {"()A"},
-                {"(B b)A"},
-                {"(B b, C c)A"},
-                {"(p.Func<String, Number> f, Entry<List<String>, val> e, int i, long l)p.A<R>"},
-                {"(R::<T extends java.lang.Number> n)R<R::<T extends java.lang.Number>>"}
+                {"A()"},
+                {"A(b : B)"},
+                {"A(b : B, c : C)"},
+                {"p.A(f : p.Func<String, Number>, e : Entry<List<String>, val>, i : int, l : long)"},
+                {"R(n : R::<T extends java.lang.Number>)"}
         };
     }
 
@@ -177,24 +113,5 @@ public class TestReferences {
     public void testRecordTypeRef(String rtds) {
         RecordTypeRef rtr = RecordTypeRef.ofString(rtds);
         Assert.assertEquals(rtr.toString(), rtds);
-    }
-
-    @DataProvider
-    public Object[][] externalizedRecordTypeRefs() {
-        return new Object[][]{
-                {"java.ref:\"()A\""},
-                {"java.ref:\"(B b)A\""},
-                {"java.ref:\"(B b, C c)A\""},
-                {"java.ref:\"(p.Func<String, Number> f, Entry<List<String>, val> e, int i, long l)p.A<R>\""},
-                // @@@ Fails because of externalize().toString()
-                {"java.ref:\"(R::<T extends java.lang.Number> n)R<R::<T extends java.lang.Number>>\""}
-        };
-    }
-
-    @Test(dataProvider = "externalizedRecordTypeRefs")
-    public void testExternalizedRecordTypeRef(String rtds) {
-        TypeElement.ExternalizedTypeElement ertr = TypeElement.ExternalizedTypeElement.ofString(rtds);
-        RecordTypeRef rtr = (RecordTypeRef) CoreTypeFactory.CORE_TYPE_FACTORY.constructType(ertr);
-        Assert.assertEquals(rtr.externalize().toString(), rtds);
     }
 }

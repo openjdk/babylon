@@ -109,9 +109,10 @@ public final class ConstructorRefImpl implements ConstructorRef {
 
     @Override
     public String toString() {
-        return type.returnType() + "::" +
-            type.parameterTypes().stream().map(Object::toString)
-                    .collect(joining(", ", "(", ")"));
+        String params = type.parameterTypes().isEmpty() ?
+                "(void)" :
+                type.parameterTypes().stream().map(Object::toString).collect(joining(", ", "(", ")"));
+        return type.returnType() + "::" + params;
     }
 
     @Override

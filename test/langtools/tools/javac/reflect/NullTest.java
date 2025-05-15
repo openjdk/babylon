@@ -39,9 +39,9 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : java.type:"NullTest")java.type:"void" -> {
-                %1 : java.type:"java.lang.String" = constant @null;
-                %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
+            func @"test1" (%0 : NullTest)void -> {
+                %1 : java.lang.String = constant @null;
+                %2 : Var<java.lang.String> = var %1 @"s";
                 return;
             };
             """)
@@ -51,10 +51,10 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : java.type:"NullTest")java.type:"void" -> {
-                %1 : java.type:"java.lang.Object" = constant @null;
-                %2 : java.type:"java.lang.String" = cast %1 @"java.lang.String";
-                %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
+            func @"test2" (%0 : NullTest)void -> {
+                %1 : java.lang.Object = constant @null;
+                %2 : java.lang.String = cast %1 @"java.lang.String";
+                %3 : Var<java.lang.String> = var %2 @"s";
                 return;
             };
             """)
@@ -64,19 +64,19 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : java.type:"NullTest", %1 : java.type:"boolean")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"boolean"> = var %1 @"cond";
-                %3 : java.type:"java.lang.String" = java.cexpression
-                    ()java.type:"boolean" -> {
-                        %4 : java.type:"boolean" = var.load %2;
+            func @"test3" (%0 : NullTest, %1 : boolean)java.lang.String -> {
+                %2 : Var<boolean> = var %1 @"cond";
+                %3 : java.lang.String = java.cexpression
+                    ()boolean -> {
+                        %4 : boolean = var.load %2;
                         yield %4;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %5 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %5 : java.lang.String = constant @null;
                         yield %5;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %6 : java.type:"java.lang.String" = constant @"";
+                    ()java.lang.String -> {
+                        %6 : java.lang.String = constant @"";
                         yield %6;
                     };
                 return %3;
@@ -88,19 +88,19 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : java.type:"NullTest", %1 : java.type:"boolean")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"boolean"> = var %1 @"cond";
-                %3 : java.type:"java.lang.String" = java.cexpression
-                    ()java.type:"boolean" -> {
-                        %4 : java.type:"boolean" = var.load %2;
+            func @"test4" (%0 : NullTest, %1 : boolean)java.lang.String -> {
+                %2 : Var<boolean> = var %1 @"cond";
+                %3 : java.lang.String = java.cexpression
+                    ()boolean -> {
+                        %4 : boolean = var.load %2;
                         yield %4;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %5 : java.type:"java.lang.String" = constant @"";
+                    ()java.lang.String -> {
+                        %5 : java.lang.String = constant @"";
                         yield %5;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %6 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %6 : java.lang.String = constant @null;
                         yield %6;
                     };
                 return %3;
@@ -112,19 +112,19 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : java.type:"NullTest", %1 : java.type:"boolean")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"boolean"> = var %1 @"cond";
-                %3 : java.type:"java.lang.String" = java.cexpression
-                    ()java.type:"boolean" -> {
-                        %4 : java.type:"boolean" = var.load %2;
+            func @"test5" (%0 : NullTest, %1 : boolean)java.lang.String -> {
+                %2 : Var<boolean> = var %1 @"cond";
+                %3 : java.lang.String = java.cexpression
+                    ()boolean -> {
+                        %4 : boolean = var.load %2;
                         yield %4;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %5 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %5 : java.lang.String = constant @null;
                         yield %5;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %6 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %6 : java.lang.String = constant @null;
                         yield %6;
                     };
                 return %3;
@@ -136,22 +136,22 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test6" (%0 : java.type:"NullTest", %1 : java.type:"boolean")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"boolean"> = var %1 @"cond";
-                %3 : java.type:"java.lang.Object" = java.cexpression
-                    ()java.type:"boolean" -> {
-                        %4 : java.type:"boolean" = var.load %2;
+            func @"test6" (%0 : NullTest, %1 : boolean)java.lang.String -> {
+                %2 : Var<boolean> = var %1 @"cond";
+                %3 : java.lang.Object = java.cexpression
+                    ()boolean -> {
+                        %4 : boolean = var.load %2;
                         yield %4;
                     }
-                    ()java.type:"java.lang.Object" -> {
-                        %5 : java.type:"java.lang.Object" = constant @null;
+                    ()java.lang.Object -> {
+                        %5 : java.lang.Object = constant @null;
                         yield %5;
                     }
-                    ()java.type:"java.lang.Object" -> {
-                        %6 : java.type:"java.lang.Object" = constant @null;
+                    ()java.lang.Object -> {
+                        %6 : java.lang.Object = constant @null;
                         yield %6;
                     };
-                %7 : java.type:"java.lang.String" = cast %3 @"java.lang.String";
+                %7 : java.lang.String = cast %3 @"java.lang.String";
                 return %7;
             };
             """)
@@ -161,25 +161,25 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test7" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"int"> = var %1 @"cond";
-                %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"java.lang.String" = java.switch.expression %3
-                    (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
-                        %7 : java.type:"boolean" = eq %5 %6;
+            func @"test7" (%0 : NullTest, %1 : int)java.lang.String -> {
+                %2 : Var<int> = var %1 @"cond";
+                %3 : int = var.load %2;
+                %4 : java.lang.String = java.switch.expression %3
+                    (%5 : int)boolean -> {
+                        %6 : int = constant @"1";
+                        %7 : boolean = eq %5 %6;
                         yield %7;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %8 : java.type:"java.lang.String" = constant @"";
+                    ()java.lang.String -> {
+                        %8 : java.lang.String = constant @"";
                         yield %8;
                     }
-                    ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %9 : boolean = constant @"true";
                         yield %9;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %10 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %10 : java.lang.String = constant @null;
                         yield %10;
                     };
                 return %4;
@@ -194,25 +194,25 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test8" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"int"> = var %1 @"cond";
-                %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"java.lang.String" = java.switch.expression %3
-                    (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
-                        %7 : java.type:"boolean" = eq %5 %6;
+            func @"test8" (%0 : NullTest, %1 : int)java.lang.String -> {
+                %2 : Var<int> = var %1 @"cond";
+                %3 : int = var.load %2;
+                %4 : java.lang.String = java.switch.expression %3
+                    (%5 : int)boolean -> {
+                        %6 : int = constant @"1";
+                        %7 : boolean = eq %5 %6;
                         yield %7;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %8 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %8 : java.lang.String = constant @null;
                         yield %8;
                     }
-                    ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %9 : boolean = constant @"true";
                         yield %9;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %10 : java.type:"java.lang.String" = constant @"";
+                    ()java.lang.String -> {
+                        %10 : java.lang.String = constant @"";
                         yield %10;
                     };
                 return %4;
@@ -227,25 +227,25 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test9" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"int"> = var %1 @"cond";
-                %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"java.lang.String" = java.switch.expression %3
-                    (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
-                        %7 : java.type:"boolean" = eq %5 %6;
+            func @"test9" (%0 : NullTest, %1 : int)java.lang.String -> {
+                %2 : Var<int> = var %1 @"cond";
+                %3 : int = var.load %2;
+                %4 : java.lang.String = java.switch.expression %3
+                    (%5 : int)boolean -> {
+                        %6 : int = constant @"1";
+                        %7 : boolean = eq %5 %6;
                         yield %7;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %8 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %8 : java.lang.String = constant @null;
                         yield %8;
                     }
-                    ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %9 : boolean = constant @"true";
                         yield %9;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %10 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %10 : java.lang.String = constant @null;
                         yield %10;
                     };
                 return %4;
@@ -260,28 +260,28 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test10" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"int"> = var %1 @"cond";
-                %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"java.lang.Object" = java.switch.expression %3
-                    (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
-                        %7 : java.type:"boolean" = eq %5 %6;
+            func @"test10" (%0 : NullTest, %1 : int)java.lang.String -> {
+                %2 : Var<int> = var %1 @"cond";
+                %3 : int = var.load %2;
+                %4 : java.lang.Object = java.switch.expression %3
+                    (%5 : int)boolean -> {
+                        %6 : int = constant @"1";
+                        %7 : boolean = eq %5 %6;
                         yield %7;
                     }
-                    ()java.type:"java.lang.Object" -> {
-                        %8 : java.type:"java.lang.Object" = constant @null;
+                    ()java.lang.Object -> {
+                        %8 : java.lang.Object = constant @null;
                         yield %8;
                     }
-                    ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %9 : boolean = constant @"true";
                         yield %9;
                     }
-                    ()java.type:"java.lang.Object" -> {
-                        %10 : java.type:"java.lang.Object" = constant @null;
+                    ()java.lang.Object -> {
+                        %10 : java.lang.Object = constant @null;
                         yield %10;
                     };
-                %11 : java.type:"java.lang.String" = cast %4 @"java.lang.String";
+                %11 : java.lang.String = cast %4 @"java.lang.String";
                 return %11;
             };
             """)
@@ -294,25 +294,25 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test11" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"int"> = var %1 @"cond";
-                %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"java.lang.String" = java.switch.expression %3
-                    (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
-                        %7 : java.type:"boolean" = eq %5 %6;
+            func @"test11" (%0 : NullTest, %1 : int)java.lang.String -> {
+                %2 : Var<int> = var %1 @"cond";
+                %3 : int = var.load %2;
+                %4 : java.lang.String = java.switch.expression %3
+                    (%5 : int)boolean -> {
+                        %6 : int = constant @"1";
+                        %7 : boolean = eq %5 %6;
                         yield %7;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %8 : java.type:"java.lang.String" = constant @"";
+                    ()java.lang.String -> {
+                        %8 : java.lang.String = constant @"";
                         java.yield %8;
                     }
-                    ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %9 : boolean = constant @"true";
                         yield %9;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %10 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %10 : java.lang.String = constant @null;
                         java.yield %10;
                     };
                 return %4;
@@ -327,25 +327,25 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test12" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"int"> = var %1 @"cond";
-                %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"java.lang.String" = java.switch.expression %3
-                    (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
-                        %7 : java.type:"boolean" = eq %5 %6;
+            func @"test12" (%0 : NullTest, %1 : int)java.lang.String -> {
+                %2 : Var<int> = var %1 @"cond";
+                %3 : int = var.load %2;
+                %4 : java.lang.String = java.switch.expression %3
+                    (%5 : int)boolean -> {
+                        %6 : int = constant @"1";
+                        %7 : boolean = eq %5 %6;
                         yield %7;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %8 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %8 : java.lang.String = constant @null;
                         java.yield %8;
                     }
-                    ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %9 : boolean = constant @"true";
                         yield %9;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %10 : java.type:"java.lang.String" = constant @"";
+                    ()java.lang.String -> {
+                        %10 : java.lang.String = constant @"";
                         java.yield %10;
                     };
                 return %4;
@@ -360,25 +360,25 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test13" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"int"> = var %1 @"cond";
-                %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"java.lang.String" = java.switch.expression %3
-                    (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
-                        %7 : java.type:"boolean" = eq %5 %6;
+            func @"test13" (%0 : NullTest, %1 : int)java.lang.String -> {
+                %2 : Var<int> = var %1 @"cond";
+                %3 : int = var.load %2;
+                %4 : java.lang.String = java.switch.expression %3
+                    (%5 : int)boolean -> {
+                        %6 : int = constant @"1";
+                        %7 : boolean = eq %5 %6;
                         yield %7;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %8 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %8 : java.lang.String = constant @null;
                         java.yield %8;
                     }
-                    ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %9 : boolean = constant @"true";
                         yield %9;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %10 : java.type:"java.lang.String" = constant @null;
+                    ()java.lang.String -> {
+                        %10 : java.lang.String = constant @null;
                         java.yield %10;
                     };
                 return %4;
@@ -393,28 +393,28 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test14" (%0 : java.type:"NullTest", %1 : java.type:"int")java.type:"java.lang.String" -> {
-                %2 : Var<java.type:"int"> = var %1 @"cond";
-                %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"java.lang.Object" = java.switch.expression %3
-                    (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
-                        %7 : java.type:"boolean" = eq %5 %6;
+            func @"test14" (%0 : NullTest, %1 : int)java.lang.String -> {
+                %2 : Var<int> = var %1 @"cond";
+                %3 : int = var.load %2;
+                %4 : java.lang.Object = java.switch.expression %3
+                    (%5 : int)boolean -> {
+                        %6 : int = constant @"1";
+                        %7 : boolean = eq %5 %6;
                         yield %7;
                     }
-                    ()java.type:"java.lang.Object" -> {
-                        %8 : java.type:"java.lang.Object" = constant @null;
+                    ()java.lang.Object -> {
+                        %8 : java.lang.Object = constant @null;
                         java.yield %8;
                     }
-                    ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %9 : boolean = constant @"true";
                         yield %9;
                     }
-                    ()java.type:"java.lang.Object" -> {
-                        %10 : java.type:"java.lang.Object" = constant @null;
+                    ()java.lang.Object -> {
+                        %10 : java.lang.Object = constant @null;
                         java.yield %10;
                     };
-                %11 : java.type:"java.lang.String" = cast %4 @"java.lang.String";
+                %11 : java.lang.String = cast %4 @"java.lang.String";
                 return %11;
             };
             """)
@@ -427,9 +427,9 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test15" (%0 : java.type:"NullTest")java.type:"java.util.function.Supplier<java.lang.String>" -> {
-                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
-                    %2 : java.type:"java.lang.String" = constant @null;
+            func @"test15" (%0 : NullTest)java.util.function.Supplier<java.lang.String> -> {
+                %1 : java.util.function.Supplier<java.lang.String> = lambda ()java.lang.String -> {
+                    %2 : java.lang.String = constant @null;
                     return %2;
                 };
                 return %1;
@@ -443,9 +443,9 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test16" (%0 : java.type:"NullTest")java.type:"void" -> {
-                %1 : java.type:"java.lang.String" = constant @null;
-                invoke %1 @"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs="true";
+            func @"test16" (%0 : NullTest)void -> {
+                %1 : java.lang.String = constant @null;
+                invoke %1 @"NullTest::m(java.lang.String, [java.lang.String]):void" @invoke.kind="STATIC" @invoke.varargs="true";
                 return;
             };
             """)
@@ -455,10 +455,10 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test17" (%0 : java.type:"NullTest")java.type:"void" -> {
-                %1 : java.type:"java.lang.String" = constant @null;
-                %2 : java.type:"java.lang.String[]" = constant @null;
-                invoke %1 %2 @"NullTest::m(java.lang.String, java.lang.String[]):void";
+            func @"test17" (%0 : NullTest)void -> {
+                %1 : java.lang.String = constant @null;
+                %2 : [java.lang.String] = constant @null;
+                invoke %1 %2 @"NullTest::m(java.lang.String, [java.lang.String]):void";
                 return;
             };
             """)
@@ -468,11 +468,11 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test18" (%0 : java.type:"NullTest")java.type:"void" -> {
-                %1 : java.type:"java.lang.String" = constant @null;
-                %2 : java.type:"java.lang.String" = constant @null;
-                %3 : java.type:"java.lang.String" = constant @null;
-                invoke %1 %2 %3 @"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs="true";
+            func @"test18" (%0 : NullTest)void -> {
+                %1 : java.lang.String = constant @null;
+                %2 : java.lang.String = constant @null;
+                %3 : java.lang.String = constant @null;
+                invoke %1 %2 %3 @"NullTest::m(java.lang.String, [java.lang.String]):void" @invoke.kind="STATIC" @invoke.varargs="true";
                 return;
             };
             """)
@@ -486,9 +486,9 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test19" (%0 : java.type:"NullTest")java.type:"void" -> {
-                %1 : java.type:"java.lang.String" = constant @null;
-                %2 : java.type:"NullTest$Box" = new %1 @"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs="true";
+            func @"test19" (%0 : NullTest)void -> {
+                %1 : java.lang.String = constant @null;
+                %2 : NullTest$Box = new %1 @"NullTest$Box::(java.lang.String, [java.lang.String])" @new.varargs="true";
                 return;
             };
             """)
@@ -498,10 +498,10 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test20" (%0 : java.type:"NullTest")java.type:"void" -> {
-                %1 : java.type:"java.lang.String" = constant @null;
-                %2 : java.type:"java.lang.String[]" = constant @null;
-                %3 : java.type:"NullTest$Box" = new %1 %2 @"NullTest$Box::(java.lang.String, java.lang.String[])";
+            func @"test20" (%0 : NullTest)void -> {
+                %1 : java.lang.String = constant @null;
+                %2 : [java.lang.String] = constant @null;
+                %3 : NullTest$Box = new %1 %2 @"NullTest$Box::(java.lang.String, [java.lang.String])";
                 return;
             };
             """)
@@ -511,11 +511,11 @@ public class NullTest {
 
     @CodeReflection
     @IR("""
-            func @"test21" (%0 : java.type:"NullTest")java.type:"void" -> {
-                %1 : java.type:"java.lang.String" = constant @null;
-                %2 : java.type:"java.lang.String" = constant @null;
-                %3 : java.type:"java.lang.String" = constant @null;
-                %4 : java.type:"NullTest$Box" = new %1 %2 %3 @"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs="true";
+            func @"test21" (%0 : NullTest)void -> {
+                %1 : java.lang.String = constant @null;
+                %2 : java.lang.String = constant @null;
+                %3 : java.lang.String = constant @null;
+                %4 : NullTest$Box = new %1 %2 %3 @"NullTest$Box::(java.lang.String, [java.lang.String])" @new.varargs="true";
                 return;
             };
             """)

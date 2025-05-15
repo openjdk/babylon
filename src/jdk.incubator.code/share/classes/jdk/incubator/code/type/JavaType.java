@@ -170,7 +170,7 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
 
     @Override
     default ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(String.format("java.type:\"%s\"", this), List.of());
+        return DescParser.parseExTypeElem(toString());
     }
 
     /**
@@ -359,6 +359,6 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      * @return a Java type corresponding to the provided string representation
      */
     static JavaType ofString(String s) {
-        return (JavaType) DescParser.parseJavaType(s);
+        return (JavaType)CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(DescParser.parseExTypeElem(s));
     }
 }

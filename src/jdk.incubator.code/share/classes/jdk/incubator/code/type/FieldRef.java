@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.type;
 
+import jdk.incubator.code.parser.impl.DescParser;
 import jdk.incubator.code.type.impl.FieldRefImpl;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -63,6 +64,7 @@ public sealed interface FieldRef extends JavaRef
     }
 
     static FieldRef ofString(String s) {
-        return jdk.incubator.code.parser.impl.DescParser.parseFieldRef(s);
+        JavaTypeFactory javaTypeFactory = (JavaTypeFactory)CoreTypeFactory.JAVA_TYPE_FACTORY;
+        return (FieldRef) javaTypeFactory.constructRef(DescParser.parseExTypeElem(s));
     }
 }

@@ -86,17 +86,22 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
     @Override
     public String toString() {
         String prefix = enclosing != null ?
-                enclosing + "$":
+                enclosing + "::":
                 (!type.packageName().isEmpty() ?
                         type.packageName() + "." : "");
         String name = enclosing == null ?
                 type.displayName() :
-                type.displayName().substring(enclosing.type.displayName().length() + 1);
+                escape(type.displayName().substring(enclosing.type.displayName().length() + 1));
         String typeArgs = hasTypeArguments() ?
                 typeArguments().stream().map(JavaType::toString)
                         .collect(Collectors.joining(", ", "<", ">")) :
                 "";
         return String.format("%s%s%s", prefix, name, typeArgs);
+    }
+
+    static String escape(String s) {
+        return (!s.isEmpty() && Character.isDigit(s.charAt(0))) ?
+                "\"" + s + "\"" : s;
     }
 
     @Override

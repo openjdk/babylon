@@ -35,10 +35,10 @@ import jdk.incubator.code.CodeReflection;
 public class UnaryopTest {
     @CodeReflection
     @IR("""
-            func @"test" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : Var<java.type:"int"> = var %0 @"v";
-                %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"int" = neg %2;
+            func @"test" (%0 : int)int -> {
+                %1 : Var<int> = var %0 @"v";
+                %2 : int = var.load %1;
+                %3 : int = neg %2;
                 return %3;
             };
             """)
@@ -48,9 +48,9 @@ public class UnaryopTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : Var<java.type:"int"> = var %0 @"v";
-                %2 : java.type:"int" = var.load %1;
+            func @"test2" (%0 : int)int -> {
+                %1 : Var<int> = var %0 @"v";
+                %2 : int = var.load %1;
                 return %2;
             };
             """)
@@ -60,10 +60,10 @@ public class UnaryopTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : java.type:"int")java.type:"java.lang.Integer" -> {
-                %1 : Var<java.type:"int"> = var %0 @"v";
-                %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"java.lang.Integer" = invoke %2 @"java.lang.Integer::valueOf(int):java.lang.Integer";
+            func @"test3" (%0 : int)java.lang.Integer -> {
+                %1 : Var<int> = var %0 @"v";
+                %2 : int = var.load %1;
+                %3 : java.lang.Integer = invoke %2 @"java.lang.Integer::valueOf(int):java.lang.Integer";
                 return %3;
             };
             """)
@@ -74,11 +74,11 @@ public class UnaryopTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : java.type:"java.lang.Integer")java.type:"java.lang.Integer" -> {
-                %1 : Var<java.type:"java.lang.Integer"> = var %0 @"v";
-                %2 : java.type:"java.lang.Integer" = var.load %1;
-                %3 : java.type:"int" = invoke %2 @"java.lang.Integer::intValue():int";
-                %4 : java.type:"java.lang.Integer" = invoke %3 @"java.lang.Integer::valueOf(int):java.lang.Integer";
+            func @"test4" (%0 : java.lang.Integer)java.lang.Integer -> {
+                %1 : Var<java.lang.Integer> = var %0 @"v";
+                %2 : java.lang.Integer = var.load %1;
+                %3 : int = invoke %2 @"java.lang.Integer::intValue(void):int";
+                %4 : java.lang.Integer = invoke %3 @"java.lang.Integer::valueOf(int):java.lang.Integer";
                 return %4;
             };
             """)
@@ -89,10 +89,10 @@ public class UnaryopTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : Var<java.type:"int"> = var %0 @"v";
-                %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"int" = compl %2;
+            func @"test5" (%0 : int)int -> {
+                %1 : Var<int> = var %0 @"v";
+                %2 : int = var.load %1;
+                %3 : int = compl %2;
                 return %3;
             };
             """)
@@ -101,27 +101,27 @@ public class UnaryopTest {
     }
 
     @IR("""
-            func @"test6" (%0 : java.type:"byte")java.type:"void" -> {
-                %1 : Var<java.type:"byte"> = var %0 @"b";
-                %2 : java.type:"byte" = var.load %1;
-                %3 : java.type:"int" = constant @"1";
-                %4 : java.type:"byte" = conv %3;
-                %5 : java.type:"byte" = add %2 %4;
+            func @"test6" (%0 : byte)void -> {
+                %1 : Var<byte> = var %0 @"b";
+                %2 : byte = var.load %1;
+                %3 : int = constant @"1";
+                %4 : byte = conv %3;
+                %5 : byte = add %2 %4;
                 var.store %1 %5;
-                %6 : java.type:"byte" = var.load %1;
-                %7 : java.type:"int" = constant @"1";
-                %8 : java.type:"byte" = conv %7;
-                %9 : java.type:"byte" = sub %6 %8;
+                %6 : byte = var.load %1;
+                %7 : int = constant @"1";
+                %8 : byte = conv %7;
+                %9 : byte = sub %6 %8;
                 var.store %1 %9;
-                %10 : java.type:"byte" = var.load %1;
-                %11 : java.type:"int" = constant @"1";
-                %12 : java.type:"byte" = conv %11;
-                %13 : java.type:"byte" = add %10 %12;
+                %10 : byte = var.load %1;
+                %11 : int = constant @"1";
+                %12 : byte = conv %11;
+                %13 : byte = add %10 %12;
                 var.store %1 %13;
-                %14 : java.type:"byte" = var.load %1;
-                %15 : java.type:"int" = constant @"1";
-                %16 : java.type:"byte" = conv %15;
-                %17 : java.type:"byte" = sub %14 %16;
+                %14 : byte = var.load %1;
+                %15 : int = constant @"1";
+                %16 : byte = conv %15;
+                %17 : byte = sub %14 %16;
                 var.store %1 %17;
                 return;
             };
@@ -135,27 +135,27 @@ public class UnaryopTest {
     }
 
     @IR("""
-            func @"test7" (%0 : java.type:"short")java.type:"void" -> {
-                %1 : Var<java.type:"short"> = var %0 @"s";
-                %2 : java.type:"short" = var.load %1;
-                %3 : java.type:"int" = constant @"1";
-                %4 : java.type:"short" = conv %3;
-                %5 : java.type:"short" = add %2 %4;
+            func @"test7" (%0 : short)void -> {
+                %1 : Var<short> = var %0 @"s";
+                %2 : short = var.load %1;
+                %3 : int = constant @"1";
+                %4 : short = conv %3;
+                %5 : short = add %2 %4;
                 var.store %1 %5;
-                %6 : java.type:"short" = var.load %1;
-                %7 : java.type:"int" = constant @"1";
-                %8 : java.type:"short" = conv %7;
-                %9 : java.type:"short" = sub %6 %8;
+                %6 : short = var.load %1;
+                %7 : int = constant @"1";
+                %8 : short = conv %7;
+                %9 : short = sub %6 %8;
                 var.store %1 %9;
-                %10 : java.type:"short" = var.load %1;
-                %11 : java.type:"int" = constant @"1";
-                %12 : java.type:"short" = conv %11;
-                %13 : java.type:"short" = add %10 %12;
+                %10 : short = var.load %1;
+                %11 : int = constant @"1";
+                %12 : short = conv %11;
+                %13 : short = add %10 %12;
                 var.store %1 %13;
-                %14 : java.type:"short" = var.load %1;
-                %15 : java.type:"int" = constant @"1";
-                %16 : java.type:"short" = conv %15;
-                %17 : java.type:"short" = sub %14 %16;
+                %14 : short = var.load %1;
+                %15 : int = constant @"1";
+                %16 : short = conv %15;
+                %17 : short = sub %14 %16;
                 var.store %1 %17;
                 return;
             };

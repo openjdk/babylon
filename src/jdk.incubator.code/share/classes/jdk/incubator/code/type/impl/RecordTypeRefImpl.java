@@ -67,9 +67,8 @@ public final class RecordTypeRefImpl implements RecordTypeRef {
     @Override
     public String toString() {
         return components.stream()
-                .map(c -> c.type() + " " + c.name())
-                .collect(joining(", ", "(", ")")) +
-                recordType;
+                .map(c -> c.name() + " : " + c.type())
+                .collect(joining(", ", recordType + "(", ")"));
     }
 
     @Override

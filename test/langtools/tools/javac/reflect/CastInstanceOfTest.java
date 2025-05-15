@@ -38,13 +38,13 @@ public class CastInstanceOfTest {
 
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
-                %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
-                %3 : java.type:"java.lang.Object" = var.load %2;
-                %4 : java.type:"java.lang.String" = cast %3 @"java.lang.String";
-                %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
-                %6 : java.type:"java.lang.String" = var.load %5;
-                %7 : Var<java.type:"java.lang.String"> = var %6 @"ss";
+            func @"test1" (%0 : CastInstanceOfTest, %1 : java.lang.Object)void -> {
+                %2 : Var<java.lang.Object> = var %1 @"o";
+                %3 : java.lang.Object = var.load %2;
+                %4 : java.lang.String = cast %3 @"java.lang.String";
+                %5 : Var<java.lang.String> = var %4 @"s";
+                %6 : java.lang.String = var.load %5;
+                %7 : Var<java.lang.String> = var %6 @"ss";
                 return;
             };
             """)
@@ -55,15 +55,15 @@ public class CastInstanceOfTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
-                %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
-                %3 : java.type:"java.lang.Object" = var.load %2;
-                %4 : java.type:"java.util.List<java.lang.String>" = cast %3 @"java.util.List";
-                %5 : Var<java.type:"java.util.List<java.lang.String>"> = var %4 @"l";
-                %6 : java.type:"java.util.List<java.lang.String>" = var.load %5;
-                %7 : Var<java.type:"java.util.Collection<java.lang.String>"> = var %6 @"c1";
-                %8 : java.type:"java.util.List<java.lang.String>" = var.load %5;
-                %9 : Var<java.type:"java.util.Collection<java.lang.String>"> = var %8 @"c2";
+            func @"test2" (%0 : CastInstanceOfTest, %1 : java.lang.Object)void -> {
+                %2 : Var<java.lang.Object> = var %1 @"o";
+                %3 : java.lang.Object = var.load %2;
+                %4 : java.util.List<java.lang.String> = cast %3 @"java.util.List";
+                %5 : Var<java.util.List<java.lang.String>> = var %4 @"l";
+                %6 : java.util.List<java.lang.String> = var.load %5;
+                %7 : Var<java.util.Collection<java.lang.String>> = var %6 @"c1";
+                %8 : java.util.List<java.lang.String> = var.load %5;
+                %9 : Var<java.util.Collection<java.lang.String>> = var %8 @"c2";
                 return;
             };
             """)
@@ -75,12 +75,12 @@ public class CastInstanceOfTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.util.List<java.lang.String>")java.type:"void" -> {
-                %2 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l";
-                %3 : java.type:"java.util.List<java.lang.String>" = var.load %2;
-                %4 : Var<java.type:"java.util.List"> = var %3 @"raw";
-                %5 : java.type:"java.util.List" = var.load %4;
-                %6 : Var<java.type:"java.util.List<java.lang.Number>"> = var %5 @"ln";
+            func @"test3" (%0 : CastInstanceOfTest, %1 : java.util.List<java.lang.String>)void -> {
+                %2 : Var<java.util.List<java.lang.String>> = var %1 @"l";
+                %3 : java.util.List<java.lang.String> = var.load %2;
+                %4 : Var<java.util.List> = var %3 @"raw";
+                %5 : java.util.List = var.load %4;
+                %6 : Var<java.util.List<java.lang.Number>> = var %5 @"ln";
                 return;
             };
             """)
@@ -91,11 +91,11 @@ public class CastInstanceOfTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"int")java.type:"void" -> {
-                %2 : Var<java.type:"int"> = var %1 @"i";
-                %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"long" = conv %3;
-                %5 : Var<java.type:"long"> = var %4 @"l";
+            func @"test4" (%0 : CastInstanceOfTest, %1 : int)void -> {
+                %2 : Var<int> = var %1 @"i";
+                %3 : int = var.load %2;
+                %4 : long = conv %3;
+                %5 : Var<long> = var %4 @"l";
                 return;
             };
             """)
@@ -105,11 +105,11 @@ public class CastInstanceOfTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
-                %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
-                %3 : java.type:"java.lang.Object" = var.load %2;
-                %4 : java.type:"boolean" = instanceof %3 @"java.lang.String";
-                %5 : Var<java.type:"boolean"> = var %4 @"b";
+            func @"test5" (%0 : CastInstanceOfTest, %1 : java.lang.Object)void -> {
+                %2 : Var<java.lang.Object> = var %1 @"o";
+                %3 : java.lang.Object = var.load %2;
+                %4 : boolean = instanceof %3 @"java.lang.String";
+                %5 : Var<boolean> = var %4 @"b";
                 return;
             };
             """)
@@ -119,13 +119,13 @@ public class CastInstanceOfTest {
 
     @CodeReflection
     @IR("""
-            func @"test6" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.util.List<java.lang.Object>")java.type:"void" -> {
-                %2 : Var<java.type:"java.util.List<java.lang.Object>"> = var %1 @"l";
-                %3 : java.type:"java.util.List<java.lang.Object>" = var.load %2;
-                %4 : java.type:"int" = constant @"0";
-                %5 : java.type:"java.lang.Object" = invoke %3 %4 @"java.util.List::get(int):java.lang.Object";
-                %6 : java.type:"boolean" = instanceof %5 @"java.lang.String";
-                %7 : Var<java.type:"boolean"> = var %6 @"b";
+            func @"test6" (%0 : CastInstanceOfTest, %1 : java.util.List<java.lang.Object>)void -> {
+                %2 : Var<java.util.List<java.lang.Object>> = var %1 @"l";
+                %3 : java.util.List<java.lang.Object> = var.load %2;
+                %4 : int = constant @"0";
+                %5 : java.lang.Object = invoke %3 %4 @"java.util.List::get(int):java.lang.Object";
+                %6 : boolean = instanceof %5 @"java.lang.String";
+                %7 : Var<boolean> = var %6 @"b";
                 return;
             };
             """)

@@ -140,9 +140,10 @@ public final class MethodRefImpl implements MethodRef {
 
     @Override
     public String toString() {
-        return refType + "::" + name +
-            type.parameterTypes().stream().map(Object::toString)
-                    .collect(joining(", ", "(", ")")) + ":" + type.returnType();
+        String params = type.parameterTypes().isEmpty() ?
+                "(void)" :
+                type.parameterTypes().stream().map(Object::toString).collect(joining(", ", "(", ")"));
+        return refType + "::" + name + params + ":" + type.returnType();
     }
 
     @Override

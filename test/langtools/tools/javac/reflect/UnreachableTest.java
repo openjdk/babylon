@@ -40,8 +40,8 @@ public class UnreachableTest {
 
     @CodeReflection
     @IR("""
-            func @"test1" ()java.type:"void" -> {
-                java.block ()java.type:"void" -> {
+            func @"test1" ()void -> {
+                java.block ()void -> {
                     return;
                 };
                 unreachable;
@@ -55,10 +55,10 @@ public class UnreachableTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : Var<java.type:"int"> = var %0 @"i";
-                java.block ()java.type:"void" -> {
-                    %2 : java.type:"int" = var.load %1;
+            func @"test2" (%0 : int)int -> {
+                %1 : Var<int> = var %0 @"i";
+                java.block ()void -> {
+                    %2 : int = var.load %1;
                     return %2;
                 };
                 unreachable;
@@ -72,19 +72,19 @@ public class UnreachableTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : Var<java.type:"int"> = var %0 @"i";
+            func @"test3" (%0 : int)int -> {
+                %1 : Var<int> = var %0 @"i";
                 java.if
-                    ()java.type:"boolean" -> {
-                        %2 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %2 : boolean = constant @"true";
                         yield %2;
                     }
-                    ()java.type:"void" -> {
-                        %3 : java.type:"int" = var.load %1;
+                    ()void -> {
+                        %3 : int = var.load %1;
                         return %3;
                     }
-                    ()java.type:"void" -> {
-                        %4 : java.type:"int" = var.load %1;
+                    ()void -> {
+                        %4 : int = var.load %1;
                         return %4;
                     };
                 unreachable;
@@ -101,25 +101,25 @@ public class UnreachableTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" ()java.type:"void" -> {
-                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda (%1 : java.type:"int")java.type:"int" -> {
-                    %2 : Var<java.type:"int"> = var %1 @"i";
+            func @"test4" ()void -> {
+                %0 : java.util.function.IntUnaryOperator = lambda (%1 : int)int -> {
+                    %2 : Var<int> = var %1 @"i";
                     java.if
-                        ()java.type:"boolean" -> {
-                            %3 : java.type:"boolean" = constant @"true";
+                        ()boolean -> {
+                            %3 : boolean = constant @"true";
                             yield %3;
                         }
-                        ()java.type:"void" -> {
-                            %4 : java.type:"int" = var.load %2;
+                        ()void -> {
+                            %4 : int = var.load %2;
                             return %4;
                         }
-                        ()java.type:"void" -> {
-                            %5 : java.type:"int" = var.load %2;
+                        ()void -> {
+                            %5 : int = var.load %2;
                             return %5;
                         };
                     unreachable;
                 };
-                %6 : Var<java.type:"java.util.function.IntUnaryOperator"> = var %0 @"f";
+                %6 : Var<java.util.function.IntUnaryOperator> = var %0 @"f";
                 return;
             };
             """)
@@ -135,35 +135,35 @@ public class UnreachableTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : java.type:"int")java.type:"void" -> {
-                %1 : Var<java.type:"int"> = var %0 @"n";
-                %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"java.lang.String" = java.switch.expression %2
-                    (%4 : java.type:"int")java.type:"boolean" -> {
-                        %5 : java.type:"int" = constant @"42";
-                        %6 : java.type:"boolean" = eq %4 %5;
+            func @"test5" (%0 : int)void -> {
+                %1 : Var<int> = var %0 @"n";
+                %2 : int = var.load %1;
+                %3 : java.lang.String = java.switch.expression %2
+                    (%4 : int)boolean -> {
+                        %5 : int = constant @"42";
+                        %6 : boolean = eq %4 %5;
                         yield %6;
                     }
-                    ()java.type:"java.lang.String" -> {
+                    ()java.lang.String -> {
                         java.while
-                            ()java.type:"boolean" -> {
-                                %7 : java.type:"boolean" = constant @"true";
+                            ()boolean -> {
+                                %7 : boolean = constant @"true";
                                 yield %7;
                             }
-                            ()java.type:"void" -> {
+                            ()void -> {
                                 java.continue;
                             };
                         unreachable;
                     }
-                    ()java.type:"boolean" -> {
-                        %8 : java.type:"boolean" = constant @"true";
+                    ()boolean -> {
+                        %8 : boolean = constant @"true";
                         yield %8;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %9 : java.type:"java.lang.String" = constant @"";
+                    ()java.lang.String -> {
+                        %9 : java.lang.String = constant @"";
                         yield %9;
                     };
-                %10 : Var<java.type:"java.lang.String"> = var %3 @"s";
+                %10 : Var<java.lang.String> = var %3 @"s";
                 return;
             };
             """)
@@ -175,20 +175,20 @@ public class UnreachableTest {
     }
 
     @IR("""
-            func @"f" ()java.type:"void" -> {
-                %0 : java.type:"java.util.function.IntUnaryOperator" = lambda (%1 : java.type:"int")java.type:"int" -> {
-                    %2 : Var<java.type:"int"> = var %1 @"i";
+            func @"f" ()void -> {
+                %0 : java.util.function.IntUnaryOperator = lambda (%1 : int)int -> {
+                    %2 : Var<int> = var %1 @"i";
                     java.if
-                        ()java.type:"boolean" -> {
-                            %3 : java.type:"boolean" = constant @"true";
+                        ()boolean -> {
+                            %3 : boolean = constant @"true";
                             yield %3;
                         }
-                        ()java.type:"void" -> {
-                            %4 : java.type:"int" = var.load %2;
+                        ()void -> {
+                            %4 : int = var.load %2;
                             return %4;
                         }
-                        ()java.type:"void" -> {
-                            %5 : java.type:"int" = var.load %2;
+                        ()void -> {
+                            %5 : int = var.load %2;
                             return %5;
                         };
                     unreachable;
@@ -205,20 +205,20 @@ public class UnreachableTest {
     };
 
     @IR("""
-            func @"f" ()java.type:"void" -> {
-                %0 : func<java.type:"int", java.type:"int"> = closure (%1 : java.type:"int")java.type:"int" -> {
-                    %2 : Var<java.type:"int"> = var %1 @"i";
+            func @"f" ()void -> {
+                %0 : func<int, int> = closure (%1 : int)int -> {
+                    %2 : Var<int> = var %1 @"i";
                     java.if
-                        ()java.type:"boolean" -> {
-                            %3 : java.type:"boolean" = constant @"true";
+                        ()boolean -> {
+                            %3 : boolean = constant @"true";
                             yield %3;
                         }
-                        ()java.type:"void" -> {
-                            %4 : java.type:"int" = var.load %2;
+                        ()void -> {
+                            %4 : int = var.load %2;
                             return %4;
                         }
-                        ()java.type:"void" -> {
-                            %5 : java.type:"int" = var.load %2;
+                        ()void -> {
+                            %5 : int = var.load %2;
                             return %5;
                         };
                     unreachable;

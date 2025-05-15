@@ -1,6 +1,8 @@
 package jdk.incubator.code.type;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.parser.impl.DescParser;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -25,12 +27,12 @@ public final class VarType implements TypeElement {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, List.of(valueType.externalize()));
+        return DescParser.parseExTypeElem(toString());
     }
 
     @Override
     public String toString() {
-        return externalize().toString();
+        return NAME + "<" + valueType + ">";
     }
 
     @Override
