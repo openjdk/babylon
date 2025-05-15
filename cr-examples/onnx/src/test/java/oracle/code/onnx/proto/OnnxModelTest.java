@@ -30,6 +30,8 @@ import java.lang.foreign.ValueLayout;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Field;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -181,6 +183,9 @@ public class OnnxModelTest {
                 String opType = n.opType();
                 switch (opType) {
                     case "SimplifiedLayerNormalization" -> opType = "LayerNormalization"; // @@@ an old alias ? could not find the spec
+                }
+                if (n.domain() != null && !n.domain().isEmpty() && !n.domain().equals("ai.onnx")) {
+                    opType = n.domain() + "." + opType;
                 }
 
                 OnnxOp.OnnxSchema schema = ONNX_SCHEMA_REGISTRY.computeIfAbsent(opType, ot -> {throw new IllegalArgumentException("Unknown op type: " + ot);});
@@ -410,8 +415,8 @@ public class OnnxModelTest {
 //                System.out.println(model.toText());
                 var liftedModel = toFuncOp(model.graph());
 //                System.out.println(liftedModel.toText());
-                byte[] protoModel = OnnxProtoBuilder.build("whatever", CoreOp.module(liftedModel.op()), List.of());
-//                System.out.println(OnnxModel.readFrom(protoModel).toText());
+                byte[] protoModel = OnnxProtoBuilder.buildModel("com.microsoft", CoreOp.module(liftedModel.op()), List.of());
+                System.out.println(OnnxModel.readFrom(protoModel).toText());
                 try (Arena arena = Arena.ofConfined()) {
                     OnnxRuntime.getInstance().createSession(arena, protoModel);
                 }

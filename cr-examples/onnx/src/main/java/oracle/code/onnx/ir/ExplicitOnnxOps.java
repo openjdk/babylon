@@ -36,7 +36,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
     // @@@ this should be generated from contrib operators
     @OpFactory.OpDeclaration(GroupQueryAttention.NAME)
     public static final class GroupQueryAttention extends OnnxOp {
-        public static final String NAME = "GroupQueryAttention";
+        public static final String NAME = "com.microsoft.GroupQueryAttention";
 
         public enum Attribute implements OnnxAttribute {
             do_rotary(Long.class, true, 0),
@@ -230,7 +230,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
     // @@@ this should be generated from contrib operators
     @OpFactory.OpDeclaration(MatMulNBits.NAME)
     public static final class MatMulNBits extends OnnxOp {
-        public static final String NAME = "MatMulNBits";
+        public static final String NAME = "com.microsoft.MatMulNBits";
 
         public enum Attribute implements OnnxAttribute {
             K(Long.class, false, null),
@@ -405,7 +405,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
     // @@@ this should be generated from contrib operators
     @OpFactory.OpDeclaration(SkipSimplifiedLayerNormalization.NAME)
     public static final class SkipSimplifiedLayerNormalization extends OnnxOp {
-        public static final String NAME = "SkipSimplifiedLayerNormalization";
+        public static final String NAME = "com.microsoft.SkipSimplifiedLayerNormalization";
 
         public enum Attribute implements OnnxAttribute {
             epsilon(Float.class, true, null),
