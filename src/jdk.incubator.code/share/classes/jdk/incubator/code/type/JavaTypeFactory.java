@@ -153,9 +153,13 @@ class JavaTypeFactory implements TypeElementFactory {
 
     //    JavaRef:
     //        JavaType '::' ident ':' JavaType                      // field reference
-    //        JavaType '::' ident '(' JavaType* ')' ':' JavaType    // method reference
-    //        JavaType '::' '(' JavaType* ')'                       // constructor reference
+    //        JavaType '::' ident JavaRefParams ':' JavaType        // method reference
+    //        JavaType '::' JavaRefParams                           // constructor reference
     //        ident  '(' RecordComponent* ')'                       // record reference
+    //
+    //    JavaRefParams:
+    //        '(' JavaType* ')'
+    //        '( 'void' ')'
     //
     //    RecordComponent:
     //        ident ':' JavaType
