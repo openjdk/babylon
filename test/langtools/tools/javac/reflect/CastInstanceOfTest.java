@@ -123,7 +123,7 @@ public class CastInstanceOfTest {
                 %2 : Var<java.util.List<java.lang.Object>> = var %1 @"l";
                 %3 : java.util.List<java.lang.Object> = var.load %2;
                 %4 : int = constant @"0";
-                %5 : java.lang.Object = invoke %3 %4 @"java.util.List::get(int)java.lang.Object";
+                %5 : java.lang.Object = invoke %3 %4 @"java.util.List::get(int):java.lang.Object";
                 %6 : boolean = instanceof %5 @"java.lang.String";
                 %7 : Var<boolean> = var %6 @"b";
                 return;

@@ -36,7 +36,7 @@ import jdk.incubator.code.CodeReflection;
 public class QuotedTest {
     @IR("""
             func @"f" ()void -> {
-                 %0 : func<void> = closure ()void -> {
+                %0 : func<void> = closure ()void -> {
                     return;
                 };
                 return;
@@ -48,8 +48,8 @@ public class QuotedTest {
     @IR("""
             func @"f" ()void -> {
                 %0 : func<int> = closure ()int -> {
-                    %2 : int = constant @"1";
-                    return %2;
+                    %1 : int = constant @"1";
+                    return %1;
                 };
                 return;
             };
@@ -58,10 +58,10 @@ public class QuotedTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : func<int, int> = closure (%2 : int)int -> {
-                    %3 : Var<int> = var %2 @"x";
-                    %4 : int = var.load %3;
-                    return %4;
+                %0 : func<int, int> = closure (%1 : int)int -> {
+                    %2 : Var<int> = var %1 @"x";
+                    %3 : int = var.load %2;
+                    return %3;
                 };
                 return;
             };
@@ -70,13 +70,13 @@ public class QuotedTest {
 
     @IR("""
             func @"f" ()void -> {
-                %0 : func<int, int, int> = closure (%2 : int, %3 : int)int -> {
-                    %4 : Var<int> = var %2 @"x";
-                    %5 : Var<int> = var %3 @"y";
+                %0 : func<int, int, int> = closure (%1 : int, %2 : int)int -> {
+                    %3 : Var<int> = var %1 @"x";
+                    %4 : Var<int> = var %2 @"y";
+                    %5 : int = var.load %3;
                     %6 : int = var.load %4;
-                    %7 : int = var.load %5;
-                    %8 : int = add %6 %7;
-                    return %8;
+                    %7 : int = add %5 %6;
+                    return %7;
                 };
                 return;
             };
@@ -86,8 +86,8 @@ public class QuotedTest {
     @IR("""
             func @"f" ()void -> {
                 %0 : func<java.lang.Object> = closure ()java.lang.Object -> {
-                    %2 : java.lang.AssertionError = new @"java.lang.AssertionError::<new>()";
-                    throw %2;
+                    %1 : java.lang.AssertionError = new @"java.lang.AssertionError::(void)";
+                    throw %1;
                 };
                 return;
             };
@@ -99,13 +99,13 @@ public class QuotedTest {
     // can we write out the root op then extract the closure ?
 
     @IR("""
-            func @"f" (%1: Var<int>)void -> {
-                %0 : func<int, int> = closure (%4 : int)int -> {
-                    %5 : Var<int> = var %4 @"y";
-                    %6 : int = var.load %1;
-                    %7 : int = var.load %5;
-                    %8 : int = add %6 %7;
-                    return %8;
+            func @"f" (%0 : Var<int>)void -> {
+                %1 : func<int, int> = closure (%2 : int)int -> {
+                    %3 : Var<int> = var %2 @"y";
+                    %4 : int = var.load %0;
+                    %5 : int = var.load %3;
+                    %6 : int = add %4 %5;
+                    return %6;
                 };
                 return;
             };
@@ -126,14 +126,14 @@ public class QuotedTest {
 
     @IR("""
             func @"f" (%0 : QuotedTest$Context)void -> {
-                %1 : func<int, int> = closure (%3 : int)int -> {
-                    %4 : Var<int> = var %3 @"z";
-                    %5 : int = field.load %0 @"QuotedTest$Context::x()int";
-                    %6 : int = field.load %0 @"QuotedTest$Context::y()int";
-                    %7 : int = add %5 %6;
-                    %8 : int = var.load %4;
-                    %9 : int = add %7 %8;
-                    return %9;
+                %1 : func<int, int> = closure (%2 : int)int -> {
+                    %3 : Var<int> = var %2 @"z";
+                    %4 : int = field.load %0 @"QuotedTest$Context::x:int";
+                    %5 : int = field.load %0 @"QuotedTest$Context::y:int";
+                    %6 : int = add %4 %5;
+                    %7 : int = var.load %3;
+                    %8 : int = add %6 %7;
+                    return %8;
                 };
                 return;
             };
@@ -170,8 +170,8 @@ public class QuotedTest {
                 %1 : jdk.incubator.code.Quoted = quoted ()void -> {
                     %2 : func<int, int> = closure (%3 : int)int -> {
                         %4 : Var<int> = var %3 @"z";
-                        %5 : int = field.load %0 @"QuotedTest::x()int";
-                        %6 : int = field.load %0 @"QuotedTest::y()int";
+                        %5 : int = field.load %0 @"QuotedTest::x:int";
+                        %6 : int = field.load %0 @"QuotedTest::y:int";
                         %7 : int = add %5 %6;
                         %8 : int = var.load %4;
                         %9 : int = add %7 %8;

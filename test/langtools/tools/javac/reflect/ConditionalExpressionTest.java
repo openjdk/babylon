@@ -42,15 +42,15 @@ public class ConditionalExpressionTest {
                 %5 : Var<int> = var %2 @"x";
                 %6 : Var<int> = var %3 @"y";
                 %7 : int = java.cexpression
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %8 : boolean = var.load %4;
                         yield %8;
                     }
-                    ^truepart()int -> {
+                    ()int -> {
                         %9 : int = var.load %5;
                         yield %9;
                     }
-                    ^falsepart()int -> {
+                    ()int -> {
                         %10 : int = var.load %6;
                         yield %10;
                     };
@@ -69,17 +69,17 @@ public class ConditionalExpressionTest {
                 %5 : Var<int> = var %2 @"x";
                 %6 : Var<double> = var %3 @"y";
                 %7 : double = java.cexpression
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %8 : boolean = var.load %4;
                         %9 : boolean = not %8;
                         yield %9;
                     }
-                    ^truepart()double -> {
+                    ()double -> {
                         %10 : int = var.load %5;
                         %11 : double = conv %10;
                         yield %11;
                     }
-                    ^falsepart()double -> {
+                    ()double -> {
                         %12 : double = var.load %6;
                         yield %12;
                     };
@@ -98,23 +98,23 @@ public class ConditionalExpressionTest {
                 %5 : Var<int> = var %2 @"x";
                 %6 : Var<double> = var %3 @"y";
                 %7 : java.util.function.Supplier<java.lang.Double> = java.cexpression
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %8 : boolean = var.load %4;
                         yield %8;
                     }
-                    ^truepart()java.util.function.Supplier<java.lang.Double> -> {
+                    ()java.util.function.Supplier<java.lang.Double> -> {
                         %9 : java.util.function.Supplier<java.lang.Double> = lambda ()java.lang.Double -> {
                             %10 : int = var.load %5;
                             %11 : double = conv %10;
-                            %12 : java.lang.Double = invoke %11 @"java.lang.Double::valueOf(double)java.lang.Double";
+                            %12 : java.lang.Double = invoke %11 @"java.lang.Double::valueOf(double):java.lang.Double";
                             return %12;
                         };
                         yield %9;
                     }
-                    ^falsepart()java.util.function.Supplier<java.lang.Double> -> {
+                    ()java.util.function.Supplier<java.lang.Double> -> {
                         %13 : java.util.function.Supplier<java.lang.Double> = lambda ()java.lang.Double -> {
                             %14 : double = var.load %6;
-                            %15 : java.lang.Double = invoke %14 @"java.lang.Double::valueOf(double)java.lang.Double";
+                            %15 : java.lang.Double = invoke %14 @"java.lang.Double::valueOf(double):java.lang.Double";
                             return %15;
                         };
                         yield %13;
@@ -136,28 +136,28 @@ public class ConditionalExpressionTest {
                 %9 : Var<double> = var %4 @"y";
                 %10 : Var<double> = var %5 @"z";
                 %11 : double = java.cexpression
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %12 : boolean = var.load %6;
                         yield %12;
                     }
-                    ^truepart()double -> {
+                    ()double -> {
                         %13 : double = java.cexpression
-                            ^cond()boolean -> {
+                            ()boolean -> {
                                 %14 : boolean = var.load %7;
                                 yield %14;
                             }
-                            ^truepart()double -> {
+                            ()double -> {
                                 %15 : int = var.load %8;
                                 %16 : double = conv %15;
                                 yield %16;
                             }
-                            ^falsepart()double -> {
+                            ()double -> {
                                 %17 : double = var.load %9;
                                 yield %17;
                             };
                         yield %13;
                     }
-                    ^falsepart()double -> {
+                    ()double -> {
                         %18 : double = var.load %10;
                         yield %18;
                     };

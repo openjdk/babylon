@@ -39,8 +39,8 @@ public class NewArrayTest {
     @IR("""
             func @"test1" (%0 : NewArrayTest)void -> {
                 %1 : int = constant @"10";
-                %2 : int[] = new %1 @"int[]::<new>(int)";
-                %3 : Var<int[]> = var %2 @"a";
+                %2 : [int] = new %1 @"[int]::(int)";
+                %3 : Var<[int]> = var %2 @"a";
                 return;
             };
             """)
@@ -55,8 +55,8 @@ public class NewArrayTest {
                 %3 : int = var.load %2;
                 %4 : int = constant @"10";
                 %5 : int = add %3 %4;
-                %6 : int[] = new %5 @"int[]::<new>(int)";
-                %7 : Var<int[]> = var %6 @"a";
+                %6 : [int] = new %5 @"[int]::(int)";
+                %7 : Var<[int]> = var %6 @"a";
                 return;
             };
             """)
@@ -68,8 +68,8 @@ public class NewArrayTest {
     @IR("""
             func @"test3" (%0 : NewArrayTest)void -> {
                 %1 : int = constant @"10";
-                %2 : java.lang.String[] = new %1 @"java.lang.String[]::<new>(int)";
-                %3 : Var<java.lang.String[]> = var %2 @"a";
+                %2 : [java.lang.String] = new %1 @"[java.lang.String]::(int)";
+                %3 : Var<[java.lang.String]> = var %2 @"a";
                 return;
             };
             """)
@@ -81,8 +81,8 @@ public class NewArrayTest {
     @IR("""
             func @"test4" (%0 : NewArrayTest)void -> {
                 %1 : int = constant @"10";
-                %2 : java.lang.String[][] = new %1 @"java.lang.String[][]::<new>(int)";
-                %3 : Var<java.lang.String[][]> = var %2 @"a";
+                %2 : [[java.lang.String]] = new %1 @"[[java.lang.String]]::(int)";
+                %3 : Var<[[java.lang.String]]> = var %2 @"a";
                 return;
             };
             """)
@@ -95,8 +95,8 @@ public class NewArrayTest {
             func @"test5" (%0 : NewArrayTest)void -> {
                 %1 : int = constant @"10";
                 %2 : int = constant @"10";
-                %3 : java.lang.String[][] = new %1 %2 @"java.lang.String[][]::<new>(int, int)";
-                %4 : Var<java.lang.String[][]> = var %3 @"a";
+                %3 : [[java.lang.String]] = new %1 %2 @"[[java.lang.String]]::(int, int)";
+                %4 : Var<[[java.lang.String]]> = var %3 @"a";
                 return;
             };
             """)
@@ -108,9 +108,9 @@ public class NewArrayTest {
     @IR("""
             func @"test6" (%0 : NewArrayTest)void -> {
                 %1 : int = constant @"3";
-                %2 : java.lang.String[][] = new %1 @"java.lang.String[][]::<new>(int)";
+                %2 : [[java.lang.String]] = new %1 @"[[java.lang.String]]::(int)";
                 %3 : int = constant @"2";
-                %4 : java.lang.String[] = new %3 @"java.lang.String[]::<new>(int)";
+                %4 : [java.lang.String] = new %3 @"[java.lang.String]::(int)";
                 %5 : java.lang.String = constant @"one";
                 %6 : int = constant @"0";
                 array.store %4 %6 %5;
@@ -120,16 +120,16 @@ public class NewArrayTest {
                 %9 : int = constant @"0";
                 array.store %2 %9 %4;
                 %10 : int = constant @"1";
-                %11 : java.lang.String[] = new %10 @"java.lang.String[]::<new>(int)";
+                %11 : [java.lang.String] = new %10 @"[java.lang.String]::(int)";
                 %12 : java.lang.String = constant @"three";
                 %13 : int = constant @"0";
                 array.store %11 %13 %12;
                 %14 : int = constant @"1";
                 array.store %2 %14 %11;
-                %15 : java.lang.String[] = constant @null;
+                %15 : [java.lang.String] = constant @null;
                 %16 : int = constant @"2";
                 array.store %2 %16 %15;
-                %17 : Var<java.lang.String[][]> = var %2 @"a";
+                %17 : Var<[[java.lang.String]]> = var %2 @"a";
                 return;
             };
             """)
@@ -141,9 +141,9 @@ public class NewArrayTest {
     @IR("""
             func @"test7" (%0 : NewArrayTest)void -> {
                 %1 : int = constant @"3";
-                %2 : java.lang.String[][] = new %1 @"java.lang.String[][]::<new>(int)";
+                %2 : [[java.lang.String]] = new %1 @"[[java.lang.String]]::(int)";
                 %3 : int = constant @"2";
-                %4 : java.lang.String[] = new %3 @"java.lang.String[]::<new>(int)";
+                %4 : [java.lang.String] = new %3 @"[java.lang.String]::(int)";
                 %5 : java.lang.String = constant @"one";
                 %6 : int = constant @"0";
                 array.store %4 %6 %5;
@@ -153,16 +153,16 @@ public class NewArrayTest {
                 %9 : int = constant @"0";
                 array.store %2 %9 %4;
                 %10 : int = constant @"1";
-                %11 : java.lang.String[] = new %10 @"java.lang.String[]::<new>(int)";
+                %11 : [java.lang.String] = new %10 @"[java.lang.String]::(int)";
                 %12 : java.lang.String = constant @"three";
                 %13 : int = constant @"0";
                 array.store %11 %13 %12;
                 %14 : int = constant @"1";
                 array.store %2 %14 %11;
-                %15 : java.lang.String[] = constant @null;
+                %15 : [java.lang.String] = constant @null;
                 %16 : int = constant @"2";
                 array.store %2 %16 %15;
-                %17 : Var<java.lang.String[][]> = var %2 @"a";
+                %17 : Var<[[java.lang.String]]> = var %2 @"a";
                 return;
             };
             """)

@@ -45,13 +45,13 @@ public class TryTest {
                         var.store %2 %3;
                         yield;
                     }
-                    ^catch(%4 : java.lang.Exception)void -> {
+                    (%4 : java.lang.Exception)void -> {
                         %5 : Var<java.lang.Exception> = var %4 @"e";
                         %6 : int = constant @"2";
                         var.store %2 %6;
                         yield;
                     }
-                    ^finally()void -> {
+                    ()void -> {
                         %7 : int = constant @"3";
                         var.store %2 %7;
                         yield;
@@ -81,7 +81,7 @@ public class TryTest {
                         var.store %2 %3;
                         yield;
                     }
-                    ^finally()void -> {
+                    ()void -> {
                         %4 : int = constant @"3";
                         var.store %2 %4;
                         yield;
@@ -109,10 +109,10 @@ public class TryTest {
                         var.store %2 %3;
                         yield;
                     }
-                    ^catch(%4 : java.lang.Exception)void -> {
+                    (%4 : java.lang.Exception)void -> {
                         %5 : Var<java.lang.Exception> = var %4 @"e";
                         %6 : java.lang.Exception = var.load %5;
-                        invoke %6 @"java.lang.Exception::printStackTrace()void";
+                        invoke %6 @"java.lang.Exception::printStackTrace(void):void";
                         yield;
                     };
                 return;
@@ -165,14 +165,14 @@ public class TryTest {
     @IR("""
             func @"test4" (%0 : TryTest)void -> {
                 java.try
-                    ^resources()Tuple<Var<TryTest$A>, TryTest$B, Var<TryTest$C>> -> {
-                        %1 : TryTest$A = invoke %0 @"TryTest::a()TryTest$A";
+                    ()Tuple<Var<TryTest$A>, TryTest$B, Var<TryTest$C>> -> {
+                        %1 : TryTest$A = invoke %0 @"TryTest::a(void):TryTest$A";
                         %2 : Var<TryTest$A> = var %1 @"a";
                         %3 : TryTest$A = var.load %2;
-                        %4 : TryTest$B = field.load %3 @"TryTest$A::b()TryTest$B";
+                        %4 : TryTest$B = field.load %3 @"TryTest$A::b:TryTest$B";
                         %5 : TryTest$A = var.load %2;
-                        %6 : TryTest$B = field.load %5 @"TryTest$A::b()TryTest$B";
-                        %7 : TryTest$C = field.load %6 @"TryTest$B::c()TryTest$C";
+                        %6 : TryTest$B = field.load %5 @"TryTest$A::b:TryTest$B";
+                        %7 : TryTest$C = field.load %6 @"TryTest$B::c:TryTest$C";
                         %8 : Var<TryTest$C> = var %7 @"c";
                         %9 : Tuple<Var<TryTest$A>, TryTest$B, Var<TryTest$C>> = tuple %2 %4 %8;
                         yield %9;
@@ -184,16 +184,16 @@ public class TryTest {
                         %15 : Var<TryTest$C> = var %14 @"_c";
                         yield;
                     }
-                    ^catch(%16 : java.lang.Throwable)void -> {
+                    (%16 : java.lang.Throwable)void -> {
                         %17 : Var<java.lang.Throwable> = var %16 @"t";
                         %18 : java.lang.Throwable = var.load %17;
-                        invoke %18 @"java.lang.Throwable::printStackTrace()void";
+                        invoke %18 @"java.lang.Throwable::printStackTrace(void):void";
                         yield;
                     }
-                    ^finally()void -> {
-                        %19 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                    ()void -> {
+                        %19 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                         %20 : java.lang.String = constant @"F";
-                        invoke %19 %20 @"java.io.PrintStream::println(java.lang.String)void";
+                        invoke %19 %20 @"java.io.PrintStream::println(java.lang.String):void";
                         yield;
                     };
                 return;
@@ -221,13 +221,13 @@ public class TryTest {
                         var.store %2 %3;
                         yield;
                     }
-                    ^catch(%4 : java.lang.NullPointerException)void -> {
+                    (%4 : java.lang.NullPointerException)void -> {
                         %5 : Var<java.lang.NullPointerException> = var %4 @"e";
                         %6 : int = constant @"2";
                         var.store %2 %6;
                         yield;
                     }
-                    ^catch(%7 : java.lang.OutOfMemoryError)void -> {
+                    (%7 : java.lang.OutOfMemoryError)void -> {
                         %8 : Var<java.lang.OutOfMemoryError> = var %7 @"e";
                         %9 : int = constant @"3";
                         var.store %2 %9;
@@ -256,12 +256,12 @@ public class TryTest {
                     ()void -> {
                         return;
                     }
-                    ^catch(%3 : java.lang.Exception)void -> {
+                    (%3 : java.lang.Exception)void -> {
                         %4 : Var<java.lang.Exception> = var %3 @"e";
                         %5 : java.lang.Exception = var.load %4;
                         throw %5;
                     }
-                    ^finally()void -> {
+                    ()void -> {
                         return;
                     };
                 unreachable;

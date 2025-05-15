@@ -176,20 +176,20 @@ public class UnreachableTest {
 
     @IR("""
             func @"f" ()void -> {
-                %1 : java.util.function.IntUnaryOperator = lambda (%2 : int)int -> {
-                    %3 : Var<int> = var %2 @"i";
+                %0 : java.util.function.IntUnaryOperator = lambda (%1 : int)int -> {
+                    %2 : Var<int> = var %1 @"i";
                     java.if
                         ()boolean -> {
-                            %4 : boolean = constant @"true";
-                            yield %4;
+                            %3 : boolean = constant @"true";
+                            yield %3;
                         }
                         ()void -> {
-                            %5 : int = var.load %3;
+                            %4 : int = var.load %2;
+                            return %4;
+                        }
+                        ()void -> {
+                            %5 : int = var.load %2;
                             return %5;
-                        }
-                        ()void -> {
-                            %6 : int = var.load %3;
-                            return %6;
                         };
                     unreachable;
                 };
@@ -206,20 +206,20 @@ public class UnreachableTest {
 
     @IR("""
             func @"f" ()void -> {
-                %1 : func<int, int> = closure (%2 : int)int -> {
-                    %3 : Var<int> = var %2 @"i";
+                %0 : func<int, int> = closure (%1 : int)int -> {
+                    %2 : Var<int> = var %1 @"i";
                     java.if
                         ()boolean -> {
-                            %4 : boolean = constant @"true";
-                            yield %4;
+                            %3 : boolean = constant @"true";
+                            yield %3;
                         }
                         ()void -> {
-                            %5 : int = var.load %3;
+                            %4 : int = var.load %2;
+                            return %4;
+                        }
+                        ()void -> {
+                            %5 : int = var.load %2;
                             return %5;
-                        }
-                        ()void -> {
-                            %6 : int = var.load %3;
-                            return %6;
                         };
                     unreachable;
                 };

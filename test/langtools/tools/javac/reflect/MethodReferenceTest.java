@@ -49,7 +49,7 @@ public class MethodReferenceTest {
                 %1 : java.util.function.Consumer<java.lang.String> = lambda (%2 : java.lang.String)void -> {
                     %3 : Var<java.lang.String> = var %2 @"x$0";
                     %4 : java.lang.String = var.load %3;
-                    invoke %4 @"MethodReferenceTest::m_s(java.lang.String)void";
+                    invoke %4 @"MethodReferenceTest::m_s(java.lang.String):void";
                     return;
                 };
                 %5 : Var<java.util.function.Consumer<java.lang.String>> = var %1 @"c";
@@ -68,7 +68,7 @@ public class MethodReferenceTest {
                     %5 : Var<java.lang.String> = var %3 @"x$0";
                     %6 : MethodReferenceTest = var.load %4;
                     %7 : java.lang.String = var.load %5;
-                    invoke %6 %7 @"MethodReferenceTest::m(java.lang.String)void";
+                    invoke %6 %7 @"MethodReferenceTest::m(java.lang.String):void";
                     return;
                 };
                 %8 : Var<java.util.function.BiConsumer<MethodReferenceTest, java.lang.String>> = var %1 @"bc";
@@ -85,7 +85,7 @@ public class MethodReferenceTest {
                 %1 : java.util.function.Consumer<java.lang.String> = lambda (%2 : java.lang.String)void -> {
                     %3 : Var<java.lang.String> = var %2 @"x$0";
                     %4 : java.lang.String = var.load %3;
-                    invoke %0 %4 @"MethodReferenceTest::m(java.lang.String)void";
+                    invoke %0 %4 @"MethodReferenceTest::m(java.lang.String):void";
                     return;
                 };
                 %5 : Var<java.util.function.Consumer<java.lang.String>> = var %1 @"c";
@@ -106,13 +106,13 @@ public class MethodReferenceTest {
     @IR("""
             func @"test4" (%0 : MethodReferenceTest)void -> {
                 %1 : java.lang.String = constant @"s";
-                %2 : .<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> = invoke %0 %1 @"MethodReferenceTest::a(java.lang.Object).<MethodReferenceTest, MethodReferenceTest$A>";
-                %3 : Var<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>> = var %2 @"rec$";
+                %2 : MethodReferenceTest::A<java.lang.String> = invoke %0 %1 @"MethodReferenceTest::a(java.lang.Object):MethodReferenceTest::A";
+                %3 : Var<MethodReferenceTest::A<java.lang.String>> = var %2 @"rec$";
                 %4 : java.util.function.Function<java.lang.String, java.lang.String> = lambda (%5 : java.lang.String)java.lang.String -> {
                     %6 : Var<java.lang.String> = var %5 @"x$0";
-                    %7 : .<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> = var.load %3;
+                    %7 : MethodReferenceTest::A<java.lang.String> = var.load %3;
                     %8 : java.lang.String = var.load %6;
-                    %9 : java.lang.String = invoke %7 %8 @".<MethodReferenceTest, MethodReferenceTest$A>::m(java.lang.Object)java.lang.Object";
+                    %9 : java.lang.String = invoke %7 %8 @"MethodReferenceTest::A::m(java.lang.Object):java.lang.Object";
                     return %9;
                 };
                 %10 : Var<java.util.function.Function<java.lang.String, java.lang.String>> = var %4 @"f";
@@ -126,13 +126,13 @@ public class MethodReferenceTest {
     @CodeReflection
     @IR("""
             func @"test5" (%0 : MethodReferenceTest)void -> {
-                %1 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                %1 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                 %2 : Var<java.io.PrintStream> = var %1 @"rec$";
                 %3 : java.util.function.Consumer<java.lang.String> = lambda (%4 : java.lang.String)void -> {
                     %5 : Var<java.lang.String> = var %4 @"x$0";
                     %6 : java.io.PrintStream = var.load %2;
                     %7 : java.lang.String = var.load %5;
-                    invoke %6 %7 @"java.io.PrintStream::println(java.lang.String)void";
+                    invoke %6 %7 @"java.io.PrintStream::println(java.lang.String):void";
                     return;
                 };
                 %8 : Var<java.util.function.Consumer<java.lang.String>> = var %3 @"c3";
@@ -153,8 +153,8 @@ public class MethodReferenceTest {
                 %1 : java.util.function.Function<java.lang.Integer, MethodReferenceTest$X> = lambda (%2 : java.lang.Integer)MethodReferenceTest$X -> {
                     %3 : Var<java.lang.Integer> = var %2 @"x$0";
                     %4 : java.lang.Integer = var.load %3;
-                    %5 : int = invoke %4 @"java.lang.Integer::intValue()int";
-                    %6 : MethodReferenceTest$X = new %5 @"MethodReferenceTest$X::<new>(int)";
+                    %5 : int = invoke %4 @"java.lang.Integer::intValue(void):int";
+                    %6 : MethodReferenceTest$X = new %5 @"MethodReferenceTest$X::(int)";
                     return %6;
                 };
                 %7 : Var<java.util.function.Function<java.lang.Integer, MethodReferenceTest$X>> = var %1 @"xNew";
@@ -168,11 +168,11 @@ public class MethodReferenceTest {
     @CodeReflection
     @IR("""
             func @"test7" (%0 : MethodReferenceTest)void -> {
-                %1 : java.util.function.Supplier<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>> = lambda ().<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> -> {
-                    %2 : .<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>> = new %0 @".<MethodReferenceTest, MethodReferenceTest$A>::<new>(MethodReferenceTest)";
+                %1 : java.util.function.Supplier<MethodReferenceTest::A<java.lang.String>> = lambda ()MethodReferenceTest::A<java.lang.String> -> {
+                    %2 : MethodReferenceTest::A<java.lang.String> = new %0 @"MethodReferenceTest::A::(MethodReferenceTest)";
                     return %2;
                 };
-                %3 : Var<java.util.function.Supplier<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>>> = var %1 @"aNew";
+                %3 : Var<java.util.function.Supplier<MethodReferenceTest::A<java.lang.String>>> = var %1 @"aNew";
                 return;
             };
             """)
@@ -183,13 +183,13 @@ public class MethodReferenceTest {
     @CodeReflection
     @IR("""
             func @"test8" (%0 : MethodReferenceTest)void -> {
-                %1 : java.util.function.IntFunction<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>[]> = lambda (%2 : int).<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>[] -> {
+                %1 : java.util.function.IntFunction<[MethodReferenceTest::A<java.lang.String>]> = lambda (%2 : int)[MethodReferenceTest::A<java.lang.String>] -> {
                     %3 : Var<int> = var %2 @"x$0";
                     %4 : int = var.load %3;
-                    %5 : .<MethodReferenceTest, MethodReferenceTest$A>[] = new %4 @".<MethodReferenceTest, MethodReferenceTest$A>[]::<new>(int)";
+                    %5 : [MethodReferenceTest::A] = new %4 @"[MethodReferenceTest::A]::(int)";
                     return %5;
                 };
-                %6 : Var<java.util.function.IntFunction<.<MethodReferenceTest, MethodReferenceTest$A<java.lang.String>>[]>> = var %1 @"aNewArray";
+                %6 : Var<java.util.function.IntFunction<[MethodReferenceTest::A<java.lang.String>]>> = var %1 @"aNewArray";
                 return;
             };
             """)

@@ -44,11 +44,11 @@ public class PatternsTest {
                 %4 : java.lang.String = constant @null;
                 %5 : Var<java.lang.String> = var %4 @"s";
                 %6 : boolean = pattern.match %3
-                    ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                    ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
                         %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                         yield %7;
                     }
-                    ^match(%8 : java.lang.String)void -> {
+                    (%8 : java.lang.String)void -> {
                         var.store %5 %8;
                         yield;
                     };
@@ -70,21 +70,21 @@ public class PatternsTest {
                     ()boolean -> {
                         %5 : java.lang.Object = var.load %2;
                         %6 : boolean = pattern.match %5
-                            ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                            ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
                                 %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %7;
                             }
-                            ^match(%8 : java.lang.String)void -> {
+                            (%8 : java.lang.String)void -> {
                                 var.store %4 %8;
                                 yield;
                             };
                         yield %6;
                     }
-                    ^then()void -> {
+                    ()void -> {
                         %9 : java.lang.String = var.load %4;
                         return %9;
                     }
-                    ^else()void -> {
+                    ()void -> {
                         %10 : java.lang.String = constant @"";
                         return %10;
                     };
@@ -109,22 +109,22 @@ public class PatternsTest {
                     ()boolean -> {
                         %5 : java.lang.Object = var.load %2;
                         %6 : boolean = pattern.match %5
-                            ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                            ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
                                 %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %7;
                             }
-                            ^match(%8 : java.lang.String)void -> {
+                            (%8 : java.lang.String)void -> {
                                 var.store %4 %8;
                                 yield;
                             };
                         %9 : boolean = not %6;
                         yield %9;
                     }
-                    ^then()void -> {
+                    ()void -> {
                         %10 : java.lang.String = constant @"";
                         return %10;
                     }
-                    ^else()void -> {
+                    ()void -> {
                         yield;
                     };
                 %11 : java.lang.String = var.load %4;
@@ -167,15 +167,15 @@ public class PatternsTest {
                     ()boolean -> {
                         %9 : PatternsTest$Rectangle = var.load %2;
                         %10 : boolean = pattern.match %9
-                            ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> -> {
+                            ()jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> -> {
                                 %11 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$ConcretePoint> = pattern.type @"p";
                                 %12 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$Color> = pattern.type @"c";
-                                %13 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$ColoredPoint> = pattern.record %11 %12 @"(PatternsTest$ConcretePoint p, PatternsTest$Color c)PatternsTest$ColoredPoint";
+                                %13 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$ColoredPoint> = pattern.record %11 %12 @"PatternsTest$ColoredPoint(p : PatternsTest$ConcretePoint, c : PatternsTest$Color)";
                                 %14 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$ColoredPoint> = pattern.type @"lr";
-                                %15 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> = pattern.record %13 %14 @"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
+                                %15 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> = pattern.record %13 %14 @"PatternsTest$Rectangle(upperLeft : PatternsTest$Point, lowerRight: PatternsTest$Point)";
                                 yield %15;
                             }
-                            ^match(%16 : PatternsTest$ConcretePoint, %17 : PatternsTest$Color, %18 : PatternsTest$ColoredPoint)void -> {
+                            (%16 : PatternsTest$ConcretePoint, %17 : PatternsTest$Color, %18 : PatternsTest$ColoredPoint)void -> {
                                 var.store %4 %16;
                                 var.store %6 %17;
                                 var.store %8 %18;
@@ -183,22 +183,22 @@ public class PatternsTest {
                             };
                         yield %10;
                     }
-                    ^then()void -> {
-                        %19 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                    ()void -> {
+                        %19 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                         %20 : PatternsTest$ConcretePoint = var.load %4;
-                        invoke %19 %20 @"java.io.PrintStream::println(java.lang.Object)void";
-                        %21 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                        invoke %19 %20 @"java.io.PrintStream::println(java.lang.Object):void";
+                        %21 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                         %22 : PatternsTest$Color = var.load %6;
-                        invoke %21 %22 @"java.io.PrintStream::println(java.lang.Object)void";
-                        %23 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                        invoke %21 %22 @"java.io.PrintStream::println(java.lang.Object):void";
+                        %23 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                         %24 : PatternsTest$ColoredPoint = var.load %8;
-                        invoke %23 %24 @"java.io.PrintStream::println(java.lang.Object)void";
+                        invoke %23 %24 @"java.io.PrintStream::println(java.lang.Object):void";
                         yield;
                     }
-                    ^else()void -> {
-                        %25 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                    ()void -> {
+                        %25 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                         %26 : java.lang.String = constant @"NO MATCH";
-                        invoke %25 %26 @"java.io.PrintStream::println(java.lang.String)void";
+                        invoke %25 %26 @"java.io.PrintStream::println(java.lang.String):void";
                         yield;
                     };
                 return;
@@ -225,23 +225,23 @@ public class PatternsTest {
                 %3 : java.lang.String = constant @null;
                 %4 : Var<java.lang.String> = var %3 @"s";
                 java.while
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %5 : java.lang.Object = var.load %2;
                         %6 : boolean = pattern.match %5
-                            ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                            ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
                                 %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %7;
                             }
-                            ^match(%8 : java.lang.String)void -> {
+                            (%8 : java.lang.String)void -> {
                                 var.store %4 %8;
                                 yield;
                             };
                         yield %6;
                     }
-                    ^body()void -> {
-                        %9 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                    ()void -> {
+                        %9 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                         %10 : java.lang.String = var.load %4;
-                        invoke %9 %10 @"java.io.PrintStream::println(java.lang.String)void";
+                        invoke %9 %10 @"java.io.PrintStream::println(java.lang.String):void";
                         java.continue;
                     };
                 return;
@@ -260,26 +260,26 @@ public class PatternsTest {
                 %3 : java.lang.String = constant @null;
                 %4 : Var<java.lang.String> = var %3 @"s";
                 java.do.while
-                    ^body()void -> {
+                    ()void -> {
                         java.continue;
                     }
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %5 : java.lang.Object = var.load %2;
                         %6 : boolean = pattern.match %5
-                            ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                            ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
                                 %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type @"s";
                                 yield %7;
                             }
-                            ^match(%8 : java.lang.String)void -> {
+                            (%8 : java.lang.String)void -> {
                                 var.store %4 %8;
                                 yield;
                             };
                         %9 : boolean = not %6;
                         yield %9;
                     };
-                %10 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                %10 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                 %11 : java.lang.String = var.load %4;
-                invoke %10 %11 @"java.io.PrintStream::println(java.lang.String)void";
+                invoke %10 %11 @"java.io.PrintStream::println(java.lang.String):void";
                 return;
             };
             """)
@@ -297,12 +297,12 @@ public class PatternsTest {
                 %3 : java.lang.Number = constant @null;
                 %4 : Var<java.lang.Number> = var %3 @"n";
                 java.for
-                    ^init()Var<int> -> {
+                    ()Var<int> -> {
                         %5 : int = constant @"0";
                         %6 : Var<int> = var %5 @"i";
                         yield %6;
                     }
-                    ^cond(%7 : Var<int>)boolean -> {
+                    (%7 : Var<int>)boolean -> {
                         %8 : boolean = java.cand
                             ()boolean -> {
                                 %9 : int = var.load %7;
@@ -313,11 +313,11 @@ public class PatternsTest {
                             ()boolean -> {
                                 %12 : java.lang.Object = var.load %2;
                                 %13 : boolean = pattern.match %12
-                                    ^pattern()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number> -> {
+                                    ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number> -> {
                                         %14 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number> = pattern.type @"n";
                                         yield %14;
                                     }
-                                    ^match(%15 : java.lang.Number)void -> {
+                                    (%15 : java.lang.Number)void -> {
                                         var.store %4 %15;
                                         yield;
                                     };
@@ -325,18 +325,18 @@ public class PatternsTest {
                             };
                         yield %8;
                     }
-                    ^update(%16 : Var<int>)void -> {
+                    (%16 : Var<int>)void -> {
                         %17 : int = var.load %16;
                         %18 : java.lang.Number = var.load %4;
-                        %19 : int = invoke %18 @"java.lang.Number::intValue()int";
+                        %19 : int = invoke %18 @"java.lang.Number::intValue(void):int";
                         %20 : int = add %17 %19;
                         var.store %16 %20;
                         yield;
                     }
-                    ^body(%21 : Var<int>)void -> {
-                        %22 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                    (%21 : Var<int>)void -> {
+                        %22 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                         %23 : java.lang.Number = var.load %4;
-                        invoke %22 %23 @"java.io.PrintStream::println(java.lang.Object)void";
+                        invoke %22 %23 @"java.io.PrintStream::println(java.lang.Object):void";
                         java.continue;
                     };
                 return;
@@ -351,20 +351,20 @@ public class PatternsTest {
 
     @IR("""
             func @"test8" (%0 : PatternsTest, %1 : java.lang.Object)boolean -> {
-                   %2 : Var<java.lang.Object> = var %1 @"o";
-                   %3 : java.lang.Object = var.load %2;
-                   %4 : java.lang.String = constant @null;
-                   %5 : Var<java.lang.String> = var %4;
-                   %6 : boolean = pattern.match %3
-                       ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
-                           %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type;
-                           yield %7;
-                       }
-                       (%8 : java.lang.String)void -> {
-                           var.store %5 %8;
-                           yield;
-                       };
-                   return %6;
+                %2 : Var<java.lang.Object> = var %1 @"o";
+                %3 : java.lang.Object = var.load %2;
+                %4 : java.lang.String = constant @null;
+                %5 : Var<java.lang.String> = var %4;
+                %6 : boolean = pattern.match %3
+                    ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> -> {
+                        %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String> = pattern.type;
+                        yield %7;
+                    }
+                    (%8 : java.lang.String)void -> {
+                        var.store %5 %8;
+                        yield;
+                    };
+                return %6;
             };
             """)
     @CodeReflection
@@ -382,7 +382,7 @@ public class PatternsTest {
                     ()jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> -> {
                         %7 : jdk.incubator.code.op.ExtendedOp$Pattern$MatchAll = pattern.match.all;
                         %8 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$ConcretePoint> = pattern.type @"cp";
-                        %9 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> = pattern.record %7 %8 @"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
+                        %9 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle> = pattern.record %7 %8 @"PatternsTest$Rectangle(upperLeft : PatternsTest$Point, lowerRight : PatternsTest$Point)";
                         yield %9;
                     }
                     (%10 : PatternsTest$ConcretePoint)void -> {
@@ -399,22 +399,22 @@ public class PatternsTest {
 
     @IR("""
             func @"test10" (%0 : int)boolean -> {
-                  %1 : Var<int> = var %0 @"i";
-                  %2 : int = var.load %1;
-                  %3 : int = constant @"0";
-                  %4 : byte = conv %3;
-                  %5 : Var<byte> = var %4 @"b";
-                  %6 : boolean = pattern.match %2
-                      ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<byte> -> {
-                          %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<byte> = pattern.type @"b";
-                          yield %7;
-                      }
-                      (%8 : byte)void -> {
-                          var.store %5 %8;
-                          yield;
-                      };
-                  return %6;
-              };
+                %1 : Var<int> = var %0 @"i";
+                %2 : int = var.load %1;
+                %3 : int = constant @"0";
+                %4 : byte = conv %3;
+                %5 : Var<byte> = var %4 @"b";
+                %6 : boolean = pattern.match %2
+                    ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<byte> -> {
+                        %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<byte> = pattern.type @"b";
+                        yield %7;
+                    }
+                    (%8 : byte)void -> {
+                        var.store %5 %8;
+                        yield;
+                    };
+                return %6;
+            };
             """)
     @CodeReflection
     static boolean test10(int i) {
@@ -423,22 +423,22 @@ public class PatternsTest {
 
     @IR("""
             func @"test11" (%0 : int)boolean -> {
-                  %1 : Var<int> = var %0 @"i";
-                  %2 : int = var.load %1;
-                  %3 : int = constant @"0";
-                  %4 : short = conv %3;
-                  %5 : Var<short> = var %4 @"s";
-                  %6 : boolean = pattern.match %2
-                      ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<short> -> {
-                          %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<short> = pattern.type @"s";
-                          yield %7;
-                      }
-                      (%8 : short)void -> {
-                          var.store %5 %8;
-                          yield;
-                      };
-                  return %6;
-              };
+                %1 : Var<int> = var %0 @"i";
+                %2 : int = var.load %1;
+                %3 : int = constant @"0";
+                %4 : short = conv %3;
+                %5 : Var<short> = var %4 @"s";
+                %6 : boolean = pattern.match %2
+                    ()jdk.incubator.code.op.ExtendedOp$Pattern$Type<short> -> {
+                        %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<short> = pattern.type @"s";
+                        yield %7;
+                    }
+                    (%8 : short)void -> {
+                        var.store %5 %8;
+                        yield;
+                    };
+                return %6;
+            };
             """)
     @CodeReflection
     static boolean test11(int i) {

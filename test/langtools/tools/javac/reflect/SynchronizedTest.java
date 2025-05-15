@@ -69,7 +69,7 @@ public class SynchronizedTest {
                 %2 : Var<int> = var %1 @"i";
                 java.synchronized
                     ()java.lang.Object -> {
-                        %3 : java.lang.Object = invoke @"SynchronizedTest::m()java.lang.Object";
+                        %3 : java.lang.Object = invoke @"SynchronizedTest::m(void):java.lang.Object";
                         yield %3;
                     }
                     ()void -> {

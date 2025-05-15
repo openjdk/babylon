@@ -71,16 +71,16 @@ public class LocalVarTest {
     @CodeReflection
     @IR("""
             func @"test3" (%0 : LocalVarTest)int -> {
-                %2 : Var<int> = var @"x";
-                %4 : Var<int> = var @"y";
-                %5 : int = constant @"1";
-                var.store %2 %5;
-                %6 : int = constant @"2";
-                var.store %4 %6;
-                %7 : int = var.load %2;
-                %8 : int = var.load %4;
-                %9 : int = add %7 %8;
-                return %9;
+                %1 : Var<int> = var @"x";
+                %2 : Var<int> = var @"y";
+                %3 : int = constant @"1";
+                var.store %1 %3;
+                %4 : int = constant @"2";
+                var.store %2 %4;
+                %5 : int = var.load %1;
+                %6 : int = var.load %2;
+                %7 : int = add %5 %6;
+                return %7;
             };
             """)
     int test3() {

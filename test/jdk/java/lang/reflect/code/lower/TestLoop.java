@@ -35,8 +35,8 @@ import jdk.incubator.code.CodeReflection;
 public class TestLoop {
     @CodeReflection
     @LoweredModel(value = """
-            func @"testFor" (%0 : int[])int -> {
-                %1 : Var<int[]> = var %0 @"a";
+            func @"testFor" (%0 : [int])int -> {
+                %1 : Var<[int]> = var %0 @"a";
                 %2 : int = constant @"0";
                 %3 : Var<int> = var %2 @"sum";
                 %4 : int = constant @"0";
@@ -45,14 +45,14 @@ public class TestLoop {
 
               ^block_0:
                 %6 : int = var.load %5;
-                %7 : int[] = var.load %1;
+                %7 : [int] = var.load %1;
                 %8 : int = array.length %7;
                 %9 : boolean = lt %6 %8;
                 cbranch %9 ^block_1 ^block_2;
 
               ^block_1:
                 %10 : int = var.load %3;
-                %11 : int[] = var.load %1;
+                %11 : [int] = var.load %1;
                 %12 : int = var.load %5;
                 %13 : int = array.load %11 %12;
                 %14 : int = add %10 %13;
@@ -81,7 +81,7 @@ public class TestLoop {
 
     @CodeReflection
     @LoweredModel(value = """
-            func @"testForSSA" (%0 : int[])int -> {
+            func @"testForSSA" (%0 : [int])int -> {
                 %1 : int = constant @"0";
                 %2 : int = constant @"0";
                 branch ^block_1(%2, %1);

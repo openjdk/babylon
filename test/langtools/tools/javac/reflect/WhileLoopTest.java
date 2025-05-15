@@ -39,16 +39,16 @@ public class WhileLoopTest {
                 %1 : int = constant @"0";
                 %2 : Var<int> = var %1 @"i";
                 java.while
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %3 : int = var.load %2;
                         %4 : int = constant @"10";
                         %5 : boolean = lt %3 %4;
                         yield %5;
                     }
-                    ^body()void -> {
-                        %6 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                    ()void -> {
+                        %6 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                         %7 : int = var.load %2;
-                        invoke %6 %7 @"java.io.PrintStream::println(int)void";
+                        invoke %6 %7 @"java.io.PrintStream::println(int):void";
                         %8 : int = var.load %2;
                         %9 : int = constant @"1";
                         %10 : int = add %8 %9;
@@ -69,21 +69,21 @@ public class WhileLoopTest {
     @CodeReflection
     @IR("""
             func @"test2" (%0 : WhileLoopTest)int -> {
-              %1 : int = constant @"0";
-              %2 : Var<int> = var %1 @"i";
-              java.while
-                  ^cond()boolean -> {
-                      %3 : int = var.load %2;
-                      %4 : int = constant @"10";
-                      %5 : boolean = lt %3 %4;
-                      yield %5;
-                  }
-                  ^body()void -> {
-                      %6 : int = var.load %2;
-                      return %6;
-                  };
-              %7 : int = constant @"-1";
-              return %7;
+                %1 : int = constant @"0";
+                %2 : Var<int> = var %1 @"i";
+                java.while
+                    ()boolean -> {
+                        %3 : int = var.load %2;
+                        %4 : int = constant @"10";
+                        %5 : boolean = lt %3 %4;
+                        yield %5;
+                    }
+                    ()void -> {
+                        %6 : int = var.load %2;
+                        return %6;
+                    };
+                %7 : int = constant @"-1";
+                return %7;
             };
             """)
     int test2() {
@@ -100,17 +100,17 @@ public class WhileLoopTest {
                 %1 : int = constant @"0";
                 %2 : Var<int> = var %1 @"i";
                 java.do.while
-                    ^body()void -> {
-                        %3 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
+                    ()void -> {
+                        %3 : java.io.PrintStream = field.load @"java.lang.System::out:java.io.PrintStream";
                         %4 : int = var.load %2;
-                        invoke %3 %4 @"java.io.PrintStream::println(int)void";
+                        invoke %3 %4 @"java.io.PrintStream::println(int):void";
                         %5 : int = var.load %2;
                         %6 : int = constant @"1";
                         %7 : int = add %5 %6;
                         var.store %2 %7;
                         java.continue;
                     }
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %8 : int = var.load %2;
                         %9 : int = constant @"10";
                         %10 : boolean = lt %8 %9;
@@ -130,31 +130,31 @@ public class WhileLoopTest {
 
     @IR("""
             func @"test4" ()void -> {
-                  %0 : boolean = constant @"true";
-                  %1 : java.lang.Boolean = invoke %0 @"java.lang.Boolean::valueOf(boolean)java.lang.Boolean";
-                  %2 : Var<java.lang.Boolean> = var %1 @"b";
-                  %3 : int = constant @"0";
-                  %4 : Var<int> = var %3 @"i";
-                  java.while
-                      ()boolean -> {
-                          %5 : java.lang.Boolean = var.load %2;
-                          %6 : boolean = invoke %5 @"java.lang.Boolean::booleanValue()boolean";
-                          yield %6;
-                      }
-                      ()void -> {
-                          %7 : int = var.load %4;
-                          %8 : int = constant @"1";
-                          %9 : int = add %7 %8;
-                          var.store %4 %9;
-                          %10 : int = var.load %4;
-                          %11 : int = constant @"10";
-                          %12 : boolean = lt %10 %11;
-                          %13 : java.lang.Boolean = invoke %12 @"java.lang.Boolean::valueOf(boolean)java.lang.Boolean";
-                          var.store %2 %13;
-                          java.continue;
-                      };
-                  return;
-              };
+                %0 : boolean = constant @"true";
+                %1 : java.lang.Boolean = invoke %0 @"java.lang.Boolean::valueOf(boolean):java.lang.Boolean";
+                %2 : Var<java.lang.Boolean> = var %1 @"b";
+                %3 : int = constant @"0";
+                %4 : Var<int> = var %3 @"i";
+                java.while
+                    ()boolean -> {
+                        %5 : java.lang.Boolean = var.load %2;
+                        %6 : boolean = invoke %5 @"java.lang.Boolean::booleanValue(void):boolean";
+                        yield %6;
+                    }
+                    ()void -> {
+                        %7 : int = var.load %4;
+                        %8 : int = constant @"1";
+                        %9 : int = add %7 %8;
+                        var.store %4 %9;
+                        %10 : int = var.load %4;
+                        %11 : int = constant @"10";
+                        %12 : boolean = lt %10 %11;
+                        %13 : java.lang.Boolean = invoke %12 @"java.lang.Boolean::valueOf(boolean):java.lang.Boolean";
+                        var.store %2 %13;
+                        java.continue;
+                    };
+                return;
+            };
             """)
     @CodeReflection
     static void test4() {
@@ -169,20 +169,20 @@ public class WhileLoopTest {
     @IR("""
             func @"test5" (%0 : int)void -> {
                 %1 : Var<int> = var %0 @"i";
-                %3 : Var<java.lang.Boolean> = var @"b";
+                %2 : Var<java.lang.Boolean> = var @"b";
                 java.do.while
                     ()void -> {
-                        %4 : int = var.load %1;
-                        %5 : int = constant @"10";
-                        %6 : boolean = lt %4 %5;
-                        %7 : java.lang.Boolean = invoke %6 @"java.lang.Boolean::valueOf(boolean)java.lang.Boolean";
-                        var.store %3 %7;
+                        %3 : int = var.load %1;
+                        %4 : int = constant @"10";
+                        %5 : boolean = lt %3 %4;
+                        %6 : java.lang.Boolean = invoke %5 @"java.lang.Boolean::valueOf(boolean):java.lang.Boolean";
+                        var.store %2 %6;
                         java.continue;
                     }
                     ()boolean -> {
-                        %8 : java.lang.Boolean = var.load %3;
-                        %9 : boolean = invoke %8 @"java.lang.Boolean::booleanValue()boolean";
-                        yield %9;
+                        %7 : java.lang.Boolean = var.load %2;
+                        %8 : boolean = invoke %7 @"java.lang.Boolean::booleanValue(void):boolean";
+                        yield %8;
                     };
                 return;
             };

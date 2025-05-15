@@ -39,34 +39,34 @@ public class BreakContinueTest {
     @IR("""
             func @"test1" (%0 : BreakContinueTest)void -> {
                 java.for
-                    ^init()Var<int> -> {
+                    ()Var<int> -> {
                         %1 : int = constant @"0";
                         %2 : Var<int> = var %1 @"i";
                         yield %2;
                     }
-                    ^cond(%3 : Var<int>)boolean -> {
+                    (%3 : Var<int>)boolean -> {
                         %4 : int = var.load %3;
                         %5 : int = constant @"10";
                         %6 : boolean = lt %4 %5;
                         yield %6;
                     }
-                    ^update(%7 : Var<int>)void -> {
+                    (%7 : Var<int>)void -> {
                         %8 : int = var.load %7;
                         %9 : int = constant @"1";
                         %10 : int = add %8 %9;
                         var.store %7 %10;
                         yield;
                     }
-                    ^body(%11 : Var<int>)void -> {
+                    (%11 : Var<int>)void -> {
                         java.if
                             ()boolean -> {
                                 %12 : boolean = constant @"true";
                                 yield %12;
                             }
-                            ^then()void -> {
+                            ()void -> {
                                 java.continue;
                             }
-                            ^else()void -> {
+                            ()void -> {
                                 yield;
                             };
                         java.if
@@ -74,41 +74,41 @@ public class BreakContinueTest {
                                 %13 : boolean = constant @"true";
                                 yield %13;
                             }
-                            ^then()void -> {
+                            ()void -> {
                                 java.break;
                             }
-                            ^else()void -> {
+                            ()void -> {
                                 yield;
                             };
                         java.for
-                            ^init()Var<int> -> {
+                            ()Var<int> -> {
                                 %14 : int = constant @"0";
                                 %15 : Var<int> = var %14 @"j";
                                 yield %15;
                             }
-                            ^cond(%16 : Var<int>)boolean -> {
+                            (%16 : Var<int>)boolean -> {
                                 %17 : int = var.load %16;
                                 %18 : int = constant @"10";
                                 %19 : boolean = lt %17 %18;
                                 yield %19;
                             }
-                            ^update(%20 : Var<int>)void -> {
+                            (%20 : Var<int>)void -> {
                                 %21 : int = var.load %20;
                                 %22 : int = constant @"1";
                                 %23 : int = add %21 %22;
                                 var.store %20 %23;
                                 yield;
                             }
-                            ^body(%24 : Var<int>)void -> {
+                            (%24 : Var<int>)void -> {
                                 java.if
                                     ()boolean -> {
                                         %25 : boolean = constant @"true";
                                         yield %25;
                                     }
-                                    ^then()void -> {
+                                    ()void -> {
                                         java.continue;
                                     }
-                                    ^else()void -> {
+                                    ()void -> {
                                         yield;
                                     };
                                 java.if
@@ -116,10 +116,10 @@ public class BreakContinueTest {
                                         %26 : boolean = constant @"true";
                                         yield %26;
                                     }
-                                    ^then()void -> {
+                                    ()void -> {
                                         java.break;
                                     }
-                                    ^else()void -> {
+                                    ()void -> {
                                         yield;
                                     };
                                 java.continue;
@@ -154,34 +154,34 @@ public class BreakContinueTest {
                 java.labeled ()void -> {
                     %1 : java.lang.String = constant @"outer";
                     java.for
-                        ^init()Var<int> -> {
+                        ()Var<int> -> {
                             %2 : int = constant @"0";
                             %3 : Var<int> = var %2 @"i";
                             yield %3;
                         }
-                        ^cond(%4 : Var<int>)boolean -> {
+                        (%4 : Var<int>)boolean -> {
                             %5 : int = var.load %4;
                             %6 : int = constant @"10";
                             %7 : boolean = lt %5 %6;
                             yield %7;
                         }
-                        ^update(%8 : Var<int>)void -> {
+                        (%8 : Var<int>)void -> {
                             %9 : int = var.load %8;
                             %10 : int = constant @"1";
                             %11 : int = add %9 %10;
                             var.store %8 %11;
                             yield;
                         }
-                        ^body(%12 : Var<int>)void -> {
+                        (%12 : Var<int>)void -> {
                             java.if
                                 ()boolean -> {
                                     %13 : boolean = constant @"true";
                                     yield %13;
                                 }
-                                ^then()void -> {
+                                ()void -> {
                                     java.continue %1;
                                 }
-                                ^else()void -> {
+                                ()void -> {
                                     yield;
                                 };
                             java.if
@@ -189,43 +189,43 @@ public class BreakContinueTest {
                                     %14 : boolean = constant @"true";
                                     yield %14;
                                 }
-                                ^then()void -> {
+                                ()void -> {
                                     java.break %1;
                                 }
-                                ^else()void -> {
+                                ()void -> {
                                     yield;
                                 };
                             java.labeled ()void -> {
                                 %15 : java.lang.String = constant @"inner";
                                 java.for
-                                    ^init()Var<int> -> {
+                                    ()Var<int> -> {
                                         %16 : int = constant @"0";
                                         %17 : Var<int> = var %16 @"j";
                                         yield %17;
                                     }
-                                    ^cond(%18 : Var<int>)boolean -> {
+                                    (%18 : Var<int>)boolean -> {
                                         %19 : int = var.load %18;
                                         %20 : int = constant @"10";
                                         %21 : boolean = lt %19 %20;
                                         yield %21;
                                     }
-                                    ^update(%22 : Var<int>)void -> {
+                                    (%22 : Var<int>)void -> {
                                         %23 : int = var.load %22;
                                         %24 : int = constant @"1";
                                         %25 : int = add %23 %24;
                                         var.store %22 %25;
                                         yield;
                                     }
-                                    ^body(%26 : Var<int>)void -> {
+                                    (%26 : Var<int>)void -> {
                                         java.if
                                             ()boolean -> {
                                                 %27 : boolean = constant @"true";
                                                 yield %27;
                                             }
-                                            ^then()void -> {
+                                            ()void -> {
                                                 java.continue;
                                             }
-                                            ^else()void -> {
+                                            ()void -> {
                                                 yield;
                                             };
                                         java.if
@@ -233,10 +233,10 @@ public class BreakContinueTest {
                                                 %28 : boolean = constant @"true";
                                                 yield %28;
                                             }
-                                            ^then()void -> {
+                                            ()void -> {
                                                 java.break;
                                             }
-                                            ^else()void -> {
+                                            ()void -> {
                                                 yield;
                                             };
                                         java.if
@@ -244,10 +244,10 @@ public class BreakContinueTest {
                                                 %29 : boolean = constant @"true";
                                                 yield %29;
                                             }
-                                            ^then()void -> {
+                                            ()void -> {
                                                 java.continue %1;
                                             }
-                                            ^else()void -> {
+                                            ()void -> {
                                                 yield;
                                             };
                                         java.if
@@ -255,10 +255,10 @@ public class BreakContinueTest {
                                                 %30 : boolean = constant @"true";
                                                 yield %30;
                                             }
-                                            ^then()void -> {
+                                            ()void -> {
                                                 java.break %1;
                                             }
-                                            ^else()void -> {
+                                            ()void -> {
                                                 yield;
                                             };
                                         java.continue;
@@ -313,10 +313,10 @@ public class BreakContinueTest {
                                         %3 : boolean = constant @"true";
                                         yield %3;
                                     }
-                                    ^then()void -> {
+                                    ()void -> {
                                         java.break %1;
                                     }
-                                    ^else()void -> {
+                                    ()void -> {
                                         yield;
                                     };
                                 java.if
@@ -324,10 +324,10 @@ public class BreakContinueTest {
                                         %4 : boolean = constant @"true";
                                         yield %4;
                                     }
-                                    ^then()void -> {
+                                    ()void -> {
                                         java.break %2;
                                     }
-                                    ^else()void -> {
+                                    ()void -> {
                                         yield;
                                     };
                                 yield;

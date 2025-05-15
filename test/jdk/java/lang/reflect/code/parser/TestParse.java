@@ -103,7 +103,7 @@ public class TestParse {
 
 
     static final String ESCAPED_STRING = """
-            func @"test" ()String -> {
+            func @"test" ()java.lang.String -> {
                 %0 : java.lang.String = constant @"\\b \\f \\n \\r \\t \\' \\" \\\\";
                 return %0;
             };
