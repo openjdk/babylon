@@ -36,9 +36,9 @@ import java.util.function.Function;
 public class ConstantsTest {
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.String = constant @"";
-                %2 : Var<java.lang.String> = var %1 @"s";
+            func @"test1" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.String" = constant @"";
+                %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
                 return;
             };
             """)
@@ -48,9 +48,9 @@ public class ConstantsTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.String = constant @"Hello World";
-                %2 : Var<java.lang.String> = var %1 @"s";
+            func @"test2" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.String" = constant @"Hello World";
+                %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
                 return;
             };
             """)
@@ -60,9 +60,9 @@ public class ConstantsTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.String = constant @null;
-                %2 : Var<java.lang.String> = var %1 @"s";
+            func @"test3" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.String" = constant @null;
+                %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
                 return;
             };
             """)
@@ -71,9 +71,9 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test4" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.Class = constant @"java.util.function.Function";
-                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
+            func @"test4" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.Class" = constant @"java.util.function.Function";
+                %2 : Var<java.type:"java.lang.Class<?>"> = var %1 @"s";
                 return;
             };
             """)
@@ -83,12 +83,12 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test5" (%0 : ConstantsTest)void -> {
-                %1 : int = constant @"42";
-                %2 : byte = conv %1;
-                %3 : Var<byte> = var %2 @"v";
-                %4 : int = constant @"-42";
-                %5 : byte = conv %4;
+            func @"test5" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"42";
+                %2 : java.type:"byte" = conv %1;
+                %3 : Var<java.type:"byte"> = var %2 @"v";
+                %4 : java.type:"int" = constant @"-42";
+                %5 : java.type:"byte" = conv %4;
                 var.store %3 %5;
                 return;
             };
@@ -100,12 +100,12 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test6" (%0 : ConstantsTest)void -> {
-                %1 : int = constant @"42";
-                %2 : short = conv %1;
-                %3 : Var<short> = var %2 @"v";
-                %4 : int = constant @"-42";
-                %5 : short = conv %4;
+            func @"test6" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"42";
+                %2 : java.type:"short" = conv %1;
+                %3 : Var<java.type:"short"> = var %2 @"v";
+                %4 : java.type:"int" = constant @"-42";
+                %5 : java.type:"short" = conv %4;
                 var.store %3 %5;
                 return;
             };
@@ -117,10 +117,10 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test7" (%0 : ConstantsTest)void -> {
-                %1 : int = constant @"42";
-                %2 : Var<int> = var %1 @"v";
-                %3 : int = constant @"-42";
+            func @"test7" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"42";
+                %2 : Var<java.type:"int"> = var %1 @"v";
+                %3 : java.type:"int" = constant @"-42";
                 var.store %2 %3;
                 return;
             };
@@ -132,10 +132,10 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test8" (%0 : ConstantsTest)void -> {
-                %1 : long = constant @"42";
-                %2 : Var<long> = var %1 @"v";
-                %3 : long = constant @"-42";
+            func @"test8" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"long" = constant @"42";
+                %2 : Var<java.type:"long"> = var %1 @"v";
+                %3 : java.type:"long" = constant @"-42";
                 var.store %2 %3;
                 return;
             };
@@ -147,11 +147,11 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test9" (%0 : ConstantsTest)void -> {
-                %1 : float = constant @"42.0";
-                %2 : Var<float> = var %1 @"v";
-                %3 : float = constant @"42.0";
-                %4 : float = neg %3;
+            func @"test9" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"float" = constant @"42.0";
+                %2 : Var<java.type:"float"> = var %1 @"v";
+                %3 : java.type:"float" = constant @"42.0";
+                %4 : java.type:"float" = neg %3;
                 var.store %2 %4;
                 return;
             };
@@ -163,11 +163,11 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test10" (%0 : ConstantsTest)void -> {
-                %1 : double = constant @"42.0";
-                %2 : Var<double> = var %1 @"v";
-                %3 : double = constant @"42.0";
-                %4 : double = neg %3;
+            func @"test10" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"double" = constant @"42.0";
+                %2 : Var<java.type:"double"> = var %1 @"v";
+                %3 : java.type:"double" = constant @"42.0";
+                %4 : java.type:"double" = neg %3;
                 var.store %2 %4;
                 return;
             };
@@ -179,9 +179,9 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test11" (%0 : ConstantsTest)void -> {
-                %1 : char = constant @"a";
-                %2 : Var<char> = var %1 @"v";
+            func @"test11" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"char" = constant @"a";
+                %2 : Var<java.type:"char"> = var %1 @"v";
                 return;
             };
             """)
@@ -191,10 +191,10 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test12" (%0 : ConstantsTest)void -> {
-                %1 : boolean = constant @"true";
-                %2 : Var<boolean> = var %1 @"b";
-                %3 : boolean = constant @"false";
+            func @"test12" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"boolean" = constant @"true";
+                %2 : Var<java.type:"boolean"> = var %1 @"b";
+                %3 : java.type:"boolean" = constant @"false";
                 var.store %2 %3;
                 return;
             };
@@ -206,9 +206,9 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test13" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.Class = constant @"float";
-                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
+            func @"test13" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.Class" = constant @"float";
+                %2 : Var<java.type:"java.lang.Class<?>"> = var %1 @"s";
                 return;
             };
             """)
@@ -218,9 +218,9 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test14" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.Class = constant @"java.lang.String[]";
-                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
+            func @"test14" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.Class" = constant @"java.lang.String[]";
+                %2 : Var<java.type:"java.lang.Class<?>"> = var %1 @"s";
                 return;
             };
             """)
@@ -230,9 +230,9 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test15" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.Class = constant @"java.lang.String[][]";
-                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
+            func @"test15" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.Class" = constant @"java.lang.String[][]";
+                %2 : Var<java.type:"java.lang.Class<?>"> = var %1 @"s";
                 return;
             };
             """)
@@ -242,9 +242,9 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test16" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.Class = constant @"java.lang.String[][][]";
-                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
+            func @"test16" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.Class" = constant @"java.lang.String[][][]";
+                %2 : Var<java.type:"java.lang.Class<?>"> = var %1 @"s";
                 return;
             };
             """)
@@ -254,9 +254,9 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test17" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.Class = constant @"boolean[]";
-                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
+            func @"test17" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.Class" = constant @"boolean[]";
+                %2 : Var<java.type:"java.lang.Class<?>"> = var %1 @"s";
                 return;
             };
             """)
@@ -266,9 +266,9 @@ public class ConstantsTest {
     }
 
     @IR("""
-            func @"test18" (%0 : ConstantsTest)void -> {
-                %1 : java.lang.Class = constant @"boolean[][][]";
-                %2 : Var<java.lang.Class<+<java.lang.Object>>> = var %1 @"s";
+            func @"test18" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.Class" = constant @"boolean[][][]";
+                %2 : Var<java.type:"java.lang.Class<?>"> = var %1 @"s";
                 return;
             };
             """)

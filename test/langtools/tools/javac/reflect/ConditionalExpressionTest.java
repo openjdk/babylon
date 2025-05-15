@@ -37,24 +37,24 @@ import java.util.function.Supplier;
 public class ConditionalExpressionTest {
 
     @IR("""
-            func @"test1" (%0 : ConditionalExpressionTest, %1 : boolean, %2 : int, %3 : int)void -> {
-                %4 : Var<boolean> = var %1 @"b";
-                %5 : Var<int> = var %2 @"x";
-                %6 : Var<int> = var %3 @"y";
-                %7 : int = java.cexpression
-                    ^cond()boolean -> {
-                        %8 : boolean = var.load %4;
+            func @"test1" (%0 : java.type:"ConditionalExpressionTest", %1 : java.type:"boolean", %2 : java.type:"int", %3 : java.type:"int")java.type:"void" -> {
+                %4 : Var<java.type:"boolean"> = var %1 @"b";
+                %5 : Var<java.type:"int"> = var %2 @"x";
+                %6 : Var<java.type:"int"> = var %3 @"y";
+                %7 : java.type:"int" = java.cexpression
+                    ()java.type:"boolean" -> {
+                        %8 : java.type:"boolean" = var.load %4;
                         yield %8;
                     }
-                    ^truepart()int -> {
-                        %9 : int = var.load %5;
+                    ()java.type:"int" -> {
+                        %9 : java.type:"int" = var.load %5;
                         yield %9;
                     }
-                    ^falsepart()int -> {
-                        %10 : int = var.load %6;
+                    ()java.type:"int" -> {
+                        %10 : java.type:"int" = var.load %6;
                         yield %10;
                     };
-                %11 : Var<int> = var %7 @"z";
+                %11 : Var<java.type:"int"> = var %7 @"z";
                 return;
             };
             """)
@@ -64,26 +64,26 @@ public class ConditionalExpressionTest {
     }
 
     @IR("""
-            func @"test2" (%0 : ConditionalExpressionTest, %1 : boolean, %2 : int, %3 : double)void -> {
-                %4 : Var<boolean> = var %1 @"b";
-                %5 : Var<int> = var %2 @"x";
-                %6 : Var<double> = var %3 @"y";
-                %7 : double = java.cexpression
-                    ^cond()boolean -> {
-                        %8 : boolean = var.load %4;
-                        %9 : boolean = not %8;
+            func @"test2" (%0 : java.type:"ConditionalExpressionTest", %1 : java.type:"boolean", %2 : java.type:"int", %3 : java.type:"double")java.type:"void" -> {
+                %4 : Var<java.type:"boolean"> = var %1 @"b";
+                %5 : Var<java.type:"int"> = var %2 @"x";
+                %6 : Var<java.type:"double"> = var %3 @"y";
+                %7 : java.type:"double" = java.cexpression
+                    ()java.type:"boolean" -> {
+                        %8 : java.type:"boolean" = var.load %4;
+                        %9 : java.type:"boolean" = not %8;
                         yield %9;
                     }
-                    ^truepart()double -> {
-                        %10 : int = var.load %5;
-                        %11 : double = conv %10;
+                    ()java.type:"double" -> {
+                        %10 : java.type:"int" = var.load %5;
+                        %11 : java.type:"double" = conv %10;
                         yield %11;
                     }
-                    ^falsepart()double -> {
-                        %12 : double = var.load %6;
+                    ()java.type:"double" -> {
+                        %12 : java.type:"double" = var.load %6;
                         yield %12;
                     };
-                %13 : Var<double> = var %7 @"z";
+                %13 : Var<java.type:"double"> = var %7 @"z";
                 return;
             };
             """)
@@ -93,33 +93,33 @@ public class ConditionalExpressionTest {
     }
 
     @IR("""
-            func @"test3" (%0 : ConditionalExpressionTest, %1 : boolean, %2 : int, %3 : double)void -> {
-                %4 : Var<boolean> = var %1 @"b";
-                %5 : Var<int> = var %2 @"x";
-                %6 : Var<double> = var %3 @"y";
-                %7 : java.util.function.Supplier<java.lang.Double> = java.cexpression
-                    ^cond()boolean -> {
-                        %8 : boolean = var.load %4;
+            func @"test3" (%0 : java.type:"ConditionalExpressionTest", %1 : java.type:"boolean", %2 : java.type:"int", %3 : java.type:"double")java.type:"void" -> {
+                %4 : Var<java.type:"boolean"> = var %1 @"b";
+                %5 : Var<java.type:"int"> = var %2 @"x";
+                %6 : Var<java.type:"double"> = var %3 @"y";
+                %7 : java.type:"java.util.function.Supplier<java.lang.Double>" = java.cexpression
+                    ()java.type:"boolean" -> {
+                        %8 : java.type:"boolean" = var.load %4;
                         yield %8;
                     }
-                    ^truepart()java.util.function.Supplier<java.lang.Double> -> {
-                        %9 : java.util.function.Supplier<java.lang.Double> = lambda ()java.lang.Double -> {
-                            %10 : int = var.load %5;
-                            %11 : double = conv %10;
-                            %12 : java.lang.Double = invoke %11 @"java.lang.Double::valueOf(double)java.lang.Double";
+                    ()java.type:"java.util.function.Supplier<java.lang.Double>" -> {
+                        %9 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda ()java.type:"java.lang.Double" -> {
+                            %10 : java.type:"int" = var.load %5;
+                            %11 : java.type:"double" = conv %10;
+                            %12 : java.type:"java.lang.Double" = invoke %11 @"java.lang.Double::valueOf(double):java.lang.Double";
                             return %12;
                         };
                         yield %9;
                     }
-                    ^falsepart()java.util.function.Supplier<java.lang.Double> -> {
-                        %13 : java.util.function.Supplier<java.lang.Double> = lambda ()java.lang.Double -> {
-                            %14 : double = var.load %6;
-                            %15 : java.lang.Double = invoke %14 @"java.lang.Double::valueOf(double)java.lang.Double";
+                    ()java.type:"java.util.function.Supplier<java.lang.Double>" -> {
+                        %13 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda ()java.type:"java.lang.Double" -> {
+                            %14 : java.type:"double" = var.load %6;
+                            %15 : java.type:"java.lang.Double" = invoke %14 @"java.lang.Double::valueOf(double):java.lang.Double";
                             return %15;
                         };
                         yield %13;
                     };
-                %16 : Var<java.util.function.Supplier<java.lang.Double>> = var %7 @"z";
+                %16 : Var<java.type:"java.util.function.Supplier<java.lang.Double>"> = var %7 @"z";
                 return;
             };
             """)
@@ -129,39 +129,39 @@ public class ConditionalExpressionTest {
     }
 
     @IR("""
-            func @"test4" (%0 : ConditionalExpressionTest, %1 : boolean, %2 : boolean, %3 : int, %4 : double, %5 : double)void -> {
-                %6 : Var<boolean> = var %1 @"b1";
-                %7 : Var<boolean> = var %2 @"b2";
-                %8 : Var<int> = var %3 @"x";
-                %9 : Var<double> = var %4 @"y";
-                %10 : Var<double> = var %5 @"z";
-                %11 : double = java.cexpression
-                    ^cond()boolean -> {
-                        %12 : boolean = var.load %6;
+            func @"test4" (%0 : java.type:"ConditionalExpressionTest", %1 : java.type:"boolean", %2 : java.type:"boolean", %3 : java.type:"int", %4 : java.type:"double", %5 : java.type:"double")java.type:"void" -> {
+                %6 : Var<java.type:"boolean"> = var %1 @"b1";
+                %7 : Var<java.type:"boolean"> = var %2 @"b2";
+                %8 : Var<java.type:"int"> = var %3 @"x";
+                %9 : Var<java.type:"double"> = var %4 @"y";
+                %10 : Var<java.type:"double"> = var %5 @"z";
+                %11 : java.type:"double" = java.cexpression
+                    ()java.type:"boolean" -> {
+                        %12 : java.type:"boolean" = var.load %6;
                         yield %12;
                     }
-                    ^truepart()double -> {
-                        %13 : double = java.cexpression
-                            ^cond()boolean -> {
-                                %14 : boolean = var.load %7;
+                    ()java.type:"double" -> {
+                        %13 : java.type:"double" = java.cexpression
+                            ()java.type:"boolean" -> {
+                                %14 : java.type:"boolean" = var.load %7;
                                 yield %14;
                             }
-                            ^truepart()double -> {
-                                %15 : int = var.load %8;
-                                %16 : double = conv %15;
+                            ()java.type:"double" -> {
+                                %15 : java.type:"int" = var.load %8;
+                                %16 : java.type:"double" = conv %15;
                                 yield %16;
                             }
-                            ^falsepart()double -> {
-                                %17 : double = var.load %9;
+                            ()java.type:"double" -> {
+                                %17 : java.type:"double" = var.load %9;
                                 yield %17;
                             };
                         yield %13;
                     }
-                    ^falsepart()double -> {
-                        %18 : double = var.load %10;
+                    ()java.type:"double" -> {
+                        %18 : java.type:"double" = var.load %10;
                         yield %18;
                     };
-                %19 : Var<double> = var %11 @"r";
+                %19 : Var<java.type:"double"> = var %11 @"r";
                 return;
             };
             """)

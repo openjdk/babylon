@@ -44,7 +44,6 @@ import java.util.Objects;
 import static java.util.stream.Collectors.joining;
 
 public final class ConstructorRefImpl implements ConstructorRef {
-    static final String NAME = "&c";
 
     final FunctionType type;
 
@@ -109,15 +108,9 @@ public final class ConstructorRefImpl implements ConstructorRef {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME,
-                List.of(type.externalize()));
-    }
-
-    @Override
     public String toString() {
-        return type.returnType().externalize() + "::<new>" +
-            type.parameterTypes().stream().map(t -> t.externalize().toString())
+        return type.returnType() + "::" +
+            type.parameterTypes().stream().map(Object::toString)
                     .collect(joining(", ", "(", ")"));
     }
 
