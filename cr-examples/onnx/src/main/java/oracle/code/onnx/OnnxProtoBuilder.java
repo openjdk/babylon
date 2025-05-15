@@ -29,6 +29,7 @@ import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.SequencedMap;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
@@ -182,6 +183,20 @@ public final class OnnxProtoBuilder {
                 expandTuples(indexer, block.terminatingOp().operands()));
     }
 
+    static List<String> opInputNames(Indexer indexer, SequencedMap<OnnxOp.OnnxParameter, Object> inputs) {
+        List<String> inputNames = inputs.sequencedValues().stream()
+                .<String>mapMulti((v, dump) -> {
+                    switch (v) {
+                        case Value val -> dump.accept(indexer.nameOf(val));
+                        case java.util.Optional<?> o when o.isPresent() && o.get() instanceof Value val -> dump.accept(indexer.nameOf(val));
+                        case List l -> l.forEach(val -> dump.accept(indexer.nameOf((Value)val)));
+                        default -> dump.accept(""); // empty names for unused optional inputs
+                    }
+                }).toList();
+        // trim trailing empty names
+        return inputNames.reversed().stream().dropWhile(String::isEmpty).toList().reversed();
+    }
+
     static List<NodeProto> nodes(String domain, Indexer indexer, List<Op> ops) {
         return ops.stream().<NodeProto>mapMulti((op, opNodes) -> {
             switch (op) {
@@ -203,7 +218,7 @@ public final class OnnxProtoBuilder {
                 case OnnxOp onnxOp ->
                     opNodes.accept(node(
                             onnxOp.opName(),
-                            onnxOp.operands().stream().map(indexer::nameOf).toList(),
+                            opInputNames(indexer, onnxOp.onnxInputs()),
                             IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.nameOf(onnxOp.result(), o)).toList(),
                             onnxOp.onnxAttributes()));
                 case CoreOp.FuncCallOp fco ->
@@ -285,12 +300,7 @@ public final class OnnxProtoBuilder {
 
     static NodeProto node(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
         int di = opName.lastIndexOf('.');
-        return new NodeProto()
-                .domain(di < 0 ? null : opName.substring(0, di))
-                .opType(opName.substring(di + 1))
-                .forEach(inputNames, (n, iName) -> n.input(iName))
-                .forEach(attributes.entrySet(), (n, ae) -> n.attribute(attribute(ae.getKey(), ae.getValue())))
-                .forEach(outputNames, (n, oName) -> n.output(oName));
+        return node(di < 0 ? null : opName.substring(0, di), opName.substring(di + 1), inputNames, outputNames, attributes);
     }
 
     static ValueInfoProto tensorInfo(String name, int tensorElementType) {

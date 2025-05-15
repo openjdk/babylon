@@ -184,32 +184,40 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return operands().get(0);
         }
 
-        public Value seqlens_k() {
-            return operands().get(1);
-        }
-
-        public Value total_sequence_length() {
-            return operands().get(2);
-        }
-
         public java.util.Optional<Value> key() {
             int i = optionalInputArguments.indexOf(InputParameter.key);
-            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+            return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
         public java.util.Optional<Value> value() {
             int i = optionalInputArguments.indexOf(InputParameter.value);
-            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+            return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
         public java.util.Optional<Value> past_key() {
             int i = optionalInputArguments.indexOf(InputParameter.past_key);
-            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+            return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
         }
 
         public java.util.Optional<Value> past_value() {
             int i = optionalInputArguments.indexOf(InputParameter.past_value);
-            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+            return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
+        }
+
+        private int skipOptional() {
+            for (int i = optionalInputArguments.size() - 1; i >= 0; i--) {
+                var opt = optionalInputArguments.get(i);
+                if (opt != InputParameter.cos_cache && opt != InputParameter.sin_cache) return i;
+            }
+            return -1;
+        }
+
+        public Value seqlens_k() {
+            return operands().get(skipOptional() + 2);
+        }
+
+        public Value total_sequence_length() {
+            return operands().get(skipOptional() + 3);
         }
 
         public java.util.Optional<Value> cos_cache() {
