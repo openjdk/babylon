@@ -180,6 +180,7 @@ public class TestJavaType {
         Assert.assertEquals(javaType, CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(javaType.externalize()));
     }
 
+//    // @@@: Disabling for now, as the type string is too different from the string emitted by core reflection
 //    @Test(dataProvider = "types")
 //    public void testTypeString(Type type) throws ReflectiveOperationException {
 //        JavaType javaType = JavaType.type(type);

@@ -6,6 +6,7 @@ import jdk.incubator.code.type.WildcardType.BoundKind;
 import java.lang.constant.ClassDesc;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 class JavaTypeFactory implements TypeElementFactory {
     // Returns JavaType or JavaRef
@@ -60,13 +61,18 @@ class JavaTypeFactory implements TypeElementFactory {
     JavaType constructType(JavaType qualifier, ExternalizedTypeElement tree) {
         return switch (tree.identifier()) {
             case "" -> {
-                // array type
+                // array type:
+                // < type >
+                checkArity(tree, 1);
                 JavaType elem = constructType(tree.arguments().get(0));
                 yield JavaType.array(elem);
             }
             case "::" -> {
+                checkArity(tree, 2);
                 if (tree.arguments().get(1).identifier().isEmpty()) {
-                    // type-var
+                    // type-var:
+                    // ::<tvarowner, <ident>>
+                    // ::<tvarowner, extends<ident, type>>
                     TypeVariableType.Owner owner = constructTypeVarOwner(qualifier, tree.arguments().get(0));
                     ExternalizedTypeElement tvarDecl = tree.arguments().get(1);
                     boolean hasBounds = false;
@@ -80,12 +86,16 @@ class JavaTypeFactory implements TypeElementFactory {
                     yield JavaType.typeVarRef(tvarDecl.arguments().get(0).identifier(),
                             owner, bound);
                 } else {
-                    // inner class type
+                    // inner class type:
+                    // ::<classtype, type>
                     qualifier = constructClassType(qualifier, tree.arguments().get(0));
                     yield constructType(qualifier, tree.arguments().get(1));
                 }
             }
             default -> {
+                // primitive or class type:
+                // ident
+                // ident < typargs >
                 JavaType primitiveType = PRIMITIVE_TYPES.get(tree.identifier());
                 yield (primitiveType != null) ?
                         primitiveType :
@@ -94,29 +104,49 @@ class JavaTypeFactory implements TypeElementFactory {
         };
     }
 
-    TypeVariableType.Owner constructTypeVarOwner(JavaType qualifier, ExternalizedTypeElement type) {
-        return switch (type.identifier()) {
-            case "" -> (TypeVariableType.Owner) constructRef(type.arguments().get(0));
-            default -> (TypeVariableType.Owner) constructClassType(qualifier, type);
+    TypeVariableType.Owner constructTypeVarOwner(JavaType qualifier, ExternalizedTypeElement tree) {
+        // tvar owner:
+        // < ref >
+        // classtype
+        return switch (tree.identifier()) {
+            case "" -> {
+                checkArity(tree, 1);
+                yield (TypeVariableType.Owner) constructRef(tree.arguments().get(0));
+            }
+            default -> (TypeVariableType.Owner) constructClassType(qualifier, tree);
         };
     }
 
-    JavaType constructTypeArguments(ExternalizedTypeElement type) {
-        return switch (type.identifier()) {
-            case "extends" -> JavaType.wildcard(BoundKind.EXTENDS, constructType(type.arguments().get(1)));
-            case "super" -> JavaType.wildcard(BoundKind.SUPER, constructType(type.arguments().get(1)));
-            case "?" -> JavaType.wildcard(BoundKind.EXTENDS, JavaType.J_L_OBJECT);
-            default -> constructType(type);
+    JavaType constructTypeArguments(ExternalizedTypeElement tree) {
+        // typargs:
+        // ?
+        // extends<?, type>
+        // super<?, type>
+        // type
+        return switch (tree.identifier()) {
+            case "extends" -> {
+                checkArity(tree, 2);
+                yield JavaType.wildcard(BoundKind.EXTENDS, constructType(tree.arguments().get(1)));
+            }
+            case "super" -> {
+                checkArity(tree, 2);
+                yield JavaType.wildcard(BoundKind.SUPER, constructType(tree.arguments().get(1)));
+            }
+            case "?" -> {
+                checkArity(tree, 0);
+                yield JavaType.wildcard(BoundKind.EXTENDS, JavaType.J_L_OBJECT);
+            }
+            default -> constructType(tree);
         };
     }
 
-    JavaType constructClassType(JavaType qualifier, ExternalizedTypeElement type) {
+    JavaType constructClassType(JavaType qualifier, ExternalizedTypeElement tree) {
         JavaType classType = qualifier == null ?
-                JavaType.type(ClassDesc.of(type.identifier())) :
-                JavaType.qualified(qualifier, type.identifier());
-        if (!type.arguments().isEmpty()) {
+                JavaType.type(ClassDesc.of(tree.identifier())) :
+                JavaType.qualified(qualifier, tree.identifier());
+        if (!tree.arguments().isEmpty()) {
             classType = JavaType.parameterized(classType,
-                    type.arguments().stream().map(this::constructTypeArguments).toList());
+                    tree.arguments().stream().map(this::constructTypeArguments).toList());
         }
         return classType;
     }
@@ -129,60 +159,74 @@ class JavaTypeFactory implements TypeElementFactory {
     //
     //    RecordComponent:
     //        ident ':' JavaType
-    JavaRef constructRef(ExternalizedTypeElement type) {
-        return constructRef(null, type);
+    JavaRef constructRef(ExternalizedTypeElement tree) {
+        return constructRef(null, tree);
     }
 
-    JavaRef constructRef(JavaType qualifier, ExternalizedTypeElement type) {
-        return switch (type.identifier()) {
+    JavaRef constructRef(JavaType qualifier, ExternalizedTypeElement tree) {
+        return switch (tree.identifier()) {
             case "::" -> {
-                if (type.arguments().get(1).identifier().equals("::")) {
+                checkArity(tree, 2);
+                if (tree.arguments().get(1).identifier().equals("::")) {
                     // owner type is an inner class type
-                    qualifier = constructClassType(qualifier, type.arguments().get(0));
-                    yield constructRef(qualifier, type.arguments().get(1));
+                    qualifier = constructClassType(qualifier, tree.arguments().get(0));
+                    yield constructRef(qualifier, tree.arguments().get(1));
                 } else {
-                    JavaType ownerType = constructType(qualifier, type.arguments().get(0));
-                    if (type.arguments().get(1).identifier().equals(":")) {
+                    JavaType ownerType = constructType(qualifier, tree.arguments().get(0));
+                    if (tree.arguments().get(1).identifier().equals(":")) {
                         // field ref or method ref
-                        ExternalizedTypeElement nameAndType = type.arguments().get(1);
+                        ExternalizedTypeElement nameAndType = tree.arguments().get(1);
+                        checkArity(nameAndType, 2);
                         String refName = nameAndType.arguments().get(0).identifier();
                         ExternalizedTypeElement refType = nameAndType.arguments().get(1);
                         if (nameAndType.arguments().get(0).arguments().isEmpty()) {
-                            // field ref
+                            // field ref:
+                            // ::<type, :<ident, type>>
                             JavaType fieldType = constructType(refType);
                             yield FieldRef.field(ownerType, refName, fieldType);
                         } else {
-                            // method ref
-                            List<JavaType> paramtypes = nameAndType.arguments().get(0).arguments().stream()
-                                    .map(this::constructType).toList();
-                            if (paramtypes.size() == 1 && paramtypes.get(0) == JavaType.VOID) {
-                                paramtypes = List.of();
-                            }
+                            // method ref:
+                            // ::<type, :<ident< type, type, ...>, type>>
+                            // ::<type, :<ident< 'void' >, type>>
+                            List<JavaType> paramtypes = constructRefParameters(nameAndType.arguments().get(0));
                             JavaType restype = constructType(refType);
                             yield MethodRef.method(ownerType, refName, restype, paramtypes);
                         }
                     } else {
-                        // constructor ref
-                        List<JavaType> paramtypes = type.arguments().get(1).arguments().stream()
-                                .map(this::constructType).toList();
-                        if (paramtypes.size() == 1 && paramtypes.get(0) == JavaType.VOID) {
-                            paramtypes = List.of();
-                        }
+                        // constructor ref:
+                        // ::<type, < type, type, ...>>
+                        // ::<type, < 'void' >>
+                        List<JavaType> paramtypes = constructRefParameters(tree.arguments().get(1));
                         yield ConstructorRef.constructor(ownerType, paramtypes);
                     }
                 }
             }
-            // record ref
+            // record ref:
+            // ident<<:<ident, type>,<:<ident, type>, ...>
             default -> RecordTypeRef.recordType(
-                    JavaType.type(ClassDesc.of(type.identifier())),
-                    type.arguments().stream().map(c -> {
+                    JavaType.type(ClassDesc.of(tree.identifier())),
+                    tree.arguments().stream().map(c -> {
                         JavaType ctype = constructType(c.arguments().get(1));
                         return new RecordTypeRef.ComponentRef(ctype, c.arguments().get(0).identifier());
                     }).toList());
         };
     }
 
-    // @@@: Validation?
+    List<JavaType> constructRefParameters(ExternalizedTypeElement tree) {
+        List<JavaType> paramtypes = tree.arguments().stream()
+                .map(this::constructType).toList();
+        if (paramtypes.size() == 1 && paramtypes.get(0) == JavaType.VOID) {
+            paramtypes = List.of();
+        }
+        return paramtypes;
+    }
+
+    static void checkArity(ExternalizedTypeElement tree, int expectedArity) {
+        if (tree.arguments().size() != expectedArity) {
+            throw badType(tree, "type arity; expected: \"" + expectedArity + "\"");
+        }
+    }
+
     static IllegalArgumentException badType(ExternalizedTypeElement tree, String str) {
         return new IllegalArgumentException(String.format("Bad %s: %s", str, tree));
     }
