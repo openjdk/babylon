@@ -46,6 +46,27 @@ public final class DescParser {
         return parseExTypeElem(s);
     }
 
+    //    ExType:
+    //        ExType ExIdent ExType             // infix type application
+    //        ExIdent ExTypeArgs                // prefix type application
+    //        ExTypeArgs                        // anonymous prefix type application
+    //
+    //    ExTypeArgs
+    //        '<' ExType* '>'
+    //        '(' ExType* ')'
+    //        '[' ExType* ']'
+    //        '{' ExType* '}'
+    //
+    //    ExIdent:
+    //        ident
+    //        ident '.' ident
+    //        StringLiteral
+    //        ExSymbol
+    //
+    //    ExSymbol:
+    //        '::'
+    //        ':'
+    //        '?'
     public static ExternalizedTypeElement parseExTypeElem(Lexer l) {
         ExternalizedTypeElement type = new ExternalizedTypeElement("", List.of());
         if (isExTypeIdentifierToken(l)) {
@@ -104,11 +125,8 @@ public final class DescParser {
         return tk == TokenKind.IDENTIFIER ||
                 tk == TokenKind.STRINGLITERAL ||
                 tk == TokenKind.COLCOL ||
-                tk == TokenKind.INTLITERAL ||
                 tk == TokenKind.COLON ||
-                tk == TokenKind.AMP ||
                 tk == TokenKind.QUES;
-
     }
 
     static String parseExTypeIdentifier(Lexer l) {
