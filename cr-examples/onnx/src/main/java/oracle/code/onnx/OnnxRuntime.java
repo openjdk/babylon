@@ -124,7 +124,7 @@ public final class OnnxRuntime {
             OnnxTransformer.ModuleAndInitializers mi = OnnxTransformer.transform(l, q);
 
             String domainName = type.getSimpleName().split("\\$")[0];
-            byte[] protobufModel = OnnxProtoBuilder.build(domainName, mi.module(), getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues()));
+            byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues()));
 
             if (DEBUG) {
                 System.out.println(mi.module().toText());
@@ -225,7 +225,7 @@ public final class OnnxRuntime {
 
     public List<Tensor> runOp(Arena arena, String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
         var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
-        var protoModel = OnnxProtoBuilder.build(
+        var protoModel = OnnxProtoBuilder.buildModel(
                 List.of(),
                 IntStream.range(0, inputValues.size()).mapToObj(i -> OnnxProtoBuilder.tensorInfo("i" + i, inputValues.get(i).elementType().id)).toList(),
                 List.of(OnnxProtoBuilder.node(
@@ -239,7 +239,7 @@ public final class OnnxRuntime {
     }
 
     public List<Tensor> run(Arena arena, Block block, List<Tensor> inputValues, int initializers) {
-        var protoModel = OnnxProtoBuilder.build(block, inputValues.subList(0, initializers));
+        var protoModel = OnnxProtoBuilder.buildModel(block, inputValues.subList(0, initializers));
         return createSession(arena, protoModel)
                 .run(arena, inputValues.subList(initializers, inputValues.size()));
     }
