@@ -181,9 +181,12 @@ public class OnnxModelTest {
 
             for (OnnxModel.NodeProto n : g.node()) {
                 String opType = n.opType();
-                switch (opType) {
-                    case "SimplifiedLayerNormalization" -> opType = "LayerNormalization"; // @@@ an old alias ? could not find the spec
+
+                 // @@@ an old alias ? could not find the spec
+                if (opType.equals("SimplifiedLayerNormalization")) {
+                    opType = "LayerNormalization";
                 }
+
                 if (n.domain() != null && !n.domain().isEmpty() && !n.domain().equals("ai.onnx")) {
                     opType = n.domain() + "." + opType;
                 }
@@ -238,6 +241,27 @@ public class OnnxModelTest {
                     }
                     if (!optionalOutputs.isEmpty()) {
                         attributes.put("optional_outputs", optionalOutputs);
+                    }
+                }
+
+                // inline Constant op tensor attribute as value
+                if (opType.equals("Constant") && attributes.remove(OnnxOps.Constant.Attribute.value.name()) instanceof Tensor t) {
+                    switch (t.shape().length) {
+                        case 0 -> { // scalar
+                            switch (t.elementType()) {
+                                case FLOAT -> attributes.put(OnnxOps.Constant.Attribute.value_float.name(), t.data().get(ValueLayout.JAVA_FLOAT, 0));
+                                case INT64 -> attributes.put(OnnxOps.Constant.Attribute.value_int.name(), t.data().get(ValueLayout.JAVA_LONG, 0));
+                                default -> throw new UnsupportedOperationException();
+                            }
+                        }
+                        case 1 -> { // 1d tensor
+                            switch (t.elementType()) {
+                                case FLOAT -> attributes.put(OnnxOps.Constant.Attribute.value_floats.name(), t.data().toArray(ValueLayout.JAVA_FLOAT));
+                                case INT64 -> attributes.put(OnnxOps.Constant.Attribute.value_ints.name(), t.data().toArray(ValueLayout.JAVA_LONG));
+                                default -> throw new UnsupportedOperationException();
+                            }
+                        }
+                        default -> throw new UnsupportedOperationException();
                     }
                 }
 
@@ -412,14 +436,14 @@ public class OnnxModelTest {
         for (var fName : args) {
             try (var in = new RandomAccessFile(fName, "r")) {
                 OnnxModel.ModelProto model = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
-//                System.out.println(model.toText());
+                System.out.println(model.toText());
                 var liftedModel = toFuncOp(model.graph());
-//                System.out.println(liftedModel.toText());
-                byte[] protoModel = OnnxProtoBuilder.buildModel(null, CoreOp.module(liftedModel.op()), List.of());
+                System.out.println(liftedModel.toText());
+//                byte[] protoModel = OnnxProtoBuilder.buildModel(null, CoreOp.module(liftedModel.op()), List.of());
 //                System.out.println(OnnxModel.readFrom(protoModel).toText());
-                try (Arena arena = Arena.ofConfined()) {
-                    OnnxRuntime.getInstance().createSession(arena, protoModel);
-                }
+//                try (Arena arena = Arena.ofConfined()) {
+//                    OnnxRuntime.getInstance().createSession(arena, protoModel);
+//                }
             }
         }
     }
