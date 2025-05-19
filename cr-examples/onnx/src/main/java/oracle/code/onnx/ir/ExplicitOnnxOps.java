@@ -166,8 +166,8 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new GroupQueryAttention(this, cc);
         }
 
-        GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache) {
-            super(SCHEMA, resultType, Collections.emptySet(), List.of(query, seqlens_k, total_sequence_length), List.of(key, value, past_key, past_value, cos_cache, sin_cache));
+        GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Value> do_rotary, Value kv_num_heads, java.util.Optional<Value> local_window_size, Value num_heads, java.util.Optional<Value> rotary_interleaved, java.util.Optional<Value> scale) {
+            super(SCHEMA, resultType, Collections.emptySet(), List.of(query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache), List.of(do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale));
         }
 
         @Override
@@ -177,7 +177,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
 
         @Override
         public SequencedMap<OnnxParameter, Object> onnxInputs() {
-            return onnxInputs(SCHEMA, List.of(query(), seqlens_k(), total_sequence_length(), key(), value(), past_key(), past_value(), cos_cache(), sin_cache()));
+            return onnxInputs(SCHEMA, List.of(query(), key(), value(), past_key(), past_value(), seqlens_k(), total_sequence_length(), cos_cache(), sin_cache()));
         }
 
         public Value query() {
@@ -231,8 +231,8 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static GroupQueryAttention GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache) {
-        return new GroupQueryAttention(resultType, query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache);
+    public static GroupQueryAttention GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Value> do_rotary, Value kv_num_heads, java.util.Optional<Value> local_window_size, Value num_heads, java.util.Optional<Value> rotary_interleaved, java.util.Optional<Value> scale) {
+        return new GroupQueryAttention(resultType, query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache, do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale);
     }
 
     // @@@ this should be generated from contrib operators
@@ -364,8 +364,8 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new MatMulNBits(this, cc);
         }
 
-        MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias) {
-            super(SCHEMA, resultType, Collections.emptySet(), List.of(a, b, scales), List.of(zero_points, g_idx, bias));
+        MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, Value K, Value N, java.util.Optional<Value> accuracy_level, Value bits, Value block_size) {
+            super(SCHEMA, resultType, Collections.emptySet(), List.of(a, b, scales, zero_points, g_idx, bias), List.of(K, N, accuracy_level, bits, block_size));
         }
 
         @Override
@@ -406,8 +406,8 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static MatMulNBits MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias) {
-        return new MatMulNBits(resultType, a, b, scales, zero_points, g_idx, bias);
+    public static MatMulNBits MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, Value K, Value N, java.util.Optional<Value> accuracy_level, Value bits, Value block_size) {
+        return new MatMulNBits(resultType, a, b, scales, zero_points, g_idx, bias, K, N, accuracy_level, bits, block_size);
     }
 
     // @@@ this should be generated from contrib operators
@@ -445,7 +445,6 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
 
         public enum TypeConstraint implements OnnxTypeConstraint {
             T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.float32()), OnnxType.tensor(OnnxType.float16())))),
-            U(new OnnxType.TypeVariable("U", List.of(OnnxType.tensor(OnnxType.float32())))),
             ;
 
             final OnnxType.TypeVariable typeVariable;
@@ -489,9 +488,9 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
 
         public enum OutputParameter implements OnnxParameter {
             output(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
-            mean(TypeConstraint.U.typeVariable(), Quantifier.OPTIONAL),
-            inv_std_var(TypeConstraint.U.typeVariable(), Quantifier.OPTIONAL),
-            input_skip_bias_sum(TypeConstraint.U.typeVariable(), Quantifier.OPTIONAL),
+            mean(OnnxType.TENSOR_FLOAT32, Quantifier.OPTIONAL),
+            inv_std_var(OnnxType.TENSOR_FLOAT32, Quantifier.OPTIONAL),
+            input_skip_bias_sum(OnnxType.TENSOR_FLOAT32, Quantifier.OPTIONAL),
             ;
 
             final OnnxType type;
@@ -534,8 +533,8 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new SkipSimplifiedLayerNormalization(this, cc);
         }
 
-        SkipSimplifiedLayerNormalization(TypeElement resultType, Value input, Value skip, Value gamma, java.util.Optional<Value> bias) {
-            super(SCHEMA, resultType, Collections.emptySet(), List.of(input, skip, gamma), List.of(bias));
+        SkipSimplifiedLayerNormalization(TypeElement resultType, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Value> epsilon) {
+            super(SCHEMA, resultType, Collections.emptySet(), List.of(input, skip, gamma, bias), List.of(epsilon));
         }
 
         @Override
@@ -566,8 +565,8 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static SkipSimplifiedLayerNormalization SkipSimplifiedLayerNormalization(TypeElement resultType, Value input, Value skip, Value gamma, java.util.Optional<Value> bias) {
-        return new SkipSimplifiedLayerNormalization(resultType, input, skip, gamma, bias);
+    public static SkipSimplifiedLayerNormalization SkipSimplifiedLayerNormalization(TypeElement resultType, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Value> epsilon) {
+        return new SkipSimplifiedLayerNormalization(resultType, input, skip, gamma, bias, epsilon);
     }
 
 

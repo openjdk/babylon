@@ -26,8 +26,10 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
+import java.util.List;
 import java.util.Optional;
 import jdk.incubator.code.Quotable;
+import oracle.code.onnx.ir.OnnxOps;
 
 class ExplicitOnnxOperators {
 
@@ -99,6 +101,27 @@ class ExplicitOnnxOperators {
             values = ret.output();
         }
         return values;
+    }
+
+    // @@@ this should be generated from contrib operators
+
+    public record GroupQueryAttention<T>(Tensor<T> output, Tensor<T> present_key, Tensor<T> present_value) { }
+    public static <T, M> GroupQueryAttention<T> GroupQueryAttention(Tensor<T> query, java.util.Optional<Tensor<T>> key, java.util.Optional<Tensor<T>> value, java.util.Optional<Tensor<T>> past_key, java.util.Optional<Tensor<T>> past_value, Tensor<M> seqlens_k, Tensor<M> total_sequence_length, java.util.Optional<Tensor<T>> cos_cache, java.util.Optional<Tensor<T>> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.GroupQueryAttention.class, List.of(query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache), List.of(do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale));
+        Object[] resultArray = (Object[]) result;
+        return new GroupQueryAttention<>((Tensor<T>)resultArray[0], (Tensor<T>)resultArray[1], (Tensor<T>)resultArray[2]);
+    }
+
+    public static <T1, T2, T3, T4> Tensor<T1> MatMulNBits(Tensor<T1> a, Tensor<T2> b, Tensor<T1> scales, java.util.Optional<Tensor<T3>> zero_points, java.util.Optional<Tensor<T4>> g_idx, java.util.Optional<Tensor<T1>> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.MatMulNBits.class, List.of(a, b, scales, zero_points, g_idx, bias), List.of(K, N, accuracy_level, bits, block_size));
+        return (Tensor<T1>)result;
+    }
+
+    public record SkipSimplifiedLayerNormalization<T>(Tensor<T> output, java.util.Optional<Tensor<Float>> mean, java.util.Optional<Tensor<Float>> inv_std_var, java.util.Optional<Tensor<Float>> input_skip_bias_sum) { }
+    public static <T> SkipSimplifiedLayerNormalization<T> SkipSimplifiedLayerNormalization(Tensor<T> input, Tensor<T> skip, Tensor<T> gamma, java.util.Optional<Tensor<T>> bias, java.util.Optional<Float> epsilon) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.SkipSimplifiedLayerNormalization.class, List.of(input, skip, gamma, bias), List.of(epsilon));
+        Object[] resultArray = (Object[]) result;
+        return new SkipSimplifiedLayerNormalization<>((Tensor<T>)resultArray[0], (java.util.Optional<Tensor<Float>>)resultArray[1], (java.util.Optional<Tensor<Float>>)resultArray[2], (java.util.Optional<Tensor<Float>>)resultArray[3]);
     }
 
     // @@@ move to Tensor API

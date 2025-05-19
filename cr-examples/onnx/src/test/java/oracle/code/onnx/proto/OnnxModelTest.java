@@ -30,8 +30,6 @@ import java.lang.foreign.ValueLayout;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Field;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,7 +37,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -47,6 +50,7 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.TupleType;
 import jdk.incubator.code.writer.OpWriter;
 import oracle.code.onnx.CNNTest;
@@ -157,11 +161,15 @@ public class OnnxModelTest {
     }
 
     record OpWithNames<T extends Op> (T op, List<String> names) {
-        public String toText() {
+
+        private Function<CodeItem, String> namer() {
             var defNamer = OpWriter.CodeItemNamerOption.defaultValue().namer();
             var namer = new HashMap<Value, Integer>();
-            return OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(ci -> ci instanceof Value v ? names.get(namer.computeIfAbsent(v, _ -> namer.size())) : defNamer.apply(ci)));
+            return ci -> ci instanceof Value v ? names.get(namer.computeIfAbsent(v, _ -> namer.size())) : defNamer.apply(ci);
+        }
 
+        public String toText() {
+            return OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(namer()));
         }
     }
 
@@ -209,7 +217,7 @@ public class OnnxModelTest {
                         if (v != null) {
                             switch (param.quantifier()) {
                                 case REQUIRED -> {
-                                    inputs.add(inputs.size() - optionalInputs.size(), v); // insert required inputs before optional
+                                    inputs.add(v);
                                 }
                                 case OPTIONAL -> {
                                     optionalInputs.add(param);
@@ -436,14 +444,20 @@ public class OnnxModelTest {
         for (var fName : args) {
             try (var in = new RandomAccessFile(fName, "r")) {
                 OnnxModel.ModelProto model = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
-                System.out.println(model.toText());
+//                System.out.println(model.toText());
                 var liftedModel = toFuncOp(model.graph());
-                System.out.println(liftedModel.toText());
-//                byte[] protoModel = OnnxProtoBuilder.buildModel(null, CoreOp.module(liftedModel.op()), List.of());
-//                System.out.println(OnnxModel.readFrom(protoModel).toText());
-//                try (Arena arena = Arena.ofConfined()) {
-//                    OnnxRuntime.getInstance().createSession(arena, protoModel);
+//                System.out.println(liftedModel.toText());
+
+                // print initializers
+//                for (OnnxModel.TensorProto i : model.graph().initializer()) {
+//                    System.out.println(i.name() + " " + i.externalData().stream().collect(Collectors.toMap(ssep -> ssep.key(), ssep -> ssep.value())));
 //                }
+
+                byte[] protoModel = OnnxProtoBuilder.buildModel(null, CoreOp.module(liftedModel.op()), List.of());
+//                System.out.println(OnnxModel.readFrom(protoModel).toText());
+                try (Arena arena = Arena.ofConfined()) {
+                    OnnxRuntime.getInstance().createSession(arena, protoModel);
+                }
             }
         }
     }
