@@ -92,7 +92,7 @@ public class TestSynchronized {
               ^block_2:
                 %7 : java.type:"int" = var.load %3;
                 %8 : java.type:"int" = constant @"0";
-                %9 : boolean = gt %7 %8;
+                %9 : java.type:"boolean" = gt %7 %8;
                 cbranch %9 ^block_3 ^block_5;
 
               ^block_3:

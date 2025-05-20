@@ -37,6 +37,8 @@ import jdk.incubator.code.parser.impl.Tokens;
 import jdk.incubator.code.type.CoreTypeFactory;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.TypeElementFactory;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -601,7 +603,7 @@ public final class OpParser {
     }
 
     TypeElement.ExternalizedTypeElement parseExTypeElem() {
-        return DescParser.parseExTypeElem(lexer);
+        return JavaTypeUtils.inflate(DescParser.parseExTypeElem(lexer));
     }
 }
 

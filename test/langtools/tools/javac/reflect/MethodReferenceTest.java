@@ -106,13 +106,13 @@ public class MethodReferenceTest {
     @IR("""
             func @"test4" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @"s";
-                %2 : java.type:"MethodReferenceTest$A<java.lang.String>" = invoke %0 %1 @"MethodReferenceTest::a(java.lang.Object):MethodReferenceTest$A";
-                %3 : Var<java.type:"MethodReferenceTest$A<java.lang.String>"> = var %2 @"rec$";
+                %2 : java.type:"MethodReferenceTest::A<java.lang.String>" = invoke %0 %1 @"MethodReferenceTest::a(java.lang.Object):MethodReferenceTest::A";
+                %3 : Var<java.type:"MethodReferenceTest::A<java.lang.String>"> = var %2 @"rec$";
                 %4 : java.type:"java.util.function.Function<java.lang.String, java.lang.String>" = lambda (%5 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                     %6 : Var<java.type:"java.lang.String"> = var %5 @"x$0";
-                    %7 : java.type:"MethodReferenceTest$A<java.lang.String>" = var.load %3;
+                    %7 : java.type:"MethodReferenceTest::A<java.lang.String>" = var.load %3;
                     %8 : java.type:"java.lang.String" = var.load %6;
-                    %9 : java.type:"java.lang.String" = invoke %7 %8 @"MethodReferenceTest$A::m(java.lang.Object):java.lang.Object";
+                    %9 : java.type:"java.lang.String" = invoke %7 %8 @"MethodReferenceTest::A::m(java.lang.Object):java.lang.Object";
                     return %9;
                 };
                 %10 : Var<java.type:"java.util.function.Function<java.lang.String, java.lang.String>"> = var %4 @"f";
@@ -168,11 +168,11 @@ public class MethodReferenceTest {
     @CodeReflection
     @IR("""
             func @"test7" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.Supplier<MethodReferenceTest$A<java.lang.String>>" = lambda ()java.type:"MethodReferenceTest$A<java.lang.String>" -> {
-                    %2 : java.type:"MethodReferenceTest$A<java.lang.String>" = new %0 @"MethodReferenceTest$A::(MethodReferenceTest)";
+                %1 : java.type:"java.util.function.Supplier<MethodReferenceTest::A<java.lang.String>>" = lambda ()java.type:"MethodReferenceTest::A<java.lang.String>" -> {
+                    %2 : java.type:"MethodReferenceTest::A<java.lang.String>" = new %0 @"MethodReferenceTest::A::(MethodReferenceTest)";
                     return %2;
                 };
-                %3 : Var<java.type:"java.util.function.Supplier<MethodReferenceTest$A<java.lang.String>>"> = var %1 @"aNew";
+                %3 : Var<java.type:"java.util.function.Supplier<MethodReferenceTest::A<java.lang.String>>"> = var %1 @"aNew";
                 return;
             };
             """)
@@ -183,13 +183,13 @@ public class MethodReferenceTest {
     @CodeReflection
     @IR("""
             func @"test8" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
-                %1 : java.type:"java.util.function.IntFunction<MethodReferenceTest$A<java.lang.String>[]>" = lambda (%2 : java.type:"int")java.type:"MethodReferenceTest$A<java.lang.String>[]" -> {
+                %1 : java.type:"java.util.function.IntFunction<MethodReferenceTest::A<java.lang.String>[]>" = lambda (%2 : java.type:"int")java.type:"MethodReferenceTest::A<java.lang.String>[]" -> {
                     %3 : Var<java.type:"int"> = var %2 @"x$0";
                     %4 : java.type:"int" = var.load %3;
-                    %5 : java.type:"MethodReferenceTest$A[]" = new %4 @"MethodReferenceTest$A[]::(int)";
+                    %5 : java.type:"MethodReferenceTest::A[]" = new %4 @"MethodReferenceTest::A[]::(int)";
                     return %5;
                 };
-                %6 : Var<java.type:"java.util.function.IntFunction<MethodReferenceTest$A<java.lang.String>[]>"> = var %1 @"aNewArray";
+                %6 : Var<java.type:"java.util.function.IntFunction<MethodReferenceTest::A<java.lang.String>[]>"> = var %1 @"aNewArray";
                 return;
             };
             """)

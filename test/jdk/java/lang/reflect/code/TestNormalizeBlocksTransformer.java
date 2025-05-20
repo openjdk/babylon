@@ -131,7 +131,7 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST3_INPUT = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : java.type:"int" = constant @"0";
-                %2 : boolean = gt %0 %1;
+                %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
@@ -154,7 +154,7 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST3_EXPECTED = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : java.type:"int" = constant @"0";
-                %2 : boolean = gt %0 %1;
+                %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
@@ -173,7 +173,7 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST4_INPUT = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : java.type:"int" = constant @"0";
-                %2 : boolean = gt %0 %1;
+                %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
@@ -196,7 +196,7 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST4_EXPECTED = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : java.type:"int" = constant @"0";
-                %2 : boolean = gt %0 %1;
+                %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:

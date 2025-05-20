@@ -22,9 +22,4 @@ public sealed interface JavaRef extends TypeElement
     //     - resolve to RecordComponent
     //     - (RecordTypeRef resolves to Type.)
     // @@@ AnnotatedElement is the common top type for resolved Java refs and types
-
-    @Override
-    default ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(String.format("java.ref:\"%s\"", this), List.of());
-    }
 }

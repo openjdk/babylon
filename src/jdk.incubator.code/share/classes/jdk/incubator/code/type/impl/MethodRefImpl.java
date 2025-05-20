@@ -139,10 +139,15 @@ public final class MethodRefImpl implements MethodRef {
     }
 
     @Override
+    public ExternalizedTypeElement externalize() {
+        return JavaTypeUtils.methodRef(name, refType.externalize(),
+                type.returnType().externalize(),
+                type.parameterTypes().stream().map(TypeElement::externalize).toList());
+    }
+
+    @Override
     public String toString() {
-        return refType + "::" + name +
-            type.parameterTypes().stream().map(Object::toString)
-                    .collect(joining(", ", "(", ")")) + ":" + type.returnType();
+        return JavaTypeUtils.toExternalRefString(externalize());
     }
 
     @Override

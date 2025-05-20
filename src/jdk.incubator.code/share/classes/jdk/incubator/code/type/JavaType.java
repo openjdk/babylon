@@ -34,6 +34,8 @@ import java.lang.reflect.*;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.parser.impl.DescParser;
 import jdk.incubator.code.type.WildcardType.BoundKind;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -167,11 +169,6 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      * {@return the nominal descriptor associated with this Java type}
      */
     ClassDesc toNominalDescriptor();
-
-    @Override
-    default ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(String.format("java.type:\"%s\"", this), List.of());
-    }
 
     /**
      * Resolve this Java type to a reflective type mirror.
@@ -359,6 +356,6 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      * @return a Java type corresponding to the provided string representation
      */
     static JavaType ofString(String s) {
-        return (JavaType) DescParser.parseJavaType(s);
+        return JavaTypeUtils.toJavaType(DescParser.parseJavaType(s));
     }
 }

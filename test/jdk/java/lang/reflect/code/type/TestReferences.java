@@ -23,6 +23,7 @@
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.type.*;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -37,7 +38,7 @@ import java.util.Optional;
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code/jdk.incubator.code.type.impl
  * @run testng TestReferences
  */
 
@@ -81,8 +82,8 @@ public class TestReferences {
     @Test(dataProvider = "externalizedMethodRefs")
     public void testExternalizedMethodRef(String mds, String refType, String name) {
         TypeElement.ExternalizedTypeElement emr = TypeElement.ExternalizedTypeElement.ofString(mds);
-        MethodRef mr = (MethodRef) CoreTypeFactory.CORE_TYPE_FACTORY.constructType(emr);
-        Assert.assertEquals(mr.externalize().toString(), mds);
+        MethodRef mr = (MethodRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(emr));
+        Assert.assertEquals(JavaTypeUtils.flatten(mr.externalize()).toString(), mds);
         Assert.assertEquals(mr.refType().toString(), refType);
         Assert.assertEquals(mr.name(), name);
     }
@@ -114,9 +115,9 @@ public class TestReferences {
     @Test(dataProvider = "externalizedConstructorRefs")
     public void testExternalizedConstructorRef(String crs, String refType) {
         TypeElement.ExternalizedTypeElement ecr = TypeElement.ExternalizedTypeElement.ofString(crs);
-        ConstructorRef cr = (ConstructorRef) CoreTypeFactory.CORE_TYPE_FACTORY.constructType(ecr);
+        ConstructorRef cr = (ConstructorRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ecr));
 
-        Assert.assertEquals(cr.externalize().toString(), crs);
+        Assert.assertEquals(JavaTypeUtils.flatten(cr.externalize()).toString(), crs);
         Assert.assertEquals(cr.refType().toString(), refType);
     }
 
@@ -153,9 +154,9 @@ public class TestReferences {
     @Test(dataProvider = "externalizedFieldRefs")
     public void testExternalizedFieldRef(String frs, String refType, String name, String type) {
         TypeElement.ExternalizedTypeElement efr = TypeElement.ExternalizedTypeElement.ofString(frs);
-        FieldRef fr = (FieldRef) CoreTypeFactory.CORE_TYPE_FACTORY.constructType(efr);
+        FieldRef fr = (FieldRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(efr));
 
-        Assert.assertEquals(fr.externalize().toString(), frs);
+        Assert.assertEquals(JavaTypeUtils.flatten(fr.externalize()).toString(), frs);
         Assert.assertEquals(fr.refType().toString(), refType);
         Assert.assertEquals(fr.name(), name);
         Assert.assertEquals(fr.type().toString(), type);
@@ -186,7 +187,6 @@ public class TestReferences {
                 {"java.ref:\"(B b)A\""},
                 {"java.ref:\"(B b, C c)A\""},
                 {"java.ref:\"(p.Func<String, Number> f, Entry<List<String>, val> e, int i, long l)p.A<R>\""},
-                // @@@ Fails because of externalize().toString()
                 {"java.ref:\"(R::<T extends java.lang.Number> n)R<R::<T extends java.lang.Number>>\""}
         };
     }
@@ -194,7 +194,7 @@ public class TestReferences {
     @Test(dataProvider = "externalizedRecordTypeRefs")
     public void testExternalizedRecordTypeRef(String rtds) {
         TypeElement.ExternalizedTypeElement ertr = TypeElement.ExternalizedTypeElement.ofString(rtds);
-        RecordTypeRef rtr = (RecordTypeRef) CoreTypeFactory.CORE_TYPE_FACTORY.constructType(ertr);
-        Assert.assertEquals(rtr.externalize().toString(), rtds);
+        RecordTypeRef rtr = (RecordTypeRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ertr));
+        Assert.assertEquals(JavaTypeUtils.flatten(rtr.externalize()).toString(), rtds);
     }
 }

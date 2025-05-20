@@ -859,8 +859,8 @@ public class SwitchExpressionTest2 {
                 %2 : java.type:"SwitchExpressionTest2$A" = var.load %1;
                 %3 : java.type:"SwitchExpressionTest2$B" = constant @null;
                 %4 : Var<java.type:"SwitchExpressionTest2$B"> = var %3 @"b";
-                %5 : java.type:"SwitchExpressionTest2$C" = constant @null;
-                %6 : Var<java.type:"SwitchExpressionTest2$C"> = var %5 @"c";
+                %5 : java.type:"SwitchExpressionTest2::C" = constant @null;
+                %6 : Var<java.type:"SwitchExpressionTest2::C"> = var %5 @"c";
                 %7 : java.type:"java.lang.String" = java.switch.expression %2
                     (%8 : java.type:"SwitchExpressionTest2$A")java.type:"boolean" -> {
                         %9 : java.type:"boolean" = pattern.match %8
@@ -880,11 +880,11 @@ public class SwitchExpressionTest2 {
                     }
                     (%13 : java.type:"SwitchExpressionTest2$A")java.type:"boolean" -> {
                         %14 : java.type:"boolean" = pattern.match %13
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchExpressionTest2$C>" -> {
-                                %15 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchExpressionTest2$C>" = pattern.type @"c";
+                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchExpressionTest2::C>" -> {
+                                %15 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchExpressionTest2::C>" = pattern.type @"c";
                                 yield %15;
                             }
-                            (%16 : java.type:"SwitchExpressionTest2$C")java.type:"void" -> {
+                            (%16 : java.type:"SwitchExpressionTest2::C")java.type:"void" -> {
                                 var.store %6 %16;
                                 yield;
                             };

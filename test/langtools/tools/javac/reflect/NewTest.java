@@ -97,8 +97,8 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test3" (%0 : java.type:"NewTest")java.type:"void" -> {
-                %1 : java.type:"NewTest$B" = new %0 @"NewTest$B::(NewTest)";
-                %2 : Var<java.type:"NewTest$B"> = var %1 @"b";
+                %1 : java.type:"NewTest::B" = new %0 @"NewTest::B::(NewTest)";
+                %2 : Var<java.type:"NewTest::B"> = var %1 @"b";
                 return;
             };
             """)
@@ -111,8 +111,8 @@ public class NewTest {
             func @"test4" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"int" = constant @"1";
                 %2 : java.type:"int" = constant @"2";
-                %3 : java.type:"NewTest$B" = new %0 %1 %2 @"NewTest$B::(NewTest, int, int)";
-                %4 : Var<java.type:"NewTest$B"> = var %3 @"b";
+                %3 : java.type:"NewTest::B" = new %0 %1 %2 @"NewTest::B::(NewTest, int, int)";
+                %4 : Var<java.type:"NewTest::B"> = var %3 @"b";
                 return;
             };
             """)
@@ -123,8 +123,8 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test5" (%0 : java.type:"NewTest")java.type:"void" -> {
-                %1 : java.type:"NewTest$B" = new %0 @"NewTest$B::(NewTest)";
-                %2 : Var<java.type:"NewTest$B"> = var %1 @"b";
+                %1 : java.type:"NewTest::B" = new %0 @"NewTest::B::(NewTest)";
+                %2 : Var<java.type:"NewTest::B"> = var %1 @"b";
                 return;
             };
             """)
@@ -135,9 +135,9 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test6" (%0 : java.type:"NewTest")java.type:"void" -> {
-                %1 : java.type:"NewTest$B" = field.load %0 @"NewTest::f:NewTest$B";
-                %2 : java.type:"NewTest$B$C" = new %1 @"NewTest$B$C::(NewTest$B)";
-                %3 : Var<java.type:"NewTest$B$C"> = var %2 @"c";
+                %1 : java.type:"NewTest::B" = field.load %0 @"NewTest::f:NewTest::B";
+                %2 : java.type:"NewTest::B::C" = new %1 @"NewTest::B::C::(NewTest::B)";
+                %3 : Var<java.type:"NewTest::B::C"> = var %2 @"c";
                 return;
             };
             """)
@@ -148,9 +148,9 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test7" (%0 : java.type:"NewTest")java.type:"void" -> {
-                %1 : java.type:"NewTest$B" = invoke %0 @"NewTest::b():NewTest$B";
-                %2 : java.type:"NewTest$B$C" = new %1 @"NewTest$B$C::(NewTest$B)";
-                %3 : Var<java.type:"NewTest$B$C"> = var %2 @"c";
+                %1 : java.type:"NewTest::B" = invoke %0 @"NewTest::b():NewTest::B";
+                %2 : java.type:"NewTest::B::C" = new %1 @"NewTest::B::C::(NewTest::B)";
+                %3 : Var<java.type:"NewTest::B::C"> = var %2 @"c";
                 return;
             };
             """)
@@ -190,10 +190,10 @@ public class NewTest {
                   %3 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l1";
                   %4 : Var<java.type:"java.util.List<java.lang.Number>"> = var %2 @"l2";
                   %5 : java.type:"java.util.List<java.lang.String>" = var.load %3;
-                  %6 : java.type:"NewTest$BG<java.lang.String>" = new %0 %5 @"NewTest$BG::(NewTest, java.util.List)";
+                  %6 : java.type:"NewTest::BG<java.lang.String>" = new %0 %5 @"NewTest::BG::(NewTest, java.util.List)";
                   %7 : java.type:"java.util.List<java.lang.Number>" = var.load %4;
-                  %8 : java.type:"NewTest$BG<java.lang.String>$CG<java.lang.Number>" = new %6 %7 @"NewTest$BG$CG::(NewTest$BG<java.lang.String>, java.util.List)";
-                  %9 : Var<java.type:"NewTest$BG<java.lang.String>$CG<java.lang.Number>"> = var %8 @"numberCG";
+                  %8 : java.type:"NewTest::BG<java.lang.String>::CG<java.lang.Number>" = new %6 %7 @"NewTest::BG::CG::(NewTest::BG<java.lang.String>, java.util.List)";
+                  %9 : Var<java.type:"NewTest::BG<java.lang.String>::CG<java.lang.Number>"> = var %8 @"numberCG";
                   return;
               };
             """)

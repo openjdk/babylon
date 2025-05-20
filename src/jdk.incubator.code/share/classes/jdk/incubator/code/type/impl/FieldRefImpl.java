@@ -29,7 +29,6 @@ import jdk.incubator.code.type.FieldRef;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
-import java.util.List;
 
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.TypeElement;
@@ -115,8 +114,13 @@ public final class FieldRefImpl implements FieldRef {
     }
 
     @Override
+    public ExternalizedTypeElement externalize() {
+        return JavaTypeUtils.fieldRef(name, refType.externalize(), type.externalize());
+    }
+
+    @Override
     public String toString() {
-        return refType + "::" + name + ":" + type;
+        return JavaTypeUtils.toExternalRefString(externalize());
     }
 
     @Override

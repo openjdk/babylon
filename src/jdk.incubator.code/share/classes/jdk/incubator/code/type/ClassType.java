@@ -25,21 +25,25 @@
 
 package jdk.incubator.code.type;
 
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import jdk.incubator.code.TypeElement;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * A class type.
  */
 public final class ClassType implements TypeVariableType.Owner, JavaType {
+
+    public static final String NAME = "java.type.class";
+
     // Enclosing class type (might be null)
     private final ClassType enclosing;
     // Fully qualified name
@@ -84,19 +88,19 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
     }
 
     @Override
-    public String toString() {
-        String prefix = enclosing != null ?
-                enclosing + "$":
-                (!type.packageName().isEmpty() ?
-                        type.packageName() + "." : "");
+    public ExternalizedTypeElement externalize() {
+        ExternalizedTypeElement exEnclosing = enclosing == null ?
+                VOID.externalize() : enclosing.externalize();
         String name = enclosing == null ?
-                type.displayName() :
+                toClassName() :
                 type.displayName().substring(enclosing.type.displayName().length() + 1);
-        String typeArgs = hasTypeArguments() ?
-                typeArguments().stream().map(JavaType::toString)
-                        .collect(Collectors.joining(", ", "<", ">")) :
-                "";
-        return String.format("%s%s%s", prefix, name, typeArgs);
+        return JavaTypeUtils.classType(name, exEnclosing,
+                typeArguments().stream().map(JavaType::externalize).toList());
+    }
+
+    @Override
+    public String toString() {
+        return JavaTypeUtils.toExternalTypeString(externalize());
     }
 
     @Override

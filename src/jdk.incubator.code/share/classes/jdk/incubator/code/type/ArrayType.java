@@ -27,11 +27,10 @@ package jdk.incubator.code.type;
 
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.reflect.Array;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
-import jdk.incubator.code.TypeElement;
-import java.util.List;
+
+import jdk.incubator.code.type.impl.JavaTypeUtils;
 
 /**
  * An array type.
@@ -79,8 +78,13 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
+    public ExternalizedTypeElement externalize() {
+        return JavaTypeUtils.arrayType(componentType.externalize());
+    }
+
+    @Override
     public String toString() {
-        return componentType.toString() + "[]";
+        return JavaTypeUtils.toExternalTypeString(externalize());
     }
 
     @Override

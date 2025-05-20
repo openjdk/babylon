@@ -183,7 +183,9 @@ public class TestJavaType {
     @Test(dataProvider = "types")
     public void testTypeString(Type type) throws ReflectiveOperationException {
         JavaType javaType = JavaType.type(type);
-        Assert.assertEquals(type.getTypeName(), replaceTypeVariables(javaType).toString());
+        Assert.assertEquals(type.getTypeName(),
+                replaceTypeVariables(javaType).toString()
+                        .replaceAll("::", "\\$"));
     }
 
     JavaType replaceTypeVariables(JavaType type) {

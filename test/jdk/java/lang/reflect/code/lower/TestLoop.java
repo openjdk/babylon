@@ -47,7 +47,7 @@ public class TestLoop {
                 %6 : java.type:"int" = var.load %5;
                 %7 : java.type:"int[]" = var.load %1;
                 %8 : java.type:"int" = array.length %7;
-                %9 : boolean = lt %6 %8;
+                %9 : java.type:"boolean" = lt %6 %8;
                 cbranch %9 ^block_1 ^block_2;
 
               ^block_1:
@@ -88,7 +88,7 @@ public class TestLoop {
 
               ^block_1(%3 : java.type:"int", %4 : java.type:"int"):
                 %5 : java.type:"int" = array.length %0;
-                %6 : boolean = lt %3 %5;
+                %6 : java.type:"boolean" = lt %3 %5;
                 cbranch %6 ^block_2 ^block_4;
 
               ^block_2:

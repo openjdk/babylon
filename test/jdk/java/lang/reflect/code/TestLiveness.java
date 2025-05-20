@@ -67,7 +67,7 @@ public class TestLiveness {
     static final String IF_ELSE = """
             func @"ifelse" (%0 : java.type:"int", %1 : java.type:"int", %2 : java.type:"int")java.type:"int" -> {
                 %3 : java.type:"int" = constant @"10";
-                %4 : boolean = lt %2 %3;
+                %4 : java.type:"boolean" = lt %2 %3;
                 cbranch %4 ^block_0 ^block_1;
 
               ^block_0:
@@ -107,7 +107,7 @@ public class TestLiveness {
                 branch ^block_0(%1, %2);
 
               ^block_0(%3 : java.type:"int", %4 : java.type:"int"):
-                %5 : boolean = lt %4 %0;
+                %5 : java.type:"boolean" = lt %4 %0;
                 cbranch %5 ^block_1 ^block_2;
 
               ^block_1:
@@ -142,12 +142,12 @@ public class TestLiveness {
     static final String IF_ELSE_NESTED = """
             func @"ifelseNested" (%0 : java.type:"int", %1 : java.type:"int", %2 : java.type:"int", %3 : java.type:"int", %4 : java.type:"int")java.type:"int" -> {
                 %5 : java.type:"int" = constant @"20";
-                %6 : boolean = lt %4 %5;
+                %6 : java.type:"boolean" = lt %4 %5;
                 cbranch %6 ^block_0 ^block_1;
 
               ^block_0:
                 %7 : java.type:"int" = constant @"10";
-                %8 : boolean = lt %4 %7;
+                %8 : java.type:"boolean" = lt %4 %7;
                 cbranch %8 ^block_2 ^block_3;
 
               ^block_2:
@@ -167,7 +167,7 @@ public class TestLiveness {
 
               ^block_1:
                 %17 : java.type:"int" = constant @"20";
-                %18 : boolean = gt %4 %17;
+                %18 : java.type:"boolean" = gt %4 %17;
                 cbranch %18 ^block_6 ^block_7;
 
               ^block_6:
@@ -220,7 +220,7 @@ public class TestLiveness {
                 branch ^block_0(%1, %2);
 
               ^block_0(%3 : java.type:"int", %4 : java.type:"int"):
-                %5 : boolean = lt %4 %0;
+                %5 : java.type:"boolean" = lt %4 %0;
                 cbranch %5 ^block_1 ^block_2;
 
               ^block_1:
@@ -228,7 +228,7 @@ public class TestLiveness {
                 branch ^block_3(%3, %6);
 
               ^block_3(%7 : java.type:"int", %8 : java.type:"int"):
-                %9 : boolean = lt %8 %0;
+                %9 : java.type:"boolean" = lt %8 %0;
                 cbranch %9 ^block_4 ^block_5;
 
               ^block_4:

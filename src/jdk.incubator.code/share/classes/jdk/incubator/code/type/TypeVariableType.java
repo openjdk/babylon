@@ -25,13 +25,15 @@
 
 package jdk.incubator.code.type;
 
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
-import java.util.List;
 
 /**
  * A type-variable reference.
@@ -99,13 +101,13 @@ public final class TypeVariableType implements JavaType {
     }
 
     @Override
+    public ExternalizedTypeElement externalize() {
+        return JavaTypeUtils.typeVarType(name, owner.externalize(), bound.externalize());
+    }
+
+    @Override
     public String toString() {
-        String ownerString = (owner instanceof ClassType) ?
-                owner.toString() :
-                String.format("(%s)", owner);
-        return (bound.equals(JavaType.J_L_OBJECT)) ?
-                String.format("%s::<%s>", ownerString, name) :
-                String.format("%s::<%s extends %s>", ownerString, name, bound);
+        return JavaTypeUtils.toExternalTypeString(externalize());
     }
 
     @Override
@@ -134,5 +136,5 @@ public final class TypeVariableType implements JavaType {
     /**
      * The owner of a type-variable - either a class or a method.
      */
-    public sealed interface Owner permits ClassType, MethodRef, ConstructorRef { }
+    public sealed interface Owner extends TypeElement permits ClassType, MethodRef, ConstructorRef { }
 }

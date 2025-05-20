@@ -25,10 +25,11 @@
 
 package jdk.incubator.code.type;
 
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Type;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -72,10 +73,13 @@ public final class WildcardType implements JavaType {
     }
 
     @Override
+    public ExternalizedTypeElement externalize() {
+        return JavaTypeUtils.wildcardType(boundKind(), boundType.externalize());
+    }
+
+    @Override
     public String toString() {
-        return boundKind() == BoundKind.EXTENDS &&
-                boundType.equals(J_L_OBJECT) ?
-                "?" : boundKind().boundStr + boundType.toString();
+        return JavaTypeUtils.toExternalTypeString(externalize());
     }
 
     @Override
