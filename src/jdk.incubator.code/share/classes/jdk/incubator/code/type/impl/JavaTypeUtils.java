@@ -36,6 +36,27 @@ public class JavaTypeUtils {
     public static final String JAVA_TYPE_FLAT_NAME_PREFIX = "java.type:";
     public static final String JAVA_REF_FLAT_NAME_PREFIX = "java.ref:";
 
+    public enum Kind {
+        FLATTENED_TYPE,
+        FLATTENED_REF,
+        INFLATED_TYPE,
+        INFLATED_REF,
+        OTHER;
+
+        public static Kind of(ExternalizedTypeElement tree) {
+            return switch (tree.identifier()) {
+                case JAVA_TYPE_CLASS_NAME, JAVA_TYPE_ARRAY_NAME,
+                     JAVA_TYPE_PRIMITIVE_NAME, JAVA_TYPE_WILDCARD_NAME,
+                     JAVA_TYPE_VAR_NAME -> INFLATED_TYPE;
+                case JAVA_REF_FIELD_NAME, JAVA_REF_CONSTRUCTOR_NAME,
+                     JAVA_REF_METHOD_NAME, JAVA_REF_RECORD_NAME -> INFLATED_REF;
+                case String s when s.startsWith(JAVA_TYPE_FLAT_NAME_PREFIX) -> FLATTENED_TYPE;
+                case String s when s.startsWith(JAVA_REF_FLAT_NAME_PREFIX) -> FLATTENED_REF;
+                default -> OTHER;
+            };
+        }
+    }
+
     // Externalized Java type/ref factories
 
     public static ExternalizedTypeElement classType(String name, ExternalizedTypeElement encl, List<ExternalizedTypeElement> typeargs) {
@@ -121,8 +142,11 @@ public class JavaTypeUtils {
             case JAVA_TYPE_VAR_NAME -> {
                 String tvarName = select(tree, 0, JavaTypeUtils::typeToName);
                 TypeVariableType.Owner owner = (TypeVariableType.Owner)select(tree, 1, t ->
-                        t.identifier().startsWith("java.type") ?
-                                toJavaType(t) : toJavaRef(t));
+                        switch (Kind.of(t)) {
+                            case INFLATED_TYPE -> toJavaType(t);
+                            case INFLATED_REF -> toJavaRef(t);
+                            default -> throw unsupported(t);
+                        });
                 JavaType bound = select(tree, 2, JavaTypeUtils::toJavaType);
                 yield JavaType.typeVarRef(tvarName, owner, bound);
             }
@@ -130,7 +154,7 @@ public class JavaTypeUtils {
                 String primitiveName = select(tree, 0, JavaTypeUtils::typeToName);
                 yield PRIMITIVE_TYPES.get(primitiveName);
             }
-            default -> throw new UnsupportedOperationException("Unsupported type: " + tree);
+            default -> throw unsupported(tree);
         };
     }
 
@@ -166,7 +190,7 @@ public class JavaTypeUtils {
                         }).toList();
                 yield RecordTypeRef.recordType(owner, components);
             }
-            default -> throw new UnsupportedOperationException("Unsupported ref: " + tree);
+            default -> throw unsupported(tree);
         };
     }
 
@@ -181,7 +205,7 @@ public class JavaTypeUtils {
                         "" :
                         selectFrom(tree, 2, JavaTypeUtils::toExternalTypeString).stream()
                                 .collect(Collectors.joining(", ", "<", ">"));
-                if (is(enclosing, JavaType.VOID)) {
+                if (isSameType(enclosing, JavaType.VOID)) {
                     yield String.format("%s%s", className, typeargs);
                 } else {
                     String enclosingString = toExternalTypeString(enclosing);
@@ -195,24 +219,25 @@ public class JavaTypeUtils {
             case JAVA_TYPE_WILDCARD_NAME -> {
                 BoundKind boundKind = select(tree, 0, t -> BoundKind.valueOf(typeToName(t)));
                 ExternalizedTypeElement bound = select(tree, 1, Function.identity());
-                yield boundKind == BoundKind.EXTENDS && is(bound, JavaType.J_L_OBJECT) ?
+                yield boundKind == BoundKind.EXTENDS && isSameType(bound, JavaType.J_L_OBJECT) ?
                         "?" :
                         String.format("? %s %s", boundKind.name().toLowerCase(), toExternalTypeString(bound));
             }
             case JAVA_TYPE_VAR_NAME -> {
                 String tvarName = select(tree, 0, JavaTypeUtils::typeToName);
-                ExternalizedTypeElement owner = select(tree, 1, Function.identity());
-                boolean isRef = owner.identifier().startsWith("java.ref");
-                String ownerString = isRef ?
-                        "&" + toExternalRefString(owner) :
-                        toExternalTypeString(owner);
+                String owner = select(tree, 1, t ->
+                        switch (Kind.of(t)) {
+                            case INFLATED_REF -> "&" + toExternalRefString(t);
+                            case INFLATED_TYPE -> toExternalTypeString(t);
+                            default -> throw unsupported(t);
+                        });
                 ExternalizedTypeElement bound = select(tree, 2, Function.identity());
-                yield is(bound, JavaType.J_L_OBJECT) ?
-                        String.format("%s::<%s>", ownerString, tvarName) :
-                        String.format("%s::<%s extends %s>", ownerString, tvarName, toExternalTypeString(bound));
+                yield isSameType(bound, JavaType.J_L_OBJECT) ?
+                        String.format("%s::<%s>", owner, tvarName) :
+                        String.format("%s::<%s extends %s>", owner, tvarName, toExternalTypeString(bound));
             }
             case JAVA_TYPE_PRIMITIVE_NAME -> select(tree, 0, JavaTypeUtils::typeToName);
-            default -> throw new UnsupportedOperationException("Unsupported type: " + tree);
+            default -> throw unsupported(tree);
         };
     }
 
@@ -248,7 +273,7 @@ public class JavaTypeUtils {
                         }).toList();
                 yield String.format("(%s)%s", String.join(", ", components), owner);
             }
-            default -> throw new UnsupportedOperationException("Unsupported ref: " + tree);
+            default -> throw unsupported(tree);
         };
     }
 
@@ -279,25 +304,19 @@ public class JavaTypeUtils {
     // From inflated externalized types/refs to flattened externalized types/refs and back
 
     public static ExternalizedTypeElement flatten(ExternalizedTypeElement tree) {
-        return switch (tree.identifier()) {
-            case JAVA_TYPE_CLASS_NAME, JAVA_TYPE_ARRAY_NAME, JAVA_TYPE_PRIMITIVE_NAME,
-                 JAVA_TYPE_WILDCARD_NAME, JAVA_TYPE_VAR_NAME ->
-                    nameToType(String.format("%s\"%s\"", JAVA_TYPE_FLAT_NAME_PREFIX, toExternalTypeString(tree)));
-            case JAVA_REF_FIELD_NAME, JAVA_REF_METHOD_NAME, JAVA_REF_CONSTRUCTOR_NAME, JAVA_REF_RECORD_NAME ->
-                    nameToType(String.format("%s\"%s\"", JAVA_REF_FLAT_NAME_PREFIX, toExternalRefString(tree)));
+        return switch (Kind.of(tree)) {
+            case INFLATED_TYPE -> nameToType(String.format("%s\"%s\"", JAVA_TYPE_FLAT_NAME_PREFIX, toExternalTypeString(tree)));
+            case INFLATED_REF -> nameToType(String.format("%s\"%s\"", JAVA_REF_FLAT_NAME_PREFIX, toExternalRefString(tree)));
             default -> new ExternalizedTypeElement(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::flatten).toList());
         };
     }
 
     public static ExternalizedTypeElement inflate(ExternalizedTypeElement tree) {
-        String id = tree.identifier();
-        if (id.startsWith(JAVA_TYPE_FLAT_NAME_PREFIX)) {
-            return parseExternalTypeString(getDesc(id, JAVA_TYPE_FLAT_NAME_PREFIX));
-        } else if (id.startsWith(JAVA_REF_FLAT_NAME_PREFIX)) {
-            return parseExternalRefString(getDesc(id, JAVA_REF_FLAT_NAME_PREFIX));
-        } else {
-            return new ExternalizedTypeElement(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::inflate).toList());
-        }
+        return switch (Kind.of(tree)) {
+            case FLATTENED_TYPE -> parseExternalTypeString(getDesc(tree, JAVA_TYPE_FLAT_NAME_PREFIX));
+            case FLATTENED_REF -> parseExternalRefString(getDesc(tree, JAVA_REF_FLAT_NAME_PREFIX));
+            default -> new ExternalizedTypeElement(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::inflate).toList());
+        };
     }
 
     // internal utility methods
@@ -335,7 +354,7 @@ public class JavaTypeUtils {
         return tree.identifier();
     }
 
-    private static boolean is(ExternalizedTypeElement tree, TypeElement typeElement) {
+    private static boolean isSameType(ExternalizedTypeElement tree, TypeElement typeElement) {
         return tree.equals(typeElement.externalize());
     }
 
@@ -359,7 +378,8 @@ public class JavaTypeUtils {
                 .toList();
     }
 
-    private static String getDesc(String id, String prefix) {
+    private static String getDesc(ExternalizedTypeElement tree, String prefix) {
+        String id = tree.identifier();
         return id.substring(prefix.length() + 1, id.length() - 1);
     }
 
@@ -565,5 +585,9 @@ public class JavaTypeUtils {
             ExternalizedTypeElement ftype = parseExternalTypeString(l);
             return JavaTypeUtils.fieldRef(memberName, refType, ftype);
         }
+    }
+
+    private static UnsupportedOperationException unsupported(ExternalizedTypeElement tree) {
+        throw new UnsupportedOperationException("Unsupported type: " + tree);
     }
 }
