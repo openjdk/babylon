@@ -4443,13 +4443,14 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             usedValues.addAll(op.capturedValues());
             usedValues.addAll(op.operands());
             for (Value v : usedValues) {
-                Value nv;
+                TypeElement t;
                 if (v instanceof Op.Result opr && opr.op() instanceof VarOp varOp) {
-                    Block.Parameter p = block.parameter(varOp.varValueType());
-                    nv = block.op(var(p));
+                    t = varOp.varValueType();
                 } else {
-                    nv = block.parameter(v.type());
+                    t = v.type();
                 }
+                Block.Parameter p = block.parameter(t);
+                Op.Result nv = block.op(var(p));
                 block.context().mapValue(v, nv);
             }
 
@@ -4460,7 +4461,26 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                 // needed for reachability check (of captured values) to succeed
                 qblock.context().mapBlock(op.ancestorBody().entryBlock(), qblock);
             }
-            Op.Result opr = qblock.op(op);
+            Op.Result opr = qblock.op(op, (b, o) -> {
+                // a modified copy transformer, that insert var.load before use of captured values (if needed)
+                Map<Value, Value> m = new HashMap<>();
+                for (Value operand : o.operands()) {
+                    if (usedValues.contains(operand) && !(operand instanceof Op.Result r && r.op() instanceof VarOp)) {
+                        Value capVar = b.context().getValue(operand);
+                        Op.Result capVal = b.op(varLoad(capVar));
+                        m.put(operand, capVar);
+                        b.context().mapValue(operand, capVal);
+                    }
+                }
+
+                b.op(o);
+
+                for (Value k : m.keySet()) {
+                    b.context().mapValue(k, m.get(k));
+                }
+
+                return b;
+            });
 
             qblock.op(_yield(opr));
 
