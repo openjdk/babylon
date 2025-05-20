@@ -4435,4 +4435,38 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     public static ConcatOp concat(Value lhs, Value rhs) {
         return new ConcatOp(lhs, rhs);
     }
+
+    public static FuncOp quoteOp(Op op) {
+
+        return func("q", FunctionType.VOID).body(block -> {
+            List<Value> usedValues = new ArrayList<>();
+            usedValues.addAll(op.capturedValues());
+            usedValues.addAll(op.operands());
+            for (Value v : usedValues) {
+                Value nv;
+                if (v instanceof Op.Result opr && opr.op() instanceof VarOp varOp) {
+                    Block.Parameter p = block.parameter(varOp.varValueType());
+                    nv = block.op(var(p));
+                } else {
+                    nv = block.parameter(v.type());
+                }
+                block.context().mapValue(v, nv);
+            }
+
+            Body.Builder qbody = Body.Builder.of(block.parentBody(), FunctionType.VOID, CopyContext.create(block.context()));
+            Block.Builder qblock = qbody.entryBlock();
+
+            if (op.ancestorBody() != null) {
+                // needed for reachability check (of captured values) to succeed
+                qblock.context().mapBlock(op.ancestorBody().entryBlock(), qblock);
+            }
+            Op.Result opr = qblock.op(op);
+
+            qblock.op(_yield(opr));
+
+            block.op(quoted(qbody));
+
+            block.op(_return());
+        });
+    }
 }
