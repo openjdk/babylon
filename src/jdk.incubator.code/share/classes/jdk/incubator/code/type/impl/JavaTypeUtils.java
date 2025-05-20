@@ -2,18 +2,15 @@ package jdk.incubator.code.type.impl;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.TypeElement.ExternalizedTypeElement;
-import jdk.incubator.code.parser.impl.DescParser;
-import jdk.incubator.code.type.ConstructorRef;
-import jdk.incubator.code.type.FieldRef;
-import jdk.incubator.code.type.JavaRef;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.RecordTypeRef;
+import jdk.incubator.code.parser.impl.Lexer;
+import jdk.incubator.code.parser.impl.Scanner;
+import jdk.incubator.code.parser.impl.Tokens;
+import jdk.incubator.code.type.*;
 import jdk.incubator.code.type.RecordTypeRef.ComponentRef;
-import jdk.incubator.code.type.TypeVariableType;
 import jdk.incubator.code.type.WildcardType.BoundKind;
 
 import java.lang.constant.ClassDesc;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -22,6 +19,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class JavaTypeUtils {
+
+    // useful type identifiers
 
     public static final String JAVA_TYPE_CLASS_NAME = "java.type.class";
     public static final String JAVA_TYPE_ARRAY_NAME = "java.type.array";
@@ -36,6 +35,8 @@ public class JavaTypeUtils {
 
     public static final String JAVA_TYPE_FLAT_NAME_PREFIX = "java.type:";
     public static final String JAVA_REF_FLAT_NAME_PREFIX = "java.ref:";
+
+    // Externalized Java type/ref factories
 
     public static ExternalizedTypeElement classType(String name, ExternalizedTypeElement encl, List<ExternalizedTypeElement> typeargs) {
         if (encl == null) {
@@ -92,6 +93,8 @@ public class JavaTypeUtils {
                                 .mapToObj(i -> new ExternalizedTypeElement(componentNames.get(i), List.of(componentTypes.get(i))))
                 ).toList());
     }
+
+    // From externalized Java types/refs into actual Java types/refs
 
     public static JavaType toJavaType(ExternalizedTypeElement tree) {
         return switch (tree.identifier()) {
@@ -167,6 +170,8 @@ public class JavaTypeUtils {
         };
     }
 
+    // From externalized Java types/refs into external type/refs strings
+
     public static String toExternalTypeString(ExternalizedTypeElement tree) {
         return switch (tree.identifier()) {
             case JAVA_TYPE_CLASS_NAME -> {
@@ -198,13 +203,13 @@ public class JavaTypeUtils {
                 String tvarName = select(tree, 0, JavaTypeUtils::typeToName);
                 ExternalizedTypeElement owner = select(tree, 1, Function.identity());
                 boolean isRef = owner.identifier().startsWith("java.ref");
-                String prefix = isRef ?
-                        String.format("(%s)", toExternalRefString(owner)) :
+                String ownerString = isRef ?
+                        "&" + toExternalRefString(owner) :
                         toExternalTypeString(owner);
                 ExternalizedTypeElement bound = select(tree, 2, Function.identity());
                 yield is(bound, JavaType.J_L_OBJECT) ?
-                        String.format("%s::<%s>", prefix, tvarName) :
-                        String.format("%s::<%s extends %s>", prefix, tvarName, toExternalTypeString(bound));
+                        String.format("%s::<%s>", ownerString, tvarName) :
+                        String.format("%s::<%s extends %s>", ownerString, tvarName, toExternalTypeString(bound));
             }
             case JAVA_TYPE_PRIMITIVE_NAME -> select(tree, 0, JavaTypeUtils::typeToName);
             default -> throw new UnsupportedOperationException("Unsupported type: " + tree);
@@ -247,13 +252,31 @@ public class JavaTypeUtils {
         };
     }
 
-    public static boolean is(ExternalizedTypeElement tree, TypeElement typeElement) {
-        return tree.equals(typeElement.externalize());
+    // From external type/refs strings to externalized Java types/refs
+
+    /**
+     * Parse a type element from its readable textual form.
+     * @param desc the textual form of the type element to be parsed
+     * @return the type element
+     */
+    public static ExternalizedTypeElement parseExternalTypeString(String desc) {
+        Scanner s = Scanner.factory().newScanner(desc);
+        s.nextToken();
+        return parseExternalTypeString(s);
     }
 
-    public static final boolean isPrimitive(String name) {
-        return PRIMITIVE_TYPES.containsKey(name);
+    /**
+     * Parse a type element from its readable textual form.
+     * @param desc the textual form of the type element to be parsed
+     * @return the type element
+     */
+    public static ExternalizedTypeElement parseExternalRefString(String desc) {
+        Scanner s = Scanner.factory().newScanner(desc);
+        s.nextToken();
+        return parseExternalRefString(s);
     }
+
+    // From inflated externalized types/refs to flattened externalized types/refs and back
 
     public static ExternalizedTypeElement flatten(ExternalizedTypeElement tree) {
         return switch (tree.identifier()) {
@@ -269,9 +292,9 @@ public class JavaTypeUtils {
     public static ExternalizedTypeElement inflate(ExternalizedTypeElement tree) {
         String id = tree.identifier();
         if (id.startsWith(JAVA_TYPE_FLAT_NAME_PREFIX)) {
-            return DescParser.parseJavaType(getDesc(id, JAVA_TYPE_FLAT_NAME_PREFIX));
+            return parseExternalTypeString(getDesc(id, JAVA_TYPE_FLAT_NAME_PREFIX));
         } else if (id.startsWith(JAVA_REF_FLAT_NAME_PREFIX)) {
-            return DescParser.parseJavaRef(getDesc(id, JAVA_REF_FLAT_NAME_PREFIX));
+            return parseExternalRefString(getDesc(id, JAVA_REF_FLAT_NAME_PREFIX));
         } else {
             return new ExternalizedTypeElement(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::inflate).toList());
         }
@@ -312,6 +335,14 @@ public class JavaTypeUtils {
         return tree.identifier();
     }
 
+    private static boolean is(ExternalizedTypeElement tree, TypeElement typeElement) {
+        return tree.equals(typeElement.externalize());
+    }
+
+    private static boolean isPrimitive(String name) {
+        return PRIMITIVE_TYPES.containsKey(name);
+    }
+
     private static <T> T select(ExternalizedTypeElement tree, int index, Function<ExternalizedTypeElement, T> valueFunc) {
         if (index >= tree.arguments().size()) {
             throw new IllegalStateException("Invalid selection index");
@@ -330,5 +361,209 @@ public class JavaTypeUtils {
 
     private static String getDesc(String id, String prefix) {
         return id.substring(prefix.length() + 1, id.length() - 1);
+    }
+
+    //    JavaType:
+    //        ClassType                                             // class type
+    //        PrimitiveType                                         // primitive type
+    //        TypeVar                                               // type variable
+    //        JavaType '[' ']'                                      // array type
+    //
+    //    ClassType:
+    //        ClassTypeNoPackage
+    //        Package '.' ClassTypeNoPackage
+    //
+    //    Package:
+    //        ident
+    //        Package '.' ident
+    //
+    //    ClassTypeNoPackage:
+    //        ident                                                 // simple class type
+    //        ident '<' TypeArg* '>'                                // parameterized class type
+    //        ClassTypeNoPackage '::' ClassTypeNoPackage            // nested class type
+    //
+    //    PrimitiveType:
+    //        'boolean'
+    //        'char'
+    //        'byte'
+    //        'short'
+    //        'int'
+    //        'float'
+    //        'long'
+    //        'double'
+    //        'void'
+    //
+    //    TypeVar:
+    //        '&' JavaRef TypeVarRest                                   // method/constructor type variable
+    //        ClassType TypeVarRest                                 // class type variable
+    //
+    //    TypeVarRest:
+    //        '::' '<' ident '>'
+    //        '::' '<' ident 'extends' JavaType '>'
+    //
+    //    TypeArg:
+    //        '?'                                                   // bivariant type argument
+    //        '?' 'extends' JavaType                                // covariant type argument
+    //        '?' 'super' JavaType                                  // contravariant type argument
+    //        JavaType
+    private static ExternalizedTypeElement parseExternalTypeString(Lexer l) {
+        ExternalizedTypeElement type = null;
+        if (l.token().kind == Tokens.TokenKind.AMP) {
+            l.nextToken();
+            // method or constructor type variable
+            ExternalizedTypeElement owner = parseExternalRefString(l);
+            l.accept(Tokens.TokenKind.COLCOL);
+            type = parseTypeVariableRest(owner, l);
+        } else if (l.token().kind == Tokens.TokenKind.IDENTIFIER) {
+            if (JavaTypeUtils.isPrimitive(l.token().name())) {
+                // primitive type
+                type = JavaTypeUtils.primitiveType(l.token().name());
+                l.nextToken();
+            } else {
+                // class type
+                while (l.token().kind == Tokens.TokenKind.IDENTIFIER) {
+                    StringBuilder className = new StringBuilder();
+                    className.append(l.token().name());
+                    l.nextToken();
+                    while (type == null && l.token().kind == Tokens.TokenKind.DOT) {
+                        l.accept(Tokens.TokenKind.DOT);
+                        className.append(".");
+                        className.append(l.token().name());
+                        l.nextToken();
+                    }
+                    List<ExternalizedTypeElement> typeargs = new ArrayList<>();
+                    if (l.acceptIf(Tokens.TokenKind.LT)) {
+                        if (l.token().kind != Tokens.TokenKind.GT) {
+                            typeargs.add(parseTypeArgument(l));
+                            while (l.acceptIf(Tokens.TokenKind.COMMA)) {
+                                typeargs.add(parseTypeArgument(l));
+                            }
+                        }
+                        l.accept(Tokens.TokenKind.GT);
+                    }
+                    type = JavaTypeUtils.classType(className.toString(),
+                            type, typeargs);
+                    if (l.token(0).kind == Tokens.TokenKind.COLCOL) {
+                        if (l.token(1).kind == Tokens.TokenKind.LT) {
+                            // class type variable
+                            l.nextToken();
+                            type = parseTypeVariableRest(type, l);
+                            break;
+                        } else if (l.token(1).kind == Tokens.TokenKind.IDENTIFIER) {
+                            if (l.token(2).kind == Tokens.TokenKind.LPAREN || l.token(2).kind == Tokens.TokenKind.COLON) {
+                                // this looks like the middle of a field/method reference -- stop consuming
+                                break;
+                            }
+                            l.nextToken(); // inner type, keep going
+                        }
+                    } else {
+                        // not an inner type
+                        break;
+                    }
+                }
+            }
+        }
+        while (l.token().kind == Tokens.TokenKind.LBRACKET) {
+            l.accept(Tokens.TokenKind.LBRACKET);
+            l.accept(Tokens.TokenKind.RBRACKET);
+            type = JavaTypeUtils.arrayType(type);
+        }
+        return type;
+    }
+
+    private static ExternalizedTypeElement parseTypeVariableRest(ExternalizedTypeElement owner, Lexer l) {
+        l.accept(Tokens.TokenKind.LT);
+        String name = l.token().name();
+        l.nextToken();
+        ExternalizedTypeElement bound = JavaType.J_L_OBJECT.externalize();
+        if (l.token().kind == Tokens.TokenKind.IDENTIFIER &&
+                l.token().name().equals("extends")) {
+            l.nextToken();
+            bound = parseExternalTypeString(l);
+        }
+        l.accept(Tokens.TokenKind.GT);
+        return JavaTypeUtils.typeVarType(name, owner, bound);
+    }
+
+    private static ExternalizedTypeElement parseTypeArgument(Lexer l) {
+        if (l.token().kind == Tokens.TokenKind.QUES) {
+            // wildcard
+            l.nextToken();
+            ExternalizedTypeElement bound = JavaType.J_L_OBJECT.externalize();
+            WildcardType.BoundKind bk = BoundKind.EXTENDS;
+            if (l.token().kind == Tokens.TokenKind.IDENTIFIER) {
+                bk = switch (l.token().name()) {
+                    case "extends" -> BoundKind.EXTENDS;
+                    case "super" -> BoundKind.SUPER;
+                    default -> throw new IllegalArgumentException("Bad wildcard bound");
+                };
+                l.nextToken();
+                bound = parseExternalTypeString(l);
+            }
+            return JavaTypeUtils.wildcardType(bk, bound);
+        } else {
+            return parseExternalTypeString(l);
+        }
+    }
+
+    private static List<ExternalizedTypeElement> parseParameterTypes(Lexer l) {
+        List<ExternalizedTypeElement> ptypes = new ArrayList<>();
+        l.accept(Tokens.TokenKind.LPAREN);
+        if (l.token().kind != Tokens.TokenKind.RPAREN) {
+            ptypes.add(parseExternalTypeString(l));
+            while (l.acceptIf(Tokens.TokenKind.COMMA)) {
+                ptypes.add(parseExternalTypeString(l));
+            }
+        }
+        l.accept(Tokens.TokenKind.RPAREN);
+        return ptypes;
+    }
+
+    //    JavaRef:
+    //        JavaType `::` ident ':' JavaType                      // field reference
+    //        JavaType `::` ident '(' JavaType* ')' ':' JavaType    // method reference
+    //        JavaType `::` '(' JavaType* ')'                       // constructor reference
+    //        '(' RecordComponent* ')' JavaType                     // record reference
+    //
+    //    RecordComponent:
+    //        JavaType ident
+    private static ExternalizedTypeElement parseExternalRefString(Lexer l) {
+        if (l.acceptIf(Tokens.TokenKind.LPAREN)) {
+            // record type reference
+            List<String> componentNames = new ArrayList<>();
+            List<ExternalizedTypeElement> componentTypes = new ArrayList<>();
+            if (l.token().kind != Tokens.TokenKind.RPAREN) {
+                do {
+                    componentTypes.add(parseExternalTypeString(l));
+                    componentNames.add(l.accept(Tokens.TokenKind.IDENTIFIER).name());
+                } while(l.acceptIf(Tokens.TokenKind.COMMA));
+            }
+            l.accept(Tokens.TokenKind.RPAREN);
+            ExternalizedTypeElement recordType = parseExternalTypeString(l);
+            return JavaTypeUtils.recordRef(recordType, componentNames, componentTypes);
+        }
+        ExternalizedTypeElement refType = parseExternalTypeString(l);
+
+        l.accept(Tokens.TokenKind.COLCOL);
+        if (l.token().kind == Tokens.TokenKind.LPAREN) {
+            // constructor ref
+            List<ExternalizedTypeElement> ptypes = parseParameterTypes(l);
+            return JavaTypeUtils.constructorRef(refType, ptypes);
+        }
+
+        // field or method ref
+        String memberName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
+        if (l.token().kind == Tokens.TokenKind.LPAREN) {
+            // method ref
+            List<ExternalizedTypeElement> params = parseParameterTypes(l);
+            l.accept(Tokens.TokenKind.COLON);
+            ExternalizedTypeElement rtype = parseExternalTypeString(l);
+            return JavaTypeUtils.methodRef(memberName, refType, rtype, params);
+        } else {
+            // field ref
+            l.accept(Tokens.TokenKind.COLON);
+            ExternalizedTypeElement ftype = parseExternalTypeString(l);
+            return JavaTypeUtils.fieldRef(memberName, refType, ftype);
+        }
     }
 }

@@ -67,6 +67,6 @@ public sealed interface RecordTypeRef extends JavaRef
     }
 
     static RecordTypeRef ofString(String s) {
-        return (RecordTypeRef) JavaTypeUtils.toJavaRef(jdk.incubator.code.parser.impl.DescParser.parseJavaRef(s));
+        return (RecordTypeRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
     }
 }

@@ -98,7 +98,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     }
 
     static MethodRef ofString(String s) {
-        return (MethodRef) JavaTypeUtils.toJavaRef(jdk.incubator.code.parser.impl.DescParser.parseJavaRef(s));
+        return (MethodRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
     }
 
 

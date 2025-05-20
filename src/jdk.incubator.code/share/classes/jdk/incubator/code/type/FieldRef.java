@@ -65,6 +65,6 @@ public sealed interface FieldRef extends JavaRef
     }
 
     static FieldRef ofString(String s) {
-        return (FieldRef) JavaTypeUtils.toJavaRef(jdk.incubator.code.parser.impl.DescParser.parseJavaRef(s));
+        return (FieldRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
     }
 }

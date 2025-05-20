@@ -50,14 +50,14 @@ class IntersectionTypeTest {
 
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : java.type:"(IntersectionTypeTest::test1(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
-                %1 : Var<java.type:"(IntersectionTypeTest::test1(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
-                %2 : java.type:"(IntersectionTypeTest::test1(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+            func @"test1" (%0 : java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
+                %1 : Var<java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>"> = var %0 @"x";
+                %2 : java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
                 invoke %2 @"IntersectionTypeTest$A::m_A():void";
-                %3 : java.type:"(IntersectionTypeTest::test1(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+                %3 : java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
                 %4 : java.type:"IntersectionTypeTest$B" = cast %3 @"IntersectionTypeTest$B";
                 invoke %4 @"IntersectionTypeTest$B::m_B():void";
-                %5 : java.type:"(IntersectionTypeTest::test1(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+                %5 : java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
                 %6 : java.type:"IntersectionTypeTest$C" = cast %5 @"IntersectionTypeTest$C";
                 invoke %6 @"IntersectionTypeTest$C::m_C():void";
                 return;
@@ -73,15 +73,15 @@ class IntersectionTypeTest {
     // #X<&m<IntersectionTypeTest, test2, func<void, IntersectionTypeTest$A>, IntersectionTypeTest$A>
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : java.type:"(IntersectionTypeTest::test2(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
-                %1 : Var<java.type:"(IntersectionTypeTest::test2(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
-                %2 : java.type:"(IntersectionTypeTest::test2(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+            func @"test2" (%0 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
+                %1 : Var<java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
+                %2 : java.type:"IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
                 %3 : java.type:"java.lang.Object" = field.load @"IntersectionTypeTest$A::f_A:java.lang.Object";
                 %4 : Var<java.type:"java.lang.Object"> = var %3 @"oA";
-                %5 : java.type:"(IntersectionTypeTest::test2(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+                %5 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
                 %6 : java.type:"java.lang.Object" = field.load @"IntersectionTypeTest$B::f_B:java.lang.Object";
                 %7 : Var<java.type:"java.lang.Object"> = var %6 @"oB";
-                %8 : java.type:"(IntersectionTypeTest::test2(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+                %8 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
                 %9 : java.type:"java.lang.Object" = field.load @"IntersectionTypeTest$C::f_C:java.lang.Object";
                 %10 : Var<java.type:"java.lang.Object"> = var %9 @"oC";
                 return;
@@ -95,9 +95,9 @@ class IntersectionTypeTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : java.type:"(IntersectionTypeTest::test3(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
-                %1 : Var<java.type:"(IntersectionTypeTest::test3(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
-                %2 : java.type:"(IntersectionTypeTest::test3(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+            func @"test3" (%0 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
+                %1 : Var<java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
+                %2 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
                 %3 : Var<java.type:"IntersectionTypeTest$A"> = var %2 @"rec$";
                 %4 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
                     %5 : java.type:"IntersectionTypeTest$A" = var.load %3;
@@ -105,7 +105,7 @@ class IntersectionTypeTest {
                     return;
                 };
                 %6 : Var<java.type:"java.lang.Runnable"> = var %4 @"rA";
-                %7 : java.type:"(IntersectionTypeTest::test3(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+                %7 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
                 %8 : java.type:"IntersectionTypeTest$B" = cast %7 @"IntersectionTypeTest$B";
                 %9 : Var<java.type:"IntersectionTypeTest$B"> = var %8 @"rec$";
                 %10 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
@@ -114,7 +114,7 @@ class IntersectionTypeTest {
                     return;
                 };
                 %12 : Var<java.type:"java.lang.Runnable"> = var %10 @"rB";
-                %13 : java.type:"(IntersectionTypeTest::test3(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+                %13 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
                 %14 : java.type:"IntersectionTypeTest$C" = cast %13 @"IntersectionTypeTest$C";
                 %15 : Var<java.type:"IntersectionTypeTest$C"> = var %14 @"rec$";
                 %16 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
@@ -138,14 +138,14 @@ class IntersectionTypeTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : java.type:"(IntersectionTypeTest::test4(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
-                %1 : Var<java.type:"(IntersectionTypeTest::test4(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
-                %2 : java.type:"(IntersectionTypeTest::test4(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+            func @"test4" (%0 : java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
+                %1 : Var<java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
+                %2 : java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
                 invoke %2 @"IntersectionTypeTest::g_A(IntersectionTypeTest$A):void";
-                %3 : java.type:"(IntersectionTypeTest::test4(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+                %3 : java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
                 %4 : java.type:"IntersectionTypeTest$B" = cast %3 @"IntersectionTypeTest$B";
                 invoke %4 @"IntersectionTypeTest::g_B(IntersectionTypeTest$B):void";
-                %5 : java.type:"(IntersectionTypeTest::test4(IntersectionTypeTest$A):void)::<X extends IntersectionTypeTest$A>)" = var.load %1;
+                %5 : java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
                 %6 : java.type:"IntersectionTypeTest$C" = cast %5 @"IntersectionTypeTest$C";
                 invoke %6 @"IntersectionTypeTest::g_C(IntersectionTypeTest$C):void";
                 return;
