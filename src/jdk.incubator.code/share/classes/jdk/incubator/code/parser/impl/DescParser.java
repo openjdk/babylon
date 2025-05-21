@@ -63,16 +63,16 @@ public final class DescParser {
     public static TypeElement.ExternalizedTypeElement parseExTypeElem(Lexer l) {
         StringBuilder identifier = new StringBuilder();
         identifier.append(parseExTypeNamePart(l));
-        while (l.token().kind == TokenKind.DOT || l.token().kind == TokenKind.COLON) {
+        while (l.is(TokenKind.DOT) || l.is(TokenKind.COLON)) {
             identifier.append(l.token().kind.name);
             l.nextToken();
             identifier.append(parseExTypeNamePart(l));
         }
         List<TypeElement.ExternalizedTypeElement> args = new ArrayList<>();
-        if (l.token().kind == TokenKind.LT) {
+        if (l.is(TokenKind.LT)) {
             l.accept(TokenKind.LT);
             args.add(parseExTypeElem(l));
-            while (l.token().kind == TokenKind.COMMA) {
+            while (l.is(TokenKind.COMMA)) {
                 l.accept(TokenKind.COMMA);
                 args.add(parseExTypeElem(l));
             }

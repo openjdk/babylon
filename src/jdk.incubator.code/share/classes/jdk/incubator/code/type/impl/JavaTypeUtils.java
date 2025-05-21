@@ -541,24 +541,24 @@ public class JavaTypeUtils {
     //        JavaType
     private static ExternalizedTypeElement parseExternalTypeString(Lexer l) {
         ExternalizedTypeElement type = null;
-        if (l.token().kind == Tokens.TokenKind.AMP) {
+        if (l.is(Tokens.TokenKind.AMP)) {
             l.nextToken();
             // method or constructor type variable
             ExternalizedTypeElement owner = parseExternalRefString(l);
             l.accept(Tokens.TokenKind.COLCOL);
             type = parseTypeVariableRest(owner, l);
-        } else if (l.token().kind == Tokens.TokenKind.IDENTIFIER) {
+        } else if (l.is(Tokens.TokenKind.IDENTIFIER)) {
             if (JavaTypeUtils.isPrimitive(l.token().name())) {
                 // primitive type
                 type = JavaTypeUtils.primitiveType(l.token().name());
                 l.nextToken();
             } else {
                 // class type
-                while (l.token().kind == Tokens.TokenKind.IDENTIFIER) {
+                while (l.is(Tokens.TokenKind.IDENTIFIER)) {
                     StringBuilder className = new StringBuilder();
                     className.append(l.token().name());
                     l.nextToken();
-                    while (type == null && l.token().kind == Tokens.TokenKind.DOT) {
+                    while (type == null && l.is(Tokens.TokenKind.DOT)) {
                         l.accept(Tokens.TokenKind.DOT);
                         className.append(".");
                         className.append(l.token().name());
@@ -596,7 +596,7 @@ public class JavaTypeUtils {
                 }
             }
         }
-        while (l.token().kind == Tokens.TokenKind.LBRACKET) {
+        while (l.is(Tokens.TokenKind.LBRACKET)) {
             l.accept(Tokens.TokenKind.LBRACKET);
             l.accept(Tokens.TokenKind.RBRACKET);
             type = JavaTypeUtils.arrayType(type);
@@ -609,7 +609,7 @@ public class JavaTypeUtils {
         String name = l.token().name();
         l.nextToken();
         ExternalizedTypeElement bound = JavaType.J_L_OBJECT.externalize();
-        if (l.token().kind == Tokens.TokenKind.IDENTIFIER &&
+        if (l.is(Tokens.TokenKind.IDENTIFIER) &&
                 l.token().name().equals("extends")) {
             l.nextToken();
             bound = parseExternalTypeString(l);
@@ -619,12 +619,12 @@ public class JavaTypeUtils {
     }
 
     private static ExternalizedTypeElement parseTypeArgument(Lexer l) {
-        if (l.token().kind == Tokens.TokenKind.QUES) {
+        if (l.is(Tokens.TokenKind.QUES)) {
             // wildcard
             l.nextToken();
             ExternalizedTypeElement bound = JavaType.J_L_OBJECT.externalize();
             WildcardType.BoundKind bk = BoundKind.EXTENDS;
-            if (l.token().kind == Tokens.TokenKind.IDENTIFIER) {
+            if (l.is(Tokens.TokenKind.IDENTIFIER)) {
                 bk = switch (l.token().name()) {
                     case "extends" -> BoundKind.EXTENDS;
                     case "super" -> BoundKind.SUPER;
@@ -678,7 +678,7 @@ public class JavaTypeUtils {
         ExternalizedTypeElement refType = parseExternalTypeString(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
-        if (l.token().kind == Tokens.TokenKind.LPAREN) {
+        if (l.is(Tokens.TokenKind.LPAREN)) {
             // constructor ref
             List<ExternalizedTypeElement> ptypes = parseParameterTypes(l);
             return JavaTypeUtils.constructorRef(refType, ptypes);
@@ -686,7 +686,7 @@ public class JavaTypeUtils {
 
         // field or method ref
         String memberName = l.accept(Tokens.TokenKind.IDENTIFIER).name();
-        if (l.token().kind == Tokens.TokenKind.LPAREN) {
+        if (l.is(Tokens.TokenKind.LPAREN)) {
             // method ref
             List<ExternalizedTypeElement> params = parseParameterTypes(l);
             l.accept(Tokens.TokenKind.COLON);
