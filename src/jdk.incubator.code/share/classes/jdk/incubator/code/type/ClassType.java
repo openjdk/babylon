@@ -42,8 +42,6 @@ import java.util.Optional;
  */
 public final class ClassType implements TypeVariableType.Owner, JavaType {
 
-    public static final String NAME = "java.type.class";
-
     // Enclosing class type (might be null)
     private final ClassType enclosing;
     // Fully qualified name
