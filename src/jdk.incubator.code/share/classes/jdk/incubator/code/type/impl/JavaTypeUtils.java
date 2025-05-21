@@ -513,7 +513,7 @@ public class JavaTypeUtils {
     //    ClassTypeNoPackage:
     //        ident                                                 // simple class type
     //        ident '<' TypeArg* '>'                                // parameterized class type
-    //        ClassTypeNoPackage '::' ClassTypeNoPackage            // nested class type
+    //        ClassTypeNoPackage '::' ClassTypeNoPackage            // inner class type
     //
     //    PrimitiveType:
     //        'boolean'
@@ -527,7 +527,7 @@ public class JavaTypeUtils {
     //        'void'
     //
     //    TypeVar:
-    //        '&' JavaRef TypeVarRest                                   // method/constructor type variable
+    //        '&' JavaRef TypeVarRest                               // method/constructor type variable
     //        ClassType TypeVarRest                                 // class type variable
     //
     //    TypeVarRest:
