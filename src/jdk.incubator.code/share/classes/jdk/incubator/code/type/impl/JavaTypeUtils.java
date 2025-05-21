@@ -18,31 +18,73 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/**
+ * This class defines several helper methods to work with externalized Java type forms.
+ * There are two different kinds of externalized type forms: inflated type forms and flattened type forms.
+ * An inflated type form closely follow the structure of the {@code JavaType} or {@code JavaRef} it models.
+ * For instance, the Java type {@code Foo<? extends Bar>} is modelled as follows:
+ * {@snippet
+ * java.type.class(Foo, java.type.primitive(void),
+ *                  java.type.wildcard(EXTENDS,
+ *                                     java.type.class(Bar, java.type.primitive(void))))
+ * }
+ * Inflated type forms are {@link #flatten(ExternalizedTypeElement) flattened}, to derive a form that is more suitable
+ * for humans. For instance, the above inflated form is flattened as follows:
+ * {@snippet
+ * java.type:"Foo<? extends Bar>"
+ * }
+ * Flattened type forms can be {@link #inflate(ExternalizedTypeElement) inflated} to go back to the original
+ * inflated form.
+ */
 public class JavaTypeUtils {
 
     // useful type identifiers
 
+    /**  Inflated Java class type name */
     public static final String JAVA_TYPE_CLASS_NAME = "java.type.class";
+    /**  Inflated Java array type name */
     public static final String JAVA_TYPE_ARRAY_NAME = "java.type.array";
+    /**  Inflated Java wildcard type name */
     public static final String JAVA_TYPE_WILDCARD_NAME = "java.type.wildcard";
+    /**  Inflated Java type var name */
     public static final String JAVA_TYPE_VAR_NAME = "java.type.var";
+    /**  Inflated Java primitive type name */
     public static final String JAVA_TYPE_PRIMITIVE_NAME = "java.type.primitive";
 
+    /** Inflated Java field reference name */
     public static final String JAVA_REF_FIELD_NAME = "java.ref.field";
+    /** Inflated Java method reference name */
     public static final String JAVA_REF_METHOD_NAME = "java.ref.method";
+    /** Inflated Java constructor reference name */
     public static final String JAVA_REF_CONSTRUCTOR_NAME = "java.ref.constructor";
+    /** Inflated Java record name */
     public static final String JAVA_REF_RECORD_NAME = "java.ref.record";
 
+    /** Flattened Java type name */
     public static final String JAVA_TYPE_FLAT_NAME_PREFIX = "java.type:";
+    /** Flattened Java reference name */
     public static final String JAVA_REF_FLAT_NAME_PREFIX = "java.ref:";
 
+    /**
+     * An enum modelling the Java type form kind. Useful for switching.
+     */
     public enum Kind {
+        /** A flattened type form */
         FLATTENED_TYPE,
+        /** A flattened reference form */
         FLATTENED_REF,
+        /** An inflated type form */
         INFLATED_TYPE,
+        /** An inflated reference form */
         INFLATED_REF,
+        /** Some other form */
         OTHER;
 
+        /**
+         * Constructs a new kind from an externalized type form
+         * @param tree the externalized type form
+         * @return the kind modelling {@code tree}
+         */
         public static Kind of(ExternalizedTypeElement tree) {
             return switch (tree.identifier()) {
                 case JAVA_TYPE_CLASS_NAME, JAVA_TYPE_ARRAY_NAME,
@@ -59,6 +101,12 @@ public class JavaTypeUtils {
 
     // Externalized Java type/ref factories
 
+    /**
+     * {@return an inflated Java class type form}
+     * @param name the class type name
+     * @param encl the enclosing type
+     * @param typeargs the type arguments
+     */
     public static ExternalizedTypeElement classType(String name, ExternalizedTypeElement encl, List<ExternalizedTypeElement> typeargs) {
         if (encl == null) {
             encl = JavaType.VOID.externalize();
@@ -72,40 +120,83 @@ public class JavaTypeUtils {
         return new ExternalizedTypeElement(JAVA_TYPE_CLASS_NAME, args);
     }
 
+    /**
+     * {@return an inflated Java array type form}
+     * @param component the array component type
+     */
     public static ExternalizedTypeElement arrayType(ExternalizedTypeElement component) {
         return new ExternalizedTypeElement(JAVA_TYPE_ARRAY_NAME, List.of(component));
     }
 
+    /**
+     * {@return an inflated Java wildcard type form}
+     * @param boundKind the wildcard bound kind
+     * @param bound the wildcard bound
+     */
     public static ExternalizedTypeElement wildcardType(BoundKind boundKind, ExternalizedTypeElement bound) {
         return new ExternalizedTypeElement(JAVA_TYPE_WILDCARD_NAME,
                 List.of(nameToType(boundKind.name()), bound));
     }
 
+    /**
+     * {@return an inflated Java type-variable type form}
+     * @param name the type-variable name
+     * @param owner the type-variable owner
+     * @param bound the type-variable bound
+     */
     public static ExternalizedTypeElement typeVarType(String name, ExternalizedTypeElement owner, ExternalizedTypeElement bound) {
         return new ExternalizedTypeElement(JAVA_TYPE_VAR_NAME,
                 List.of(nameToType(name), owner, bound));
     }
 
+    /**
+     * {@return an inflated Java primitive type form}
+     * @param name the name of the primitive type
+     */
     public static ExternalizedTypeElement primitiveType(String name) {
         return new ExternalizedTypeElement(JAVA_TYPE_PRIMITIVE_NAME,
                 List.of(nameToType(name)));
     }
 
+    /**
+     * {@return an inflated Java field reference form}
+     * @param name the field name
+     * @param owner the field owner
+     * @param type the field type
+     */
     public static ExternalizedTypeElement fieldRef(String name, ExternalizedTypeElement owner, ExternalizedTypeElement type) {
         return new ExternalizedTypeElement(JAVA_REF_FIELD_NAME,
                 List.of(owner, nameToType(name), type));
     }
 
+    /**
+     * {@return an inflated Java method reference form}
+     * @param name the method name
+     * @param owner the method owner
+     * @param restype the method return type
+     * @param paramtypes the method parameter types
+     */
     public static ExternalizedTypeElement methodRef(String name, ExternalizedTypeElement owner, ExternalizedTypeElement restype, List<ExternalizedTypeElement> paramtypes) {
         return new ExternalizedTypeElement(JAVA_REF_METHOD_NAME,
                 List.of(owner, new ExternalizedTypeElement(name, paramtypes), restype));
     }
 
+    /**
+     * {@return an inflated Java constructor reference form}
+     * @param owner the constructor owner
+     * @param paramtypes the constructor parameter types
+     */
     public static ExternalizedTypeElement constructorRef(ExternalizedTypeElement owner, List<ExternalizedTypeElement> paramtypes) {
         return new ExternalizedTypeElement(JAVA_REF_CONSTRUCTOR_NAME,
                 List.of(owner, new ExternalizedTypeElement("", paramtypes)));
     }
 
+    /**
+     * {@return an inflated Java record reference form}
+     * @param owner the record type
+     * @param componentNames the record component names
+     * @param componentTypes the record component types
+     */
     public static ExternalizedTypeElement recordRef(ExternalizedTypeElement owner, List<String> componentNames, List<ExternalizedTypeElement> componentTypes) {
         return new ExternalizedTypeElement(JAVA_REF_RECORD_NAME,
                 Stream.concat(
@@ -117,6 +208,10 @@ public class JavaTypeUtils {
 
     // From externalized Java types/refs into actual Java types/refs
 
+    /**
+     * {@return a {@code JavaType} modelling the provided inflated Java type form}.
+     * @param tree the inflated Java type form
+     */
     public static JavaType toJavaType(ExternalizedTypeElement tree) {
         return switch (tree.identifier()) {
             case JAVA_TYPE_CLASS_NAME -> {
@@ -158,6 +253,10 @@ public class JavaTypeUtils {
         };
     }
 
+    /**
+     * {@return a {@code JavaRef} modelling the provided inflated Java reference form}.
+     * @param tree the inflated Java reference form
+     */
     public static JavaRef toJavaRef(ExternalizedTypeElement tree) {
         return switch (tree.identifier()) {
             case JAVA_REF_FIELD_NAME -> {
@@ -196,6 +295,10 @@ public class JavaTypeUtils {
 
     // From externalized Java types/refs into external type/refs strings
 
+    /**
+     * {@return a flat string modelling the provided inflated Java type form}.
+     * @param tree the inflated Java type form
+     */
     public static String toExternalTypeString(ExternalizedTypeElement tree) {
         return switch (tree.identifier()) {
             case JAVA_TYPE_CLASS_NAME -> {
@@ -241,6 +344,10 @@ public class JavaTypeUtils {
         };
     }
 
+    /**
+     * {@return a flat string modelling the provided inflated Java reference form}.
+     * @param tree the inflated Java type form
+     */
     public static String toExternalRefString(ExternalizedTypeElement tree) {
         return switch (tree.identifier()) {
             case JAVA_REF_FIELD_NAME -> {
@@ -280,9 +387,8 @@ public class JavaTypeUtils {
     // From external type/refs strings to externalized Java types/refs
 
     /**
-     * Parse a type element from its readable textual form.
-     * @param desc the textual form of the type element to be parsed
-     * @return the type element
+     * {@return an inflated Java type form, parsed from the provided external type string}
+     * @param desc the external type string to be parsed
      */
     public static ExternalizedTypeElement parseExternalTypeString(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
@@ -291,9 +397,8 @@ public class JavaTypeUtils {
     }
 
     /**
-     * Parse a type element from its readable textual form.
-     * @param desc the textual form of the type element to be parsed
-     * @return the type element
+     * {@return an inflated Java reference form, parsed from the provided external reference string}
+     * @param desc the external reference string to be parsed
      */
     public static ExternalizedTypeElement parseExternalRefString(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
@@ -303,6 +408,10 @@ public class JavaTypeUtils {
 
     // From inflated externalized types/refs to flattened externalized types/refs and back
 
+    /**
+     * {@return the flat Java form corresponding to the provided inflated Java form}
+     * @param tree the inflated Java form
+     */
     public static ExternalizedTypeElement flatten(ExternalizedTypeElement tree) {
         return switch (Kind.of(tree)) {
             case INFLATED_TYPE -> nameToType(String.format("%s\"%s\"", JAVA_TYPE_FLAT_NAME_PREFIX, toExternalTypeString(tree)));
@@ -311,6 +420,10 @@ public class JavaTypeUtils {
         };
     }
 
+    /**
+     * {@return the inflated Java form corresponding to the provided flattened Java form}
+     * @param tree the flattened Java form
+     */
     public static ExternalizedTypeElement inflate(ExternalizedTypeElement tree) {
         return switch (Kind.of(tree)) {
             case FLATTENED_TYPE -> parseExternalTypeString(getDesc(tree, JAVA_TYPE_FLAT_NAME_PREFIX));
