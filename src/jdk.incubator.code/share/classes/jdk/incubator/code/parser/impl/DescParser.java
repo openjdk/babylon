@@ -25,12 +25,8 @@
 
 package jdk.incubator.code.parser.impl;
 
-import jdk.incubator.code.TypeElement.ExternalizedTypeElement;
 import jdk.incubator.code.parser.impl.Tokens.TokenKind;
-import jdk.incubator.code.type.*;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.WildcardType.BoundKind;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,22 +45,28 @@ public final class DescParser {
         return parseExTypeElem(s);
     }
 
+    //    ExType:
+    //        ExTypeName
+    //        ExTypeName '<' ExType* '>'
+    //
+    //    ExTypeName:
+    //        ExIdentPart
+    //        ExIdentPart ExIdentSep ExIdentPart
+    //
+    //    ExIdentPart:
+    //        ident
+    //        string
+    //
+    //    ExIdentSep:
+    //        '.'
+    //        ':'
     public static TypeElement.ExternalizedTypeElement parseExTypeElem(Lexer l) {
         StringBuilder identifier = new StringBuilder();
-        identloop: while (true) {
-            switch (l.token().kind) {
-                case COLON, DOT -> identifier.append(l.token().kind.name);
-                case IDENTIFIER -> identifier.append(l.token().name());
-                case STRINGLITERAL -> {
-                    identifier.append('"');
-                    identifier.append(l.token().stringVal());
-                    identifier.append('"');
-                }
-                default -> {
-                    break identloop;
-                }
-            }
+        identifier.append(parseExTypeNamePart(l));
+        while (l.token().kind == TokenKind.DOT || l.token().kind == TokenKind.COLON) {
+            identifier.append(l.token().kind.name);
             l.nextToken();
+            identifier.append(parseExTypeNamePart(l));
         }
         List<TypeElement.ExternalizedTypeElement> args = new ArrayList<>();
         if (l.token().kind == TokenKind.LT) {
@@ -76,7 +78,16 @@ public final class DescParser {
             }
             l.accept(TokenKind.GT);
         }
-
         return new TypeElement.ExternalizedTypeElement(identifier.toString(), args);
+    }
+
+    private static String parseExTypeNamePart(Lexer l) {
+        String namePart = switch (l.token().kind) {
+            case IDENTIFIER -> l.token().name();
+            case STRINGLITERAL -> "\"" + l.token().stringVal() + "\"";
+            default -> throw l.unexpected();
+        };
+        l.nextToken();
+        return namePart;
     }
 }

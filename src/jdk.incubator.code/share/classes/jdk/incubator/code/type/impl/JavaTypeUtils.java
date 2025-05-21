@@ -349,7 +349,7 @@ public class JavaTypeUtils {
 
     private static String typeToName(ExternalizedTypeElement tree) {
         if (!tree.arguments().isEmpty()) {
-            throw new IllegalStateException("Unexpected type arguments");
+            throw unsupported(tree);
         }
         return tree.identifier();
     }
@@ -364,7 +364,7 @@ public class JavaTypeUtils {
 
     private static <T> T select(ExternalizedTypeElement tree, int index, Function<ExternalizedTypeElement, T> valueFunc) {
         if (index >= tree.arguments().size()) {
-            throw new IllegalStateException("Invalid selection index");
+            throw unsupported(tree);
         }
         return valueFunc.apply(tree.arguments().get(index));
     }
@@ -515,7 +515,7 @@ public class JavaTypeUtils {
                 bk = switch (l.token().name()) {
                     case "extends" -> BoundKind.EXTENDS;
                     case "super" -> BoundKind.SUPER;
-                    default -> throw new IllegalArgumentException("Bad wildcard bound");
+                    default -> throw l.unexpected();
                 };
                 l.nextToken();
                 bound = parseExternalTypeString(l);
