@@ -76,6 +76,8 @@ public final class OpWriter {
         static String toString(Object value) {
             if (value == ExternalizableOp.NULL_ATTRIBUTE_VALUE) {
                 return "null";
+            } else if (value instanceof TypeElement te) {
+                return JavaTypeUtils.flatten(te.externalize()).toString();
             }
 
             StringBuilder sb = new StringBuilder();

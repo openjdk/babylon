@@ -209,9 +209,9 @@ public class BlockTest {
                 %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
                     %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
                     java.block ()java.type:"void" -> {
-                        %4 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %4 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %5 : java.type:"java.lang.String" = var.load %3;
-                        invoke %4 %5 @"java.io.PrintStream::println(java.lang.String):void";
+                        invoke %4 %5 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                         yield;
                     };
                     return;
@@ -253,7 +253,7 @@ public class BlockTest {
                     }
                     ()java.type:"void" -> {
                         java.block ()java.type:"void" -> {
-                            %3 : java.type:"java.lang.RuntimeException" = new @"java.lang.RuntimeException::()";
+                            %3 : java.type:"java.lang.RuntimeException" = new @java.ref:"java.lang.RuntimeException::()";
                             throw %3;
                         };
                         yield;

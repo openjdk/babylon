@@ -97,7 +97,7 @@ public class QuotableSubtypeTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
-                    %1 : java.type:"java.lang.AssertionError" = new @"java.lang.AssertionError::()";
+                    %1 : java.type:"java.lang.AssertionError" = new @java.ref:"java.lang.AssertionError::()";
                     throw %1;
                 };
                 return;
@@ -135,8 +135,8 @@ public class QuotableSubtypeTest {
             func @"f" (%0 : java.type:"QuotableSubtypeTest$Context")java.type:"void" -> {
                 %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
-                    %4 : java.type:"int" = field.load %0 @"QuotableSubtypeTest$Context::x:int";
-                    %5 : java.type:"int" = field.load %0 @"QuotableSubtypeTest$Context::y:int";
+                    %4 : java.type:"int" = field.load %0 @java.ref:"QuotableSubtypeTest$Context::x:int";
+                    %5 : java.type:"int" = field.load %0 @java.ref:"QuotableSubtypeTest$Context::y:int";
                     %6 : java.type:"int" = add %4 %5;
                     %7 : java.type:"int" = var.load %3;
                     %8 : java.type:"int" = add %6 %7;
@@ -173,8 +173,8 @@ public class QuotableSubtypeTest {
             func @"captureField" (%0 : java.type:"QuotableSubtypeTest")java.type:"void" -> {
                 %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
-                    %4 : java.type:"int" = field.load %0 @"QuotableSubtypeTest::x:int";
-                    %5 : java.type:"int" = field.load %0 @"QuotableSubtypeTest::y:int";
+                    %4 : java.type:"int" = field.load %0 @java.ref:"QuotableSubtypeTest::x:int";
+                    %5 : java.type:"int" = field.load %0 @java.ref:"QuotableSubtypeTest::y:int";
                     %6 : java.type:"int" = add %4 %5;
                     %7 : java.type:"int" = var.load %3;
                     %8 : java.type:"int" = add %6 %7;
@@ -193,7 +193,7 @@ public class QuotableSubtypeTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
-                    invoke @"QuotableSubtypeTest::m():void";
+                    invoke @java.ref:"QuotableSubtypeTest::m():void";
                     return;
                 };
                 return;
@@ -208,7 +208,7 @@ public class QuotableSubtypeTest {
                 %0 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%1 : java.type:"int")java.type:"int" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x$0";
                     %3 : java.type:"int" = var.load %2;
-                    %4 : java.type:"int" = invoke %3 @"QuotableSubtypeTest::g(int):int";
+                    %4 : java.type:"int" = invoke %3 @java.ref:"QuotableSubtypeTest::g(int):int";
                     return %4;
                 };
                 return;
@@ -223,7 +223,7 @@ public class QuotableSubtypeTest {
                 %0 : java.type:"QuotableSubtypeTest$QuotableIntFunction<int[]>" = lambda (%1 : java.type:"int")java.type:"int[]" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x$0";
                     %3 : java.type:"int" = var.load %2;
-                    %4 : java.type:"int[]" = new %3 @"int[]::(int)";
+                    %4 : java.type:"int[]" = new %3 @java.ref:"int[]::(int)";
                     return %4;
                 };
                 return;
@@ -244,7 +244,7 @@ public class QuotableSubtypeTest {
                 %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"x$0";
                     %4 : java.type:"int" = var.load %3;
-                    %5 : java.type:"int" = invoke %0 %4 @"QuotableSubtypeTest$ContextRef::g(int):int";
+                    %5 : java.type:"int" = invoke %0 %4 @java.ref:"QuotableSubtypeTest$ContextRef::g(int):int";
                     return %5;
                 };
                 return;

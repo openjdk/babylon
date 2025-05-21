@@ -2923,7 +2923,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             public static RecordPatternOp create(ExternalizedOp def) {
                 RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR, true,
                         v -> switch (v) {
-                            case String s -> RecordTypeRef.ofString(s);
                             case RecordTypeRef rtd -> rtd;
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported record type descriptor value:" + v);

@@ -40,19 +40,19 @@ import java.util.stream.Stream;
 public class TestNormalizeBlocksTransformer {
     static final String TEST1_INPUT = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = invoke @"C::m():int";
+                %1 : java.type:"int" = invoke @java.ref:"C::m():int";
                 branch ^block_1;
 
               ^block_1:
-                %2 : java.type:"int" = invoke %1 @"C::m(int):int";
+                %2 : java.type:"int" = invoke %1 @java.ref:"C::m(int):int";
                 branch ^block_2(%2);
 
               ^block_2(%3: java.type:"int"):
-                %4 : java.type:"int" = invoke %2 %3 @"C::m(int, int):int";
+                %4 : java.type:"int" = invoke %2 %3 @java.ref:"C::m(int, int):int";
                 branch ^block_3(%3);
 
               ^block_3(%5: java.type:"int"):
-                %6 : java.type:"int" = invoke %4 %3 %5 @"C::m(int, int, int):int";
+                %6 : java.type:"int" = invoke %4 %3 %5 @java.ref:"C::m(int, int, int):int";
                 branch ^block_4;
 
               ^block_4:
@@ -61,10 +61,10 @@ public class TestNormalizeBlocksTransformer {
             """;
     static final String TEST1_EXPECTED = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = invoke @"C::m():int";
-                %2 : java.type:"int" = invoke %1 @"C::m(int):int";
-                %3 : java.type:"int" = invoke %2 %2 @"C::m(int, int):int";
-                %4 : java.type:"int" = invoke %3 %2 %2 @"C::m(int, int, int):int";
+                %1 : java.type:"int" = invoke @java.ref:"C::m():int";
+                %2 : java.type:"int" = invoke %1 @java.ref:"C::m(int):int";
+                %3 : java.type:"int" = invoke %2 %2 @java.ref:"C::m(int, int):int";
+                %4 : java.type:"int" = invoke %3 %2 %2 @java.ref:"C::m(int, int, int):int";
                 return %4;
             };
             """;
@@ -75,7 +75,7 @@ public class TestNormalizeBlocksTransformer {
                 exception.region.enter ^block_1 ^block_8 ^block_3;
 
               ^block_1:
-                %3 : java.type:"int" = invoke @"A::try_():int";
+                %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
                 branch ^block_2;
 
               ^block_2:
@@ -92,14 +92,14 @@ public class TestNormalizeBlocksTransformer {
                 exception.region.exit ^block_6 ^block_8;
 
               ^block_6:
-                %7 : java.type:"int" = invoke @"A::finally_():int";
+                %7 : java.type:"int" = invoke @java.ref:"A::finally_():int";
                 branch ^block_7;
 
               ^block_7:
                 return;
 
               ^block_8(%8 : java.type:"java.lang.Throwable"):
-                %9 : java.type:"int" = invoke @"A::finally_():int";
+                %9 : java.type:"int" = invoke @java.ref:"A::finally_():int";
                 throw %8;
             };
             """;
@@ -109,7 +109,7 @@ public class TestNormalizeBlocksTransformer {
                 exception.region.enter ^block_1 ^block_5 ^block_2;
 
               ^block_1:
-                %3 : java.type:"int" = invoke @"A::try_():int";
+                %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
                 exception.region.exit ^block_4 ^block_2 ^block_5;
 
               ^block_2(%4 : java.type:"java.lang.RuntimeException"):
@@ -120,11 +120,11 @@ public class TestNormalizeBlocksTransformer {
                 exception.region.exit ^block_4 ^block_5;
 
               ^block_4:
-                %7 : java.type:"int" = invoke @"A::finally_():int";
+                %7 : java.type:"int" = invoke @java.ref:"A::finally_():int";
                 return;
 
               ^block_5(%8 : java.type:"java.lang.Throwable"):
-                %9 : java.type:"int" = invoke @"A::finally_():int";
+                %9 : java.type:"int" = invoke @java.ref:"A::finally_():int";
                 throw %8;
             };""";
 
@@ -217,7 +217,7 @@ public class TestNormalizeBlocksTransformer {
                 exception.region.enter ^block_1 ^block_4;
 
               ^block_1:
-                invoke @"A::m():void";
+                invoke @java.ref:"A::m():void";
                 branch ^block_2;
 
               ^block_2:
@@ -238,7 +238,7 @@ public class TestNormalizeBlocksTransformer {
                 exception.region.enter ^block_1 ^block_3;
 
               ^block_1:
-                invoke @"A::m():void";
+                invoke @java.ref:"A::m():void";
                 exception.region.exit ^block_2 ^block_3;
 
               ^block_2:

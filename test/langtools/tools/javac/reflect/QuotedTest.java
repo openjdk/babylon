@@ -86,7 +86,7 @@ public class QuotedTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : func<java.type:"java.lang.Object"> = closure ()java.type:"java.lang.Object" -> {
-                    %1 : java.type:"java.lang.AssertionError" = new @"java.lang.AssertionError::()";
+                    %1 : java.type:"java.lang.AssertionError" = new @java.ref:"java.lang.AssertionError::()";
                     throw %1;
                 };
                 return;
@@ -128,8 +128,8 @@ public class QuotedTest {
             func @"f" (%0 : java.type:"QuotedTest$Context")java.type:"void" -> {
                 %1 : func<java.type:"int", java.type:"int"> = closure (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
-                    %4 : java.type:"int" = field.load %0 @"QuotedTest$Context::x:int";
-                    %5 : java.type:"int" = field.load %0 @"QuotedTest$Context::y:int";
+                    %4 : java.type:"int" = field.load %0 @java.ref:"QuotedTest$Context::x:int";
+                    %5 : java.type:"int" = field.load %0 @java.ref:"QuotedTest$Context::y:int";
                     %6 : java.type:"int" = add %4 %5;
                     %7 : java.type:"int" = var.load %3;
                     %8 : java.type:"int" = add %6 %7;
@@ -170,8 +170,8 @@ public class QuotedTest {
                 %1 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
                     %2 : func<java.type:"int", java.type:"int"> = closure (%3 : java.type:"int")java.type:"int" -> {
                         %4 : Var<java.type:"int"> = var %3 @"z";
-                        %5 : java.type:"int" = field.load %0 @"QuotedTest::x:int";
-                        %6 : java.type:"int" = field.load %0 @"QuotedTest::y:int";
+                        %5 : java.type:"int" = field.load %0 @java.ref:"QuotedTest::x:int";
+                        %6 : java.type:"int" = field.load %0 @java.ref:"QuotedTest::y:int";
                         %7 : java.type:"int" = add %5 %6;
                         %8 : java.type:"int" = var.load %4;
                         %9 : java.type:"int" = add %7 %8;

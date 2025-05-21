@@ -170,9 +170,9 @@ public class PatternsTest {
                             ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" -> {
                                 %11 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"p";
                                 %12 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$Color>" = pattern.type @"c";
-                                %13 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$ColoredPoint>" = pattern.record %11 %12 @"(PatternsTest$ConcretePoint p, PatternsTest$Color c)PatternsTest$ColoredPoint";
+                                %13 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$ColoredPoint>" = pattern.record %11 %12 @java.ref:"(PatternsTest$ConcretePoint p, PatternsTest$Color c)PatternsTest$ColoredPoint";
                                 %14 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$ColoredPoint>" = pattern.type @"lr";
-                                %15 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %13 %14 @"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
+                                %15 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %13 %14 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
                                 yield %15;
                             }
                             (%16 : java.type:"PatternsTest$ConcretePoint", %17 : java.type:"PatternsTest$Color", %18 : java.type:"PatternsTest$ColoredPoint")java.type:"void" -> {
@@ -184,21 +184,21 @@ public class PatternsTest {
                         yield %10;
                     }
                     ()java.type:"void" -> {
-                        %19 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %19 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %20 : java.type:"PatternsTest$ConcretePoint" = var.load %4;
-                        invoke %19 %20 @"java.io.PrintStream::println(java.lang.Object):void";
-                        %21 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        invoke %19 %20 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
+                        %21 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %22 : java.type:"PatternsTest$Color" = var.load %6;
-                        invoke %21 %22 @"java.io.PrintStream::println(java.lang.Object):void";
-                        %23 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        invoke %21 %22 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
+                        %23 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %24 : java.type:"PatternsTest$ColoredPoint" = var.load %8;
-                        invoke %23 %24 @"java.io.PrintStream::println(java.lang.Object):void";
+                        invoke %23 %24 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %25 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %25 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %26 : java.type:"java.lang.String" = constant @"NO MATCH";
-                        invoke %25 %26 @"java.io.PrintStream::println(java.lang.String):void";
+                        invoke %25 %26 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                         yield;
                     };
                 return;
@@ -239,9 +239,9 @@ public class PatternsTest {
                         yield %6;
                     }
                     ()java.type:"void" -> {
-                        %9 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %9 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %10 : java.type:"java.lang.String" = var.load %4;
-                        invoke %9 %10 @"java.io.PrintStream::println(java.lang.String):void";
+                        invoke %9 %10 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                         java.continue;
                     };
                 return;
@@ -277,9 +277,9 @@ public class PatternsTest {
                         %9 : java.type:"boolean" = not %6;
                         yield %9;
                     };
-                %10 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                %10 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                 %11 : java.type:"java.lang.String" = var.load %4;
-                invoke %10 %11 @"java.io.PrintStream::println(java.lang.String):void";
+                invoke %10 %11 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                 return;
             };
             """)
@@ -328,15 +328,15 @@ public class PatternsTest {
                     (%16 : Var<java.type:"int">)java.type:"void" -> {
                         %17 : java.type:"int" = var.load %16;
                         %18 : java.type:"java.lang.Number" = var.load %4;
-                        %19 : java.type:"int" = invoke %18 @"java.lang.Number::intValue():int";
+                        %19 : java.type:"int" = invoke %18 @java.ref:"java.lang.Number::intValue():int";
                         %20 : java.type:"int" = add %17 %19;
                         var.store %16 %20;
                         yield;
                     }
                     (%21 : Var<java.type:"int">)java.type:"void" -> {
-                        %22 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %22 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %23 : java.type:"java.lang.Number" = var.load %4;
-                        invoke %22 %23 @"java.io.PrintStream::println(java.lang.Object):void";
+                        invoke %22 %23 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
                         java.continue;
                     };
                 return;
@@ -382,7 +382,7 @@ public class PatternsTest {
                     ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" -> {
                         %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$MatchAll" = pattern.match.all;
                         %8 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"cp";
-                        %9 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %7 %8 @"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
+                        %9 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %7 %8 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
                         yield %9;
                     }
                     (%10 : java.type:"PatternsTest$ConcretePoint")java.type:"void" -> {

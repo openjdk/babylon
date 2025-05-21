@@ -106,7 +106,7 @@ public class ConditionalExpressionTest {
                         %9 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda ()java.type:"java.lang.Double" -> {
                             %10 : java.type:"int" = var.load %5;
                             %11 : java.type:"double" = conv %10;
-                            %12 : java.type:"java.lang.Double" = invoke %11 @"java.lang.Double::valueOf(double):java.lang.Double";
+                            %12 : java.type:"java.lang.Double" = invoke %11 @java.ref:"java.lang.Double::valueOf(double):java.lang.Double";
                             return %12;
                         };
                         yield %9;
@@ -114,7 +114,7 @@ public class ConditionalExpressionTest {
                     ()java.type:"java.util.function.Supplier<java.lang.Double>" -> {
                         %13 : java.type:"java.util.function.Supplier<java.lang.Double>" = lambda ()java.type:"java.lang.Double" -> {
                             %14 : java.type:"double" = var.load %6;
-                            %15 : java.type:"java.lang.Double" = invoke %14 @"java.lang.Double::valueOf(double):java.lang.Double";
+                            %15 : java.type:"java.lang.Double" = invoke %14 @java.ref:"java.lang.Double::valueOf(double):java.lang.Double";
                             return %15;
                         };
                         yield %13;

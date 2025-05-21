@@ -53,13 +53,13 @@ class IntersectionTypeTest {
             func @"test1" (%0 : java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
                 %1 : Var<java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>"> = var %0 @"x";
                 %2 : java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
-                invoke %2 @"IntersectionTypeTest$A::m_A():void";
+                invoke %2 @java.ref:"IntersectionTypeTest$A::m_A():void";
                 %3 : java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
-                %4 : java.type:"IntersectionTypeTest$B" = cast %3 @"IntersectionTypeTest$B";
-                invoke %4 @"IntersectionTypeTest$B::m_B():void";
+                %4 : java.type:"IntersectionTypeTest$B" = cast %3 @java.type:"IntersectionTypeTest$B";
+                invoke %4 @java.ref:"IntersectionTypeTest$B::m_B():void";
                 %5 : java.type:"&IntersectionTypeTest::test1(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
-                %6 : java.type:"IntersectionTypeTest$C" = cast %5 @"IntersectionTypeTest$C";
-                invoke %6 @"IntersectionTypeTest$C::m_C():void";
+                %6 : java.type:"IntersectionTypeTest$C" = cast %5 @java.type:"IntersectionTypeTest$C";
+                invoke %6 @java.ref:"IntersectionTypeTest$C::m_C():void";
                 return;
             };
             """)
@@ -76,13 +76,13 @@ class IntersectionTypeTest {
             func @"test2" (%0 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
                 %1 : Var<java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
                 %2 : java.type:"IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %3 : java.type:"java.lang.Object" = field.load @"IntersectionTypeTest$A::f_A:java.lang.Object";
+                %3 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$A::f_A:java.lang.Object";
                 %4 : Var<java.type:"java.lang.Object"> = var %3 @"oA";
                 %5 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %6 : java.type:"java.lang.Object" = field.load @"IntersectionTypeTest$B::f_B:java.lang.Object";
+                %6 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$B::f_B:java.lang.Object";
                 %7 : Var<java.type:"java.lang.Object"> = var %6 @"oB";
                 %8 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %9 : java.type:"java.lang.Object" = field.load @"IntersectionTypeTest$C::f_C:java.lang.Object";
+                %9 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$C::f_C:java.lang.Object";
                 %10 : Var<java.type:"java.lang.Object"> = var %9 @"oC";
                 return;
             };
@@ -101,25 +101,25 @@ class IntersectionTypeTest {
                 %3 : Var<java.type:"IntersectionTypeTest$A"> = var %2 @"rec$";
                 %4 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
                     %5 : java.type:"IntersectionTypeTest$A" = var.load %3;
-                    invoke %5 @"IntersectionTypeTest$A::m_A():void";
+                    invoke %5 @java.ref:"IntersectionTypeTest$A::m_A():void";
                     return;
                 };
                 %6 : Var<java.type:"java.lang.Runnable"> = var %4 @"rA";
                 %7 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %8 : java.type:"IntersectionTypeTest$B" = cast %7 @"IntersectionTypeTest$B";
+                %8 : java.type:"IntersectionTypeTest$B" = cast %7 @java.type:"IntersectionTypeTest$B";
                 %9 : Var<java.type:"IntersectionTypeTest$B"> = var %8 @"rec$";
                 %10 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
                     %11 : java.type:"IntersectionTypeTest$B" = var.load %9;
-                    invoke %11 @"IntersectionTypeTest$B::m_B():void";
+                    invoke %11 @java.ref:"IntersectionTypeTest$B::m_B():void";
                     return;
                 };
                 %12 : Var<java.type:"java.lang.Runnable"> = var %10 @"rB";
                 %13 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %14 : java.type:"IntersectionTypeTest$C" = cast %13 @"IntersectionTypeTest$C";
+                %14 : java.type:"IntersectionTypeTest$C" = cast %13 @java.type:"IntersectionTypeTest$C";
                 %15 : Var<java.type:"IntersectionTypeTest$C"> = var %14 @"rec$";
                 %16 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
                     %17 : java.type:"IntersectionTypeTest$C" = var.load %15;
-                    invoke %17 @"IntersectionTypeTest$C::m_C():void";
+                    invoke %17 @java.ref:"IntersectionTypeTest$C::m_C():void";
                     return;
                 };
                 %18 : Var<java.type:"java.lang.Runnable"> = var %16 @"rC";
@@ -141,13 +141,13 @@ class IntersectionTypeTest {
             func @"test4" (%0 : java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
                 %1 : Var<java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
                 %2 : java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                invoke %2 @"IntersectionTypeTest::g_A(IntersectionTypeTest$A):void";
+                invoke %2 @java.ref:"IntersectionTypeTest::g_A(IntersectionTypeTest$A):void";
                 %3 : java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %4 : java.type:"IntersectionTypeTest$B" = cast %3 @"IntersectionTypeTest$B";
-                invoke %4 @"IntersectionTypeTest::g_B(IntersectionTypeTest$B):void";
+                %4 : java.type:"IntersectionTypeTest$B" = cast %3 @java.type:"IntersectionTypeTest$B";
+                invoke %4 @java.ref:"IntersectionTypeTest::g_B(IntersectionTypeTest$B):void";
                 %5 : java.type:"&IntersectionTypeTest::test4(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %6 : java.type:"IntersectionTypeTest$C" = cast %5 @"IntersectionTypeTest$C";
-                invoke %6 @"IntersectionTypeTest::g_C(IntersectionTypeTest$C):void";
+                %6 : java.type:"IntersectionTypeTest$C" = cast %5 @java.type:"IntersectionTypeTest$C";
+                invoke %6 @java.ref:"IntersectionTypeTest::g_C(IntersectionTypeTest$C):void";
                 return;
             };
             """)
@@ -186,16 +186,16 @@ class IntersectionTypeTest {
                 %3 : Var<java.type:"IntersectionTypeTest$E2"> = var %1 @"e2";
                 %4 : java.type:"IntersectionTypeTest$E1" = var.load %2;
                 %5 : java.type:"IntersectionTypeTest$E2" = var.load %3;
-                %6 : java.type:"IntersectionTypeTest$A" = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A):IntersectionTypeTest$A";
+                %6 : java.type:"IntersectionTypeTest$A" = invoke %4 %5 @java.ref:"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A):IntersectionTypeTest$A";
                 %7 : Var<java.type:"IntersectionTypeTest$A"> = var %6 @"x";
                 %8 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                invoke %8 @"IntersectionTypeTest$A::m_A():void";
+                invoke %8 @java.ref:"IntersectionTypeTest$A::m_A():void";
                 %9 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %10 : java.type:"IntersectionTypeTest$B" = cast %9 @"IntersectionTypeTest$B";
-                invoke %10 @"IntersectionTypeTest$B::m_B():void";
+                %10 : java.type:"IntersectionTypeTest$B" = cast %9 @java.type:"IntersectionTypeTest$B";
+                invoke %10 @java.ref:"IntersectionTypeTest$B::m_B():void";
                 %11 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %12 : java.type:"IntersectionTypeTest$C" = cast %11 @"IntersectionTypeTest$C";
-                invoke %12 @"IntersectionTypeTest$C::m_C():void";
+                %12 : java.type:"IntersectionTypeTest$C" = cast %11 @java.type:"IntersectionTypeTest$C";
+                invoke %12 @java.ref:"IntersectionTypeTest$C::m_C():void";
                 return;
             };
             """)
@@ -213,16 +213,16 @@ class IntersectionTypeTest {
                 %3 : Var<java.type:"IntersectionTypeTest$E2"> = var %1 @"e2";
                 %4 : java.type:"IntersectionTypeTest$E1" = var.load %2;
                 %5 : java.type:"IntersectionTypeTest$E2" = var.load %3;
-                %6 : java.type:"IntersectionTypeTest$A" = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A):IntersectionTypeTest$A";
+                %6 : java.type:"IntersectionTypeTest$A" = invoke %4 %5 @java.ref:"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A):IntersectionTypeTest$A";
                 %7 : Var<java.type:"IntersectionTypeTest$A"> = var %6 @"x";
                 %8 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %9 : java.type:"java.lang.Object" = field.load @"IntersectionTypeTest$A::f_A:java.lang.Object";
+                %9 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$A::f_A:java.lang.Object";
                 %10 : Var<java.type:"java.lang.Object"> = var %9 @"oA";
                 %11 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %12 : java.type:"java.lang.Object" = field.load @"IntersectionTypeTest$B::f_B:java.lang.Object";
+                %12 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$B::f_B:java.lang.Object";
                 %13 : Var<java.type:"java.lang.Object"> = var %12 @"oB";
                 %14 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %15 : java.type:"java.lang.Object" = field.load @"IntersectionTypeTest$C::f_C:java.lang.Object";
+                %15 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$C::f_C:java.lang.Object";
                 %16 : Var<java.type:"java.lang.Object"> = var %15 @"oC";
                 return;
             };
@@ -241,31 +241,31 @@ class IntersectionTypeTest {
                 %3 : Var<java.type:"IntersectionTypeTest$E2"> = var %1 @"e2";
                 %4 : java.type:"IntersectionTypeTest$E1" = var.load %2;
                 %5 : java.type:"IntersectionTypeTest$E2" = var.load %3;
-                %6 : java.type:"IntersectionTypeTest$A" = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A):IntersectionTypeTest$A";
+                %6 : java.type:"IntersectionTypeTest$A" = invoke %4 %5 @java.ref:"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A):IntersectionTypeTest$A";
                 %7 : Var<java.type:"IntersectionTypeTest$A"> = var %6 @"x";
                 %8 : java.type:"IntersectionTypeTest$A" = var.load %7;
                 %9 : Var<java.type:"IntersectionTypeTest$A"> = var %8 @"rec$";
                 %10 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
                     %11 : java.type:"IntersectionTypeTest$A" = var.load %9;
-                    invoke %11 @"IntersectionTypeTest$A::m_A():void";
+                    invoke %11 @java.ref:"IntersectionTypeTest$A::m_A():void";
                     return;
                 };
                 %12 : Var<java.type:"java.lang.Runnable"> = var %10 @"rA";
                 %13 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %14 : java.type:"IntersectionTypeTest$B" = cast %13 @"IntersectionTypeTest$B";
+                %14 : java.type:"IntersectionTypeTest$B" = cast %13 @java.type:"IntersectionTypeTest$B";
                 %15 : Var<java.type:"IntersectionTypeTest$B"> = var %14 @"rec$";
                 %16 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
                     %17 : java.type:"IntersectionTypeTest$B" = var.load %15;
-                    invoke %17 @"IntersectionTypeTest$B::m_B():void";
+                    invoke %17 @java.ref:"IntersectionTypeTest$B::m_B():void";
                     return;
                 };
                 %18 : Var<java.type:"java.lang.Runnable"> = var %16 @"rB";
                 %19 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %20 : java.type:"IntersectionTypeTest$C" = cast %19 @"IntersectionTypeTest$C";
+                %20 : java.type:"IntersectionTypeTest$C" = cast %19 @java.type:"IntersectionTypeTest$C";
                 %21 : Var<java.type:"IntersectionTypeTest$C"> = var %20 @"rec$";
                 %22 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
                     %23 : java.type:"IntersectionTypeTest$C" = var.load %21;
-                    invoke %23 @"IntersectionTypeTest$C::m_C():void";
+                    invoke %23 @java.ref:"IntersectionTypeTest$C::m_C():void";
                     return;
                 };
                 %24 : Var<java.type:"java.lang.Runnable"> = var %22 @"rC";
@@ -286,16 +286,16 @@ class IntersectionTypeTest {
                 %3 : Var<java.type:"IntersectionTypeTest$E2"> = var %1 @"e2";
                 %4 : java.type:"IntersectionTypeTest$E1" = var.load %2;
                 %5 : java.type:"IntersectionTypeTest$E2" = var.load %3;
-                %6 : java.type:"IntersectionTypeTest$A" = invoke %4 %5 @"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A):IntersectionTypeTest$A";
+                %6 : java.type:"IntersectionTypeTest$A" = invoke %4 %5 @java.ref:"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A):IntersectionTypeTest$A";
                 %7 : Var<java.type:"IntersectionTypeTest$A"> = var %6 @"x";
                 %8 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                invoke %8 @"IntersectionTypeTest::g_A(IntersectionTypeTest$A):void";
+                invoke %8 @java.ref:"IntersectionTypeTest::g_A(IntersectionTypeTest$A):void";
                 %9 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %10 : java.type:"IntersectionTypeTest$B" = cast %9 @"IntersectionTypeTest$B";
-                invoke %10 @"IntersectionTypeTest::g_B(IntersectionTypeTest$B):void";
+                %10 : java.type:"IntersectionTypeTest$B" = cast %9 @java.type:"IntersectionTypeTest$B";
+                invoke %10 @java.ref:"IntersectionTypeTest::g_B(IntersectionTypeTest$B):void";
                 %11 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %12 : java.type:"IntersectionTypeTest$C" = cast %11 @"IntersectionTypeTest$C";
-                invoke %12 @"IntersectionTypeTest::g_C(IntersectionTypeTest$C):void";
+                %12 : java.type:"IntersectionTypeTest$C" = cast %11 @java.type:"IntersectionTypeTest$C";
+                invoke %12 @java.ref:"IntersectionTypeTest::g_C(IntersectionTypeTest$C):void";
                 return;
             };
             """)

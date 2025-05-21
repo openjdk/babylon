@@ -19,7 +19,7 @@ public class PatternTest2 {
                 %5 : java.type:"boolean" = pattern.match %2
                     ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<PatternTest2$R::<T extends java.lang.Number>>>" -> {
                         %6 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
-                        %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<PatternTest2$R::<T extends java.lang.Number>>>" = pattern.record %6 @"(PatternTest2$R::<T extends java.lang.Number> n)PatternTest2$R<PatternTest2$R::<T extends java.lang.Number>>";
+                        %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<PatternTest2$R::<T extends java.lang.Number>>>" = pattern.record %6 @java.ref:"(PatternTest2$R::<T extends java.lang.Number> n)PatternTest2$R<PatternTest2$R::<T extends java.lang.Number>>";
                         yield %7;
                     }
                     (%8 : java.type:"java.lang.Integer")java.type:"void" -> {

@@ -446,7 +446,7 @@ public class ImplicitConversionTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"long" = conv %3;
-                invoke %0 %4 @"ImplicitConversionTest::m(long):void";
+                invoke %0 %4 @java.ref:"ImplicitConversionTest::m(long):void";
                 return;
             };
             """)
@@ -462,7 +462,7 @@ public class ImplicitConversionTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"int" = var.load %2;
-                invoke %0 %3 %4 @"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
+                invoke %0 %3 %4 @java.ref:"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
                 return;
             };
             """)
@@ -478,7 +478,7 @@ public class ImplicitConversionTest {
                 %4 : java.type:"int" = var.load %2;
                 %5 : java.type:"int" = var.load %2;
                 %6 : java.type:"long" = conv %5;
-                invoke %0 %3 %4 %6 @"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
+                invoke %0 %3 %4 %6 @java.ref:"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
                 return;
             };
            """)
@@ -496,7 +496,7 @@ public class ImplicitConversionTest {
                 %6 : java.type:"long" = conv %5;
                 %7 : java.type:"int" = var.load %2;
                 %8 : java.type:"long" = conv %7;
-                invoke %0 %3 %4 %6 %8 @"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
+                invoke %0 %3 %4 %6 %8 @java.ref:"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
                 return;
             };
             """)
@@ -515,7 +515,7 @@ public class ImplicitConversionTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"long" = conv %3;
-                %5 : java.type:"ImplicitConversionTest$Box" = new %4 @"ImplicitConversionTest$Box::(long)";
+                %5 : java.type:"ImplicitConversionTest$Box" = new %4 @java.ref:"ImplicitConversionTest$Box::(long)";
                 return;
             };
             """)
@@ -529,7 +529,7 @@ public class ImplicitConversionTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"int" = var.load %2;
-                %5 : java.type:"ImplicitConversionTest$Box" = new %3 %4 @"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs="true";
+                %5 : java.type:"ImplicitConversionTest$Box" = new %3 %4 @java.ref:"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs="true";
                 return;
             };
             """)
@@ -545,7 +545,7 @@ public class ImplicitConversionTest {
                 %4 : java.type:"int" = var.load %2;
                 %5 : java.type:"int" = var.load %2;
                 %6 : java.type:"long" = conv %5;
-                %7 : java.type:"ImplicitConversionTest$Box" = new %3 %4 %6 @"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs="true";
+                %7 : java.type:"ImplicitConversionTest$Box" = new %3 %4 %6 @java.ref:"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs="true";
                 return;
             };
            """)
@@ -563,7 +563,7 @@ public class ImplicitConversionTest {
                 %6 : java.type:"long" = conv %5;
                 %7 : java.type:"int" = var.load %2;
                 %8 : java.type:"long" = conv %7;
-                %9 : java.type:"ImplicitConversionTest$Box" = new %3 %4 %6 %8 @"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs="true";
+                %9 : java.type:"ImplicitConversionTest$Box" = new %3 %4 %6 %8 @java.ref:"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs="true";
                 return;
             };
             """)

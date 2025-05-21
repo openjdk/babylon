@@ -1330,7 +1330,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                 return value == NULL_ATTRIBUTE_VALUE ? null :
                         value.toString();
             } else if (t.equals(JavaType.J_L_CLASS)) {
-                return value == NULL_ATTRIBUTE_VALUE ? null : JavaType.ofString(value.toString());
+                return value == NULL_ATTRIBUTE_VALUE ? null : (TypeElement)value;
             } else if (value == NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
@@ -1429,7 +1429,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             // Required attribute
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch (v) {
-                        case String s -> MethodRef.ofString(s);
                         case MethodRef md -> md;
                         case null, default ->
                                 throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
@@ -1631,7 +1630,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             // Required attribute
             ConstructorRef constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,
                     true, v -> switch (v) {
-                        case String s -> ConstructorRef.ofString(s);
                         case ConstructorRef cd -> cd;
                         case null, default ->
                                 throw new UnsupportedOperationException("Unsupported constructor descriptor value:" + v);
@@ -1779,7 +1777,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
                 FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR, true,
                         v -> switch (v) {
-                            case String s -> FieldRef.ofString(s);
                             case FieldRef fd -> fd;
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
@@ -1840,7 +1837,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
                 FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR, true,
                         v -> switch (v) {
-                            case String s -> FieldRef.ofString(s);
                             case FieldRef fd -> fd;
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
@@ -2039,7 +2035,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             TypeElement typeDescriptor = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
                     v -> switch (v) {
-                        case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
@@ -2106,7 +2101,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             TypeElement type = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
                     v -> switch (v) {
-                        case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });

@@ -330,7 +330,7 @@ public class IfTest {
                 java.if
                     ()java.type:"boolean" -> {
                         %3 : java.type:"java.lang.Boolean" = var.load %1;
-                        %4 : java.type:"boolean" = invoke %3 @"java.lang.Boolean::booleanValue():boolean";
+                        %4 : java.type:"boolean" = invoke %3 @java.ref:"java.lang.Boolean::booleanValue():boolean";
                         yield %4;
                     }
                     ()java.type:"void" -> {
