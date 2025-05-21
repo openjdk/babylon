@@ -35,7 +35,6 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.joining;
 
 public final class RecordTypeRefImpl implements RecordTypeRef {
-    static final String NAME = "&r";
 
     final TypeElement recordType;
     final List<ComponentRef> components;
@@ -66,21 +65,11 @@ public final class RecordTypeRefImpl implements RecordTypeRef {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME,
-                Stream.concat(
-                        Stream.of(recordType.externalize()),
-                        components.stream().flatMap(cr ->
-                                Stream.of(cr.type().externalize(), new ExternalizedTypeElement(cr.name(), List.of())))
-                ).toList());
-    }
-
-    @Override
     public String toString() {
         return components.stream()
-                .map(c -> c.type().externalize() + " " + c.name())
+                .map(c -> c.type() + " " + c.name())
                 .collect(joining(", ", "(", ")")) +
-                recordType.externalize();
+                recordType;
     }
 
     @Override

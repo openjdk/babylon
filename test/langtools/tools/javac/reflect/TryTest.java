@@ -36,23 +36,23 @@ public class TryTest {
 
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : TryTest)void -> {
-                %1 : int = constant @"0";
-                %2 : Var<int> = var %1 @"i";
+            func @"test1" (%0 : java.type:"TryTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
-                    ()void -> {
-                        %3 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %3 : java.type:"int" = constant @"1";
                         var.store %2 %3;
                         yield;
                     }
-                    ^catch(%4 : java.lang.Exception)void -> {
-                        %5 : Var<java.lang.Exception> = var %4 @"e";
-                        %6 : int = constant @"2";
+                    (%4 : java.type:"java.lang.Exception")java.type:"void" -> {
+                        %5 : Var<java.type:"java.lang.Exception"> = var %4 @"e";
+                        %6 : java.type:"int" = constant @"2";
                         var.store %2 %6;
                         yield;
                     }
-                    ^finally()void -> {
-                        %7 : int = constant @"3";
+                    ()java.type:"void" -> {
+                        %7 : java.type:"int" = constant @"3";
                         var.store %2 %7;
                         yield;
                     };
@@ -72,17 +72,17 @@ public class TryTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : TryTest)void -> {
-                %1 : int = constant @"0";
-                %2 : Var<int> = var %1 @"i";
+            func @"test2" (%0 : java.type:"TryTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
-                    ()void -> {
-                        %3 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %3 : java.type:"int" = constant @"1";
                         var.store %2 %3;
                         yield;
                     }
-                    ^finally()void -> {
-                        %4 : int = constant @"3";
+                    ()java.type:"void" -> {
+                        %4 : java.type:"int" = constant @"3";
                         var.store %2 %4;
                         yield;
                     };
@@ -100,19 +100,19 @@ public class TryTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : TryTest)void -> {
-                %1 : int = constant @"0";
-                %2 : Var<int> = var %1 @"i";
+            func @"test3" (%0 : java.type:"TryTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
-                    ()void -> {
-                        %3 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %3 : java.type:"int" = constant @"1";
                         var.store %2 %3;
                         yield;
                     }
-                    ^catch(%4 : java.lang.Exception)void -> {
-                        %5 : Var<java.lang.Exception> = var %4 @"e";
-                        %6 : java.lang.Exception = var.load %5;
-                        invoke %6 @"java.lang.Exception::printStackTrace()void";
+                    (%4 : java.type:"java.lang.Exception")java.type:"void" -> {
+                        %5 : Var<java.type:"java.lang.Exception"> = var %4 @"e";
+                        %6 : java.type:"java.lang.Exception" = var.load %5;
+                        invoke %6 @"java.lang.Exception::printStackTrace():void";
                         yield;
                     };
                 return;
@@ -163,37 +163,37 @@ public class TryTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : TryTest)void -> {
+            func @"test4" (%0 : java.type:"TryTest")java.type:"void" -> {
                 java.try
-                    ^resources()Tuple<Var<TryTest$A>, TryTest$B, Var<TryTest$C>> -> {
-                        %1 : TryTest$A = invoke %0 @"TryTest::a()TryTest$A";
-                        %2 : Var<TryTest$A> = var %1 @"a";
-                        %3 : TryTest$A = var.load %2;
-                        %4 : TryTest$B = field.load %3 @"TryTest$A::b()TryTest$B";
-                        %5 : TryTest$A = var.load %2;
-                        %6 : TryTest$B = field.load %5 @"TryTest$A::b()TryTest$B";
-                        %7 : TryTest$C = field.load %6 @"TryTest$B::c()TryTest$C";
-                        %8 : Var<TryTest$C> = var %7 @"c";
-                        %9 : Tuple<Var<TryTest$A>, TryTest$B, Var<TryTest$C>> = tuple %2 %4 %8;
+                    ()Tuple<Var<java.type:"TryTest$A">, java.type:"TryTest$B", Var<java.type:"TryTest$C">> -> {
+                        %1 : java.type:"TryTest$A" = invoke %0 @"TryTest::a():TryTest$A";
+                        %2 : Var<java.type:"TryTest$A"> = var %1 @"a";
+                        %3 : java.type:"TryTest$A" = var.load %2;
+                        %4 : java.type:"TryTest$B" = field.load %3 @"TryTest$A::b:TryTest$B";
+                        %5 : java.type:"TryTest$A" = var.load %2;
+                        %6 : java.type:"TryTest$B" = field.load %5 @"TryTest$A::b:TryTest$B";
+                        %7 : java.type:"TryTest$C" = field.load %6 @"TryTest$B::c:TryTest$C";
+                        %8 : Var<java.type:"TryTest$C"> = var %7 @"c";
+                        %9 : Tuple<Var<java.type:"TryTest$A">, java.type:"TryTest$B", Var<java.type:"TryTest$C">> = tuple %2 %4 %8;
                         yield %9;
                     }
-                    (%10 : Var<TryTest$A>, %11 : Var<TryTest$C>)void -> {
-                        %12 : TryTest$A = var.load %10;
-                        %13 : Var<TryTest$A> = var %12 @"_a";
-                        %14 : TryTest$C = var.load %11;
-                        %15 : Var<TryTest$C> = var %14 @"_c";
+                    (%10 : Var<java.type:"TryTest$A">, %11 : Var<java.type:"TryTest$C">)java.type:"void" -> {
+                        %12 : java.type:"TryTest$A" = var.load %10;
+                        %13 : Var<java.type:"TryTest$A"> = var %12 @"_a";
+                        %14 : java.type:"TryTest$C" = var.load %11;
+                        %15 : Var<java.type:"TryTest$C"> = var %14 @"_c";
                         yield;
                     }
-                    ^catch(%16 : java.lang.Throwable)void -> {
-                        %17 : Var<java.lang.Throwable> = var %16 @"t";
-                        %18 : java.lang.Throwable = var.load %17;
-                        invoke %18 @"java.lang.Throwable::printStackTrace()void";
+                    (%16 : java.type:"java.lang.Throwable")java.type:"void" -> {
+                        %17 : Var<java.type:"java.lang.Throwable"> = var %16 @"t";
+                        %18 : java.type:"java.lang.Throwable" = var.load %17;
+                        invoke %18 @"java.lang.Throwable::printStackTrace():void";
                         yield;
                     }
-                    ^finally()void -> {
-                        %19 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %20 : java.lang.String = constant @"F";
-                        invoke %19 %20 @"java.io.PrintStream::println(java.lang.String)void";
+                    ()java.type:"void" -> {
+                        %19 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %20 : java.type:"java.lang.String" = constant @"F";
+                        invoke %19 %20 @"java.io.PrintStream::println(java.lang.String):void";
                         yield;
                     };
                 return;
@@ -212,24 +212,24 @@ public class TryTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : TryTest)void -> {
-                %1 : int = constant @"0";
-                %2 : Var<int> = var %1 @"i";
+            func @"test5" (%0 : java.type:"TryTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
-                    ()void -> {
-                        %3 : int = constant @"1";
+                    ()java.type:"void" -> {
+                        %3 : java.type:"int" = constant @"1";
                         var.store %2 %3;
                         yield;
                     }
-                    ^catch(%4 : java.lang.NullPointerException)void -> {
-                        %5 : Var<java.lang.NullPointerException> = var %4 @"e";
-                        %6 : int = constant @"2";
+                    (%4 : java.type:"java.lang.NullPointerException")java.type:"void" -> {
+                        %5 : Var<java.type:"java.lang.NullPointerException"> = var %4 @"e";
+                        %6 : java.type:"int" = constant @"2";
                         var.store %2 %6;
                         yield;
                     }
-                    ^catch(%7 : java.lang.OutOfMemoryError)void -> {
-                        %8 : Var<java.lang.OutOfMemoryError> = var %7 @"e";
-                        %9 : int = constant @"3";
+                    (%7 : java.type:"java.lang.OutOfMemoryError")java.type:"void" -> {
+                        %8 : Var<java.type:"java.lang.OutOfMemoryError"> = var %7 @"e";
+                        %9 : java.type:"int" = constant @"3";
                         var.store %2 %9;
                         yield;
                     };
@@ -249,19 +249,19 @@ public class TryTest {
 
     @CodeReflection
     @IR("""
-            func @"test6" (%0 : TryTest)void -> {
-                %1 : int = constant @"0";
-                %2 : Var<int> = var %1 @"i";
+            func @"test6" (%0 : java.type:"TryTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
-                    ()void -> {
+                    ()java.type:"void" -> {
                         return;
                     }
-                    ^catch(%3 : java.lang.Exception)void -> {
-                        %4 : Var<java.lang.Exception> = var %3 @"e";
-                        %5 : java.lang.Exception = var.load %4;
+                    (%3 : java.type:"java.lang.Exception")java.type:"void" -> {
+                        %4 : Var<java.type:"java.lang.Exception"> = var %3 @"e";
+                        %5 : java.type:"java.lang.Exception" = var.load %4;
                         throw %5;
                     }
-                    ^finally()void -> {
+                    ()java.type:"void" -> {
                         return;
                     };
                 unreachable;

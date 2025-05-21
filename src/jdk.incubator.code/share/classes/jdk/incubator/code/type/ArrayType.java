@@ -79,17 +79,6 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        int dims = 0;
-        TypeElement current = this;
-        while (current instanceof ArrayType at) {
-            dims++;
-            current = at.componentType();
-        }
-        return new ExternalizedTypeElement("[".repeat(dims), List.of(current.externalize()));
-    }
-
-    @Override
     public String toString() {
         return componentType.toString() + "[]";
     }
