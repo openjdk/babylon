@@ -1,10 +1,15 @@
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import java.util.Optional;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Map;
 
 /*
  * @test
@@ -28,7 +33,16 @@ public class TestQuoteOp {
         Op lop = fm.body().entryBlock().ops().stream().filter(op -> op instanceof CoreOp.LambdaOp).findFirst().orElseThrow();
 
         fm.writeTo(System.out);
+
         CoreOp.FuncOp funcOp = CoreOp.quoteOp(lop);
         funcOp.writeTo(System.out);
+
+        Object[] args = {1, "s", this};
+        Quoted q = CoreOp.quotedOp(funcOp, args);
+
+        Iterator<Object> argsIterator = Arrays.stream(args).iterator();
+        for (Map.Entry<Value, Object> e : q.capturedValues().entrySet()) {
+            Assert.assertSame(e.getValue(), argsIterator.next());
+        }
     }
 }

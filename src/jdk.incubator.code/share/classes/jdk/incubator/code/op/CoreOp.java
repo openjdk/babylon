@@ -4489,4 +4489,31 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             block.op(_return());
         });
     }
+
+    public static Quoted quotedOp(FuncOp funcOp, Object[] args) {
+
+        assert funcOp.body().blocks().size() == 1;
+        Block fopBlock = funcOp.body().entryBlock();
+        assert fopBlock.ops().size() == 2 + funcOp.parameters().size();
+        assert fopBlock.ops().subList(0, funcOp.parameters().size()).stream().allMatch(o -> o instanceof VarOp);
+        assert fopBlock.ops().get(funcOp.parameters().size()) instanceof QuotedOp;
+        assert fopBlock.ops().getLast() instanceof ReturnOp;
+
+        QuotedOp qop = (QuotedOp) fopBlock.ops().get(funcOp.parameters().size());
+
+        Op op = qop.quotedOp();
+
+        List<Op> fopBlockVarOps = fopBlock.ops().subList(0, funcOp.parameters().size());
+        assert op.capturedValues().equals(fopBlockVarOps.stream().map(Op::result).toList());
+        assert fopBlockVarOps.stream().map(o -> ((VarOp) o).initOperand()).toList().equals(funcOp.parameters());
+
+        assert funcOp.parameters().size() == args.length;
+        LinkedHashMap<Value, Object> m = new LinkedHashMap<>();
+        Iterator<Object> argsIterator = Arrays.stream(args).iterator();
+        for (Value v : op.capturedValues()) {
+            m.put(v, argsIterator.next());
+        }
+
+        return new Quoted(op, m);
+    }
 }
