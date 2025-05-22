@@ -117,7 +117,7 @@ public class JavaTypeUtils {
         List<ExternalizedTypeElement> args = Stream.concat(
                 Stream.of(nameToType(name), encl),
                 typeargs.stream()).toList();
-        return new ExternalizedTypeElement(JAVA_TYPE_CLASS_NAME, args);
+        return ExternalizedTypeElement.of(JAVA_TYPE_CLASS_NAME, args);
     }
 
     /**
@@ -125,7 +125,7 @@ public class JavaTypeUtils {
      * @param component the array component type
      */
     public static ExternalizedTypeElement arrayType(ExternalizedTypeElement component) {
-        return new ExternalizedTypeElement(JAVA_TYPE_ARRAY_NAME, List.of(component));
+        return ExternalizedTypeElement.of(JAVA_TYPE_ARRAY_NAME, component);
     }
 
     /**
@@ -134,8 +134,8 @@ public class JavaTypeUtils {
      * @param bound the wildcard bound
      */
     public static ExternalizedTypeElement wildcardType(BoundKind boundKind, ExternalizedTypeElement bound) {
-        return new ExternalizedTypeElement(JAVA_TYPE_WILDCARD_NAME,
-                List.of(nameToType(boundKind.name()), bound));
+        return ExternalizedTypeElement.of(JAVA_TYPE_WILDCARD_NAME,
+                nameToType(boundKind.name()), bound);
     }
 
     /**
@@ -145,8 +145,8 @@ public class JavaTypeUtils {
      * @param bound the type-variable bound
      */
     public static ExternalizedTypeElement typeVarType(String name, ExternalizedTypeElement owner, ExternalizedTypeElement bound) {
-        return new ExternalizedTypeElement(JAVA_TYPE_VAR_NAME,
-                List.of(nameToType(name), owner, bound));
+        return ExternalizedTypeElement.of(JAVA_TYPE_VAR_NAME,
+                nameToType(name), owner, bound);
     }
 
     /**
@@ -154,8 +154,8 @@ public class JavaTypeUtils {
      * @param name the name of the primitive type
      */
     public static ExternalizedTypeElement primitiveType(String name) {
-        return new ExternalizedTypeElement(JAVA_TYPE_PRIMITIVE_NAME,
-                List.of(nameToType(name)));
+        return ExternalizedTypeElement.of(JAVA_TYPE_PRIMITIVE_NAME,
+                nameToType(name));
     }
 
     /**
@@ -165,8 +165,8 @@ public class JavaTypeUtils {
      * @param type the field type
      */
     public static ExternalizedTypeElement fieldRef(String name, ExternalizedTypeElement owner, ExternalizedTypeElement type) {
-        return new ExternalizedTypeElement(JAVA_REF_FIELD_NAME,
-                List.of(owner, nameToType(name), type));
+        return ExternalizedTypeElement.of(JAVA_REF_FIELD_NAME,
+                owner, nameToType(name), type);
     }
 
     /**
@@ -177,8 +177,8 @@ public class JavaTypeUtils {
      * @param paramtypes the method parameter types
      */
     public static ExternalizedTypeElement methodRef(String name, ExternalizedTypeElement owner, ExternalizedTypeElement restype, List<ExternalizedTypeElement> paramtypes) {
-        return new ExternalizedTypeElement(JAVA_REF_METHOD_NAME,
-                List.of(owner, new ExternalizedTypeElement(name, paramtypes), restype));
+        return ExternalizedTypeElement.of(JAVA_REF_METHOD_NAME,
+                owner, ExternalizedTypeElement.of(name, paramtypes), restype);
     }
 
     /**
@@ -187,8 +187,8 @@ public class JavaTypeUtils {
      * @param paramtypes the constructor parameter types
      */
     public static ExternalizedTypeElement constructorRef(ExternalizedTypeElement owner, List<ExternalizedTypeElement> paramtypes) {
-        return new ExternalizedTypeElement(JAVA_REF_CONSTRUCTOR_NAME,
-                List.of(owner, new ExternalizedTypeElement("", paramtypes)));
+        return ExternalizedTypeElement.of(JAVA_REF_CONSTRUCTOR_NAME,
+                owner, ExternalizedTypeElement.of("", paramtypes));
     }
 
     /**
@@ -198,11 +198,11 @@ public class JavaTypeUtils {
      * @param componentTypes the record component types
      */
     public static ExternalizedTypeElement recordRef(ExternalizedTypeElement owner, List<String> componentNames, List<ExternalizedTypeElement> componentTypes) {
-        return new ExternalizedTypeElement(JAVA_REF_RECORD_NAME,
+        return ExternalizedTypeElement.of(JAVA_REF_RECORD_NAME,
                 Stream.concat(
                         Stream.of(owner),
                         IntStream.range(0, componentNames.size())
-                                .mapToObj(i -> new ExternalizedTypeElement(componentNames.get(i), List.of(componentTypes.get(i))))
+                                .mapToObj(i -> ExternalizedTypeElement.of(componentNames.get(i), componentTypes.get(i)))
                 ).toList());
     }
 
@@ -416,7 +416,7 @@ public class JavaTypeUtils {
         return switch (Kind.of(tree)) {
             case INFLATED_TYPE -> nameToType(String.format("%s\"%s\"", JAVA_TYPE_FLAT_NAME_PREFIX, toExternalTypeString(tree)));
             case INFLATED_REF -> nameToType(String.format("%s\"%s\"", JAVA_REF_FLAT_NAME_PREFIX, toExternalRefString(tree)));
-            default -> new ExternalizedTypeElement(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::flatten).toList());
+            default -> ExternalizedTypeElement.of(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::flatten).toList());
         };
     }
 
@@ -428,7 +428,7 @@ public class JavaTypeUtils {
         return switch (Kind.of(tree)) {
             case FLATTENED_TYPE -> parseExternalTypeString(getDesc(tree, JAVA_TYPE_FLAT_NAME_PREFIX));
             case FLATTENED_REF -> parseExternalRefString(getDesc(tree, JAVA_REF_FLAT_NAME_PREFIX));
-            default -> new ExternalizedTypeElement(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::inflate).toList());
+            default -> ExternalizedTypeElement.of(tree.identifier(), tree.arguments().stream().map(JavaTypeUtils::inflate).toList());
         };
     }
 
@@ -457,7 +457,7 @@ public class JavaTypeUtils {
     }
 
     private static ExternalizedTypeElement nameToType(String name) {
-        return new ExternalizedTypeElement(name, List.of());
+        return ExternalizedTypeElement.of(name);
     }
 
     private static String typeToName(ExternalizedTypeElement tree) {
