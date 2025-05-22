@@ -230,13 +230,16 @@ public final class Method extends Executable {
 
     /* package */
     Optional<?> setCodeModelIfNeeded(Function<Method, Optional<?>> modelFactory) {
+        if (root != null) {
+            return root.setCodeModelIfNeeded(modelFactory);
+        }
         Optional<?> localRef = codeModel;
         if (localRef == null) {
             synchronized (this) {
                 localRef = codeModel;
                 if (localRef == null) {
-                    Optional<?> op = modelFactory.apply(this);
-                    codeModel = localRef = op;
+                    localRef = modelFactory.apply(this);
+                    codeModel = localRef;
                 }
             }
         }

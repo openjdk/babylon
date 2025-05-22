@@ -25,8 +25,10 @@
 
 package oracle.code.json;
 
+import oracle.code.json.impl.JsonArrayImpl;
+
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * The interface that represents JSON array.
@@ -34,12 +36,13 @@ import java.util.Objects;
  * A {@code JsonArray} can be produced by {@link Json#parse(String)}.
  * <p> Alternatively, {@link #of(List)} can be used to obtain a {@code JsonArray}.
  *
+ * @since 99
  */
-public sealed interface JsonArray extends JsonValue permits JsonArrayImpl {
+public non-sealed interface JsonArray extends JsonValue {
 
     /**
-     * {@return the list of {@code JsonValue} elements in this array
-     * value}
+     * {@return an unmodifiable list of the {@code JsonValue} elements in
+     * this {@code JsonArray}}
      */
     List<JsonValue> values();
 
@@ -47,13 +50,38 @@ public sealed interface JsonArray extends JsonValue permits JsonArrayImpl {
      * {@return the {@code JsonArray} created from the given
      * list of {@code JsonValue}s}
      *
-     * @param src the list of {@code Object}s. Non-null.
-     * @throws IllegalArgumentException if the conversion of {@code src} to a
-     * {@code JsonArray} exceeds a nest limit.
+     * @param src the list of {@code JsonValue}s. Non-null.
+     * @throws NullPointerException if {@code src} is {@code null}, or contains
+     *      any values that are {@code null}
      */
     static JsonArray of(List<? extends JsonValue> src) {
-        var ja = new JsonArrayImpl(Objects.requireNonNull(src));
-        JsonGenerator.checkDepth(ja, 1);
-        return ja;
+        var values = new ArrayList<JsonValue>(src); // implicit null check
+        if (values.contains(null)) {
+            throw new NullPointerException("src contains null value(s)");
+        }
+        return new JsonArrayImpl(values);
     }
+
+    /**
+     * {@return {@code true} if the given object is also a {@code JsonArray}
+     * and the two {@code JsonArray}s represent the same elements} Two
+     * {@code JsonArray}s {@code ja1} and {@code ja2} represent the same
+     * elements if {@code ja1.values().equals(ja2.values())}.
+     *
+     * @see #values()
+     */
+    @Override
+    boolean equals(Object obj);
+
+    /**
+     * {@return the hash code value for this {@code JsonArray}} The hash code of a
+     * {@code JsonArray} is calculated by {@code Objects.hash(JsonArray.values()}.
+     * Thus, for two {@code JsonArray}s {@code ja1} and {@code ja2},
+     * {@code ja1.equals(ja2)} implies that {@code ja1.hashCode() == ja2.hashCode()}
+     * as required by the general contract of {@link Object#hashCode}.
+     *
+     * @see #values()
+     */
+    @Override
+    int hashCode();
 }

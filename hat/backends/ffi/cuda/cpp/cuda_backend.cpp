@@ -74,8 +74,8 @@ PtxSource *PtxSource::nvcc(const char *cudaSource, size_t len) {
     int pid;
     cSource.write(cudaPath);
     if ((pid = fork()) == 0) {
-        const char *path = "/usr/local/cuda-12.2/bin/nvcc";
-        const char *argv[]{"nvcc", "-ptx", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
+        const char *path = "/usr/local/cuda/bin/nvcc";
+        const char *argv[]{"/usr/local/cuda/bin/nvcc", "-ptx", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
        // std::cerr << "child about to exec nvcc" << std::endl;
        // std::cerr << "path " << path<< " " << argv[1]<< " " << argv[2]<< " " << argv[3]<< " " << argv[4]<< std::endl;
         int stat = execvp(path, (char *const *) argv);
@@ -87,7 +87,7 @@ PtxSource *PtxSource::nvcc(const char *cudaSource, size_t len) {
         std::exit(1);
     } else {
         int status;
-       // std::cerr << "parent waiting for child nvcc exec" << std::endl;
+        //std::cerr << "parent waiting for child nvcc exec" << std::endl;
         pid_t result = wait(&status);
         //std::cerr << "child finished should be safe to read "<< ptxPath << std::endl;
         PtxSource *ptx= new PtxSource();
@@ -179,10 +179,10 @@ PtxSource *CudaBackend::nvcc(CudaSource *cudaSource){
     int pid;
     cudaSource->write(cudaPath);
     if ((pid = fork()) == 0) {
-        const char *path = "/usr/local/cuda-12.2/bin/nvcc";
-        const char *argv[]{"nvcc", "-ptx", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
-        // std::cerr << "child about to exec nvcc" << std::endl;
-        // std::cerr << "path " << path<< " " << argv[1]<< " " << argv[2]<< " " << argv[3]<< " " << argv[4]<< std::endl;
+        const char *path = "/usr/local/cuda/bin/nvcc";
+        const char *argv[]{"/usr/local/cuda/bin/nvcc", "-ptx", "-Wno-deprecated-gpu-targets", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
+         //std::cerr << "child about to exec nvcc" << std::endl;
+         //std::cerr << "path " << path<< " " << argv[1]<< " " << argv[2]<< " " << argv[3]<< " " << argv[4]<< " "<< argv[5]<< std::endl;
         int stat = execvp(path, (char *const *) argv);
         std::cerr << " nvcc stat = "<<stat << " errno="<< errno<< " '"<< std::strerror(errno)<< "'"<<std::endl;
         std::exit(errno);

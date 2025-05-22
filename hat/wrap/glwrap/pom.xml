@@ -58,7 +58,15 @@ questions.
       <artifactId>maven-compiler-plugin</artifactId>
       <configuration>
         <excludes>
-          <exclude>wrap/glwrap/GLCallbackEventHandler.java</exclude>
+          <!--
+              Annoyingly there seems to be two ways to handle callbacks in gl so we have two wrappers
+                 gl on mac needs  us to exclude
+                    wrap/glwrap/GLCallbackEventHandler.java 
+                 gl on ubuntu/jetson needs  us to exclude
+                   wrap/glwrap/GLCallbackEventHandler.java 
+          -->
+          <!-- uncomment for mac --> <!--<exclude>wrap/glwrap/GLCallbackEventHandler.java</exclude>-->
+          <!-- uncomment for ubuntu --> <exclude>wrap/glwrap/GLFuncEventHandler.java</exclude>
         </excludes>
       </configuration>
     </plugin>

@@ -57,34 +57,34 @@ import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Test;
 
 
-public class OnnxProtoModelTest {
+public class OnnxModelTest {
 
-    static OnnxType toOnnxType(OnnxProtoModel.TypeProto tp) {
-        if (tp.tensorType() instanceof OnnxProtoModel.TypeProto.Tensor t) {
+    static OnnxType toOnnxType(OnnxModel.TypeProto tp) {
+        if (tp.tensorType() instanceof OnnxModel.TypeProto.Tensor t) {
             return toTensorType(t.elemType());
-        } else if (tp.optionalType() instanceof OnnxProtoModel.TypeProto.Optional o) {
+        } else if (tp.optionalType() instanceof OnnxModel.TypeProto.Optional o) {
             return OnnxType.optional(toOnnxType(o.elemType()));
-        } else if (tp.sequenceType()  instanceof OnnxProtoModel.TypeProto.Sequence s) {
+        } else if (tp.sequenceType()  instanceof OnnxModel.TypeProto.Sequence s) {
             return OnnxType.seq(toOnnxType(s.elemType()));
-        } else if (tp.mapType() instanceof OnnxProtoModel.TypeProto.Map m) {
+        } else if (tp.mapType() instanceof OnnxModel.TypeProto.Map m) {
             return OnnxType.map(toKeyType(m.keyType()), toOnnxType(m.valueType()));
-        } else if (tp.sparseTensorType() instanceof OnnxProtoModel.TypeProto.SparseTensor st) {
+        } else if (tp.sparseTensorType() instanceof OnnxModel.TypeProto.SparseTensor st) {
             throw new UnsupportedOperationException("Sparse tensors not supported yet."); // @@@
         }
         throw new IllegalArgumentException("No type specified.");
     }
 
-    static FunctionType toFunctionType(OnnxProtoModel.GraphProto g) {
+    static FunctionType toFunctionType(OnnxModel.GraphProto g) {
         var paramTypes = new ArrayList<TypeElement>();
-        for (OnnxProtoModel.ValueInfoProto input : g.inputs()) {
+        for (OnnxModel.ValueInfoProto input : g.input()) {
             paramTypes.add(toOnnxType(input.type()));
         }
-        for (OnnxProtoModel.TensorProto init : g.initializers()) {
+        for (OnnxModel.TensorProto init : g.initializer()) {
             paramTypes.add(toTensorType(init.dataType()));
         }
-        var returnType = g.outputs().size() == 1
-                ? toOnnxType(g.outputs().getFirst().type())
-                : TupleType.tupleType(g.outputs().stream().map(OnnxProtoModel.ValueInfoProto::type).map(OnnxProtoModelTest::toOnnxType).toList());
+        var returnType = g.output().size() == 1
+                ? toOnnxType(g.output().getFirst().type())
+                : TupleType.tupleType(g.output().stream().map(OnnxModel.ValueInfoProto::type).map(OnnxModelTest::toOnnxType).toList());
         return FunctionType.functionType(returnType, paramTypes);
     }
 
@@ -144,28 +144,28 @@ public class OnnxProtoModelTest {
         }
     }
 
-    static OpWithNames toFuncOp(OnnxProtoModel.GraphProto g) {
+    static OpWithNames toFuncOp(OnnxModel.GraphProto g) {
         var valueMap = new LinkedHashMap<String, Value>();
         var func = CoreOp.FuncOp.func(g.name(), toFunctionType(g)).body(fb -> {
 
             { // fill value map for parameters and initializers
                 Iterator<Block.Parameter> params = fb.entryBlock().parameters().iterator();
-                for (OnnxProtoModel.ValueInfoProto input : g.inputs()) {
+                for (OnnxModel.ValueInfoProto input : g.input()) {
                     valueMap.put(input.name(), params.next());
                 }
-                for (OnnxProtoModel.TensorProto init : g.initializers()) {
+                for (OnnxModel.TensorProto init : g.initializer()) {
                     valueMap.put(init.name(), params.next());
                 }
             }
 
-            for (OnnxProtoModel.NodeProto n : g.nodes()) {
+            for (OnnxModel.NodeProto n : g.node()) {
                 // get the op
                 ExternalizableOp.ExternalizedOp extOp = new ExternalizableOp.ExternalizedOp(
                         n.opType(),
-                        n.inputs() == null ? List.of() : n.inputs().stream().map(valueMap::get).toList(),
+                        n.input() == null ? List.of() : n.input().stream().map(valueMap::get).toList(),
                         List.of(),
                         new OnnxType.TensorType(null),
-                        n.attributes() == null ? Map.of() : n.attributes().stream().collect(Collectors.toMap(OnnxProtoModel.Attribute::name, OnnxProtoModelTest::toAttributeValue)),
+                        n.attribute() == null ? Map.of() : n.attribute().stream().collect(Collectors.toMap(OnnxModel.AttributeProto::name, OnnxModelTest::toAttributeValue)),
                         List.of());
                 OnnxOp rawOp = (OnnxOp)ONNX_FACTORY.constructOpOrFail(extOp);
 
@@ -184,19 +184,19 @@ public class OnnxProtoModelTest {
 
                 // map outputs
                 if (rawOp.onnxOutputs().size() == 1) {
-                    valueMap.put(n.outputs().getFirst(), res);
+                    valueMap.put(n.output().getFirst(), res);
                 } else {
                     valueMap.put(n.name(), res);
-                    for (int i = 0; i < n.outputs().size(); i++) {
-                        valueMap.put(n.outputs().get(i), fb.op(CoreOp.tupleLoad(res, i)));
+                    for (int i = 0; i < n.output().size(); i++) {
+                        valueMap.put(n.output().get(i), fb.op(CoreOp.tupleLoad(res, i)));
                     }
                 }
             }
 
-            if (g.outputs().size() == 1) {
-                fb.op(CoreOp._return(valueMap.get(g.outputs().getFirst().name())));
+            if (g.output().size() == 1) {
+                fb.op(CoreOp._return(valueMap.get(g.output().getFirst().name())));
             } else {
-                Op.Result ret = fb.op(CoreOp.tuple(g.outputs().stream().map(OnnxProtoModel.ValueInfoProto::name).map(valueMap::get).toList()));
+                Op.Result ret = fb.op(CoreOp.tuple(g.output().stream().map(OnnxModel.ValueInfoProto::name).map(valueMap::get).toList()));
                 valueMap.put(g.name() + "_return", ret);
                 fb.op(CoreOp._return(ret));
             }
@@ -205,7 +205,7 @@ public class OnnxProtoModelTest {
         return new OpWithNames(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)));
     }
 
-    static OnnxType inferTypeVariableType(OnnxType type, OnnxOp op, OnnxProtoModel.NodeProto n) {
+    static OnnxType inferTypeVariableType(OnnxType type, OnnxOp op, OnnxModel.NodeProto n) {
         if (type instanceof OnnxType.TypeVariable tv) {
             if (tv.types().size() == 1) {
                 return tv.types().getFirst();
@@ -226,9 +226,9 @@ public class OnnxProtoModelTest {
                 case OnnxOps.Cast c ->
                     toTensorType((int)c.to());
                 case OnnxOps.ConstantOfShape cos -> // get tensor type from tensor attribute
-                    n.attributes() != null
-                    && !n.attributes().isEmpty()
-                    && n.attributes().getFirst().t() instanceof OnnxProtoModel.TensorProto tp
+                    n.attribute() != null
+                    && !n.attribute().isEmpty()
+                    && n.attribute().getFirst().t() instanceof OnnxModel.TensorProto tp
                             ? toTensorType(tp.dataType())
                             : OnnxType.TENSOR_FLOAT32; // default
                 default ->
@@ -238,19 +238,19 @@ public class OnnxProtoModelTest {
         return type;
     }
 
-    static Object toAttributeValue(OnnxProtoModel.Attribute a) {
+    static Object toAttributeValue(OnnxModel.AttributeProto a) {
         return switch (a.type()) {
-            case 1 -> a.f();
-            case 2 -> a.i();
-            case 3 -> a.s();
-            case 4 -> a.t().rawData(); // @@@ need to store all tensor info + data
+            case FLOAT -> a.f();
+            case INT -> a.i();
+            case STRING -> a.s();
+            case TENSOR -> toTensor(a.t());
 //    GRAPH = 5;
 //    SPARSE_TENSOR = 11;
 //    TYPE_PROTO = 13;
-            case 6 -> joinFloatArray(a.floats());
-            case 7 -> joinLongArray(a.ints());
-            case 8 -> a.strings();
-//    TENSORS = 9;
+            case FLOATS -> joinFloatArray(a.floats());
+            case INTS -> joinLongArray(a.ints());
+            case STRINGS -> a.strings();
+            case TENSORS -> a.tensors().stream().map(OnnxModelTest::toTensor).toArray(Tensor[]::new);
 //    GRAPHS = 10;
 //    SPARSE_TENSORS = 12;
 //    TYPE_PROTOS = 14;
@@ -258,7 +258,15 @@ public class OnnxProtoModelTest {
         };
     }
 
+    static Tensor toTensor(OnnxModel.TensorProto tensorProto) {
+        // @@@ floatData, longData, stringData...
+        // @@@ externalData
+        // @@@ segments
+        return Tensor.ofShape(joinLongArray(tensorProto.dims()), tensorProto.rawData(), Tensor.ElementType.fromOnnxId(tensorProto.dataType()));
+    }
+
     static float[] joinFloatArray(List<float[]> floats) {
+        if (floats == null) return new float[0];
         float[] join = new float[floats.stream().mapToInt(f -> f.length).sum()];
         int i = 0;
         for (float[] f : floats) {
@@ -268,10 +276,11 @@ public class OnnxProtoModelTest {
         return join;
     }
 
-    static long[] joinLongArray(List<long[]> floats) {
-        long[] join = new long[floats.stream().mapToInt(f -> f.length).sum()];
+    static long[] joinLongArray(List<long[]> longs) {
+        if (longs == null) return new long[0];
+        long[] join = new long[longs.stream().mapToInt(f -> f.length).sum()];
         int i = 0;
-        for (long[] f : floats) {
+        for (long[] f : longs) {
             System.arraycopy(f, 0, join, i, f.length);
             i += f.length;
         }
@@ -283,7 +292,7 @@ public class OnnxProtoModelTest {
         try (InputStream in = CNNTest.class.getResourceAsStream("lenet-torchscript.onnx")) {
 
             // parse onnx protobuf model
-            OnnxProtoModel protoModel = OnnxProtoModel.readFrom(in.readAllBytes());
+            OnnxModel.ModelProto protoModel = OnnxModel.readFrom(in.readAllBytes());
 
 //            System.out.println(model.toText());
 
@@ -298,7 +307,7 @@ public class OnnxProtoModelTest {
                 List<Tensor> inputValues = new ArrayList<>();
 
                 // initializers are extracted from the proto model directly
-                for (OnnxProtoModel.TensorProto init : protoModel.graph().initializers()) {
+                for (OnnxModel.TensorProto init : protoModel.graph().initializer()) {
                     inputValues.add(Tensor.ofShape(a, joinLongArray(init.dims()), init.rawData(), Tensor.ElementType.fromOnnxId(init.dataType())));
                 }
 
@@ -320,7 +329,7 @@ public class OnnxProtoModelTest {
     public static void main(String[] args) throws Exception {
         for (var fName : args) {
             try (var in = new RandomAccessFile(fName, "r")) {
-                OnnxProtoModel model = OnnxProtoModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
+                OnnxModel.ModelProto model = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
 //                System.out.println(model.toText());
                 System.out.println(toFuncOp(model.graph()).toText());
             }

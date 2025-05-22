@@ -51,8 +51,6 @@
 #include <iostream>
 #include <cuda.h>
 #include <builtin_types.h>
-//#include <cuda_runtime_api.h>
-#define CUDA_TYPES
 
 #include "shared.h"
 
@@ -77,6 +75,7 @@ struct WHERE{
         }
     }
 };
+
 class PtxSource: public Text  {
 public:
     PtxSource();
@@ -86,6 +85,7 @@ public:
     ~PtxSource() = default;
     static PtxSource *nvcc(const char *cudaSource, size_t len);
 };
+
 class CudaSource:public Text  {
 public:
     CudaSource(size_t len, char *text, bool isCopy);
