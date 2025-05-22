@@ -4439,10 +4439,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     public static FuncOp quoteOp(Op op) {
 
         return func("q", FunctionType.VOID).body(block -> {
-            List<Value> usedValues = new ArrayList<>();
-            usedValues.addAll(op.capturedValues());
-            usedValues.addAll(op.operands());
-            for (Value v : usedValues) {
+
+            List<Value> capturedValues = op.capturedValues();
+            for (Value v : capturedValues) {
                 TypeElement t;
                 if (v instanceof Op.Result opr && opr.op() instanceof VarOp varOp) {
                     t = varOp.varValueType();
@@ -4465,7 +4464,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                 // a modified copy transformer, that insert var.load before use of captured values (if needed)
                 Map<Value, Value> m = new HashMap<>();
                 for (Value operand : o.operands()) {
-                    if (usedValues.contains(operand) && !(operand instanceof Op.Result r && r.op() instanceof VarOp)) {
+                    if (capturedValues.contains(operand) && !(operand instanceof Op.Result r && r.op() instanceof VarOp)) {
                         Value capVar = b.context().getValue(operand);
                         Op.Result capVal = b.op(varLoad(capVar));
                         m.put(operand, capVar);
