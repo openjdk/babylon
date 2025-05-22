@@ -93,13 +93,11 @@ public final class CoreTypeFactory {
     /**
      * The Java type factory.
      */
-    public static final TypeElementFactory JAVA_TYPE_FACTORY = new TypeElementFactory() {
-        // Returns JavaType or JavaRef
-        @Override
-        public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
-            return JavaTypeUtils.toJavaType(tree);
-        }
-    };
+    public static final TypeElementFactory JAVA_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
+            case INFLATED_TYPE -> JavaTypeUtils.toJavaType(tree);
+            case INFLATED_REF -> JavaTypeUtils.toJavaRef(tree);
+            default -> throw new UnsupportedOperationException("Unsupported: " + tree);
+        };
 
 
     /**
