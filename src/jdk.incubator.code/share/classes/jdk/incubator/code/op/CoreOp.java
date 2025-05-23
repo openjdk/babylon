@@ -4438,7 +4438,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
     public static FuncOp quoteOp(Op op) {
 
-        return func("q", FunctionType.VOID).body(block -> {
+        return func("q", FunctionType.functionType(JavaType.type(Quoted.class))).body(block -> {
 
             List<Value> capturedValues = op.capturedValues();
             for (Value v : capturedValues) {
@@ -4483,9 +4483,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             qblock.op(_yield(opr));
 
-            block.op(quoted(qbody));
+            Op.Result qopr = block.op(quoted(qbody));
 
-            block.op(_return());
+            block.op(_return(qopr));
         });
     }
 
