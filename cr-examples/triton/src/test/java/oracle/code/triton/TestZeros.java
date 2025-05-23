@@ -38,9 +38,9 @@ import static oracle.code.triton.TritonTest.consume;
 public class TestZeros {
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"test1_32_64_void" ()void -> {
-                    %0 : tensor<x32, x64, float> = arith.constant @"0.0";
+            module ()java.type:"void" -> {
+                tt.func @"test1_32_64_void" ()java.type:"void" -> {
+                    %0 : tensor<x32, x64, java.type:"float"> = arith.constant @"0.0";
                     tt.consume %0;
                     tt.return;
                 };

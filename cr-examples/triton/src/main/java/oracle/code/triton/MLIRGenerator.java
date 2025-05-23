@@ -164,7 +164,13 @@ public final class MLIRGenerator {
             Map<Integer, String> idxToOp = new HashMap<>();
 
             for (int i = 0; i < type.length(); ++i) {
-                if (i + 3 < type.length() && type.substring(i, i + 3).equals("ptr")) {
+                if (i + 19 < type.length() && type.substring(i, i + 19).equals("java.type.primitive")) {
+                    s.push(i + 19);
+                    idxToOp.put(i, "");
+                } else if (i + 15 < type.length() && type.substring(i, i + 15).equals("java.type.class")) {
+                    s.push(i + 15);
+                    idxToOp.put(i, "");
+                } else if (i + 3 < type.length() && type.substring(i, i + 3).equals("ptr")) {
                     s.push(i + 3);
                     idxToOp.put(i, "ptr");
                 } else if (i + 5 < type.length() && type.substring(i, i + 5).equals("Tuple")) {

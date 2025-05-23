@@ -36,36 +36,36 @@ import java.util.List;
 public class ForLoopTest {
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : ForLoopTest, %1 : java.util.List<java.util.List<java.lang.String>>)void -> {
-              %2 : Var<java.util.List<java.util.List<java.lang.String>>> = var %1 @"ll";
-              java.enhancedFor
-                  ^expr()java.util.List<java.util.List<java.lang.String>> -> {
-                      %3 : java.util.List<java.util.List<java.lang.String>> = var.load %2;
-                      yield %3;
-                  }
-                  ^def(%4 : java.util.List<java.lang.String>)Var<java.util.List<java.lang.String>> -> {
-                      %5 : Var<java.util.List<java.lang.String>> = var %4 @"l";
-                      yield %5;
-                  }
-                  ^body(%6 : Var<java.util.List<java.lang.String>>)void -> {
-                      java.enhancedFor
-                          ^expr()java.util.List<java.lang.String> -> {
-                              %7 : java.util.List<java.lang.String> = var.load %6;
-                              yield %7;
-                          }
-                          ^def(%8 : java.lang.String)Var<java.lang.String> -> {
-                              %9 : Var<java.lang.String> = var %8 @"s";
-                              yield %9;
-                          }
-                          ^body(%10 : Var<java.lang.String>)void -> {
-                              %11 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                              %12 : java.lang.String = var.load %10;
-                              invoke %11 %12 @"java.io.PrintStream::println(java.lang.String)void";
-                              java.continue;
-                          };
-                      java.continue;
-                  };
-              return;
+            func @"test1" (%0 : java.type:"ForLoopTest", %1 : java.type:"java.util.List<java.util.List<java.lang.String>>")java.type:"void" -> {
+                %2 : Var<java.type:"java.util.List<java.util.List<java.lang.String>>"> = var %1 @"ll";
+                java.enhancedFor
+                    ()java.type:"java.util.List<java.util.List<java.lang.String>>" -> {
+                        %3 : java.type:"java.util.List<java.util.List<java.lang.String>>" = var.load %2;
+                        yield %3;
+                    }
+                    (%4 : java.type:"java.util.List<java.lang.String>")Var<java.type:"java.util.List<java.lang.String>"> -> {
+                        %5 : Var<java.type:"java.util.List<java.lang.String>"> = var %4 @"l";
+                        yield %5;
+                    }
+                    (%6 : Var<java.type:"java.util.List<java.lang.String>">)java.type:"void" -> {
+                        java.enhancedFor
+                            ()java.type:"java.util.List<java.lang.String>" -> {
+                                %7 : java.type:"java.util.List<java.lang.String>" = var.load %6;
+                                yield %7;
+                            }
+                            (%8 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
+                                %9 : Var<java.type:"java.lang.String"> = var %8 @"s";
+                                yield %9;
+                            }
+                            (%10 : Var<java.type:"java.lang.String">)java.type:"void" -> {
+                                %11 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                                %12 : java.type:"java.lang.String" = var.load %10;
+                                invoke %11 %12 @"java.io.PrintStream::println(java.lang.String):void";
+                                java.continue;
+                            };
+                        java.continue;
+                    };
+                return;
             };
             """)
     void test1(List<List<String>> ll) {
@@ -78,32 +78,32 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : ForLoopTest, %1 : java.util.List<java.lang.String>)void -> {
-                %2 : Var<java.util.List<java.lang.String>> = var %1 @"l";
+            func @"test2" (%0 : java.type:"ForLoopTest", %1 : java.type:"java.util.List<java.lang.String>")java.type:"void" -> {
+                %2 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l";
                 java.enhancedFor
-                    ^expr()java.util.List<java.lang.String> -> {
-                        %3 : java.util.List<java.lang.String> = var.load %2;
-                        %4 : java.util.stream.Stream<java.lang.String> = invoke %3 @"java.util.List::stream()java.util.stream.Stream";
-                        %5 : java.util.function.Predicate<java.lang.String> = lambda (%6 : java.lang.String)boolean -> {
-                            %7 : Var<java.lang.String> = var %6 @"s";
-                            %8 : java.lang.String = var.load %7;
-                            %9 : int = invoke %8 @"java.lang.String::length()int";
-                            %10 : int = constant @"10";
-                            %11 : boolean = lt %9 %10;
+                    ()java.type:"java.util.List<java.lang.String>" -> {
+                        %3 : java.type:"java.util.List<java.lang.String>" = var.load %2;
+                        %4 : java.type:"java.util.stream.Stream<java.lang.String>" = invoke %3 @"java.util.List::stream():java.util.stream.Stream";
+                        %5 : java.type:"java.util.function.Predicate<java.lang.String>" = lambda (%6 : java.type:"java.lang.String")java.type:"boolean" -> {
+                            %7 : Var<java.type:"java.lang.String"> = var %6 @"s";
+                            %8 : java.type:"java.lang.String" = var.load %7;
+                            %9 : java.type:"int" = invoke %8 @"java.lang.String::length():int";
+                            %10 : java.type:"int" = constant @"10";
+                            %11 : java.type:"boolean" = lt %9 %10;
                             return %11;
                         };
-                        %12 : java.util.stream.Stream<java.lang.String> = invoke %4 %5 @"java.util.stream.Stream::filter(java.util.function.Predicate)java.util.stream.Stream";
-                        %13 : java.util.List<java.lang.String> = invoke %12 @"java.util.stream.Stream::toList()java.util.List";
+                        %12 : java.type:"java.util.stream.Stream<java.lang.String>" = invoke %4 %5 @"java.util.stream.Stream::filter(java.util.function.Predicate):java.util.stream.Stream";
+                        %13 : java.type:"java.util.List<java.lang.String>" = invoke %12 @"java.util.stream.Stream::toList():java.util.List";
                         yield %13;
                     }
-                    ^def(%14 : java.lang.String)Var<java.lang.String> -> {
-                        %15 : Var<java.lang.String> = var %14 @"s";
+                    (%14 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
+                        %15 : Var<java.type:"java.lang.String"> = var %14 @"s";
                         yield %15;
                     }
-                    ^body(%16 : Var<java.lang.String>)void -> {
-                        %17 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %18 : java.lang.String = var.load %16;
-                        invoke %17 %18 @"java.io.PrintStream::println(java.lang.String)void";
+                    (%16 : Var<java.type:"java.lang.String">)java.type:"void" -> {
+                        %17 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %18 : java.type:"java.lang.String" = var.load %16;
+                        invoke %17 %18 @"java.io.PrintStream::println(java.lang.String):void";
                         java.continue;
                     };
                 return;
@@ -117,21 +117,21 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test2_1" (%0 : ForLoopTest, %1 : java.util.List<java.lang.String>)void -> {
-              %2 : Var<java.util.List<java.lang.String>> = var %1 @"l";
-              java.enhancedFor
-                  ^expr()java.util.List<java.lang.String> -> {
-                      %3 : java.util.List<java.lang.String> = var.load %2;
-                      yield %3;
-                  }
-                  ^def(%4 : java.lang.String)Var<java.lang.String> -> {
-                      %5 : Var<java.lang.String> = var %4 @"s";
-                      yield %5;
-                  }
-                  ^body(%6 : Var<java.lang.String>)void -> {
-                      java.continue;
-                  };
-              return;
+            func @"test2_1" (%0 : java.type:"ForLoopTest", %1 : java.type:"java.util.List<java.lang.String>")java.type:"void" -> {
+                %2 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l";
+                java.enhancedFor
+                    ()java.type:"java.util.List<java.lang.String>" -> {
+                        %3 : java.type:"java.util.List<java.lang.String>" = var.load %2;
+                        yield %3;
+                    }
+                    (%4 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
+                        %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
+                        yield %5;
+                    }
+                    (%6 : Var<java.type:"java.lang.String">)java.type:"void" -> {
+                        java.continue;
+                    };
+                return;
             };
             """)
     void test2_1(List<String> l) {
@@ -140,23 +140,23 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test2_2" (%0 : ForLoopTest, %1 : java.util.List<java.lang.String>)java.lang.String -> {
-              %2 : Var<java.util.List<java.lang.String>> = var %1 @"l";
-              java.enhancedFor
-                  ^expr()java.util.List<java.lang.String> -> {
-                      %3 : java.util.List<java.lang.String> = var.load %2;
-                      yield %3;
-                  }
-                  ^def(%4 : java.lang.String)Var<java.lang.String> -> {
-                      %5 : Var<java.lang.String> = var %4 @"s";
-                      yield %5;
-                  }
-                  ^body(%6 : Var<java.lang.String>)void -> {
-                      %7 : java.lang.String = var.load %6;
-                      return %7;
-                  };
-              %8 : java.lang.String = constant @"";
-              return %8;
+            func @"test2_2" (%0 : java.type:"ForLoopTest", %1 : java.type:"java.util.List<java.lang.String>")java.type:"java.lang.String" -> {
+                %2 : Var<java.type:"java.util.List<java.lang.String>"> = var %1 @"l";
+                java.enhancedFor
+                    ()java.type:"java.util.List<java.lang.String>" -> {
+                        %3 : java.type:"java.util.List<java.lang.String>" = var.load %2;
+                        yield %3;
+                    }
+                    (%4 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
+                        %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
+                        yield %5;
+                    }
+                    (%6 : Var<java.type:"java.lang.String">)java.type:"void" -> {
+                        %7 : java.type:"java.lang.String" = var.load %6;
+                        return %7;
+                    };
+                %8 : java.type:"java.lang.String" = constant @"";
+                return %8;
             };
             """)
     String test2_2(List<String> l) {
@@ -168,30 +168,30 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : ForLoopTest)void -> {
+            func @"test3" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
-                    ^init()Var<int> -> {
-                        %1 : int = constant @"0";
-                        %2 : Var<int> = var %1 @"i";
+                    ()Var<java.type:"int"> -> {
+                        %1 : java.type:"int" = constant @"0";
+                        %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
-                    ^cond(%3 : Var<int>)boolean -> {
-                        %4 : int = var.load %3;
-                        %5 : int = constant @"10";
-                        %6 : boolean = lt %4 %5;
+                    (%3 : Var<java.type:"int">)java.type:"boolean" -> {
+                        %4 : java.type:"int" = var.load %3;
+                        %5 : java.type:"int" = constant @"10";
+                        %6 : java.type:"boolean" = lt %4 %5;
                         yield %6;
                     }
-                    ^update(%7 : Var<int>)void -> {
-                        %8 : int = var.load %7;
-                        %9 : int = constant @"1";
-                        %10 : int = add %8 %9;
+                    (%7 : Var<java.type:"int">)java.type:"void" -> {
+                        %8 : java.type:"int" = var.load %7;
+                        %9 : java.type:"int" = constant @"1";
+                        %10 : java.type:"int" = add %8 %9;
                         var.store %7 %10;
                         yield;
                     }
-                    ^body(%11 : Var<int>)void -> {
-                        %12 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %13 : int = var.load %11;
-                        invoke %12 %13 @"java.io.PrintStream::println(int)void";
+                    (%11 : Var<java.type:"int">)java.type:"void" -> {
+                        %12 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %13 : java.type:"int" = var.load %11;
+                        invoke %12 %13 @"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;
@@ -205,31 +205,31 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test3_1" (%0 : ForLoopTest)int -> {
+            func @"test3_1" (%0 : java.type:"ForLoopTest")java.type:"int" -> {
                 java.for
-                    ^init()Var<int> -> {
-                        %1 : int = constant @"0";
-                        %2 : Var<int> = var %1 @"i";
+                    ()Var<java.type:"int"> -> {
+                        %1 : java.type:"int" = constant @"0";
+                        %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
-                    ^cond(%3 : Var<int>)boolean -> {
-                        %4 : int = var.load %3;
-                        %5 : int = constant @"10";
-                        %6 : boolean = lt %4 %5;
+                    (%3 : Var<java.type:"int">)java.type:"boolean" -> {
+                        %4 : java.type:"int" = var.load %3;
+                        %5 : java.type:"int" = constant @"10";
+                        %6 : java.type:"boolean" = lt %4 %5;
                         yield %6;
                     }
-                    ^update(%7 : Var<int>)void -> {
-                        %8 : int = var.load %7;
-                        %9 : int = constant @"1";
-                        %10 : int = add %8 %9;
+                    (%7 : Var<java.type:"int">)java.type:"void" -> {
+                        %8 : java.type:"int" = var.load %7;
+                        %9 : java.type:"int" = constant @"1";
+                        %10 : java.type:"int" = add %8 %9;
                         var.store %7 %10;
                         yield;
                     }
-                    ^body(%11 : Var<int>)void -> {
-                        %12 : int = var.load %11;
+                    (%11 : Var<java.type:"int">)java.type:"void" -> {
+                        %12 : java.type:"int" = var.load %11;
                         return %12;
                     };
-                %13 : int = constant @"-1";
+                %13 : java.type:"int" = constant @"-1";
                 return %13;
             };
             """)
@@ -242,30 +242,30 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : ForLoopTest)void -> {
+            func @"test4" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
-                    ^init()Var<int> -> {
-                        %1 : int = constant @"0";
-                        %2 : Var<int> = var %1 @"i";
+                    ()Var<java.type:"int"> -> {
+                        %1 : java.type:"int" = constant @"0";
+                        %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
-                    ^cond(%3 : Var<int>)boolean -> {
-                        %4 : int = var.load %3;
-                        %5 : int = constant @"10";
-                        %6 : boolean = lt %4 %5;
+                    (%3 : Var<java.type:"int">)java.type:"boolean" -> {
+                        %4 : java.type:"int" = var.load %3;
+                        %5 : java.type:"int" = constant @"10";
+                        %6 : java.type:"boolean" = lt %4 %5;
                         yield %6;
                     }
-                    ^update(%7 : Var<int>)void -> {
-                        %8 : int = var.load %7;
-                        %9 : int = constant @"1";
-                        %10 : int = add %8 %9;
+                    (%7 : Var<java.type:"int">)java.type:"void" -> {
+                        %8 : java.type:"int" = var.load %7;
+                        %9 : java.type:"int" = constant @"1";
+                        %10 : java.type:"int" = add %8 %9;
                         var.store %7 %10;
                         yield;
                     }
-                    ^body(%11 : Var<int>)void -> {
-                        %12 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %13 : int = var.load %11;
-                        invoke %12 %13 @"java.io.PrintStream::println(int)void";
+                    (%11 : Var<java.type:"int">)java.type:"void" -> {
+                        %12 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %13 : java.type:"int" = var.load %11;
+                        invoke %12 %13 @"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;
@@ -278,27 +278,27 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : ForLoopTest)void -> {
+            func @"test5" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
-                    ^init()Var<int> -> {
-                        %1 : int = constant @"0";
-                        %2 : Var<int> = var %1 @"i";
+                    ()Var<java.type:"int"> -> {
+                        %1 : java.type:"int" = constant @"0";
+                        %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
-                    ^cond(%3 : Var<int>)boolean -> {
-                        %4 : int = var.load %3;
-                        %5 : int = constant @"10";
-                        %6 : boolean = lt %4 %5;
+                    (%3 : Var<java.type:"int">)java.type:"boolean" -> {
+                        %4 : java.type:"int" = var.load %3;
+                        %5 : java.type:"int" = constant @"10";
+                        %6 : java.type:"boolean" = lt %4 %5;
                         yield %6;
                     }
-                    ^update(%7 : Var<int>)void -> {
-                        %8 : int = var.load %7;
-                        %9 : int = constant @"1";
-                        %10 : int = add %8 %9;
+                    (%7 : Var<java.type:"int">)java.type:"void" -> {
+                        %8 : java.type:"int" = var.load %7;
+                        %9 : java.type:"int" = constant @"1";
+                        %10 : java.type:"int" = add %8 %9;
                         var.store %7 %10;
                         yield;
                     }
-                    ^body(%11 : Var<int>)void -> {
+                    (%11 : Var<java.type:"int">)java.type:"void" -> {
                         java.continue;
                     };
                 return;
@@ -310,30 +310,30 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test6" (%0 : ForLoopTest)void -> {
-                %1 : int = constant @"0";
-                %2 : Var<int> = var %1 @"i";
+            func @"test6" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.for
-                    ^init()void -> {
+                    ()java.type:"void" -> {
                         yield;
                     }
-                    ^cond()boolean -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"10";
-                        %5 : boolean = lt %3 %4;
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"10";
+                        %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
-                    ^update()void -> {
-                        %6 : int = var.load %2;
-                        %7 : int = constant @"1";
-                        %8 : int = add %6 %7;
+                    ()java.type:"void" -> {
+                        %6 : java.type:"int" = var.load %2;
+                        %7 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = add %6 %7;
                         var.store %2 %8;
                         yield;
                     }
-                    ^body()void -> {
-                        %9 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %10 : int = var.load %2;
-                        invoke %9 %10 @"java.io.PrintStream::println(int)void";
+                    ()java.type:"void" -> {
+                        %9 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %10 : java.type:"int" = var.load %2;
+                        invoke %9 %10 @"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;
@@ -348,34 +348,34 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test7" (%0 : ForLoopTest)void -> {
-                %1 : int = constant @"0";
-                %2 : Var<int> = var %1 @"i";
+            func @"test7" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.for
-                    ^init()void -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : int = add %3 %4;
+                    ()java.type:"void" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"int" = add %3 %4;
                         var.store %2 %5;
                         yield;
                     }
-                    ^cond()boolean -> {
-                        %6 : int = var.load %2;
-                        %7 : int = constant @"10";
-                        %8 : boolean = lt %6 %7;
+                    ()java.type:"boolean" -> {
+                        %6 : java.type:"int" = var.load %2;
+                        %7 : java.type:"int" = constant @"10";
+                        %8 : java.type:"boolean" = lt %6 %7;
                         yield %8;
                     }
-                    ^update()void -> {
-                        %9 : int = var.load %2;
-                        %10 : int = constant @"1";
-                        %11 : int = add %9 %10;
+                    ()java.type:"void" -> {
+                        %9 : java.type:"int" = var.load %2;
+                        %10 : java.type:"int" = constant @"1";
+                        %11 : java.type:"int" = add %9 %10;
                         var.store %2 %11;
                         yield;
                     }
-                    ^body()void -> {
-                        %12 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %13 : int = var.load %2;
-                        invoke %12 %13 @"java.io.PrintStream::println(int)void";
+                    ()java.type:"void" -> {
+                        %12 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %13 : java.type:"int" = var.load %2;
+                        invoke %12 %13 @"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;
@@ -390,28 +390,28 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test8" (%0 : ForLoopTest)void -> {
+            func @"test8" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
-                    ^init()Var<int> -> {
-                        %1 : int = constant @"0";
-                        %2 : Var<int> = var %1 @"i";
+                    ()Var<java.type:"int"> -> {
+                        %1 : java.type:"int" = constant @"0";
+                        %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
-                    ^cond(%3 : Var<int>)boolean -> {
-                        %4 : boolean = constant @"true";
+                    (%3 : Var<java.type:"int">)java.type:"boolean" -> {
+                        %4 : java.type:"boolean" = constant @"true";
                         yield %4;
                     }
-                    ^update(%5 : Var<int>)void -> {
-                        %6 : int = var.load %5;
-                        %7 : int = constant @"1";
-                        %8 : int = add %6 %7;
+                    (%5 : Var<java.type:"int">)java.type:"void" -> {
+                        %6 : java.type:"int" = var.load %5;
+                        %7 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = add %6 %7;
                         var.store %5 %8;
                         yield;
                     }
-                    ^body(%9 : Var<int>)void -> {
-                        %10 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %11 : int = var.load %9;
-                        invoke %10 %11 @"java.io.PrintStream::println(int)void";
+                    (%9 : Var<java.type:"int">)java.type:"void" -> {
+                        %10 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %11 : java.type:"int" = var.load %9;
+                        invoke %10 %11 @"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 unreachable;
@@ -425,24 +425,24 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test9" (%0 : ForLoopTest)void -> {
+            func @"test9" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
-                    ^init()Var<int> -> {
-                        %1 : int = constant @"0";
-                        %2 : Var<int> = var %1 @"i";
+                    ()Var<java.type:"int"> -> {
+                        %1 : java.type:"int" = constant @"0";
+                        %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
-                    ^cond(%3 : Var<int>)boolean -> {
-                        %4 : boolean = constant @"true";
+                    (%3 : Var<java.type:"int">)java.type:"boolean" -> {
+                        %4 : java.type:"boolean" = constant @"true";
                         yield %4;
                     }
-                    ^update(%5 : Var<int>)void -> {
+                    (%5 : Var<java.type:"int">)java.type:"void" -> {
                         yield;
                     }
-                    ^body(%6 : Var<int>)void -> {
-                        %7 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %8 : int = var.load %6;
-                        invoke %7 %8 @"java.io.PrintStream::println(int)void";
+                    (%6 : Var<java.type:"int">)java.type:"void" -> {
+                        %7 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %8 : java.type:"int" = var.load %6;
+                        invoke %7 %8 @"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 unreachable;
@@ -456,19 +456,19 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test10" (%0 : ForLoopTest)void -> {
+            func @"test10" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
-                    ^init()void -> {
+                    ()java.type:"void" -> {
                         yield;
                     }
-                    ^cond()boolean -> {
-                        %1 : boolean = constant @"true";
+                    ()java.type:"boolean" -> {
+                        %1 : java.type:"boolean" = constant @"true";
                         yield %1;
                     }
-                    ^update()void -> {
+                    ()java.type:"void" -> {
                         yield;
                     }
-                    ^body()void -> {
+                    ()java.type:"void" -> {
                         java.continue;
                     };
                 unreachable;
@@ -481,50 +481,50 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test11" (%0 : ForLoopTest)void -> {
+            func @"test11" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
-                    ^init()Tuple<Var<int>, Var<int>> -> {
-                        %1 : int = constant @"0";
-                        %2 : Var<int> = var %1 @"i";
-                        %3 : int = constant @"0";
-                        %4 : Var<int> = var %3 @"j";
-                        %5 : Tuple<Var<int>, Var<int>> = tuple %2 %4;
+                    ()Tuple<Var<java.type:"int">, Var<java.type:"int">> -> {
+                        %1 : java.type:"int" = constant @"0";
+                        %2 : Var<java.type:"int"> = var %1 @"i";
+                        %3 : java.type:"int" = constant @"0";
+                        %4 : Var<java.type:"int"> = var %3 @"j";
+                        %5 : Tuple<Var<java.type:"int">, Var<java.type:"int">> = tuple %2 %4;
                         yield %5;
                     }
-                    ^cond(%6 : Var<int>, %7 : Var<int>)boolean -> {
-                        %8 : boolean = java.cand
-                            ()boolean -> {
-                                %9 : int = var.load %6;
-                                %10 : int = constant @"10";
-                                %11 : boolean = lt %9 %10;
+                    (%6 : Var<java.type:"int">, %7 : Var<java.type:"int">)java.type:"boolean" -> {
+                        %8 : java.type:"boolean" = java.cand
+                            ()java.type:"boolean" -> {
+                                %9 : java.type:"int" = var.load %6;
+                                %10 : java.type:"int" = constant @"10";
+                                %11 : java.type:"boolean" = lt %9 %10;
                                 yield %11;
                             }
-                            ()boolean -> {
-                                %12 : int = var.load %7;
-                                %13 : int = constant @"20";
-                                %14 : boolean = lt %12 %13;
+                            ()java.type:"boolean" -> {
+                                %12 : java.type:"int" = var.load %7;
+                                %13 : java.type:"int" = constant @"20";
+                                %14 : java.type:"boolean" = lt %12 %13;
                                 yield %14;
                             };
                         yield %8;
                     }
-                    ^update(%15 : Var<int>, %16 : Var<int>)void -> {
-                        %17 : int = var.load %15;
-                        %18 : int = constant @"1";
-                        %19 : int = add %17 %18;
+                    (%15 : Var<java.type:"int">, %16 : Var<java.type:"int">)java.type:"void" -> {
+                        %17 : java.type:"int" = var.load %15;
+                        %18 : java.type:"int" = constant @"1";
+                        %19 : java.type:"int" = add %17 %18;
                         var.store %15 %19;
-                        %20 : int = var.load %16;
-                        %21 : int = constant @"2";
-                        %22 : int = add %20 %21;
+                        %20 : java.type:"int" = var.load %16;
+                        %21 : java.type:"int" = constant @"2";
+                        %22 : java.type:"int" = add %20 %21;
                         var.store %16 %22;
                         yield;
                     }
-                    ^body(%23 : Var<int>, %24 : Var<int>)void -> {
-                        %25 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %26 : int = var.load %23;
-                        invoke %25 %26 @"java.io.PrintStream::println(int)void";
-                        %27 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                        %28 : int = var.load %24;
-                        invoke %27 %28 @"java.io.PrintStream::println(int)void";
+                    (%23 : Var<java.type:"int">, %24 : Var<java.type:"int">)java.type:"void" -> {
+                        %25 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %26 : java.type:"int" = var.load %23;
+                        invoke %25 %26 @"java.io.PrintStream::println(int):void";
+                        %27 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %28 : java.type:"int" = var.load %24;
+                        invoke %27 %28 @"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;
@@ -539,48 +539,48 @@ public class ForLoopTest {
 
     @CodeReflection
     @IR("""
-            func @"test12" (%0 : ForLoopTest, %1 : int)void -> {
-                %2 : Var<int> = var %1 @"r";
+            func @"test12" (%0 : java.type:"ForLoopTest", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"int"> = var %1 @"r";
                 java.for
-                    ^init()Var<int> -> {
-                        %3 : int = constant @"0";
-                        %4 : Var<int> = var %3 @"i";
+                    ()Var<java.type:"int"> -> {
+                        %3 : java.type:"int" = constant @"0";
+                        %4 : Var<java.type:"int"> = var %3 @"i";
                         yield %4;
                     }
-                    ^cond(%5 : Var<int>)boolean -> {
-                        %6 : int = var.load %5;
-                        %7 : int = constant @"10";
-                        %8 : boolean = lt %6 %7;
+                    (%5 : Var<java.type:"int">)java.type:"boolean" -> {
+                        %6 : java.type:"int" = var.load %5;
+                        %7 : java.type:"int" = constant @"10";
+                        %8 : java.type:"boolean" = lt %6 %7;
                         yield %8;
                     }
-                    ^update(%9 : Var<int>)void -> {
-                        %10 : int = var.load %9;
-                        %11 : int = constant @"1";
-                        %12 : int = add %10 %11;
+                    (%9 : Var<java.type:"int">)java.type:"void" -> {
+                        %10 : java.type:"int" = var.load %9;
+                        %11 : java.type:"int" = constant @"1";
+                        %12 : java.type:"int" = add %10 %11;
                         var.store %9 %12;
                         yield;
                     }
-                    ^body(%13 : Var<int>)void -> {
+                    (%13 : Var<java.type:"int">)java.type:"void" -> {
                         java.if
-                            ()boolean -> {
-                                %14 : int = var.load %2;
-                                %15 : int = constant @"0";
-                                %16 : boolean = eq %14 %15;
+                            ()java.type:"boolean" -> {
+                                %14 : java.type:"int" = var.load %2;
+                                %15 : java.type:"int" = constant @"0";
+                                %16 : java.type:"boolean" = eq %14 %15;
                                 yield %16;
                             }
-                            ^then()void -> {
+                            ()java.type:"void" -> {
                                 java.break;
                             }
-                            ^else_if()boolean -> {
-                                %17 : int = var.load %2;
-                                %18 : int = constant @"1";
-                                %19 : boolean = eq %17 %18;
+                            ()java.type:"boolean" -> {
+                                %17 : java.type:"int" = var.load %2;
+                                %18 : java.type:"int" = constant @"1";
+                                %19 : java.type:"boolean" = eq %17 %18;
                                 yield %19;
                             }
-                            ^then()void -> {
+                            ()java.type:"void" -> {
                                 java.continue;
                             }
-                            ^else()void -> {
+                            ()java.type:"void" -> {
                                 yield;
                             };
                         java.continue;

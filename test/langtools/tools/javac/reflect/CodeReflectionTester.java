@@ -22,6 +22,7 @@
  */
 
 import java.io.StringWriter;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
@@ -45,11 +46,18 @@ public class CodeReflectionTester {
             System.exit(1);
         }
         Class<?> clazz = Class.forName(args[0]);
+        check(clazz);
+    }
+
+    public static void check(Class<?> clazz) throws ReflectiveOperationException {
         for (Method m : clazz.getDeclaredMethods()) {
             check(m);
         }
         for (Field f : clazz.getDeclaredFields()) {
             check(f);
+        }
+        for (Class<?> c : clazz.getDeclaredClasses()) {
+            check(c);
         }
         if (nErrors > 0) {
             throw new AssertionError("Test failed with " + nErrors + " errors");
@@ -61,6 +69,28 @@ public class CodeReflectionTester {
         System.err.println("error: " + String.format(msg, args));
     }
 
+    static void checkModel(Member member, String found, IR ir) {
+        String expected = null;
+        try {
+            expected = canonicalizeModel(member, ir.value());
+        } catch (Throwable ex) {
+            error("Cannot parse IR annotation in %s %s.\nFound:\n%s", memberKind(member), member.getName(), found);
+            return;
+        }
+        if (!found.equals(expected)) {
+            error("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected);
+        }
+    }
+
+    static String memberKind(Member member) {
+        return switch (member) {
+            case Field _ -> "field";
+            case Method _ -> "method";
+            case Constructor<?> _ -> "constructor";
+            default -> throw new UnsupportedOperationException("Cannot get here");
+        };
+    }
+
     static void check(Method method) throws ReflectiveOperationException {
         if (!method.isAnnotationPresent(CodeReflection.class)) return;
         String found = canonicalizeModel(method, Op.ofMethod(method).orElseThrow());
@@ -69,11 +99,7 @@ public class CodeReflectionTester {
             error("No @IR annotation found on reflective method");
             return;
         }
-        String expected = canonicalizeModel(method, ir.value());
-        if (!found.equals(expected)) {
-            error("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected);
-            return;
-        }
+        checkModel(method, found, ir);
     }
 
     static void check(Field field) throws ReflectiveOperationException {
@@ -83,19 +109,12 @@ public class CodeReflectionTester {
             // transitional
             Quoted quoted = (Quoted) field.get(null);
             String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
-            String expected = canonicalizeModel(field, ir.value());
-            if (!found.equals(expected)) {
-                error("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected);
-                return;
-            }
+            checkModel(field, found, ir);
         } else if (Quotable.class.isAssignableFrom(field.getType())) {
             Quotable quotable = (Quotable) field.get(null);
-            String found = canonicalizeModel(field, getModelOfQuotedOp(Op.ofQuotable(quotable).get()));
-            String expected = canonicalizeModel(field, ir.value());
-            if (!found.equals(expected)) {
-                error("Bad IR\nFound:\n%s\n\nExpected:\n%s", found, expected);
-                return;
-            }
+            Quoted quoted = Op.ofQuotable(quotable).get();
+            String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
+            checkModel(field, found, ir);
         } else {
             error("Field annotated with @IR should be of a quotable type (Quoted/Quotable)");
             return;

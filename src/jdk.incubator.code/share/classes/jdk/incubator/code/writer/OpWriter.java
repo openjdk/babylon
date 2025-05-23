@@ -32,6 +32,7 @@ import java.io.Writer;
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
@@ -557,7 +558,7 @@ public final class OpWriter {
     }
 
     void writeType(TypeElement te) {
-        write(te.externalize().toString());
+        write(JavaTypeUtils.flatten(te.externalize()).toString());
     }
 
     void write(String s) {

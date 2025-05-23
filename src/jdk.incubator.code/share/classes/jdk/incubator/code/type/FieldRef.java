@@ -30,12 +30,14 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
 
 /**
  * The symbolic reference to a Java field.
  */
 public sealed interface FieldRef extends JavaRef
         permits FieldRefImpl {
+
     TypeElement refType();
 
     String name();
@@ -63,6 +65,6 @@ public sealed interface FieldRef extends JavaRef
     }
 
     static FieldRef ofString(String s) {
-        return jdk.incubator.code.parser.impl.DescParser.parseFieldRef(s);
+        return (FieldRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
     }
 }

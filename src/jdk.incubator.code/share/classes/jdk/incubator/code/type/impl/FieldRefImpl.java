@@ -29,13 +29,11 @@ import jdk.incubator.code.type.FieldRef;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
-import java.util.List;
 
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.TypeElement;
 
 public final class FieldRefImpl implements FieldRef {
-    static final String NAME = "&f";
 
     final TypeElement refType;
     final String name;
@@ -117,13 +115,12 @@ public final class FieldRefImpl implements FieldRef {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME,
-                List.of(refType.externalize(), ExternalizedTypeElement.ofString(name), type.externalize()));
+        return JavaTypeUtils.fieldRef(name, refType.externalize(), type.externalize());
     }
 
     @Override
     public String toString() {
-        return refType.externalize() + "::" + name + "()" + type.externalize();
+        return JavaTypeUtils.toExternalRefString(externalize());
     }
 
     @Override

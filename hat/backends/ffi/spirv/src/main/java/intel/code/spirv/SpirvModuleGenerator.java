@@ -379,7 +379,7 @@ public class SpirvModuleGenerator {
                     }
                     case SpirvOp.CallOp call -> {
                         MethodRef methodRef = call.callDescriptor();
-                        if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long)int")))
+                        if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long):int")))
                         {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
@@ -403,8 +403,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::array(long)int")) ||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::array(long)float")))
+                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::array(long):int")) ||
+                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::array(long):float")))
                         {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
@@ -428,7 +428,7 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long, int)void"))) {
+                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long, int):void"))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -452,7 +452,7 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpStore(dest, value, align(elementType.getName())));
                         }
                         else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::array(long, int)void")) ||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::array(long, float)void"))) {
+                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::array(long, float):void"))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -475,9 +475,9 @@ public class SpirvModuleGenerator {
                             SPIRVId value = getResult(call.operands().get(valueIndex)).value();
                             spirvBlock.add(new SPIRVOpStore(dest, value, align(elementType.getName())));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::length()int")) ||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::width()int"))||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::width()int"))) {
+                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::length():int")) ||
+                                 methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::width():int"))||
+                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::width():int"))) {
                             SPIRVId intType = getType("int");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -491,8 +491,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(intType, result, resultAddr, align(arrayType.getName())));
                             addResult(call.result(), new SpirvResult(intType, resultAddr, result));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::height()int")) ||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::height()int"))) {
+                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::height():int")) ||
+                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::height():int"))) {
                             SPIRVId intType = getType("int");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -506,7 +506,7 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(intType, result, resultAddr, align(arrayType.getName())));
                             addResult(call.result(), new SpirvResult(intType, resultAddr, result));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("java.lang.Math::sqrt(double)double"))) {
+                        else if (methodRef.equals(MethodRef.ofString("java.lang.Math::sqrt(double):double"))) {
                             SPIRVId floatType = getType("float");
                             SPIRVId result = nextId();
                             SPIRVId operand = getResult(call.operands().get(0)).value();

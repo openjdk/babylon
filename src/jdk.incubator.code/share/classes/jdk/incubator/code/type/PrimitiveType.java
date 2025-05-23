@@ -25,10 +25,11 @@
 
 package jdk.incubator.code.type;
 
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Type;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -50,12 +51,12 @@ public final class PrimitiveType implements JavaType {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(type.displayName(), List.of());
+        return JavaTypeUtils.primitiveType(type.displayName());
     }
 
     @Override
     public String toString() {
-        return type.displayName();
+        return JavaTypeUtils.toExternalTypeString(externalize());
     }
 
     @Override
