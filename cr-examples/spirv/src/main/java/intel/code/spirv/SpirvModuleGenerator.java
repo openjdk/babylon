@@ -275,8 +275,8 @@ public class SpirvModuleGenerator {
                         addResult(op.result(), new SpirvResult(lhsType, null, ans));
                     }
                     case SpirvOps.CallOp call -> {
-                        if (call.callDescriptor().equals(MethodRef.ofString("spirvdemo.IntArray::get(long)int")) ||
-                            call.callDescriptor().equals(MethodRef.ofString("spirvdemo.FloatArray::get(long)float"))) {
+                        if (call.callDescriptor().equals(MethodRef.ofString("spirvdemo.IntArray::get(long):int")) ||
+                            call.callDescriptor().equals(MethodRef.ofString("spirvdemo.FloatArray::get(long):float"))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -293,8 +293,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (call.callDescriptor().equals(MethodRef.ofString("spirvdemo.IntArray::set(long, int)void")) ||
-                                call.callDescriptor().equals(MethodRef.ofString("spirvdemo.FloatArray::set(long, float)void"))) {
+                        else if (call.callDescriptor().equals(MethodRef.ofString("spirvdemo.IntArray::set(long, int):void")) ||
+                                call.callDescriptor().equals(MethodRef.ofString("spirvdemo.FloatArray::set(long, float):void"))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
