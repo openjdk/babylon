@@ -4493,12 +4493,15 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         assert funcOp.body().blocks().size() == 1;
         Block fopBlock = funcOp.body().entryBlock();
-        assert fopBlock.ops().size() == 2 + funcOp.parameters().size();
-        assert fopBlock.ops().subList(0, funcOp.parameters().size()).stream().allMatch(o -> o instanceof VarOp);
-        assert fopBlock.ops().get(funcOp.parameters().size()) instanceof QuotedOp;
-        assert fopBlock.ops().getLast() instanceof ReturnOp;
 
+        assert fopBlock.ops().size() == 2 + funcOp.parameters().size();
+
+        assert fopBlock.ops().subList(0, funcOp.parameters().size()).stream().allMatch(o -> o instanceof VarOp);
+
+        assert fopBlock.ops().get(funcOp.parameters().size()) instanceof QuotedOp;
         QuotedOp qop = (QuotedOp) fopBlock.ops().get(funcOp.parameters().size());
+
+        assert fopBlock.ops().getLast() instanceof ReturnOp returnOp && returnOp.returnValue().equals(qop.result());
 
         Op op = qop.quotedOp();
 
