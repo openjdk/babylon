@@ -40,6 +40,9 @@ public class TestQuoteOp {
         Object[] args = {1, "s", this};
         Quoted q = CoreOp.quotedOp(funcOp, args);
 
+        // q.op() must have the same structure as lop
+        // for the moment, we don't have utility to check that
+
         Iterator<Object> argsIterator = Arrays.stream(args).iterator();
         for (Map.Entry<Value, Object> e : q.capturedValues().entrySet()) {
             Assert.assertSame(e.getValue(), argsIterator.next());

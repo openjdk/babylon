@@ -4513,6 +4513,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         LinkedHashMap<Value, Object> m = new LinkedHashMap<>();
         Iterator<Object> argsIterator = Arrays.stream(args).iterator();
         for (Value v : op.capturedValues()) {
+            // @@@ The interpreter map captured value to instance of VarBox, should we do the same ?
             m.put(v, argsIterator.next());
         }
 
