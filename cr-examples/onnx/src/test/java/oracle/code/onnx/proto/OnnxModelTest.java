@@ -37,10 +37,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
@@ -50,11 +47,9 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.TupleType;
 import jdk.incubator.code.writer.OpWriter;
 import oracle.code.onnx.CNNTest;
-import oracle.code.onnx.OnnxProtoBuilder;
 import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
@@ -444,21 +439,10 @@ public class OnnxModelTest {
         for (var fName : args) {
             try (var in = new RandomAccessFile(fName, "r")) {
                 OnnxModel.ModelProto model = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
-//                System.out.println(model.toText());
+                System.out.println(model.toText());
                 var liftedModel = toFuncOp(model.graph());
-//                System.out.println(liftedModel.toText());
-
-                // print initializers
-//                for (OnnxModel.TensorProto i : model.graph().initializer()) {
-//                    System.out.println(i.name() + " " + i.externalData().stream().collect(Collectors.toMap(ssep -> ssep.key(), ssep -> ssep.value())));
-//                }
-
-                byte[] protoModel = OnnxProtoBuilder.buildModel(null, CoreOp.module(liftedModel.op()), List.of());
-//                System.out.println(OnnxModel.readFrom(protoModel).toText());
-                try (Arena arena = Arena.ofConfined()) {
-                    OnnxRuntime.getInstance().createSession(arena, protoModel);
-                }
-            }
+                System.out.println(liftedModel.toText());
+           }
         }
     }
 }
