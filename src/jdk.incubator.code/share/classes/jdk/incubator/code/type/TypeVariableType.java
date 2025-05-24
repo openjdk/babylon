@@ -99,20 +99,13 @@ public final class TypeVariableType implements JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        ExternalizedTypeElement eOwner = switch (owner) {
-            // @@@ Should be able to use single case matching TypeElement
-            case JavaRef ref -> ref.externalize();
-            case ClassType classType -> classType.externalize();
-        };
-        return new ExternalizedTypeElement("#" + name,
-                List.of(eOwner, bound.externalize()));
-    }
-
-    @Override
     public String toString() {
-        // @@@ required to pass TestJavaType.java
-        return name;
+        String ownerString = (owner instanceof ClassType) ?
+                owner.toString() :
+                String.format("(%s)", owner);
+        return (bound.equals(JavaType.J_L_OBJECT)) ?
+                String.format("%s::<%s>", ownerString, name) :
+                String.format("%s::<%s extends %s>", ownerString, name, bound);
     }
 
     @Override

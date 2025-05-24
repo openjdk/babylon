@@ -84,32 +84,24 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        List<ExternalizedTypeElement> args = typeArguments.stream()
-                .map(TypeElement::externalize)
-                .toList();
-
-        ExternalizedTypeElement td = new ExternalizedTypeElement(toClassName(), args);
-        if (enclosing != null) {
-            td = new ExternalizedTypeElement(".", List.of(enclosing.externalize(), td));
-        }
-        return td;
-    }
-
-    @Override
     public String toString() {
         String prefix = enclosing != null ?
-                enclosing + "$":
+                enclosing + "::":
                 (!type.packageName().isEmpty() ?
                         type.packageName() + "." : "");
         String name = enclosing == null ?
                 type.displayName() :
-                type.displayName().substring(enclosing.type.displayName().length() + 1);
+                escape(type.displayName().substring(enclosing.type.displayName().length() + 1));
         String typeArgs = hasTypeArguments() ?
                 typeArguments().stream().map(JavaType::toString)
                         .collect(Collectors.joining(", ", "<", ">")) :
                 "";
         return String.format("%s%s%s", prefix, name, typeArgs);
+    }
+
+    static String escape(String s) {
+        return (!s.isEmpty() && Character.isDigit(s.charAt(0))) ?
+                "\"" + s + "\"" : s;
     }
 
     @Override
@@ -161,7 +153,9 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
      * type arguments}
      */
     public ClassType rawType() {
-        return new ClassType(type);
+        return enclosing == null ?
+                new ClassType(type) :
+                new ClassType(enclosing.rawType(), type);
     }
 
     /**

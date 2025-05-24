@@ -2,8 +2,11 @@ package jdk.incubator.code.type;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.parser.impl.DescParser;
+
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -27,12 +30,13 @@ public final class TupleType implements TypeElement {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, componentTypes.stream().map(TypeElement::externalize).toList());
+        return DescParser.parseExTypeElem(toString());
     }
 
     @Override
     public String toString() {
-        return externalize().toString();
+        return NAME + "<" +
+                componentTypes.stream().map(Object::toString).collect(Collectors.joining(",")) + ">";
     }
 
     @Override

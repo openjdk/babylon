@@ -35,21 +35,21 @@ public class AssertTest {
 
     @CodeReflection
     @IR("""
-              func @"assertTest" (%0 : int)void -> {
-                  %1 : Var<int> = var %0 @"i";
-                  assert
-                      ()boolean -> {
-                          %2 : int = var.load %1;
-                          %3 : int = constant @"1";
-                          %4 : boolean = eq %2 %3;
-                          yield %4;
-                      }
-                      ()java.lang.String -> {
-                          %5 : java.lang.String = constant @"i does not equal 1";
-                          yield %5;
-                      };
-                  return;
-              };
+            func @"assertTest" (%0 : int)void -> {
+                %1 : Var<int> = var %0 @"i";
+                assert
+                    ()boolean -> {
+                        %2 : int = var.load %1;
+                        %3 : int = constant @"1";
+                        %4 : boolean = eq %2 %3;
+                        yield %4;
+                    }
+                    ()java.lang.String -> {
+                        %5 : java.lang.String = constant @"i does not equal 1";
+                        yield %5;
+                    };
+                return;
+            };
             """)
     public static void assertTest(int i) {
         assert (i == 1) : "i does not equal 1";
@@ -58,15 +58,15 @@ public class AssertTest {
     @CodeReflection
     @IR("""
             func @"assertTest2" (%0 : int)void -> {
-                  %1 : Var<int> = var %0 @"i";
-                  assert ()boolean -> {
-                      %2 : int = var.load %1;
-                      %3 : int = constant @"1";
-                      %4 : boolean = eq %2 %3;
-                      yield %4;
-                  };
-                  return;
-              };
+                %1 : Var<int> = var %0 @"i";
+                assert ()boolean -> {
+                    %2 : int = var.load %1;
+                    %3 : int = constant @"1";
+                    %4 : boolean = eq %2 %3;
+                    yield %4;
+                };
+                return;
+            };
             """)
     public static void assertTest2(int i) {
         assert (i == 1);

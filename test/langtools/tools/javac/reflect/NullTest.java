@@ -67,15 +67,15 @@ public class NullTest {
             func @"test3" (%0 : NullTest, %1 : boolean)java.lang.String -> {
                 %2 : Var<boolean> = var %1 @"cond";
                 %3 : java.lang.String = java.cexpression
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %4 : boolean = var.load %2;
                         yield %4;
                     }
-                    ^truepart()java.lang.String -> {
+                    ()java.lang.String -> {
                         %5 : java.lang.String = constant @null;
                         yield %5;
                     }
-                    ^falsepart()java.lang.String -> {
+                    ()java.lang.String -> {
                         %6 : java.lang.String = constant @"";
                         yield %6;
                     };
@@ -91,15 +91,15 @@ public class NullTest {
             func @"test4" (%0 : NullTest, %1 : boolean)java.lang.String -> {
                 %2 : Var<boolean> = var %1 @"cond";
                 %3 : java.lang.String = java.cexpression
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %4 : boolean = var.load %2;
                         yield %4;
                     }
-                    ^truepart()java.lang.String -> {
+                    ()java.lang.String -> {
                         %5 : java.lang.String = constant @"";
                         yield %5;
                     }
-                    ^falsepart()java.lang.String -> {
+                    ()java.lang.String -> {
                         %6 : java.lang.String = constant @null;
                         yield %6;
                     };
@@ -115,15 +115,15 @@ public class NullTest {
             func @"test5" (%0 : NullTest, %1 : boolean)java.lang.String -> {
                 %2 : Var<boolean> = var %1 @"cond";
                 %3 : java.lang.String = java.cexpression
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %4 : boolean = var.load %2;
                         yield %4;
                     }
-                    ^truepart()java.lang.String -> {
+                    ()java.lang.String -> {
                         %5 : java.lang.String = constant @null;
                         yield %5;
                     }
-                    ^falsepart()java.lang.String -> {
+                    ()java.lang.String -> {
                         %6 : java.lang.String = constant @null;
                         yield %6;
                     };
@@ -139,15 +139,15 @@ public class NullTest {
             func @"test6" (%0 : NullTest, %1 : boolean)java.lang.String -> {
                 %2 : Var<boolean> = var %1 @"cond";
                 %3 : java.lang.Object = java.cexpression
-                    ^cond()boolean -> {
+                    ()boolean -> {
                         %4 : boolean = var.load %2;
                         yield %4;
                     }
-                    ^truepart()java.lang.Object -> {
+                    ()java.lang.Object -> {
                         %5 : java.lang.Object = constant @null;
                         yield %5;
                     }
-                    ^falsepart()java.lang.Object -> {
+                    ()java.lang.Object -> {
                         %6 : java.lang.Object = constant @null;
                         yield %6;
                     };
@@ -165,7 +165,7 @@ public class NullTest {
                 %2 : Var<int> = var %1 @"cond";
                 %3 : int = var.load %2;
                 %4 : java.lang.String = java.switch.expression %3
-                    ^constantCaseLabel(%5 : int)boolean -> {
+                    (%5 : int)boolean -> {
                         %6 : int = constant @"1";
                         %7 : boolean = eq %5 %6;
                         yield %7;
@@ -174,13 +174,13 @@ public class NullTest {
                         %8 : java.lang.String = constant @"";
                         yield %8;
                     }
-                    ^defaultCaseLabel()boolean -> {
+                    ()boolean -> {
                         %9 : boolean = constant @"true";
                         yield %9;
                     }
                     ()java.lang.String -> {
-                        %9 : java.lang.String = constant @null;
-                        yield %9;
+                        %10 : java.lang.String = constant @null;
+                        yield %10;
                     };
                 return %4;
             };
@@ -198,7 +198,7 @@ public class NullTest {
                 %2 : Var<int> = var %1 @"cond";
                 %3 : int = var.load %2;
                 %4 : java.lang.String = java.switch.expression %3
-                    ^constantCaseLabel(%5 : int)boolean -> {
+                    (%5 : int)boolean -> {
                         %6 : int = constant @"1";
                         %7 : boolean = eq %5 %6;
                         yield %7;
@@ -207,13 +207,13 @@ public class NullTest {
                         %8 : java.lang.String = constant @null;
                         yield %8;
                     }
-                    ^defaultCaseLabel()boolean -> {
+                    ()boolean -> {
                         %9 : boolean = constant @"true";
                         yield %9;
                     }
                     ()java.lang.String -> {
-                        %9 : java.lang.String = constant @"";
-                        yield %9;
+                        %10 : java.lang.String = constant @"";
+                        yield %10;
                     };
                 return %4;
             };
@@ -231,7 +231,7 @@ public class NullTest {
                 %2 : Var<int> = var %1 @"cond";
                 %3 : int = var.load %2;
                 %4 : java.lang.String = java.switch.expression %3
-                    ^constantCaseLabel(%5 : int)boolean -> {
+                    (%5 : int)boolean -> {
                         %6 : int = constant @"1";
                         %7 : boolean = eq %5 %6;
                         yield %7;
@@ -240,13 +240,13 @@ public class NullTest {
                         %8 : java.lang.String = constant @null;
                         yield %8;
                     }
-                    ^defaultCaseLabel()boolean -> {
+                    ()boolean -> {
                         %9 : boolean = constant @"true";
                         yield %9;
                     }
                     ()java.lang.String -> {
-                        %9 : java.lang.String = constant @null;
-                        yield %9;
+                        %10 : java.lang.String = constant @null;
+                        yield %10;
                     };
                 return %4;
             };
@@ -264,7 +264,7 @@ public class NullTest {
                 %2 : Var<int> = var %1 @"cond";
                 %3 : int = var.load %2;
                 %4 : java.lang.Object = java.switch.expression %3
-                    ^constantCaseLabel(%5 : int)boolean -> {
+                    (%5 : int)boolean -> {
                         %6 : int = constant @"1";
                         %7 : boolean = eq %5 %6;
                         yield %7;
@@ -273,16 +273,16 @@ public class NullTest {
                         %8 : java.lang.Object = constant @null;
                         yield %8;
                     }
-                    ^defaultCaseLabel()boolean -> {
+                    ()boolean -> {
                         %9 : boolean = constant @"true";
                         yield %9;
                     }
                     ()java.lang.Object -> {
-                        %9 : java.lang.Object = constant @null;
-                        yield %9;
+                        %10 : java.lang.Object = constant @null;
+                        yield %10;
                     };
-                %10 : java.lang.String = cast %4 @"java.lang.String";
-                return %10;
+                %11 : java.lang.String = cast %4 @"java.lang.String";
+                return %11;
             };
             """)
     String test10(int cond) {
@@ -298,7 +298,7 @@ public class NullTest {
                 %2 : Var<int> = var %1 @"cond";
                 %3 : int = var.load %2;
                 %4 : java.lang.String = java.switch.expression %3
-                    ^constantCaseLabel(%5 : int)boolean -> {
+                    (%5 : int)boolean -> {
                         %6 : int = constant @"1";
                         %7 : boolean = eq %5 %6;
                         yield %7;
@@ -307,13 +307,13 @@ public class NullTest {
                         %8 : java.lang.String = constant @"";
                         java.yield %8;
                     }
-                    ^defaultCaseLabel()boolean -> {
+                    ()boolean -> {
                         %9 : boolean = constant @"true";
                         yield %9;
                     }
                     ()java.lang.String -> {
-                        %9 : java.lang.String = constant @null;
-                        java.yield %9;
+                        %10 : java.lang.String = constant @null;
+                        java.yield %10;
                     };
                 return %4;
             };
@@ -331,7 +331,7 @@ public class NullTest {
                 %2 : Var<int> = var %1 @"cond";
                 %3 : int = var.load %2;
                 %4 : java.lang.String = java.switch.expression %3
-                    ^constantCaseLabel(%5 : int)boolean -> {
+                    (%5 : int)boolean -> {
                         %6 : int = constant @"1";
                         %7 : boolean = eq %5 %6;
                         yield %7;
@@ -340,13 +340,13 @@ public class NullTest {
                         %8 : java.lang.String = constant @null;
                         java.yield %8;
                     }
-                    ^defaultCaseLabel()boolean -> {
+                    ()boolean -> {
                         %9 : boolean = constant @"true";
                         yield %9;
                     }
                     ()java.lang.String -> {
-                        %9 : java.lang.String = constant @"";
-                        java.yield %9;
+                        %10 : java.lang.String = constant @"";
+                        java.yield %10;
                     };
                 return %4;
             };
@@ -364,7 +364,7 @@ public class NullTest {
                 %2 : Var<int> = var %1 @"cond";
                 %3 : int = var.load %2;
                 %4 : java.lang.String = java.switch.expression %3
-                    ^constantCaseLabel(%5 : int)boolean -> {
+                    (%5 : int)boolean -> {
                         %6 : int = constant @"1";
                         %7 : boolean = eq %5 %6;
                         yield %7;
@@ -373,13 +373,13 @@ public class NullTest {
                         %8 : java.lang.String = constant @null;
                         java.yield %8;
                     }
-                    ^defaultCaseLabel()boolean -> {
+                    ()boolean -> {
                         %9 : boolean = constant @"true";
                         yield %9;
                     }
                     ()java.lang.String -> {
-                        %9 : java.lang.String = constant @null;
-                        java.yield %9;
+                        %10 : java.lang.String = constant @null;
+                        java.yield %10;
                     };
                 return %4;
             };
@@ -397,7 +397,7 @@ public class NullTest {
                 %2 : Var<int> = var %1 @"cond";
                 %3 : int = var.load %2;
                 %4 : java.lang.Object = java.switch.expression %3
-                    ^constantCaseLabel(%5 : int)boolean -> {
+                    (%5 : int)boolean -> {
                         %6 : int = constant @"1";
                         %7 : boolean = eq %5 %6;
                         yield %7;
@@ -406,16 +406,16 @@ public class NullTest {
                         %8 : java.lang.Object = constant @null;
                         java.yield %8;
                     }
-                    ^defaultCaseLabel()boolean -> {
+                    ()boolean -> {
                         %9 : boolean = constant @"true";
                         yield %9;
                     }
                     ()java.lang.Object -> {
-                        %9 : java.lang.Object = constant @null;
-                        java.yield %9;
+                        %10 : java.lang.Object = constant @null;
+                        java.yield %10;
                     };
-                %10 : java.lang.String = cast %4 @"java.lang.String";
-                return %10;
+                %11 : java.lang.String = cast %4 @"java.lang.String";
+                return %11;
             };
             """)
     String test14(int cond) {
@@ -445,7 +445,7 @@ public class NullTest {
     @IR("""
             func @"test16" (%0 : NullTest)void -> {
                 %1 : java.lang.String = constant @null;
-                invoke %1 @invoke.kind="STATIC" @invoke.varargs="true" @"NullTest::m(java.lang.String, java.lang.String[])void";
+                invoke %1 @"NullTest::m(java.lang.String, [java.lang.String]):void" @invoke.kind="STATIC" @invoke.varargs="true";
                 return;
             };
             """)
@@ -457,8 +457,8 @@ public class NullTest {
     @IR("""
             func @"test17" (%0 : NullTest)void -> {
                 %1 : java.lang.String = constant @null;
-                %2 : java.lang.String[] = constant @null;
-                invoke %1 %2 @invoke.kind="STATIC" @invoke.varargs="false" @"NullTest::m(java.lang.String, java.lang.String[])void";
+                %2 : [java.lang.String] = constant @null;
+                invoke %1 %2 @"NullTest::m(java.lang.String, [java.lang.String]):void";
                 return;
             };
             """)
@@ -472,7 +472,7 @@ public class NullTest {
                 %1 : java.lang.String = constant @null;
                 %2 : java.lang.String = constant @null;
                 %3 : java.lang.String = constant @null;
-                invoke %1 %2 %3 @invoke.kind="STATIC" @invoke.varargs="true" @"NullTest::m(java.lang.String, java.lang.String[])void";
+                invoke %1 %2 %3 @"NullTest::m(java.lang.String, [java.lang.String]):void" @invoke.kind="STATIC" @invoke.varargs="true";
                 return;
             };
             """)
@@ -488,7 +488,7 @@ public class NullTest {
     @IR("""
             func @"test19" (%0 : NullTest)void -> {
                 %1 : java.lang.String = constant @null;
-                %2 : NullTest$Box = new %1 @new.varargs="true" @"NullTest$Box::<new>(java.lang.String, java.lang.String[])";
+                %2 : NullTest$Box = new %1 @"NullTest$Box::(java.lang.String, [java.lang.String])" @new.varargs="true";
                 return;
             };
             """)
@@ -500,8 +500,8 @@ public class NullTest {
     @IR("""
             func @"test20" (%0 : NullTest)void -> {
                 %1 : java.lang.String = constant @null;
-                %2 : java.lang.String[] = constant @null;
-                %3 : NullTest$Box = new %1 %2 @"NullTest$Box::<new>(java.lang.String, java.lang.String[])";
+                %2 : [java.lang.String] = constant @null;
+                %3 : NullTest$Box = new %1 %2 @"NullTest$Box::(java.lang.String, [java.lang.String])";
                 return;
             };
             """)
@@ -515,7 +515,7 @@ public class NullTest {
                 %1 : java.lang.String = constant @null;
                 %2 : java.lang.String = constant @null;
                 %3 : java.lang.String = constant @null;
-                %4 : NullTest$Box = new %1 %2 %3 @new.varargs="true" @"NullTest$Box::<new>(java.lang.String, java.lang.String[])";
+                %4 : NullTest$Box = new %1 %2 %3 @"NullTest$Box::(java.lang.String, [java.lang.String])" @new.varargs="true";
                 return;
             };
             """)

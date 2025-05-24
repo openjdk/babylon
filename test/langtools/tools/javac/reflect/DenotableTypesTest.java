@@ -38,9 +38,9 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test1" ()void -> {
-                  %0 : java.lang.Number = constant @null;
-                  %1 : java.lang.Number = invoke %0 @"DenotableTypesTest::m1(java.lang.Number)java.lang.Number";
-                  return;
+                %0 : java.lang.Number = constant @null;
+                %1 : java.lang.Number = invoke %0 @"DenotableTypesTest::m1(java.lang.Number):java.lang.Number";
+                return;
             };
             """)
     static void test1() {
@@ -50,12 +50,12 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test2" ()void -> {
-                  %0 : int = constant @"1";
-                  %1 : java.lang.Integer = invoke %0 @"java.lang.Integer::valueOf(int)java.lang.Integer";
-                  %2 : double = constant @"3.0";
-                  %3 : java.lang.Double = invoke %2 @"java.lang.Double::valueOf(double)java.lang.Double";
-                  %4 : java.util.List<+<java.lang.Number>> = invoke %1 %3 @"java.util.List::of(java.lang.Object, java.lang.Object)java.util.List";
-                  return;
+                %0 : int = constant @"1";
+                %1 : java.lang.Integer = invoke %0 @"java.lang.Integer::valueOf(int):java.lang.Integer";
+                %2 : double = constant @"3.0";
+                %3 : java.lang.Double = invoke %2 @"java.lang.Double::valueOf(double):java.lang.Double";
+                %4 : java.util.List<? extends java.lang.Number> = invoke %1 %3 @"java.util.List::of(java.lang.Object, java.lang.Object):java.util.List";
+                return;
             };
             """)
     static void test2() {
@@ -68,7 +68,7 @@ public class DenotableTypesTest {
     @IR("""
             func @"test3" ()void -> {
                 %0 : java.lang.RuntimeException = constant @null;
-                %1 : java.lang.RuntimeException = invoke %0 @"DenotableTypesTest::m2(java.lang.Throwable)java.lang.Throwable";
+                %1 : java.lang.RuntimeException = invoke %0 @"DenotableTypesTest::m2(java.lang.Throwable):java.lang.Throwable";
                 return;
             };
             """)
@@ -86,12 +86,12 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test4" ()void -> {
-                  %0 : java.lang.Object = constant @null;
-                  %1 : DenotableTypesTest$C = cast %0 @"DenotableTypesTest$C";
-                  %2 : java.lang.Object = constant @null;
-                  %3 : DenotableTypesTest$D = cast %2 @"DenotableTypesTest$D";
-                  %4 : DenotableTypesTest$A = invoke %1 %3 @"DenotableTypesTest::pick(java.lang.Object, java.lang.Object)java.lang.Object";
-                  return;
+                %0 : java.lang.Object = constant @null;
+                %1 : DenotableTypesTest$C = cast %0 @"DenotableTypesTest$C";
+                %2 : java.lang.Object = constant @null;
+                %3 : DenotableTypesTest$D = cast %2 @"DenotableTypesTest$D";
+                %4 : DenotableTypesTest$A = invoke %1 %3 @"DenotableTypesTest::pick(java.lang.Object, java.lang.Object):java.lang.Object";
+                return;
             };
             """)
     static void test4() { // @@@ cast?
@@ -101,12 +101,12 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test5" ()void -> {
-                  %0 : java.util.List<+<java.lang.Number>> = constant @null;
-                  %1 : Var<java.util.List<+<java.lang.Number>>> = var %0 @"l";
-                  %2 : java.util.List<+<java.lang.Number>> = var.load %1;
-                  %3 : int = constant @"0";
-                  %4 : java.lang.Number = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
-                  return;
+                %0 : java.util.List<? extends java.lang.Number> = constant @null;
+                %1 : Var<java.util.List<? extends java.lang.Number>> = var %0 @"l";
+                %2 : java.util.List<? extends java.lang.Number> = var.load %1;
+                %3 : int = constant @"0";
+                %4 : java.lang.Number = invoke %2 %3 @"java.util.List::get(int):java.lang.Object";
+                return;
             };
             """)
     static void test5() { // @@@ cast?
@@ -117,12 +117,12 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test6" ()void -> {
-                  %0 : java.util.List<-<java.lang.Number>> = constant @null;
-                  %1 : Var<java.util.List<-<java.lang.Number>>> = var %0 @"l";
-                  %2 : java.util.List<-<java.lang.Number>> = var.load %1;
-                  %3 : int = constant @"0";
-                  %4 : java.lang.Object = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
-                  return;
+                %0 : java.util.List<? super java.lang.Number> = constant @null;
+                %1 : Var<java.util.List<? super java.lang.Number>> = var %0 @"l";
+                %2 : java.util.List<? super java.lang.Number> = var.load %1;
+                %3 : int = constant @"0";
+                %4 : java.lang.Object = invoke %2 %3 @"java.util.List::get(int):java.lang.Object";
+                return;
             };
             """)
     static void test6() {
@@ -135,12 +135,12 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test7" ()void -> {
-                  %0 : #X<&m<DenotableTypesTest, test7, func<void>>, java.lang.Object> = constant @null;
-                  %1 : Var<#X<&m<DenotableTypesTest, test7, func<void>>, java.lang.Object>> = var %0 @"x";
-                  %2 : #X<&m<DenotableTypesTest, test7, func<void>>, java.lang.Object> = var.load %1;
-                  %3 : java.lang.Runnable = cast %2 @"java.lang.Runnable";
-                  invoke %3 @"DenotableTypesTest::consume(java.lang.Runnable)void";
-                  return;
+                %0 : (DenotableTypesTest::test7(void):void)::<X> = constant @null;
+                %1 : Var<(DenotableTypesTest::test7(void):void)::<X>> = var %0 @"x";
+                %2 : (DenotableTypesTest::test7(void):void)::<X> = var.load %1;
+                %3 : java.lang.Runnable = cast %2 @"java.lang.Runnable";
+                invoke %3 @"DenotableTypesTest::consume(java.lang.Runnable):void";
+                return;
             };
             """)
     static <X extends Object & Runnable> void test7() {
@@ -154,16 +154,16 @@ public class DenotableTypesTest {
 
     @CodeReflection
     @IR("""
-            func @"test8" (%0 : java.util.List<+<DenotableTypesTest$Adder<java.lang.Integer>>>)void -> {
-                  %1 : Var<java.util.List<+<DenotableTypesTest$Adder<java.lang.Integer>>>> = var %0 @"list";
-                  %2 : java.util.List<+<DenotableTypesTest$Adder<java.lang.Integer>>> = var.load %1;
-                  %3 : int = constant @"0";
-                  %4 : DenotableTypesTest$Adder<java.lang.Integer> = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
-                  %5 : java.util.List<+<DenotableTypesTest$Adder<java.lang.Integer>>> = var.load %1;
-                  %6 : int = constant @"1";
-                  %7 : DenotableTypesTest$Adder<java.lang.Integer> = invoke %5 %6 @"java.util.List::get(int)java.lang.Object";
-                  invoke %4 %7 @"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder)void";
-                  return;
+            func @"test8" (%0 : java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>)void -> {
+                %1 : Var<java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>> = var %0 @"list";
+                %2 : java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>> = var.load %1;
+                %3 : int = constant @"0";
+                %4 : DenotableTypesTest$Adder<java.lang.Integer> = invoke %2 %3 @"java.util.List::get(int):java.lang.Object";
+                %5 : java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>> = var.load %1;
+                %6 : int = constant @"1";
+                %7 : DenotableTypesTest$Adder<java.lang.Integer> = invoke %5 %6 @"java.util.List::get(int):java.lang.Object";
+                invoke %4 %7 @"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder):void";
+                return;
             };
             """)
     static void test8(List<? extends Adder<Integer>> list) {
@@ -176,14 +176,14 @@ public class DenotableTypesTest {
 
     @CodeReflection
     @IR("""
-            func @"test9" (%0 : java.util.List<+<DenotableTypesTest$Box<java.lang.Integer>>>)void -> {
-                  %1 : Var<java.util.List<+<DenotableTypesTest$Box<java.lang.Integer>>>> = var %0 @"list";
-                  %2 : java.util.List<+<DenotableTypesTest$Box<java.lang.Integer>>> = var.load %1;
-                  %3 : int = constant @"0";
-                  %4 : DenotableTypesTest$Box<java.lang.Integer> = invoke %2 %3 @"java.util.List::get(int)java.lang.Object";
-                  %5 : java.lang.Integer = field.load %4 @"DenotableTypesTest$Box::x()java.lang.Object";
-                  %6 : Var<java.lang.Integer> = var %5 @"i";
-                  return;
+            func @"test9" (%0 : java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>)void -> {
+                %1 : Var<java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>> = var %0 @"list";
+                %2 : java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>> = var.load %1;
+                %3 : int = constant @"0";
+                %4 : DenotableTypesTest$Box<java.lang.Integer> = invoke %2 %3 @"java.util.List::get(int):java.lang.Object";
+                %5 : java.lang.Integer = field.load %4 @"DenotableTypesTest$Box::x:java.lang.Object";
+                %6 : Var<java.lang.Integer> = var %5 @"i";
+                return;
             };
             """)
     static void test9(List<? extends Box<Integer>> list) {
@@ -207,19 +207,19 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test10" ()void -> {
-                  java.try
-                      ()void -> {
-                          invoke @"DenotableTypesTest::g()void";
-                          yield;
-                      }
-                      (%0 : java.lang.Exception)void -> {
-                          %1 : Var<java.lang.Exception> = var %0 @"x";
-                          %2 : java.lang.Exception = var.load %1;
-                          %3 : DenotableTypesTest$E = cast %2 @"DenotableTypesTest$E";
-                          invoke %3 @"DenotableTypesTest$E::m()void";
-                          yield;
-                      };
-                  return;
+                java.try
+                    ()void -> {
+                        invoke @"DenotableTypesTest::g(void):void";
+                        yield;
+                    }
+                    (%0 : java.lang.Exception)void -> {
+                        %1 : Var<java.lang.Exception> = var %0 @"x";
+                        %2 : java.lang.Exception = var.load %1;
+                        %3 : DenotableTypesTest$E = cast %2 @"DenotableTypesTest$E";
+                        invoke %3 @"DenotableTypesTest$E::m(void):void";
+                        yield;
+                    };
+                return;
             };
             """)
     static void test10() {

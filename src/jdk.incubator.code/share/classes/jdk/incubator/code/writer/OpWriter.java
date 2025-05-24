@@ -557,7 +557,7 @@ public final class OpWriter {
     }
 
     void writeType(TypeElement te) {
-        write(te.externalize().toString());
+        write(te.toString());
     }
 
     void write(String s) {

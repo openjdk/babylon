@@ -26,6 +26,7 @@
 package jdk.incubator.code.type;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.parser.impl.DescParser;
 import jdk.incubator.code.type.impl.ConstructorRefImpl;
 
 import java.lang.invoke.MethodHandle;
@@ -88,6 +89,7 @@ public sealed interface ConstructorRef extends JavaRef, TypeVariableType.Owner
     }
 
     static ConstructorRef ofString(String s) {
-        return jdk.incubator.code.parser.impl.DescParser.parseConstructorRef(s);
+        JavaTypeFactory javaTypeFactory = (JavaTypeFactory)CoreTypeFactory.JAVA_TYPE_FACTORY;
+        return (ConstructorRef) javaTypeFactory.constructRef(DescParser.parseExTypeElem(s));
     }
 }

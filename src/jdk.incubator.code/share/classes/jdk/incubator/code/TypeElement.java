@@ -42,20 +42,11 @@ public non-sealed interface TypeElement extends CodeItem {
 
         static String toString(ExternalizedTypeElement t) {
             if (t.arguments.isEmpty()) {
-                return t.identifier;
-            }
-
-            // Unpack array-like identifier [+
-            int dimensions = 0;
-            if (t.arguments.size() == 1) {
-                dimensions = dimensions(t.identifier);
-                if (dimensions > 0) {
-                    t = t.arguments.getFirst();
-                }
+                return escape(t.identifier);
             }
 
             StringBuilder s = new StringBuilder();
-            s.append(t.identifier);
+            s.append(escape(t.identifier));
             if (!t.arguments.isEmpty()) {
                 String args = t.arguments.stream()
                         .map(Object::toString)
@@ -63,25 +54,12 @@ public non-sealed interface TypeElement extends CodeItem {
                 s.append(args);
             }
 
-            // Write out array-like syntax at end []+
-            if (dimensions > 0) {
-                s.append("[]".repeat(dimensions));
-            }
-
             return s.toString();
         }
 
-        static int dimensions(String identifier) {
-            if (!identifier.isEmpty() && identifier.charAt(0) == '[') {
-                for (int i = 1; i < identifier.length(); i++) {
-                    if (identifier.charAt(i) != '[') {
-                        return 0;
-                    }
-                }
-                return identifier.length();
-            } else {
-                return 0;
-            }
+        static String escape(String s) {
+            return (!s.isEmpty() && Character.isDigit(s.charAt(0))) ?
+                    "\"" + s + "\"" : s;
         }
 
         // Factories
