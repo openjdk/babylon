@@ -35,6 +35,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * The top-level operation class for the set of enclosed core operations.
@@ -4434,5 +4435,118 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static ConcatOp concat(Value lhs, Value rhs) {
         return new ConcatOp(lhs, rhs);
+    }
+
+    public static FuncOp quoteOp(Op op) {
+
+        return func("q", FunctionType.functionType(JavaType.type(Quoted.class))).body(block -> {
+
+            List<Value> capturedValues = op.capturedValues();
+
+            for (Value v : Stream.concat(capturedValues.stream(), op.operands().stream()).toList()) {
+                TypeElement t;
+                if (v instanceof Op.Result opr && opr.op() instanceof VarOp varOp) {
+                    t = varOp.varValueType();
+                } else {
+                    t = v.type();
+                }
+                Block.Parameter p = block.parameter(t);
+                Op.Result nv = block.op(var(p));
+                block.context().mapValue(v, nv);
+            }
+
+            Body.Builder qbody = Body.Builder.of(block.parentBody(), FunctionType.VOID, CopyContext.create(block.context()));
+            Block.Builder qblock = qbody.entryBlock();
+
+            if (op.ancestorBody() != null) {
+                // needed for reachability check (of captured values) to succeed
+                qblock.context().mapBlock(op.ancestorBody().entryBlock(), qblock);
+            }
+
+            // if op has operands, they will be represented by VarOp results initialized with block params
+            // we may need to do var.load for some of the operands
+            Map<Value, Value> m2 = new HashMap<>();
+            for (Value operand : op.operands()) {
+                if (!(operand instanceof Op.Result r && r.op() instanceof VarOp)) {
+                    Value capVar = qblock.context().getValue(operand);
+                    Op.Result capVal = qblock.op(varLoad(capVar));
+                    m2.put(operand, capVar);
+                    qblock.context().mapValue(operand, capVal);
+                }
+            }
+
+            //@@@ op transformer only runs on operations inside bodies of op
+            Op.Result opr = qblock.op(op, (b, o) -> {
+                // a modified copy transformer, that insert var.load before use of captured values (if needed)
+                Map<Value, Value> m = new HashMap<>();
+                for (Value operand : o.operands()) {
+                    if (capturedValues.contains(operand) && !(operand instanceof Op.Result r && r.op() instanceof VarOp)) {
+                        Value capVar = b.context().getValue(operand);
+                        Op.Result capVal = b.op(varLoad(capVar));
+                        m.put(operand, capVar);
+                        b.context().mapValue(operand, capVal);
+                    }
+                }
+
+                b.op(o);
+
+                for (Value k : m.keySet()) {
+                    b.context().mapValue(k, m.get(k));
+                }
+
+                return b;
+            });
+
+            // restore the mapping for op's operands
+            for (Map.Entry<Value, Value> e : m2.entrySet()) {
+                qblock.context().mapValue(e.getKey(), e.getValue());
+            }
+
+            qblock.op(_yield(opr));
+
+            Op.Result qopr = block.op(quoted(qbody));
+
+            block.op(_return(qopr));
+        });
+    }
+
+    public static Quoted quotedOp(FuncOp funcOp, Object[] args) {
+
+        assert funcOp.body().blocks().size() == 1;
+        Block fopBlock = funcOp.body().entryBlock();
+
+        assert fopBlock.ops().size() == 2 + funcOp.parameters().size();
+
+        assert fopBlock.ops().subList(0, funcOp.parameters().size()).stream().allMatch(o -> o instanceof VarOp);
+
+        assert fopBlock.ops().get(funcOp.parameters().size()) instanceof QuotedOp;
+        QuotedOp qop = (QuotedOp) fopBlock.ops().get(funcOp.parameters().size());
+
+        assert fopBlock.ops().getLast() instanceof ReturnOp returnOp && returnOp.returnValue().equals(qop.result());
+
+        Op op = qop.quotedOp();
+
+        List<Op> fopBlockVarOps = fopBlock.ops().subList(0, funcOp.parameters().size());
+
+        assert fopBlockVarOps.size() == op.capturedValues().size() + op.operands().size();
+
+        assert op.capturedValues().equals(fopBlockVarOps.subList(0, op.capturedValues().size())
+                .stream().map(Op::result).toList());
+
+        assert fopBlockVarOps.stream().map(o -> ((VarOp) o).initOperand()).toList().equals(funcOp.parameters());
+
+        assert funcOp.parameters().size() == args.length;
+        LinkedHashMap<Value, Object> m = new LinkedHashMap<>();
+        Iterator<Object> argsIterator = Arrays.stream(args).iterator();
+        for (Value v : op.capturedValues()) {
+            // @@@ The interpreter map captured value to instance of VarBox, should we do the same ?
+            m.put(v, argsIterator.next());
+        }
+        LinkedHashMap<Value, Object> m2 = new LinkedHashMap<>();
+        for (Value operand : op.operands()) {
+            m2.put(operand, argsIterator.next());
+        }
+
+        return new Quoted(op, m, m2);
     }
 }
