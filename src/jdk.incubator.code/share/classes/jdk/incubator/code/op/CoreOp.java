@@ -35,6 +35,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * The top-level operation class for the set of enclosed core operations.
@@ -4441,7 +4442,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         return func("q", FunctionType.functionType(JavaType.type(Quoted.class))).body(block -> {
 
             List<Value> capturedValues = op.capturedValues();
-            for (Value v : capturedValues) {
+
+            for (Value v : Stream.concat(capturedValues.stream(), op.operands().stream()).toList()) {
                 TypeElement t;
                 if (v instanceof Op.Result opr && opr.op() instanceof VarOp varOp) {
                     t = varOp.varValueType();
@@ -4460,6 +4462,20 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                 // needed for reachability check (of captured values) to succeed
                 qblock.context().mapBlock(op.ancestorBody().entryBlock(), qblock);
             }
+
+            // if op has operands, they will be represented by VarOp results initialized with block params
+            // we may need to do var.load for some of the operands
+            Map<Value, Value> m2 = new HashMap<>();
+            for (Value operand : op.operands()) {
+                if (!(operand instanceof Op.Result r && r.op() instanceof VarOp)) {
+                    Value capVar = qblock.context().getValue(operand);
+                    Op.Result capVal = qblock.op(varLoad(capVar));
+                    m2.put(operand, capVar);
+                    qblock.context().mapValue(operand, capVal);
+                }
+            }
+
+            //@@@ op transformer only runs on operations inside bodies of op
             Op.Result opr = qblock.op(op, (b, o) -> {
                 // a modified copy transformer, that insert var.load before use of captured values (if needed)
                 Map<Value, Value> m = new HashMap<>();
@@ -4480,6 +4496,11 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
                 return b;
             });
+
+            // restore the mapping for op's operands
+            for (Map.Entry<Value, Value> e : m2.entrySet()) {
+                qblock.context().mapValue(e.getKey(), e.getValue());
+            }
 
             qblock.op(_yield(opr));
 
@@ -4506,7 +4527,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         Op op = qop.quotedOp();
 
         List<Op> fopBlockVarOps = fopBlock.ops().subList(0, funcOp.parameters().size());
-        assert op.capturedValues().equals(fopBlockVarOps.stream().map(Op::result).toList());
+
+        assert fopBlockVarOps.size() == op.capturedValues().size() + op.operands().size();
+
+        assert op.capturedValues().equals(fopBlockVarOps.subList(0, op.capturedValues().size())
+                .stream().map(Op::result).toList());
+
         assert fopBlockVarOps.stream().map(o -> ((VarOp) o).initOperand()).toList().equals(funcOp.parameters());
 
         assert funcOp.parameters().size() == args.length;
@@ -4516,7 +4542,11 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             // @@@ The interpreter map captured value to instance of VarBox, should we do the same ?
             m.put(v, argsIterator.next());
         }
+        LinkedHashMap<Value, Object> m2 = new LinkedHashMap<>();
+        for (Value operand : op.operands()) {
+            m2.put(operand, argsIterator.next());
+        }
 
-        return new Quoted(op, m);
+        return new Quoted(op, m, m2);
     }
 }

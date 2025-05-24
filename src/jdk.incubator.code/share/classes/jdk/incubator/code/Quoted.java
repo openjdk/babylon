@@ -39,6 +39,7 @@ public final class Quoted {
     private final SequencedMap<Value, Object> capturedValues;
 
     static final SequencedMap<Value, Object> EMPTY_SEQUENCED_MAP = new LinkedHashMap<>();
+    private SequencedMap<Value, Object> operands;
 
     /**
      * Constructs the quoted form of a given operation.
@@ -70,6 +71,13 @@ public final class Quoted {
         this.capturedValues = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(capturedValues));
     }
 
+    public Quoted(Op op, SequencedMap<Value, Object> capturedValues, SequencedMap<Value, Object> operands) {
+        this(op, capturedValues);
+
+        assert op.operands().equals(new ArrayList<>(operands.keySet()));
+        this.operands = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(operands));
+    }
+
     /**
      * Returns the operation.
      *
@@ -92,5 +100,9 @@ public final class Quoted {
      */
     public SequencedMap<Value, Object> capturedValues() {
         return capturedValues;
+    }
+
+    public SequencedMap<Value, Object> operands() {
+        return operands;
     }
 }
