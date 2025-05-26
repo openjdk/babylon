@@ -25,7 +25,6 @@
 
 package jdk.incubator.code.type;
 
-import jdk.incubator.code.type.impl.JavaTypeUtils;
 import jdk.incubator.code.type.impl.RecordTypeRefImpl;
 import jdk.incubator.code.TypeElement;
 import java.util.List;

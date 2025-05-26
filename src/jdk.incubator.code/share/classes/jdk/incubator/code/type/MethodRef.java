@@ -28,7 +28,6 @@ package jdk.incubator.code.type;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
 import jdk.incubator.code.type.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;

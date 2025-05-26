@@ -30,7 +30,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
 
 /**
  * The symbolic reference to a Java field.
