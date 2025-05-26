@@ -71,8 +71,9 @@ public class Main {
         }
 
         ScaleTable scaleTable = ScaleTable.createFrom(accelerator,new ScaleTable.Constraints(cascade,rgbImage.width(),rgbImage.height()));
-
-        for (int i = 0; i < 10; i++) {
+        long accum=0L;
+        int count = 2;
+        for (int i = 0; i < count; i++) {
             resultTable.atomicResultTableCount(0);
             long start = System.currentTimeMillis();
 
@@ -81,8 +82,11 @@ public class Main {
                 System.out.print(resultTable.atomicResultTableCount() + "faces found in");
                 System.out.println((System.currentTimeMillis() - start)+"ms");
             }else{
-                if (viewer != null) {
-                    viewer.showResults(resultTable, null, null, (System.currentTimeMillis() - start));
+                if (i>0){
+                  accum += (System.currentTimeMillis() - start);
+                   if (viewer != null) {
+                      viewer.showResults(resultTable, null, null, accum/(count-1));
+                   }
                 }
             }
         }
