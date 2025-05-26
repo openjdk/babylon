@@ -171,7 +171,7 @@ public final class BytecodeGenerator {
                     // return (FuncOp) OpParser.fromOpString(opText)
                     clb.withMethod("op$lambda$" + i, opMethodDesc,
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
-                                .loadConstant(quote(lop).toText())
+                                .loadConstant(CoreOp.quoteOp(lop).toText())
                                 .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
                                         "fromStringOfFuncOp",
                                         MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
@@ -1284,45 +1284,5 @@ public final class BytecodeGenerator {
                 singlePredecessorsValues.put(bargs.get(i), singlePredecessorsValues.getOrDefault(value, value));
             }
         }
-    }
-
-    static FuncOp quote(LambdaOp lop) {
-        List<Value> captures = lop.capturedValues();
-
-        // Build the function type
-        List<TypeElement> params = captures.stream()
-                .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
-                .toList();
-        FunctionType ft = FunctionType.functionType(QuotedOp.QUOTED_TYPE, params);
-
-        // Build the function that quotes the lambda
-        return CoreOp.func("q", ft).body(b -> {
-            // Create variables as needed and obtain the captured values
-            // for the copied lambda
-            List<Value> outputCaptures = new ArrayList<>();
-            for (int i = 0; i < captures.size(); i++) {
-                Value c = captures.get(i);
-                Block.Parameter p = b.parameters().get(i);
-                if (c.type() instanceof VarType _) {
-                    Value var = b.op(CoreOp.var(String.valueOf(i), p));
-                    outputCaptures.add(var);
-                } else {
-                    outputCaptures.add(p);
-                }
-            }
-
-            // Quoted the lambda expression
-            Value q = b.op(CoreOp.quoted(b.parentBody(), qb -> {
-                // Map the entry block of the lambda's ancestor body to the quoted block
-                // We are copying lop in the context of the quoted block, the block mapping
-                // ensures the use of captured values are reachable when building
-                qb.context().mapBlock(lop.ancestorBody().entryBlock(), qb);
-                // Map the lambda's captured values
-                qb.context().mapValues(captures, outputCaptures);
-                // Return the lambda to be copied in the quoted operation
-                return lop;
-            }));
-            b.op(CoreOp._return(q));
-        });
     }
 }
