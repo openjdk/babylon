@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.type;
 
+import jdk.incubator.code.type.impl.JavaTypeUtils;
 import jdk.incubator.code.type.impl.RecordTypeRefImpl;
 import jdk.incubator.code.TypeElement;
 import java.util.List;
@@ -66,6 +67,6 @@ public sealed interface RecordTypeRef extends JavaRef
     }
 
     static RecordTypeRef ofString(String s) {
-        return jdk.incubator.code.parser.impl.DescParser.parseRecordTypeRef(s);
+        return (RecordTypeRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
     }
 }

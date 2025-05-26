@@ -2,6 +2,8 @@ package jdk.incubator.code.type;
 
 import jdk.incubator.code.TypeElement;
 
+import java.util.List;
+
 /**
  * A symbolic reference to a Java class member or a Java type including members,
  * commonly containing symbolic names together with {@link JavaType symbolic descriptions}

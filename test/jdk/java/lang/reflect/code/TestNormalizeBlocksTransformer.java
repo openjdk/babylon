@@ -39,20 +39,20 @@ import java.util.stream.Stream;
 
 public class TestNormalizeBlocksTransformer {
     static final String TEST1_INPUT = """
-            func @"f" (%0 : int)int -> {
-                %1 : int = invoke @"C::m()int";
+            func @"f" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = invoke @"C::m():int";
                 branch ^block_1;
 
               ^block_1:
-                %2 : int = invoke %1 @"C::m(int)int";
+                %2 : java.type:"int" = invoke %1 @"C::m(int):int";
                 branch ^block_2(%2);
 
-              ^block_2(%3: int):
-                %4 : int = invoke %2 %3 @"C::m(int, int)int";
+              ^block_2(%3: java.type:"int"):
+                %4 : java.type:"int" = invoke %2 %3 @"C::m(int, int):int";
                 branch ^block_3(%3);
 
-              ^block_3(%5: int):
-                %6 : int = invoke %4 %3 %5 @"C::m(int, int, int)int";
+              ^block_3(%5: java.type:"int"):
+                %6 : java.type:"int" = invoke %4 %3 %5 @"C::m(int, int, int):int";
                 branch ^block_4;
 
               ^block_4:
@@ -60,164 +60,164 @@ public class TestNormalizeBlocksTransformer {
             };
             """;
     static final String TEST1_EXPECTED = """
-            func @"f" (%0 : int)int -> {
-                %1 : int = invoke @"C::m()int";
-                %2 : int = invoke %1 @"C::m(int)int";
-                %3 : int = invoke %2 %2 @"C::m(int, int)int";
-                %4 : int = invoke %3 %2 %2 @"C::m(int, int, int)int";
+            func @"f" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = invoke @"C::m():int";
+                %2 : java.type:"int" = invoke %1 @"C::m(int):int";
+                %3 : java.type:"int" = invoke %2 %2 @"C::m(int, int):int";
+                %4 : java.type:"int" = invoke %3 %2 %2 @"C::m(int, int, int):int";
                 return %4;
             };
             """;
 
     static final String TEST2_INPUT = """
-            func @"f" (%0 : java.lang.Object)void -> {
-                %1 : Var<java.lang.Object> = var %0 @"o";
+            func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
                 exception.region.enter ^block_1 ^block_8 ^block_3;
 
               ^block_1:
-                %3 : int = invoke @"A::try_()int";
+                %3 : java.type:"int" = invoke @"A::try_():int";
                 branch ^block_2;
 
               ^block_2:
                 exception.region.exit ^block_6 ^block_3 ^block_8;
 
-              ^block_3(%4 : java.lang.RuntimeException):
+              ^block_3(%4 : java.type:"java.lang.RuntimeException"):
                 exception.region.enter ^block_4 ^block_8;
 
               ^block_4:
-                %6 : Var<java.lang.RuntimeException> = var %4 @"e";
+                %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
                 branch ^block_5;
 
               ^block_5:
                 exception.region.exit ^block_6 ^block_8;
 
               ^block_6:
-                %7 : int = invoke @"A::finally_()int";
+                %7 : java.type:"int" = invoke @"A::finally_():int";
                 branch ^block_7;
 
               ^block_7:
                 return;
 
-              ^block_8(%8 : java.lang.Throwable):
-                %9 : int = invoke @"A::finally_()int";
+              ^block_8(%8 : java.type:"java.lang.Throwable"):
+                %9 : java.type:"int" = invoke @"A::finally_():int";
                 throw %8;
             };
             """;
     static final String TEST2_EXPECTED = """
-            func @"f" (%0 : java.lang.Object)void -> {
-                %1 : Var<java.lang.Object> = var %0 @"o";
+            func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
                 exception.region.enter ^block_1 ^block_5 ^block_2;
 
               ^block_1:
-                %3 : int = invoke @"A::try_()int";
+                %3 : java.type:"int" = invoke @"A::try_():int";
                 exception.region.exit ^block_4 ^block_2 ^block_5;
 
-              ^block_2(%4 : java.lang.RuntimeException):
+              ^block_2(%4 : java.type:"java.lang.RuntimeException"):
                 exception.region.enter ^block_3 ^block_5;
 
               ^block_3:
-                %6 : Var<java.lang.RuntimeException> = var %4 @"e";
+                %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
                 exception.region.exit ^block_4 ^block_5;
 
               ^block_4:
-                %7 : int = invoke @"A::finally_()int";
+                %7 : java.type:"int" = invoke @"A::finally_():int";
                 return;
 
-              ^block_5(%8 : java.lang.Throwable):
-                %9 : int = invoke @"A::finally_()int";
+              ^block_5(%8 : java.type:"java.lang.Throwable"):
+                %9 : java.type:"int" = invoke @"A::finally_():int";
                 throw %8;
             };""";
 
     static final String TEST3_INPUT = """
-            func @"f" (%0 : int)int -> {
-                %1 : int = constant @"0";
-                %2 : boolean = gt %0 %1;
+            func @"f" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                %3 : int = constant @"1";
+                %3 : java.type:"int" = constant @"1";
                 branch ^block_1_1;
 
               ^block_1_1:
                 branch ^block_3(%3);
 
               ^block_2:
-                %4 : int = constant @"-1";
+                %4 : java.type:"int" = constant @"-1";
                 branch ^block_2_1;
 
               ^block_2_1:
                 branch ^block_3(%4);
 
-              ^block_3(%5 : int):
+              ^block_3(%5 : java.type:"int"):
                 return %5;
             };""";
     static final String TEST3_EXPECTED = """
-            func @"f" (%0 : int)int -> {
-                %1 : int = constant @"0";
-                %2 : boolean = gt %0 %1;
+            func @"f" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                %3 : int = constant @"1";
+                %3 : java.type:"int" = constant @"1";
                 branch ^block_3(%3);
 
               ^block_2:
-                %4 : int = constant @"-1";
+                %4 : java.type:"int" = constant @"-1";
                 branch ^block_3(%4);
 
-              ^block_3(%5 : int):
+              ^block_3(%5 : java.type:"int"):
                 return %5;
             };
             """;
 
     static final String TEST4_INPUT = """
-            func @"f" (%0 : int)int -> {
-                %1 : int = constant @"0";
-                %2 : boolean = gt %0 %1;
+            func @"f" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                %3 : int = constant @"1";
+                %3 : java.type:"int" = constant @"1";
                 branch ^block_1_1;
 
               ^block_1_1:
                 branch ^block_3(%0, %3, %1);
 
               ^block_2:
-                %4 : int = constant @"-1";
+                %4 : java.type:"int" = constant @"-1";
                 branch ^block_2_1;
 
               ^block_2_1:
                 branch ^block_3(%0, %4, %1);
 
-              ^block_3(%unused_1 : int, %5 : int, %unused_2 : int):
+              ^block_3(%unused_1 : java.type:"int", %5 : java.type:"int", %unused_2 : java.type:"int"):
                 return %5;
             };""";
     static final String TEST4_EXPECTED = """
-            func @"f" (%0 : int)int -> {
-                %1 : int = constant @"0";
-                %2 : boolean = gt %0 %1;
+            func @"f" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = constant @"0";
+                %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                %3 : int = constant @"1";
+                %3 : java.type:"int" = constant @"1";
                 branch ^block_3(%3);
 
               ^block_2:
-                %4 : int = constant @"-1";
+                %4 : java.type:"int" = constant @"-1";
                 branch ^block_3(%4);
 
-              ^block_3(%5 : int):
+              ^block_3(%5 : java.type:"int"):
                 return %5;
             };
             """;
 
     static final String TEST5_INPUT = """
-            func @"f" ()void -> {
+            func @"f" ()java.type:"void" -> {
                 exception.region.enter ^block_1 ^block_4;
 
               ^block_1:
-                invoke @"A::m()void";
+                invoke @"A::m():void";
                 branch ^block_2;
 
               ^block_2:
@@ -226,7 +226,7 @@ public class TestNormalizeBlocksTransformer {
               ^block_3:
                 branch ^block_5;
 
-              ^block_4(%1 : java.lang.Throwable):
+              ^block_4(%1 : java.type:"java.lang.Throwable"):
                 branch ^block_5;
 
               ^block_5:
@@ -234,17 +234,17 @@ public class TestNormalizeBlocksTransformer {
             };
             """;
     static final String TEST5_EXPECTED = """
-            func @"f" ()void -> {
+            func @"f" ()java.type:"void" -> {
                 exception.region.enter ^block_1 ^block_3;
 
               ^block_1:
-                invoke @"A::m()void";
+                invoke @"A::m():void";
                 exception.region.exit ^block_2 ^block_3;
 
               ^block_2:
                 branch ^block_4;
 
-              ^block_3(%1 : java.lang.Throwable):
+              ^block_3(%1 : java.type:"java.lang.Throwable"):
                 branch ^block_4;
 
               ^block_4:

@@ -35,20 +35,20 @@ import jdk.incubator.code.CodeReflection;
 public class SynchronizedTest {
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : SynchronizedTest, %1 : int)int -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test1" (%0 : java.type:"SynchronizedTest", %1 : java.type:"int")java.type:"int" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.synchronized
-                    ()SynchronizedTest -> {
+                    ()java.type:"SynchronizedTest" -> {
                         yield %0;
                     }
-                    ()void -> {
-                        %3 : int = var.load %2;
-                        %4 : int = constant @"1";
-                        %5 : int = add %3 %4;
+                    ()java.type:"void" -> {
+                        %3 : java.type:"int" = var.load %2;
+                        %4 : java.type:"int" = constant @"1";
+                        %5 : java.type:"int" = add %3 %4;
                         var.store %2 %5;
                         yield;
                     };
-                %6 : int = var.load %2;
+                %6 : java.type:"int" = var.load %2;
                 return %6;
             };
             """)
@@ -65,21 +65,21 @@ public class SynchronizedTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : SynchronizedTest, %1 : int)int -> {
-                %2 : Var<int> = var %1 @"i";
+            func @"test2" (%0 : java.type:"SynchronizedTest", %1 : java.type:"int")java.type:"int" -> {
+                %2 : Var<java.type:"int"> = var %1 @"i";
                 java.synchronized
-                    ()java.lang.Object -> {
-                        %3 : java.lang.Object = invoke @"SynchronizedTest::m()java.lang.Object";
+                    ()java.type:"java.lang.Object" -> {
+                        %3 : java.type:"java.lang.Object" = invoke @"SynchronizedTest::m():java.lang.Object";
                         yield %3;
                     }
-                    ()void -> {
-                        %4 : int = var.load %2;
-                        %5 : int = constant @"1";
-                        %6 : int = add %4 %5;
+                    ()java.type:"void" -> {
+                        %4 : java.type:"int" = var.load %2;
+                        %5 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = add %4 %5;
                         var.store %2 %6;
                         yield;
                     };
-                %7 : int = var.load %2;
+                %7 : java.type:"int" = var.load %2;
                 return %7;
             };
             """)

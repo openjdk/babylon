@@ -35,7 +35,10 @@ import jdk.incubator.code.parser.impl.Lexer;
 import jdk.incubator.code.parser.impl.Scanner;
 import jdk.incubator.code.parser.impl.Tokens;
 import jdk.incubator.code.type.CoreTypeFactory;
+import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.TypeElementFactory;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -121,8 +124,7 @@ import java.util.Map;
  */
 public final class OpParser {
 
-    static final TypeElement.ExternalizedTypeElement VOID =
-            new TypeElement.ExternalizedTypeElement("void", List.of());
+    static final TypeElement.ExternalizedTypeElement VOID = JavaType.VOID.externalize();
 
     /**
      * Parse a code model from its serialized textual form obtained from an input stream.
@@ -601,7 +603,7 @@ public final class OpParser {
     }
 
     TypeElement.ExternalizedTypeElement parseExTypeElem() {
-        return DescParser.parseExTypeElem(lexer);
+        return JavaTypeUtils.inflate(DescParser.parseExTypeElem(lexer));
     }
 }
 

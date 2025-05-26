@@ -33,6 +33,8 @@ import java.lang.reflect.*;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.type.WildcardType.BoundKind;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -353,6 +355,6 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      * @return a Java type corresponding to the provided string representation
      */
     static JavaType ofString(String s) {
-        return (JavaType) CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(s));
+        return JavaTypeUtils.toJavaType(JavaTypeUtils.parseExternalTypeString(s));
     }
 }

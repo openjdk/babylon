@@ -41,7 +41,6 @@ import java.util.function.Function;
 import static java.util.stream.Collectors.joining;
 
 public final class MethodRefImpl implements MethodRef {
-    static final String NAME = "&m";
 
     final TypeElement refType;
     final String name;
@@ -141,15 +140,14 @@ public final class MethodRefImpl implements MethodRef {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME,
-                List.of(refType.externalize(), new ExternalizedTypeElement(name, List.of()), type.externalize()));
+        return JavaTypeUtils.methodRef(name, refType.externalize(),
+                type.returnType().externalize(),
+                type.parameterTypes().stream().map(TypeElement::externalize).toList());
     }
 
     @Override
     public String toString() {
-        return refType.externalize() + "::" + name +
-            type.parameterTypes().stream().map(t -> t.externalize().toString())
-                    .collect(joining(", ", "(", ")")) + type.returnType().externalize();
+        return JavaTypeUtils.toExternalRefString(externalize());
     }
 
     @Override
