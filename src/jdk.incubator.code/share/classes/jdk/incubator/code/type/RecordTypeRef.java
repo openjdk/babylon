@@ -65,8 +65,4 @@ public sealed interface RecordTypeRef extends JavaRef
     static RecordTypeRef recordType(TypeElement recordType, List<ComponentRef> components) {
         return new RecordTypeRefImpl(recordType, components);
     }
-
-    static RecordTypeRef ofString(String s) {
-        return (RecordTypeRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
-    }
 }

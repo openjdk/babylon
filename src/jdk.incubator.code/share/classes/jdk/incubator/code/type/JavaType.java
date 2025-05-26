@@ -348,13 +348,4 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     static TypeVariableType typeVarRef(String name, TypeVariableType.Owner owner, JavaType bound) {
         return new TypeVariableType(name, owner, bound);
     }
-
-    /**
-     * Constructs a Java type from a string representation.
-     * @param s string representation
-     * @return a Java type corresponding to the provided string representation
-     */
-    static JavaType ofString(String s) {
-        return JavaTypeUtils.toJavaType(JavaTypeUtils.parseExternalTypeString(s));
-    }
 }

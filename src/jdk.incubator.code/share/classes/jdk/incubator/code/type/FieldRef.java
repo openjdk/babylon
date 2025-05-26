@@ -63,8 +63,4 @@ public sealed interface FieldRef extends JavaRef
     static FieldRef field(TypeElement refType, String name, TypeElement type) {
         return new FieldRefImpl(refType, name, type);
     }
-
-    static FieldRef ofString(String s) {
-        return (FieldRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
-    }
 }

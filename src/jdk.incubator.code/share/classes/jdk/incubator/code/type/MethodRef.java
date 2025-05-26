@@ -97,10 +97,6 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
         return method(refType, name, functionType(retType, params));
     }
 
-    static MethodRef ofString(String s) {
-        return (MethodRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
-    }
-
 
     // MethodTypeDesc factories
     // @@@ Where else to place them?
