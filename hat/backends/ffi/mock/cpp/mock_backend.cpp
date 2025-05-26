@@ -129,5 +129,5 @@ public:
 
 extern "C" long getBackend(int mode) {
     long backendHandle = reinterpret_cast<long>(new MockBackend(mode));
-     return backendHandle; 
+     return backendHandle;
 }
