@@ -38,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import jdk.incubator.code.*;
@@ -154,18 +155,28 @@ public final class OnnxRuntime {
     }
 
 
+    private static void expandArg(Object val, Consumer<Tensor> args) {
+        switch (val) {
+            case CoreOp.Var<?> v -> expandArg(v.value(), args);
+            case Tensor t -> args.accept(t);
+            case Record r -> {
+                for (var rc : r.getClass().getRecordComponents()) try {
+                    expandArg(rc.getAccessor().invoke(r), args);
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+            default -> {}
+        }
+    }
+
     public static <T> T execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<T> codeLambda) {
         var q = Op.ofQuotable(codeLambda).orElseThrow();
 
         var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
 
         List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
-                .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
-                .<Tensor>mapMulti((val, args) -> {
-                    if (val instanceof Tensor t) {
-                        args.accept(t);
-                    }
-                })
+                .mapMulti(OnnxRuntime::expandArg)
                 .toList();
         List<Tensor> ret = model.run(arena, arguments);
 
