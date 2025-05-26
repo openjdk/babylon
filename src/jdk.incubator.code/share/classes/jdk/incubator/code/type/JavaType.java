@@ -33,7 +33,6 @@ import java.lang.reflect.*;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.type.WildcardType.BoundKind;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
 
 import java.util.List;
 import java.util.Objects;
