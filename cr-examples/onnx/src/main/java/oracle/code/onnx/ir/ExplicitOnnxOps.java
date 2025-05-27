@@ -166,7 +166,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new GroupQueryAttention(this, cc);
         }
 
-        GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Value> do_rotary, Value kv_num_heads, java.util.Optional<Value> local_window_size, Value num_heads, java.util.Optional<Value> rotary_interleaved, java.util.Optional<Value> scale) {
+        GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
             super(SCHEMA, resultType, Collections.emptySet(), List.of(query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache), List.of(do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale));
         }
 
@@ -231,7 +231,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static GroupQueryAttention GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Value> do_rotary, Value kv_num_heads, java.util.Optional<Value> local_window_size, Value num_heads, java.util.Optional<Value> rotary_interleaved, java.util.Optional<Value> scale) {
+    public static GroupQueryAttention GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
         return new GroupQueryAttention(resultType, query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache, do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale);
     }
 
@@ -364,7 +364,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new MatMulNBits(this, cc);
         }
 
-        MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, Value K, Value N, java.util.Optional<Value> accuracy_level, Value bits, Value block_size) {
+        MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
             super(SCHEMA, resultType, Collections.emptySet(), List.of(a, b, scales, zero_points, g_idx, bias), List.of(K, N, accuracy_level, bits, block_size));
         }
 
@@ -406,7 +406,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static MatMulNBits MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, Value K, Value N, java.util.Optional<Value> accuracy_level, Value bits, Value block_size) {
+    public static MatMulNBits MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
         return new MatMulNBits(resultType, a, b, scales, zero_points, g_idx, bias, K, N, accuracy_level, bits, block_size);
     }
 
@@ -533,8 +533,8 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new SkipSimplifiedLayerNormalization(this, cc);
         }
 
-        SkipSimplifiedLayerNormalization(TypeElement resultType, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Value> epsilon) {
-            super(SCHEMA, resultType, Collections.emptySet(), List.of(input, skip, gamma, bias), List.of(epsilon));
+        SkipSimplifiedLayerNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(input, skip, gamma, bias), List.of(epsilon));
         }
 
         @Override
@@ -565,8 +565,8 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static SkipSimplifiedLayerNormalization SkipSimplifiedLayerNormalization(TypeElement resultType, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Value> epsilon) {
-        return new SkipSimplifiedLayerNormalization(resultType, input, skip, gamma, bias, epsilon);
+    public static SkipSimplifiedLayerNormalization SkipSimplifiedLayerNormalization(TypeElement resultType, Set<SkipSimplifiedLayerNormalization.OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
+        return new SkipSimplifiedLayerNormalization(resultType, optionalOutputs, input, skip, gamma, bias, epsilon);
     }
 
 
