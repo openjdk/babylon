@@ -445,8 +445,12 @@ public final class OnnxTransformer {
 
         List<TypeElement> tupleComponentTypes = new ArrayList<>();
         for (RecordComponent rc : recordClass.getRecordComponents()) {
-            switch (rc.getGenericType()) {
-                case ParameterizedType pt when pt.getRawType().equals(Tensor.class) -> {
+            Type type = rc.getGenericType();
+            if (type instanceof ParameterizedType pt && pt.getRawType().equals(Optional.class)) {
+                type = pt.getActualTypeArguments()[0];
+            }
+            switch (type) {
+                case ParameterizedType pt -> {
                     Type elementType = pt.getActualTypeArguments()[0];
                     switch (elementType) {
                         case Class<?> _ -> {
