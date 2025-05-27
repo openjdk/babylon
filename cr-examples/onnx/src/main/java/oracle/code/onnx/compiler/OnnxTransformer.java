@@ -48,6 +48,7 @@ public final class OnnxTransformer {
     static final JavaType ONNX_OPERATORS_CLASS = JavaType.type(OnnxOperators.class);
     static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
     static final JavaType LIST_CLASS = JavaType.type(List.class);
+    static final JavaType OPTIONAL_CLASS = JavaType.type(Optional.class);
 
     public record ModuleAndInitializers(CoreOp.ModuleOp module, SequencedCollection<FieldRef> initializers) {}
 
@@ -387,6 +388,14 @@ public final class OnnxTransformer {
                     Op.Result result = bb.op(CoreOp.funcCall(fco.funcName(), convertType(l, fco.opType()), bb.context().getValues(fco.operands())));
                     bb.context().mapValue(fco.result(), result);
                 }
+                case CoreOp.FieldAccessOp.FieldLoadOp flo when flo.operands().isEmpty() -> {
+                    Op.Result result = bb.op(CoreOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor())));
+                    bb.context().mapValue(flo.result(), result);
+                }
+                case CoreOp.FieldAccessOp.FieldLoadOp flo -> {
+                    Op.Result result = bb.op(CoreOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor()), bb.context().getValue(flo.operands().getFirst())));
+                    bb.context().mapValue(flo.result(), result);
+                }
                 // Copy remaining operations, which may be removed later transformations
                 default -> bb.op(op);
             }
@@ -522,6 +531,10 @@ public final class OnnxTransformer {
 
     static FunctionType convertType(MethodHandles.Lookup l, FunctionType t) {
         return FunctionType.functionType(convertType(l, t.returnType()), t.parameterTypes().stream().map(pt -> convertType(l, pt)).toList());
+    }
+
+    static FieldRef convertType(MethodHandles.Lookup l, FieldRef t) {
+        return FieldRef.field(convertType(l, t.refType()), t.name(), convertType(l, t.type()));
     }
 
     // @@@ Map of Java tensor types to ONNX tensor types
