@@ -117,11 +117,11 @@ class ExplicitOnnxOperators {
         return (Tensor<T1>)result;
     }
 
-    public record SkipSimplifiedLayerNormalization<T>(Tensor<T> output, java.util.Optional<Tensor<Float>> mean, java.util.Optional<Tensor<Float>> inv_std_var, java.util.Optional<Tensor<Float>> input_skip_bias_sum) { }
+    public record SkipSimplifiedLayerNormalization<T>(Tensor<T> output, Tensor<Float> mean, Tensor<Float> inv_std_var, Tensor<Float> input_skip_bias_sum) { }
     public static <T> SkipSimplifiedLayerNormalization<T> SkipSimplifiedLayerNormalization(Tensor<T> input, Tensor<T> skip, Tensor<T> gamma, java.util.Optional<Tensor<T>> bias, java.util.Optional<Float> epsilon) {
         Object result = OnnxInterpreter.interpret(OnnxOps.SkipSimplifiedLayerNormalization.class, List.of(input, skip, gamma, bias), List.of(epsilon));
         Object[] resultArray = (Object[]) result;
-        return new SkipSimplifiedLayerNormalization<>((Tensor<T>)resultArray[0], (java.util.Optional<Tensor<Float>>)resultArray[1], (java.util.Optional<Tensor<Float>>)resultArray[2], (java.util.Optional<Tensor<Float>>)resultArray[3]);
+        return new SkipSimplifiedLayerNormalization<>((Tensor<T>)resultArray[0], (Tensor<Float>)resultArray[1], (Tensor<Float>)resultArray[2], (Tensor<Float>)resultArray[3]);
     }
 
     // @@@ move to Tensor API
