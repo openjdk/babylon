@@ -86,7 +86,12 @@ public final class OnnxTransformer {
     }
 
     public static ModuleAndInitializers transform(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc) {
-        CoreOp.ModuleOp m = collectModuleFunctions(l, inputFunc);
+        return transform(l, inputFunc, false);
+    }
+
+    // @@@ added forceInline switch to workaround Onnx problem with unused outputs in functions
+    public static ModuleAndInitializers transform(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc, boolean forceInline) {
+        CoreOp.ModuleOp m = collectModuleFunctions(l, inputFunc, forceInline);
         ModuleAndInitializers mi = remapInitializers(l, m);
         return new ModuleAndInitializers(transformModule(l, mi.module()), mi.initializers());
     }
@@ -101,18 +106,18 @@ public final class OnnxTransformer {
         });
     }
 
-    static CoreOp.ModuleOp collectModuleFunctions(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc) {
+    static CoreOp.ModuleOp collectModuleFunctions(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc, boolean forceInline) {
         // traverse inputFunc and collect all functions to construct module
         var funcs = new LinkedHashMap<MethodRef, CoreOp.FuncOp>();
         var doNotInline = new HashSet<CoreOp.FuncOp>();
         doNotInline.add(inputFunc);
         collectModuleFunctions(l, funcs, doNotInline, inputFunc);
-
-        // @@@ temporary disable functions due to Onnx problem with unused outputs in functions
-        doNotInline.clear();
-        doNotInline.add(inputFunc);
-
         funcs.putLast(null, inputFunc);
+
+        if (forceInline) {
+            doNotInline.clear();
+            doNotInline.add(inputFunc);
+        }
 
         return CoreOp.module(funcs.sequencedValues().stream()
                 .filter(f -> doNotInline.contains(f))
