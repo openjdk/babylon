@@ -79,43 +79,25 @@ public class ArithMathOps {
         }
 
         static Object processConstantValue(TypeElement t, Object value) {
-            if (t.equals(JavaType.BOOLEAN)) {
-                if (value instanceof Boolean) {
-                    return value;
-                }
-            } else if (t.equals(JavaType.BYTE)) {
-                if (value instanceof Number n) {
-                    return n.byteValue();
-                }
-            } else if (t.equals(JavaType.SHORT)) {
-                if (value instanceof Number n) {
-                    return n.shortValue();
-                }
-            } else if (t.equals(JavaType.CHAR)) {
-                if (value instanceof Character) {
-                    return value;
-                }
-            } else if (t.equals(JavaType.INT)) {
-                if (value instanceof Number n) {
-                    return n.intValue();
-                }
-            } else if (t.equals(JavaType.LONG)) {
-                if (value instanceof Number n) {
-                    return n.longValue();
-                }
-            } else if (t.equals(JavaType.FLOAT)) {
-                if (value instanceof Number n) {
-                    return n.floatValue();
-                }
-            } else if (t.equals(Float16.FLOAT_16_TYPE)) {
+            if (t.equals(JavaType.BOOLEAN) && value instanceof Boolean) {
+                return value;
+            } else if (t.equals(JavaType.BYTE) && value instanceof Number n) {
+                return n.byteValue();
+            } else if (t.equals(JavaType.SHORT) && value instanceof Number n) {
+                return n.shortValue();
+            } else if (t.equals(JavaType.CHAR) && value instanceof Character) {
+                return value;
+            } else if (t.equals(JavaType.INT) && value instanceof Number n) {
+                return n.intValue();
+            } else if (t.equals(JavaType.LONG) && value instanceof Number n) {
+                return n.longValue();
+            } else if (t.equals(JavaType.FLOAT) && value instanceof Number n) {
+                return n.floatValue();
+            } else if (t.equals(Float16.FLOAT_16_TYPE) && value instanceof Number n) {
                 // represent as a float for now
-                if (value instanceof Number n) {
-                    return n.floatValue();
-                }
-            } else if (t.equals(JavaType.DOUBLE)) {
-                if (value instanceof Number n) {
-                    return n.doubleValue();
-                }
+                return n.floatValue();
+            } else if (t.equals(JavaType.DOUBLE) && value instanceof Number n) {
+                return n.doubleValue();
             } else if (t instanceof TensorType tt) {
                 return processConstantValue(tt.eType(), value);
             }
