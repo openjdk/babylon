@@ -184,6 +184,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         @Override
+        public String toString() {
+            return "%result@" + Integer.toHexString(hashCode());
+        }
+
+        @Override
         public Set<Value> dependsOn() {
             Set<Value> depends = new LinkedHashSet<>(op.operands());
             if (op instanceof Terminating) {
