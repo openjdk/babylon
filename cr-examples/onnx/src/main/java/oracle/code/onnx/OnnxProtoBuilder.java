@@ -88,7 +88,7 @@ public final class OnnxProtoBuilder {
         }
     }
 
-    public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<oracle.code.onnx.Tensor> initializers) {
+    public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<Object> initializers) {
         var indexer = new Indexer(OpWriter.computeGlobalNames(module));
 
         var functions = new ArrayList<>(module.functionTable().sequencedValues());
@@ -171,13 +171,25 @@ public final class OnnxProtoBuilder {
         }
     }
 
-    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<oracle.code.onnx.Tensor> initializers, int scalarArgs) {
+    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<? extends Object> initializers, int scalarArgs) {
         var params = block.parameters();
         params.forEach(indexer::nameOf);
         int firstInitializer = params.size() - initializers.size();
         var args = params.subList(0, firstInitializer);
         return graph(graphName,
-                IntStream.range(0, initializers.size()).mapToObj(i -> tensorProto(indexer.nameOf(params.get(i + firstInitializer)), initializers.get(i))).toList(),
+                IntStream.range(0, initializers.size()).boxed().<TensorProto>mapMulti((i, tps) -> {
+                    Object val = initializers.get(i);
+                    if (val instanceof Record) {
+                        var rcs = val.getClass().getRecordComponents();
+                        for (int rci = 0; rci < rcs.length; rci++) try {
+                            tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer), rci), (Tensor)(rcs[rci].getAccessor().invoke(val))));
+                        } catch (ReflectiveOperationException e) {
+                            throw new IllegalArgumentException(e);
+                        }
+                    } else {
+                        tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer)), (Tensor)val));
+                    }
+                }).toList(),
                 tensorInfos(indexer, args, scalarArgs),
                 nodes(domain, indexer, block.ops()),
                 expandTuples(indexer, block.terminatingOp().operands()));

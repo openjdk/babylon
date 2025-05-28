@@ -86,6 +86,24 @@ public final class OnnxRuntime {
     public interface OnnxFunction<T> extends Supplier<T>, Quotable {
     }
 
+    // @@@ temporary set public for ongoing experiments
+    public static List<Object> getInitValues(MethodHandles.Lookup lookup, SequencedCollection<FieldRef> initializers, SequencedCollection<Object> possibleReceivers) {
+        return initializers.stream().map(i -> {
+            try {
+                Field initializerField = i.resolveToMember(lookup);
+                VarHandle handle = lookup.unreflectVarHandle(initializerField);
+                if (initializerField.accessFlags().contains(AccessFlag.STATIC)) {
+                    return handle.get();
+                } else {
+                    Class<?> initializerClass = initializerField.getDeclaringClass();
+                    return handle.get(possibleReceivers.stream().filter(initializerClass::isInstance).findFirst().orElseThrow());
+                }
+            } catch (ReflectiveOperationException ex) {
+                throw new RuntimeException(ex);
+            }
+        }).toList();
+    }
+
     static class CachedSessionClassValue extends ClassValue<Session> {
 
         private MethodHandles.Lookup l;
@@ -101,23 +119,6 @@ public final class OnnxRuntime {
                 this.l = null;
                 this.q = null;
             }
-        }
-
-        static List<Tensor> getInitValues(MethodHandles.Lookup lookup, SequencedCollection<FieldRef> initializers, SequencedCollection<Object> possibleReceivers) {
-            return initializers.stream().map(i -> {
-                try {
-                    Field initializerField = i.resolveToMember(lookup);
-                    VarHandle handle = lookup.unreflectVarHandle(initializerField);
-                    if (initializerField.accessFlags().contains(AccessFlag.STATIC)) {
-                        return (Tensor)handle.get();
-                    } else {
-                        Class<?> initializerClass = initializerField.getDeclaringClass();
-                        return (Tensor)handle.get(possibleReceivers.stream().filter(initializerClass::isInstance).findFirst().orElseThrow());
-                    }
-                } catch (ReflectiveOperationException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }).toList();
         }
 
         @Override
