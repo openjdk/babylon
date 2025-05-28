@@ -112,7 +112,7 @@ public final class OnnxProtoBuilder {
                 graph(domain, mainFunc.funcName(), indexer, mainBlock, initializers, 0),
                 imports,
                 functions.stream().map(f ->
-                        function(domain, f.funcName(),
+                        function(domain, imports, f.funcName(),
                                  f.parameters().stream().map(indexer::nameOf).toList(),
                                  expandTuples(indexer, f.body().entryBlock().terminatingOp().operands()),
                                  nodes(domain, indexer, f.body().entryBlock().ops()))).toList());
@@ -290,7 +290,7 @@ public final class OnnxProtoBuilder {
                 .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName)));
     }
 
-    static FunctionProto function(String functionDomain, String functionName, List<String> inputNames, List<String> outputNames, List<NodeProto> ops) {
+    static FunctionProto function(String functionDomain, List<String> imports, String functionName, List<String> inputNames, List<String> outputNames, List<NodeProto> ops) {
         int di = functionName.lastIndexOf('.');
         return new FunctionProto()
                 .domain(functionDomain)
@@ -298,7 +298,8 @@ public final class OnnxProtoBuilder {
                 .forEach(inputNames, (f, i) -> f.input(i))
                 .forEach(ops, (g, op) -> g.node(op))
                 .forEach(outputNames, (f, o) -> f.output(o))
-                .opsetImport(new OperatorSetIdProto().version(OPSET_VERSION));
+                .opsetImport(new OperatorSetIdProto().version(OPSET_VERSION))
+                .forEach(imports, (f, d) -> f.opsetImport(new OperatorSetIdProto().domain(d).version(1)));
     }
 
     static NodeProto node(String domain, String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
