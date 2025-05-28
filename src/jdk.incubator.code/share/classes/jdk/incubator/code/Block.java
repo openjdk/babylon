@@ -55,6 +55,11 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         @Override
+        public String toString() {
+            return "%param@" + Integer.toHexString(hashCode());
+        }
+
+        @Override
         public Set<Value> dependsOn() {
             return Set.of();
         }
@@ -176,6 +181,11 @@ public final class Block implements CodeElement<Block, Op> {
         this.predecessors = new LinkedHashSet<>();
     }
 
+
+    @Override
+    public String toString() {
+        return "^block_" + index + "@" + Integer.toHexString(hashCode());
+    }
 
     /**
      * Returns this block's parent body.

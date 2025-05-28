@@ -71,6 +71,11 @@ public final class Body implements CodeElement<Body, Block> {
         this.blocks = new ArrayList<>();
     }
 
+    @Override
+    public String toString() {
+        return "body@" + Integer.toHexString(hashCode());
+    }
+
     /**
      * Returns this body's parent operation.
      *
