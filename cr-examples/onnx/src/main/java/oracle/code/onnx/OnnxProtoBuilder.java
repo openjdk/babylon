@@ -113,7 +113,7 @@ public final class OnnxProtoBuilder {
                 imports,
                 functions.stream().map(f ->
                         function(domain, imports, f.funcName(),
-                                 f.parameters().stream().map(indexer::nameOf).toList(),
+                                 expandTuples(indexer, f.parameters()),
                                  expandTuples(indexer, f.body().entryBlock().terminatingOp().operands()),
                                  nodes(domain, indexer, f.body().entryBlock().ops()))).toList());
 
@@ -150,13 +150,13 @@ public final class OnnxProtoBuilder {
                 .getBytes();
     }
 
-    static List<String> expandTuples(Indexer indexer, List<Value> values) {
+    static List<String> expandTuples(Indexer indexer, List<? extends Value> values) {
         var names = new ArrayList<String>();
         expandTuples(indexer, names, values);
         return names;
     }
 
-    static void expandTuples(Indexer indexer, List<String> names, List<Value> values) {
+    static void expandTuples(Indexer indexer, List<String> names, List<? extends Value> values) {
         for (var v : values) {
             if (v instanceof Op.Result or && or.op() instanceof CoreOp.TupleOp op) {
                 expandTuples(indexer, names, op.operands());
@@ -237,7 +237,7 @@ public final class OnnxProtoBuilder {
                     opNodes.accept(node(
                             domain,
                             fco.funcName(),
-                            fco.operands().stream().map(indexer::nameOf).toList(),
+                            expandTuples(indexer, fco.operands()),
                             expandTuples(indexer, List.of(fco.result())),
                             java.util.Map.of()));
                 case CoreOp.ReturnOp _, CoreOp.ConstantOp _ -> { // skip
