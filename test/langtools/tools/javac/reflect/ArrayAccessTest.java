@@ -38,7 +38,7 @@ public class ArrayAccessTest {
             func @"test1" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"int" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
-                %4 : java.type:"int" = constant @"0";
+                %4 : java.type:"int" = constant @0;
                 %5 : java.type:"int" = array.load %3 %4;
                 return %5;
             };
@@ -54,7 +54,7 @@ public class ArrayAccessTest {
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[]" = var.load %3;
                 %6 : java.type:"int" = var.load %4;
-                %7 : java.type:"int" = constant @"1";
+                %7 : java.type:"int" = constant @1;
                 %8 : java.type:"int" = add %6 %7;
                 %9 : java.type:"int" = array.load %5 %8;
                 return %9;
@@ -69,8 +69,8 @@ public class ArrayAccessTest {
             func @"test3" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
-                %4 : java.type:"int" = constant @"0";
-                %5 : java.type:"int" = constant @"1";
+                %4 : java.type:"int" = constant @0;
+                %5 : java.type:"int" = constant @1;
                 array.store %3 %4 %5;
                 return;
             };
@@ -86,9 +86,9 @@ public class ArrayAccessTest {
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[]" = var.load %3;
                 %6 : java.type:"int" = var.load %4;
-                %7 : java.type:"int" = constant @"1";
+                %7 : java.type:"int" = constant @1;
                 %8 : java.type:"int" = add %6 %7;
-                %9 : java.type:"int" = constant @"1";
+                %9 : java.type:"int" = constant @1;
                 array.store %5 %8 %9;
                 return;
             };
@@ -104,11 +104,11 @@ public class ArrayAccessTest {
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[][]" = var.load %3;
                 %6 : java.type:"int" = var.load %4;
-                %7 : java.type:"int" = constant @"1";
+                %7 : java.type:"int" = constant @1;
                 %8 : java.type:"int" = add %6 %7;
                 %9 : java.type:"int[]" = array.load %5 %8;
                 %10 : java.type:"int" = var.load %4;
-                %11 : java.type:"int" = constant @"2";
+                %11 : java.type:"int" = constant @2;
                 %12 : java.type:"int" = add %10 %11;
                 %13 : java.type:"int" = array.load %9 %12;
                 return %13;
@@ -125,13 +125,13 @@ public class ArrayAccessTest {
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[][]" = var.load %3;
                 %6 : java.type:"int" = var.load %4;
-                %7 : java.type:"int" = constant @"1";
+                %7 : java.type:"int" = constant @1;
                 %8 : java.type:"int" = add %6 %7;
                 %9 : java.type:"int[]" = array.load %5 %8;
                 %10 : java.type:"int" = var.load %4;
-                %11 : java.type:"int" = constant @"2";
+                %11 : java.type:"int" = constant @2;
                 %12 : java.type:"int" = add %10 %11;
-                %13 : java.type:"int" = constant @"1";
+                %13 : java.type:"int" = constant @1;
                 array.store %9 %12 %13;
                 return;
             };
@@ -146,7 +146,7 @@ public class ArrayAccessTest {
     @IR("""
             func @"test7" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
                 %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
-                %2 : java.type:"int" = constant @"0";
+                %2 : java.type:"int" = constant @0;
                 %3 : java.type:"int" = array.load %1 %2;
                 return %3;
             };
@@ -159,7 +159,7 @@ public class ArrayAccessTest {
     @IR("""
             func @"test8" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
                 %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
-                %2 : java.type:"int" = constant @"0";
+                %2 : java.type:"int" = constant @0;
                 %3 : java.type:"int" = array.load %1 %2;
                 return %3;
             };
@@ -177,7 +177,7 @@ public class ArrayAccessTest {
             func @"test9" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"int" -> {
                 %2 : Var<java.type:"ArrayAccessTest$A[]"> = var %1 @"aa";
                 %3 : java.type:"ArrayAccessTest$A[]" = var.load %2;
-                %4 : java.type:"int" = constant @"0";
+                %4 : java.type:"int" = constant @0;
                 %5 : java.type:"ArrayAccessTest$A" = array.load %3 %4;
                 %6 : java.type:"int" = field.load %5 @java.ref:"ArrayAccessTest$A::i:int";
                 return %6;
@@ -192,9 +192,9 @@ public class ArrayAccessTest {
             func @"test10" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"void" -> {
                 %2 : Var<java.type:"ArrayAccessTest$A[]"> = var %1 @"aa";
                 %3 : java.type:"ArrayAccessTest$A[]" = var.load %2;
-                %4 : java.type:"int" = constant @"0";
+                %4 : java.type:"int" = constant @0;
                 %5 : java.type:"ArrayAccessTest$A" = array.load %3 %4;
-                %6 : java.type:"int" = constant @"1";
+                %6 : java.type:"int" = constant @1;
                 field.store %5 %6 @java.ref:"ArrayAccessTest$A::i:int";
                 return;
             };
@@ -208,9 +208,9 @@ public class ArrayAccessTest {
             func @"test11" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
-                %4 : java.type:"int" = constant @"0";
+                %4 : java.type:"int" = constant @0;
                 %5 : java.type:"int" = array.load %3 %4;
-                %6 : java.type:"int" = constant @"1";
+                %6 : java.type:"int" = constant @1;
                 %7 : java.type:"int" = add %5 %6;
                 array.store %3 %4 %7;
                 return;
@@ -226,13 +226,13 @@ public class ArrayAccessTest {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[]" = var.load %3;
-                %6 : java.type:"int" = constant @"1";
+                %6 : java.type:"int" = constant @1;
                 %7 : java.type:"int[]" = var.load %3;
                 %8 : java.type:"int" = var.load %4;
-                %9 : java.type:"int" = constant @"2";
+                %9 : java.type:"int" = constant @2;
                 %10 : java.type:"int" = add %8 %9;
                 %11 : java.type:"int" = array.load %7 %10;
-                %12 : java.type:"int" = constant @"1";
+                %12 : java.type:"int" = constant @1;
                 %13 : java.type:"int" = add %11 %12;
                 array.store %7 %10 %13;
                 array.store %5 %6 %13;
@@ -249,14 +249,14 @@ public class ArrayAccessTest {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[]" = var.load %3;
-                %6 : java.type:"int" = constant @"1";
+                %6 : java.type:"int" = constant @1;
                 %7 : java.type:"int" = array.load %5 %6;
                 %8 : java.type:"int[]" = var.load %3;
                 %9 : java.type:"int" = var.load %4;
-                %10 : java.type:"int" = constant @"2";
+                %10 : java.type:"int" = constant @2;
                 %11 : java.type:"int" = add %9 %10;
                 %12 : java.type:"int" = array.load %8 %11;
-                %13 : java.type:"int" = constant @"1";
+                %13 : java.type:"int" = constant @1;
                 %14 : java.type:"int" = add %12 %13;
                 array.store %8 %11 %14;
                 %15 : java.type:"int" = add %7 %14;
@@ -274,16 +274,16 @@ public class ArrayAccessTest {
             func @"test14" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
-                %4 : java.type:"int" = constant @"0";
+                %4 : java.type:"int" = constant @0;
                 %5 : java.type:"int" = array.load %3 %4;
-                %6 : java.type:"int" = constant @"1";
+                %6 : java.type:"int" = constant @1;
                 %7 : java.type:"int" = add %5 %6;
                 array.store %3 %4 %7;
                 %8 : Var<java.type:"int"> = var %5 @"x";
                 %9 : java.type:"int[]" = var.load %2;
-                %10 : java.type:"int" = constant @"0";
+                %10 : java.type:"int" = constant @0;
                 %11 : java.type:"int" = array.load %9 %10;
-                %12 : java.type:"int" = constant @"1";
+                %12 : java.type:"int" = constant @1;
                 %13 : java.type:"int" = sub %11 %12;
                 array.store %9 %10 %13;
                 %14 : Var<java.type:"int"> = var %11 @"y";
@@ -300,16 +300,16 @@ public class ArrayAccessTest {
             func @"test15" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
-                %4 : java.type:"int" = constant @"0";
+                %4 : java.type:"int" = constant @0;
                 %5 : java.type:"int" = array.load %3 %4;
-                %6 : java.type:"int" = constant @"1";
+                %6 : java.type:"int" = constant @1;
                 %7 : java.type:"int" = add %5 %6;
                 array.store %3 %4 %7;
                 %8 : Var<java.type:"int"> = var %7 @"x";
                 %9 : java.type:"int[]" = var.load %2;
-                %10 : java.type:"int" = constant @"0";
+                %10 : java.type:"int" = constant @0;
                 %11 : java.type:"int" = array.load %9 %10;
-                %12 : java.type:"int" = constant @"1";
+                %12 : java.type:"int" = constant @1;
                 %13 : java.type:"int" = sub %11 %12;
                 array.store %9 %10 %13;
                 %14 : Var<java.type:"int"> = var %13 @"y";
@@ -342,7 +342,7 @@ public class ArrayAccessTest {
             func @"test17" (%0 : java.type:"java.lang.Object[]")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.Object[]"> = var %0 @"a";
                 %2 : java.type:"java.lang.Object[]" = var.load %1;
-                %3 : java.type:"char" = constant @"c";
+                %3 : java.type:"char" = constant @'c';
                 %4 : java.type:"int" = conv %3;
                 %5 : java.type:"java.lang.Object" = array.load %2 %4;
                 return %5;

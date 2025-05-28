@@ -1053,7 +1053,7 @@ public final class TritonTransformer {
             a = block.context().getValue(a);
             b = block.context().getValue(b);
             // Computed result is tensor of floats, regardless of inputs
-            Object zero = 0.0;
+            Object zero = 0.0f;
             var c = block.op(ArithMathOps.constant(rType, zero));
             return block.op(TritonOps.dot(rType, a, b, c));
         }

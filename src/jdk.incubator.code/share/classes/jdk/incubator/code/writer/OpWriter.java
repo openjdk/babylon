@@ -81,9 +81,7 @@ public final class OpWriter {
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.append("\"");
             toString(value, sb);
-            sb.append("\"");
             return sb.toString();
         }
 
@@ -91,7 +89,19 @@ public final class OpWriter {
             if (o.getClass().isArray()) {
                 arrayToString(o, sb);
             } else {
-                quote(o.toString(), sb);
+                switch (o) {
+                    case Integer i -> sb.append(i);
+                    case Long l -> sb.append(l).append('L');
+                    case Float f -> sb.append(f).append('f');
+                    case Double d -> sb.append(d).append('d');
+                    case Character c -> sb.append('\'').append(c).append('\'');
+                    case Boolean b -> sb.append(b);
+                    default -> {  // fallback to a string
+                        sb.append('"');
+                        quote(o.toString(), sb);
+                        sb.append('"');
+                    }
+                }
             }
         }
 

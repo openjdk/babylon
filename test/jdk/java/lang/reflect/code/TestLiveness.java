@@ -66,17 +66,17 @@ public class TestLiveness {
 
     static final String IF_ELSE = """
             func @"ifelse" (%0 : java.type:"int", %1 : java.type:"int", %2 : java.type:"int")java.type:"int" -> {
-                %3 : java.type:"int" = constant @"10";
+                %3 : java.type:"int" = constant @10;
                 %4 : java.type:"boolean" = lt %2 %3;
                 cbranch %4 ^block_0 ^block_1;
 
               ^block_0:
-                %5 : java.type:"int" = constant @"1";
+                %5 : java.type:"int" = constant @1;
                 %6 : java.type:"int" = add %0 %5;
                 branch ^block_2(%6, %1);
 
               ^block_1:
-                %7 : java.type:"int" = constant @"2";
+                %7 : java.type:"int" = constant @2;
                 %8 : java.type:"int" = add %1 %7;
                 branch ^block_2(%0, %8);
 
@@ -102,8 +102,8 @@ public class TestLiveness {
 
     static final String LOOP = """
             func @"loop" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"0";
-                %2 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
+                %2 : java.type:"int" = constant @0;
                 branch ^block_0(%1, %2);
 
               ^block_0(%3 : java.type:"int", %4 : java.type:"int"):
@@ -115,7 +115,7 @@ public class TestLiveness {
                 branch ^block_3;
 
               ^block_3:
-                %7 : java.type:"int" = constant @"1";
+                %7 : java.type:"int" = constant @1;
                 %8 : java.type:"int" = add %4 %7;
                 branch ^block_0(%6, %8);
 
@@ -141,47 +141,47 @@ public class TestLiveness {
 
     static final String IF_ELSE_NESTED = """
             func @"ifelseNested" (%0 : java.type:"int", %1 : java.type:"int", %2 : java.type:"int", %3 : java.type:"int", %4 : java.type:"int")java.type:"int" -> {
-                %5 : java.type:"int" = constant @"20";
+                %5 : java.type:"int" = constant @20;
                 %6 : java.type:"boolean" = lt %4 %5;
                 cbranch %6 ^block_0 ^block_1;
 
               ^block_0:
-                %7 : java.type:"int" = constant @"10";
+                %7 : java.type:"int" = constant @10;
                 %8 : java.type:"boolean" = lt %4 %7;
                 cbranch %8 ^block_2 ^block_3;
 
               ^block_2:
-                %9 : java.type:"int" = constant @"1";
+                %9 : java.type:"int" = constant @1;
                 %10 : java.type:"int" = add %0 %9;
                 branch ^block_4(%10, %1);
 
               ^block_3:
-                %11 : java.type:"int" = constant @"2";
+                %11 : java.type:"int" = constant @2;
                 %12 : java.type:"int" = add %1 %11;
                 branch ^block_4(%0, %12);
 
               ^block_4(%13 : java.type:"int", %14 : java.type:"int"):
-                %15 : java.type:"int" = constant @"3";
+                %15 : java.type:"int" = constant @3;
                 %16 : java.type:"int" = add %2 %15;
                 branch ^block_5(%13, %14, %16, %3);
 
               ^block_1:
-                %17 : java.type:"int" = constant @"20";
+                %17 : java.type:"int" = constant @20;
                 %18 : java.type:"boolean" = gt %4 %17;
                 cbranch %18 ^block_6 ^block_7;
 
               ^block_6:
-                %19 : java.type:"int" = constant @"4";
+                %19 : java.type:"int" = constant @4;
                 %20 : java.type:"int" = add %0 %19;
                 branch ^block_8(%20, %1);
 
               ^block_7:
-                %21 : java.type:"int" = constant @"5";
+                %21 : java.type:"int" = constant @5;
                 %22 : java.type:"int" = add %1 %21;
                 branch ^block_8(%0, %22);
 
               ^block_8(%23 : java.type:"int", %24 : java.type:"int"):
-                %25 : java.type:"int" = constant @"6";
+                %25 : java.type:"int" = constant @6;
                 %26 : java.type:"int" = add %3 %25;
                 branch ^block_5(%23, %24, %2, %26);
 
@@ -215,8 +215,8 @@ public class TestLiveness {
 
     static final String LOOP_NESTED = """
             func @"loopNested" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"0";
-                %2 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
+                %2 : java.type:"int" = constant @0;
                 branch ^block_0(%1, %2);
 
               ^block_0(%3 : java.type:"int", %4 : java.type:"int"):
@@ -224,7 +224,7 @@ public class TestLiveness {
                 cbranch %5 ^block_1 ^block_2;
 
               ^block_1:
-                %6 : java.type:"int" = constant @"0";
+                %6 : java.type:"int" = constant @0;
                 branch ^block_3(%3, %6);
 
               ^block_3(%7 : java.type:"int", %8 : java.type:"int"):
@@ -237,7 +237,7 @@ public class TestLiveness {
                 branch ^block_6;
 
               ^block_6:
-                %12 : java.type:"int" = constant @"1";
+                %12 : java.type:"int" = constant @1;
                 %13 : java.type:"int" = add %8 %12;
                 branch ^block_3(%11, %13);
 
@@ -245,7 +245,7 @@ public class TestLiveness {
                 branch ^block_7;
 
               ^block_7:
-                %14 : java.type:"int" = constant @"1";
+                %14 : java.type:"int" = constant @1;
                 %15 : java.type:"int" = add %4 %14;
                 branch ^block_0(%7, %15);
 

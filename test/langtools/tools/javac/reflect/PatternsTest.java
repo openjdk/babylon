@@ -298,7 +298,7 @@ public class PatternsTest {
                 %4 : Var<java.type:"java.lang.Number"> = var %3 @"n";
                 java.for
                     ()Var<java.type:"int"> -> {
-                        %5 : java.type:"int" = constant @"0";
+                        %5 : java.type:"int" = constant @0;
                         %6 : Var<java.type:"int"> = var %5 @"i";
                         yield %6;
                     }
@@ -306,7 +306,7 @@ public class PatternsTest {
                         %8 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
                                 %9 : java.type:"int" = var.load %7;
-                                %10 : java.type:"int" = constant @"10";
+                                %10 : java.type:"int" = constant @10;
                                 %11 : java.type:"boolean" = lt %9 %10;
                                 yield %11;
                             }
@@ -401,7 +401,7 @@ public class PatternsTest {
             func @"test10" (%0 : java.type:"int")java.type:"boolean" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
                 %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"int" = constant @"0";
+                %3 : java.type:"int" = constant @0;
                 %4 : java.type:"byte" = conv %3;
                 %5 : Var<java.type:"byte"> = var %4 @"b";
                 %6 : java.type:"boolean" = pattern.match %2
@@ -425,7 +425,7 @@ public class PatternsTest {
             func @"test11" (%0 : java.type:"int")java.type:"boolean" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
                 %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"int" = constant @"0";
+                %3 : java.type:"int" = constant @0;
                 %4 : java.type:"short" = conv %3;
                 %5 : Var<java.type:"short"> = var %4 @"s";
                 %6 : java.type:"boolean" = pattern.match %2

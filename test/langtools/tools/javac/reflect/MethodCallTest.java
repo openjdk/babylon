@@ -132,7 +132,7 @@ public class MethodCallTest {
     @IR("""
             func @"test5" (%0 : java.type:"MethodCallTest", %1 : java.type:"java.util.List<java.lang.Number>")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.List<java.lang.Number>"> = var %1 @"l";
-                %3 : java.type:"int" = constant @"1";
+                %3 : java.type:"int" = constant @1;
                 %4 : java.type:"java.lang.String" = constant @"1";
                 %5 : java.type:"java.util.List<java.lang.Number>" = var.load %2;
                 %6 : java.type:"java.lang.String" = invoke %0 %3 %4 %5 @java.ref:"MethodCallTest::m(int, java.lang.String, java.util.List):java.lang.String";
@@ -276,13 +276,13 @@ public class MethodCallTest {
             func @"test10" (%0 : java.type:"java.util.ArrayList<java.lang.String>")java.type:"void" -> {
                 %1 : Var<java.type:"java.util.ArrayList<java.lang.String>"> = var %0 @"al";
                 %2 : java.type:"java.util.ArrayList<java.lang.String>" = var.load %1;
-                %3 : java.type:"int" = constant @"0";
+                %3 : java.type:"int" = constant @0;
                 %4 : java.type:"java.lang.String" = invoke %2 %3 @java.ref:"java.util.ArrayList::get(int):java.lang.Object";
                 %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
                 %6 : java.type:"java.util.ArrayList<java.lang.String>" = var.load %1;
                 %7 : Var<java.type:"java.util.List<java.lang.String>"> = var %6 @"l";
                 %8 : java.type:"java.util.List<java.lang.String>" = var.load %7;
-                %9 : java.type:"int" = constant @"0";
+                %9 : java.type:"int" = constant @0;
                 %10 : java.type:"java.lang.String" = invoke %8 %9 @java.ref:"java.util.List::get(int):java.lang.Object";
                 var.store %5 %10;
                 return;

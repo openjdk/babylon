@@ -48,7 +48,7 @@ public class QuotedTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : func<java.type:"int"> = closure ()java.type:"int" -> {
-                    %1 : java.type:"int" = constant @"1";
+                    %1 : java.type:"int" = constant @1;
                     return %1;
                 };
                 return;

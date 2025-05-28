@@ -88,7 +88,7 @@ public class ForLoopTest {
                             %7 : Var<java.type:"java.lang.String"> = var %6 @"s";
                             %8 : java.type:"java.lang.String" = var.load %7;
                             %9 : java.type:"int" = invoke %8 @java.ref:"java.lang.String::length():int";
-                            %10 : java.type:"int" = constant @"10";
+                            %10 : java.type:"int" = constant @10;
                             %11 : java.type:"boolean" = lt %9 %10;
                             return %11;
                         };
@@ -171,19 +171,19 @@ public class ForLoopTest {
             func @"test3" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
                     ()Var<java.type:"int"> -> {
-                        %1 : java.type:"int" = constant @"0";
+                        %1 : java.type:"int" = constant @0;
                         %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
                     (%3 : Var<java.type:"int">)java.type:"boolean" -> {
                         %4 : java.type:"int" = var.load %3;
-                        %5 : java.type:"int" = constant @"10";
+                        %5 : java.type:"int" = constant @10;
                         %6 : java.type:"boolean" = lt %4 %5;
                         yield %6;
                     }
                     (%7 : Var<java.type:"int">)java.type:"void" -> {
                         %8 : java.type:"int" = var.load %7;
-                        %9 : java.type:"int" = constant @"1";
+                        %9 : java.type:"int" = constant @1;
                         %10 : java.type:"int" = add %8 %9;
                         var.store %7 %10;
                         yield;
@@ -208,19 +208,19 @@ public class ForLoopTest {
             func @"test3_1" (%0 : java.type:"ForLoopTest")java.type:"int" -> {
                 java.for
                     ()Var<java.type:"int"> -> {
-                        %1 : java.type:"int" = constant @"0";
+                        %1 : java.type:"int" = constant @0;
                         %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
                     (%3 : Var<java.type:"int">)java.type:"boolean" -> {
                         %4 : java.type:"int" = var.load %3;
-                        %5 : java.type:"int" = constant @"10";
+                        %5 : java.type:"int" = constant @10;
                         %6 : java.type:"boolean" = lt %4 %5;
                         yield %6;
                     }
                     (%7 : Var<java.type:"int">)java.type:"void" -> {
                         %8 : java.type:"int" = var.load %7;
-                        %9 : java.type:"int" = constant @"1";
+                        %9 : java.type:"int" = constant @1;
                         %10 : java.type:"int" = add %8 %9;
                         var.store %7 %10;
                         yield;
@@ -229,7 +229,7 @@ public class ForLoopTest {
                         %12 : java.type:"int" = var.load %11;
                         return %12;
                     };
-                %13 : java.type:"int" = constant @"-1";
+                %13 : java.type:"int" = constant @-1;
                 return %13;
             };
             """)
@@ -245,19 +245,19 @@ public class ForLoopTest {
             func @"test4" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
                     ()Var<java.type:"int"> -> {
-                        %1 : java.type:"int" = constant @"0";
+                        %1 : java.type:"int" = constant @0;
                         %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
                     (%3 : Var<java.type:"int">)java.type:"boolean" -> {
                         %4 : java.type:"int" = var.load %3;
-                        %5 : java.type:"int" = constant @"10";
+                        %5 : java.type:"int" = constant @10;
                         %6 : java.type:"boolean" = lt %4 %5;
                         yield %6;
                     }
                     (%7 : Var<java.type:"int">)java.type:"void" -> {
                         %8 : java.type:"int" = var.load %7;
-                        %9 : java.type:"int" = constant @"1";
+                        %9 : java.type:"int" = constant @1;
                         %10 : java.type:"int" = add %8 %9;
                         var.store %7 %10;
                         yield;
@@ -281,19 +281,19 @@ public class ForLoopTest {
             func @"test5" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
                     ()Var<java.type:"int"> -> {
-                        %1 : java.type:"int" = constant @"0";
+                        %1 : java.type:"int" = constant @0;
                         %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
                     (%3 : Var<java.type:"int">)java.type:"boolean" -> {
                         %4 : java.type:"int" = var.load %3;
-                        %5 : java.type:"int" = constant @"10";
+                        %5 : java.type:"int" = constant @10;
                         %6 : java.type:"boolean" = lt %4 %5;
                         yield %6;
                     }
                     (%7 : Var<java.type:"int">)java.type:"void" -> {
                         %8 : java.type:"int" = var.load %7;
-                        %9 : java.type:"int" = constant @"1";
+                        %9 : java.type:"int" = constant @1;
                         %10 : java.type:"int" = add %8 %9;
                         var.store %7 %10;
                         yield;
@@ -311,7 +311,7 @@ public class ForLoopTest {
     @CodeReflection
     @IR("""
             func @"test6" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 java.for
                     ()java.type:"void" -> {
@@ -319,13 +319,13 @@ public class ForLoopTest {
                     }
                     ()java.type:"boolean" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"10";
+                        %4 : java.type:"int" = constant @10;
                         %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
                     ()java.type:"void" -> {
                         %6 : java.type:"int" = var.load %2;
-                        %7 : java.type:"int" = constant @"1";
+                        %7 : java.type:"int" = constant @1;
                         %8 : java.type:"int" = add %6 %7;
                         var.store %2 %8;
                         yield;
@@ -349,25 +349,25 @@ public class ForLoopTest {
     @CodeReflection
     @IR("""
             func @"test7" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 java.for
                     ()java.type:"void" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"int" = add %3 %4;
                         var.store %2 %5;
                         yield;
                     }
                     ()java.type:"boolean" -> {
                         %6 : java.type:"int" = var.load %2;
-                        %7 : java.type:"int" = constant @"10";
+                        %7 : java.type:"int" = constant @10;
                         %8 : java.type:"boolean" = lt %6 %7;
                         yield %8;
                     }
                     ()java.type:"void" -> {
                         %9 : java.type:"int" = var.load %2;
-                        %10 : java.type:"int" = constant @"1";
+                        %10 : java.type:"int" = constant @1;
                         %11 : java.type:"int" = add %9 %10;
                         var.store %2 %11;
                         yield;
@@ -393,17 +393,17 @@ public class ForLoopTest {
             func @"test8" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
                     ()Var<java.type:"int"> -> {
-                        %1 : java.type:"int" = constant @"0";
+                        %1 : java.type:"int" = constant @0;
                         %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
                     (%3 : Var<java.type:"int">)java.type:"boolean" -> {
-                        %4 : java.type:"boolean" = constant @"true";
+                        %4 : java.type:"boolean" = constant @true;
                         yield %4;
                     }
                     (%5 : Var<java.type:"int">)java.type:"void" -> {
                         %6 : java.type:"int" = var.load %5;
-                        %7 : java.type:"int" = constant @"1";
+                        %7 : java.type:"int" = constant @1;
                         %8 : java.type:"int" = add %6 %7;
                         var.store %5 %8;
                         yield;
@@ -428,12 +428,12 @@ public class ForLoopTest {
             func @"test9" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
                     ()Var<java.type:"int"> -> {
-                        %1 : java.type:"int" = constant @"0";
+                        %1 : java.type:"int" = constant @0;
                         %2 : Var<java.type:"int"> = var %1 @"i";
                         yield %2;
                     }
                     (%3 : Var<java.type:"int">)java.type:"boolean" -> {
-                        %4 : java.type:"boolean" = constant @"true";
+                        %4 : java.type:"boolean" = constant @true;
                         yield %4;
                     }
                     (%5 : Var<java.type:"int">)java.type:"void" -> {
@@ -462,7 +462,7 @@ public class ForLoopTest {
                         yield;
                     }
                     ()java.type:"boolean" -> {
-                        %1 : java.type:"boolean" = constant @"true";
+                        %1 : java.type:"boolean" = constant @true;
                         yield %1;
                     }
                     ()java.type:"void" -> {
@@ -484,9 +484,9 @@ public class ForLoopTest {
             func @"test11" (%0 : java.type:"ForLoopTest")java.type:"void" -> {
                 java.for
                     ()Tuple<Var<java.type:"int">, Var<java.type:"int">> -> {
-                        %1 : java.type:"int" = constant @"0";
+                        %1 : java.type:"int" = constant @0;
                         %2 : Var<java.type:"int"> = var %1 @"i";
-                        %3 : java.type:"int" = constant @"0";
+                        %3 : java.type:"int" = constant @0;
                         %4 : Var<java.type:"int"> = var %3 @"j";
                         %5 : Tuple<Var<java.type:"int">, Var<java.type:"int">> = tuple %2 %4;
                         yield %5;
@@ -495,13 +495,13 @@ public class ForLoopTest {
                         %8 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
                                 %9 : java.type:"int" = var.load %6;
-                                %10 : java.type:"int" = constant @"10";
+                                %10 : java.type:"int" = constant @10;
                                 %11 : java.type:"boolean" = lt %9 %10;
                                 yield %11;
                             }
                             ()java.type:"boolean" -> {
                                 %12 : java.type:"int" = var.load %7;
-                                %13 : java.type:"int" = constant @"20";
+                                %13 : java.type:"int" = constant @20;
                                 %14 : java.type:"boolean" = lt %12 %13;
                                 yield %14;
                             };
@@ -509,11 +509,11 @@ public class ForLoopTest {
                     }
                     (%15 : Var<java.type:"int">, %16 : Var<java.type:"int">)java.type:"void" -> {
                         %17 : java.type:"int" = var.load %15;
-                        %18 : java.type:"int" = constant @"1";
+                        %18 : java.type:"int" = constant @1;
                         %19 : java.type:"int" = add %17 %18;
                         var.store %15 %19;
                         %20 : java.type:"int" = var.load %16;
-                        %21 : java.type:"int" = constant @"2";
+                        %21 : java.type:"int" = constant @2;
                         %22 : java.type:"int" = add %20 %21;
                         var.store %16 %22;
                         yield;
@@ -543,19 +543,19 @@ public class ForLoopTest {
                 %2 : Var<java.type:"int"> = var %1 @"r";
                 java.for
                     ()Var<java.type:"int"> -> {
-                        %3 : java.type:"int" = constant @"0";
+                        %3 : java.type:"int" = constant @0;
                         %4 : Var<java.type:"int"> = var %3 @"i";
                         yield %4;
                     }
                     (%5 : Var<java.type:"int">)java.type:"boolean" -> {
                         %6 : java.type:"int" = var.load %5;
-                        %7 : java.type:"int" = constant @"10";
+                        %7 : java.type:"int" = constant @10;
                         %8 : java.type:"boolean" = lt %6 %7;
                         yield %8;
                     }
                     (%9 : Var<java.type:"int">)java.type:"void" -> {
                         %10 : java.type:"int" = var.load %9;
-                        %11 : java.type:"int" = constant @"1";
+                        %11 : java.type:"int" = constant @1;
                         %12 : java.type:"int" = add %10 %11;
                         var.store %9 %12;
                         yield;
@@ -564,7 +564,7 @@ public class ForLoopTest {
                         java.if
                             ()java.type:"boolean" -> {
                                 %14 : java.type:"int" = var.load %2;
-                                %15 : java.type:"int" = constant @"0";
+                                %15 : java.type:"int" = constant @0;
                                 %16 : java.type:"boolean" = eq %14 %15;
                                 yield %16;
                             }
@@ -573,7 +573,7 @@ public class ForLoopTest {
                             }
                             ()java.type:"boolean" -> {
                                 %17 : java.type:"int" = var.load %2;
-                                %18 : java.type:"int" = constant @"1";
+                                %18 : java.type:"int" = constant @1;
                                 %19 : java.type:"boolean" = eq %17 %18;
                                 yield %19;
                             }

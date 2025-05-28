@@ -120,10 +120,10 @@ public class LambdaTest {
             func @"test5" (%0 : java.type:"LambdaTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int"> = var %1 @"i";
                 %4 : Var<java.type:"int"> = var %2 @"j";
-                %5 : java.type:"int" = constant @"3";
+                %5 : java.type:"int" = constant @3;
                 %6 : Var<java.type:"int"> = var %5 @"k";
                 %7 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
-                    %8 : java.type:"int" = constant @"4";
+                    %8 : java.type:"int" = constant @4;
                     %9 : Var<java.type:"int"> = var %8 @"l";
                     %10 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
                         %11 : java.type:"int" = var.load %4;

@@ -122,7 +122,7 @@ public class CastInstanceOfTest {
             func @"test6" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.util.List<java.lang.Object>")java.type:"void" -> {
                 %2 : Var<java.type:"java.util.List<java.lang.Object>"> = var %1 @"l";
                 %3 : java.type:"java.util.List<java.lang.Object>" = var.load %2;
-                %4 : java.type:"int" = constant @"0";
+                %4 : java.type:"int" = constant @0;
                 %5 : java.type:"java.lang.Object" = invoke %3 %4 @java.ref:"java.util.List::get(int):java.lang.Object";
                 %6 : java.type:"boolean" = instanceof %5 @java.type:"java.lang.String";
                 %7 : Var<java.type:"boolean"> = var %6 @"b";

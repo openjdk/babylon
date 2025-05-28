@@ -42,7 +42,7 @@ public class TestCdiv {
             module ()java.type:"void" -> {
                 tt.func @"cdiv_int_int_int" (%0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
                     %2 : java.type:"int" = arith.addi %0 %1;
-                    %3 : java.type:"int" = arith.constant @"1";
+                    %3 : java.type:"int" = arith.constant @1;
                     %4 : java.type:"int" = arith.subi %2 %3;
                     %5 : java.type:"int" = arith.divsi %4 %1;
                     tt.return %5;
@@ -74,9 +74,9 @@ public class TestCdiv {
     @TritonCodeModel("""
             module ()java.type:"void" -> {
                 tt.func @"cdiv_int_10_int" (%0 : java.type:"int")java.type:"int" -> {
-                    %1 : java.type:"int" = arith.constant @"10";
+                    %1 : java.type:"int" = arith.constant @10;
                     %2 : java.type:"int" = arith.addi %0 %1;
-                    %3 : java.type:"int" = arith.constant @"1";
+                    %3 : java.type:"int" = arith.constant @1;
                     %4 : java.type:"int" = arith.subi %2 %3;
                     %5 : java.type:"int" = arith.divsi %4 %1;
                     tt.return %5;
@@ -109,23 +109,23 @@ public class TestCdiv {
             module ()java.type:"void" -> {
                 tt.func @"cdiv_int_int_int" (%0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
                     %2 : java.type:"int" = arith.addi %0 %1;
-                    %3 : java.type:"int" = arith.constant @"1";
+                    %3 : java.type:"int" = arith.constant @1;
                     %4 : java.type:"int" = arith.subi %2 %3;
                     %5 : java.type:"int" = arith.divsi %4 %1;
                     tt.return %5;
                 };
                 tt.func @"cdiv_int_10_int" (%6 : java.type:"int")java.type:"int" -> {
-                    %7 : java.type:"int" = arith.constant @"10";
+                    %7 : java.type:"int" = arith.constant @10;
                     %8 : java.type:"int" = arith.addi %6 %7;
-                    %9 : java.type:"int" = arith.constant @"1";
+                    %9 : java.type:"int" = arith.constant @1;
                     %10 : java.type:"int" = arith.subi %8 %9;
                     %11 : java.type:"int" = arith.divsi %10 %7;
                     tt.return %11;
                 };
                 tt.func @"cdiv_10_int_int" (%12 : java.type:"int")java.type:"int" -> {
-                    %13 : java.type:"int" = arith.constant @"10";
+                    %13 : java.type:"int" = arith.constant @10;
                     %14 : java.type:"int" = arith.addi %13 %12;
-                    %15 : java.type:"int" = arith.constant @"1";
+                    %15 : java.type:"int" = arith.constant @1;
                     %16 : java.type:"int" = arith.subi %14 %15;
                     %17 : java.type:"int" = arith.divsi %16 %12;
                     tt.return %17;

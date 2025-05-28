@@ -56,7 +56,7 @@ public class QuotableSubtypeTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : java.type:"QuotableSubtypeTest$QuotableIntSupplier" = lambda ()java.type:"int" -> {
-                    %1 : java.type:"int" = constant @"1";
+                    %1 : java.type:"int" = constant @1;
                     return %1;
                 };
                 return;

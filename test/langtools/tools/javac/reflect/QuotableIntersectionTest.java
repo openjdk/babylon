@@ -52,7 +52,7 @@ public class QuotableIntersectionTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : java.type:"jdk.incubator.code.Quotable" = lambda ()java.type:"int" -> {
-                    %1 : java.type:"int" = constant @"1";
+                    %1 : java.type:"int" = constant @1;
                     return %1;
                 };
                 return;

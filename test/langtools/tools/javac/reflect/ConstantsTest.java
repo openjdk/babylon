@@ -84,10 +84,10 @@ public class ConstantsTest {
 
     @IR("""
             func @"test5" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"42";
+                %1 : java.type:"int" = constant @42;
                 %2 : java.type:"byte" = conv %1;
                 %3 : Var<java.type:"byte"> = var %2 @"v";
-                %4 : java.type:"int" = constant @"-42";
+                %4 : java.type:"int" = constant @-42;
                 %5 : java.type:"byte" = conv %4;
                 var.store %3 %5;
                 return;
@@ -101,10 +101,10 @@ public class ConstantsTest {
 
     @IR("""
             func @"test6" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"42";
+                %1 : java.type:"int" = constant @42;
                 %2 : java.type:"short" = conv %1;
                 %3 : Var<java.type:"short"> = var %2 @"v";
-                %4 : java.type:"int" = constant @"-42";
+                %4 : java.type:"int" = constant @-42;
                 %5 : java.type:"short" = conv %4;
                 var.store %3 %5;
                 return;
@@ -118,9 +118,9 @@ public class ConstantsTest {
 
     @IR("""
             func @"test7" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"42";
+                %1 : java.type:"int" = constant @42;
                 %2 : Var<java.type:"int"> = var %1 @"v";
-                %3 : java.type:"int" = constant @"-42";
+                %3 : java.type:"int" = constant @-42;
                 var.store %2 %3;
                 return;
             };
@@ -133,9 +133,9 @@ public class ConstantsTest {
 
     @IR("""
             func @"test8" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
-                %1 : java.type:"long" = constant @"42";
+                %1 : java.type:"long" = constant @42;
                 %2 : Var<java.type:"long"> = var %1 @"v";
-                %3 : java.type:"long" = constant @"-42";
+                %3 : java.type:"long" = constant @-42;
                 var.store %2 %3;
                 return;
             };
@@ -148,9 +148,9 @@ public class ConstantsTest {
 
     @IR("""
             func @"test9" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
-                %1 : java.type:"float" = constant @"42.0";
+                %1 : java.type:"float" = constant @42.0f;
                 %2 : Var<java.type:"float"> = var %1 @"v";
-                %3 : java.type:"float" = constant @"42.0";
+                %3 : java.type:"float" = constant @42.0f;
                 %4 : java.type:"float" = neg %3;
                 var.store %2 %4;
                 return;
@@ -164,9 +164,9 @@ public class ConstantsTest {
 
     @IR("""
             func @"test10" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
-                %1 : java.type:"double" = constant @"42.0";
+                %1 : java.type:"double" = constant @42.0d;
                 %2 : Var<java.type:"double"> = var %1 @"v";
-                %3 : java.type:"double" = constant @"42.0";
+                %3 : java.type:"double" = constant @42.0d;
                 %4 : java.type:"double" = neg %3;
                 var.store %2 %4;
                 return;
@@ -180,7 +180,7 @@ public class ConstantsTest {
 
     @IR("""
             func @"test11" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
-                %1 : java.type:"char" = constant @"a";
+                %1 : java.type:"char" = constant @'a';
                 %2 : Var<java.type:"char"> = var %1 @"v";
                 return;
             };
@@ -192,9 +192,9 @@ public class ConstantsTest {
 
     @IR("""
             func @"test12" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
-                %1 : java.type:"boolean" = constant @"true";
+                %1 : java.type:"boolean" = constant @true;
                 %2 : Var<java.type:"boolean"> = var %1 @"b";
-                %3 : java.type:"boolean" = constant @"false";
+                %3 : java.type:"boolean" = constant @false;
                 var.store %2 %3;
                 return;
             };

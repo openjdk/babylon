@@ -50,9 +50,9 @@ public class DenotableTypesTest {
     @CodeReflection
     @IR("""
             func @"test2" ()java.type:"void" -> {
-                %0 : java.type:"int" = constant @"1";
+                %0 : java.type:"int" = constant @1;
                 %1 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
-                %2 : java.type:"double" = constant @"3.0";
+                %2 : java.type:"double" = constant @3.0d;
                 %3 : java.type:"java.lang.Double" = invoke %2 @java.ref:"java.lang.Double::valueOf(double):java.lang.Double";
                 %4 : java.type:"java.util.List<? extends java.lang.Number>" = invoke %1 %3 @java.ref:"java.util.List::of(java.lang.Object, java.lang.Object):java.util.List";
                 return;
@@ -104,7 +104,7 @@ public class DenotableTypesTest {
                 %0 : java.type:"java.util.List<? extends java.lang.Number>" = constant @null;
                 %1 : Var<java.type:"java.util.List<? extends java.lang.Number>"> = var %0 @"l";
                 %2 : java.type:"java.util.List<? extends java.lang.Number>" = var.load %1;
-                %3 : java.type:"int" = constant @"0";
+                %3 : java.type:"int" = constant @0;
                 %4 : java.type:"java.lang.Number" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
                 return;
             };
@@ -120,7 +120,7 @@ public class DenotableTypesTest {
                 %0 : java.type:"java.util.List<? super java.lang.Number>" = constant @null;
                 %1 : Var<java.type:"java.util.List<? super java.lang.Number>"> = var %0 @"l";
                 %2 : java.type:"java.util.List<? super java.lang.Number>" = var.load %1;
-                %3 : java.type:"int" = constant @"0";
+                %3 : java.type:"int" = constant @0;
                 %4 : java.type:"java.lang.Object" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
                 return;
             };
@@ -157,10 +157,10 @@ public class DenotableTypesTest {
             func @"test8" (%0 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>")java.type:"void" -> {
                 %1 : Var<java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>"> = var %0 @"list";
                 %2 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>" = var.load %1;
-                %3 : java.type:"int" = constant @"0";
+                %3 : java.type:"int" = constant @0;
                 %4 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
                 %5 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>" = var.load %1;
-                %6 : java.type:"int" = constant @"1";
+                %6 : java.type:"int" = constant @1;
                 %7 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %5 %6 @java.ref:"java.util.List::get(int):java.lang.Object";
                 invoke %4 %7 @java.ref:"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder):void";
                 return;
@@ -179,7 +179,7 @@ public class DenotableTypesTest {
             func @"test9" (%0 : java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>")java.type:"void" -> {
                 %1 : Var<java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>"> = var %0 @"list";
                 %2 : java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>" = var.load %1;
-                %3 : java.type:"int" = constant @"0";
+                %3 : java.type:"int" = constant @0;
                 %4 : java.type:"DenotableTypesTest$Box<java.lang.Integer>" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
                 %5 : java.type:"java.lang.Integer" = field.load %4 @java.ref:"DenotableTypesTest$Box::x:java.lang.Object";
                 %6 : Var<java.type:"java.lang.Integer"> = var %5 @"i";
