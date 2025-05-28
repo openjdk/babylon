@@ -48,7 +48,6 @@ public final class OnnxTransformer {
     static final JavaType ONNX_OPERATORS_CLASS = JavaType.type(OnnxOperators.class);
     static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
     static final JavaType LIST_CLASS = JavaType.type(List.class);
-    static final JavaType OPTIONAL_CLASS = JavaType.type(Optional.class);
 
     public record ModuleAndInitializers(CoreOp.ModuleOp module, SequencedCollection<FieldRef> initializers) {}
 
@@ -139,10 +138,12 @@ public final class OnnxTransformer {
 
     static ModuleAndInitializers remapInitializers(MethodHandles.Lookup l, CoreOp.ModuleOp module) {
         // collect initializers (field load ops of tensors)
-        record TI(OnnxType type, int index) {}
+        record TI(TypeElement type, int index) {}
         var initializers = module.traverse(new LinkedHashMap<FieldRef, TI>(), (i, op) -> {
-            if (op instanceof CoreOp.FieldAccessOp.FieldLoadOp flo && flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)) {
-                i.putIfAbsent(flo.fieldDescriptor(), new TI((OnnxType)convertType(l, ct), i.size()));
+            if (op instanceof CoreOp.FieldAccessOp.FieldLoadOp flo
+                    && (flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
+                     || isRecord(l, flo.resultType()))) {
+                i.putIfAbsent(flo.fieldDescriptor(), new TI(convertType(l, flo.resultType()), i.size()));
             }
             return i;
         });
@@ -152,7 +153,7 @@ public final class OnnxTransformer {
         }
 
         // map all initializers field loads into additional arguments
-        List<OnnxType> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
+        List<TypeElement> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
         return new ModuleAndInitializers(CoreOp.module(module.functionTable().sequencedValues().stream().map(f -> {
             var ft = f.invokableType();
             int argsSize = ft.parameterTypes().size();
