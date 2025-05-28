@@ -107,6 +107,11 @@ public final class OnnxTransformer {
         var doNotInline = new HashSet<CoreOp.FuncOp>();
         doNotInline.add(inputFunc);
         collectModuleFunctions(l, funcs, doNotInline, inputFunc);
+
+        // @@@ temporary disable functions due to Onnx problem with unused outputs in functions
+        doNotInline.clear();
+        doNotInline.add(inputFunc);
+
         funcs.putLast(null, inputFunc);
 
         return CoreOp.module(funcs.sequencedValues().stream()
