@@ -27,7 +27,6 @@ package jdk.incubator.code.type;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.type.impl.ConstructorRefImpl;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -86,9 +85,5 @@ public sealed interface ConstructorRef extends JavaRef, TypeVariableType.Owner
 
     static ConstructorRef constructor(FunctionType type) {
         return new ConstructorRefImpl(type);
-    }
-
-    static ConstructorRef ofString(String s) {
-        return (ConstructorRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
     }
 }

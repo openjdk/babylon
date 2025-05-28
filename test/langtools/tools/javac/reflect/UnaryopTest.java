@@ -63,7 +63,7 @@ public class UnaryopTest {
             func @"test3" (%0 : java.type:"int")java.type:"java.lang.Integer" -> {
                 %1 : Var<java.type:"int"> = var %0 @"v";
                 %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"java.lang.Integer" = invoke %2 @"java.lang.Integer::valueOf(int):java.lang.Integer";
+                %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                 return %3;
             };
             """)
@@ -77,8 +77,8 @@ public class UnaryopTest {
             func @"test4" (%0 : java.type:"java.lang.Integer")java.type:"java.lang.Integer" -> {
                 %1 : Var<java.type:"java.lang.Integer"> = var %0 @"v";
                 %2 : java.type:"java.lang.Integer" = var.load %1;
-                %3 : java.type:"int" = invoke %2 @"java.lang.Integer::intValue():int";
-                %4 : java.type:"java.lang.Integer" = invoke %3 @"java.lang.Integer::valueOf(int):java.lang.Integer";
+                %3 : java.type:"int" = invoke %2 @java.ref:"java.lang.Integer::intValue():int";
+                %4 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                 return %4;
             };
             """)

@@ -17,7 +17,7 @@ public class SwitchExpressionTest2 {
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %5 : java.type:"java.lang.String" = constant @"FOO";
-                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -26,7 +26,7 @@ public class SwitchExpressionTest2 {
                     }
                     (%8 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %9 : java.type:"java.lang.String" = constant @"BAR";
-                        %10 : java.type:"boolean" = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %10 : java.type:"boolean" = invoke %8 %9 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %10;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -35,7 +35,7 @@ public class SwitchExpressionTest2 {
                     }
                     (%12 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %13 : java.type:"java.lang.String" = constant @"BAZ";
-                        %14 : java.type:"boolean" = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %14 : java.type:"boolean" = invoke %12 %13 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %14;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -70,7 +70,7 @@ public class SwitchExpressionTest2 {
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %5 : java.type:"java.lang.String" = constant @"FOO";
-                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -79,7 +79,7 @@ public class SwitchExpressionTest2 {
                     }
                     (%8 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %9 : java.type:"java.lang.String" = constant @"BAR";
-                        %10 : java.type:"boolean" = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %10 : java.type:"boolean" = invoke %8 %9 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %10;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -88,7 +88,7 @@ public class SwitchExpressionTest2 {
                     }
                     (%12 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %13 : java.type:"java.lang.String" = constant @"BAZ";
-                        %14 : java.type:"boolean" = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %14 : java.type:"boolean" = invoke %12 %13 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %14;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -131,7 +131,7 @@ public class SwitchExpressionTest2 {
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %5 : java.type:"java.lang.String" = constant @"FOO";
-                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -140,7 +140,7 @@ public class SwitchExpressionTest2 {
                     }
                     (%8 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %9 : java.type:"java.lang.String" = constant @"BAR";
-                        %10 : java.type:"boolean" = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %10 : java.type:"boolean" = invoke %8 %9 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %10;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -149,7 +149,7 @@ public class SwitchExpressionTest2 {
                     }
                     (%12 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %13 : java.type:"java.lang.String" = constant @"BAZ";
-                        %14 : java.type:"boolean" = invoke %12 %13 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %14 : java.type:"boolean" = invoke %12 %13 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %14;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -181,7 +181,7 @@ public class SwitchExpressionTest2 {
             func @"caseConstantMultiLabels" (%0 : java.type:"char")java.type:"java.lang.String" -> {
                 %1 : Var<java.type:"char"> = var %0 @"c";
                 %2 : java.type:"char" = var.load %1;
-                %3 : java.type:"char" = invoke %2 @"java.lang.Character::toLowerCase(char):char";
+                %3 : java.type:"char" = invoke %2 @java.ref:"java.lang.Character::toLowerCase(char):char";
                 %4 : java.type:"java.lang.String" = java.switch.expression %3
                     (%5 : java.type:"char")java.type:"boolean" -> {
                         %6 : java.type:"boolean" = java.cor
@@ -242,18 +242,18 @@ public class SwitchExpressionTest2 {
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"java.lang.Integer")java.type:"boolean" -> {
                         %5 : java.type:"int" = constant @"8";
-                        %6 : java.type:"java.lang.Integer" = invoke %5 @"java.lang.Integer::valueOf(int):java.lang.Integer";
-                        %7 : java.type:"boolean" = invoke %4 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                        %7 : java.type:"boolean" = invoke %4 %6 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %7;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %8 : java.type:"java.lang.IllegalArgumentException" = new @"java.lang.IllegalArgumentException::()";
+                        %8 : java.type:"java.lang.IllegalArgumentException" = new @java.ref:"java.lang.IllegalArgumentException::()";
                         throw %8;
                     }
                     (%9 : java.type:"java.lang.Integer")java.type:"boolean" -> {
                         %10 : java.type:"int" = constant @"9";
-                        %11 : java.type:"java.lang.Integer" = invoke %10 @"java.lang.Integer::valueOf(int):java.lang.Integer";
-                        %12 : java.type:"boolean" = invoke %9 %11 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %11 : java.type:"java.lang.Integer" = invoke %10 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                        %12 : java.type:"boolean" = invoke %9 %11 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %12;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -287,7 +287,7 @@ public class SwitchExpressionTest2 {
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %5 : java.type:"java.lang.Object" = constant @null;
-                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -378,18 +378,18 @@ public class SwitchExpressionTest2 {
                     (%4 : java.type:"SwitchExpressionTest2$Day")java.type:"boolean" -> {
                         %5 : java.type:"boolean" = java.cor
                             ()java.type:"boolean" -> {
-                                %6 : java.type:"SwitchExpressionTest2$Day" = field.load @"SwitchExpressionTest2$Day::MON:SwitchExpressionTest2$Day";
-                                %7 : java.type:"boolean" = invoke %4 %6 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                                %6 : java.type:"SwitchExpressionTest2$Day" = field.load @java.ref:"SwitchExpressionTest2$Day::MON:SwitchExpressionTest2$Day";
+                                %7 : java.type:"boolean" = invoke %4 %6 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %7;
                             }
                             ()java.type:"boolean" -> {
-                                %8 : java.type:"SwitchExpressionTest2$Day" = field.load @"SwitchExpressionTest2$Day::FRI:SwitchExpressionTest2$Day";
-                                %9 : java.type:"boolean" = invoke %4 %8 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                                %8 : java.type:"SwitchExpressionTest2$Day" = field.load @java.ref:"SwitchExpressionTest2$Day::FRI:SwitchExpressionTest2$Day";
+                                %9 : java.type:"boolean" = invoke %4 %8 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %9;
                             }
                             ()java.type:"boolean" -> {
-                                %10 : java.type:"SwitchExpressionTest2$Day" = field.load @"SwitchExpressionTest2$Day::SUN:SwitchExpressionTest2$Day";
-                                %11 : java.type:"boolean" = invoke %4 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                                %10 : java.type:"SwitchExpressionTest2$Day" = field.load @java.ref:"SwitchExpressionTest2$Day::SUN:SwitchExpressionTest2$Day";
+                                %11 : java.type:"boolean" = invoke %4 %10 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %11;
                             };
                         yield %5;
@@ -399,8 +399,8 @@ public class SwitchExpressionTest2 {
                         yield %12;
                     }
                     (%13 : java.type:"SwitchExpressionTest2$Day")java.type:"boolean" -> {
-                        %14 : java.type:"SwitchExpressionTest2$Day" = field.load @"SwitchExpressionTest2$Day::TUE:SwitchExpressionTest2$Day";
-                        %15 : java.type:"boolean" = invoke %13 %14 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %14 : java.type:"SwitchExpressionTest2$Day" = field.load @java.ref:"SwitchExpressionTest2$Day::TUE:SwitchExpressionTest2$Day";
+                        %15 : java.type:"boolean" = invoke %13 %14 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %15;
                     }
                     ()java.type:"int" -> {
@@ -410,13 +410,13 @@ public class SwitchExpressionTest2 {
                     (%17 : java.type:"SwitchExpressionTest2$Day")java.type:"boolean" -> {
                         %18 : java.type:"boolean" = java.cor
                             ()java.type:"boolean" -> {
-                                %19 : java.type:"SwitchExpressionTest2$Day" = field.load @"SwitchExpressionTest2$Day::THU:SwitchExpressionTest2$Day";
-                                %20 : java.type:"boolean" = invoke %17 %19 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                                %19 : java.type:"SwitchExpressionTest2$Day" = field.load @java.ref:"SwitchExpressionTest2$Day::THU:SwitchExpressionTest2$Day";
+                                %20 : java.type:"boolean" = invoke %17 %19 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %20;
                             }
                             ()java.type:"boolean" -> {
-                                %21 : java.type:"SwitchExpressionTest2$Day" = field.load @"SwitchExpressionTest2$Day::SAT:SwitchExpressionTest2$Day";
-                                %22 : java.type:"boolean" = invoke %17 %21 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                                %21 : java.type:"SwitchExpressionTest2$Day" = field.load @java.ref:"SwitchExpressionTest2$Day::SAT:SwitchExpressionTest2$Day";
+                                %22 : java.type:"boolean" = invoke %17 %21 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                                 yield %22;
                             };
                         yield %18;
@@ -426,8 +426,8 @@ public class SwitchExpressionTest2 {
                         yield %23;
                     }
                     (%24 : java.type:"SwitchExpressionTest2$Day")java.type:"boolean" -> {
-                        %25 : java.type:"SwitchExpressionTest2$Day" = field.load @"SwitchExpressionTest2$Day::WED:SwitchExpressionTest2$Day";
-                        %26 : java.type:"boolean" = invoke %24 %25 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %25 : java.type:"SwitchExpressionTest2$Day" = field.load @java.ref:"SwitchExpressionTest2$Day::WED:SwitchExpressionTest2$Day";
+                        %26 : java.type:"boolean" = invoke %24 %25 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %26;
                     }
                     ()java.type:"int" -> {
@@ -439,7 +439,7 @@ public class SwitchExpressionTest2 {
                         yield %28;
                     }
                     ()java.type:"int" -> {
-                        %29 : java.type:"java.lang.MatchException" = new @"java.lang.MatchException::()";
+                        %29 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
                         throw %29;
                     };
                 return %3;
@@ -584,13 +584,13 @@ public class SwitchExpressionTest2 {
                         yield %68;
                     }
                     (%69 : java.type:"int")java.type:"boolean" -> {
-                        %70 : java.type:"int" = field.load @"SwitchExpressionTest2$Constants::c1:int";
+                        %70 : java.type:"int" = field.load @java.ref:"SwitchExpressionTest2$Constants::c1:int";
                         %71 : java.type:"boolean" = eq %69 %70;
                         yield %71;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %72 : java.type:"int" = field.load @"SwitchExpressionTest2$Constants::c1:int";
-                        %73 : java.type:"java.lang.String" = invoke %72 @"java.lang.String::valueOf(int):java.lang.String";
+                        %72 : java.type:"int" = field.load @java.ref:"SwitchExpressionTest2$Constants::c1:int";
+                        %73 : java.type:"java.lang.String" = invoke %72 @java.ref:"java.lang.String::valueOf(int):java.lang.String";
                         yield %73;
                     }
                     (%74 : java.type:"int")java.type:"boolean" -> {
@@ -724,8 +724,8 @@ public class SwitchExpressionTest2 {
                     (%7 : java.type:"java.lang.Byte")java.type:"boolean" -> {
                         %8 : java.type:"int" = constant @"1";
                         %9 : java.type:"byte" = conv %8;
-                        %10 : java.type:"java.lang.Byte" = invoke %9 @"java.lang.Byte::valueOf(byte):java.lang.Byte";
-                        %11 : java.type:"boolean" = invoke %7 %10 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %10 : java.type:"java.lang.Byte" = invoke %9 @java.ref:"java.lang.Byte::valueOf(byte):java.lang.Byte";
+                        %11 : java.type:"boolean" = invoke %7 %10 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %11;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -734,8 +734,8 @@ public class SwitchExpressionTest2 {
                     }
                     (%13 : java.type:"java.lang.Byte")java.type:"boolean" -> {
                         %14 : java.type:"byte" = var.load %4;
-                        %15 : java.type:"java.lang.Byte" = invoke %14 @"java.lang.Byte::valueOf(byte):java.lang.Byte";
-                        %16 : java.type:"boolean" = invoke %13 %15 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %15 : java.type:"java.lang.Byte" = invoke %14 @java.ref:"java.lang.Byte::valueOf(byte):java.lang.Byte";
+                        %16 : java.type:"boolean" = invoke %13 %15 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %16;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -771,8 +771,8 @@ public class SwitchExpressionTest2 {
                 %2 : java.type:"SwitchExpressionTest2$E" = var.load %1;
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"SwitchExpressionTest2$E")java.type:"boolean" -> {
-                        %5 : java.type:"SwitchExpressionTest2$E" = field.load @"SwitchExpressionTest2$E::F:SwitchExpressionTest2$E";
-                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %5 : java.type:"SwitchExpressionTest2$E" = field.load @java.ref:"SwitchExpressionTest2$E::F:SwitchExpressionTest2$E";
+                        %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -780,8 +780,8 @@ public class SwitchExpressionTest2 {
                         yield %7;
                     }
                     (%8 : java.type:"SwitchExpressionTest2$E")java.type:"boolean" -> {
-                        %9 : java.type:"SwitchExpressionTest2$E" = field.load @"SwitchExpressionTest2$E::G:SwitchExpressionTest2$E";
-                        %10 : java.type:"boolean" = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %9 : java.type:"SwitchExpressionTest2$E" = field.load @java.ref:"SwitchExpressionTest2$E::G:SwitchExpressionTest2$E";
+                        %10 : java.type:"boolean" = invoke %8 %9 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %10;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -793,7 +793,7 @@ public class SwitchExpressionTest2 {
                         yield %12;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %13 : java.type:"java.lang.MatchException" = new @"java.lang.MatchException::()";
+                        %13 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
                         throw %13;
                     };
                 return %3;
@@ -816,7 +816,7 @@ public class SwitchExpressionTest2 {
                 %5 : java.type:"java.lang.String" = java.switch.expression %2
                     (%6 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %7 : java.type:"java.lang.String" = constant @"A";
-                        %8 : java.type:"boolean" = invoke %6 %7 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %8 : java.type:"boolean" = invoke %6 %7 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %8;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -899,7 +899,7 @@ public class SwitchExpressionTest2 {
                         yield %18;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %19 : java.type:"java.lang.MatchException" = new @"java.lang.MatchException::()";
+                        %19 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
                         throw %19;
                     };
                 return %7;
@@ -920,7 +920,7 @@ public class SwitchExpressionTest2 {
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %5 : java.type:"java.lang.String" = constant @"M";
-                        %6 : java.type:"boolean" = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %6;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -929,7 +929,7 @@ public class SwitchExpressionTest2 {
                     }
                     (%8 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %9 : java.type:"java.lang.String" = constant @"A";
-                        %10 : java.type:"boolean" = invoke %8 %9 @"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %10 : java.type:"boolean" = invoke %8 %9 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %10;
                     }
                     ()java.type:"java.lang.String" -> {

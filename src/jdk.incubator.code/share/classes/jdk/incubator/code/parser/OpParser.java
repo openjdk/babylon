@@ -28,6 +28,8 @@ package jdk.incubator.code.parser;
 import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
+import jdk.incubator.code.TypeElement.ExternalizedTypeElement;
+import jdk.incubator.code.parser.impl.Tokens.TokenKind;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.op.*;
 import jdk.incubator.code.parser.impl.DescParser;
@@ -256,8 +258,21 @@ public final class OpParser {
                 operands,
                 successors,
                 c.typeFactory.constructType(rtype),
-                opNode.attributes,
+                inflateAttributes(opNode.attributes, c.typeFactory),
                 bodies);
+    }
+
+    static Map<String, Object> inflateAttributes(Map<String, Object> attributes, TypeElementFactory typeFactory) {
+        Map<String, Object> newAttributes = new HashMap<>();
+        for (Map.Entry<String, Object> e : attributes.entrySet()) {
+            String name = e.getKey();
+            Object value = e.getValue();
+            if (value instanceof ExternalizedTypeElement ete) {
+                value = typeFactory.constructType(JavaTypeUtils.inflate(ete));
+            }
+            newAttributes.put(name, value);
+        }
+        return newAttributes;
     }
 
     static Body.Builder nodeToBody(BodyNode n, Context c, Body.Builder ancestorBody) {
@@ -405,7 +420,7 @@ public final class OpParser {
         Map<String, Object> attributes = new HashMap<>();
         while (lexer.acceptIf(Tokens.TokenKind.MONKEYS_AT)) {
             String attributeName;
-            if (lexer.is(Tokens.TokenKind.IDENTIFIER)) {
+            if (isNameStart()) {
                 attributeName = parseName();
                 lexer.accept(Tokens.TokenKind.EQ);
             } else {
@@ -417,9 +432,26 @@ public final class OpParser {
         return attributes;
     }
 
+    boolean isNameStart() {
+        // we need to lookahead to see if we can find an identifier followed by a '=',
+        // in which case we know what we're looking at is an attribute name
+        int curr = 0;
+        while (true) {
+            if (lexer.token(curr++).kind != TokenKind.IDENTIFIER) {
+                return false;
+            }
+            TokenKind next = lexer.token(curr++).kind;
+            if (next == TokenKind.EQ) {
+                return true;
+            } else if (next != TokenKind.DOT) {
+                return false;
+            }
+        }
+    }
+
     Object parseAttributeValue() {
         if (lexer.is(Tokens.TokenKind.IDENTIFIER)) {
-            return parseName();
+            return DescParser.parseExTypeElem(lexer);
         }
 
         Object value = parseLiteral(lexer.token());

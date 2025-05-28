@@ -53,7 +53,7 @@ public class NullTest {
     @IR("""
             func @"test2" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.Object" = constant @null;
-                %2 : java.type:"java.lang.String" = cast %1 @"java.lang.String";
+                %2 : java.type:"java.lang.String" = cast %1 @java.type:"java.lang.String";
                 %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
                 return;
             };
@@ -151,7 +151,7 @@ public class NullTest {
                         %6 : java.type:"java.lang.Object" = constant @null;
                         yield %6;
                     };
-                %7 : java.type:"java.lang.String" = cast %3 @"java.lang.String";
+                %7 : java.type:"java.lang.String" = cast %3 @java.type:"java.lang.String";
                 return %7;
             };
             """)
@@ -281,7 +281,7 @@ public class NullTest {
                         %10 : java.type:"java.lang.Object" = constant @null;
                         yield %10;
                     };
-                %11 : java.type:"java.lang.String" = cast %4 @"java.lang.String";
+                %11 : java.type:"java.lang.String" = cast %4 @java.type:"java.lang.String";
                 return %11;
             };
             """)
@@ -414,7 +414,7 @@ public class NullTest {
                         %10 : java.type:"java.lang.Object" = constant @null;
                         java.yield %10;
                     };
-                %11 : java.type:"java.lang.String" = cast %4 @"java.lang.String";
+                %11 : java.type:"java.lang.String" = cast %4 @java.type:"java.lang.String";
                 return %11;
             };
             """)
@@ -445,7 +445,7 @@ public class NullTest {
     @IR("""
             func @"test16" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
-                invoke %1 @"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs="true";
+                invoke %1 @java.ref:"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs="true";
                 return;
             };
             """)
@@ -458,7 +458,7 @@ public class NullTest {
             func @"test17" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
                 %2 : java.type:"java.lang.String[]" = constant @null;
-                invoke %1 %2 @"NullTest::m(java.lang.String, java.lang.String[]):void";
+                invoke %1 %2 @java.ref:"NullTest::m(java.lang.String, java.lang.String[]):void";
                 return;
             };
             """)
@@ -472,7 +472,7 @@ public class NullTest {
                 %1 : java.type:"java.lang.String" = constant @null;
                 %2 : java.type:"java.lang.String" = constant @null;
                 %3 : java.type:"java.lang.String" = constant @null;
-                invoke %1 %2 %3 @"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs="true";
+                invoke %1 %2 %3 @java.ref:"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs="true";
                 return;
             };
             """)
@@ -488,7 +488,7 @@ public class NullTest {
     @IR("""
             func @"test19" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
-                %2 : java.type:"NullTest$Box" = new %1 @"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs="true";
+                %2 : java.type:"NullTest$Box" = new %1 @java.ref:"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs="true";
                 return;
             };
             """)
@@ -501,7 +501,7 @@ public class NullTest {
             func @"test20" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
                 %2 : java.type:"java.lang.String[]" = constant @null;
-                %3 : java.type:"NullTest$Box" = new %1 %2 @"NullTest$Box::(java.lang.String, java.lang.String[])";
+                %3 : java.type:"NullTest$Box" = new %1 %2 @java.ref:"NullTest$Box::(java.lang.String, java.lang.String[])";
                 return;
             };
             """)
@@ -515,7 +515,7 @@ public class NullTest {
                 %1 : java.type:"java.lang.String" = constant @null;
                 %2 : java.type:"java.lang.String" = constant @null;
                 %3 : java.type:"java.lang.String" = constant @null;
-                %4 : java.type:"NullTest$Box" = new %1 %2 %3 @"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs="true";
+                %4 : java.type:"NullTest$Box" = new %1 %2 %3 @java.ref:"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs="true";
                 return;
             };
             """)

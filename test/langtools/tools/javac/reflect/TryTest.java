@@ -112,7 +112,7 @@ public class TryTest {
                     (%4 : java.type:"java.lang.Exception")java.type:"void" -> {
                         %5 : Var<java.type:"java.lang.Exception"> = var %4 @"e";
                         %6 : java.type:"java.lang.Exception" = var.load %5;
-                        invoke %6 @"java.lang.Exception::printStackTrace():void";
+                        invoke %6 @java.ref:"java.lang.Exception::printStackTrace():void";
                         yield;
                     };
                 return;
@@ -166,13 +166,13 @@ public class TryTest {
             func @"test4" (%0 : java.type:"TryTest")java.type:"void" -> {
                 java.try
                     ()Tuple<Var<java.type:"TryTest$A">, java.type:"TryTest$B", Var<java.type:"TryTest$C">> -> {
-                        %1 : java.type:"TryTest$A" = invoke %0 @"TryTest::a():TryTest$A";
+                        %1 : java.type:"TryTest$A" = invoke %0 @java.ref:"TryTest::a():TryTest$A";
                         %2 : Var<java.type:"TryTest$A"> = var %1 @"a";
                         %3 : java.type:"TryTest$A" = var.load %2;
-                        %4 : java.type:"TryTest$B" = field.load %3 @"TryTest$A::b:TryTest$B";
+                        %4 : java.type:"TryTest$B" = field.load %3 @java.ref:"TryTest$A::b:TryTest$B";
                         %5 : java.type:"TryTest$A" = var.load %2;
-                        %6 : java.type:"TryTest$B" = field.load %5 @"TryTest$A::b:TryTest$B";
-                        %7 : java.type:"TryTest$C" = field.load %6 @"TryTest$B::c:TryTest$C";
+                        %6 : java.type:"TryTest$B" = field.load %5 @java.ref:"TryTest$A::b:TryTest$B";
+                        %7 : java.type:"TryTest$C" = field.load %6 @java.ref:"TryTest$B::c:TryTest$C";
                         %8 : Var<java.type:"TryTest$C"> = var %7 @"c";
                         %9 : Tuple<Var<java.type:"TryTest$A">, java.type:"TryTest$B", Var<java.type:"TryTest$C">> = tuple %2 %4 %8;
                         yield %9;
@@ -187,13 +187,13 @@ public class TryTest {
                     (%16 : java.type:"java.lang.Throwable")java.type:"void" -> {
                         %17 : Var<java.type:"java.lang.Throwable"> = var %16 @"t";
                         %18 : java.type:"java.lang.Throwable" = var.load %17;
-                        invoke %18 @"java.lang.Throwable::printStackTrace():void";
+                        invoke %18 @java.ref:"java.lang.Throwable::printStackTrace():void";
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %19 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %19 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %20 : java.type:"java.lang.String" = constant @"F";
-                        invoke %19 %20 @"java.io.PrintStream::println(java.lang.String):void";
+                        invoke %19 %20 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                         yield;
                     };
                 return;

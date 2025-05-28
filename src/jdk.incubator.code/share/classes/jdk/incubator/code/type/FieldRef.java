@@ -30,7 +30,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
 
 /**
  * The symbolic reference to a Java field.
@@ -62,9 +61,5 @@ public sealed interface FieldRef extends JavaRef
 
     static FieldRef field(TypeElement refType, String name, TypeElement type) {
         return new FieldRefImpl(refType, name, type);
-    }
-
-    static FieldRef ofString(String s) {
-        return (FieldRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
     }
 }

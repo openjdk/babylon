@@ -46,9 +46,9 @@ public class WhileLoopTest {
                         yield %5;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %6 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %7 : java.type:"int" = var.load %2;
-                        invoke %6 %7 @"java.io.PrintStream::println(int):void";
+                        invoke %6 %7 @java.ref:"java.io.PrintStream::println(int):void";
                         %8 : java.type:"int" = var.load %2;
                         %9 : java.type:"int" = constant @"1";
                         %10 : java.type:"int" = add %8 %9;
@@ -101,9 +101,9 @@ public class WhileLoopTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 java.do.while
                     ()java.type:"void" -> {
-                        %3 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %3 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %4 : java.type:"int" = var.load %2;
-                        invoke %3 %4 @"java.io.PrintStream::println(int):void";
+                        invoke %3 %4 @java.ref:"java.io.PrintStream::println(int):void";
                         %5 : java.type:"int" = var.load %2;
                         %6 : java.type:"int" = constant @"1";
                         %7 : java.type:"int" = add %5 %6;
@@ -131,14 +131,14 @@ public class WhileLoopTest {
     @IR("""
             func @"test4" ()java.type:"void" -> {
                 %0 : java.type:"boolean" = constant @"true";
-                %1 : java.type:"java.lang.Boolean" = invoke %0 @"java.lang.Boolean::valueOf(boolean):java.lang.Boolean";
+                %1 : java.type:"java.lang.Boolean" = invoke %0 @java.ref:"java.lang.Boolean::valueOf(boolean):java.lang.Boolean";
                 %2 : Var<java.type:"java.lang.Boolean"> = var %1 @"b";
                 %3 : java.type:"int" = constant @"0";
                 %4 : Var<java.type:"int"> = var %3 @"i";
                 java.while
                     ()java.type:"boolean" -> {
                         %5 : java.type:"java.lang.Boolean" = var.load %2;
-                        %6 : java.type:"boolean" = invoke %5 @"java.lang.Boolean::booleanValue():boolean";
+                        %6 : java.type:"boolean" = invoke %5 @java.ref:"java.lang.Boolean::booleanValue():boolean";
                         yield %6;
                     }
                     ()java.type:"void" -> {
@@ -149,7 +149,7 @@ public class WhileLoopTest {
                         %10 : java.type:"int" = var.load %4;
                         %11 : java.type:"int" = constant @"10";
                         %12 : java.type:"boolean" = lt %10 %11;
-                        %13 : java.type:"java.lang.Boolean" = invoke %12 @"java.lang.Boolean::valueOf(boolean):java.lang.Boolean";
+                        %13 : java.type:"java.lang.Boolean" = invoke %12 @java.ref:"java.lang.Boolean::valueOf(boolean):java.lang.Boolean";
                         var.store %2 %13;
                         java.continue;
                     };
@@ -175,13 +175,13 @@ public class WhileLoopTest {
                         %3 : java.type:"int" = var.load %1;
                         %4 : java.type:"int" = constant @"10";
                         %5 : java.type:"boolean" = lt %3 %4;
-                        %6 : java.type:"java.lang.Boolean" = invoke %5 @"java.lang.Boolean::valueOf(boolean):java.lang.Boolean";
+                        %6 : java.type:"java.lang.Boolean" = invoke %5 @java.ref:"java.lang.Boolean::valueOf(boolean):java.lang.Boolean";
                         var.store %2 %6;
                         java.continue;
                     }
                     ()java.type:"boolean" -> {
                         %7 : java.type:"java.lang.Boolean" = var.load %2;
-                        %8 : java.type:"boolean" = invoke %7 @"java.lang.Boolean::booleanValue():boolean";
+                        %8 : java.type:"boolean" = invoke %7 @java.ref:"java.lang.Boolean::booleanValue():boolean";
                         yield %8;
                     };
                 return;

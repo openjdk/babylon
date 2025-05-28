@@ -58,9 +58,9 @@ public class ForLoopTest {
                                 yield %9;
                             }
                             (%10 : Var<java.type:"java.lang.String">)java.type:"void" -> {
-                                %11 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                                %11 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                                 %12 : java.type:"java.lang.String" = var.load %10;
-                                invoke %11 %12 @"java.io.PrintStream::println(java.lang.String):void";
+                                invoke %11 %12 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                                 java.continue;
                             };
                         java.continue;
@@ -83,17 +83,17 @@ public class ForLoopTest {
                 java.enhancedFor
                     ()java.type:"java.util.List<java.lang.String>" -> {
                         %3 : java.type:"java.util.List<java.lang.String>" = var.load %2;
-                        %4 : java.type:"java.util.stream.Stream<java.lang.String>" = invoke %3 @"java.util.List::stream():java.util.stream.Stream";
+                        %4 : java.type:"java.util.stream.Stream<java.lang.String>" = invoke %3 @java.ref:"java.util.List::stream():java.util.stream.Stream";
                         %5 : java.type:"java.util.function.Predicate<java.lang.String>" = lambda (%6 : java.type:"java.lang.String")java.type:"boolean" -> {
                             %7 : Var<java.type:"java.lang.String"> = var %6 @"s";
                             %8 : java.type:"java.lang.String" = var.load %7;
-                            %9 : java.type:"int" = invoke %8 @"java.lang.String::length():int";
+                            %9 : java.type:"int" = invoke %8 @java.ref:"java.lang.String::length():int";
                             %10 : java.type:"int" = constant @"10";
                             %11 : java.type:"boolean" = lt %9 %10;
                             return %11;
                         };
-                        %12 : java.type:"java.util.stream.Stream<java.lang.String>" = invoke %4 %5 @"java.util.stream.Stream::filter(java.util.function.Predicate):java.util.stream.Stream";
-                        %13 : java.type:"java.util.List<java.lang.String>" = invoke %12 @"java.util.stream.Stream::toList():java.util.List";
+                        %12 : java.type:"java.util.stream.Stream<java.lang.String>" = invoke %4 %5 @java.ref:"java.util.stream.Stream::filter(java.util.function.Predicate):java.util.stream.Stream";
+                        %13 : java.type:"java.util.List<java.lang.String>" = invoke %12 @java.ref:"java.util.stream.Stream::toList():java.util.List";
                         yield %13;
                     }
                     (%14 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
@@ -101,9 +101,9 @@ public class ForLoopTest {
                         yield %15;
                     }
                     (%16 : Var<java.type:"java.lang.String">)java.type:"void" -> {
-                        %17 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %17 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %18 : java.type:"java.lang.String" = var.load %16;
-                        invoke %17 %18 @"java.io.PrintStream::println(java.lang.String):void";
+                        invoke %17 %18 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                         java.continue;
                     };
                 return;
@@ -189,9 +189,9 @@ public class ForLoopTest {
                         yield;
                     }
                     (%11 : Var<java.type:"int">)java.type:"void" -> {
-                        %12 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %12 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %13 : java.type:"int" = var.load %11;
-                        invoke %12 %13 @"java.io.PrintStream::println(int):void";
+                        invoke %12 %13 @java.ref:"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;
@@ -263,9 +263,9 @@ public class ForLoopTest {
                         yield;
                     }
                     (%11 : Var<java.type:"int">)java.type:"void" -> {
-                        %12 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %12 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %13 : java.type:"int" = var.load %11;
-                        invoke %12 %13 @"java.io.PrintStream::println(int):void";
+                        invoke %12 %13 @java.ref:"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;
@@ -331,9 +331,9 @@ public class ForLoopTest {
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %9 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %9 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %10 : java.type:"int" = var.load %2;
-                        invoke %9 %10 @"java.io.PrintStream::println(int):void";
+                        invoke %9 %10 @java.ref:"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;
@@ -373,9 +373,9 @@ public class ForLoopTest {
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %12 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %12 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %13 : java.type:"int" = var.load %2;
-                        invoke %12 %13 @"java.io.PrintStream::println(int):void";
+                        invoke %12 %13 @java.ref:"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;
@@ -409,9 +409,9 @@ public class ForLoopTest {
                         yield;
                     }
                     (%9 : Var<java.type:"int">)java.type:"void" -> {
-                        %10 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %10 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %11 : java.type:"int" = var.load %9;
-                        invoke %10 %11 @"java.io.PrintStream::println(int):void";
+                        invoke %10 %11 @java.ref:"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 unreachable;
@@ -440,9 +440,9 @@ public class ForLoopTest {
                         yield;
                     }
                     (%6 : Var<java.type:"int">)java.type:"void" -> {
-                        %7 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %7 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %8 : java.type:"int" = var.load %6;
-                        invoke %7 %8 @"java.io.PrintStream::println(int):void";
+                        invoke %7 %8 @java.ref:"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 unreachable;
@@ -519,12 +519,12 @@ public class ForLoopTest {
                         yield;
                     }
                     (%23 : Var<java.type:"int">, %24 : Var<java.type:"int">)java.type:"void" -> {
-                        %25 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        %25 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %26 : java.type:"int" = var.load %23;
-                        invoke %25 %26 @"java.io.PrintStream::println(int):void";
-                        %27 : java.type:"java.io.PrintStream" = field.load @"java.lang.System::out:java.io.PrintStream";
+                        invoke %25 %26 @java.ref:"java.io.PrintStream::println(int):void";
+                        %27 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
                         %28 : java.type:"int" = var.load %24;
-                        invoke %27 %28 @"java.io.PrintStream::println(int):void";
+                        invoke %27 %28 @java.ref:"java.io.PrintStream::println(int):void";
                         java.continue;
                     };
                 return;

@@ -59,7 +59,7 @@ public class TestReferences {
 
     @Test(dataProvider = "methodRefs")
     public void testMethodRef(String mds, String refType, String name) {
-        MethodRef mr = MethodRef.ofString(mds);
+        MethodRef mr = refFromFlatString(mds);
         Assert.assertEquals(mr.toString(), mds);
         Assert.assertEquals(mr.refType().toString(), refType);
         Assert.assertEquals(mr.name(), name);
@@ -99,7 +99,7 @@ public class TestReferences {
 
     @Test(dataProvider = "constructorRefs")
     public void testConstructorRef(String cds, String refType) {
-        ConstructorRef cr = ConstructorRef.ofString(cds);
+        ConstructorRef cr = refFromFlatString(cds);
         Assert.assertEquals(cr.toString(), cds);
         Assert.assertEquals(cr.refType().toString(), refType);
     }
@@ -134,7 +134,7 @@ public class TestReferences {
 
     @Test(dataProvider = "fieldRefs")
     public void testFieldRef(String fds, String refType, String name, String type) {
-        FieldRef fr = FieldRef.ofString(fds);
+        FieldRef fr = refFromFlatString(fds);
         Assert.assertEquals(fr.toString(), fds);
         Assert.assertEquals(fr.refType().toString(), refType);
         Assert.assertEquals(fr.name(), name);
@@ -176,7 +176,7 @@ public class TestReferences {
 
     @Test(dataProvider = "recordTypeRefs")
     public void testRecordTypeRef(String rtds) {
-        RecordTypeRef rtr = RecordTypeRef.ofString(rtds);
+        RecordTypeRef rtr = refFromFlatString(rtds);
         Assert.assertEquals(rtr.toString(), rtds);
     }
 
@@ -196,5 +196,10 @@ public class TestReferences {
         TypeElement.ExternalizedTypeElement ertr = TypeElement.ExternalizedTypeElement.ofString(rtds);
         RecordTypeRef rtr = (RecordTypeRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ertr));
         Assert.assertEquals(JavaTypeUtils.flatten(rtr.externalize()).toString(), rtds);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <R extends JavaRef> R refFromFlatString(String desc) {
+        return (R)JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(desc));
     }
 }

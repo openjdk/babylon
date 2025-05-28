@@ -42,8 +42,8 @@ public class LocalClassTest {
     @CodeReflection
     @IR("""
             func @"testLocalNoCapture" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
-                %1 : java.type:"LocalClassTest::$1Foo" = new %0 @"LocalClassTest::$1Foo::(LocalClassTest)";
-                invoke %1 @"LocalClassTest::$1Foo::m():void";
+                %1 : java.type:"LocalClassTest::$1Foo" = new %0 @java.ref:"LocalClassTest::$1Foo::(LocalClassTest)";
+                invoke %1 @java.ref:"LocalClassTest::$1Foo::m():void";
                 return;
             };
             """)
@@ -57,8 +57,8 @@ public class LocalClassTest {
     @CodeReflection
     @IR("""
             func @"testAnonNoCapture" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
-                %1 : java.type:"LocalClassTest::$1" = new %0 @"LocalClassTest::$1::(LocalClassTest)";
-                invoke %1 @"LocalClassTest::$1::m():void";
+                %1 : java.type:"LocalClassTest::$1" = new %0 @java.ref:"LocalClassTest::$1::(LocalClassTest)";
+                invoke %1 @java.ref:"LocalClassTest::$1::m():void";
                 return;
             };
             """)
@@ -73,8 +73,8 @@ public class LocalClassTest {
             func @"testLocalCaptureParam" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
                 %3 : java.type:"java.lang.String" = var.load %2;
-                %4 : java.type:"LocalClassTest::$2Foo" = new %0 %3 @"LocalClassTest::$2Foo::(LocalClassTest, java.lang.String)";
-                %5 : java.type:"java.lang.String" = invoke %4 @"LocalClassTest::$2Foo::m():java.lang.String";
+                %4 : java.type:"LocalClassTest::$2Foo" = new %0 %3 @java.ref:"LocalClassTest::$2Foo::(LocalClassTest, java.lang.String)";
+                %5 : java.type:"java.lang.String" = invoke %4 @java.ref:"LocalClassTest::$2Foo::m():java.lang.String";
                 return %5;
             };
             """)
@@ -90,8 +90,8 @@ public class LocalClassTest {
             func @"testAnonCaptureParam" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
                 %3 : java.type:"java.lang.String" = var.load %2;
-                %4 : java.type:"LocalClassTest::$2" = new %0 %3 @"LocalClassTest::$2::(LocalClassTest, java.lang.String)";
-                %5 : java.type:"java.lang.String" = invoke %4 @"LocalClassTest::$2::m():java.lang.String";
+                %4 : java.type:"LocalClassTest::$2" = new %0 %3 @java.ref:"LocalClassTest::$2::(LocalClassTest, java.lang.String)";
+                %5 : java.type:"java.lang.String" = invoke %4 @java.ref:"LocalClassTest::$2::m():java.lang.String";
                 return %5;
             };
             """)
@@ -108,8 +108,8 @@ public class LocalClassTest {
                 %3 : java.type:"java.lang.String" = constant @"Hello!";
                 %4 : Var<java.type:"java.lang.String"> = var %3 @"localConst";
                 %5 : java.type:"java.lang.String" = var.load %2;
-                %6 : java.type:"LocalClassTest::$3Foo" = new %0 %5 @"LocalClassTest::$3Foo::(LocalClassTest, java.lang.String)";
-                %7 : java.type:"java.lang.String" = invoke %6 @"LocalClassTest::$3Foo::m():java.lang.String";
+                %6 : java.type:"LocalClassTest::$3Foo" = new %0 %5 @java.ref:"LocalClassTest::$3Foo::(LocalClassTest, java.lang.String)";
+                %7 : java.type:"java.lang.String" = invoke %6 @java.ref:"LocalClassTest::$3Foo::m():java.lang.String";
                 return %7;
             };
             """)
@@ -128,8 +128,8 @@ public class LocalClassTest {
                 %3 : java.type:"java.lang.String" = constant @"Hello!";
                 %4 : Var<java.type:"java.lang.String"> = var %3 @"localConst";
                 %5 : java.type:"java.lang.String" = var.load %2;
-                %6 : java.type:"LocalClassTest::$3" = new %0 %5 @"LocalClassTest::$3::(LocalClassTest, java.lang.String)";
-                %7 : java.type:"java.lang.String" = invoke %6 @"LocalClassTest::$3::m():java.lang.String";
+                %6 : java.type:"LocalClassTest::$3" = new %0 %5 @java.ref:"LocalClassTest::$3::(LocalClassTest, java.lang.String)";
+                %7 : java.type:"java.lang.String" = invoke %6 @java.ref:"LocalClassTest::$3::m():java.lang.String";
                 return %7;
             };
             """)
@@ -147,7 +147,7 @@ public class LocalClassTest {
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int" = var.load %3;
                 %6 : java.type:"int" = var.load %4;
-                %7 : java.type:"LocalClassTest::$1Bar" = new %0 %5 %6 @"LocalClassTest::$1Bar::(LocalClassTest, int, int)";
+                %7 : java.type:"LocalClassTest::$1Bar" = new %0 %5 %6 @java.ref:"LocalClassTest::$1Bar::(LocalClassTest, int, int)";
                 return;
             };
             """)
@@ -169,7 +169,7 @@ public class LocalClassTest {
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int" = var.load %3;
                 %6 : java.type:"int" = var.load %4;
-                %7 : java.type:"LocalClassTest::$4" = new %0 %5 %6 @"LocalClassTest::$4::(LocalClassTest, int, int)";
+                %7 : java.type:"LocalClassTest::$4" = new %0 %5 %6 @java.ref:"LocalClassTest::$4::(LocalClassTest, int, int)";
                 return;
             };
             """)

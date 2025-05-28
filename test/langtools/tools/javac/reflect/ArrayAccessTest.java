@@ -145,7 +145,7 @@ public class ArrayAccessTest {
     @CodeReflection
     @IR("""
             func @"test7" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
-                %1 : java.type:"int[]" = field.load %0 @"ArrayAccessTest::ia:int[]";
+                %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
                 %2 : java.type:"int" = constant @"0";
                 %3 : java.type:"int" = array.load %1 %2;
                 return %3;
@@ -158,7 +158,7 @@ public class ArrayAccessTest {
     @CodeReflection
     @IR("""
             func @"test8" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
-                %1 : java.type:"int[]" = field.load %0 @"ArrayAccessTest::ia:int[]";
+                %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
                 %2 : java.type:"int" = constant @"0";
                 %3 : java.type:"int" = array.load %1 %2;
                 return %3;
@@ -179,7 +179,7 @@ public class ArrayAccessTest {
                 %3 : java.type:"ArrayAccessTest$A[]" = var.load %2;
                 %4 : java.type:"int" = constant @"0";
                 %5 : java.type:"ArrayAccessTest$A" = array.load %3 %4;
-                %6 : java.type:"int" = field.load %5 @"ArrayAccessTest$A::i:int";
+                %6 : java.type:"int" = field.load %5 @java.ref:"ArrayAccessTest$A::i:int";
                 return %6;
             };
             """)
@@ -195,7 +195,7 @@ public class ArrayAccessTest {
                 %4 : java.type:"int" = constant @"0";
                 %5 : java.type:"ArrayAccessTest$A" = array.load %3 %4;
                 %6 : java.type:"int" = constant @"1";
-                field.store %5 %6 @"ArrayAccessTest$A::i:int";
+                field.store %5 %6 @java.ref:"ArrayAccessTest$A::i:int";
                 return;
             };
             """)
@@ -328,7 +328,7 @@ public class ArrayAccessTest {
                 %3 : java.type:"int[]" = var.load %2;
                 %4 : java.type:"int" = array.length %3;
                 %5 : java.type:"int[]" = var.load %2;
-                %6 : java.type:"int" = invoke %5 @"java.lang.Object::hashCode():int";
+                %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Object::hashCode():int";
                 %7 : java.type:"int" = add %4 %6;
                 return %7;
             };

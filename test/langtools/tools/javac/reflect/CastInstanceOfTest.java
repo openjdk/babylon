@@ -41,7 +41,7 @@ public class CastInstanceOfTest {
             func @"test1" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
                 %3 : java.type:"java.lang.Object" = var.load %2;
-                %4 : java.type:"java.lang.String" = cast %3 @"java.lang.String";
+                %4 : java.type:"java.lang.String" = cast %3 @java.type:"java.lang.String";
                 %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
                 %6 : java.type:"java.lang.String" = var.load %5;
                 %7 : Var<java.type:"java.lang.String"> = var %6 @"ss";
@@ -58,7 +58,7 @@ public class CastInstanceOfTest {
             func @"test2" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
                 %3 : java.type:"java.lang.Object" = var.load %2;
-                %4 : java.type:"java.util.List<java.lang.String>" = cast %3 @"java.util.List";
+                %4 : java.type:"java.util.List<java.lang.String>" = cast %3 @java.type:"java.util.List";
                 %5 : Var<java.type:"java.util.List<java.lang.String>"> = var %4 @"l";
                 %6 : java.type:"java.util.List<java.lang.String>" = var.load %5;
                 %7 : Var<java.type:"java.util.Collection<java.lang.String>"> = var %6 @"c1";
@@ -108,7 +108,7 @@ public class CastInstanceOfTest {
             func @"test5" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
                 %3 : java.type:"java.lang.Object" = var.load %2;
-                %4 : java.type:"boolean" = instanceof %3 @"java.lang.String";
+                %4 : java.type:"boolean" = instanceof %3 @java.type:"java.lang.String";
                 %5 : Var<java.type:"boolean"> = var %4 @"b";
                 return;
             };
@@ -123,8 +123,8 @@ public class CastInstanceOfTest {
                 %2 : Var<java.type:"java.util.List<java.lang.Object>"> = var %1 @"l";
                 %3 : java.type:"java.util.List<java.lang.Object>" = var.load %2;
                 %4 : java.type:"int" = constant @"0";
-                %5 : java.type:"java.lang.Object" = invoke %3 %4 @"java.util.List::get(int):java.lang.Object";
-                %6 : java.type:"boolean" = instanceof %5 @"java.lang.String";
+                %5 : java.type:"java.lang.Object" = invoke %3 %4 @java.ref:"java.util.List::get(int):java.lang.Object";
+                %6 : java.type:"boolean" = instanceof %5 @java.type:"java.lang.String";
                 %7 : Var<java.type:"boolean"> = var %6 @"b";
                 return;
             };

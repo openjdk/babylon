@@ -28,7 +28,6 @@ package jdk.incubator.code.type;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
 import jdk.incubator.code.type.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -95,10 +94,6 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
 
     static MethodRef method(TypeElement refType, String name, TypeElement retType, List<? extends TypeElement> params) {
         return method(refType, name, functionType(retType, params));
-    }
-
-    static MethodRef ofString(String s) {
-        return (MethodRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.parseExternalRefString(s));
     }
 
 

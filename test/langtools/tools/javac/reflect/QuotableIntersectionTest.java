@@ -90,7 +90,7 @@ public class QuotableIntersectionTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : java.type:"jdk.incubator.code.Quotable" = lambda ()java.type:"void" -> {
-                    %1 : java.type:"java.lang.AssertionError" = new @"java.lang.AssertionError::()";
+                    %1 : java.type:"java.lang.AssertionError" = new @java.ref:"java.lang.AssertionError::()";
                     throw %1;
                 };
                 return;
@@ -130,8 +130,8 @@ public class QuotableIntersectionTest {
             func @"f" (%0 : java.type:"QuotableIntersectionTest$Context")java.type:"void" -> {
                 %1 : java.type:"jdk.incubator.code.Quotable" = lambda (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
-                    %4 : java.type:"int" = field.load %0 @"QuotableIntersectionTest$Context::x:int";
-                    %5 : java.type:"int" = field.load %0 @"QuotableIntersectionTest$Context::y:int";
+                    %4 : java.type:"int" = field.load %0 @java.ref:"QuotableIntersectionTest$Context::x:int";
+                    %5 : java.type:"int" = field.load %0 @java.ref:"QuotableIntersectionTest$Context::y:int";
                     %6 : java.type:"int" = add %4 %5;
                     %7 : java.type:"int" = var.load %3;
                     %8 : java.type:"int" = add %6 %7;
@@ -168,8 +168,8 @@ public class QuotableIntersectionTest {
             func @"captureField" (%0 : java.type:"QuotableIntersectionTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.IntUnaryOperator" = lambda (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
-                    %4 : java.type:"int" = field.load %0 @"QuotableIntersectionTest::x:int";
-                    %5 : java.type:"int" = field.load %0 @"QuotableIntersectionTest::y:int";
+                    %4 : java.type:"int" = field.load %0 @java.ref:"QuotableIntersectionTest::x:int";
+                    %5 : java.type:"int" = field.load %0 @java.ref:"QuotableIntersectionTest::y:int";
                     %6 : java.type:"int" = add %4 %5;
                     %7 : java.type:"int" = var.load %3;
                     %8 : java.type:"int" = add %6 %7;
@@ -189,7 +189,7 @@ public class QuotableIntersectionTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
                 %0 : java.type:"jdk.incubator.code.Quotable" = lambda ()java.type:"void" -> {
-                    invoke @"QuotableIntersectionTest::m():void";
+                    invoke @java.ref:"QuotableIntersectionTest::m():void";
                     return;
                 };
                 return;
@@ -206,7 +206,7 @@ public class QuotableIntersectionTest {
                 %0 : java.type:"jdk.incubator.code.Quotable" = lambda (%1 : java.type:"int")java.type:"int" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x$0";
                     %3 : java.type:"int" = var.load %2;
-                    %4 : java.type:"int" = invoke %3 @"QuotableIntersectionTest::g(int):int";
+                    %4 : java.type:"int" = invoke %3 @java.ref:"QuotableIntersectionTest::g(int):int";
                     return %4;
                 };
                 return;
@@ -219,7 +219,7 @@ public class QuotableIntersectionTest {
                 %0 : java.type:"jdk.incubator.code.Quotable" = lambda (%1 : java.type:"int")java.type:"int[]" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x$0";
                     %3 : java.type:"int" = var.load %2;
-                    %4 : java.type:"int[]" = new %3 @"int[]::(int)";
+                    %4 : java.type:"int[]" = new %3 @java.ref:"int[]::(int)";
                     return %4;
                 };
                 return;
@@ -242,7 +242,7 @@ public class QuotableIntersectionTest {
                 %1 : java.type:"jdk.incubator.code.Quotable" = lambda (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"x$0";
                     %4 : java.type:"int" = var.load %3;
-                    %5 : java.type:"int" = invoke %0 %4 @"QuotableIntersectionTest$ContextRef::g(int):int";
+                    %5 : java.type:"int" = invoke %0 %4 @java.ref:"QuotableIntersectionTest$ContextRef::g(int):int";
                     return %5;
                 };
                 return;

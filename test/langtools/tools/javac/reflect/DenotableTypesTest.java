@@ -39,7 +39,7 @@ public class DenotableTypesTest {
     @IR("""
             func @"test1" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.Number" = constant @null;
-                %1 : java.type:"java.lang.Number" = invoke %0 @"DenotableTypesTest::m1(java.lang.Number):java.lang.Number";
+                %1 : java.type:"java.lang.Number" = invoke %0 @java.ref:"DenotableTypesTest::m1(java.lang.Number):java.lang.Number";
                 return;
             };
             """)
@@ -51,10 +51,10 @@ public class DenotableTypesTest {
     @IR("""
             func @"test2" ()java.type:"void" -> {
                 %0 : java.type:"int" = constant @"1";
-                %1 : java.type:"java.lang.Integer" = invoke %0 @"java.lang.Integer::valueOf(int):java.lang.Integer";
+                %1 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                 %2 : java.type:"double" = constant @"3.0";
-                %3 : java.type:"java.lang.Double" = invoke %2 @"java.lang.Double::valueOf(double):java.lang.Double";
-                %4 : java.type:"java.util.List<? extends java.lang.Number>" = invoke %1 %3 @"java.util.List::of(java.lang.Object, java.lang.Object):java.util.List";
+                %3 : java.type:"java.lang.Double" = invoke %2 @java.ref:"java.lang.Double::valueOf(double):java.lang.Double";
+                %4 : java.type:"java.util.List<? extends java.lang.Number>" = invoke %1 %3 @java.ref:"java.util.List::of(java.lang.Object, java.lang.Object):java.util.List";
                 return;
             };
             """)
@@ -68,7 +68,7 @@ public class DenotableTypesTest {
     @IR("""
             func @"test3" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.RuntimeException" = constant @null;
-                %1 : java.type:"java.lang.RuntimeException" = invoke %0 @"DenotableTypesTest::m2(java.lang.Throwable):java.lang.Throwable";
+                %1 : java.type:"java.lang.RuntimeException" = invoke %0 @java.ref:"DenotableTypesTest::m2(java.lang.Throwable):java.lang.Throwable";
                 return;
             };
             """)
@@ -87,10 +87,10 @@ public class DenotableTypesTest {
     @IR("""
             func @"test4" ()java.type:"void" -> {
                 %0 : java.type:"java.lang.Object" = constant @null;
-                %1 : java.type:"DenotableTypesTest$C" = cast %0 @"DenotableTypesTest$C";
+                %1 : java.type:"DenotableTypesTest$C" = cast %0 @java.type:"DenotableTypesTest$C";
                 %2 : java.type:"java.lang.Object" = constant @null;
-                %3 : java.type:"DenotableTypesTest$D" = cast %2 @"DenotableTypesTest$D";
-                %4 : java.type:"DenotableTypesTest$A" = invoke %1 %3 @"DenotableTypesTest::pick(java.lang.Object, java.lang.Object):java.lang.Object";
+                %3 : java.type:"DenotableTypesTest$D" = cast %2 @java.type:"DenotableTypesTest$D";
+                %4 : java.type:"DenotableTypesTest$A" = invoke %1 %3 @java.ref:"DenotableTypesTest::pick(java.lang.Object, java.lang.Object):java.lang.Object";
                 return;
             };
             """)
@@ -105,7 +105,7 @@ public class DenotableTypesTest {
                 %1 : Var<java.type:"java.util.List<? extends java.lang.Number>"> = var %0 @"l";
                 %2 : java.type:"java.util.List<? extends java.lang.Number>" = var.load %1;
                 %3 : java.type:"int" = constant @"0";
-                %4 : java.type:"java.lang.Number" = invoke %2 %3 @"java.util.List::get(int):java.lang.Object";
+                %4 : java.type:"java.lang.Number" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
                 return;
             };
             """)
@@ -121,7 +121,7 @@ public class DenotableTypesTest {
                 %1 : Var<java.type:"java.util.List<? super java.lang.Number>"> = var %0 @"l";
                 %2 : java.type:"java.util.List<? super java.lang.Number>" = var.load %1;
                 %3 : java.type:"int" = constant @"0";
-                %4 : java.type:"java.lang.Object" = invoke %2 %3 @"java.util.List::get(int):java.lang.Object";
+                %4 : java.type:"java.lang.Object" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
                 return;
             };
             """)
@@ -138,8 +138,8 @@ public class DenotableTypesTest {
                 %0 : java.type:"&DenotableTypesTest::test7():void::<X>" = constant @null;
                 %1 : Var<java.type:"&DenotableTypesTest::test7():void::<X>"> = var %0 @"x";
                 %2 : java.type:"&DenotableTypesTest::test7():void::<X>" = var.load %1;
-                %3 : java.type:"java.lang.Runnable" = cast %2 @"java.lang.Runnable";
-                invoke %3 @"DenotableTypesTest::consume(java.lang.Runnable):void";
+                %3 : java.type:"java.lang.Runnable" = cast %2 @java.type:"java.lang.Runnable";
+                invoke %3 @java.ref:"DenotableTypesTest::consume(java.lang.Runnable):void";
                 return;
             };
             """)
@@ -158,11 +158,11 @@ public class DenotableTypesTest {
                 %1 : Var<java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>"> = var %0 @"list";
                 %2 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>" = var.load %1;
                 %3 : java.type:"int" = constant @"0";
-                %4 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %2 %3 @"java.util.List::get(int):java.lang.Object";
+                %4 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
                 %5 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>" = var.load %1;
                 %6 : java.type:"int" = constant @"1";
-                %7 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %5 %6 @"java.util.List::get(int):java.lang.Object";
-                invoke %4 %7 @"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder):void";
+                %7 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %5 %6 @java.ref:"java.util.List::get(int):java.lang.Object";
+                invoke %4 %7 @java.ref:"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder):void";
                 return;
             };
             """)
@@ -180,8 +180,8 @@ public class DenotableTypesTest {
                 %1 : Var<java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>"> = var %0 @"list";
                 %2 : java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>" = var.load %1;
                 %3 : java.type:"int" = constant @"0";
-                %4 : java.type:"DenotableTypesTest$Box<java.lang.Integer>" = invoke %2 %3 @"java.util.List::get(int):java.lang.Object";
-                %5 : java.type:"java.lang.Integer" = field.load %4 @"DenotableTypesTest$Box::x:java.lang.Object";
+                %4 : java.type:"DenotableTypesTest$Box<java.lang.Integer>" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
+                %5 : java.type:"java.lang.Integer" = field.load %4 @java.ref:"DenotableTypesTest$Box::x:java.lang.Object";
                 %6 : Var<java.type:"java.lang.Integer"> = var %5 @"i";
                 return;
             };
@@ -209,14 +209,14 @@ public class DenotableTypesTest {
             func @"test10" ()java.type:"void" -> {
                 java.try
                     ()java.type:"void" -> {
-                        invoke @"DenotableTypesTest::g():void";
+                        invoke @java.ref:"DenotableTypesTest::g():void";
                         yield;
                     }
                     (%0 : java.type:"java.lang.Exception")java.type:"void" -> {
                         %1 : Var<java.type:"java.lang.Exception"> = var %0 @"x";
                         %2 : java.type:"java.lang.Exception" = var.load %1;
-                        %3 : java.type:"DenotableTypesTest$E" = cast %2 @"DenotableTypesTest$E";
-                        invoke %3 @"DenotableTypesTest$E::m():void";
+                        %3 : java.type:"DenotableTypesTest$E" = cast %2 @java.type:"DenotableTypesTest$E";
+                        invoke %3 @java.ref:"DenotableTypesTest$E::m():void";
                         yield;
                     };
                 return;

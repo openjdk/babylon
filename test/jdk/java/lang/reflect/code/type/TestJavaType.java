@@ -24,6 +24,7 @@
 import jdk.incubator.code.type.PrimitiveType;
 import jdk.incubator.code.type.TypeVariableType;
 import jdk.incubator.code.type.WildcardType;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -45,7 +46,7 @@ import java.util.stream.Stream;
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code/jdk.incubator.code.type.impl
  * @run testng TestJavaType
  */
 
@@ -73,7 +74,7 @@ public class TestJavaType {
 
     @Test(dataProvider = "JavaTypes")
     public void testJavaType(String tds, String bcd) {
-        JavaType jt = JavaType.ofString(tds);
+        JavaType jt = typeFromFlatString(tds);
         Assert.assertEquals(jt.toString(), tds);
         Assert.assertEquals(jt.toNominalDescriptor().descriptorString(), bcd);
         Assert.assertEquals(jt, JavaType.type(ClassDesc.ofDescriptor(bcd)));
@@ -88,7 +89,7 @@ public class TestJavaType {
 
     @Test(dataProvider = "classDescriptors")
     public void classDescriptor(String tds, String bcd) {
-        ClassType jt = (ClassType)JavaType.ofString(tds);
+        ClassType jt = (ClassType) typeFromFlatString(tds);
         Assert.assertEquals(jt.toString(), tds);
         Assert.assertEquals(jt.toClassName(), bcd);
     }
@@ -118,7 +119,7 @@ public class TestJavaType {
 
     @Test(dataProvider = "basicJavaTypes")
     public void testBasicJavaType(String tds, String btds) {
-        JavaType jt = JavaType.ofString(tds);
+        JavaType jt = typeFromFlatString(tds);
         Assert.assertEquals(jt.toString(), tds);
         Assert.assertEquals(jt.toBasicType().toString(), btds);
     }
@@ -139,7 +140,7 @@ public class TestJavaType {
 
     @Test(dataProvider = "argumentJavaTypes")
     public void testArgumentJavaType(String tds, String... argTypes) {
-        JavaType jt = JavaType.ofString(tds);
+        JavaType jt = typeFromFlatString(tds);
         Assert.assertEquals(jt.toString(), tds);
 
         while (jt instanceof ArrayType) {
@@ -149,7 +150,7 @@ public class TestJavaType {
 
         Assert.assertEquals(argTypes.length, ct.typeArguments().size());
 
-        Assert.assertEquals(ct.typeArguments(), Stream.of(argTypes).map(JavaType::ofString).toList());
+        Assert.assertEquals(ct.typeArguments(), Stream.of(argTypes).map(TestJavaType::typeFromFlatString).toList());
     }
 
     @Test(dataProvider = "classDescs")
@@ -393,5 +394,9 @@ public class TestJavaType {
         Outer<?>.Inner<int[]>[][] aaoa8;
         Outer<int[]>.Inner<?>[][] aaoa9;
         Outer<?>.Inner<?>[][] aaoa10;
+    }
+
+    private static JavaType typeFromFlatString(String desc) {
+        return JavaTypeUtils.toJavaType(JavaTypeUtils.parseExternalTypeString(desc));
     }
 }
