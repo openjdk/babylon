@@ -77,13 +77,17 @@ import java.util.Map;
  *
  * AttributeValue:
  *   ExType
- *   IntegerLiteral
- *   FloatingPointLiteral
+ *   NumericAttributeValue
  *   BooleanLiteral
  *   CharacterLiteral
  *   StringLiteral
- *   TextBlock
  *   NullLiteral
+ *
+ * NumericAttributeValue:
+ *    [ '-' ] IntLiteral
+ *    [ '-' ] LongLiteral
+ *    [ '-' ] FloatLiteral
+ *    [ '-' ] DoubleLiteral
  *
  * Bodies:
  *   Body {Body}
