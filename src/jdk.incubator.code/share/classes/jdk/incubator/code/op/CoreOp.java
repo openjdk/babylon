@@ -4439,74 +4439,39 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
     public static FuncOp quoteOp(Op op) {
 
-        return func("q", FunctionType.functionType(JavaType.type(Quoted.class))).body(block -> {
+        List<Value> inputOperandsAndCaptures = Stream.concat(op.operands().stream(), op.capturedValues().stream()).toList();
 
-            List<Value> capturedValues = op.capturedValues();
+        // Build the function type
+        List<TypeElement> params = inputOperandsAndCaptures.stream()
+                .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
+                .toList();
+        FunctionType ft = FunctionType.functionType(QuotedOp.QUOTED_TYPE, params);
 
-            for (Value v : Stream.concat(capturedValues.stream(), op.operands().stream()).toList()) {
-                TypeElement t;
-                if (v instanceof Op.Result opr && opr.op() instanceof VarOp varOp) {
-                    t = varOp.varValueType();
-                } else {
-                    t = v.type();
+        // Build the function that quotes the lambda
+        return CoreOp.func("q", ft).body(b -> {
+            // Create variables as needed and obtain the operands and captured values for the copied lambda
+            List<Value> outputOperandsAndCaptures = new ArrayList<>();
+            for (int i = 0; i < inputOperandsAndCaptures.size(); i++) {
+                Value inputValue = inputOperandsAndCaptures.get(i);
+                Value outputValue = b.parameters().get(i);
+                if (inputValue.type() instanceof VarType _) {
+                    outputValue = b.op(CoreOp.var(String.valueOf(i), outputValue));
                 }
-                Block.Parameter p = block.parameter(t);
-                Op.Result nv = block.op(var(p));
-                block.context().mapValue(v, nv);
+                outputOperandsAndCaptures.add(outputValue);
             }
 
-            Body.Builder qbody = Body.Builder.of(block.parentBody(), FunctionType.VOID, CopyContext.create(block.context()));
-            Block.Builder qblock = qbody.entryBlock();
-
-            if (op.ancestorBody() != null) {
-                // needed for reachability check (of captured values) to succeed
-                qblock.context().mapBlock(op.ancestorBody().entryBlock(), qblock);
-            }
-
-            // if op has operands, they will be represented by VarOp results initialized with block params
-            // we may need to do var.load for some of the operands
-            Map<Value, Value> m2 = new HashMap<>();
-            for (Value operand : op.operands()) {
-                if (!(operand instanceof Op.Result r && r.op() instanceof VarOp)) {
-                    Value capVar = qblock.context().getValue(operand);
-                    Op.Result capVal = qblock.op(varLoad(capVar));
-                    m2.put(operand, capVar);
-                    qblock.context().mapValue(operand, capVal);
-                }
-            }
-
-            //@@@ op transformer only runs on operations inside bodies of op
-            Op.Result opr = qblock.op(op, (b, o) -> {
-                // a modified copy transformer, that insert var.load before use of captured values (if needed)
-                Map<Value, Value> m = new HashMap<>();
-                for (Value operand : o.operands()) {
-                    if (capturedValues.contains(operand) && !(operand instanceof Op.Result r && r.op() instanceof VarOp)) {
-                        Value capVar = b.context().getValue(operand);
-                        Op.Result capVal = b.op(varLoad(capVar));
-                        m.put(operand, capVar);
-                        b.context().mapValue(operand, capVal);
-                    }
-                }
-
-                b.op(o);
-
-                for (Value k : m.keySet()) {
-                    b.context().mapValue(k, m.get(k));
-                }
-
-                return b;
-            });
-
-            // restore the mapping for op's operands
-            for (Map.Entry<Value, Value> e : m2.entrySet()) {
-                qblock.context().mapValue(e.getKey(), e.getValue());
-            }
-
-            qblock.op(_yield(opr));
-
-            Op.Result qopr = block.op(quoted(qbody));
-
-            block.op(_return(qopr));
+            // Quoted the lambda expression
+            Value q = b.op(CoreOp.quoted(b.parentBody(), qb -> {
+                // Map the entry block of the lambda's ancestor body to the quoted block
+                // We are copying lop in the context of the quoted block, the block mapping
+                // ensures the use of operands and captured values are reachable when building
+                qb.context().mapBlock(op.ancestorBody().entryBlock(), qb);
+                // Map the op's operands and captured values
+                qb.context().mapValues(inputOperandsAndCaptures, outputOperandsAndCaptures);
+                // Return the op to be copied in the quoted operation
+                return op;
+            }));
+            b.op(CoreOp._return(q));
         });
     }
 
