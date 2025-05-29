@@ -313,6 +313,19 @@ public class SimpleTest {
         assertEquals(Tensor.ofScalar(16f), res.b());
     }
 
+    public record ArgRecord(Tensor<Float> a, Tensor<Float> b) {}
+
+    @CodeReflection
+    public Tensor<Float> recordArgAdd(ArgRecord arg) {
+        return Add(arg.a(), arg.b());
+    }
+
+    @Test
+    public void testRecordArgAdd() throws Exception {
+        var arg = new ArgRecord(Tensor.ofFlat(3f), Tensor.ofFlat(4f));
+        assertEquals(recordArgAdd(arg), execute(() -> recordArgAdd(arg)));
+    }
+
     static void assertEquals(Tensor expected, Tensor actual) {
 
         var expectedType = expected.elementType();
