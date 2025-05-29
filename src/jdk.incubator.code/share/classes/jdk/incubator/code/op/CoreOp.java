@@ -4475,43 +4475,23 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         });
     }
 
-    public static Quoted quotedOp(FuncOp funcOp, Object[] args) {
+    public static OpAndValues quotedOp(FuncOp funcOp) {
 
         assert funcOp.body().blocks().size() == 1;
-        Block fopBlock = funcOp.body().entryBlock();
+        Block fblock = funcOp.body().entryBlock();
 
-        assert fopBlock.ops().size() == 2 + funcOp.parameters().size();
+        assert fblock.ops().get(fblock.ops().size() - 2) instanceof QuotedOp;
+        QuotedOp qop = (QuotedOp) fblock.ops().get(fblock.ops().size() - 2);
 
-        assert fopBlock.ops().subList(0, funcOp.parameters().size()).stream().allMatch(o -> o instanceof VarOp);
-
-        assert fopBlock.ops().get(funcOp.parameters().size()) instanceof QuotedOp;
-        QuotedOp qop = (QuotedOp) fopBlock.ops().get(funcOp.parameters().size());
-
-        assert fopBlock.ops().getLast() instanceof ReturnOp returnOp && returnOp.returnValue().equals(qop.result());
+        assert fblock.ops().getLast() instanceof ReturnOp returnOp && returnOp.returnValue().equals(qop.result());
 
         Op op = qop.quotedOp();
 
-        List<Op> fopBlockVarOps = fopBlock.ops().subList(0, funcOp.parameters().size());
-
-        assert fopBlockVarOps.size() == op.capturedValues().size() + op.operands().size();
-
-        assert op.capturedValues().equals(fopBlockVarOps.subList(0, op.capturedValues().size())
-                .stream().map(Op::result).toList());
-
-        assert fopBlockVarOps.stream().map(o -> ((VarOp) o).initOperand()).toList().equals(funcOp.parameters());
-
-        assert funcOp.parameters().size() == args.length;
-        LinkedHashMap<Value, Object> m = new LinkedHashMap<>();
-        Iterator<Object> argsIterator = Arrays.stream(args).iterator();
-        for (Value v : op.capturedValues()) {
-            // @@@ The interpreter map captured value to instance of VarBox, should we do the same ?
-            m.put(v, argsIterator.next());
-        }
-        LinkedHashMap<Value, Object> m2 = new LinkedHashMap<>();
-        for (Value operand : op.operands()) {
-            m2.put(operand, argsIterator.next());
-        }
-
-        return new Quoted(op, m, m2);
+        SequencedSet<Value> operandsAndCaptures = new LinkedHashSet<>();
+        operandsAndCaptures.addAll(op.operands());
+        operandsAndCaptures.addAll(op.capturedValues());
+        return new OpAndValues(op, operandsAndCaptures);
     }
+
+    public record OpAndValues (Op op, SequencedSet<Value> operandsAndCaptures) { }
 }
