@@ -29,6 +29,7 @@ import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SequencedMap;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -55,41 +56,62 @@ public final class OnnxProtoBuilder {
     private static final class Indexer {
 
         private final Function<CodeItem, String> baseNames;
-        private final HashMap<String, String> elementsMap;
+        private final HashMap<String, String> remap;
 
 
-        Indexer(Function<CodeItem, String> baseNames) {
-            this.baseNames = baseNames;
-            this.elementsMap = new HashMap<>();
+        Indexer(Op root, Map<Value, String> explicitNames) {
+            this.baseNames = OpWriter.computeGlobalNames(root);
+            this.remap = new HashMap<>();
+            explicitNames.forEach(this::setName);
+        }
+
+        void setName(Value val, String name) {
+            remap.put(baseName(val), name);
+            if (val instanceof Op.Result or && or.op() instanceof CoreOp.TupleLoadOp tlo) {
+                Value tr = tlo.operands().getFirst();
+                remap.put(baseName(tr, tlo.index()), name);
+                if (tr instanceof Op.Result tor && tor.op() instanceof CoreOp.TupleOp to) {
+                    setName(to.operands().get(tlo.index()), name);
+                }
+            }
+        }
+
+        private String baseName(Value value) {
+            return "%" + baseNames.apply(value);
         }
 
         private String baseName(Value value, int elementIndex) {
-            var name = "%" + baseNames.apply(value);
+            var name = baseName(value);
             return elementIndex > 0 ? name + '.' + elementIndex : name;
         }
 
         String nameOf(Value value) {
-            return nameOf(value, 0);
+            var name = baseName(value);
+            return remap.getOrDefault(name, name);
         }
 
         String nameOf(Value tuple, int elementIndex) {
             var name = baseName(tuple, elementIndex);
-            return elementsMap.getOrDefault(name, name);
+            return remap.getOrDefault(name, name);
         }
 
         void mapTupleLoad(Value tupleLoadResult, Value tuple, int elementIndex) {
-            elementsMap.put(baseName(tupleLoadResult, 0), nameOf(tuple, elementIndex));
+            remap.putIfAbsent(baseName(tupleLoadResult), nameOf(tuple, elementIndex));
         }
 
         void mapTupleElements(Value tuple, List<Value> elements) {
             for (int i = 0; i < elements.size(); i++) {
-                elementsMap.put(baseName(tuple, i), nameOf(elements.get(i)));
+                remap.putIfAbsent(baseName(tuple, i), nameOf(elements.get(i)));
             }
         }
     }
 
     public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<Object> initializers) {
-        var indexer = new Indexer(OpWriter.computeGlobalNames(module));
+        return buildModel(domain, module, initializers, Map.of());
+    }
+
+    public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<Object> initializers, Map<Value, String> explicitValueNames) {
+        var indexer = new Indexer(module, explicitValueNames);
 
         var functions = new ArrayList<>(module.functionTable().sequencedValues());
         var imports = new ArrayList<String>();
@@ -126,7 +148,7 @@ public final class OnnxProtoBuilder {
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
     static byte[] buildModel(Block block, List<oracle.code.onnx.Tensor> initializers) {
-        var indexer = new Indexer(OpWriter.computeGlobalNames(block.parentBody().parentOp()));
+        var indexer = new Indexer(block.parentBody().parentOp(), Map.of());
         var model = buildModel(graph(null, null, indexer, block, initializers, 0), List.of(), List.of());
 //        System.out.println(OnnxModel.readFrom(model).toText());
         return model;
