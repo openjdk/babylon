@@ -330,7 +330,6 @@ public class TritonOps {
         public static ReduceOp create(ExternalizedOp def) {
             int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
                     });
@@ -416,7 +415,6 @@ public class TritonOps {
         public static GetProgramIdOp create(ExternalizedOp def) {
             int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
                     });
@@ -470,13 +468,11 @@ public class TritonOps {
         public static MakeRangeOp create(ExternalizedOp def) {
             int start = def.extractAttributeValue(ATTRIBUTE_START, false,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
                     });
             int end = def.extractAttributeValue(ATTRIBUTE_END, false,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported end value:" + v);
                     });
@@ -532,7 +528,6 @@ public class TritonOps {
         public static ExpandOp create(ExternalizedOp def) {
             int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
                     });

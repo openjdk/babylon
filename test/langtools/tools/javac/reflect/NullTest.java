@@ -166,7 +166,7 @@ public class NullTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.String" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
@@ -175,7 +175,7 @@ public class NullTest {
                         yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -199,7 +199,7 @@ public class NullTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.String" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
@@ -208,7 +208,7 @@ public class NullTest {
                         yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -232,7 +232,7 @@ public class NullTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.String" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
@@ -241,7 +241,7 @@ public class NullTest {
                         yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -265,7 +265,7 @@ public class NullTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.Object" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
@@ -274,7 +274,7 @@ public class NullTest {
                         yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"java.lang.Object" -> {
@@ -299,7 +299,7 @@ public class NullTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.String" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
@@ -308,7 +308,7 @@ public class NullTest {
                         java.yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -332,7 +332,7 @@ public class NullTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.String" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
@@ -341,7 +341,7 @@ public class NullTest {
                         java.yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -365,7 +365,7 @@ public class NullTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.String" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
@@ -374,7 +374,7 @@ public class NullTest {
                         java.yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -398,7 +398,7 @@ public class NullTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.Object" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
@@ -407,7 +407,7 @@ public class NullTest {
                         java.yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"java.lang.Object" -> {
@@ -445,7 +445,7 @@ public class NullTest {
     @IR("""
             func @"test16" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
-                invoke %1 @java.ref:"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs="true";
+                invoke %1 @java.ref:"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs=true;
                 return;
             };
             """)
@@ -472,7 +472,7 @@ public class NullTest {
                 %1 : java.type:"java.lang.String" = constant @null;
                 %2 : java.type:"java.lang.String" = constant @null;
                 %3 : java.type:"java.lang.String" = constant @null;
-                invoke %1 %2 %3 @java.ref:"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs="true";
+                invoke %1 %2 %3 @java.ref:"NullTest::m(java.lang.String, java.lang.String[]):void" @invoke.kind="STATIC" @invoke.varargs=true;
                 return;
             };
             """)
@@ -488,7 +488,7 @@ public class NullTest {
     @IR("""
             func @"test19" (%0 : java.type:"NullTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @null;
-                %2 : java.type:"NullTest$Box" = new %1 @java.ref:"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs="true";
+                %2 : java.type:"NullTest$Box" = new %1 @java.ref:"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs=true;
                 return;
             };
             """)
@@ -515,7 +515,7 @@ public class NullTest {
                 %1 : java.type:"java.lang.String" = constant @null;
                 %2 : java.type:"java.lang.String" = constant @null;
                 %3 : java.type:"java.lang.String" = constant @null;
-                %4 : java.type:"NullTest$Box" = new %1 %2 %3 @java.ref:"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs="true";
+                %4 : java.type:"NullTest$Box" = new %1 %2 %3 @java.ref:"NullTest$Box::(java.lang.String, java.lang.String[])" @new.varargs=true;
                 return;
             };
             """)

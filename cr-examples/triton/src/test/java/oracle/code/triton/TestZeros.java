@@ -40,7 +40,7 @@ public class TestZeros {
     @TritonCodeModel("""
             module ()java.type:"void" -> {
                 tt.func @"test1_32_64_void" ()java.type:"void" -> {
-                    %0 : tensor<x32, x64, java.type:"float"> = arith.constant @"0.0";
+                    %0 : tensor<x32, x64, java.type:"float"> = arith.constant @0.0f;
                     tt.consume %0;
                     tt.return;
                 };

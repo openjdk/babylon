@@ -43,7 +43,7 @@ public class SwitchExpressionTest2 {
                         yield %15;
                     }
                     ()java.type:"boolean" -> {
-                        %16 : java.type:"boolean" = constant @"true";
+                        %16 : java.type:"boolean" = constant @true;
                         yield %16;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -96,7 +96,7 @@ public class SwitchExpressionTest2 {
                         java.yield %15;
                     }
                     ()java.type:"boolean" -> {
-                        %16 : java.type:"boolean" = constant @"true";
+                        %16 : java.type:"boolean" = constant @true;
                         yield %16;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -157,7 +157,7 @@ public class SwitchExpressionTest2 {
                         java.yield %15;
                     }
                     ()java.type:"boolean" -> {
-                        %16 : java.type:"boolean" = constant @"true";
+                        %16 : java.type:"boolean" = constant @true;
                         yield %16;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -186,27 +186,27 @@ public class SwitchExpressionTest2 {
                     (%5 : java.type:"char")java.type:"boolean" -> {
                         %6 : java.type:"boolean" = java.cor
                             ()java.type:"boolean" -> {
-                                %7 : java.type:"char" = constant @"a";
+                                %7 : java.type:"char" = constant @'a';
                                 %8 : java.type:"boolean" = eq %5 %7;
                                 yield %8;
                             }
                             ()java.type:"boolean" -> {
-                                %9 : java.type:"char" = constant @"e";
+                                %9 : java.type:"char" = constant @'e';
                                 %10 : java.type:"boolean" = eq %5 %9;
                                 yield %10;
                             }
                             ()java.type:"boolean" -> {
-                                %11 : java.type:"char" = constant @"i";
+                                %11 : java.type:"char" = constant @'i';
                                 %12 : java.type:"boolean" = eq %5 %11;
                                 yield %12;
                             }
                             ()java.type:"boolean" -> {
-                                %13 : java.type:"char" = constant @"o";
+                                %13 : java.type:"char" = constant @'o';
                                 %14 : java.type:"boolean" = eq %5 %13;
                                 yield %14;
                             }
                             ()java.type:"boolean" -> {
-                                %15 : java.type:"char" = constant @"u";
+                                %15 : java.type:"char" = constant @'u';
                                 %16 : java.type:"boolean" = eq %5 %15;
                                 yield %16;
                             };
@@ -217,7 +217,7 @@ public class SwitchExpressionTest2 {
                         java.yield %17;
                     }
                     ()java.type:"boolean" -> {
-                        %18 : java.type:"boolean" = constant @"true";
+                        %18 : java.type:"boolean" = constant @true;
                         yield %18;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -241,7 +241,7 @@ public class SwitchExpressionTest2 {
                 %2 : java.type:"java.lang.Integer" = var.load %1;
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"java.lang.Integer")java.type:"boolean" -> {
-                        %5 : java.type:"int" = constant @"8";
+                        %5 : java.type:"int" = constant @8;
                         %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                         %7 : java.type:"boolean" = invoke %4 %6 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %7;
@@ -251,7 +251,7 @@ public class SwitchExpressionTest2 {
                         throw %8;
                     }
                     (%9 : java.type:"java.lang.Integer")java.type:"boolean" -> {
-                        %10 : java.type:"int" = constant @"9";
+                        %10 : java.type:"int" = constant @9;
                         %11 : java.type:"java.lang.Integer" = invoke %10 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                         %12 : java.type:"boolean" = invoke %9 %11 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
                         yield %12;
@@ -261,7 +261,7 @@ public class SwitchExpressionTest2 {
                         yield %13;
                     }
                     ()java.type:"boolean" -> {
-                        %14 : java.type:"boolean" = constant @"true";
+                        %14 : java.type:"boolean" = constant @true;
                         yield %14;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -295,7 +295,7 @@ public class SwitchExpressionTest2 {
                         yield %7;
                     }
                     ()java.type:"boolean" -> {
-                        %8 : java.type:"boolean" = constant @"true";
+                        %8 : java.type:"boolean" = constant @true;
                         yield %8;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -329,7 +329,7 @@ public class SwitchExpressionTest2 {
                 %2 : java.type:"char" = var.load %1;
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"char")java.type:"boolean" -> {
-                        %5 : java.type:"char" = constant @"A";
+                        %5 : java.type:"char" = constant @'A';
                         %6 : java.type:"boolean" = eq %4 %5;
                         yield %6;
                     }
@@ -337,7 +337,7 @@ public class SwitchExpressionTest2 {
                         java.switch.fallthrough;
                     }
                     (%7 : java.type:"char")java.type:"boolean" -> {
-                        %8 : java.type:"char" = constant @"B";
+                        %8 : java.type:"char" = constant @'B';
                         %9 : java.type:"boolean" = eq %7 %8;
                         yield %9;
                     }
@@ -346,7 +346,7 @@ public class SwitchExpressionTest2 {
                         java.yield %10;
                     }
                     ()java.type:"boolean" -> {
-                        %11 : java.type:"boolean" = constant @"true";
+                        %11 : java.type:"boolean" = constant @true;
                         yield %11;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -395,7 +395,7 @@ public class SwitchExpressionTest2 {
                         yield %5;
                     }
                     ()java.type:"int" -> {
-                        %12 : java.type:"int" = constant @"6";
+                        %12 : java.type:"int" = constant @6;
                         yield %12;
                     }
                     (%13 : java.type:"SwitchExpressionTest2$Day")java.type:"boolean" -> {
@@ -404,7 +404,7 @@ public class SwitchExpressionTest2 {
                         yield %15;
                     }
                     ()java.type:"int" -> {
-                        %16 : java.type:"int" = constant @"7";
+                        %16 : java.type:"int" = constant @7;
                         yield %16;
                     }
                     (%17 : java.type:"SwitchExpressionTest2$Day")java.type:"boolean" -> {
@@ -422,7 +422,7 @@ public class SwitchExpressionTest2 {
                         yield %18;
                     }
                     ()java.type:"int" -> {
-                        %23 : java.type:"int" = constant @"8";
+                        %23 : java.type:"int" = constant @8;
                         yield %23;
                     }
                     (%24 : java.type:"SwitchExpressionTest2$Day")java.type:"boolean" -> {
@@ -431,11 +431,11 @@ public class SwitchExpressionTest2 {
                         yield %26;
                     }
                     ()java.type:"int" -> {
-                        %27 : java.type:"int" = constant @"9";
+                        %27 : java.type:"int" = constant @9;
                         yield %27;
                     }
                     ()java.type:"boolean" -> {
-                        %28 : java.type:"boolean" = constant @"true";
+                        %28 : java.type:"boolean" = constant @true;
                         yield %28;
                     }
                     ()java.type:"int" -> {
@@ -461,13 +461,13 @@ public class SwitchExpressionTest2 {
     @IR("""
             func @"caseConstantOtherKindsOfExpr" (%0 : java.type:"int")java.type:"java.lang.String" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
-                %2 : java.type:"int" = constant @"11";
+                %2 : java.type:"int" = constant @11;
                 %3 : Var<java.type:"int"> = var %2 @"eleven";
                 %4 : java.type:"int" = var.load %1;
                 %5 : java.type:"java.lang.String" = java.switch.expression %4
                     (%6 : java.type:"int")java.type:"boolean" -> {
-                        %7 : java.type:"int" = constant @"1";
-                        %8 : java.type:"int" = constant @"15";
+                        %7 : java.type:"int" = constant @1;
+                        %8 : java.type:"int" = constant @15;
                         %9 : java.type:"int" = and %7 %8;
                         %10 : java.type:"boolean" = eq %6 %9;
                         yield %10;
@@ -477,8 +477,8 @@ public class SwitchExpressionTest2 {
                         yield %11;
                     }
                     (%12 : java.type:"int")java.type:"boolean" -> {
-                        %13 : java.type:"int" = constant @"4";
-                        %14 : java.type:"int" = constant @"1";
+                        %13 : java.type:"int" = constant @4;
+                        %14 : java.type:"int" = constant @1;
                         %15 : java.type:"int" = ashr %13 %14;
                         %16 : java.type:"boolean" = eq %12 %15;
                         yield %16;
@@ -488,7 +488,7 @@ public class SwitchExpressionTest2 {
                         yield %17;
                     }
                     (%18 : java.type:"int")java.type:"boolean" -> {
-                        %19 : java.type:"long" = constant @"3";
+                        %19 : java.type:"long" = constant @3;
                         %20 : java.type:"int" = conv %19;
                         %21 : java.type:"boolean" = eq %18 %20;
                         yield %21;
@@ -498,8 +498,8 @@ public class SwitchExpressionTest2 {
                         yield %22;
                     }
                     (%23 : java.type:"int")java.type:"boolean" -> {
-                        %24 : java.type:"int" = constant @"2";
-                        %25 : java.type:"int" = constant @"1";
+                        %24 : java.type:"int" = constant @2;
+                        %25 : java.type:"int" = constant @1;
                         %26 : java.type:"int" = lshl %24 %25;
                         %27 : java.type:"boolean" = eq %23 %26;
                         yield %27;
@@ -509,8 +509,8 @@ public class SwitchExpressionTest2 {
                         yield %28;
                     }
                     (%29 : java.type:"int")java.type:"boolean" -> {
-                        %30 : java.type:"int" = constant @"10";
-                        %31 : java.type:"int" = constant @"2";
+                        %30 : java.type:"int" = constant @10;
+                        %31 : java.type:"int" = constant @2;
                         %32 : java.type:"int" = div %30 %31;
                         %33 : java.type:"boolean" = eq %29 %32;
                         yield %33;
@@ -520,8 +520,8 @@ public class SwitchExpressionTest2 {
                         yield %34;
                     }
                     (%35 : java.type:"int")java.type:"boolean" -> {
-                        %36 : java.type:"int" = constant @"12";
-                        %37 : java.type:"int" = constant @"6";
+                        %36 : java.type:"int" = constant @12;
+                        %37 : java.type:"int" = constant @6;
                         %38 : java.type:"int" = sub %36 %37;
                         %39 : java.type:"boolean" = eq %35 %38;
                         yield %39;
@@ -531,8 +531,8 @@ public class SwitchExpressionTest2 {
                         yield %40;
                     }
                     (%41 : java.type:"int")java.type:"boolean" -> {
-                        %42 : java.type:"int" = constant @"3";
-                        %43 : java.type:"int" = constant @"4";
+                        %42 : java.type:"int" = constant @3;
+                        %43 : java.type:"int" = constant @4;
                         %44 : java.type:"int" = add %42 %43;
                         %45 : java.type:"boolean" = eq %41 %44;
                         yield %45;
@@ -542,10 +542,10 @@ public class SwitchExpressionTest2 {
                         yield %46;
                     }
                     (%47 : java.type:"int")java.type:"boolean" -> {
-                        %48 : java.type:"int" = constant @"2";
-                        %49 : java.type:"int" = constant @"2";
+                        %48 : java.type:"int" = constant @2;
+                        %49 : java.type:"int" = constant @2;
                         %50 : java.type:"int" = mul %48 %49;
-                        %51 : java.type:"int" = constant @"2";
+                        %51 : java.type:"int" = constant @2;
                         %52 : java.type:"int" = mul %50 %51;
                         %53 : java.type:"boolean" = eq %47 %52;
                         yield %53;
@@ -555,8 +555,8 @@ public class SwitchExpressionTest2 {
                         yield %54;
                     }
                     (%55 : java.type:"int")java.type:"boolean" -> {
-                        %56 : java.type:"int" = constant @"8";
-                        %57 : java.type:"int" = constant @"1";
+                        %56 : java.type:"int" = constant @8;
+                        %57 : java.type:"int" = constant @1;
                         %58 : java.type:"int" = or %56 %57;
                         %59 : java.type:"boolean" = eq %55 %58;
                         yield %59;
@@ -566,7 +566,7 @@ public class SwitchExpressionTest2 {
                         yield %60;
                     }
                     (%61 : java.type:"int")java.type:"boolean" -> {
-                        %62 : java.type:"int" = constant @"10";
+                        %62 : java.type:"int" = constant @10;
                         %63 : java.type:"boolean" = eq %61 %62;
                         yield %63;
                     }
@@ -596,17 +596,17 @@ public class SwitchExpressionTest2 {
                     (%74 : java.type:"int")java.type:"boolean" -> {
                         %75 : java.type:"int" = java.cexpression
                             ()java.type:"boolean" -> {
-                                %76 : java.type:"int" = constant @"1";
-                                %77 : java.type:"int" = constant @"0";
+                                %76 : java.type:"int" = constant @1;
+                                %77 : java.type:"int" = constant @0;
                                 %78 : java.type:"boolean" = gt %76 %77;
                                 yield %78;
                             }
                             ()java.type:"int" -> {
-                                %79 : java.type:"int" = constant @"13";
+                                %79 : java.type:"int" = constant @13;
                                 yield %79;
                             }
                             ()java.type:"int" -> {
-                                %80 : java.type:"int" = constant @"133";
+                                %80 : java.type:"int" = constant @133;
                                 yield %80;
                             };
                         %81 : java.type:"boolean" = eq %74 %75;
@@ -617,7 +617,7 @@ public class SwitchExpressionTest2 {
                         yield %82;
                     }
                     ()java.type:"boolean" -> {
-                        %83 : java.type:"boolean" = constant @"true";
+                        %83 : java.type:"boolean" = constant @true;
                         yield %83;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -653,10 +653,10 @@ public class SwitchExpressionTest2 {
     @IR("""
             func @"caseConstantConv" (%0 : java.type:"short")java.type:"java.lang.String" -> {
                 %1 : Var<java.type:"short"> = var %0 @"a";
-                %2 : java.type:"int" = constant @"1";
+                %2 : java.type:"int" = constant @1;
                 %3 : java.type:"short" = conv %2;
                 %4 : Var<java.type:"short"> = var %3 @"s";
-                %5 : java.type:"int" = constant @"2";
+                %5 : java.type:"int" = constant @2;
                 %6 : java.type:"byte" = conv %5;
                 %7 : Var<java.type:"byte"> = var %6 @"b";
                 %8 : java.type:"short" = var.load %1;
@@ -681,7 +681,7 @@ public class SwitchExpressionTest2 {
                         yield %18;
                     }
                     (%19 : java.type:"short")java.type:"boolean" -> {
-                        %20 : java.type:"int" = constant @"3";
+                        %20 : java.type:"int" = constant @3;
                         %21 : java.type:"short" = conv %20;
                         %22 : java.type:"boolean" = eq %19 %21;
                         yield %22;
@@ -691,7 +691,7 @@ public class SwitchExpressionTest2 {
                         yield %23;
                     }
                     ()java.type:"boolean" -> {
-                        %24 : java.type:"boolean" = constant @"true";
+                        %24 : java.type:"boolean" = constant @true;
                         yield %24;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -716,13 +716,13 @@ public class SwitchExpressionTest2 {
     @IR("""
             func @"caseConstantConv2" (%0 : java.type:"java.lang.Byte")java.type:"java.lang.String" -> {
                 %1 : Var<java.type:"java.lang.Byte"> = var %0 @"a";
-                %2 : java.type:"int" = constant @"2";
+                %2 : java.type:"int" = constant @2;
                 %3 : java.type:"byte" = conv %2;
                 %4 : Var<java.type:"byte"> = var %3 @"b";
                 %5 : java.type:"java.lang.Byte" = var.load %1;
                 %6 : java.type:"java.lang.String" = java.switch.expression %5
                     (%7 : java.type:"java.lang.Byte")java.type:"boolean" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"byte" = conv %8;
                         %10 : java.type:"java.lang.Byte" = invoke %9 @java.ref:"java.lang.Byte::valueOf(byte):java.lang.Byte";
                         %11 : java.type:"boolean" = invoke %7 %10 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
@@ -743,7 +743,7 @@ public class SwitchExpressionTest2 {
                         yield %17;
                     }
                     ()java.type:"boolean" -> {
-                        %18 : java.type:"boolean" = constant @"true";
+                        %18 : java.type:"boolean" = constant @true;
                         yield %18;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -789,7 +789,7 @@ public class SwitchExpressionTest2 {
                         yield %11;
                     }
                     ()java.type:"boolean" -> {
-                        %12 : java.type:"boolean" = constant @"true";
+                        %12 : java.type:"boolean" = constant @true;
                         yield %12;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -895,7 +895,7 @@ public class SwitchExpressionTest2 {
                         yield %17;
                     }
                     ()java.type:"boolean" -> {
-                        %18 : java.type:"boolean" = constant @"true";
+                        %18 : java.type:"boolean" = constant @true;
                         yield %18;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -937,7 +937,7 @@ public class SwitchExpressionTest2 {
                         yield %11;
                     }
                     ()java.type:"boolean" -> {
-                        %12 : java.type:"boolean" = constant @"true";
+                        %12 : java.type:"boolean" = constant @true;
                         yield %12;
                     }
                     ()java.type:"java.lang.String" -> {

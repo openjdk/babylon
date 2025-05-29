@@ -86,8 +86,8 @@ public class TestParse {
 
     static final String NAMED_BODY = """
             func @"test" ^body1(%0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
-                %2 : java.type:"int" = constant @"5";
-                %3 : java.type:"int" = constant @"2";
+                %2 : java.type:"int" = constant @5;
+                %3 : java.type:"int" = constant @2;
                 branch ^b1(%2, %3);
 
               ^b1(%0 : java.type:"int", %1 : java.type:"int"):

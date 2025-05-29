@@ -37,9 +37,9 @@ public class LocalVarTest {
     @CodeReflection
     @IR("""
             func @"test1" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"1";
+                %1 : java.type:"int" = constant @1;
                 %2 : Var<java.type:"int"> = var %1 @"x";
-                %3 : java.type:"int" = constant @"2";
+                %3 : java.type:"int" = constant @2;
                 %4 : Var<java.type:"int"> = var %3 @"y";
                 %5 : java.type:"int" = var.load %2;
                 %6 : java.type:"int" = var.load %4;
@@ -73,9 +73,9 @@ public class LocalVarTest {
             func @"test3" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
                 %1 : Var<java.type:"int"> = var @"x";
                 %2 : Var<java.type:"int"> = var @"y";
-                %3 : java.type:"int" = constant @"1";
+                %3 : java.type:"int" = constant @1;
                 var.store %1 %3;
-                %4 : java.type:"int" = constant @"2";
+                %4 : java.type:"int" = constant @2;
                 var.store %2 %4;
                 %5 : java.type:"int" = var.load %1;
                 %6 : java.type:"int" = var.load %2;
@@ -94,10 +94,10 @@ public class LocalVarTest {
     @CodeReflection
     @IR("""
             func @"test4" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"1";
+                %1 : java.type:"int" = constant @1;
                 %2 : Var<java.type:"int"> = var %1 @"x";
                 %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"int" = constant @"1";
+                %4 : java.type:"int" = constant @1;
                 %5 : java.type:"int" = add %3 %4;
                 %6 : Var<java.type:"int"> = var %5 @"y";
                 %7 : java.type:"int" = var.load %6;
@@ -113,7 +113,7 @@ public class LocalVarTest {
     @CodeReflection
     @IR("""
             func @"test5" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"1";
+                %1 : java.type:"int" = constant @1;
                 %2 : Var<java.type:"int"> = var %1 @"x";
                 %3 : java.type:"int" = var.load %2;
                 %4 : Var<java.type:"int"> = var %3 @"y";
@@ -130,11 +130,11 @@ public class LocalVarTest {
     @CodeReflection
     @IR("""
             func @"test6" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"1";
+                %1 : java.type:"int" = constant @1;
                 %2 : Var<java.type:"int"> = var %1 @"x";
-                %3 : java.type:"int" = constant @"1";
+                %3 : java.type:"int" = constant @1;
                 %4 : Var<java.type:"int"> = var %3 @"y";
-                %5 : java.type:"int" = constant @"1";
+                %5 : java.type:"int" = constant @1;
                 %6 : Var<java.type:"int"> = var %5 @"z";
                 %7 : java.type:"int" = var.load %2;
                 var.store %4 %7;
@@ -154,19 +154,19 @@ public class LocalVarTest {
     @CodeReflection
     @IR("""
             func @"test7" (%0 : java.type:"LocalVarTest")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"1";
+                %1 : java.type:"int" = constant @1;
                 %2 : Var<java.type:"int"> = var %1 @"x";
                 %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"int" = constant @"2";
+                %4 : java.type:"int" = constant @2;
                 %5 : java.type:"int" = add %3 %4;
                 var.store %2 %5;
                 %6 : Var<java.type:"int"> = var %5 @"y";
                 %7 : java.type:"int" = var.load %6;
-                %8 : java.type:"int" = constant @"3";
+                %8 : java.type:"int" = constant @3;
                 %9 : java.type:"int" = add %7 %8;
                 var.store %6 %9;
                 %10 : java.type:"int" = var.load %2;
-                %11 : java.type:"int" = constant @"4";
+                %11 : java.type:"int" = constant @4;
                 %12 : java.type:"int" = add %10 %11;
                 var.store %2 %12;
                 %13 : java.type:"int" = add %9 %12;
@@ -184,12 +184,12 @@ public class LocalVarTest {
             func @"test8" (%0 : java.type:"LocalVarTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"int" = constant @"1";
+                %4 : java.type:"int" = constant @1;
                 %5 : java.type:"int" = add %3 %4;
                 var.store %2 %5;
                 %6 : Var<java.type:"int"> = var %3 @"x";
                 %7 : java.type:"int" = var.load %2;
-                %8 : java.type:"int" = constant @"1";
+                %8 : java.type:"int" = constant @1;
                 %9 : java.type:"int" = sub %7 %8;
                 var.store %2 %9;
                 %10 : Var<java.type:"int"> = var %7 @"y";
@@ -206,12 +206,12 @@ public class LocalVarTest {
             func @"test9" (%0 : java.type:"LocalVarTest", %1 : java.type:"int")java.type:"void" -> {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
-                %4 : java.type:"int" = constant @"1";
+                %4 : java.type:"int" = constant @1;
                 %5 : java.type:"int" = add %3 %4;
                 var.store %2 %5;
                 %6 : Var<java.type:"int"> = var %5 @"x";
                 %7 : java.type:"int" = var.load %2;
-                %8 : java.type:"int" = constant @"1";
+                %8 : java.type:"int" = constant @1;
                 %9 : java.type:"int" = sub %7 %8;
                 var.store %2 %9;
                 %10 : Var<java.type:"int"> = var %9 @"y";

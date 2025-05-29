@@ -39,7 +39,7 @@ public class ImplicitConversionTest {
     @CodeReflection
     @IR("""
             func @"test1" (%0 : java.type:"ImplicitConversionTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"1";
+                %1 : java.type:"int" = constant @1;
                 %2 : java.type:"long" = conv %1;
                 %3 : Var<java.type:"long"> = var %2 @"x";
                 return;
@@ -53,7 +53,7 @@ public class ImplicitConversionTest {
     @IR("""
             func @"test2" (%0 : java.type:"ImplicitConversionTest")java.type:"void" -> {
                 %1 : Var<java.type:"long"> = var @"x";
-                %2 : java.type:"int" = constant @"1";
+                %2 : java.type:"int" = constant @1;
                 %3 : java.type:"long" = conv %2;
                 var.store %1 %3;
                 return;
@@ -67,10 +67,10 @@ public class ImplicitConversionTest {
     @CodeReflection
     @IR("""
             func @"test3" (%0 : java.type:"ImplicitConversionTest")java.type:"void" -> {
-                %1 : java.type:"long" = constant @"0";
+                %1 : java.type:"long" = constant @0;
                 %2 : Var<java.type:"long"> = var %1 @"x";
                 %3 : java.type:"long" = var.load %2;
-                %4 : java.type:"int" = constant @"1";
+                %4 : java.type:"int" = constant @1;
                 %5 : java.type:"long" = conv %4;
                 %6 : java.type:"long" = add %3 %5;
                 var.store %2 %6;
@@ -93,11 +93,11 @@ public class ImplicitConversionTest {
                         yield %5;
                     }
                     ()java.type:"long" -> {
-                        %6 : java.type:"long" = constant @"1";
+                        %6 : java.type:"long" = constant @1;
                         yield %6;
                     }
                     ()java.type:"long" -> {
-                        %7 : java.type:"int" = constant @"2";
+                        %7 : java.type:"int" = constant @2;
                         %8 : java.type:"long" = conv %7;
                         yield %8;
                     };
@@ -121,12 +121,12 @@ public class ImplicitConversionTest {
                         yield %5;
                     }
                     ()java.type:"long" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"long" = conv %6;
                         yield %7;
                     }
                     ()java.type:"long" -> {
-                        %8 : java.type:"long" = constant @"2";
+                        %8 : java.type:"long" = constant @2;
                         yield %8;
                     };
                 var.store %3 %4;
@@ -149,11 +149,11 @@ public class ImplicitConversionTest {
                         yield %5;
                     }
                     ()java.type:"int" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         yield %6;
                     }
                     ()java.type:"int" -> {
-                        %7 : java.type:"int" = constant @"2";
+                        %7 : java.type:"int" = constant @2;
                         yield %7;
                     };
                 %8 : java.type:"long" = conv %4;
@@ -169,7 +169,7 @@ public class ImplicitConversionTest {
     @CodeReflection
     @IR("""
             func @"test7" (%0 : java.type:"ImplicitConversionTest")java.type:"long" -> {
-                %1 : java.type:"int" = constant @"1";
+                %1 : java.type:"int" = constant @1;
                 %2 : java.type:"long" = conv %1;
                 return %2;
             };
@@ -182,7 +182,7 @@ public class ImplicitConversionTest {
     @IR("""
             func @"test8" (%0 : java.type:"ImplicitConversionTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.LongSupplier" = lambda ()java.type:"long" -> {
-                    %2 : java.type:"int" = constant @"1";
+                    %2 : java.type:"int" = constant @1;
                     %3 : java.type:"long" = conv %2;
                     return %3;
                 };
@@ -198,7 +198,7 @@ public class ImplicitConversionTest {
     @IR("""
             func @"test9" (%0 : java.type:"ImplicitConversionTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.LongSupplier" = lambda ()java.type:"long" -> {
-                    %2 : java.type:"int" = constant @"1";
+                    %2 : java.type:"int" = constant @1;
                     %3 : java.type:"long" = conv %2;
                     return %3;
                 };
@@ -217,20 +217,20 @@ public class ImplicitConversionTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"long" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
                     ()java.type:"long" -> {
-                        %8 : java.type:"long" = constant @"1";
+                        %8 : java.type:"long" = constant @1;
                         yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"long" -> {
-                        %10 : java.type:"int" = constant @"0";
+                        %10 : java.type:"int" = constant @0;
                         %11 : java.type:"long" = conv %10;
                         yield %11;
                     };
@@ -252,21 +252,21 @@ public class ImplicitConversionTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"long" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
                     ()java.type:"long" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"long" = conv %8;
                         yield %9;
                     }
                     ()java.type:"boolean" -> {
-                        %10 : java.type:"boolean" = constant @"true";
+                        %10 : java.type:"boolean" = constant @true;
                         yield %10;
                     }
                     ()java.type:"long" -> {
-                        %11 : java.type:"long" = constant @"0";
+                        %11 : java.type:"long" = constant @0;
                         yield %11;
                     };
                 %12 : Var<java.type:"long"> = var %4 @"l";
@@ -287,21 +287,21 @@ public class ImplicitConversionTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"long" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
                     ()java.type:"long" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"long" = conv %8;
                         yield %9;
                     }
                     ()java.type:"boolean" -> {
-                        %10 : java.type:"boolean" = constant @"true";
+                        %10 : java.type:"boolean" = constant @true;
                         yield %10;
                     }
                     ()java.type:"long" -> {
-                        %11 : java.type:"int" = constant @"0";
+                        %11 : java.type:"int" = constant @0;
                         %12 : java.type:"long" = conv %11;
                         yield %12;
                     };
@@ -323,20 +323,20 @@ public class ImplicitConversionTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"long" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
                     ()java.type:"long" -> {
-                        %8 : java.type:"long" = constant @"1";
+                        %8 : java.type:"long" = constant @1;
                         java.yield %8;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"long" -> {
-                        %10 : java.type:"int" = constant @"0";
+                        %10 : java.type:"int" = constant @0;
                         %11 : java.type:"long" = conv %10;
                         java.yield %11;
                     };
@@ -358,21 +358,21 @@ public class ImplicitConversionTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"long" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
                     ()java.type:"long" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"long" = conv %8;
                         java.yield %9;
                     }
                     ()java.type:"boolean" -> {
-                        %10 : java.type:"boolean" = constant @"true";
+                        %10 : java.type:"boolean" = constant @true;
                         yield %10;
                     }
                     ()java.type:"long" -> {
-                        %11 : java.type:"long" = constant @"0";
+                        %11 : java.type:"long" = constant @0;
                         java.yield %11;
                     };
                 %12 : Var<java.type:"long"> = var %4 @"l";
@@ -393,21 +393,21 @@ public class ImplicitConversionTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"long" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
                     ()java.type:"long" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"long" = conv %8;
                         java.yield %9;
                     }
                     ()java.type:"boolean" -> {
-                        %10 : java.type:"boolean" = constant @"true";
+                        %10 : java.type:"boolean" = constant @true;
                         yield %10;
                     }
                     ()java.type:"long" -> {
-                        %11 : java.type:"int" = constant @"0";
+                        %11 : java.type:"int" = constant @0;
                         %12 : java.type:"long" = conv %11;
                         java.yield %12;
                     };
@@ -428,7 +428,7 @@ public class ImplicitConversionTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"long" = conv %3;
-                %5 : java.type:"long" = constant @"2";
+                %5 : java.type:"long" = constant @2;
                 %6 : java.type:"long" = add %4 %5;
                 %7 : Var<java.type:"long"> = var %6 @"l";
                 return;
@@ -462,7 +462,7 @@ public class ImplicitConversionTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"int" = var.load %2;
-                invoke %0 %3 %4 @java.ref:"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
+                invoke %0 %3 %4 @java.ref:"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs=true;
                 return;
             };
             """)
@@ -478,7 +478,7 @@ public class ImplicitConversionTest {
                 %4 : java.type:"int" = var.load %2;
                 %5 : java.type:"int" = var.load %2;
                 %6 : java.type:"long" = conv %5;
-                invoke %0 %3 %4 %6 @java.ref:"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
+                invoke %0 %3 %4 %6 @java.ref:"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs=true;
                 return;
             };
            """)
@@ -496,7 +496,7 @@ public class ImplicitConversionTest {
                 %6 : java.type:"long" = conv %5;
                 %7 : java.type:"int" = var.load %2;
                 %8 : java.type:"long" = conv %7;
-                invoke %0 %3 %4 %6 %8 @java.ref:"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
+                invoke %0 %3 %4 %6 %8 @java.ref:"ImplicitConversionTest::m(int, int, long[]):void" @invoke.kind="INSTANCE" @invoke.varargs=true;
                 return;
             };
             """)
@@ -529,7 +529,7 @@ public class ImplicitConversionTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"int" = var.load %2;
-                %5 : java.type:"ImplicitConversionTest$Box" = new %3 %4 @java.ref:"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs="true";
+                %5 : java.type:"ImplicitConversionTest$Box" = new %3 %4 @java.ref:"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs=true;
                 return;
             };
             """)
@@ -545,7 +545,7 @@ public class ImplicitConversionTest {
                 %4 : java.type:"int" = var.load %2;
                 %5 : java.type:"int" = var.load %2;
                 %6 : java.type:"long" = conv %5;
-                %7 : java.type:"ImplicitConversionTest$Box" = new %3 %4 %6 @java.ref:"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs="true";
+                %7 : java.type:"ImplicitConversionTest$Box" = new %3 %4 %6 @java.ref:"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs=true;
                 return;
             };
            """)
@@ -563,7 +563,7 @@ public class ImplicitConversionTest {
                 %6 : java.type:"long" = conv %5;
                 %7 : java.type:"int" = var.load %2;
                 %8 : java.type:"long" = conv %7;
-                %9 : java.type:"ImplicitConversionTest$Box" = new %3 %4 %6 %8 @java.ref:"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs="true";
+                %9 : java.type:"ImplicitConversionTest$Box" = new %3 %4 %6 %8 @java.ref:"ImplicitConversionTest$Box::(int, int, long[])" @new.varargs=true;
                 return;
             };
             """)

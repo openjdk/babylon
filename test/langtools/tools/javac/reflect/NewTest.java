@@ -70,8 +70,8 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test2" (%0 : java.type:"NewTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"1";
-                %2 : java.type:"int" = constant @"2";
+                %1 : java.type:"int" = constant @1;
+                %2 : java.type:"int" = constant @2;
                 %3 : java.type:"NewTest$A" = new %1 %2 @java.ref:"NewTest$A::(int, int)";
                 %4 : Var<java.type:"NewTest$A"> = var %3 @"a";
                 return;
@@ -109,8 +109,8 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test4" (%0 : java.type:"NewTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"1";
-                %2 : java.type:"int" = constant @"2";
+                %1 : java.type:"int" = constant @1;
+                %2 : java.type:"int" = constant @2;
                 %3 : java.type:"NewTest::B" = new %0 %1 %2 @java.ref:"NewTest::B::(NewTest, int, int)";
                 %4 : Var<java.type:"NewTest::B"> = var %3 @"b";
                 return;
@@ -205,7 +205,7 @@ public class NewTest {
     @CodeReflection
     @IR("""
             func @"test10" (%0 : java.type:"NewTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"10";
+                %1 : java.type:"int" = constant @10;
                 %2 : java.type:"int[]" = new %1 @java.ref:"int[]::(int)";
                 %3 : Var<java.type:"int[]"> = var %2 @"i";
                 return;
@@ -221,10 +221,10 @@ public class NewTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"int" = var.load %2;
-                %5 : java.type:"int" = constant @"1";
+                %5 : java.type:"int" = constant @1;
                 %6 : java.type:"int" = add %4 %5;
                 %7 : java.type:"int" = var.load %2;
-                %8 : java.type:"int" = constant @"2";
+                %8 : java.type:"int" = constant @2;
                 %9 : java.type:"int" = add %7 %8;
                 %10 : java.type:"java.lang.String[][][]" = new %3 %6 %9 @java.ref:"java.lang.String[][][]::(int, int, int)";
                 %11 : Var<java.type:"java.lang.String[][][]"> = var %10 @"s";

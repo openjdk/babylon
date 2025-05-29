@@ -130,19 +130,19 @@ public class TestNormalizeBlocksTransformer {
 
     static final String TEST3_INPUT = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                %3 : java.type:"int" = constant @"1";
+                %3 : java.type:"int" = constant @1;
                 branch ^block_1_1;
 
               ^block_1_1:
                 branch ^block_3(%3);
 
               ^block_2:
-                %4 : java.type:"int" = constant @"-1";
+                %4 : java.type:"int" = constant @-1;
                 branch ^block_2_1;
 
               ^block_2_1:
@@ -153,16 +153,16 @@ public class TestNormalizeBlocksTransformer {
             };""";
     static final String TEST3_EXPECTED = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                %3 : java.type:"int" = constant @"1";
+                %3 : java.type:"int" = constant @1;
                 branch ^block_3(%3);
 
               ^block_2:
-                %4 : java.type:"int" = constant @"-1";
+                %4 : java.type:"int" = constant @-1;
                 branch ^block_3(%4);
 
               ^block_3(%5 : java.type:"int"):
@@ -172,19 +172,19 @@ public class TestNormalizeBlocksTransformer {
 
     static final String TEST4_INPUT = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                %3 : java.type:"int" = constant @"1";
+                %3 : java.type:"int" = constant @1;
                 branch ^block_1_1;
 
               ^block_1_1:
                 branch ^block_3(%0, %3, %1);
 
               ^block_2:
-                %4 : java.type:"int" = constant @"-1";
+                %4 : java.type:"int" = constant @-1;
                 branch ^block_2_1;
 
               ^block_2_1:
@@ -195,16 +195,16 @@ public class TestNormalizeBlocksTransformer {
             };""";
     static final String TEST4_EXPECTED = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : java.type:"boolean" = gt %0 %1;
                 cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                %3 : java.type:"int" = constant @"1";
+                %3 : java.type:"int" = constant @1;
                 branch ^block_3(%3);
 
               ^block_2:
-                %4 : java.type:"int" = constant @"-1";
+                %4 : java.type:"int" = constant @-1;
                 branch ^block_3(%4);
 
               ^block_3(%5 : java.type:"int"):

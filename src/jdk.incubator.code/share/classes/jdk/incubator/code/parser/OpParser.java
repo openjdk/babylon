@@ -76,9 +76,18 @@ import java.util.Map;
  *   @ Name = AttributeValue
  *
  * AttributeValue:
- *   Name
+ *   ExType
+ *   NumericAttributeValue
+ *   BooleanLiteral
+ *   CharacterLiteral
  *   StringLiteral
  *   NullLiteral
+ *
+ * NumericAttributeValue:
+ *    [ '-' ] IntLiteral
+ *    [ '-' ] LongLiteral
+ *    [ '-' ] FloatLiteral
+ *    [ '-' ] DoubleLiteral
  *
  * Bodies:
  *   Body {Body}
@@ -464,6 +473,25 @@ public final class OpParser {
         return switch (t.kind) {
             case STRINGLITERAL -> t.stringVal();
             case NULL -> ExternalizableOp.NULL_ATTRIBUTE_VALUE;
+            case CHARLITERAL -> t.stringVal().charAt(0);
+            case TRUE -> true;
+            case FALSE -> false;
+            default -> parseNumericLiteral(t);
+        };
+    }
+
+    Object parseNumericLiteral(Tokens.Token t) {
+        String minusOpt = "";
+        if (t.kind == TokenKind.SUB) {
+            minusOpt = "-";
+            lexer.nextToken();
+            t = lexer.token();
+        }
+        return switch (t.kind) {
+            case INTLITERAL -> Integer.valueOf(minusOpt + t.stringVal());
+            case LONGLITERAL -> Long.valueOf(minusOpt + t.stringVal());
+            case FLOATLITERAL -> Float.valueOf(minusOpt + t.stringVal());
+            case DOUBLELITERAL -> Double.valueOf(minusOpt + t.stringVal());
             default -> throw lexer.unexpected();
         };
     }

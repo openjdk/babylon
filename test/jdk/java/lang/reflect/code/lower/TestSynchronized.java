@@ -48,7 +48,7 @@ public class TestSynchronized {
 
               ^block_2:
                 %7 : java.type:"int" = var.load %3;
-                %8 : java.type:"int" = constant @"1";
+                %8 : java.type:"int" = constant @1;
                 %9 : java.type:"int" = add %7 %8;
                 var.store %3 %9;
                 monitor.exit %5;
@@ -91,12 +91,12 @@ public class TestSynchronized {
 
               ^block_2:
                 %7 : java.type:"int" = var.load %3;
-                %8 : java.type:"int" = constant @"0";
+                %8 : java.type:"int" = constant @0;
                 %9 : java.type:"boolean" = gt %7 %8;
                 cbranch %9 ^block_3 ^block_5;
 
               ^block_3:
-                %10 : java.type:"int" = constant @"-1";
+                %10 : java.type:"int" = constant @-1;
                 monitor.exit %5;
                 exception.region.exit ^block_4 ^block_8;
 
@@ -108,7 +108,7 @@ public class TestSynchronized {
 
               ^block_6:
                 %11 : java.type:"int" = var.load %3;
-                %12 : java.type:"int" = constant @"1";
+                %12 : java.type:"int" = constant @1;
                 %13 : java.type:"int" = add %11 %12;
                 var.store %3 %13;
                 monitor.exit %5;

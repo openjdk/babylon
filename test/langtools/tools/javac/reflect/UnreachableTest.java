@@ -76,7 +76,7 @@ public class UnreachableTest {
                 %1 : Var<java.type:"int"> = var %0 @"i";
                 java.if
                     ()java.type:"boolean" -> {
-                        %2 : java.type:"boolean" = constant @"true";
+                        %2 : java.type:"boolean" = constant @true;
                         yield %2;
                     }
                     ()java.type:"void" -> {
@@ -106,7 +106,7 @@ public class UnreachableTest {
                     %2 : Var<java.type:"int"> = var %1 @"i";
                     java.if
                         ()java.type:"boolean" -> {
-                            %3 : java.type:"boolean" = constant @"true";
+                            %3 : java.type:"boolean" = constant @true;
                             yield %3;
                         }
                         ()java.type:"void" -> {
@@ -140,14 +140,14 @@ public class UnreachableTest {
                 %2 : java.type:"int" = var.load %1;
                 %3 : java.type:"java.lang.String" = java.switch.expression %2
                     (%4 : java.type:"int")java.type:"boolean" -> {
-                        %5 : java.type:"int" = constant @"42";
+                        %5 : java.type:"int" = constant @42;
                         %6 : java.type:"boolean" = eq %4 %5;
                         yield %6;
                     }
                     ()java.type:"java.lang.String" -> {
                         java.while
                             ()java.type:"boolean" -> {
-                                %7 : java.type:"boolean" = constant @"true";
+                                %7 : java.type:"boolean" = constant @true;
                                 yield %7;
                             }
                             ()java.type:"void" -> {
@@ -156,7 +156,7 @@ public class UnreachableTest {
                         unreachable;
                     }
                     ()java.type:"boolean" -> {
-                        %8 : java.type:"boolean" = constant @"true";
+                        %8 : java.type:"boolean" = constant @true;
                         yield %8;
                     }
                     ()java.type:"java.lang.String" -> {
@@ -180,7 +180,7 @@ public class UnreachableTest {
                     %2 : Var<java.type:"int"> = var %1 @"i";
                     java.if
                         ()java.type:"boolean" -> {
-                            %3 : java.type:"boolean" = constant @"true";
+                            %3 : java.type:"boolean" = constant @true;
                             yield %3;
                         }
                         ()java.type:"void" -> {
@@ -210,7 +210,7 @@ public class UnreachableTest {
                     %2 : Var<java.type:"int"> = var %1 @"i";
                     java.if
                         ()java.type:"boolean" -> {
-                            %3 : java.type:"boolean" = constant @"true";
+                            %3 : java.type:"boolean" = constant @true;
                             yield %3;
                         }
                         ()java.type:"void" -> {

@@ -37,22 +37,22 @@ public class TryTest {
     @CodeReflection
     @IR("""
             func @"test1" (%0 : java.type:"TryTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
                     ()java.type:"void" -> {
-                        %3 : java.type:"int" = constant @"1";
+                        %3 : java.type:"int" = constant @1;
                         var.store %2 %3;
                         yield;
                     }
                     (%4 : java.type:"java.lang.Exception")java.type:"void" -> {
                         %5 : Var<java.type:"java.lang.Exception"> = var %4 @"e";
-                        %6 : java.type:"int" = constant @"2";
+                        %6 : java.type:"int" = constant @2;
                         var.store %2 %6;
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %7 : java.type:"int" = constant @"3";
+                        %7 : java.type:"int" = constant @3;
                         var.store %2 %7;
                         yield;
                     };
@@ -73,16 +73,16 @@ public class TryTest {
     @CodeReflection
     @IR("""
             func @"test2" (%0 : java.type:"TryTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
                     ()java.type:"void" -> {
-                        %3 : java.type:"int" = constant @"1";
+                        %3 : java.type:"int" = constant @1;
                         var.store %2 %3;
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %4 : java.type:"int" = constant @"3";
+                        %4 : java.type:"int" = constant @3;
                         var.store %2 %4;
                         yield;
                     };
@@ -101,11 +101,11 @@ public class TryTest {
     @CodeReflection
     @IR("""
             func @"test3" (%0 : java.type:"TryTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
                     ()java.type:"void" -> {
-                        %3 : java.type:"int" = constant @"1";
+                        %3 : java.type:"int" = constant @1;
                         var.store %2 %3;
                         yield;
                     }
@@ -213,23 +213,23 @@ public class TryTest {
     @CodeReflection
     @IR("""
             func @"test5" (%0 : java.type:"TryTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
                     ()java.type:"void" -> {
-                        %3 : java.type:"int" = constant @"1";
+                        %3 : java.type:"int" = constant @1;
                         var.store %2 %3;
                         yield;
                     }
                     (%4 : java.type:"java.lang.NullPointerException")java.type:"void" -> {
                         %5 : Var<java.type:"java.lang.NullPointerException"> = var %4 @"e";
-                        %6 : java.type:"int" = constant @"2";
+                        %6 : java.type:"int" = constant @2;
                         var.store %2 %6;
                         yield;
                     }
                     (%7 : java.type:"java.lang.OutOfMemoryError")java.type:"void" -> {
                         %8 : Var<java.type:"java.lang.OutOfMemoryError"> = var %7 @"e";
-                        %9 : java.type:"int" = constant @"3";
+                        %9 : java.type:"int" = constant @3;
                         var.store %2 %9;
                         yield;
                     };
@@ -250,7 +250,7 @@ public class TryTest {
     @CodeReflection
     @IR("""
             func @"test6" (%0 : java.type:"TryTest")java.type:"void" -> {
-                %1 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 java.try
                     ()java.type:"void" -> {

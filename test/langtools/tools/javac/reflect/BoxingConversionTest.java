@@ -37,7 +37,7 @@ public class BoxingConversionTest {
     @CodeReflection
     @IR("""
             func @"test1" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
-                %1 : java.type:"long" = constant @"1";
+                %1 : java.type:"long" = constant @1;
                 %2 : java.type:"java.lang.Long" = invoke %1 @java.ref:"java.lang.Long::valueOf(long):java.lang.Long";
                 %3 : Var<java.type:"java.lang.Long"> = var %2 @"x";
                 return;
@@ -64,7 +64,7 @@ public class BoxingConversionTest {
     @CodeReflection
     @IR("""
             func @"test3" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
-                %1 : java.type:"long" = constant @"0";
+                %1 : java.type:"long" = constant @0;
                 %2 : java.type:"java.lang.Long" = invoke %1 @java.ref:"java.lang.Long::valueOf(long):java.lang.Long";
                 %3 : Var<java.type:"java.lang.Object"> = var %2 @"o";
                 return;
@@ -94,7 +94,7 @@ public class BoxingConversionTest {
             func @"test5" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Integer"> = var %1 @"i2";
                 %3 : java.type:"java.lang.Integer" = var.load %2;
-                %4 : java.type:"int" = constant @"1";
+                %4 : java.type:"int" = constant @1;
                 %5 : java.type:"int" = invoke %3 @java.ref:"java.lang.Integer::intValue():int";
                 %6 : java.type:"int" = add %5 %4;
                 %7 : java.type:"java.lang.Integer" = invoke %6 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
@@ -111,7 +111,7 @@ public class BoxingConversionTest {
             func @"test6" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Integer"> = var %1 @"i2";
                 %3 : java.type:"java.lang.Integer" = var.load %2;
-                %4 : java.type:"int" = constant @"3";
+                %4 : java.type:"int" = constant @3;
                 %5 : java.type:"int" = invoke %3 @java.ref:"java.lang.Integer::intValue():int";
                 %6 : java.type:"int" = add %5 %4;
                 %7 : java.type:"java.lang.Integer" = invoke %6 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
@@ -132,7 +132,7 @@ public class BoxingConversionTest {
             func @"test7" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"BoxingConversionTest$Box" = new @java.ref:"BoxingConversionTest$Box::()";
                 %2 : java.type:"java.lang.Integer" = field.load %1 @java.ref:"BoxingConversionTest$Box::i:java.lang.Integer";
-                %3 : java.type:"int" = constant @"1";
+                %3 : java.type:"int" = constant @1;
                 %4 : java.type:"int" = invoke %2 @java.ref:"java.lang.Integer::intValue():int";
                 %5 : java.type:"int" = add %4 %3;
                 %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
@@ -149,7 +149,7 @@ public class BoxingConversionTest {
             func @"test8" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"BoxingConversionTest$Box" = new @java.ref:"BoxingConversionTest$Box::()";
                 %2 : java.type:"java.lang.Integer" = field.load %1 @java.ref:"BoxingConversionTest$Box::i:java.lang.Integer";
-                %3 : java.type:"int" = constant @"3";
+                %3 : java.type:"int" = constant @3;
                 %4 : java.type:"int" = invoke %2 @java.ref:"java.lang.Integer::intValue():int";
                 %5 : java.type:"int" = add %4 %3;
                 %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
@@ -167,7 +167,7 @@ public class BoxingConversionTest {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
                 %4 : Var<java.type:"java.lang.Integer"> = var %2 @"i";
                 %5 : java.type:"int[]" = var.load %3;
-                %6 : java.type:"int" = constant @"0";
+                %6 : java.type:"int" = constant @0;
                 %7 : java.type:"int" = array.load %5 %6;
                 %8 : java.type:"java.lang.Integer" = var.load %4;
                 %9 : java.type:"int" = invoke %8 @java.ref:"java.lang.Integer::intValue():int";
@@ -196,7 +196,7 @@ public class BoxingConversionTest {
                         yield %8;
                     }
                     ()java.type:"int" -> {
-                        %9 : java.type:"int" = constant @"2";
+                        %9 : java.type:"int" = constant @2;
                         yield %9;
                     };
                 %10 : Var<java.type:"int"> = var %5 @"res";
@@ -218,7 +218,7 @@ public class BoxingConversionTest {
                         yield %6;
                     }
                     ()java.type:"int" -> {
-                        %7 : java.type:"int" = constant @"2";
+                        %7 : java.type:"int" = constant @2;
                         yield %7;
                     }
                     ()java.type:"int" -> {
@@ -244,11 +244,11 @@ public class BoxingConversionTest {
                         yield %4;
                     }
                     ()java.type:"int" -> {
-                        %5 : java.type:"int" = constant @"1";
+                        %5 : java.type:"int" = constant @1;
                         yield %5;
                     }
                     ()java.type:"int" -> {
-                        %6 : java.type:"int" = constant @"2";
+                        %6 : java.type:"int" = constant @2;
                         yield %6;
                     };
                 %7 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
@@ -264,7 +264,7 @@ public class BoxingConversionTest {
     @IR("""
             func @"test13" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
-                    %2 : java.type:"int" = constant @"1";
+                    %2 : java.type:"int" = constant @1;
                     %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                     return %3;
                 };
@@ -280,7 +280,7 @@ public class BoxingConversionTest {
     @IR("""
             func @"test14" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
-                    %2 : java.type:"int" = constant @"1";
+                    %2 : java.type:"int" = constant @1;
                     %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                     return %3;
                 };
@@ -300,7 +300,7 @@ public class BoxingConversionTest {
                 %5 : java.type:"int" = var.load %3;
                 %6 : java.type:"int" = java.switch.expression %5
                     (%7 : java.type:"int")java.type:"boolean" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"boolean" = eq %7 %8;
                         yield %9;
                     }
@@ -310,11 +310,11 @@ public class BoxingConversionTest {
                         yield %11;
                     }
                     ()java.type:"boolean" -> {
-                        %12 : java.type:"boolean" = constant @"true";
+                        %12 : java.type:"boolean" = constant @true;
                         yield %12;
                     }
                     ()java.type:"int" -> {
-                        %13 : java.type:"int" = constant @"0";
+                        %13 : java.type:"int" = constant @0;
                         yield %13;
                     };
                 %14 : Var<java.type:"int"> = var %6 @"x";
@@ -336,16 +336,16 @@ public class BoxingConversionTest {
                 %5 : java.type:"int" = var.load %3;
                 %6 : java.type:"int" = java.switch.expression %5
                     (%7 : java.type:"int")java.type:"boolean" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"boolean" = eq %7 %8;
                         yield %9;
                     }
                     ()java.type:"int" -> {
-                        %10 : java.type:"int" = constant @"1";
+                        %10 : java.type:"int" = constant @1;
                         yield %10;
                     }
                     ()java.type:"boolean" -> {
-                        %11 : java.type:"boolean" = constant @"true";
+                        %11 : java.type:"boolean" = constant @true;
                         yield %11;
                     }
                     ()java.type:"int" -> {
@@ -371,21 +371,21 @@ public class BoxingConversionTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.Integer" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
                     ()java.type:"java.lang.Integer" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"java.lang.Integer" = invoke %8 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                         yield %9;
                     }
                     ()java.type:"boolean" -> {
-                        %10 : java.type:"boolean" = constant @"true";
+                        %10 : java.type:"boolean" = constant @true;
                         yield %10;
                     }
                     ()java.type:"java.lang.Integer" -> {
-                        %11 : java.type:"int" = constant @"0";
+                        %11 : java.type:"int" = constant @0;
                         %12 : java.type:"java.lang.Integer" = invoke %11 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                         yield %12;
                     };
@@ -408,7 +408,7 @@ public class BoxingConversionTest {
                 %5 : java.type:"int" = var.load %3;
                 %6 : java.type:"int" = java.switch.expression %5
                     (%7 : java.type:"int")java.type:"boolean" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"boolean" = eq %7 %8;
                         yield %9;
                     }
@@ -418,11 +418,11 @@ public class BoxingConversionTest {
                         java.yield %11;
                     }
                     ()java.type:"boolean" -> {
-                        %12 : java.type:"boolean" = constant @"true";
+                        %12 : java.type:"boolean" = constant @true;
                         yield %12;
                     }
                     ()java.type:"int" -> {
-                        %13 : java.type:"int" = constant @"0";
+                        %13 : java.type:"int" = constant @0;
                         java.yield %13;
                     };
                 %14 : Var<java.type:"int"> = var %6 @"x";
@@ -444,16 +444,16 @@ public class BoxingConversionTest {
                 %5 : java.type:"int" = var.load %3;
                 %6 : java.type:"int" = java.switch.expression %5
                     (%7 : java.type:"int")java.type:"boolean" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"boolean" = eq %7 %8;
                         yield %9;
                     }
                     ()java.type:"int" -> {
-                        %10 : java.type:"int" = constant @"1";
+                        %10 : java.type:"int" = constant @1;
                         java.yield %10;
                     }
                     ()java.type:"boolean" -> {
-                        %11 : java.type:"boolean" = constant @"true";
+                        %11 : java.type:"boolean" = constant @true;
                         yield %11;
                     }
                     ()java.type:"int" -> {
@@ -479,21 +479,21 @@ public class BoxingConversionTest {
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"java.lang.Integer" = java.switch.expression %3
                     (%5 : java.type:"int")java.type:"boolean" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
                     ()java.type:"java.lang.Integer" -> {
-                        %8 : java.type:"int" = constant @"1";
+                        %8 : java.type:"int" = constant @1;
                         %9 : java.type:"java.lang.Integer" = invoke %8 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                         java.yield %9;
                     }
                     ()java.type:"boolean" -> {
-                        %10 : java.type:"boolean" = constant @"true";
+                        %10 : java.type:"boolean" = constant @true;
                         yield %10;
                     }
                     ()java.type:"java.lang.Integer" -> {
-                        %11 : java.type:"int" = constant @"0";
+                        %11 : java.type:"int" = constant @0;
                         %12 : java.type:"java.lang.Integer" = invoke %11 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                         java.yield %12;
                     };
@@ -549,7 +549,7 @@ public class BoxingConversionTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"int" = var.load %2;
-                invoke %0 %3 %4 @java.ref:"BoxingConversionTest::m(int, int, java.lang.Integer[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
+                invoke %0 %3 %4 @java.ref:"BoxingConversionTest::m(int, int, java.lang.Integer[]):void" @invoke.kind="INSTANCE" @invoke.varargs=true;
                 return;
             };
             """)
@@ -565,7 +565,7 @@ public class BoxingConversionTest {
                 %4 : java.type:"int" = var.load %2;
                 %5 : java.type:"int" = var.load %2;
                 %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
-                invoke %0 %3 %4 %6 @java.ref:"BoxingConversionTest::m(int, int, java.lang.Integer[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
+                invoke %0 %3 %4 %6 @java.ref:"BoxingConversionTest::m(int, int, java.lang.Integer[]):void" @invoke.kind="INSTANCE" @invoke.varargs=true;
                 return;
             };
             """)
@@ -583,7 +583,7 @@ public class BoxingConversionTest {
                 %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                 %7 : java.type:"int" = var.load %2;
                 %8 : java.type:"java.lang.Integer" = invoke %7 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
-                invoke %0 %3 %4 %6 %8 @java.ref:"BoxingConversionTest::m(int, int, java.lang.Integer[]):void" @invoke.kind="INSTANCE" @invoke.varargs="true";
+                invoke %0 %3 %4 %6 %8 @java.ref:"BoxingConversionTest::m(int, int, java.lang.Integer[]):void" @invoke.kind="INSTANCE" @invoke.varargs=true;
                 return;
             };
             """)
@@ -616,7 +616,7 @@ public class BoxingConversionTest {
                 %2 : Var<java.type:"int"> = var %1 @"i";
                 %3 : java.type:"int" = var.load %2;
                 %4 : java.type:"int" = var.load %2;
-                %5 : java.type:"BoxingConversionTest$Box2" = new %3 %4 @java.ref:"BoxingConversionTest$Box2::(int, int, java.lang.Integer[])" @new.varargs="true";
+                %5 : java.type:"BoxingConversionTest$Box2" = new %3 %4 @java.ref:"BoxingConversionTest$Box2::(int, int, java.lang.Integer[])" @new.varargs=true;
                 return;
             };
             """)
@@ -632,7 +632,7 @@ public class BoxingConversionTest {
                 %4 : java.type:"int" = var.load %2;
                 %5 : java.type:"int" = var.load %2;
                 %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
-                %7 : java.type:"BoxingConversionTest$Box2" = new %3 %4 %6 @java.ref:"BoxingConversionTest$Box2::(int, int, java.lang.Integer[])" @new.varargs="true";
+                %7 : java.type:"BoxingConversionTest$Box2" = new %3 %4 %6 @java.ref:"BoxingConversionTest$Box2::(int, int, java.lang.Integer[])" @new.varargs=true;
                 return;
             };
             """)
@@ -650,7 +650,7 @@ public class BoxingConversionTest {
                 %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                 %7 : java.type:"int" = var.load %2;
                 %8 : java.type:"java.lang.Integer" = invoke %7 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
-                %9 : java.type:"BoxingConversionTest$Box2" = new %3 %4 %6 %8 @java.ref:"BoxingConversionTest$Box2::(int, int, java.lang.Integer[])" @new.varargs="true";
+                %9 : java.type:"BoxingConversionTest$Box2" = new %3 %4 %6 %8 @java.ref:"BoxingConversionTest$Box2::(int, int, java.lang.Integer[])" @new.varargs=true;
                 return;
             };
             """)

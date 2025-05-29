@@ -40,7 +40,7 @@ public class AssertTest {
                 assert
                     ()java.type:"boolean" -> {
                         %2 : java.type:"int" = var.load %1;
-                        %3 : java.type:"int" = constant @"1";
+                        %3 : java.type:"int" = constant @1;
                         %4 : java.type:"boolean" = eq %2 %3;
                         yield %4;
                     }
@@ -61,7 +61,7 @@ public class AssertTest {
                 %1 : Var<java.type:"int"> = var %0 @"i";
                 assert ()java.type:"boolean" -> {
                     %2 : java.type:"int" = var.load %1;
-                    %3 : java.type:"int" = constant @"1";
+                    %3 : java.type:"int" = constant @1;
                     %4 : java.type:"boolean" = eq %2 %3;
                     yield %4;
                 };

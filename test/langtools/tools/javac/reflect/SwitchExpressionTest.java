@@ -71,7 +71,7 @@ public class SwitchExpressionTest {
                         yield %15;
                     }
                     ()java.type:"boolean" -> {
-                        %16 : java.type:"boolean" = constant @"true";
+                        %16 : java.type:"boolean" = constant @true;
                         yield %16;
                     }
                     ()java.type:"java.lang.Object" -> {
@@ -120,7 +120,7 @@ public class SwitchExpressionTest {
                         yield %12;
                     }
                     ()java.type:"boolean" -> {
-                        %13 : java.type:"boolean" = constant @"true";
+                        %13 : java.type:"boolean" = constant @true;
                         yield %13;
                     }
                     ()java.type:"java.lang.Object" -> {
@@ -173,7 +173,7 @@ public class SwitchExpressionTest {
                         java.yield %15;
                     }
                     ()java.type:"boolean" -> {
-                        %16 : java.type:"boolean" = constant @"true";
+                        %16 : java.type:"boolean" = constant @true;
                         yield %16;
                     }
                     ()java.type:"java.lang.Object" -> {
@@ -222,7 +222,7 @@ public class SwitchExpressionTest {
                         java.yield %12;
                     }
                     ()java.type:"boolean" -> {
-                        %13 : java.type:"boolean" = constant @"true";
+                        %13 : java.type:"boolean" = constant @true;
                         yield %13;
                     }
                     ()java.type:"java.lang.Object" -> {
@@ -267,7 +267,7 @@ public class SwitchExpressionTest {
                         unreachable;
                     }
                     ()java.type:"boolean" -> {
-                        %10 : java.type:"boolean" = constant @"true";
+                        %10 : java.type:"boolean" = constant @true;
                         yield %10;
                     }
                     ()java.type:"java.lang.Object" -> {
@@ -310,7 +310,7 @@ public class SwitchExpressionTest {
                         java.switch.fallthrough;
                     }
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = constant @"true";
+                        %9 : java.type:"boolean" = constant @true;
                         yield %9;
                     }
                     ()java.type:"java.lang.Object" -> {
@@ -376,7 +376,7 @@ public class SwitchExpressionTest {
                         java.yield %18;
                     }
                     ()java.type:"boolean" -> {
-                        %19 : java.type:"boolean" = constant @"true";
+                        %19 : java.type:"boolean" = constant @true;
                         yield %19;
                     }
                     ()java.type:"java.lang.Object" -> {
@@ -446,7 +446,7 @@ public class SwitchExpressionTest {
                             ()java.type:"boolean" -> {
                                 %21 : java.type:"java.lang.String" = var.load %6;
                                 %22 : java.type:"int" = invoke %21 @java.ref:"java.lang.String::length():int";
-                                %23 : java.type:"int" = constant @"5";
+                                %23 : java.type:"int" = constant @5;
                                 %24 : java.type:"boolean" = lt %22 %23;
                                 yield %24;
                             };
@@ -473,7 +473,7 @@ public class SwitchExpressionTest {
                             ()java.type:"boolean" -> {
                                 %31 : java.type:"java.lang.String" = var.load %8;
                                 %32 : java.type:"int" = invoke %31 @java.ref:"java.lang.String::length():int";
-                                %33 : java.type:"int" = constant @"10";
+                                %33 : java.type:"int" = constant @10;
                                 %34 : java.type:"boolean" = lt %32 %33;
                                 yield %34;
                             };
@@ -484,7 +484,7 @@ public class SwitchExpressionTest {
                         java.yield %35;
                     }
                     ()java.type:"boolean" -> {
-                        %36 : java.type:"boolean" = constant @"true";
+                        %36 : java.type:"boolean" = constant @true;
                         yield %36;
                     }
                     ()java.type:"java.lang.Object" -> {

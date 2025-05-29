@@ -40,12 +40,12 @@ public class IfTest {
                 java.if
                     ()java.type:"boolean" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         var.store %2 %6;
                         yield;
                     }
@@ -68,17 +68,17 @@ public class IfTest {
                 java.if
                     ()java.type:"boolean" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         var.store %2 %6;
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %7 : java.type:"int" = constant @"2";
+                        %7 : java.type:"int" = constant @2;
                         var.store %2 %7;
                         yield;
                     };
@@ -100,23 +100,23 @@ public class IfTest {
                 java.if
                     ()java.type:"boolean" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         var.store %2 %6;
                         yield;
                     }
                     ()java.type:"boolean" -> {
                         %7 : java.type:"int" = var.load %2;
-                        %8 : java.type:"int" = constant @"2";
+                        %8 : java.type:"int" = constant @2;
                         %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     }
                     ()java.type:"void" -> {
-                        %10 : java.type:"int" = constant @"2";
+                        %10 : java.type:"int" = constant @2;
                         var.store %2 %10;
                         yield;
                     }
@@ -141,28 +141,28 @@ public class IfTest {
                 java.if
                     ()java.type:"boolean" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         var.store %2 %6;
                         yield;
                     }
                     ()java.type:"boolean" -> {
                         %7 : java.type:"int" = var.load %2;
-                        %8 : java.type:"int" = constant @"2";
+                        %8 : java.type:"int" = constant @2;
                         %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     }
                     ()java.type:"void" -> {
-                        %10 : java.type:"int" = constant @"2";
+                        %10 : java.type:"int" = constant @2;
                         var.store %2 %10;
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %11 : java.type:"int" = constant @"3";
+                        %11 : java.type:"int" = constant @3;
                         var.store %2 %11;
                         yield;
                     };
@@ -185,26 +185,26 @@ public class IfTest {
                 java.if
                     ()java.type:"boolean" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         return %6;
                     }
                     ()java.type:"boolean" -> {
                         %7 : java.type:"int" = var.load %2;
-                        %8 : java.type:"int" = constant @"2";
+                        %8 : java.type:"int" = constant @2;
                         %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     }
                     ()java.type:"void" -> {
-                        %10 : java.type:"int" = constant @"2";
+                        %10 : java.type:"int" = constant @2;
                         return %10;
                     }
                     ()java.type:"void" -> {
-                        %11 : java.type:"int" = constant @"3";
+                        %11 : java.type:"int" = constant @3;
                         return %11;
                     };
                 unreachable;
@@ -228,12 +228,12 @@ public class IfTest {
                 java.if
                     ()java.type:"boolean" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         var.store %2 %6;
                         yield;
                     }
@@ -255,17 +255,17 @@ public class IfTest {
                 java.if
                     ()java.type:"boolean" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         var.store %2 %6;
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %7 : java.type:"int" = constant @"2";
+                        %7 : java.type:"int" = constant @2;
                         var.store %2 %7;
                         yield;
                     };
@@ -286,28 +286,28 @@ public class IfTest {
                 java.if
                     ()java.type:"boolean" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"boolean" = lt %3 %4;
                         yield %5;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"int" = constant @"1";
+                        %6 : java.type:"int" = constant @1;
                         var.store %2 %6;
                         yield;
                     }
                     ()java.type:"boolean" -> {
                         %7 : java.type:"int" = var.load %2;
-                        %8 : java.type:"int" = constant @"2";
+                        %8 : java.type:"int" = constant @2;
                         %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     }
                     ()java.type:"void" -> {
-                        %10 : java.type:"int" = constant @"2";
+                        %10 : java.type:"int" = constant @2;
                         var.store %2 %10;
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %11 : java.type:"int" = constant @"3";
+                        %11 : java.type:"int" = constant @3;
                         var.store %2 %11;
                         yield;
                     };
@@ -334,12 +334,12 @@ public class IfTest {
                         yield %4;
                     }
                     ()java.type:"void" -> {
-                        %5 : java.type:"int" = constant @"1";
+                        %5 : java.type:"int" = constant @1;
                         var.store %2 %5;
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %6 : java.type:"int" = constant @"2";
+                        %6 : java.type:"int" = constant @2;
                         var.store %2 %6;
                         yield;
                     };

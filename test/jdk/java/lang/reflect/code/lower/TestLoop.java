@@ -37,9 +37,9 @@ public class TestLoop {
     @LoweredModel(value = """
             func @"testFor" (%0 : java.type:"int[]")java.type:"int" -> {
                 %1 : Var<java.type:"int[]"> = var %0 @"a";
-                %2 : java.type:"int" = constant @"0";
+                %2 : java.type:"int" = constant @0;
                 %3 : Var<java.type:"int"> = var %2 @"sum";
-                %4 : java.type:"int" = constant @"0";
+                %4 : java.type:"int" = constant @0;
                 %5 : Var<java.type:"int"> = var %4 @"i";
                 branch ^block_0;
 
@@ -61,7 +61,7 @@ public class TestLoop {
 
               ^block_3:
                 %15 : java.type:"int" = var.load %5;
-                %16 : java.type:"int" = constant @"1";
+                %16 : java.type:"int" = constant @1;
                 %17 : java.type:"int" = add %15 %16;
                 var.store %5 %17;
                 branch ^block_0;
@@ -82,8 +82,8 @@ public class TestLoop {
     @CodeReflection
     @LoweredModel(value = """
             func @"testForSSA" (%0 : java.type:"int[]")java.type:"int" -> {
-                %1 : java.type:"int" = constant @"0";
-                %2 : java.type:"int" = constant @"0";
+                %1 : java.type:"int" = constant @0;
+                %2 : java.type:"int" = constant @0;
                 branch ^block_1(%2, %1);
 
               ^block_1(%3 : java.type:"int", %4 : java.type:"int"):
@@ -97,7 +97,7 @@ public class TestLoop {
                 branch ^block_3;
 
               ^block_3:
-                %9 : java.type:"int" = constant @"1";
+                %9 : java.type:"int" = constant @1;
                 %10 : java.type:"int" = add %3 %9;
                 branch ^block_1(%10, %8);
 

@@ -43,7 +43,7 @@ public class SynchronizedTest {
                     }
                     ()java.type:"void" -> {
                         %3 : java.type:"int" = var.load %2;
-                        %4 : java.type:"int" = constant @"1";
+                        %4 : java.type:"int" = constant @1;
                         %5 : java.type:"int" = add %3 %4;
                         var.store %2 %5;
                         yield;
@@ -74,7 +74,7 @@ public class SynchronizedTest {
                     }
                     ()java.type:"void" -> {
                         %4 : java.type:"int" = var.load %2;
-                        %5 : java.type:"int" = constant @"1";
+                        %5 : java.type:"int" = constant @1;
                         %6 : java.type:"int" = add %4 %5;
                         var.store %2 %6;
                         yield;

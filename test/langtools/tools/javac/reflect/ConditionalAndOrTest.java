@@ -41,13 +41,13 @@ public class ConditionalAndOrTest {
                 %3 : java.type:"boolean" = java.cand
                     ()java.type:"boolean" -> {
                         %4 : java.type:"int" = var.load %2;
-                        %5 : java.type:"int" = constant @"1";
+                        %5 : java.type:"int" = constant @1;
                         %6 : java.type:"boolean" = gt %4 %5;
                         yield %6;
                     }
                     ()java.type:"boolean" -> {
                         %7 : java.type:"int" = var.load %2;
-                        %8 : java.type:"int" = constant @"10";
+                        %8 : java.type:"int" = constant @10;
                         %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     };
@@ -66,13 +66,13 @@ public class ConditionalAndOrTest {
                 %3 : java.type:"boolean" = java.cor
                     ()java.type:"boolean" -> {
                         %4 : java.type:"int" = var.load %2;
-                        %5 : java.type:"int" = constant @"1";
+                        %5 : java.type:"int" = constant @1;
                         %6 : java.type:"boolean" = gt %4 %5;
                         yield %6;
                     }
                     ()java.type:"boolean" -> {
                         %7 : java.type:"int" = var.load %2;
-                        %8 : java.type:"int" = constant @"10";
+                        %8 : java.type:"int" = constant @10;
                         %9 : java.type:"boolean" = lt %7 %8;
                         yield %9;
                     };
@@ -93,13 +93,13 @@ public class ConditionalAndOrTest {
                         %4 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
                                 %5 : java.type:"int" = var.load %2;
-                                %6 : java.type:"int" = constant @"1";
+                                %6 : java.type:"int" = constant @1;
                                 %7 : java.type:"boolean" = gt %5 %6;
                                 yield %7;
                             }
                             ()java.type:"boolean" -> {
                                 %8 : java.type:"int" = var.load %2;
-                                %9 : java.type:"int" = constant @"10";
+                                %9 : java.type:"int" = constant @10;
                                 %10 : java.type:"boolean" = lt %8 %9;
                                 yield %10;
                             };
@@ -107,7 +107,7 @@ public class ConditionalAndOrTest {
                     }
                     ()java.type:"boolean" -> {
                         %11 : java.type:"int" = var.load %2;
-                        %12 : java.type:"int" = constant @"100";
+                        %12 : java.type:"int" = constant @100;
                         %13 : java.type:"boolean" = eq %11 %12;
                         yield %13;
                     };

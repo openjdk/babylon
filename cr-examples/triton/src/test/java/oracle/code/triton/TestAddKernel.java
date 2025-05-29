@@ -38,10 +38,10 @@ public class TestAddKernel {
     @TritonCodeModel("""
             module ()java.type:"void" -> {
                 tt.func @"add_kernel_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_int_64_void" (%0 : ptr<java.type:"float">, %1 : ptr<java.type:"float">, %2 : ptr<java.type:"float">, %3 : java.type:"int")java.type:"void" -> {
-                    %4 : java.type:"int" = arith.constant @"64";
-                    %5 : java.type:"int" = tt.get_program_id @"0";
+                    %4 : java.type:"int" = arith.constant @64;
+                    %5 : java.type:"int" = tt.get_program_id @0;
                     %6 : java.type:"int" = arith.muli %5 %4;
-                    %7 : tensor<x64, java.type:"int"> = tt.make_range @start="0" @end="64";
+                    %7 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
                     %8 : tensor<x64, java.type:"int"> = tt.splat %6;
                     %9 : tensor<x64, java.type:"int"> = arith.addi %8 %7;
                     %10 : tensor<x64, java.type:"int"> = tt.splat %3;
@@ -107,10 +107,10 @@ public class TestAddKernel {
     @TritonCodeModel("""
             module ()java.type:"void" -> {
                 tt.func @"add_kernel2_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_int_64_void" (%0 : ptr<java.type:"float">, %1 : ptr<java.type:"float">, %2 : ptr<java.type:"float">, %3 : java.type:"int")java.type:"void" -> {
-                    %4 : java.type:"int" = arith.constant @"64";
-                    %5 : java.type:"int" = tt.get_program_id @"0";
+                    %4 : java.type:"int" = arith.constant @64;
+                    %5 : java.type:"int" = tt.get_program_id @0;
                     %6 : java.type:"int" = arith.muli %5 %4;
-                    %7 : tensor<x64, java.type:"int"> = tt.make_range @start="0" @end="64";
+                    %7 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
                     %8 : tensor<x64, java.type:"int"> = tt.splat %6;
                     %9 : tensor<x64, java.type:"int"> = arith.addi %8 %7;
                     %10 : tensor<x64, java.type:"int"> = tt.splat %3;
