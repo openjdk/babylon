@@ -76,8 +76,6 @@ public final class OpWriter {
         static String toString(Object value) {
             if (value == ExternalizableOp.NULL_ATTRIBUTE_VALUE) {
                 return "null";
-            } else if (value instanceof TypeElement te) {
-                return JavaTypeUtils.flatten(te.externalize()).toString();
             }
 
             StringBuilder sb = new StringBuilder();
@@ -87,6 +85,8 @@ public final class OpWriter {
 
         static void toString(Object o, StringBuilder sb) {
             if (o.getClass().isArray()) {
+                // note, while we can't parse back the array representation, this might be useful
+                // for non-externalizable ops that want better string representation of array attribute values (e.g. ONNX)
                 arrayToString(o, sb);
             } else {
                 switch (o) {
@@ -96,6 +96,7 @@ public final class OpWriter {
                     case Double d -> sb.append(d).append('d');
                     case Character c -> sb.append('\'').append(c).append('\'');
                     case Boolean b -> sb.append(b);
+                    case TypeElement te -> sb.append(JavaTypeUtils.flatten(te.externalize()));
                     default -> {  // fallback to a string
                         sb.append('"');
                         quote(o.toString(), sb);
