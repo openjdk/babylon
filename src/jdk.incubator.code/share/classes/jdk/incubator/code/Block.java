@@ -30,6 +30,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static jdk.incubator.code.op.CoreOp._return;
 import static jdk.incubator.code.op.CoreOp.branch;
@@ -316,10 +317,10 @@ public final class Block implements CodeElement<Block, Op> {
     }
 
     /**
-     * Returns the list of predecessors, namely each block in the parent body that refers
-     * to this block as a successor.
+     * Returns the set of predecessors, the set containing each block in the parent
+     * body that refers to this block as a successor.
      *
-     * @return the set of predecessors, as an unmodifiable list.
+     * @return the set of predecessors, as an unmodifiable set.
      * @apiNote A block may refer to itself as a successor and therefore also be its predecessor.
      */
     public SequencedSet<Block> predecessors() {
@@ -327,15 +328,52 @@ public final class Block implements CodeElement<Block, Op> {
     }
 
     /**
-     * Returns the list of successors referring to other blocks in the parent body.
+     * Returns the list of predecessor references to this block.
+     * <p>
+     * This method behaves is if it returns the result of the following expression:
+     * {@snippet lang = java:
+     * predecessors.stream().flatMap(p->successors().stream())
+     *    .filter(r->r.targetBlock() == this)
+     *    .toList();
+     *}
+     *
+     * @return the list of predecessor references to this block, as an unmodifiable list.
+     * @apiNote A predecessor block may reference it successor block one or more times.
+     */
+    public List<Block.Reference> predecessorReferences() {
+        return predecessors.stream().flatMap(p -> successors().stream())
+                .filter(r -> r.targetBlock() == this)
+                .toList();
+    }
+
+    /**
+     * Returns the list of successors referring to other blocks.
      * <p>
      * The successors are declared by the terminating operation contained in this block.
      *
      * @return the list of successors, as an unmodifiable list.
+     * @apiNote given a block, A say, whose successor targets a block, B say, we can
+     * state that B is a successor block of A and A is a predecessor block of B.
      */
     public List<Reference> successors() {
         Op lopr = ops.get(ops.size() - 1);
         return lopr.successors();
+    }
+
+    /**
+     * Returns the set of target blocks referred to by the successors of this block.
+     * <p>
+     * This method behaves is if it returns the result of the following expression:
+     * {@snippet lang = java:
+     * successors().stream()
+     *     .map(Block.Reference::targetBlock)
+     *     .toList();
+     *}
+     *
+     * @return the list of target blocks, as an unmodifiable set.
+     */
+    public SequencedSet<Block> successorTargets() {
+        return successors().stream().map(Block.Reference::targetBlock).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
@@ -417,6 +455,26 @@ public final class Block implements CodeElement<Block, Op> {
 
         Map<Block, Block> idoms = parentBody().immediateDominators();
         return idoms.get(this);
+    }
+
+    /**
+     * Returns the immediate post dominator of this block, otherwise {@link Body#IPDOM_EXIT} if this block is the
+     * only block with no successors or if this block is one of many blocks that has no successors.
+     * Both this block and the immediate post dominator (if defined) have the same parent body.
+     * <p>
+     * The post immediate dominator is the unique block that strictly post dominates this block, but does not strictly
+     * post dominate any other block that strictly post dominates this block.
+     *
+     * @return the immediate dominator of this block, otherwise {@code null} if this block is the entry block.
+     */
+    public Block immediatePostDominator() {
+        if (this == parentBody().entryBlock()) {
+            return null;
+        }
+
+        Map<Block, Block> ipdoms = parentBody().immediatePostDominators();
+        Block ipdom = ipdoms.get(this);
+        return ipdom == this ? Body.IPDOM_EXIT : ipdom;
     }
 
     // @@@ isPostDominatedBy and immediatePostDominator
