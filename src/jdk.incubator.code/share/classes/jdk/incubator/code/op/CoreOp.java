@@ -4487,6 +4487,37 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         Op op = qop.quotedOp();
 
+        List<Op> ops = fblock.ops().subList(0, fblock.ops().size() - 2);
+        List<Block.Parameter> unvisitedParams = new ArrayList<>(fblock.parameters());
+        for (Op o : ops) {
+            if (o instanceof VarOp varOp) {
+                if (varOp.initOperand() instanceof Block.Parameter p) {
+                    if (!op.operands().contains(varOp.result()) && !op.capturedValues().contains(varOp.result())) {
+                        throw new IllegalArgumentException();
+                    }
+                    unvisitedParams.remove(p);
+                } else if (varOp.initOperand() instanceof Op.Result opr) {
+                    if (!(opr.op() instanceof ConstantOp)) {
+                        throw new IllegalArgumentException();
+                    }
+                    if (!op.capturedValues().contains(varOp.result())) {
+                        throw new IllegalArgumentException();
+                    }
+                }
+            } else if (o instanceof ConstantOp cop) {
+                if (cop.result().uses().size() != 1 || !(cop.result().uses().iterator().next().op() instanceof VarOp)) {
+                    throw new IllegalArgumentException();
+                }
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
+        for (Block.Parameter p : unvisitedParams) {
+            if (!op.operands().contains(p) && !op.capturedValues().contains(p)) {
+                throw new IllegalArgumentException();
+            }
+        }
+
         SequencedSet<Value> operandsAndCaptures = new LinkedHashSet<>();
         operandsAndCaptures.addAll(op.operands());
         operandsAndCaptures.addAll(op.capturedValues());

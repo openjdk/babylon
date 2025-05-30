@@ -1,5 +1,6 @@
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
@@ -9,6 +10,7 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
 import java.util.SequencedSet;
+import java.util.function.IntUnaryOperator;
 
 /*
  * @test
@@ -26,7 +28,7 @@ public class TestQuoteOp {
     }
 
     @Test
-    void test() throws NoSuchMethodException {
+    void testQuoteOpThatHasCaptures() throws NoSuchMethodException {
         Method f = getClass().getDeclaredMethod("f", int.class);
         CoreOp.FuncOp fm = Op.ofMethod(f).orElseThrow();
         Op lop = fm.body().entryBlock().ops().stream().filter(op -> op instanceof CoreOp.LambdaOp).findFirst().orElseThrow();
@@ -69,6 +71,26 @@ public class TestQuoteOp {
         Op op = opAndValues.op();
 
         Assert.assertTrue(invOp.getClass().isInstance(op));
+
+        SequencedSet<Value> e = new LinkedHashSet<>();
+        e.addAll(op.operands());
+        e.addAll(op.capturedValues());
+        Assert.assertEquals(opAndValues.operandsAndCaptures(), e);
+    }
+
+    @Test
+    void testWithJavacModel() {
+        final int y = 88;
+        int z = 99;
+        Quotable q = (IntUnaryOperator & Quotable) x -> x + y + z + hashCode();
+
+        Quoted quoted = Op.ofQuotable(q).orElseThrow();
+        Op op = quoted.op();
+        CoreOp.QuotedOp qop = ((CoreOp.QuotedOp) op.ancestorBody().parentOp());
+        CoreOp.FuncOp fop = ((CoreOp.FuncOp) qop.ancestorBody().parentOp());
+        fop.writeTo(System.out);
+
+        CoreOp.OpAndValues opAndValues = CoreOp.quotedOp(fop);
 
         SequencedSet<Value> e = new LinkedHashSet<>();
         e.addAll(op.operands());
