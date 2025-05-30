@@ -4477,13 +4477,21 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
     public static OpAndValues quotedOp(FuncOp funcOp) {
 
-        assert funcOp.body().blocks().size() == 1;
+        if (funcOp.body().blocks().size() != 1) {
+            throw new IllegalArgumentException();
+        }
         Block fblock = funcOp.body().entryBlock();
 
-        assert fblock.ops().get(fblock.ops().size() - 2) instanceof QuotedOp;
-        QuotedOp qop = (QuotedOp) fblock.ops().get(fblock.ops().size() - 2);
+        if (!(fblock.ops().get(fblock.ops().size() - 2) instanceof QuotedOp qop)) {
+            throw new IllegalArgumentException();
+        }
 
-        assert fblock.ops().getLast() instanceof ReturnOp returnOp && returnOp.returnValue().equals(qop.result());
+        if (!(fblock.ops().getLast() instanceof ReturnOp returnOp)) {
+            throw new IllegalArgumentException();
+        }
+        if (!returnOp.returnValue().equals(qop.result())) {
+            throw new IllegalArgumentException();
+        }
 
         Op op = qop.quotedOp();
 
