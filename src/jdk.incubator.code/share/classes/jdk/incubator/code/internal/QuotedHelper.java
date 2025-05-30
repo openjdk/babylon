@@ -26,35 +26,40 @@
 package jdk.incubator.code.internal;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
 
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.SequencedMap;
 
 public class QuotedHelper {
 
-    public static Quoted makeQuoted(FuncOp op, Object[] args) {
+    public static Quoted makeQuoted(FuncOp funcOp, Object[] args) {
 
-        CoreOp.QuotedOp qop = (CoreOp.QuotedOp) op.body().entryBlock().ops().stream()
-                .filter(o -> o instanceof CoreOp.QuotedOp).findFirst().orElseThrow();
+        CoreOp.OpAndValues opAndValues = CoreOp.quotedOp(funcOp);
 
-        Iterator<Object> argsIterator = Arrays.stream(args).iterator();
-        LinkedHashMap<Value, Object> m = new LinkedHashMap<>();
-        for (Value capturedValue : qop.capturedValues()) {
-            if (capturedValue instanceof Block.Parameter) {
-                m.put(capturedValue, argsIterator.next());
-            } else if (capturedValue instanceof Op.Result opr && opr.op() instanceof CoreOp.VarOp varOp) {
-                if (varOp.initOperand() instanceof Block.Parameter) {
-                    m.put(capturedValue, new Interpreter.VarBox(argsIterator.next()));
-                } else if (varOp.initOperand() instanceof Op.Result opr2 && opr2.op() instanceof CoreOp.ConstantOp cop) {
-                    m.put(capturedValue, new Interpreter.VarBox(cop.value()));
+        // map captured values to their corresponding runtime values
+        // captured value can be:
+        // 1- block param
+        // 2- result of VarOp whose initial value is constant
+        // 3- result of VarOp whose initial value is block param
+        List<Block.Parameter> params = funcOp.parameters();
+        SequencedMap<Value, Object> m = new LinkedHashMap<>();
+        for (Value v : opAndValues.operandsAndCaptures()) {
+            if (v instanceof Block.Parameter p) {
+                Object rv = args[params.indexOf(p)];
+                m.put(v, rv);
+            } else if (v instanceof Op.Result opr && opr.op() instanceof CoreOp.VarOp varOp) {
+                if (varOp.initOperand() instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp cop) {
+                    m.put(v, CoreOp.Var.of(cop.value()));
+                } else if (varOp.initOperand() instanceof Block.Parameter p) {
+                    Object rv = args[params.indexOf(p)];
+                    m.put(v, CoreOp.Var.of(rv));
                 }
             }
         }
 
-        return new Quoted(qop.quotedOp(), m);
+        return new Quoted(opAndValues.op(), m);
     }
 }
