@@ -35,6 +35,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * The top-level operation class for the set of enclosed core operations.
@@ -4394,4 +4395,105 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     public static ConcatOp concat(Value lhs, Value rhs) {
         return new ConcatOp(lhs, rhs);
     }
+
+    public static FuncOp quoteOp(Op op) {
+
+        List<Value> inputOperandsAndCaptures = Stream.concat(op.operands().stream(), op.capturedValues().stream()).toList();
+
+        // Build the function type
+        List<TypeElement> params = inputOperandsAndCaptures.stream()
+                .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
+                .toList();
+        FunctionType ft = FunctionType.functionType(QuotedOp.QUOTED_TYPE, params);
+
+        // Build the function that quotes the lambda
+        return CoreOp.func("q", ft).body(b -> {
+            // Create variables as needed and obtain the operands and captured values for the copied lambda
+            List<Value> outputOperandsAndCaptures = new ArrayList<>();
+            for (int i = 0; i < inputOperandsAndCaptures.size(); i++) {
+                Value inputValue = inputOperandsAndCaptures.get(i);
+                Value outputValue = b.parameters().get(i);
+                if (inputValue.type() instanceof VarType _) {
+                    outputValue = b.op(CoreOp.var(String.valueOf(i), outputValue));
+                }
+                outputOperandsAndCaptures.add(outputValue);
+            }
+
+            // Quoted the lambda expression
+            Value q = b.op(CoreOp.quoted(b.parentBody(), qb -> {
+                // Map the entry block of the lambda's ancestor body to the quoted block
+                // We are copying lop in the context of the quoted block, the block mapping
+                // ensures the use of operands and captured values are reachable when building
+                qb.context().mapBlock(op.ancestorBody().entryBlock(), qb);
+                // Map the op's operands and captured values
+                qb.context().mapValues(inputOperandsAndCaptures, outputOperandsAndCaptures);
+                // Return the op to be copied in the quoted operation
+                return op;
+            }));
+            b.op(CoreOp._return(q));
+        });
+    }
+
+    public static OpAndValues quotedOp(FuncOp funcOp) {
+
+        if (funcOp.body().blocks().size() != 1) {
+            throw new IllegalArgumentException("Argument operation has more then one block");
+        }
+        Block fblock = funcOp.body().entryBlock();
+
+        if (!(fblock.ops().get(fblock.ops().size() - 2) instanceof QuotedOp qop)) {
+            throw new IllegalArgumentException("Before last operation is not a QuotedOp");
+        }
+
+        if (!(fblock.ops().getLast() instanceof ReturnOp returnOp)) {
+            throw new IllegalArgumentException("Last operation not a ReturnOp");
+        }
+        if (!returnOp.returnValue().equals(qop.result())) {
+            throw new IllegalArgumentException("Argument operation doesn't return the result of QuotedOp");
+        }
+
+        Op op = qop.quotedOp();
+
+        List<Op> ops = fblock.ops().subList(0, fblock.ops().size() - 2);
+        List<Block.Parameter> unvisitedParams = new ArrayList<>(fblock.parameters());
+        for (Op o : ops) {
+            if (o instanceof VarOp varOp) {
+                if (varOp.initOperand() instanceof Block.Parameter p) {
+                    if (!op.operands().contains(varOp.result()) && !op.capturedValues().contains(varOp.result())) {
+                        throw new IllegalArgumentException("Result of VarOp initialized with a block parameter," +
+                                "expected to be an operand or a captured value");
+                    }
+                    unvisitedParams.remove(p);
+                } else if (varOp.initOperand() instanceof Op.Result opr) {
+                    if (!(opr.op() instanceof ConstantOp)) {
+                        throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
+                    }
+                    if (!op.capturedValues().contains(varOp.result())) {
+                        throw new IllegalArgumentException("Result of a VarOp initialized with a constant," +
+                                "expected to be a captured value");
+                    }
+                }
+            } else if (o instanceof ConstantOp cop) {
+                if (cop.result().uses().size() != 1) {
+                    throw new IllegalArgumentException("Constant expected to have one use");
+                } else if (!(cop.result().uses().iterator().next().op() instanceof VarOp)) {
+                    throw new IllegalArgumentException("Result of a ConstantOp expected to be used by a VarOp");
+                }
+            } else {
+                throw new IllegalArgumentException("Operation not a VarOp nor a ConstantOp, " + o);
+            }
+        }
+        for (Block.Parameter p : unvisitedParams) {
+            if (!op.operands().contains(p) && !op.capturedValues().contains(p)) {
+                throw new IllegalArgumentException("Block parameter not an operand nor a captured value");
+            }
+        }
+
+        SequencedSet<Value> operandsAndCaptures = new LinkedHashSet<>();
+        operandsAndCaptures.addAll(op.operands());
+        operandsAndCaptures.addAll(op.capturedValues());
+        return new OpAndValues(op, operandsAndCaptures);
+    }
+
+    public record OpAndValues (Op op, SequencedSet<Value> operandsAndCaptures) { }
 }

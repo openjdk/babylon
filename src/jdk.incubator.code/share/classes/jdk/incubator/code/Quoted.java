@@ -39,7 +39,6 @@ public final class Quoted {
     private final SequencedMap<Value, Object> capturedValues;
 
     static final SequencedMap<Value, Object> EMPTY_SEQUENCED_MAP = new LinkedHashMap<>();
-
     /**
      * Constructs the quoted form of a given operation.
      *
