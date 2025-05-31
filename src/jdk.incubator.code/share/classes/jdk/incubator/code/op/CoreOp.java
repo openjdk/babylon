@@ -4478,19 +4478,19 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     public static OpAndValues quotedOp(FuncOp funcOp) {
 
         if (funcOp.body().blocks().size() != 1) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Argument operation has more then one block");
         }
         Block fblock = funcOp.body().entryBlock();
 
         if (!(fblock.ops().get(fblock.ops().size() - 2) instanceof QuotedOp qop)) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Before last operation is not a QuotedOp");
         }
 
         if (!(fblock.ops().getLast() instanceof ReturnOp returnOp)) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Last operation not a ReturnOp");
         }
         if (!returnOp.returnValue().equals(qop.result())) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Argument operation doesn't return the result of QuotedOp");
         }
 
         Op op = qop.quotedOp();
@@ -4501,28 +4501,32 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             if (o instanceof VarOp varOp) {
                 if (varOp.initOperand() instanceof Block.Parameter p) {
                     if (!op.operands().contains(varOp.result()) && !op.capturedValues().contains(varOp.result())) {
-                        throw new IllegalArgumentException();
+                        throw new IllegalArgumentException("Result of VarOp initialized with a block parameter," +
+                                "expected to be an operand or a captured value");
                     }
                     unvisitedParams.remove(p);
                 } else if (varOp.initOperand() instanceof Op.Result opr) {
                     if (!(opr.op() instanceof ConstantOp)) {
-                        throw new IllegalArgumentException();
+                        throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
                     }
                     if (!op.capturedValues().contains(varOp.result())) {
-                        throw new IllegalArgumentException();
+                        throw new IllegalArgumentException("Result of a VarOp initialized with a constant," +
+                                "expected to be a captured value");
                     }
                 }
             } else if (o instanceof ConstantOp cop) {
-                if (cop.result().uses().size() != 1 || !(cop.result().uses().iterator().next().op() instanceof VarOp)) {
-                    throw new IllegalArgumentException();
+                if (cop.result().uses().size() != 1) {
+                    throw new IllegalArgumentException("Constant expected to have one use");
+                } else if (!(cop.result().uses().iterator().next().op() instanceof VarOp)) {
+                    throw new IllegalArgumentException("Result of a ConstantOp expected to be used by a VarOp");
                 }
             } else {
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException("Operation not a VarOp nor a ConstantOp, " + o);
             }
         }
         for (Block.Parameter p : unvisitedParams) {
             if (!op.operands().contains(p) && !op.capturedValues().contains(p)) {
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException("Block parameter not an operand nor a captured value");
             }
         }
 
