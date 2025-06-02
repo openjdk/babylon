@@ -220,13 +220,15 @@ public class Tensor<T> extends OnnxNumber {
             return name().toLowerCase();
         }
 
-        int size() {
+        public int bitSize() {
             return switch (this) {
-                case UINT8, INT8, BOOL, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ -> 1;
-                case UINT16, INT16, FLOAT16, BFLOAT16 -> 2;
-                case UINT32, INT32, FLOAT -> 4;
-                case UINT64, INT64, DOUBLE -> 8;
-                default -> 0;
+                case INT4, UINT4, FLOAT4E2M1 -> 4;
+                case UINT8, INT8, BOOL, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ -> 8;
+                case UINT16, INT16, FLOAT16, BFLOAT16 -> 16;
+                case UINT32, INT32, FLOAT -> 32;
+                case UINT64, INT64, DOUBLE, COMPLEX64 -> 64;
+                case COMPLEX128 -> 128;
+                case STRING -> -1;
             };
         }
 
