@@ -43,9 +43,107 @@ import oracle.code.onnx.compiler.OnnxTransformer;
 
 import static oracle.code.onnx.foreign.OrtGenApi.*;
 
+/**
+ * Class wrapping Onnx Generation API to create and run LLM Onnx model in a session with configured tokenizer and generator.
+ * <p>
+ * Example of direct execution of existing Onnx LLM model:
+ * {@snippet lang="java" :
+ *  // model-specific prompt format
+ *  static final String PROMPT_TEMPLATE = "<|...|>%s<|...|><|...|>";
+ *
+ *  public static void main(String... args) {
+ *
+ *      // compatible `libonnxruntime` library must be present in the same folder as `libonnxruntime-genai` library
+ *      // native library extension (.dylib or .so or .dll) is platform specific
+ *      System.load("path/To/libonnxruntime-genai.dylib");
+ *
+ *      // model folder must contain the Onnx model file and all configuration and external data files
+ *      try (OnnxGenRuntimeSession session = new OnnxGenRuntimeSession(Path.of("path/To/Onnx/Model/Folder/")) {
+ *          // each LLM model has specific prompt format
+ *          session.prompt(PROMPT_TEMPLATE.formatted("Tell me a joke"), System.out::print);
+ *      }
+ *   }
+ * }
+ * <p>
+ * Example of a custom LLM Onnx model generation from Java sources and execution:
+ * {@snippet lang="java" :
+ *  // model-specific prompt format
+ *  static final String PROMPT_TEMPLATE = "<|...|>%s<|...|><|...|>";
+ *
+ *  public static void main(String... args) {
+ *
+ *      // compatible `libonnxruntime` library must be present in the same folder as `libonnxruntime-genai` library
+ *      // native library extension (.dylib or .so or .dll) is platform specific
+ *      System.load("path/To/libonnxruntime-genai.dylib");
+ *
+ *      // instance of a custom Onnx LLM model
+ *      MyCustomLLMModel myCustomModelInstance = ...;
+ *
+ *      // target model folder must contain all configuration files
+ *      // `genai_config.json` must be configured following way:
+ *      //     - model filename to match generated model file name (below)
+ *      //     - model inputs to match main model method argument names
+ *      //     - model outputs to match main model result record component names
+ *      Path targetModelFolder = ...;
+ *
+ *      // Onnx model file and external data file are generated to the target model folder
+ *      // and the session is created from the generated model
+ *      try (OnnxGenRuntimeSession session = OnnxGenRuntimeSession.buildFromCodeReflection(myCustomModelInstance, "myMainModelMethod", targetModelFolder, "MyModelFileName.onnx", "MyDataFileName")) {
+ *          // each LLM model has specific prompt format
+ *          session.prompt(PROMPT_TEMPLATE.formatted("Tell me a joke"), System.out::print);
+ *      }
+ *   }
+ * }
+ * <p>
+ * Example of a custom LLM Onnx model Java source:
+ * {@snippet lang="java" :
+ *   import oracle.code.onnx.Tensor;
+ *   import jdk.incubator.code.CodeReflection;
+ *   import static oracle.code.onnx.OnnxOperators.*;
+ *
+ *   public final class MyCustomLLMModel {
+ *
+ *       public final Tensor<Float> myModelWeights...
+ *       public final Tensor<Byte> otherMyModelWeights...
+ *
+ *       public MyCustomLLMModel(...) {
+ *           // initilize all weight tensors
+ *           // large tensors data can be memory-mapped
+ *           this.myModelWeights = ...
+ *           this.otherMyModelWeights = ...
+ *           ...
+ *       }
+ *
+ *       // custom record with main model response
+ *       public record MyModelResponse(Tensor<Float> logits, Tensor<Float> presentKey0, Tensor<Float> presentValue0, ...) {
+ *       }
+ *
+ *       @CodeReflection
+ *       public MyModelResponse myMainModelMethod(Tensor<Long> inputIds, Tensor<Long> attentionMask, Tensor<Float> pastKey0, Tensor<Float> pastValue0 ...) {
+ *
+ *           // computation of the model using oracle.code.onnx.OnnxOperators.* method calls
+ *           ...
+ *           Tensor<Float> logits = MatMul(...
+ *
+ *           // composition of the return record
+ *           return new MyModelResponse(logits, key0, value0, ...);
+ *       }
+ *   }
+ * }
+ */
 public class OnnxGenRuntimeSession implements AutoCloseable {
 
-    public static OnnxGenRuntimeSession buildFromCodeReflection(Object codeReflectionModelInstance, String methodName, String promptTemplate, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
+    /**
+     * Builds Onnx model from the provided Java model instance and loads it into a constructs the Onnx Generate API session.
+     * @param codeReflectionModelInstance Instance of a class representing Onnx LLM model.
+     * @param methodName Main model method name.
+     * @param targetOnnxModelDir Target folder for generation of Onnx model and external tensor data file.
+     * @param targetOnnxModelFileName Target Onnx model file name.
+     * @param targetExternalDataFileName Target external tensor data file name.
+     * @return a live session instance
+     * @throws IOException In case of any IO problems during model generation.
+     */
+    public static OnnxGenRuntimeSession buildFromCodeReflection(Object codeReflectionModelInstance, String methodName, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
         Method method = Stream.of(codeReflectionModelInstance.getClass().getDeclaredMethods()).filter(m -> m.getName().equals(methodName)).findFirst().orElseThrow();
         CoreOp.FuncOp javaModel = Op.ofMethod(method).orElseThrow();
         OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), javaModel);
@@ -63,23 +161,25 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
             });
             Files.write(targetOnnxModelDir.resolve(targetOnnxModelFileName), protobufModel);
         }
-        return new OnnxGenRuntimeSession(targetOnnxModelDir.toString(), promptTemplate);
+        return new OnnxGenRuntimeSession(targetOnnxModelDir);
     }
 
     private final Arena arena;
     private final MemorySegment ret, model, tokenizer, tokenizerStream, generatorParams, generator, count;
-    private final String promptTemplate;
 
-    public OnnxGenRuntimeSession(String onnxModelDir, String promptTemplate) {
+    /**
+     * Constructs Onnx Generate API session (including model, tokenizer and generator) from assets stored in the Onnx model directory.
+     * @param onnxModelDir Path to the Onnx model directory with Onnx model file, data file(s) and configuration files.
+     */
+    public OnnxGenRuntimeSession(Path onnxModelDir) {
         this.arena = Arena.ofConfined();
         ret = arena.allocate(C_POINTER);
-        model = call(OgaCreateModel(arena.allocateFrom(onnxModelDir), ret));
+        model = call(OgaCreateModel(arena.allocateFrom(onnxModelDir.toString()), ret));
         tokenizer = call(OgaCreateTokenizer(model, ret));
         tokenizerStream = call(OgaCreateTokenizerStream(tokenizer, ret));
         generatorParams = call(OgaCreateGeneratorParams(model, ret));
         generator = call(OgaCreateGenerator(model, generatorParams, ret));
         count = arena.allocate(C_LONG);
-        this.promptTemplate = promptTemplate;
     }
 
     private MemorySegment call(MemorySegment status) {
@@ -99,10 +199,15 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
         }
     }
 
-    public void prompt(String userPrompt, Consumer<String> outputConsumer) {
+    /**
+     * Runs generator with the provided prompt and feeds decoded response to the provided consumer.
+     * @param prompt Text prompt to tokenize and append to the LLM model input.
+     * @param outputConsumer Consumer receiving decoded model response from the model generator.
+     */
+    public void prompt(String prompt, Consumer<String> outputConsumer) {
         var inputTokens = call(OgaCreateSequences(ret));
         try {
-            call(OgaTokenizerEncode(tokenizer, arena.allocateFrom(promptTemplate.formatted(userPrompt)), inputTokens));
+            call(OgaTokenizerEncode(tokenizer, arena.allocateFrom(prompt), inputTokens));
             call(OgaGenerator_AppendTokenSequences(generator, inputTokens));
             while (!OgaGenerator_IsDone(generator)) {
                 call(OgaGenerator_GenerateNextToken(generator));
@@ -116,8 +221,11 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
         }
     }
 
+    /**
+     * Closes the session and all its related assets (arena, generator, tokenizer and model).
+     */
     @Override
-    public void close() throws Exception {
+    public void close() {
         arena.close();
         OgaDestroyGenerator(generator);
         OgaDestroyGeneratorParams(generatorParams);
