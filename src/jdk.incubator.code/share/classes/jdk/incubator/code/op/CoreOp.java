@@ -4439,6 +4439,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
     public static FuncOp quoteOp(Op op) {
 
+        if (op.result() == null) {
+            throw new IllegalArgumentException("Op not bound");
+        }
+
         List<Value> inputOperandsAndCaptures = Stream.concat(op.operands().stream(), op.capturedValues().stream()).toList();
 
         // Build the function type
