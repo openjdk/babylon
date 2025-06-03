@@ -4504,14 +4504,15 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         List<Op> ops = fblock.ops().subList(0, fblock.ops().size() - 2);
         List<Block.Parameter> unvisitedParams = new ArrayList<>(fblock.parameters());
         for (Op o : ops) {
-            if (o instanceof VarOp varOp) {
-                if (varOp.initOperand() instanceof Block.Parameter p) {
+            switch (o) {
+                case VarOp varOp when varOp.initOperand() instanceof Block.Parameter p -> {
                     if (!op.operands().contains(varOp.result()) && !op.capturedValues().contains(varOp.result())) {
                         throw new IllegalArgumentException("Result of VarOp initialized with a block parameter," +
                                 "expected to be an operand or a captured value");
                     }
                     unvisitedParams.remove(p);
-                } else if (varOp.initOperand() instanceof Op.Result opr) {
+                }
+                case VarOp varOp when varOp.initOperand() instanceof Op.Result opr -> {
                     if (!(opr.op() instanceof ConstantOp)) {
                         throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
                     }
@@ -4520,14 +4521,15 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                                 "expected to be a captured value");
                     }
                 }
-            } else if (o instanceof ConstantOp cop) {
-                if (cop.result().uses().size() != 1) {
-                    throw new IllegalArgumentException("Constant expected to have one use");
-                } else if (!(cop.result().uses().iterator().next().op() instanceof VarOp)) {
-                    throw new IllegalArgumentException("Result of a ConstantOp expected to be used by a VarOp");
+                case ConstantOp cop -> {
+                    if (cop.result().uses().size() != 1) {
+                        throw new IllegalArgumentException("Constant expected to have one use");
+                    } else if (!(cop.result().uses().iterator().next().op() instanceof VarOp)) {
+                        throw new IllegalArgumentException("Result of a ConstantOp expected to be used by a VarOp");
+                    }
                 }
-            } else {
-                throw new IllegalArgumentException("Operation not a VarOp nor a ConstantOp, " + o);
+                case null, default ->
+                        throw new IllegalArgumentException("Operation not a VarOp nor a ConstantOp, " + o);
             }
         }
         for (Block.Parameter p : unvisitedParams) {
