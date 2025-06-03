@@ -48,7 +48,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
     public static OnnxGenRuntimeSession buildFromCodeReflection(Object codeReflectionModelInstance, String methodName, String promptTemplate, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
         Method method = Stream.of(codeReflectionModelInstance.getClass().getDeclaredMethods()).filter(m -> m.getName().equals(methodName)).findFirst().orElseThrow();
         CoreOp.FuncOp javaModel = Op.ofMethod(method).orElseThrow();
-        OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), javaModel, true);
+        OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), javaModel);
         List<Object> initializers = OnnxRuntime.getInitValues(MethodHandles.lookup(), onnxModel.initializers(), List.of(codeReflectionModelInstance));
         try (OutputStream dataOutput = Files.newOutputStream(targetOnnxModelDir.resolve(targetExternalDataFileName))) {
             AtomicLong offset = new AtomicLong();
