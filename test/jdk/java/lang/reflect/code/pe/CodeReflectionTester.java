@@ -21,9 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.op.CoreOp;
@@ -36,7 +34,11 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class CodeReflectionTester {
 
@@ -64,12 +66,7 @@ public class CodeReflectionTester {
             return;
         }
 
-        EvaluatedModels ems = method.getAnnotation(EvaluatedModels.class);
-        if (ems == null) {
-            throw new AssertionError("No @EvaluatedModel annotation found on reflective method");
-        }
-
-        for (EvaluatedModel em : ems.value()) {
+        for (EvaluatedModel em : getModels(method)) {
             CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow(() ->
                     new AssertionError("No code model for reflective method"));
             f = evaluate(l, opConstants, f, em.ssa());
@@ -83,6 +80,20 @@ public class CodeReflectionTester {
         }
     }
 
+    static EvaluatedModel[] getModels(Method method) {
+        EvaluatedModels ems = method.getAnnotation(EvaluatedModels.class);
+        if (ems != null) {
+            return ems.value();
+        }
+
+        EvaluatedModel em = method.getAnnotation(EvaluatedModel.class);
+        if (em != null) {
+            return new EvaluatedModel[] { em };
+        }
+
+        throw new AssertionError("No @EvaluatedModel annotation found on reflective method");
+    }
+
     static CoreOp.FuncOp evaluate(MethodHandles.Lookup l, Predicate<Op> opConstants, CoreOp.FuncOp f, boolean ssa) {
         f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
@@ -90,13 +101,18 @@ public class CodeReflectionTester {
             f = SSA.transform(f);
         }
 
-        f = PartialEvaluator.evaluate(l, opConstants, new HashSet<>(), f);
+        List<LoopAnalyzer.Loop> loops = LoopAnalyzer.findLoops(f.body());
+        Map<Block, LoopAnalyzer.Loop> loopMap = loops.stream().collect(Collectors.toMap(LoopAnalyzer.Loop::header, loop -> loop));
+        loops.forEach(System.out::println);
+        Set<Value> constants = LoopAnalyzer.analyzeConstants(loopMap, opConstants, f);
+
+        f = PartialEvaluator.evaluate(l, opConstants, constants, f);
 
         return cleanUp(f);
     }
 
     static CoreOp.FuncOp cleanUp(CoreOp.FuncOp f) {
-        return NormalizeBlocksTransformer.transform(removeUnusedOps(f));
+        return removeUnusedOps(NormalizeBlocksTransformer.transform(f));
     }
 
     static CoreOp.FuncOp removeUnusedOps(CoreOp.FuncOp f) {

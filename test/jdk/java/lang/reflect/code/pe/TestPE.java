@@ -53,21 +53,20 @@ public class TestPE {
         };
     }
 
-
     @CodeReflection
     @EvaluatedModel("""
-            func @"ifStatement" (%0 : TestPE, %1 : java.util.function.IntConsumer)void -> {
-                %2 : Var<java.util.function.IntConsumer> = var %1 @"c";
-                %3 : java.util.function.IntConsumer = var.load %2;
-                %4 : int = constant @"1";
-                invoke %3 %4 @"java.util.function.IntConsumer::accept(int)void";
+            func @"ifStatement" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                %2 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
+                %3 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %4 : java.type:"int" = constant @1;
+                invoke %3 %4 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                 return;
             };
             """)
     @EvaluatedModel(value = """
-            func @"ifStatement" (%0 : TestPE, %1 : java.util.function.IntConsumer)void -> {
-                %2 : int = constant @"1";
-                invoke %1 %2 @"java.util.function.IntConsumer::accept(int)void";
+            func @"ifStatement" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                %2 : java.type:"int" = constant @1;
+                invoke %1 %2 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                 return;
             };
             """,
@@ -83,38 +82,38 @@ public class TestPE {
 
     @CodeReflection
     @EvaluatedModel("""
-            func @"forStatement" (%0 : TestPE, %1 : java.util.function.IntConsumer)void -> {
-                %2 : Var<java.util.function.IntConsumer> = var %1 @"c";
-                %3 : java.util.function.IntConsumer = var.load %2;
-                %4 : int = constant @"0";
-                invoke %3 %4 @"java.util.function.IntConsumer::accept(int)void";
-                %5 : java.util.function.IntConsumer = var.load %2;
-                %6 : int = constant @"2";
-                invoke %5 %6 @"java.util.function.IntConsumer::accept(int)void";
-                %7 : java.util.function.IntConsumer = var.load %2;
-                %8 : int = constant @"-4";
-                invoke %7 %8 @"java.util.function.IntConsumer::accept(int)void";
-                %9 : java.util.function.IntConsumer = var.load %2;
-                %10 : int = constant @"6";
-                invoke %9 %10 @"java.util.function.IntConsumer::accept(int)void";
-                %11 : java.util.function.IntConsumer = var.load %2;
-                %12 : int = constant @"-8";
-                invoke %11 %12 @"java.util.function.IntConsumer::accept(int)void";
+            func @"forStatement" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                %2 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
+                %3 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %4 : java.type:"int" = constant @0;
+                invoke %3 %4 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %5 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %6 : java.type:"int" = constant @2;
+                invoke %5 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %7 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %8 : java.type:"int" = constant @-4;
+                invoke %7 %8 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %9 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %10 : java.type:"int" = constant @6;
+                invoke %9 %10 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %11 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %12 : java.type:"int" = constant @-8;
+                invoke %11 %12 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                 return;
             };
             """)
     @EvaluatedModel(value = """
-            func @"forStatement" (%0 : TestPE, %1 : java.util.function.IntConsumer)void -> {
-                %2 : int = constant @"0";
-                invoke %1 %2 @"java.util.function.IntConsumer::accept(int)void";
-                %3 : int = constant @"2";
-                invoke %1 %3 @"java.util.function.IntConsumer::accept(int)void";
-                %4 : int = constant @"-4";
-                invoke %1 %4 @"java.util.function.IntConsumer::accept(int)void";
-                %5 : int = constant @"6";
-                invoke %1 %5 @"java.util.function.IntConsumer::accept(int)void";
-                %6 : int = constant @"-8";
-                invoke %1 %6 @"java.util.function.IntConsumer::accept(int)void";
+            func @"forStatement" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                %2 : java.type:"int" = constant @0;
+                invoke %1 %2 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %3 : java.type:"int" = constant @2;
+                invoke %1 %3 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %4 : java.type:"int" = constant @-4;
+                invoke %1 %4 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %5 : java.type:"int" = constant @6;
+                invoke %1 %5 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %6 : java.type:"int" = constant @-8;
+                invoke %1 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                 return;
             };
             """,
@@ -132,143 +131,179 @@ public class TestPE {
         }
     }
 
+
+    @CodeReflection
+    @EvaluatedModel(value = """
+            func @"forStatementNonConstant" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
+                %3 : java.type:"int" = constant @0;
+                branch ^block_1(%3);
+
+              ^block_1(%4 : java.type:"int"):
+                %5 : java.type:"boolean" = lt %4 %2;
+                cbranch %5 ^block_2 ^block_3;
+
+              ^block_2:
+                %6 : java.type:"int" = constant @2;
+                invoke %1 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %7 : java.type:"int" = constant @1;
+                %8 : java.type:"int" = add %4 %7;
+                branch ^block_1(%8);
+
+              ^block_3:
+                return;
+            };
+            """,
+            ssa = true
+    )
+    void forStatementNonConstant(IntConsumer c, int n) {
+        for (int i = 0; i < n; i++) {
+            int v;
+            if (false) {
+                v = -1;
+            } else {
+                v = 2;
+            }
+            c.accept(v);
+        }
+    }
+
     boolean b = true;
     int[] x = new int[10];
 
     @CodeReflection
     @EvaluatedModel("""
-            func @"f" (%0 : TestPE, %1 : java.util.function.IntConsumer)void -> {
-                %2 : Var<java.util.function.IntConsumer> = var %1 @"c";
-                %3 : java.util.function.IntConsumer = var.load %2;
-                %4 : int = constant @"1";
-                invoke %3 %4 @"java.util.function.IntConsumer::accept(int)void";
-                %5 : java.util.function.IntConsumer = var.load %2;
-                %6 : int = constant @"3";
-                invoke %5 %6 @"java.util.function.IntConsumer::accept(int)void";
-                %7 : boolean = field.load %0 @"TestPE::b()boolean";
-                cbranch %7 ^block_1 ^block_2;
+            func @"f" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                 %2 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
+                 %3 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %4 : java.type:"int" = constant @1;
+                 invoke %3 %4 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %5 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %6 : java.type:"int" = constant @3;
+                 invoke %5 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %7 : java.type:"boolean" = field.load %0 @java.ref:"TestPE::b:boolean";
+                 cbranch %7 ^block_1 ^block_2;
 
-              ^block_1:
-                %8 : java.util.function.IntConsumer = var.load %2;
-                %9 : int = constant @"5";
-                invoke %8 %9 @"java.util.function.IntConsumer::accept(int)void";
-                %10 : java.util.function.IntConsumer = var.load %2;
-                %11 : int = constant @"0";
-                invoke %10 %11 @"java.util.function.IntConsumer::accept(int)void";
-                %12 : java.util.function.IntConsumer = var.load %2;
-                %13 : int = constant @"6";
-                invoke %12 %13 @"java.util.function.IntConsumer::accept(int)void";
-                %14 : java.util.function.IntConsumer = var.load %2;
-                %15 : int = constant @"1";
-                invoke %14 %15 @"java.util.function.IntConsumer::accept(int)void";
-                %16 : java.util.function.IntConsumer = var.load %2;
-                %17 : int = constant @"0";
-                %18 : int[] = field.load %0 @"TestPE::x()int[]";
-                %19 : int = constant @"0";
-                %20 : int = array.load %18 %19;
-                %21 : int = add %17 %20;
-                invoke %16 %21 @"java.util.function.IntConsumer::accept(int)void";
-                %22 : java.util.function.IntConsumer = var.load %2;
-                %23 : int = constant @"1";
-                invoke %22 %23 @"java.util.function.IntConsumer::accept(int)void";
-                %24 : java.util.function.IntConsumer = var.load %2;
-                %25 : int = constant @"7";
-                invoke %24 %25 @"java.util.function.IntConsumer::accept(int)void";
-                %26 : java.util.function.IntConsumer = var.load %2;
-                %27 : int = constant @"2";
-                invoke %26 %27 @"java.util.function.IntConsumer::accept(int)void";
-                %28 : java.util.function.IntConsumer = var.load %2;
-                %29 : int = constant @"1";
-                %30 : int[] = field.load %0 @"TestPE::x()int[]";
-                %31 : int = constant @"1";
-                %32 : int = array.load %30 %31;
-                %33 : int = add %29 %32;
-                invoke %28 %33 @"java.util.function.IntConsumer::accept(int)void";
-                %34 : java.util.function.IntConsumer = var.load %2;
-                %35 : int = constant @"2";
-                invoke %34 %35 @"java.util.function.IntConsumer::accept(int)void";
-                %36 : java.util.function.IntConsumer = var.load %2;
-                %37 : int = constant @"7";
-                invoke %36 %37 @"java.util.function.IntConsumer::accept(int)void";
-                %38 : java.util.function.IntConsumer = var.load %2;
-                %39 : int = constant @"2";
-                invoke %38 %39 @"java.util.function.IntConsumer::accept(int)void";
-                %40 : java.util.function.IntConsumer = var.load %2;
-                %41 : int = constant @"2";
-                %42 : int[] = field.load %0 @"TestPE::x()int[]";
-                %43 : int = constant @"2";
-                %44 : int = array.load %42 %43;
-                %45 : int = add %41 %44;
-                invoke %40 %45 @"java.util.function.IntConsumer::accept(int)void";
-                %46 : java.util.function.IntConsumer = var.load %2;
-                %47 : int = constant @"8";
-                invoke %46 %47 @"java.util.function.IntConsumer::accept(int)void";
-                branch ^block_3;
+               ^block_1:
+                 %8 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %9 : java.type:"int" = constant @5;
+                 invoke %8 %9 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %10 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %11 : java.type:"int" = constant @0;
+                 invoke %10 %11 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %12 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %13 : java.type:"int" = constant @6;
+                 invoke %12 %13 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %14 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %15 : java.type:"int" = constant @1;
+                 invoke %14 %15 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %16 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %17 : java.type:"int" = constant @0;
+                 %18 : java.type:"int[]" = field.load %0 @java.ref:"TestPE::x:int[]";
+                 %19 : java.type:"int" = constant @0;
+                 %20 : java.type:"int" = array.load %18 %19;
+                 %21 : java.type:"int" = add %17 %20;
+                 invoke %16 %21 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %22 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %23 : java.type:"int" = constant @1;
+                 invoke %22 %23 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %24 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %25 : java.type:"int" = constant @7;
+                 invoke %24 %25 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %26 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %27 : java.type:"int" = constant @2;
+                 invoke %26 %27 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %28 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %29 : java.type:"int" = constant @1;
+                 %30 : java.type:"int[]" = field.load %0 @java.ref:"TestPE::x:int[]";
+                 %31 : java.type:"int" = constant @1;
+                 %32 : java.type:"int" = array.load %30 %31;
+                 %33 : java.type:"int" = add %29 %32;
+                 invoke %28 %33 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %34 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %35 : java.type:"int" = constant @2;
+                 invoke %34 %35 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %36 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %37 : java.type:"int" = constant @7;
+                 invoke %36 %37 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %38 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %39 : java.type:"int" = constant @2;
+                 invoke %38 %39 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %40 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %41 : java.type:"int" = constant @2;
+                 %42 : java.type:"int[]" = field.load %0 @java.ref:"TestPE::x:int[]";
+                 %43 : java.type:"int" = constant @2;
+                 %44 : java.type:"int" = array.load %42 %43;
+                 %45 : java.type:"int" = add %41 %44;
+                 invoke %40 %45 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 %46 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %47 : java.type:"int" = constant @8;
+                 invoke %46 %47 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 branch ^block_3;
 
-              ^block_2:
-                branch ^block_3;
+               ^block_2:
+                 branch ^block_3;
 
-              ^block_3:
-                %48 : java.util.function.IntConsumer = var.load %2;
-                %49 : int = constant @"9";
-                invoke %48 %49 @"java.util.function.IntConsumer::accept(int)void";
-                return;
-            };
+               ^block_3:
+                 %48 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                 %49 : java.type:"int" = constant @9;
+                 invoke %48 %49 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                 return;
+             };
             """)
     @EvaluatedModel(value = """
-            func @"f" (%0 : TestPE, %1 : java.util.function.IntConsumer)void -> {
-                %2 : int = constant @"1";
-                invoke %1 %2 @"java.util.function.IntConsumer::accept(int)void";
-                %3 : int = constant @"3";
-                invoke %1 %3 @"java.util.function.IntConsumer::accept(int)void";
-                %4 : boolean = field.load %0 @"TestPE::b()boolean";
-                cbranch %4 ^block_1 ^block_2;
+            func @"f" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                   %2 : java.type:"int" = constant @1;
+                   invoke %1 %2 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %3 : java.type:"int" = constant @3;
+                   invoke %1 %3 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %4 : java.type:"boolean" = field.load %0 @java.ref:"TestPE::b:boolean";
+                   cbranch %4 ^block_1 ^block_2;
 
-              ^block_1:
-                %5 : int = constant @"5";
-                invoke %1 %5 @"java.util.function.IntConsumer::accept(int)void";
-                %6 : int = constant @"0";
-                invoke %1 %6 @"java.util.function.IntConsumer::accept(int)void";
-                %7 : int = constant @"6";
-                invoke %1 %7 @"java.util.function.IntConsumer::accept(int)void";
-                %8 : int = constant @"1";
-                invoke %1 %8 @"java.util.function.IntConsumer::accept(int)void";
-                %9 : int[] = field.load %0 @"TestPE::x()int[]";
-                %10 : int = array.load %9 %6;
-                %11 : int = add %6 %10;
-                invoke %1 %11 @"java.util.function.IntConsumer::accept(int)void";
-                %12 : int = constant @"1";
-                invoke %1 %12 @"java.util.function.IntConsumer::accept(int)void";
-                %13 : int = constant @"7";
-                invoke %1 %13 @"java.util.function.IntConsumer::accept(int)void";
-                %14 : int = constant @"2";
-                invoke %1 %14 @"java.util.function.IntConsumer::accept(int)void";
-                %15 : int[] = field.load %0 @"TestPE::x()int[]";
-                %16 : int = array.load %15 %12;
-                %17 : int = add %12 %16;
-                invoke %1 %17 @"java.util.function.IntConsumer::accept(int)void";
-                %18 : int = constant @"2";
-                invoke %1 %18 @"java.util.function.IntConsumer::accept(int)void";
-                %19 : int = constant @"7";
-                invoke %1 %19 @"java.util.function.IntConsumer::accept(int)void";
-                %20 : int = constant @"2";
-                invoke %1 %20 @"java.util.function.IntConsumer::accept(int)void";
-                %21 : int[] = field.load %0 @"TestPE::x()int[]";
-                %22 : int = array.load %21 %18;
-                %23 : int = add %18 %22;
-                invoke %1 %23 @"java.util.function.IntConsumer::accept(int)void";
-                %24 : int = constant @"8";
-                invoke %1 %24 @"java.util.function.IntConsumer::accept(int)void";
-                branch ^block_3;
+                 ^block_1:
+                   %5 : java.type:"int" = constant @5;
+                   invoke %1 %5 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %6 : java.type:"int" = constant @0;
+                   invoke %1 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %7 : java.type:"int" = constant @6;
+                   invoke %1 %7 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %8 : java.type:"int" = constant @1;
+                   invoke %1 %8 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %9 : java.type:"int[]" = field.load %0 @java.ref:"TestPE::x:int[]";
+                   %10 : java.type:"int" = array.load %9 %6;
+                   %11 : java.type:"int" = add %6 %10;
+                   invoke %1 %11 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %12 : java.type:"int" = constant @1;
+                   invoke %1 %12 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %13 : java.type:"int" = constant @7;
+                   invoke %1 %13 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %14 : java.type:"int" = constant @2;
+                   invoke %1 %14 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %15 : java.type:"int[]" = field.load %0 @java.ref:"TestPE::x:int[]";
+                   %16 : java.type:"int" = array.load %15 %12;
+                   %17 : java.type:"int" = add %12 %16;
+                   invoke %1 %17 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %18 : java.type:"int" = constant @2;
+                   invoke %1 %18 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %19 : java.type:"int" = constant @7;
+                   invoke %1 %19 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %20 : java.type:"int" = constant @2;
+                   invoke %1 %20 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %21 : java.type:"int[]" = field.load %0 @java.ref:"TestPE::x:int[]";
+                   %22 : java.type:"int" = array.load %21 %18;
+                   %23 : java.type:"int" = add %18 %22;
+                   invoke %1 %23 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   %24 : java.type:"int" = constant @8;
+                   invoke %1 %24 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   branch ^block_3;
 
-              ^block_2:
-                branch ^block_3;
+                 ^block_2:
+                   branch ^block_3;
 
-              ^block_3:
-                %25 : int = constant @"9";
-                invoke %1 %25 @"java.util.function.IntConsumer::accept(int)void";
-                return;
-            };
+                 ^block_3:
+                   %25 : java.type:"int" = constant @9;
+                   invoke %1 %25 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                   return;
+               };
             """,
             ssa = true
     )
@@ -307,49 +342,49 @@ public class TestPE {
 
     @CodeReflection
     @EvaluatedModel("""
-            func @"constantsInBranches" (%0 : TestPE, %1 : java.util.function.IntConsumer, %2 : int)void -> {
-                %3 : Var<java.util.function.IntConsumer> = var %1 @"c";
-                %4 : Var<int> = var %2 @"arg";
-                %5 : int = var.load %4;
-                %6 : Var<int> = var %5 @"x";
-                %7 : int = var.load %6;
-                %8 : int = constant @"0";
-                %9 : boolean = eq %7 %8;
+            func @"constantsInBranches" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
+                %3 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
+                %4 : Var<java.type:"int"> = var %2 @"arg";
+                %5 : java.type:"int" = var.load %4;
+                %6 : Var<java.type:"int"> = var %5 @"x";
+                %7 : java.type:"int" = var.load %6;
+                %8 : java.type:"int" = constant @0;
+                %9 : java.type:"boolean" = eq %7 %8;
                 cbranch %9 ^block_1 ^block_2;
 
               ^block_1:
-                %10 : int = constant @"1";
+                %10 : java.type:"int" = constant @1;
                 var.store %6 %10;
                 branch ^block_3;
 
               ^block_2:
-                %11 : int = constant @"2";
+                %11 : java.type:"int" = constant @2;
                 var.store %6 %11;
                 branch ^block_3;
 
               ^block_3:
-                %12 : java.util.function.IntConsumer = var.load %3;
-                %13 : int = var.load %6;
-                invoke %12 %13 @"java.util.function.IntConsumer::accept(int)void";
+                %12 : java.type:"java.util.function.IntConsumer" = var.load %3;
+                %13 : java.type:"int" = var.load %6;
+                invoke %12 %13 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                 return;
             };
             """)
     @EvaluatedModel(value = """
-            func @"constantsInBranches" (%0 : TestPE, %1 : java.util.function.IntConsumer, %2 : int)void -> {
-                %3 : int = constant @"0";
-                %4 : boolean = eq %2 %3;
+            func @"constantsInBranches" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
+                %3 : java.type:"int" = constant @0;
+                %4 : java.type:"boolean" = eq %2 %3;
                 cbranch %4 ^block_1 ^block_2;
 
               ^block_1:
-                %5 : int = constant @"1";
+                %5 : java.type:"int" = constant @1;
                 branch ^block_3(%5);
 
               ^block_2:
-                %6 : int = constant @"2";
+                %6 : java.type:"int" = constant @2;
                 branch ^block_3(%6);
 
-              ^block_3(%7 : int):
-                invoke %1 %7 @"java.util.function.IntConsumer::accept(int)void";
+              ^block_3(%7 : java.type:"int"):
+                invoke %1 %7 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                 return;
             };
             """,

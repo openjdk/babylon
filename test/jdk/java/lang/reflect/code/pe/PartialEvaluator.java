@@ -71,8 +71,10 @@ final class PartialEvaluator {
         final Map<Block, Block> immediateDominators;
         final Map<Block, List<Block>> dominatorTree;
 
+        final Map<Block, List<Block>> evaluatedPredecessors;
         final Map<Block, Map<Value, Object>> evaluatedValues;
-        final Deque<Block> blockStack;
+
+        final Queue<Block> blockStack;
         final BitSet visited;
 
         Block currentBlock;
@@ -89,8 +91,10 @@ final class PartialEvaluator {
             });
             this.dominatorTree = dominatorTree;
 
+            this.evaluatedPredecessors = new HashMap<>();
             this.evaluatedValues = new HashMap<>();
-            this.blockStack = new ArrayDeque<>();
+            this.blockStack = new PriorityQueue<>(Comparator.comparingInt(Block::index));
+
             this.visited = new BitSet();
 
             this.currentBlock = entryBlock;
@@ -98,28 +102,16 @@ final class PartialEvaluator {
 
         void reset(Block b) {
             visited.set(b.index(), false);
+            evaluatedPredecessors.remove(b);
             for (Block c : dominatorTree.getOrDefault(b, List.of())) {
                 reset(c);
             }
         }
 
         Object getValue(Value v) {
-            Block b = currentBlock;
-            Block dom;
-            do {
-                Object rv = evaluatedValues.computeIfAbsent(b, _ -> new HashMap<>()).get(v);
-                if (rv != null) {
-                    return rv;
-                }
-                dom = immediateDominators.get(b);
-                if (dom == b) {
-                    break;
-                }
-                b = dom;
-            } while (true);
-
-            if (parent != null) {
-                return getValue(v);
+            Object rv = evaluatedValues.computeIfAbsent(v.declaringBlock(), _ -> new HashMap<>()).get(v);
+            if (rv != null) {
+                return rv;
             }
 
             throw evaluationException(new IllegalArgumentException("Undefined value: " + v));
@@ -131,7 +123,7 @@ final class PartialEvaluator {
     }
 
     Body.Builder evaluateBody(MethodHandles.Lookup l,
-                      Body inBody) {
+                              Body inBody) {
         Block inEntryBlock = inBody.entryBlock();
 
         Body.Builder outBody = Body.Builder.of(null, inBody.bodyType());
@@ -152,23 +144,62 @@ final class PartialEvaluator {
                             BodyContext bc) {
         assert inEntryBlock.isEntryBlock();
 
-        // If the stack is not empty it means we are interpreting
-        // an entry block with a parent body whose nearest ancestor body
-        // is the current context block's parent body
-//        BlockContext yieldContext = oc.stack.peek();
-//        assert yieldContext == null ||
-//                yieldContext.b().parentBody() == entry.parentBody().parentOp().ancestorBody();
-
         // The first block cannot have any successors so the queue will have at least one entry
-        bc.blockStack.push(inEntryBlock);
+        bc.blockStack.add(inEntryBlock);
         while (!bc.blockStack.isEmpty()) {
-            final Block inBlock = bc.currentBlock = bc.blockStack.pop();
+            final Block inBlock = bc.currentBlock = bc.blockStack.poll();
             if (bc.visited.get(inBlock.index())) {
                 continue;
             }
             bc.visited.set(inBlock.index());
 
             final Block.Builder outBlock = outEntryBlock.context().getBlock(inBlock);
+
+            out: if (inBlock.predecessors().size() > 1 && bc.evaluatedPredecessors.get(inBlock).size() == 1) {
+                // If we reached to this block through just one evaluated predecessor
+
+                List<Block> backBranchTargets = inBlock.predecessors()
+                        .stream().filter(p -> p.isDominatedBy(inBlock))
+                        .toList();
+                if (backBranchTargets.size() > 1) {
+                    throw new UnsupportedOperationException();
+                } else if (backBranchTargets.size() == 1) {
+                    // Loop header
+
+                    // Peal off loop iterations
+                    // Various policy options
+                    // 1.
+                    // If predecessor arguments to loop header are constants then peal off iteration
+                    // If exit branch to loop is constant keep pealing
+                    //   - otherwise count loop and stop pealing after certain iterations
+                    // 2.
+                    // Treat loop header parameters as constant for this iteration
+
+                    if (!constants.containsAll(inBlock.parameters())) {
+                        break out;
+                    }
+                }
+
+                List<Block> evalPreds = bc.evaluatedPredecessors.get(inBlock);
+                Block.Reference inBlockRef = evalPreds.getFirst().terminatingOp().successors().stream()
+                        .filter(r -> r.targetBlock() == inBlock)
+                        .findFirst().get();
+
+                // Propagate constant arguments to parameters
+                List<Value> args = inBlockRef.arguments();
+                for (int i = 0; i < args.size(); i++) {
+                    Value inArgument = args.get(i);
+                    if (constants.contains(inArgument)) {
+                        Block.Parameter inParameter = inBlock.parameters().get(i);
+
+                        // Map input parameter to output argument
+                        outBlock.context().mapValue(inParameter, outBlock.context().getValue(inArgument));
+                        // Set parameter constant
+                        constants.add(inParameter);
+                        bc.setValue(inParameter, bc.getValue(inArgument));
+                    }
+                }
+            }
 
             // Process all but the terminating operation
             int nops = inBlock.ops().size();
@@ -218,14 +249,14 @@ final class PartialEvaluator {
                         Block.Reference nextInBlockRef = p ? cb.trueBranch() : cb.falseBranch();
                         Block nextInBlock = nextInBlockRef.targetBlock();
 
-                        bc.blockStack.push(nextInBlock);
-                        evaluateBlockRef(bc, nextInBlockRef, outBlock);
-                    } else {
-                        bc.blockStack.push(cb.falseBranch().targetBlock());
-                        copyBlock(bc, cb.falseBranch().targetBlock(), outBlock);
+                        // @@@ might be back branch to loop
+                        processBlock(bc, inBlock, nextInBlock, outBlock);
 
-                        bc.blockStack.push(cb.trueBranch().targetBlock());
-                        copyBlock(bc, cb.trueBranch().targetBlock(), outBlock);
+                        outBlock.op(CoreOp.branch(outBlock.context().getSuccessorOrCreate(nextInBlockRef)));
+                    } else {
+                        // @@@ might be non-constant back branches to loop
+                        processBlock(bc, inBlock, cb.falseBranch().targetBlock(), outBlock);
+                        processBlock(bc, inBlock, cb.trueBranch().targetBlock(), outBlock);
 
                         outBlock.op(to);
                     }
@@ -233,35 +264,19 @@ final class PartialEvaluator {
                 case CoreOp.BranchOp b -> {
                     Block.Reference nextInBlockRef = b.branch();
                     Block nextInBlock = nextInBlockRef.targetBlock();
-                    bc.blockStack.push(nextInBlock);
 
                     if (inBlock.isDominatedBy(nextInBlock)) {
-                        // Back branch
-                        evaluateBlockRef(bc, nextInBlockRef, outBlock);
-
-                        // Reset the visited bit for the successor block and all blocks it dominates,
-                        // so all the dominated blocks can be revisited and operations reprocessed
+                        // Back branch to loop header
                         assert bc.visited.get(nextInBlock.index());
-                        bc.reset(nextInBlock);
-                    } else if (nextInBlock.isDominatedBy(inBlock)) {
-                        // Forward branch
-                        evaluateBlockRef(bc, nextInBlockRef, outBlock);
-                    } else {
-                        // Joining branch
-                        // Determine if the conditional branch of the block that
-                        // dominates the joined block is a constant
-                        Block dom = bc.immediateDominators.get(nextInBlock);
-                        assert dom.terminatingOp() instanceof CoreOp.ConditionalBranchOp;
-                        if (constants.contains(dom.terminatingOp().result())) {
-                            // Branch was evaluated
-                            evaluateBlockRef(bc, nextInBlockRef, outBlock);
-                        } else {
-                            // Branch was unevaluated
-                            copyBlock(bc, nextInBlock, outBlock);
-
-                            outBlock.op(b);
+                        if (constants.containsAll(nextInBlock.parameters())) {
+                            // Reset loop body to peal off another iteration
+                            bc.reset(nextInBlock);
                         }
                     }
+
+                    processBlock(bc, inBlock, nextInBlock, outBlock);
+
+                    outBlock.op(b);
                 }
                 case CoreOp.ReturnOp _ -> outBlock.op(to);
                 default -> throw evaluationException(
@@ -281,37 +296,15 @@ final class PartialEvaluator {
         }
     }
 
-    void evaluateBlockRef(BodyContext bc, Block.Reference nextInBlockRef, Block.Builder outBlock) {
-        Block nextInBlock = nextInBlockRef.targetBlock();
-
-        Block.Builder nextOutBlock = outBlock.block();
-        outBlock.context().mapBlock(nextInBlock, nextOutBlock);
-
-        outBlock.op(CoreOp.branch(nextOutBlock.successor()));
-
-        // Block arguments and parameters
-        List<Value> args = nextInBlockRef.arguments();
-        for (int i = 0; i < args.size(); i++) {
-            Value inArgument = args.get(i);
-            // @@@ Not all may be constant
-            assert constants.contains(inArgument);
-            Block.Parameter inParameter = nextInBlock.parameters().get(i);
-
-            // Map input parameter to output argument
-            outBlock.context().mapValue(inParameter, outBlock.context().getValue(inArgument));
-            constants.add(inParameter);
-            // Set parameter constant
-            bc.setValue(inParameter, bc.getValue(inArgument));
-        }
-    }
-
-    void copyBlock(BodyContext bc, Block nextInBlock, Block.Builder outBlock) {
-        if (!bc.visited.get(nextInBlock.index())) {
+    void processBlock(BodyContext bc, Block inBlock, Block nextInBlock, Block.Builder outBlock) {
+        bc.blockStack.add(nextInBlock);
+        if (!bc.evaluatedPredecessors.containsKey(nextInBlock)) {
             // Copy block
             Block.Builder nextOutBlock = outBlock.block(nextInBlock.parameterTypes());
             outBlock.context().mapBlock(nextInBlock, nextOutBlock);
             outBlock.context().mapValues(nextInBlock.parameters(), nextOutBlock.parameters());
         }
+        bc.evaluatedPredecessors.computeIfAbsent(nextInBlock, _ -> new ArrayList<>()).add(inBlock);
     }
 
     @SuppressWarnings("unchecked")
