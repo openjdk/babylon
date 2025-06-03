@@ -4479,6 +4479,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         });
     }
 
+    public record OpAndValues(Op op, SequencedSet<Value> operandsAndCaptures) { }
+
     public static OpAndValues quotedOp(FuncOp funcOp) {
 
         if (funcOp.body().blocks().size() != 1) {
@@ -4539,6 +4541,4 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         operandsAndCaptures.addAll(op.capturedValues());
         return new OpAndValues(op, operandsAndCaptures);
     }
-
-    public record OpAndValues (Op op, SequencedSet<Value> operandsAndCaptures) { }
 }
