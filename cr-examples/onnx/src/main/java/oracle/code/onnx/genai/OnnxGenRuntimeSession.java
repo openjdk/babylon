@@ -114,7 +114,7 @@ import static oracle.code.onnx.foreign.OrtGenApi.*;
  *           ...
  *       }
  *
- *       // custom record with main model response
+ *       // custom record with main model method response
  *       public record MyModelResponse(Tensor<Float> logits, Tensor<Float> presentKey0, Tensor<Float> presentValue0, ...) {
  *       }
  *
