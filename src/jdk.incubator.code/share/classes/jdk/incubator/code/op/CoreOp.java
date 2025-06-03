@@ -4458,7 +4458,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             for (int i = 0; i < inputOperandsAndCaptures.size(); i++) {
                 Value inputValue = inputOperandsAndCaptures.get(i);
                 Value outputValue = b.parameters().get(i);
-                if (inputValue.type() instanceof VarType _) {
+                if (inputValue.type() instanceof VarType) {
                     outputValue = b.op(CoreOp.var(String.valueOf(i), outputValue));
                 }
                 outputOperandsAndCaptures.add(outputValue);
