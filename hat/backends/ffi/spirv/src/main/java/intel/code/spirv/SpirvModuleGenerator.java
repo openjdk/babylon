@@ -44,6 +44,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.math.BigInteger;
+import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -57,6 +58,7 @@ import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.ClassType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.FunctionType;
+import hat.buffer.*;
 import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
@@ -379,7 +381,7 @@ public class SpirvModuleGenerator {
                     }
                     case SpirvOp.CallOp call -> {
                         MethodRef methodRef = call.callDescriptor();
-                        if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long)int")))
+                        if (methodRef.equals(MethodRef.method(S32Array.class, "array", int.class, long.class)))
                         {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
@@ -403,8 +405,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::array(long)int")) ||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::array(long)float")))
+                        else if (methodRef.equals(MethodRef.method(S32Array2D.class, "array", int.class, long.class) ||
+                                 methodRef.equals(MethodRef.method(F32Array2D.class, "array", float.class, long.class))
                         {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
@@ -428,7 +430,7 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::array(long, int)void"))) {
+                        else if (methodRef.equals(MethodRef.method(S32Array.class, "array", void.class, long.class, int.class))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -451,8 +453,8 @@ public class SpirvModuleGenerator {
                             SPIRVId value = getResult(call.operands().get(valueIndex)).value();
                             spirvBlock.add(new SPIRVOpStore(dest, value, align(elementType.getName())));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::array(long, int)void")) ||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::array(long, float)void"))) {
+                        else if (methodRef.equals(MethodRef.method(S32Array2D.class, "array", void.class, long.class, int.class)) ||
+                                 methodRef.equals(MethodRef.method(F32Array2D.class, "array", void.class, long.class, float.class))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -475,9 +477,9 @@ public class SpirvModuleGenerator {
                             SPIRVId value = getResult(call.operands().get(valueIndex)).value();
                             spirvBlock.add(new SPIRVOpStore(dest, value, align(elementType.getName())));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array::length()int")) ||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::width()int"))||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::width()int"))) {
+                        else if (methodRef.equals(MethodRef.method(S32Array.class, "length", int.class)) ||
+                                 methodRef.equals(MethodRef.method(S32Array2D.class, "width", int.class)) ||
+                                 methodRef.equals(MethodRef.method(F32Array2D.class, "width", int.class))) {
                             SPIRVId intType = getType("int");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -491,8 +493,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(intType, result, resultAddr, align(arrayType.getName())));
                             addResult(call.result(), new SpirvResult(intType, resultAddr, result));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("hat.buffer.S32Array2D::height()int")) ||
-                                 methodRef.equals(MethodRef.ofString("hat.buffer.F32Array2D::height()int"))) {
+                        else if (methodRef.equals(MethodRef.method(S32Array2D.class, "height", int.class)) ||
+                                 methodRef.equals(MethodRef.method(F32Array2D.class, "height", int.class))) {
                             SPIRVId intType = getType("int");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -506,7 +508,7 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(intType, result, resultAddr, align(arrayType.getName())));
                             addResult(call.result(), new SpirvResult(intType, resultAddr, result));
                         }
-                        else if (methodRef.equals(MethodRef.ofString("java.lang.Math::sqrt(double)double"))) {
+                        else if (methodRef.equals(MethodRef.method(Math.class, "sqrt", double.class, double.class))) {
                             SPIRVId floatType = getType("float");
                             SPIRVId result = nextId();
                             SPIRVId operand = getResult(call.operands().get(0)).value();
@@ -593,7 +595,7 @@ public class SpirvModuleGenerator {
                         addResult(iacop.result(), new SpirvResult(type, result, null));
                     }
                     case SpirvOp.FieldLoadOp flo -> {
-                        if (flo.operands().size() > 0 && (flo.operands().get(0).type().equals(JavaType.ofString("hat.KernelContext")))) {
+                        if (flo.operands().size() > 0 && (flo.operands().get(0).type().equals(KernelContext.class))) {
                             SpirvResult result;
                             int group = -1;
                             int index = -1;
@@ -613,7 +615,7 @@ public class SpirvModuleGenerator {
                             }
                             addResult(flo.result(), result);
                         }
-                        else if (flo.operands().get(0).type().equals(JavaType.ofString("hat.KernelContext"))) {
+                        else if (flo.operands().get(0).type().equals(JavaType.type(KernelContext.class))) {
                             String fieldName = flo.fieldDescriptor().name();
                             SPIRVId fieldIndex = switch (fieldName) {
                                 case "x" -> getConst("long", 0);

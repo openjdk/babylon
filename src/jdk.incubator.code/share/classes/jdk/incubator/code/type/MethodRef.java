@@ -96,10 +96,6 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
         return method(refType, name, functionType(retType, params));
     }
 
-    static MethodRef ofString(String s) {
-        return jdk.incubator.code.parser.impl.DescParser.parseMethodRef(s);
-    }
-
 
     // MethodTypeDesc factories
     // @@@ Where else to place them?

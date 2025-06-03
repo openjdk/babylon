@@ -11,18 +11,18 @@ public class PatternTest2 {
     record R<T extends Number> (T n) {}
 
     @IR("""
-            func @"f" (%0 : java.lang.Object)boolean -> {
-                %1 : Var<java.lang.Object> = var %0 @"o";
-                %2 : java.lang.Object = var.load %1;
-                %3 : java.lang.Integer = constant @null;
-                %4 : Var<java.lang.Integer> = var %3 @"i";
-                %5 : boolean = pattern.match %2
-                    ()jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<#T<PatternTest2$R, java.lang.Number>>> -> {
-                        %6 : jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer> = pattern.type @"i";
-                        %7 : jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<#T<PatternTest2$R, java.lang.Number>>> = pattern.record %6 @"(#T<PatternTest2$R, java.lang.Number> n)PatternTest2$R<#T<PatternTest2$R, java.lang.Number>>";
+            func @"f" (%0 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
+                %2 : java.type:"java.lang.Object" = var.load %1;
+                %3 : java.type:"java.lang.Integer" = constant @null;
+                %4 : Var<java.type:"java.lang.Integer"> = var %3 @"i";
+                %5 : java.type:"boolean" = pattern.match %2
+                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<PatternTest2$R::<T extends java.lang.Number>>>" -> {
+                        %6 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
+                        %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternTest2$R<PatternTest2$R::<T extends java.lang.Number>>>" = pattern.record %6 @java.ref:"(PatternTest2$R::<T extends java.lang.Number> n)PatternTest2$R<PatternTest2$R::<T extends java.lang.Number>>";
                         yield %7;
                     }
-                    (%8 : java.lang.Integer)void -> {
+                    (%8 : java.type:"java.lang.Integer")java.type:"void" -> {
                         var.store %4 %8;
                         yield;
                     };

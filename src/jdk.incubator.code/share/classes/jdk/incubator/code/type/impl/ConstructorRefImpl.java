@@ -38,13 +38,11 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
-import java.util.List;
 import java.util.Objects;
 
 import static java.util.stream.Collectors.joining;
 
 public final class ConstructorRefImpl implements ConstructorRef {
-    static final String NAME = "&c";
 
     final FunctionType type;
 
@@ -110,15 +108,13 @@ public final class ConstructorRefImpl implements ConstructorRef {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME,
-                List.of(type.externalize()));
+        return JavaTypeUtils.constructorRef(type.returnType().externalize(),
+                type.parameterTypes().stream().map(TypeElement::externalize).toList());
     }
 
     @Override
     public String toString() {
-        return type.returnType().externalize() + "::<new>" +
-            type.parameterTypes().stream().map(t -> t.externalize().toString())
-                    .collect(joining(", ", "(", ")"));
+        return JavaTypeUtils.toExternalRefString(externalize());
     }
 
     @Override

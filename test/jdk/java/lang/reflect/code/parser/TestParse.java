@@ -85,12 +85,12 @@ public class TestParse {
 
 
     static final String NAMED_BODY = """
-            func @"test" ^body1(%0 : int, %1 : int)int -> {
-                %2 : int = constant @"5";
-                %3 : int = constant @"2";
+            func @"test" ^body1(%0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
+                %2 : java.type:"int" = constant @5;
+                %3 : java.type:"int" = constant @2;
                 branch ^b1(%2, %3);
 
-              ^b1(%0 : int, %1 : int):
+              ^b1(%0 : java.type:"int", %1 : java.type:"int"):
                 return %0;
             };
             """;
@@ -103,8 +103,8 @@ public class TestParse {
 
 
     static final String ESCAPED_STRING = """
-            func @"test" ()String -> {
-                %0 : java.lang.String = constant @"\\b \\f \\n \\r \\t \\' \\" \\\\";
+            func @"test" ()java.type:"java.lang.String" -> {
+                %0 : java.type:"java.lang.String" = constant @"\\b \\f \\n \\r \\t \\' \\" \\\\";
                 return %0;
             };
             """;

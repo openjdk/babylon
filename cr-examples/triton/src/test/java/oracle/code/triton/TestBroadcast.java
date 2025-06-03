@@ -39,23 +39,23 @@ import static oracle.code.triton.TritonTest.consume;
 public class TestBroadcast {
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"test1_ptr<int>_int_64_void" (%0 : ptr<int>, %1 : int)void -> {
-                    %2 : tensor<x64, int> = tt.make_range @start="0" @end="64";
-                    %3 : tensor<x64, ptr<int>> = tt.splat %0;
-                    %4 : tensor<x64, ptr<int>> = tt.addptr %3 %2;
+            module ()java.type:"void" -> {
+                tt.func @"test1_ptr<java.type.primitive<int>>_int_64_void" (%0 : ptr<java.type:"int">, %1 : java.type:"int")java.type:"void" -> {
+                    %2 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
+                    %3 : tensor<x64, ptr<java.type:"int">> = tt.splat %0;
+                    %4 : tensor<x64, ptr<java.type:"int">> = tt.addptr %3 %2;
                     tt.consume %4;
-                    %5 : tensor<x64, int> = tt.splat %1;
-                    %6 : tensor<x64, int> = arith.addi %5 %2;
+                    %5 : tensor<x64, java.type:"int"> = tt.splat %1;
+                    %6 : tensor<x64, java.type:"int"> = arith.addi %5 %2;
                     tt.consume %6;
-                    %7 : tensor<x64, int> = tt.splat %1;
-                    %8 : tensor<x64, int> = arith.addi %2 %7;
+                    %7 : tensor<x64, java.type:"int"> = tt.splat %1;
+                    %8 : tensor<x64, java.type:"int"> = arith.addi %2 %7;
                     tt.consume %8;
-                    %9 : tensor<x64, int> = tt.splat %1;
-                    %10 : tensor<x64, int> = arith.addi %9 %2;
+                    %9 : tensor<x64, java.type:"int"> = tt.splat %1;
+                    %10 : tensor<x64, java.type:"int"> = arith.addi %9 %2;
                     tt.consume %10;
-                    %11 : tensor<x64, int> = tt.splat %1;
-                    %12 : tensor<x64, int> = arith.addi %2 %11;
+                    %11 : tensor<x64, java.type:"int"> = tt.splat %1;
+                    %12 : tensor<x64, java.type:"int"> = arith.addi %2 %11;
                     tt.consume %12;
                     tt.return;
                 };
@@ -83,18 +83,18 @@ public class TestBroadcast {
     }
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"test2_int_64_32_void" (%1 : int)void -> {
-                    %2 : tensor<x64, int> = tt.make_range @start="0" @end="64";
-                    %3 : tensor<x1, x64, int> = tt.expand_dims %2 @"0";
-                    %4 : tensor<x32, int> = tt.make_range @start="0" @end="32";
-                    %5 : tensor<x32, x1, int> = tt.expand_dims %4 @"1";
-                    %6 : tensor<x1, x64, int> = tt.splat %1;
-                    %7 : tensor<x1, x64, int> = arith.addi %3 %6;
+            module ()java.type:"void" -> {
+                tt.func @"test2_int_64_32_void" (%1 : java.type:"int")java.type:"void" -> {
+                    %2 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
+                    %3 : tensor<x1, x64, java.type:"int"> = tt.expand_dims %2 @0;
+                    %4 : tensor<x32, java.type:"int"> = tt.make_range @start=0 @end=32;
+                    %5 : tensor<x32, x1, java.type:"int"> = tt.expand_dims %4 @1;
+                    %6 : tensor<x1, x64, java.type:"int"> = tt.splat %1;
+                    %7 : tensor<x1, x64, java.type:"int"> = arith.addi %3 %6;
                     tt.consume %7;
-                    %8 : tensor<x32, x64, int> = tt.broadcast %3;
-                    %9 : tensor<x32, x64, int> = tt.broadcast %5;
-                    %10 : tensor<x32, x64, int> = arith.addi %8 %9;
+                    %8 : tensor<x32, x64, java.type:"int"> = tt.broadcast %3;
+                    %9 : tensor<x32, x64, java.type:"int"> = tt.broadcast %5;
+                    %10 : tensor<x32, x64, java.type:"int"> = arith.addi %8 %9;
                     tt.consume %10;
                     tt.return;
                 };

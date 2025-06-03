@@ -49,7 +49,7 @@ public final class OnnxTransformer {
     static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
     static final JavaType LIST_CLASS = JavaType.type(List.class);
 
-    public record ModuleAndInitializers(CoreOp.ModuleOp module, SequencedCollection<FieldRef> initializers) {}
+    public record ModuleAndInitializers(CoreOp.ModuleOp module, SequencedCollection<FieldRef> initializers, Map<Value, String> namesMap) {}
 
     public static ModuleAndInitializers transform(MethodHandles.Lookup l, Quoted quotedLambda) {
         CoreOp.LambdaOp lambda = (CoreOp.LambdaOp) quotedLambda.op();
@@ -88,7 +88,8 @@ public final class OnnxTransformer {
     public static ModuleAndInitializers transform(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc) {
         CoreOp.ModuleOp m = collectModuleFunctions(l, inputFunc);
         ModuleAndInitializers mi = remapInitializers(l, m);
-        return new ModuleAndInitializers(transformModule(l, mi.module()), mi.initializers());
+        Map<Value, String> namesMap = new HashMap<>();
+        return new ModuleAndInitializers(transformModule(l, mi.module(), namesMap), mi.initializers(), namesMap);
     }
 
     static void collectModuleFunctions(MethodHandles.Lookup l, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline, CoreOp.FuncOp func) {
@@ -138,20 +139,22 @@ public final class OnnxTransformer {
 
     static ModuleAndInitializers remapInitializers(MethodHandles.Lookup l, CoreOp.ModuleOp module) {
         // collect initializers (field load ops of tensors)
-        record TI(OnnxType type, int index) {}
+        record TI(TypeElement type, int index) {}
         var initializers = module.traverse(new LinkedHashMap<FieldRef, TI>(), (i, op) -> {
-            if (op instanceof CoreOp.FieldAccessOp.FieldLoadOp flo && flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)) {
-                i.putIfAbsent(flo.fieldDescriptor(), new TI((OnnxType)convertType(l, ct), i.size()));
+            if (op instanceof CoreOp.FieldAccessOp.FieldLoadOp flo
+                    && (flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
+                     || isRecord(l, flo.resultType()))) {
+                i.putIfAbsent(flo.fieldDescriptor(), new TI(convertType(l, flo.resultType()), i.size()));
             }
             return i;
         });
 
         if (initializers.isEmpty()) {
-            return new ModuleAndInitializers(module, List.of());
+            return new ModuleAndInitializers(module, List.of(), null);
         }
 
         // map all initializers field loads into additional arguments
-        List<OnnxType> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
+        List<TypeElement> initTypes = initializers.sequencedValues().stream().map(TI::type).toList();
         return new ModuleAndInitializers(CoreOp.module(module.functionTable().sequencedValues().stream().map(f -> {
             var ft = f.invokableType();
             int argsSize = ft.parameterTypes().size();
@@ -177,7 +180,7 @@ public final class OnnxTransformer {
                         }
                         return bb;
                     }));
-        }).toList()), initializers.sequencedKeySet());
+        }).toList()), initializers.sequencedKeySet(), null);
     }
 
     static CoreOp.FuncOp resolve(MethodHandles.Lookup l, CoreOp.InvokeOp io) {
@@ -190,13 +193,23 @@ public final class OnnxTransformer {
         return null;
     }
 
-    static CoreOp.ModuleOp transformModule(MethodHandles.Lookup l, CoreOp.ModuleOp module) {
+    static CoreOp.ModuleOp transformModule(MethodHandles.Lookup l, CoreOp.ModuleOp module, Map<Value, String> namesMap) {
         var paramsToDropMap = new HashMap<String, BitSet>();
         return CoreOp.module(module.functionTable().sequencedValues().stream().map(f
-                -> transformFunc(l, f, paramsToDropMap)).toList());
+                -> transformFunc(l, f, paramsToDropMap, namesMap)).toList());
     }
 
-    static CoreOp.FuncOp transformFunc(MethodHandles.Lookup l, CoreOp.FuncOp func, Map<String, BitSet> paramsToDropMap) {
+    static CoreOp.FuncOp transformFunc(MethodHandles.Lookup l, CoreOp.FuncOp func, Map<String, BitSet> paramsToDropMap, Map<Value, String> namesMap) {
+        // get original return record class
+        Class<?> returnRecordClass = null;
+        try {
+            if (func.invokableType().returnType() instanceof ClassType ct && ct.rawType().resolve(l) instanceof Class cls && cls.isRecord()) {
+                returnRecordClass = cls;
+            }
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+
         OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
         pe.evaluate(l, func);
 
@@ -210,8 +223,35 @@ public final class OnnxTransformer {
         // drop unused parameters and ops
         func = dropUnused(l, func, paramsToDropMap);
 
+        // collect param names
+        String[] paramNames = new String[func.parameters().size()];
+        for (int i = 0; i < paramNames.length; i++) {
+            if (func.parameters().get(i).uses().iterator().next().op() instanceof CoreOp.VarOp vo && !vo.varName().isEmpty()) {
+                paramNames[i] = vo.varName();
+            }
+        }
+
         // SSA and drop unused operations transformation
-        return SSA.transform(func);
+        func = SSA.transform(func);
+
+        // map param names
+        for (int i = 0; i < paramNames.length; i++) {
+            if (paramNames[i] != null) {
+                namesMap.put(func.parameters().get(i), paramNames[i]);
+            }
+        }
+        // map return tuple names from the original record components
+        if (returnRecordClass != null
+                && func.body().entryBlock().terminatingOp() instanceof CoreOp.ReturnOp ro
+                && ro.operands().getFirst() instanceof Op.Result or
+                && or.op() instanceof CoreOp.TupleOp to) {
+            var rcs = returnRecordClass.getRecordComponents();
+            for (int i = 0; i < to.operands().size(); i++) {
+                namesMap.put(to.operands().get(i), rcs[i].getName());
+            }
+        }
+
+        return func;
     }
 
     static CoreOp.FuncOp transformToOnnx(MethodHandles.Lookup l, CoreOp.FuncOp func, OnnxPartialEvaluator pe) {
@@ -387,6 +427,14 @@ public final class OnnxTransformer {
                     Op.Result result = bb.op(CoreOp.funcCall(fco.funcName(), convertType(l, fco.opType()), bb.context().getValues(fco.operands())));
                     bb.context().mapValue(fco.result(), result);
                 }
+                case CoreOp.FieldAccessOp.FieldLoadOp flo when flo.operands().isEmpty() -> {
+                    Op.Result result = bb.op(CoreOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor())));
+                    bb.context().mapValue(flo.result(), result);
+                }
+                case CoreOp.FieldAccessOp.FieldLoadOp flo -> {
+                    Op.Result result = bb.op(CoreOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor()), bb.context().getValue(flo.operands().getFirst())));
+                    bb.context().mapValue(flo.result(), result);
+                }
                 // Copy remaining operations, which may be removed later transformations
                 default -> bb.op(op);
             }
@@ -445,8 +493,12 @@ public final class OnnxTransformer {
 
         List<TypeElement> tupleComponentTypes = new ArrayList<>();
         for (RecordComponent rc : recordClass.getRecordComponents()) {
-            switch (rc.getGenericType()) {
-                case ParameterizedType pt when pt.getRawType().equals(Tensor.class) -> {
+            Type type = rc.getGenericType();
+            if (type instanceof ParameterizedType pt && pt.getRawType().equals(Optional.class)) {
+                type = pt.getActualTypeArguments()[0];
+            }
+            switch (type) {
+                case ParameterizedType pt -> {
                     Type elementType = pt.getActualTypeArguments()[0];
                     switch (elementType) {
                         case Class<?> _ -> {
@@ -518,6 +570,10 @@ public final class OnnxTransformer {
 
     static FunctionType convertType(MethodHandles.Lookup l, FunctionType t) {
         return FunctionType.functionType(convertType(l, t.returnType()), t.parameterTypes().stream().map(pt -> convertType(l, pt)).toList());
+    }
+
+    static FieldRef convertType(MethodHandles.Lookup l, FieldRef t) {
+        return FieldRef.field(convertType(l, t.refType()), t.name(), convertType(l, t.type()));
     }
 
     // @@@ Map of Java tensor types to ONNX tensor types

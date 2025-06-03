@@ -39,22 +39,22 @@ import static oracle.code.triton.TritonTest.consume;
 public class TestCountedLoop {
 
     @TritonCodeModel(value = """
-            module ()void -> {
-                tt.func @"test1_int_64_void" (%0 : int)void -> {
-                    %1 : int = arith.constant @"64";
-                    %2 : tensor<x64, int> = tt.make_range @start="0" @end="64";
-                    %3 : tensor<x64, int> = tt.make_range @start="0" @end="64";
-                    %4 : int = arith.constant @"0";
-                    %5 : int = arith.constant @"1";
-                    %6 : Tuple<tensor<x64, int>, tensor<x64,int>> = scf.for %4 %0 %5 %2 %3 (%7 : int, %8 : tensor<x64, int>, %9 : tensor<x64, int>)Tuple<tensor<x64, int>, tensor<x64, int>> -> {
-                        %10 : tensor<x64, int> = tt.splat %7;
-                        %11 : tensor<x64, int> = arith.addi %8 %10;
-                        %12 : tensor<x64, int> = tt.splat %1;
-                        %13 : tensor<x64, int> = arith.addi %9 %12;
+            module ()java.type:"void" -> {
+                tt.func @"test1_int_64_void" (%0 : java.type:"int")java.type:"void" -> {
+                    %1 : java.type:"int" = arith.constant @64;
+                    %2 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
+                    %3 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
+                    %4 : java.type:"int" = arith.constant @0;
+                    %5 : java.type:"int" = arith.constant @1;
+                    %6 : Tuple<tensor<x64, java.type:"int">, tensor<x64, java.type:"int">> = scf.for %4 %0 %5 %2 %3 (%7 : java.type:"int", %8 : tensor<x64, java.type:"int">, %9 : tensor<x64, java.type:"int">)Tuple<tensor<x64, java.type:"int">, tensor<x64, java.type:"int">> -> {
+                        %10 : tensor<x64, java.type:"int"> = tt.splat %7;
+                        %11 : tensor<x64, java.type:"int"> = arith.addi %8 %10;
+                        %12 : tensor<x64, java.type:"int"> = tt.splat %1;
+                        %13 : tensor<x64, java.type:"int"> = arith.addi %9 %12;
                         scf.yield %11 %13;
                     };
-                    %14 : tensor<x64, int> = tuple.load %6 @"0";
-                    %15 : tensor<x64, int> = tuple.load %6 @"1";
+                    %14 : tensor<x64, java.type:"int"> = tuple.load %6 @0;
+                    %15 : tensor<x64, java.type:"int"> = tuple.load %6 @1;
                     tt.consume %14;
                     tt.consume %15;
                     tt.return;

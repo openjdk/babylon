@@ -10,12 +10,12 @@ import jdk.incubator.code.CodeReflection;
 public class StringConcatTest {
 
     @IR("""
-            func @"test1" (%0 : java.lang.String, %1 : int)java.lang.String -> {
-                %2 : Var<java.lang.String> = var %0 @"a";
-                %3 : Var<int> = var %1 @"b";
-                %4 : java.lang.String = var.load %2;
-                %5 : int = var.load %3;
-                %6 : java.lang.String = concat %4 %5;
+            func @"test1" (%0 : java.type:"java.lang.String", %1 : java.type:"int")java.type:"java.lang.String" -> {
+                %2 : Var<java.type:"java.lang.String"> = var %0 @"a";
+                %3 : Var<java.type:"int"> = var %1 @"b";
+                %4 : java.type:"java.lang.String" = var.load %2;
+                %5 : java.type:"int" = var.load %3;
+                %6 : java.type:"java.lang.String" = concat %4 %5;
                 return %6;
             };
             """)
@@ -25,14 +25,14 @@ public class StringConcatTest {
     }
 
     @IR("""
-            func @"test2" (%0 : java.lang.String, %1 : char)java.lang.String -> {
-                %2 : Var<java.lang.String> = var %0 @"a";
-                %3 : Var<char> = var %1 @"b";
-                %4 : java.lang.String = var.load %2;
-                %5 : char = var.load %3;
-                %6 : java.lang.String = concat %4 %5;
+            func @"test2" (%0 : java.type:"java.lang.String", %1 : java.type:"char")java.type:"java.lang.String" -> {
+                %2 : Var<java.type:"java.lang.String"> = var %0 @"a";
+                %3 : Var<java.type:"char"> = var %1 @"b";
+                %4 : java.type:"java.lang.String" = var.load %2;
+                %5 : java.type:"char" = var.load %3;
+                %6 : java.type:"java.lang.String" = concat %4 %5;
                 var.store %2 %6;
-                %7 : java.lang.String = var.load %2;
+                %7 : java.type:"java.lang.String" = var.load %2;
                 return %7;
             };
             """)
@@ -43,14 +43,14 @@ public class StringConcatTest {
     }
 
     @IR("""
-            func @"test3" (%0 : java.lang.String, %1 : float)java.lang.String -> {
-                %2 : Var<java.lang.String> = var %0 @"a";
-                %3 : Var<float> = var %1 @"b";
-                %4 : java.lang.String = var.load %2;
-                %5 : float = var.load %3;
-                %6 : java.lang.String = concat %4 %5;
+            func @"test3" (%0 : java.type:"java.lang.String", %1 : java.type:"float")java.type:"java.lang.String" -> {
+                %2 : Var<java.type:"java.lang.String"> = var %0 @"a";
+                %3 : Var<java.type:"float"> = var %1 @"b";
+                %4 : java.type:"java.lang.String" = var.load %2;
+                %5 : java.type:"float" = var.load %3;
+                %6 : java.type:"java.lang.String" = concat %4 %5;
                 var.store %2 %6;
-                %7 : java.lang.String = var.load %2;
+                %7 : java.type:"java.lang.String" = var.load %2;
                 return %7;
             };
             """)

@@ -1278,59 +1278,28 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         static Object processConstantValue(TypeElement t, Object value) {
-            if (t.equals(JavaType.BOOLEAN)) {
-                if (value instanceof String s) {
-                    return Boolean.valueOf(s);
-                } else if (value instanceof Boolean) {
-                    return value;
-                }
-            } else if (t.equals(JavaType.BYTE)) {
-                if (value instanceof String s) {
-                    return Byte.valueOf(s);
-                } else if (value instanceof Number n) {
-                    return n.byteValue();
-                }
-            } else if (t.equals(JavaType.SHORT)) {
-                if (value instanceof String s) {
-                    return Short.valueOf(s);
-                } else if (value instanceof Number n) {
-                    return n.shortValue();
-                }
-            } else if (t.equals(JavaType.CHAR)) {
-                if (value instanceof String s) {
-                    return s.charAt(0);
-                } else if (value instanceof Character) {
-                    return value;
-                }
-            } else if (t.equals(JavaType.INT)) {
-                if (value instanceof String s) {
-                    return Integer.valueOf(s);
-                } else if (value instanceof Number n) {
-                    return n.intValue();
-                }
-            } else if (t.equals(JavaType.LONG)) {
-                if (value instanceof String s) {
-                    return Long.valueOf(s);
-                } else if (value instanceof Number n) {
-                    return n.longValue();
-                }
-            } else if (t.equals(JavaType.FLOAT)) {
-                if (value instanceof String s) {
-                    return Float.valueOf(s);
-                } else if (value instanceof Number n) {
-                    return n.floatValue();
-                }
-            } else if (t.equals(JavaType.DOUBLE)) {
-                if (value instanceof String s) {
-                    return Double.valueOf(s);
-                } else if (value instanceof Number n) {
-                    return n.doubleValue();
-                }
+            if (t.equals(JavaType.BOOLEAN) && value instanceof Boolean) {
+                return value;
+            } else if (t.equals(JavaType.BYTE) && value instanceof Number n) {
+                return n.byteValue();
+            } else if (t.equals(JavaType.SHORT) && value instanceof Number n) {
+                return n.shortValue();
+            } else if (t.equals(JavaType.CHAR) && value instanceof Character) {
+                return value;
+            } else if (t.equals(JavaType.INT) && value instanceof Number n) {
+                return n.intValue();
+            } else if (t.equals(JavaType.LONG) && value instanceof Number n) {
+                return n.longValue();
+            } else if (t.equals(JavaType.FLOAT) && value instanceof Number n) {
+                return n.floatValue();
+            } else if (t.equals(JavaType.DOUBLE) && value instanceof Number n) {
+                return n.doubleValue();
             } else if (t.equals(JavaType.J_L_STRING)) {
-                return value == NULL_ATTRIBUTE_VALUE ? null :
-                        value.toString();
+                return value == NULL_ATTRIBUTE_VALUE ?
+                        null : (String)value;
             } else if (t.equals(JavaType.J_L_CLASS)) {
-                return value == NULL_ATTRIBUTE_VALUE ? null : JavaType.ofString(value.toString());
+                return value == NULL_ATTRIBUTE_VALUE ?
+                        null : (TypeElement)value;
             } else if (value == NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
@@ -1429,7 +1398,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             // Required attribute
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch (v) {
-                        case String s -> MethodRef.ofString(s);
                         case MethodRef md -> md;
                         case null, default ->
                                 throw new UnsupportedOperationException("Unsupported invoke descriptor value:" + v);
@@ -1438,7 +1406,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             // If not present defaults to false
             boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_INVOKE_VARARGS,
                     false, v -> switch (v) {
-                        case String s -> Boolean.valueOf(s);
                         case Boolean b -> b;
                         case null, default -> false;
                     });
@@ -1631,7 +1598,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             // Required attribute
             ConstructorRef constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,
                     true, v -> switch (v) {
-                        case String s -> ConstructorRef.ofString(s);
                         case ConstructorRef cd -> cd;
                         case null, default ->
                                 throw new UnsupportedOperationException("Unsupported constructor descriptor value:" + v);
@@ -1640,7 +1606,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             // If not present defaults to false
             boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_NEW_VARARGS,
                     false, v -> switch (v) {
-                        case String s -> Boolean.valueOf(s);
                         case Boolean b -> b;
                         case null, default -> false;
                     });
@@ -1779,7 +1744,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
                 FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR, true,
                         v -> switch (v) {
-                            case String s -> FieldRef.ofString(s);
                             case FieldRef fd -> fd;
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
@@ -1840,7 +1804,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
                 FieldRef fieldDescriptor = def.extractAttributeValue(ATTRIBUTE_FIELD_DESCRIPTOR, true,
                         v -> switch (v) {
-                            case String s -> FieldRef.ofString(s);
                             case FieldRef fd -> fd;
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
@@ -2039,7 +2002,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             TypeElement typeDescriptor = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
                     v -> switch (v) {
-                        case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
@@ -2106,7 +2068,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             TypeElement type = def.extractAttributeValue(ATTRIBUTE_TYPE_DESCRIPTOR, true,
                     v -> switch (v) {
-                        case String s -> JavaType.ofString(s);
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
@@ -2473,7 +2434,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             int index = def.extractAttributeValue(ATTRIBUTE_INDEX, true,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });
@@ -2544,7 +2504,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             int index = def.extractAttributeValue(ATTRIBUTE_INDEX, true,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });

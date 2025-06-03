@@ -38,18 +38,18 @@ public class LambdaTest {
 
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : LambdaTest)void -> {
-                %1 : java.util.function.Consumer<java.lang.String> = lambda (%2 : java.lang.String)void -> {
-                    %3 : Var<java.lang.String> = var %2 @"s";
-                    %4 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                    %5 : java.lang.String = var.load %3;
-                    invoke %4 %5 @"java.io.PrintStream::println(java.lang.String)void";
+            func @"test1" (%0 : java.type:"LambdaTest")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda (%2 : java.type:"java.lang.String")java.type:"void" -> {
+                    %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
+                    %4 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                    %5 : java.type:"java.lang.String" = var.load %3;
+                    invoke %4 %5 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                     return;
                 };
-                %6 : Var<java.util.function.Consumer<java.lang.String>> = var %1 @"c";
-                %7 : java.util.function.Consumer<java.lang.String> = var.load %6;
-                %8 : java.lang.String = constant @"Hello World";
-                invoke %7 %8 @"java.util.function.Consumer::accept(java.lang.Object)void";
+                %6 : Var<java.type:"java.util.function.Consumer<java.lang.String>"> = var %1 @"c";
+                %7 : java.type:"java.util.function.Consumer<java.lang.String>" = var.load %6;
+                %8 : java.type:"java.lang.String" = constant @"Hello World";
+                invoke %7 %8 @java.ref:"java.util.function.Consumer::accept(java.lang.Object):void";
                 return;
             };
             """)
@@ -62,15 +62,15 @@ public class LambdaTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : LambdaTest)void -> {
-                %1 : java.util.function.Supplier<java.lang.String> = lambda ()java.lang.String -> {
-                    %2 : java.lang.String = constant @"Hello World";
+            func @"test2" (%0 : java.type:"LambdaTest")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
+                    %2 : java.type:"java.lang.String" = constant @"Hello World";
                     return %2;
                 };
-                %3 : Var<java.util.function.Supplier<java.lang.String>> = var %1 @"c";
-                %4 : java.util.function.Supplier<java.lang.String> = var.load %3;
-                %5 : java.lang.String = invoke %4 @"java.util.function.Supplier::get()java.lang.Object";
-                %6 : Var<java.lang.String> = var %5 @"s";
+                %3 : Var<java.type:"java.util.function.Supplier<java.lang.String>"> = var %1 @"c";
+                %4 : java.type:"java.util.function.Supplier<java.lang.String>" = var.load %3;
+                %5 : java.type:"java.lang.String" = invoke %4 @java.ref:"java.util.function.Supplier::get():java.lang.Object";
+                %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
                 return;
             };
             """)
@@ -83,12 +83,12 @@ public class LambdaTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : LambdaTest)void -> {
-                %1 : java.util.function.Supplier<java.lang.String> = lambda ()java.lang.String -> {
-                    %2 : java.lang.String = constant @"Hello World";
+            func @"test3" (%0 : java.type:"LambdaTest")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
+                    %2 : java.type:"java.lang.String" = constant @"Hello World";
                     return %2;
                 };
-                %3 : Var<java.util.function.Supplier<java.lang.String>> = var %1 @"c";
+                %3 : Var<java.type:"java.util.function.Supplier<java.lang.String>"> = var %1 @"c";
                 return;
             };
             """)
@@ -100,12 +100,12 @@ public class LambdaTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : LambdaTest)void -> {
-                %1 : java.util.function.Supplier<java.lang.String> = lambda ()java.lang.String -> {
-                    %2 : java.lang.String = field.load %0 @"LambdaTest::s_f()java.lang.String";
+            func @"test4" (%0 : java.type:"LambdaTest")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.String>" = lambda ()java.type:"java.lang.String" -> {
+                    %2 : java.type:"java.lang.String" = field.load %0 @java.ref:"LambdaTest::s_f:java.lang.String";
                     return %2;
                 };
-                %3 : Var<java.util.function.Supplier<java.lang.String>> = var %1 @"c";
+                %3 : Var<java.type:"java.util.function.Supplier<java.lang.String>"> = var %1 @"c";
                 return;
             };
             """)
@@ -117,37 +117,37 @@ public class LambdaTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : LambdaTest, %1 : int, %2 : int)void -> {
-                %3 : Var<int> = var %1 @"i";
-                %4 : Var<int> = var %2 @"j";
-                %5 : int = constant @"3";
-                %6 : Var<int> = var %5 @"k";
-                %7 : java.util.function.Supplier<java.lang.Integer> = lambda ()java.lang.Integer -> {
-                    %8 : int = constant @"4";
-                    %9 : Var<int> = var %8 @"l";
-                    %10 : java.util.function.Supplier<java.lang.Integer> = lambda ()java.lang.Integer -> {
-                        %11 : int = var.load %4;
-                        %12 : int = var.load %6;
-                        %13 : int = add %11 %12;
-                        %14 : int = var.load %9;
-                        %15 : int = add %13 %14;
-                        %16 : Var<int> = var %15 @"r";
-                        %17 : int = var.load %16;
-                        %18 : java.lang.Integer = invoke %17 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+            func @"test5" (%0 : java.type:"LambdaTest", %1 : java.type:"int", %2 : java.type:"int")java.type:"void" -> {
+                %3 : Var<java.type:"int"> = var %1 @"i";
+                %4 : Var<java.type:"int"> = var %2 @"j";
+                %5 : java.type:"int" = constant @3;
+                %6 : Var<java.type:"int"> = var %5 @"k";
+                %7 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
+                    %8 : java.type:"int" = constant @4;
+                    %9 : Var<java.type:"int"> = var %8 @"l";
+                    %10 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
+                        %11 : java.type:"int" = var.load %4;
+                        %12 : java.type:"int" = var.load %6;
+                        %13 : java.type:"int" = add %11 %12;
+                        %14 : java.type:"int" = var.load %9;
+                        %15 : java.type:"int" = add %13 %14;
+                        %16 : Var<java.type:"int"> = var %15 @"r";
+                        %17 : java.type:"int" = var.load %16;
+                        %18 : java.type:"java.lang.Integer" = invoke %17 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                         return %18;
                     };
-                    %19 : Var<java.util.function.Supplier<java.lang.Integer>> = var %10 @"sInner";
-                    %20 : int = var.load %3;
-                    %21 : java.util.function.Supplier<java.lang.Integer> = var.load %19;
-                    %22 : java.lang.Integer = invoke %21 @"java.util.function.Supplier::get()java.lang.Object";
-                    %23 : int = invoke %22 @"java.lang.Integer::intValue()int";
-                    %24 : int = add %20 %23;
-                    %25 : Var<int> = var %24 @"r";
-                    %26 : int = var.load %25;
-                    %27 : java.lang.Integer = invoke %26 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+                    %19 : Var<java.type:"java.util.function.Supplier<java.lang.Integer>"> = var %10 @"sInner";
+                    %20 : java.type:"int" = var.load %3;
+                    %21 : java.type:"java.util.function.Supplier<java.lang.Integer>" = var.load %19;
+                    %22 : java.type:"java.lang.Integer" = invoke %21 @java.ref:"java.util.function.Supplier::get():java.lang.Object";
+                    %23 : java.type:"int" = invoke %22 @java.ref:"java.lang.Integer::intValue():int";
+                    %24 : java.type:"int" = add %20 %23;
+                    %25 : Var<java.type:"int"> = var %24 @"r";
+                    %26 : java.type:"int" = var.load %25;
+                    %27 : java.type:"java.lang.Integer" = invoke %26 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                     return %27;
                 };
-                %28 : Var<java.util.function.Supplier<java.lang.Integer>> = var %7 @"sOuter";
+                %28 : Var<java.type:"java.util.function.Supplier<java.lang.Integer>"> = var %7 @"sOuter";
                 return;
             };
             """)
@@ -169,13 +169,13 @@ public class LambdaTest {
 
     @CodeReflection
     @IR("""
-            func @"test6" (%0 : LambdaTest)void -> {
-                %1 : java.util.function.Supplier<java.lang.Integer> = lambda ()java.lang.Integer -> {
-                    %2 : int = field.load %0 @"LambdaTest::f()int";
-                    %3 : java.lang.Integer = invoke %2 @"java.lang.Integer::valueOf(int)java.lang.Integer";
+            func @"test6" (%0 : java.type:"LambdaTest")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.Integer>" = lambda ()java.type:"java.lang.Integer" -> {
+                    %2 : java.type:"int" = field.load %0 @java.ref:"LambdaTest::f:int";
+                    %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                     return %3;
                 };
-                %4 : Var<java.util.function.Supplier<java.lang.Integer>> = var %1 @"s";
+                %4 : Var<java.type:"java.util.function.Supplier<java.lang.Integer>"> = var %1 @"s";
                 return;
             };
             """)

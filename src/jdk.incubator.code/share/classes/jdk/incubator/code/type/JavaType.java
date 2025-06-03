@@ -33,6 +33,7 @@ import java.lang.reflect.*;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.type.WildcardType.BoundKind;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -345,14 +346,5 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      */
     static TypeVariableType typeVarRef(String name, TypeVariableType.Owner owner, JavaType bound) {
         return new TypeVariableType(name, owner, bound);
-    }
-
-    /**
-     * Constructs a Java type from a string representation.
-     * @param s string representation
-     * @return a Java type corresponding to the provided string representation
-     */
-    static JavaType ofString(String s) {
-        return (JavaType) CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(s));
     }
 }

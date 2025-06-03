@@ -86,8 +86,4 @@ public sealed interface ConstructorRef extends JavaRef, TypeVariableType.Owner
     static ConstructorRef constructor(FunctionType type) {
         return new ConstructorRefImpl(type);
     }
-
-    static ConstructorRef ofString(String s) {
-        return jdk.incubator.code.parser.impl.DescParser.parseConstructorRef(s);
-    }
 }

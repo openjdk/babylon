@@ -28,6 +28,8 @@ package jdk.incubator.code.parser;
 import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
+import jdk.incubator.code.TypeElement.ExternalizedTypeElement;
+import jdk.incubator.code.parser.impl.Tokens.TokenKind;
 import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.op.*;
 import jdk.incubator.code.parser.impl.DescParser;
@@ -35,7 +37,10 @@ import jdk.incubator.code.parser.impl.Lexer;
 import jdk.incubator.code.parser.impl.Scanner;
 import jdk.incubator.code.parser.impl.Tokens;
 import jdk.incubator.code.type.CoreTypeFactory;
+import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.TypeElementFactory;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,9 +76,18 @@ import java.util.Map;
  *   @ Name = AttributeValue
  *
  * AttributeValue:
- *   Name
+ *   ExType
+ *   NumericAttributeValue
+ *   BooleanLiteral
+ *   CharacterLiteral
  *   StringLiteral
  *   NullLiteral
+ *
+ * NumericAttributeValue:
+ *    [ '-' ] IntLiteral
+ *    [ '-' ] LongLiteral
+ *    [ '-' ] FloatLiteral
+ *    [ '-' ] DoubleLiteral
  *
  * Bodies:
  *   Body {Body}
@@ -121,8 +135,7 @@ import java.util.Map;
  */
 public final class OpParser {
 
-    static final TypeElement.ExternalizedTypeElement VOID =
-            new TypeElement.ExternalizedTypeElement("void", List.of());
+    static final TypeElement.ExternalizedTypeElement VOID = JavaType.VOID.externalize();
 
     /**
      * Parse a code model from its serialized textual form obtained from an input stream.
@@ -254,8 +267,21 @@ public final class OpParser {
                 operands,
                 successors,
                 c.typeFactory.constructType(rtype),
-                opNode.attributes,
+                inflateAttributes(opNode.attributes, c.typeFactory),
                 bodies);
+    }
+
+    static Map<String, Object> inflateAttributes(Map<String, Object> attributes, TypeElementFactory typeFactory) {
+        Map<String, Object> newAttributes = new HashMap<>();
+        for (Map.Entry<String, Object> e : attributes.entrySet()) {
+            String name = e.getKey();
+            Object value = e.getValue();
+            if (value instanceof ExternalizedTypeElement ete) {
+                value = typeFactory.constructType(JavaTypeUtils.inflate(ete));
+            }
+            newAttributes.put(name, value);
+        }
+        return newAttributes;
     }
 
     static Body.Builder nodeToBody(BodyNode n, Context c, Body.Builder ancestorBody) {
@@ -403,7 +429,7 @@ public final class OpParser {
         Map<String, Object> attributes = new HashMap<>();
         while (lexer.acceptIf(Tokens.TokenKind.MONKEYS_AT)) {
             String attributeName;
-            if (lexer.is(Tokens.TokenKind.IDENTIFIER)) {
+            if (isNameStart()) {
                 attributeName = parseName();
                 lexer.accept(Tokens.TokenKind.EQ);
             } else {
@@ -415,9 +441,26 @@ public final class OpParser {
         return attributes;
     }
 
+    boolean isNameStart() {
+        // we need to lookahead to see if we can find an identifier followed by a '=',
+        // in which case we know what we're looking at is an attribute name
+        int curr = 0;
+        while (true) {
+            if (lexer.token(curr++).kind != TokenKind.IDENTIFIER) {
+                return false;
+            }
+            TokenKind next = lexer.token(curr++).kind;
+            if (next == TokenKind.EQ) {
+                return true;
+            } else if (next != TokenKind.DOT) {
+                return false;
+            }
+        }
+    }
+
     Object parseAttributeValue() {
         if (lexer.is(Tokens.TokenKind.IDENTIFIER)) {
-            return parseName();
+            return DescParser.parseExTypeElem(lexer);
         }
 
         Object value = parseLiteral(lexer.token());
@@ -430,6 +473,25 @@ public final class OpParser {
         return switch (t.kind) {
             case STRINGLITERAL -> t.stringVal();
             case NULL -> ExternalizableOp.NULL_ATTRIBUTE_VALUE;
+            case CHARLITERAL -> t.stringVal().charAt(0);
+            case TRUE -> true;
+            case FALSE -> false;
+            default -> parseNumericLiteral(t);
+        };
+    }
+
+    Object parseNumericLiteral(Tokens.Token t) {
+        String minusOpt = "";
+        if (t.kind == TokenKind.SUB) {
+            minusOpt = "-";
+            lexer.nextToken();
+            t = lexer.token();
+        }
+        return switch (t.kind) {
+            case INTLITERAL -> Integer.valueOf(minusOpt + t.stringVal());
+            case LONGLITERAL -> Long.valueOf(minusOpt + t.stringVal());
+            case FLOATLITERAL -> Float.valueOf(minusOpt + t.stringVal());
+            case DOUBLELITERAL -> Double.valueOf(minusOpt + t.stringVal());
             default -> throw lexer.unexpected();
         };
     }
@@ -601,7 +663,7 @@ public final class OpParser {
     }
 
     TypeElement.ExternalizedTypeElement parseExTypeElem() {
-        return DescParser.parseExTypeElem(lexer);
+        return JavaTypeUtils.inflate(DescParser.parseExTypeElem(lexer));
     }
 }
 
