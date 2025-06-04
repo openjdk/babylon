@@ -4505,20 +4505,15 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         List<Block.Parameter> unvisitedParams = new ArrayList<>(fblock.parameters());
         for (Op o : ops) {
             switch (o) {
-                case VarOp varOp when varOp.initOperand() instanceof Block.Parameter p -> {
+                case VarOp varOp -> {
+                    if (varOp.initOperand() instanceof Block.Parameter p) {
+                        unvisitedParams.remove(p);
+                    } else if (varOp.initOperand() instanceof Op.Result opr && !(opr.op() instanceof ConstantOp)) {
+                        throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
+                    }
                     if (!op.operands().contains(varOp.result()) && !op.capturedValues().contains(varOp.result())) {
                         throw new IllegalArgumentException("Result of VarOp initialized with a block parameter," +
                                 "expected to be an operand or a captured value");
-                    }
-                    unvisitedParams.remove(p);
-                }
-                case VarOp varOp when varOp.initOperand() instanceof Op.Result opr -> {
-                    if (!(opr.op() instanceof ConstantOp)) {
-                        throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
-                    }
-                    if (!op.capturedValues().contains(varOp.result()) && !op.operands().contains(varOp.result())) {
-                        throw new IllegalArgumentException("Result of a VarOp initialized with a constant," +
-                                "expected to be a captured value or an operand");
                     }
                 }
                 case ConstantOp cop -> {
