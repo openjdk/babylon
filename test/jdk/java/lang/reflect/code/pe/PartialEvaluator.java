@@ -68,48 +68,24 @@ final class PartialEvaluator {
     static final class BodyContext {
         final BodyContext parent;
 
-        final Map<Block, Block> immediateDominators;
-        final Map<Block, List<Block>> dominatorTree;
-
         final Map<Block, List<Block>> evaluatedPredecessors;
-        final Map<Block, Map<Value, Object>> evaluatedValues;
+        final Map<Value, Object> evaluatedValues;
 
         final Queue<Block> blockStack;
         final BitSet visited;
 
-        Block currentBlock;
-
         BodyContext(Block entryBlock) {
             this.parent = null;
-
-            this.immediateDominators = entryBlock.parentBody().immediateDominators();
-            Map<Block, List<Block>> dominatorTree = new HashMap<>();
-            immediateDominators.forEach((b, id) -> {
-                if (b != id) {
-                    dominatorTree.computeIfAbsent(id, _ -> new ArrayList<>()).add(b);
-                }
-            });
-            this.dominatorTree = dominatorTree;
 
             this.evaluatedPredecessors = new HashMap<>();
             this.evaluatedValues = new HashMap<>();
             this.blockStack = new PriorityQueue<>(Comparator.comparingInt(Block::index));
 
             this.visited = new BitSet();
-
-            this.currentBlock = entryBlock;
-        }
-
-        void reset(Block b) {
-            visited.set(b.index(), false);
-            evaluatedPredecessors.remove(b);
-            for (Block c : dominatorTree.getOrDefault(b, List.of())) {
-                reset(c);
-            }
         }
 
         Object getValue(Value v) {
-            Object rv = evaluatedValues.computeIfAbsent(v.declaringBlock(), _ -> new HashMap<>()).get(v);
+            Object rv = evaluatedValues.get(v);
             if (rv != null) {
                 return rv;
             }
@@ -118,7 +94,7 @@ final class PartialEvaluator {
         }
 
         void setValue(Value v, Object o) {
-            evaluatedValues.computeIfAbsent(v.declaringBlock(), _ -> new HashMap<>()).put(v, o);
+            evaluatedValues.put(v, o);
         }
     }
 
@@ -144,10 +120,13 @@ final class PartialEvaluator {
                             BodyContext bc) {
         assert inEntryBlock.isEntryBlock();
 
+        Map<Block, LoopAnalyzer.Loop> loops = new HashMap<>();
+        Set<Block> loopNoPeeling = new HashSet<>();
+
         // The first block cannot have any successors so the queue will have at least one entry
         bc.blockStack.add(inEntryBlock);
         while (!bc.blockStack.isEmpty()) {
-            final Block inBlock = bc.currentBlock = bc.blockStack.poll();
+            final Block inBlock = bc.blockStack.poll();
             if (bc.visited.get(inBlock.index())) {
                 continue;
             }
@@ -155,41 +134,76 @@ final class PartialEvaluator {
 
             final Block.Builder outBlock = outEntryBlock.context().getBlock(inBlock);
 
-            out: if (inBlock.predecessors().size() > 1 && bc.evaluatedPredecessors.get(inBlock).size() == 1) {
+            nopeel: if (inBlock.predecessors().size() > 1 && bc.evaluatedPredecessors.get(inBlock).size() == 1) {
                 // If we reached to this block through just one evaluated predecessor
-
-                List<Block> backBranchTargets = inBlock.predecessors()
-                        .stream().filter(p -> p.isDominatedBy(inBlock))
-                        .toList();
-                if (backBranchTargets.size() > 1) {
-                    throw new UnsupportedOperationException();
-                } else if (backBranchTargets.size() == 1) {
-                    // Loop header
-
-                    // Peal off loop iterations
-                    // Various policy options
-                    // 1.
-                    // If predecessor arguments to loop header are constants then peal off iteration
-                    // If exit branch to loop is constant keep pealing
-                    //   - otherwise count loop and stop pealing after certain iterations
-                    // 2.
-                    // Treat loop header parameters as constant for this iteration
-
-                    if (!constants.containsAll(inBlock.parameters())) {
-                        break out;
-                    }
-                }
-
-                List<Block> evalPreds = bc.evaluatedPredecessors.get(inBlock);
-                Block.Reference inBlockRef = evalPreds.getFirst().terminatingOp().successors().stream()
+                Block inBlockPred = bc.evaluatedPredecessors.get(inBlock).getFirst();
+                Block.Reference inBlockRef = inBlockPred.terminatingOp().successors().stream()
                         .filter(r -> r.targetBlock() == inBlock)
                         .findFirst().get();
-
-                // Propagate constant arguments to parameters
                 List<Value> args = inBlockRef.arguments();
+                List<Boolean> argConstant = args.stream().map(constants::contains).toList();
+
+                LoopAnalyzer.Loop loop = loops.computeIfAbsent(inBlock, b -> LoopAnalyzer.isLoop(inBlock).orElse(null));
+                if (loop != null && inBlockPred.isDominatedBy(loop.header())) {
+                    // Entering loop header from back branch
+                    assert inBlockPred == loop.back();
+
+                    // Linear constant path from each exiting block (or nearest evaluated present dominator) to loop header
+                    boolean constantExits = true;
+                    for (LoopAnalyzer.LoopExit loopExitPair : loop.exits()) {
+                        Block loopExit = loopExitPair.exit();
+
+                        // Find nearest evaluated dominator
+                        List<Block> ePreds = bc.evaluatedPredecessors.get(loopExit);
+                        while (ePreds == null) {
+                            loopExit = loopExit.immediateDominator();
+                            ePreds = bc.evaluatedPredecessors.get(loopExit);
+                        }
+                        assert loop.body().contains(loopExit);
+
+                        if (ePreds.size() != 1 ||
+                                !(loopExit.terminatingOp() instanceof CoreOp.ConditionalBranchOp cbr) ||
+                                !constants.contains(cbr.result())) {
+                            // If there are multiple encounters, or terminal op is not a constant conditional branch
+                            constantExits = false;
+                            break;
+                        }
+                    }
+
+                    // Determine if constant args, before reset
+                    boolean constantArgs = constants.containsAll(args);
+
+                    // Reset state within loop body
+                    for (Block block : loop.body()) {
+                        // Reset visits, but not for loop header
+                        if (block != loop.header()) {
+                            bc.evaluatedPredecessors.remove(block);
+                            bc.visited.set(block.index(), false);
+                        }
+
+                        // Reset constants
+                        for (Op op : block.ops()) {
+                            constants.remove(op.result());
+                        }
+                        constants.removeAll(block.parameters());
+
+                        // Reset no peeling for any nested loops
+                        loopNoPeeling.remove(block);
+                    }
+
+                    if (!constantExits || !constantArgs) {
+                        // Finish peeling
+                        // No constant exit and no constant args
+                        loopNoPeeling.add(loop.back());
+                        break nopeel;
+                    }
+                    // Peel next iteration
+                }
+
+                // Propagate constant arguments
                 for (int i = 0; i < args.size(); i++) {
                     Value inArgument = args.get(i);
-                    if (constants.contains(inArgument)) {
+                    if (argConstant.get(i)) {
                         Block.Parameter inParameter = inBlock.parameters().get(i);
 
                         // Map input parameter to output argument
@@ -224,7 +238,7 @@ final class PartialEvaluator {
                 } else {
                     // Copy unevaluated operation
                     Op.Result r = outBlock.op(op);
-                    // Explicitly remap result, since the op can be copied more than once
+                    // Explicitly remap result, since the op can be copied more than once in pealed loops
                     // @@@ See comment Block.op code which implicitly limits this
                     outBlock.context().mapValue(op.result(), r);
                 }
@@ -250,6 +264,8 @@ final class PartialEvaluator {
                         Block nextInBlock = nextInBlockRef.targetBlock();
 
                         // @@@ might be back branch to loop
+                        assert !inBlock.isDominatedBy(nextInBlock);
+
                         processBlock(bc, inBlock, nextInBlock, outBlock);
 
                         outBlock.op(CoreOp.branch(outBlock.context().getSuccessorOrCreate(nextInBlockRef)));
@@ -268,9 +284,10 @@ final class PartialEvaluator {
                     if (inBlock.isDominatedBy(nextInBlock)) {
                         // Back branch to loop header
                         assert bc.visited.get(nextInBlock.index());
-                        if (constants.containsAll(nextInBlock.parameters())) {
-                            // Reset loop body to peal off another iteration
-                            bc.reset(nextInBlock);
+                        if (!loopNoPeeling.contains(inBlock) && constants.containsAll(nextInBlock.parameters())) {
+                            // Reset loop body to peel off another iteration
+                            bc.visited.set(nextInBlock.index(), false);
+                            bc.evaluatedPredecessors.remove(nextInBlock);
                         }
                     }
 

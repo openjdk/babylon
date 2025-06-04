@@ -130,26 +130,65 @@ public class TestPE {
             c.accept(v);
         }
     }
-
-
+//
     @CodeReflection
     @EvaluatedModel(value = """
             func @"forStatementNonConstant" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
-                %3 : java.type:"int" = constant @0;
-                branch ^block_1(%3);
+                %3 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
+                %4 : Var<java.type:"int"> = var %2 @"n";
+                %5 : java.type:"int" = constant @0;
+                %6 : java.type:"int" = var.load %4;
+                %7 : java.type:"boolean" = lt %5 %6;
+                cbranch %7 ^block_1 ^block_4;
 
-              ^block_1(%4 : java.type:"int"):
-                %5 : java.type:"boolean" = lt %4 %2;
-                cbranch %5 ^block_2 ^block_3;
+              ^block_1:
+                %8 : java.type:"java.util.function.IntConsumer" = var.load %3;
+                %9 : java.type:"int" = constant @2;
+                invoke %8 %9 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                branch ^block_2;
 
               ^block_2:
-                %6 : java.type:"int" = constant @2;
-                invoke %1 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
-                %7 : java.type:"int" = constant @1;
-                %8 : java.type:"int" = add %4 %7;
-                branch ^block_1(%8);
+                %10 : java.type:"int" = constant @1;
+                %11 : java.type:"int" = var.load %4;
+                %12 : java.type:"boolean" = lt %10 %11;
+                cbranch %12 ^block_3 ^block_4;
 
               ^block_3:
+                %13 : java.type:"java.util.function.IntConsumer" = var.load %3;
+                %14 : java.type:"int" = constant @2;
+                invoke %13 %14 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                branch ^block_2;
+
+              ^block_4:
+                return;
+            };
+            """,
+            ssa = false
+    )
+    @EvaluatedModel(value = """
+            func @"forStatementNonConstant" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
+                %3 : java.type:"int" = constant @0;
+                %4 : java.type:"boolean" = lt %3 %2;
+                cbranch %4 ^block_1 ^block_4;
+
+              ^block_1:
+                %5 : java.type:"int" = constant @2;
+                invoke %1 %5 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %6 : java.type:"int" = constant @1;
+                branch ^block_2(%6);
+
+              ^block_2(%7 : java.type:"int"):
+                %8 : java.type:"boolean" = lt %7 %2;
+                cbranch %8 ^block_3 ^block_4;
+
+              ^block_3:
+                %9 : java.type:"int" = constant @2;
+                invoke %1 %9 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %10 : java.type:"int" = constant @1;
+                %11 : java.type:"int" = add %7 %10;
+                branch ^block_2(%11);
+
+              ^block_4:
                 return;
             };
             """,
@@ -398,6 +437,73 @@ public class TestPE {
             x = 2;
         }
         c.accept(x);
+    }
+
+    @CodeReflection
+    @EvaluatedModel("""
+            func @"nestedForStatement" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                %2 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
+                %3 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %4 : java.type:"int" = constant @0;
+                invoke %3 %4 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %5 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %6 : java.type:"int" = constant @1;
+                invoke %5 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %7 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %8 : java.type:"int" = constant @2;
+                invoke %7 %8 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %9 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %10 : java.type:"int" = constant @1;
+                invoke %9 %10 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %11 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %12 : java.type:"int" = constant @2;
+                invoke %11 %12 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %13 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %14 : java.type:"int" = constant @3;
+                invoke %13 %14 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %15 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %16 : java.type:"int" = constant @2;
+                invoke %15 %16 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %17 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %18 : java.type:"int" = constant @3;
+                invoke %17 %18 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %19 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %20 : java.type:"int" = constant @4;
+                invoke %19 %20 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                return;
+            };
+            """)
+    @EvaluatedModel(value = """
+            func @"nestedForStatement" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                %2 : java.type:"int" = constant @0;
+                invoke %1 %2 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %3 : java.type:"int" = constant @1;
+                invoke %1 %3 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %4 : java.type:"int" = constant @2;
+                invoke %1 %4 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %5 : java.type:"int" = constant @1;
+                invoke %1 %5 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %6 : java.type:"int" = constant @2;
+                invoke %1 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %7 : java.type:"int" = constant @3;
+                invoke %1 %7 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %8 : java.type:"int" = constant @2;
+                invoke %1 %8 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %9 : java.type:"int" = constant @3;
+                invoke %1 %9 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %10 : java.type:"int" = constant @4;
+                invoke %1 %10 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                return;
+            };
+            """,
+            ssa = true
+    )
+    void nestedForStatement(IntConsumer c) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                c.accept(i + j);
+            }
+        }
     }
 
 }

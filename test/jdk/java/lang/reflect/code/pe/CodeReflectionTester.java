@@ -101,12 +101,7 @@ public class CodeReflectionTester {
             f = SSA.transform(f);
         }
 
-        List<LoopAnalyzer.Loop> loops = LoopAnalyzer.findLoops(f.body());
-        Map<Block, LoopAnalyzer.Loop> loopMap = loops.stream().collect(Collectors.toMap(LoopAnalyzer.Loop::header, loop -> loop));
-        loops.forEach(System.out::println);
-        Set<Value> constants = LoopAnalyzer.analyzeConstants(loopMap, opConstants, f);
-
-        f = PartialEvaluator.evaluate(l, opConstants, constants, f);
+        f = PartialEvaluator.evaluate(l, opConstants, new HashSet<>(), f);
 
         return cleanUp(f);
     }
