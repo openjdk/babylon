@@ -4516,9 +4516,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                     if (!(opr.op() instanceof ConstantOp)) {
                         throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
                     }
-                    if (!op.capturedValues().contains(varOp.result())) {
+                    if (!op.capturedValues().contains(varOp.result()) && !op.operands().contains(varOp.result())) {
                         throw new IllegalArgumentException("Result of a VarOp initialized with a constant," +
-                                "expected to be a captured value");
+                                "expected to be a captured value or an operand");
                     }
                 }
                 case ConstantOp cop -> {
