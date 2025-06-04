@@ -25,15 +25,41 @@
 
 package jdk.incubator.code.internal;
 
-import jdk.incubator.code.Quoted;
-import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.*;
+import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.parser.OpParser;
 
-import java.lang.invoke.MethodHandles;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.SequencedMap;
 
 public class QuotedHelper {
-    public static Quoted makeQuoted(MethodHandles.Lookup lookup, FuncOp op, Object[] args) {
-        return (Quoted)Interpreter.invoke(lookup, op, args);
+
+    public static Quoted makeQuoted(FuncOp funcOp, Object[] args) {
+
+        CoreOp.OpAndValues opAndValues = CoreOp.quotedOp(funcOp);
+
+        // map captured values to their corresponding runtime values
+        // captured value can be:
+        // 1- block param
+        // 2- result of VarOp whose initial value is constant
+        // 3- result of VarOp whose initial value is block param
+        List<Block.Parameter> params = funcOp.parameters();
+        SequencedMap<Value, Object> m = new LinkedHashMap<>();
+        for (Value v : opAndValues.operandsAndCaptures()) {
+            if (v instanceof Block.Parameter p) {
+                Object rv = args[params.indexOf(p)];
+                m.put(v, rv);
+            } else if (v instanceof Op.Result opr && opr.op() instanceof CoreOp.VarOp varOp) {
+                if (varOp.initOperand() instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp cop) {
+                    m.put(v, CoreOp.Var.of(cop.value()));
+                } else if (varOp.initOperand() instanceof Block.Parameter p) {
+                    Object rv = args[params.indexOf(p)];
+                    m.put(v, CoreOp.Var.of(rv));
+                }
+            }
+        }
+
+        return new Quoted(opAndValues.op(), m);
     }
 }
