@@ -4501,41 +4501,42 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         Op op = qop.quotedOp();
 
+        SequencedSet<Value> operandsAndCaptures = new LinkedHashSet<>();
+        operandsAndCaptures.addAll(op.operands());
+        operandsAndCaptures.addAll(op.capturedValues());
+
+        // validation rule of block params and constant op result
+        Consumer<Value> validate = v -> {
+            if (v.uses().isEmpty()) {
+                throw new IllegalArgumentException();
+            } else if (v.uses().size() == 1 && !(v.uses().iterator().next().op() instanceof VarOp) && !operandsAndCaptures.contains(v)) {
+                throw new IllegalArgumentException();
+            } else if (v.uses().size() > 1 && !operandsAndCaptures.contains(v)) {
+                throw new IllegalArgumentException();
+            }
+        };
+
+        for (Block.Parameter p : fblock.parameters()) {
+            validate.accept(p);
+        }
+
         List<Op> ops = fblock.ops().subList(0, fblock.ops().size() - 2);
-        List<Block.Parameter> unvisitedParams = new ArrayList<>(fblock.parameters());
         for (Op o : ops) {
             switch (o) {
                 case VarOp varOp -> {
-                    if (varOp.initOperand() instanceof Block.Parameter p) {
-                        unvisitedParams.remove(p);
-                    } else if (varOp.initOperand() instanceof Op.Result opr && !(opr.op() instanceof ConstantOp)) {
+                    if (varOp.initOperand() instanceof Op.Result opr && !(opr.op() instanceof ConstantOp)) {
                         throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
                     }
-                    if (!op.operands().contains(varOp.result()) && !op.capturedValues().contains(varOp.result())) {
+                    if (!operandsAndCaptures.contains(varOp.result())) {
                         throw new IllegalArgumentException("Result of VarOp initialized with a block parameter," +
                                 "expected to be an operand or a captured value");
                     }
                 }
-                case ConstantOp cop -> {
-                    if (cop.result().uses().size() != 1) {
-                        throw new IllegalArgumentException("Constant expected to have one use");
-                    } else if (!(cop.result().uses().iterator().next().op() instanceof VarOp)) {
-                        throw new IllegalArgumentException("Result of a ConstantOp expected to be used by a VarOp");
-                    }
-                }
-                case null, default ->
-                        throw new IllegalArgumentException("Operation not a VarOp nor a ConstantOp, " + o);
-            }
-        }
-        for (Block.Parameter p : unvisitedParams) {
-            if (!op.operands().contains(p) && !op.capturedValues().contains(p)) {
-                throw new IllegalArgumentException("Block parameter not an operand nor a captured value");
+                case ConstantOp cop -> validate.accept(cop.result());
+                default -> throw new IllegalArgumentException("Operation not a VarOp nor a ConstantOp, " + o);
             }
         }
 
-        SequencedSet<Value> operandsAndCaptures = new LinkedHashSet<>();
-        operandsAndCaptures.addAll(op.operands());
-        operandsAndCaptures.addAll(op.capturedValues());
         return new OpAndValues(op, operandsAndCaptures);
     }
 }
