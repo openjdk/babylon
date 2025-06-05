@@ -506,4 +506,105 @@ public class TestPE {
         }
     }
 
+
+    @CodeReflection
+    @EvaluatedModel("""
+            func @"whileWithBreak" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
+                %3 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
+                %4 : Var<java.type:"int"> = var %2 @"n";
+                %5 : java.type:"java.util.function.IntConsumer" = var.load %3;
+                %6 : java.type:"int" = constant @0;
+                invoke %5 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %7 : java.type:"java.util.function.IntConsumer" = var.load %3;
+                %8 : java.type:"int" = constant @1;
+                invoke %7 %8 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %9 : java.type:"int" = constant @2;
+                %10 : java.type:"int" = var.load %4;
+                %11 : java.type:"boolean" = ge %9 %10;
+                cbranch %11 ^block_3 ^block_1;
+
+              ^block_1:
+                %12 : java.type:"java.util.function.IntConsumer" = var.load %3;
+                %13 : java.type:"int" = constant @2;
+                invoke %12 %13 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                branch ^block_2;
+
+              ^block_2:
+                %14 : java.type:"int" = constant @3;
+                %15 : java.type:"int" = var.load %4;
+                %16 : java.type:"boolean" = ge %14 %15;
+                cbranch %16 ^block_3 ^block_4;
+
+              ^block_3:
+                %17 : java.type:"java.util.function.IntConsumer" = var.load %3;
+                %18 : java.type:"int" = constant @-1;
+                invoke %17 %18 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                return;
+
+              ^block_4:
+                %19 : java.type:"java.util.function.IntConsumer" = var.load %3;
+                %20 : java.type:"int" = constant @3;
+                invoke %19 %20 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                branch ^block_2;
+            };
+            """)
+    @EvaluatedModel(value = """
+            func @"whileWithBreak" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
+                %3 : java.type:"int" = constant @0;
+                invoke %1 %3 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %4 : java.type:"int" = constant @1;
+                invoke %1 %4 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %5 : java.type:"int" = constant @2;
+                %6 : java.type:"boolean" = ge %5 %2;
+                cbranch %6 ^block_4 ^block_1;
+
+              ^block_1:
+                invoke %1 %5 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %7 : java.type:"int" = constant @3;
+                branch ^block_2(%7);
+
+              ^block_2(%8 : java.type:"int"):
+                %9 : java.type:"int" = constant @2;
+                %10 : java.type:"boolean" = ge %8 %9;
+                cbranch %10 ^block_3 ^block_6;
+
+              ^block_3:
+                %11 : java.type:"boolean" = ge %8 %2;
+                cbranch %11 ^block_4 ^block_5;
+
+              ^block_4:
+                %12 : java.type:"int" = constant @-1;
+                invoke %1 %12 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                return;
+
+              ^block_5:
+                branch ^block_7;
+
+              ^block_6:
+                branch ^block_7;
+
+              ^block_7:
+                invoke %1 %8 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %13 : java.type:"int" = constant @1;
+                %14 : java.type:"int" = add %8 %13;
+                branch ^block_2(%14);
+            };
+            """,
+            ssa = true
+    )
+    void whileWithBreak(IntConsumer c, int n) {
+        int i = 0;
+        while (true) {
+            if (i >= 2) {
+                if (i >= n) {
+                    break;
+                }
+            }
+            c.accept(i);
+            i += 1;
+        }
+        c.accept(-1);
+    }
+
+
 }
