@@ -145,8 +145,8 @@ final class PartialEvaluator {
 
                 LoopAnalyzer.Loop loop = loops.computeIfAbsent(inBlock, b -> LoopAnalyzer.isLoop(inBlock).orElse(null));
                 if (loop != null && inBlockPred.isDominatedBy(loop.header())) {
-                    // Entering loop header from back branch
-                    assert inBlockPred == loop.back();
+                    // Entering loop header from latch
+                    assert loop.latches().contains(inBlockPred);
 
                     // Linear constant path from each exiting block (or nearest evaluated present dominator) to loop header
                     boolean constantExits = true;
@@ -194,7 +194,7 @@ final class PartialEvaluator {
                     if (!constantExits || !constantArgs) {
                         // Finish peeling
                         // No constant exit and no constant args
-                        loopNoPeeling.add(loop.back());
+                        loopNoPeeling.addAll(loop.latches());
                         break nopeel;
                     }
                     // Peel next iteration
@@ -263,14 +263,14 @@ final class PartialEvaluator {
                         Block.Reference nextInBlockRef = p ? cb.trueBranch() : cb.falseBranch();
                         Block nextInBlock = nextInBlockRef.targetBlock();
 
-                        // @@@ might be back branch to loop
+                        // @@@ might be latch to loop
                         assert !inBlock.isDominatedBy(nextInBlock);
 
                         processBlock(bc, inBlock, nextInBlock, outBlock);
 
                         outBlock.op(CoreOp.branch(outBlock.context().getSuccessorOrCreate(nextInBlockRef)));
                     } else {
-                        // @@@ might be non-constant back branches to loop
+                        // @@@ might be non-constant latch to loop
                         processBlock(bc, inBlock, cb.falseBranch().targetBlock(), outBlock);
                         processBlock(bc, inBlock, cb.trueBranch().targetBlock(), outBlock);
 
@@ -282,7 +282,7 @@ final class PartialEvaluator {
                     Block nextInBlock = nextInBlockRef.targetBlock();
 
                     if (inBlock.isDominatedBy(nextInBlock)) {
-                        // Back branch to loop header
+                        // latch to loop header
                         assert bc.visited.get(nextInBlock.index());
                         if (!loopNoPeeling.contains(inBlock) && constants.containsAll(nextInBlock.parameters())) {
                             // Reset loop body to peel off another iteration

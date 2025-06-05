@@ -606,5 +606,100 @@ public class TestPE {
         c.accept(-1);
     }
 
+    @CodeReflection
+    @EvaluatedModel("""
+            func @"whileWithBreakAndContinue" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
+                %3 : Var<java.type:"java.util.function.IntConsumer"> = var %1 @"c";
+                %4 : Var<java.type:"int"> = var %2 @"n";
+                %5 : java.type:"int" = constant @2;
+                %6 : java.type:"int" = var.load %4;
+                %7 : java.type:"boolean" = ge %5 %6;
+                cbranch %7 ^block_3 ^block_1;
+
+              ^block_1:
+                branch ^block_2;
+
+              ^block_2:
+                %8 : java.type:"int" = constant @4;
+                %9 : java.type:"int" = var.load %4;
+                %10 : java.type:"boolean" = ge %8 %9;
+                cbranch %10 ^block_3 ^block_4;
+
+              ^block_3:
+                %11 : java.type:"java.util.function.IntConsumer" = var.load %3;
+                %12 : java.type:"int" = constant @-1;
+                invoke %11 %12 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                return;
+
+              ^block_4:
+                branch ^block_2;
+            };
+            """)
+    @EvaluatedModel(value = """
+            func @"whileWithBreakAndContinue" (%0 : java.type:"TestPE", %1 : java.type:"java.util.function.IntConsumer", %2 : java.type:"int")java.type:"void" -> {
+                %3 : java.type:"int" = constant @2;
+                %4 : java.type:"boolean" = ge %3 %2;
+                cbranch %4 ^block_4 ^block_1;
+
+              ^block_1:
+                %5 : java.type:"int" = constant @4;
+                branch ^block_2(%5);
+
+              ^block_2(%6 : java.type:"int"):
+                %7 : java.type:"int" = constant @2;
+                %8 : java.type:"boolean" = ge %6 %7;
+                cbranch %8 ^block_3 ^block_6;
+
+              ^block_3:
+                %9 : java.type:"boolean" = ge %6 %2;
+                cbranch %9 ^block_4 ^block_5;
+
+              ^block_4:
+                %10 : java.type:"int" = constant @-1;
+                invoke %1 %10 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                return;
+
+              ^block_5:
+                branch ^block_7;
+
+              ^block_6:
+                branch ^block_7;
+
+              ^block_7:
+                %11 : java.type:"int" = constant @5;
+                %12 : java.type:"boolean" = lt %6 %11;
+                cbranch %12 ^block_8 ^block_9;
+
+              ^block_8:
+                %13 : java.type:"int" = constant @2;
+                %14 : java.type:"int" = add %6 %13;
+                branch ^block_2(%14);
+
+              ^block_9:
+                invoke %1 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                %15 : java.type:"int" = constant @1;
+                %16 : java.type:"int" = add %6 %15;
+                branch ^block_2(%16);
+            };
+            """,
+            ssa = true
+    )
+    void whileWithBreakAndContinue(IntConsumer c, int n) {
+        int i = 0;
+        while (true) {
+            if (i >= 2) {
+                if (i >= n) {
+                    break;
+                }
+            }
+            if (i < 5) {
+                i += 2;
+                continue;
+            }
+            c.accept(i);
+            i += 1;
+        }
+        c.accept(-1);
+    }
 
 }
