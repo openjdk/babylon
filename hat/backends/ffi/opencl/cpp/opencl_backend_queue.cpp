@@ -245,12 +245,17 @@ void OpenCLBackend::OpenCLQueue::wait(){
 
 void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel){
     size_t dims = 1;
+    size_t global_work_size[]{
+       static_cast<size_t>(kernelContext->maxX),
+       static_cast<size_t>(0),// Todo: kernelContext->maxY
+       static_cast<size_t>(0),// Todo: kernelContext->maxZ
+    };
     cl_int status = clEnqueueNDRangeKernel(
             command_queue,
             dynamic_cast<OpenCLProgram::OpenCLKernel*>(kernel)->kernel,
             dims,
             nullptr,
-            reinterpret_cast<const size_t *>(&kernelContext->maxX),
+            global_work_size,
             nullptr,
             eventc,
             eventListPtr(),
