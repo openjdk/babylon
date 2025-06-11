@@ -123,7 +123,7 @@ To run a HAT example we can run from the artifacts in `build` dir
 ```bash
 ${JAVA_HOME}/bin/java \
    --add-modules jdk.incubator.code --enable-preview --enable-native-access=ALL-UNNAMED \
-   --class-path build/hat-1.0.jar:build/hat-example-mandel-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar \
+   --class-path build/hat-core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar:build/hat-example-mandel-1.0.jar \
    --add-exports=java.base/jdk.internal=ALL-UNNAMED \
    -Djava.library.path=build\
    mandel.Main
@@ -139,7 +139,7 @@ java @hat/run ffi-opencl mandel
 If you pass `headless` as the first arg
 
 ```bash
-java @hat/run headless opencl mandel
+java @hat/run headless ffi-opencl mandel
 ```
 
 This sets `-Dheadless=true` and passes '--headless' to the example.  Some examples can use this to avoid launching UI.
@@ -157,22 +157,22 @@ We rely on java's ability to launch java source directly (without needing to jav
 The `hat/bld.java` script (really java source) can be run like this
 
 ```bash
-java --add-modules jdk.incubator.code --enable-preview --source 25 bld
+java --add-modules jdk.incubator.code --enable-preview --source 26 hat/bld.java
 ```
 
 In our case the  magic is under the `hat`subdir
 
-We also have a handy `hat/XXXX` which allows us to avoid specifying common args `--enable-preview --source 25` eash time we launch a script
+We also have a handy `hat/XXXX` which allows us to avoid specifying common args `--enable-preview --source 26` eash time we launch a script
 
 ```
 hat
 ├── hat
 |   ├── Script.java
-|   ├── sanity      (the args for sanity.java)  "--enable-preview --source 25 sanity"
+|   ├── sanity      (the args for sanity.java)  "--enable-preview --source 26 sanity"
 |   |-- sanity.java (the script)
-|   ├── run         (the args for sanity.java)  "--enable-preview --source 25 hatrun"
+|   ├── run         (the args for sanity.java)  "--enable-preview --source 26 hatrun"
 |   |-- run.java    (the script)
-|   ├── bld         (the args for bld.java)      "--enable-preview --source 25 bld"
+|   ├── bld         (the args for bld.java)      "--enable-preview --source 26 bld"
 |   ├── bld.java    (the script)
 
 ```
@@ -184,5 +184,5 @@ java @hat/bld
 
 Is just a shortcut for
 ```bash
-java --enable-preview --source 25 hat/bld.java
+java --add-modules jdk.incubator.code --enable-preview --source 26 hat/bld.java
 ```

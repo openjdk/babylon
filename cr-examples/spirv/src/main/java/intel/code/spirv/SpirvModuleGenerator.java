@@ -294,8 +294,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc("spirvdemo.IntArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.INT) ||
-                                call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc("spirvdemo.FloatArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.FLOAT)))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc.of("spirvdemo.IntArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.INT)) ||
+                                call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc.of("spirvdemo.FloatArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.FLOAT))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
