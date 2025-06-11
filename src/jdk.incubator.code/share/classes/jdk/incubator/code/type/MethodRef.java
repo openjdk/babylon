@@ -32,18 +32,17 @@ import jdk.incubator.code.type.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import jdk.incubator.code.TypeElement;
 import java.util.List;
-import java.util.Optional;
 
 import static jdk.incubator.code.type.FunctionType.functionType;
 
 /**
  * The symbolic reference to a Java method.
  */
-public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl {
+public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
+        permits MethodRefImpl {
 
     TypeElement refType();
 
@@ -66,10 +65,10 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
 
     // Factories
 
-    static MethodRef method(Executable e) {
-        return method(e.getDeclaringClass(), e.getName(),
-                e instanceof Method m ? m.getReturnType() : e.getDeclaringClass(),
-                e.getParameterTypes());
+    static MethodRef method(Method m) {
+        return method(m.getDeclaringClass(), m.getName(),
+                m.getReturnType(),
+                m.getParameterTypes());
     }
 
     static MethodRef method(Class<?> refType, String name, MethodType mt) {
@@ -95,10 +94,6 @@ public sealed interface MethodRef extends TypeVarRef.Owner permits MethodRefImpl
 
     static MethodRef method(TypeElement refType, String name, TypeElement retType, List<? extends TypeElement> params) {
         return method(refType, name, functionType(retType, params));
-    }
-
-    static MethodRef ofString(String s) {
-        return jdk.incubator.code.parser.impl.DescParser.parseMethodRef(s);
     }
 
 

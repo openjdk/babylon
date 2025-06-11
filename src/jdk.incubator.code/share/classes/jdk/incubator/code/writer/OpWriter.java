@@ -32,6 +32,10 @@ import java.io.Writer;
 import jdk.incubator.code.*;
 import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.type.impl.JavaTypeUtils;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -70,25 +74,64 @@ public final class OpWriter {
 
     static final class AttributeMapper {
         static String toString(Object value) {
-            return value == ExternalizableOp.NULL_ATTRIBUTE_VALUE
-                    ? "null"
-                    : "\"" + quote(value.toString()) + "\"";
+            if (value == ExternalizableOp.NULL_ATTRIBUTE_VALUE) {
+                return "null";
+            }
+
+            StringBuilder sb = new StringBuilder();
+            toString(value, sb);
+            return sb.toString();
+        }
+
+        static void toString(Object o, StringBuilder sb) {
+            if (o.getClass().isArray()) {
+                // note, while we can't parse back the array representation, this might be useful
+                // for non-externalizable ops that want better string representation of array attribute values (e.g. ONNX)
+                arrayToString(o, sb);
+            } else {
+                switch (o) {
+                    case Integer i -> sb.append(i);
+                    case Long l -> sb.append(l).append('L');
+                    case Float f -> sb.append(f).append('f');
+                    case Double d -> sb.append(d).append('d');
+                    case Character c -> sb.append('\'').append(c).append('\'');
+                    case Boolean b -> sb.append(b);
+                    case TypeElement te -> sb.append(JavaTypeUtils.flatten(te.externalize()));
+                    default -> {  // fallback to a string
+                        sb.append('"');
+                        quote(o.toString(), sb);
+                        sb.append('"');
+                    }
+                }
+            }
+        }
+
+        static void arrayToString(Object a, StringBuilder sb) {
+            boolean first = true;
+            sb.append("[");
+            for (int i = 0; i < Array.getLength(a); i++) {
+                if (!first) {
+                    sb.append(", ");
+                }
+
+                toString(Array.get(a, i), sb);
+                first = false;
+            }
+            sb.append("]");
         }
     }
 
-    // Copied from com.sun.tools.javac.util.Convert
-    static String quote(String s) {
-        StringBuilder buf = new StringBuilder();
+    static void quote(String s, StringBuilder sb) {
         for (int i = 0; i < s.length(); i++) {
-            buf.append(quote(s.charAt(i)));
+            sb.append(quote(s.charAt(i)));
         }
-        return buf.toString();
     }
 
     /**
      * Escapes a character if it has an escape sequence or is
      * non-printable ASCII.  Leaves non-ASCII characters alone.
      */
+    // Copied from com.sun.tools.javac.util.Convert
     static String quote(char ch) {
         return switch (ch) {
             case '\b' -> "\\b";
@@ -528,7 +571,7 @@ public final class OpWriter {
     }
 
     void writeType(TypeElement te) {
-        write(te.externalize().toString());
+        write(JavaTypeUtils.flatten(te.externalize()).toString());
     }
 
     void write(String s) {

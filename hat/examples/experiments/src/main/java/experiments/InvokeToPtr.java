@@ -92,12 +92,12 @@ public class InvokeToPtr {
         System.out.println(ssaInvokeForm.toText());
         System.out.println("------------------");
 
-        FunctionType functionType = OpsAndTypes.transformTypes(MethodHandles.lookup(), ssaInvokeForm);
+        FunctionType functionType = OpsAndTypes.transformTypes(accelerator.lookup, ssaInvokeForm);
         System.out.println("SSA form with types transformed args");
         System.out.println(ssaInvokeForm.toText());
         System.out.println("------------------");
 
-        CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(MethodHandles.lookup(), ssaInvokeForm, functionType);
+        CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(accelerator.lookup,  ssaInvokeForm, functionType);
         System.out.println("SSA form with invokes replaced by ptrs");
         System.out.println(ssaPtrForm.toText());
     }

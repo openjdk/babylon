@@ -1,0 +1,30 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(extractions)
+
+set(EXTRACTIONS "")
+
+find_package(OpenGL)
+if(OPENGL_FOUND)
+   add_subdirectory(opengl)
+   set(EXTRACTIONS ${EXTRACTIONS} extract_opengl)
+else()
+   message("NO OPENGL")
+endif()
+
+find_package(OpenCL)
+if(OPENCL_FOUND)
+   add_subdirectory(opencl)
+   set(EXTRACTIONS ${EXTRACTIONS} extract_opencl)
+else()
+   message("NO OPENCL")
+endif()
+
+find_package(CUDAToolkit)
+if(CUDATOOLKIT_FOUND)
+   add_subdirectory(cuda)
+   set(EXTRACTIONS ${EXTRACTIONS} extract_cuda)
+else()
+   message("NO CUDA")
+endif()
+
+add_custom_target(extract DEPENDS ${EXTRACTIONS})

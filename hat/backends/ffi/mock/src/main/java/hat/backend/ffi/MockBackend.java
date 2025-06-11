@@ -25,50 +25,32 @@
 package hat.backend.ffi;
 
 
-import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.buffer.BackendConfig;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Schema;
+
+import java.lang.invoke.MethodHandle;
+
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class MockBackend extends FFIBackend {
+    //final FFILib.LongIntMethodPtr getBackend_MPtr;
+    //public long getBackend(int mode) {
+      // return getBackend_MPtr.invoke(mode);
+   // }
 
-    interface MockConfig extends BackendConfig {
-        // See backends/mock/include/mock_backend.h
-        //  class MockConfig{
-        //       public:
-        //         boolean gpu;
-        //         boolean junk;
-        //   };
-        boolean gpu();
-
-        void gpu(boolean gpu);
-
-        boolean junk();
-
-        void junk(boolean junk);
-
-        Schema<MockConfig> schema = Schema.of(MockConfig.class, s->s.fields("gpu", "junk"));
-        static MockConfig create(Accelerator accelerator, boolean gpu) {
-            MockConfig config =schema.allocate(accelerator);
-            config.gpu(gpu);
-            return config;
-        }
-
-
-    }
 
     public MockBackend() {
-        super("mock_backend");
-        getBackend(null);//MockConfig.create(MethodHandles.lookup(),this,  true));
+        super("mock_backend", Config.of(0));
+       // getBackend_MPtr  =  ffiLib.longIntFunc("getMockBackend");
+       // getBackend(0);
     }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Mock backend recieved closed closure");
         System.out.println("Mock backend will mutate  " + computeContext.computeCallGraph.entrypoint + computeContext.computeCallGraph.entrypoint.method);
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, true, true);
     }
 
     @Override

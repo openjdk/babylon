@@ -16,6 +16,7 @@
     * [Cascade Interface Mapping](hat-04-02-cascade-interface-mapping.md)
 * Implementation Detail
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
+    * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
 
 ---
 
@@ -37,7 +38,7 @@
 * [jexctract](https://github.com/openjdk/jextract)
 
 ### General GPGPU
-* [A nice GPGPU state of play video](https://www.youtube.com/watch?v=48AdJgTYSFQ)
+* [A nice GPGPU bufferState of play video](https://www.youtube.com/watch?v=48AdJgTYSFQ)
 * [Interesting project ](https://www.phoronix.com/news/SCALE-CUDA-Apps-For-AMD-GPUs)
 * [More ](https://www.phoronix.com/review/radeon-cuda-zluda)
 * [More](https://scale-lang.com/posts/2024-07-12-release-announcement)

@@ -37,28 +37,20 @@
 #include <bitset>
 #include <stack>
 
+#include "strutil.h"
+
 #ifdef __APPLE__
-#define LongUnsignedNewline "%llu\n"
-#define Size_tNewline "%lu\n"
-#define LongHexNewline "(0x%llx)\n"
-#define alignedMalloc(size, alignment) memalign(alignment, size)
 #define SNPRINTF snprintf
 #else
-
 #include <malloc.h>
-
-#define LongHexNewline "(0x%lx)\n"
-#define LongUnsignedNewline "%lu\n"
-#define Size_tNewline "%lu\n"
 #if defined (_WIN32)
 #include "windows.h"
-#define alignedMalloc(size, alignment) _aligned_malloc(size, alignment)
 #define SNPRINTF _snprintf
 #else
-#define alignedMalloc(size, alignment) memalign(alignment, size)
 #define SNPRINTF  snprintf
 #endif
 #endif
+
 typedef char s8_t;
 typedef char byte;
 typedef char boolean;
@@ -75,15 +67,47 @@ typedef unsigned long u64_t;
 
 extern void hexdump(void *ptr, int buflen);
 
- struct Buffer_s {
+class Text {
+public:
+    size_t len;
+    char *text;
+    bool isCopy;
+
+    Text(size_t len, char *text, bool isCopy);
+
+    Text(char *text, bool isCopy);
+
+    Text(size_t len);
+
+    void write(std::string &filename) const;
+
+    void read(std::string &filename);
+
+    virtual ~Text();
+};
+
+class Log : public Text {
+public:
+    Log(size_t len);
+
+    Log(char *text);
+
+    ~Log() = default;
+};
+
+
+#define UNKNOWN_BYTE 0
+#define RO_BYTE (1<<1)
+#define WO_BYTE (1<<2)
+#define RW_BYTE (RO_BYTE|WO_BYTE)
+
+struct Buffer_s {
     void *memorySegment;   // Address of a Buffer/MemorySegment
     long sizeInBytes;     // The size of the memory segment in bytes
-    void *vendorPtr;       // The vendor side can reference vendor into
-    u8_t access;          // 0=??/1=RO/2=WO/3=RW if this is a buffer
-    u8_t state;           // 0=UNKNOWN/1=GPUDIRTY/2=JAVADIRTY
-} ;
+    u8_t access;          // see hat/buffer/ArgArray.java  UNKNOWN_BYTE=0, RO_BYTE =1<<1,WO_BYTE =1<<2,RW_BYTE =RO_BYTE|WO_BYTE;
+};
 
- union Value_u {
+union Value_u {
     boolean z1;  // 'Z'
     u8_t s8;  // 'B'
     u16_t u16;  // 'C'
@@ -96,23 +120,129 @@ extern void hexdump(void *ptr, int buflen);
     s64_t s64; // 'J'
     s64_t x64; // 'D' or 'J'
     Buffer_s buffer; // '&'
-} ;
+};
 
- struct Arg_s {
+struct KernelArg {
     u32_t idx;          // 0..argc
     u8_t variant;      // which variant 'I','Z','S','J','F', '&' implies Buffer/MemorySegment
     u8_t pad8[8];
     Value_u value;
     u8_t pad6[6];
+
+    size_t size() {
+        size_t sz;
+        switch (variant) {
+            case 'I':
+            case 'F':
+                sz = sizeof(u32_t);
+                break;
+            case 'S':
+            case 'C':
+                sz = sizeof(u16_t);
+                break;
+            case 'D':
+            case 'J':
+                return sizeof(u64_t);
+                break;
+            case 'B':
+                return sizeof(u8_t);
+                break;
+            default:
+                std::cerr << "Bad variant " << variant << "arg::size" << std::endl;
+                exit(1);
+
+        }
+
+        return sz;
+    }
 };
+
+struct BufferState {
+    static const long MAGIC = 0x4a71facebffab175;
+    static const int NO_STATE = 0;
+    static const int NEW_STATE = 1;
+    static const int HOST_OWNED = 2;
+    static const int DEVICE_OWNED = 3;
+    static const int DEVICE_VALID_HOST_HAS_COPY = 4;
+    const static char *stateNames[]; // See below for out of line definition
+
+    long magic1;
+    void *ptr;
+    long length;
+    int bits;
+    int state;
+    void *vendorPtr;
+    long magic2;
+
+    bool ok() {
+        return ((magic1 == MAGIC) && (magic2 == MAGIC));
+    }
+
+    void setState(int newState) {
+        state = newState;
+    }
+
+    int getState() {
+        return state;
+    }
+
+    void dump(const char *msg) {
+        if (ok()) {
+            printf("{%s,ptr:%016lx,length: %016lx,  state:%08x, vendorPtr:%016lx}\n", msg, (long) ptr, length, state, (long) vendorPtr);
+        } else {
+            printf("%s bad magic \n", msg);
+            printf("(magic1:%016lx,", magic1);
+            printf("{%s, ptr:%016lx, length: %016lx,  state:%08x, vendorPtr:%016lx}", msg, (long) ptr, length, state, (long) vendorPtr);
+            printf("magic2:%016lx)\n", magic2);
+        }
+    }
+
+    static BufferState *of(void *ptr, size_t sizeInBytes) {
+        return (BufferState *) (((char *) ptr) + sizeInBytes - sizeof(BufferState));
+    }
+
+    static BufferState *of(KernelArg *arg) { // access?
+        BufferState *bufferState = BufferState::of(
+                arg->value.buffer.memorySegment,
+                arg->value.buffer.sizeInBytes
+        );
+
+
+        //Sanity check the buffers
+        // These sanity check finds errors passing memory segments which are not Buffers
+
+        if (bufferState->ptr != arg->value.buffer.memorySegment) {
+            std::cerr << "bufferState->ptr !=  arg->value.buffer.memorySegment" << std::endl;
+            std::exit(1);
+        }
+
+        if ((bufferState->vendorPtr == 0L) && (bufferState->state != BufferState::NEW_STATE)) {
+            std::cerr << "Warning:  Unexpected initial state for buffer "
+                      //<<" of kernel '"<<(dynamic_cast<Backend::CompilationUnit::Kernel*>(this))->name<<"'"
+                      << " state=" << bufferState->state << " '"
+                      << BufferState::stateNames[bufferState->state] << "'"
+                      << " vendorPtr" << bufferState->vendorPtr << std::endl;
+        }
+        // End of sanity checks
+        return bufferState;
+    }
+
+};
+
+#ifdef shared_cpp
+const  char *BufferState::stateNames[] = {
+              "NO_STATE",
+              "NEW_STATE",
+              "HOST_OWNED",
+              "DEVICE_OWNED",
+              "DEVICE_VALID_HOST_HAS_COPY"
+        };
+#endif
 
 struct ArgArray_s {
     u32_t argc;
     u8_t pad12[12];
-    Arg_s argv[0/*argc*/];
-    // void * vendorPtr;
-    // int schemaLen
-    // char schema[schemaLen]
+    KernelArg argv[0/*argc*/];
 };
 
 class ArgSled {
@@ -123,17 +253,17 @@ public:
         return argArray->argc;
     }
 
-    Arg_s *arg(int n) {
-        Arg_s *a = (argArray->argv + n);
+    KernelArg *arg(int n) {
+        KernelArg *a = (argArray->argv + n);
         return a;
     }
 
     void hexdumpArg(int n) {
-        hexdump(arg(n), sizeof(Arg_s));
+        hexdump(arg(n), sizeof(KernelArg));
     }
 
     void dumpArg(int n) {
-        Arg_s *a = arg(n);
+        KernelArg *a = arg(n);
         int idx = (int) a->idx;
         std::cout << "arg[" << idx << "]";
         char variant = (char) a->variant;
@@ -163,6 +293,7 @@ public:
                 std::cout << " buffer {"
                           << " void *address = 0x" << std::hex << (long) a->value.buffer.memorySegment << std::dec
                           << ", long bytesSize= 0x" << std::hex << (long) a->value.buffer.sizeInBytes << std::dec
+                          << ", char access= 0x" << std::hex << (unsigned char) a->value.buffer.access << std::dec
                           << "}" << std::endl;
                 break;
             default:
@@ -171,13 +302,13 @@ public:
         }
     }
 
-    void *vendorPtrPtr() {
-        Arg_s *a = arg(argc());
+    void *afterArgsPtrPtr() {
+        KernelArg *a = arg(argc());
         return (void *) a;
     }
 
     int *schemaLenPtr() {
-        int *schemaLenP = (int *) ((char *) vendorPtrPtr() + sizeof(void *));
+        int *schemaLenP = (int *) ((char *) afterArgsPtrPtr() /*+ sizeof(void *) */);
         return schemaLenP;
     }
 
@@ -186,7 +317,7 @@ public:
     }
 
     char *schema() {
-        int *schemaLenP = ((int *) ((char *) vendorPtrPtr() + sizeof(void *)) + 1);
+        int *schemaLenP = ((int *) ((char *) afterArgsPtrPtr() /*+ sizeof(void *)*/) + 1);
         return (char *) schemaLenP;
     }
 
@@ -213,31 +344,6 @@ public:
 };
 
 
-class BuildInfo {
-public:
-    char *src;
-    char *log;
-    bool ok;
-
-    BuildInfo(char *src, char *log, bool ok)
-            : src(src), log(log), ok(ok) {
-    }
-
-    ~BuildInfo() {
-        if (src) {
-            delete[] src;
-        }
-        if (log) {
-            delete[] log;
-        }
-    }
-
-};
-
-
-//extern "C" void dumpArgArray(void *ptr);
-
-
 extern void hexdump(void *ptr, int buflen);
 
 class Sled {
@@ -246,7 +352,7 @@ public:
 };
 
 
-class NDRange {
+class KernelContext {
 public:
     int x;
     int maxX;
@@ -256,42 +362,74 @@ class Backend {
 public:
     class Config {
     public:
+        // These must sync with hat/backend/ffi/Mode.java
+        // Bits 0-3 select platform id 0..5
+        // Bits 4-7 select device id 0..15
+        const static int START_BIT_IDX = 16;
+        const static int MINIMIZE_COPIES_BIT = 1 << START_BIT_IDX;
+        const static int TRACE_BIT = 1 << 17;
+        const static int PROFILE_BIT = 1 << 18;
+        const static int SHOW_CODE_BIT = 1 << 19;
+        const static int SHOW_KERNEL_MODEL_BIT = 1 << 20;
+        const static int SHOW_COMPUTE_MODEL_BIT = 1 << 21;
+        const static int INFO_BIT = 1 << 22;
+        const static int TRACE_COPIES_BIT = 1 << 23;
+        const static int TRACE_SKIPPED_COPIES_BIT = 1 << 24;
+        const static int TRACE_ENQUEUES_BIT = 1 << 25;
+        const static int TRACE_CALLS_BIT = 1 << 26;
+        const static int SHOW_WHY_BIT = 1 << 27;
+        const static int SHOW_STATE_BIT = 1 << 28;
+        const static int PTX_BIT = 1 << 29;
+        const static int END_BIT_IDX = 30;
+
+        const static char *bitNames[]; // See below for out of line definition
+        int configBits;
+        bool minimizeCopies;
+        bool alwaysCopy;
+        bool trace;
+        bool profile;
+        bool showCode;
+        bool info;
+        bool traceCopies;
+        bool traceSkippedCopies;
+        bool traceEnqueues;
+        bool traceCalls;
+        bool showWhy;
+        bool showState;
+        bool ptx;
+        int platform; //0..15
+        int device; //0..15
+        Config(int mode);
+
+        virtual ~Config();
     };
 
-    class Program {
+    class Buffer {
+    public:
+        Backend *backend;
+        BufferState *bufferState;
+        Buffer(Backend *backend, BufferState *bufferState)
+                : backend(backend), bufferState(bufferState) {
+        }
+        virtual ~Buffer() = default;
+    };
+
+    class CompilationUnit {
     public:
         class Kernel {
         public:
-            class Buffer {
-            public:
-                Kernel *kernel;
-                Arg_s *arg;
-
-                virtual void copyToDevice() = 0;
-
-                virtual void copyFromDevice() = 0;
-
-                Buffer(Kernel *kernel, Arg_s *arg)
-                        : kernel(kernel), arg(arg) {
-                }
-
-                virtual ~Buffer() {}
-            };
-
             char *name;// strduped!
 
-            Program *program;
+            CompilationUnit *compilationUnit;
 
-            virtual long ndrange(void *argArray) = 0;
-            static char *copy(char *name){
-                size_t len =::strlen(name);
-                char *buf = new char[len+1];
-                memcpy(buf, name, len);
-                buf[len]='\0';
-                return buf;
-            }
-            Kernel(Program *program, char *name)
-                    : program(program), name(copy(name)) {
+            virtual bool setArg(KernelArg *arg, Buffer *openCLBuffer) = 0;
+
+            virtual bool setArg(KernelArg *arg) = 0;
+
+            virtual long ndrange(void *argArray) final;
+
+            Kernel(CompilationUnit *compilationUnit, char *name)
+                    : compilationUnit(compilationUnit), name(strutil::clone(name)) {
             }
 
             virtual ~Kernel() {
@@ -303,50 +441,156 @@ public:
 
     public:
         Backend *backend;
-        BuildInfo *buildInfo;
+        char *src;
+        char *log;
+        bool ok;
 
-        virtual long getKernel(int nameLen, char *name) = 0;
+        virtual Kernel *getKernel(int nameLen, char *name) = 0;
 
-        virtual bool programOK() = 0;
-
-        Program(Backend *backend, BuildInfo *buildInfo)
-                : backend(backend), buildInfo(buildInfo) {
+        virtual bool compilationUnitOK() final {
+            return ok;
         }
 
-        virtual ~Program() {
-            if (buildInfo != nullptr) {
-                delete buildInfo;
+        CompilationUnit(Backend *backend, char *src, char *log, bool ok)
+                : backend(backend), src(src), log(log), ok(ok) {
+        }
+
+        virtual ~CompilationUnit() {
+            if (src != nullptr) {
+                delete[] src;
+            }
+            if (log != nullptr) {
+                delete[] log;
             }
         };
+    };
 
+    class Queue {
+    public:
+
+        Backend *backend;
+
+        Queue(Backend *backend);
+
+        virtual void wait() = 0;
+
+        virtual void release() = 0;
+
+        virtual void computeStart() = 0;
+
+        virtual void computeEnd() = 0;
+
+        virtual void copyToDevice(Buffer *buffer)=0;
+
+        virtual void copyFromDevice(Buffer *buffer)=0;
+
+        virtual void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) = 0;
+
+        virtual ~Queue();
+    };
+
+    class ProfilableQueue : public Queue {
+    public:
+        const static int START_BIT_IDX = 20;
+        static const int CopyToDeviceBits = 1 << START_BIT_IDX;
+        static const int CopyFromDeviceBits = 1 << 21;
+        static const int NDRangeBits = 1 << 22;
+        static const int StartComputeBits = 1 << 23;
+        static const int EndComputeBits = 1 << 24;
+        static const int EnterKernelDispatchBits = 1 << 25;
+        static const int LeaveKernelDispatchBits = 1 << 26;
+        static const int HasConstCharPtrArgBits = 1 << 27;
+        static const int hasIntArgBits = 1 << 28;
+        const static int END_BIT_IDX = 27;
+
+        size_t eventMax;
+        size_t eventc;
+        int *eventInfoBits;
+        const char **eventInfoConstCharPtrArgs;
+
+        virtual void showEvents(int width) = 0;
+
+        virtual void inc(int bits) = 0;
+
+        virtual void inc(int bits, const char *arg) = 0;
+
+        virtual void marker(int bits) = 0;
+
+        virtual void marker(int bits, const char *arg) = 0;
+
+
+        virtual void markAsStartComputeAndInc() = 0;
+
+        virtual void markAsEndComputeAndInc() = 0;
+
+        virtual void markAsEnterKernelDispatchAndInc() = 0;
+
+        virtual void markAsLeaveKernelDispatchAndInc() = 0;
+
+        ProfilableQueue(Backend *backend, int eventMax)
+                : Queue(backend),
+                  eventMax(eventMax),
+                  eventInfoBits(new int[eventMax]),
+                  eventInfoConstCharPtrArgs(new const char *[eventMax]),
+                  eventc(0) {}
+
+        virtual ~ProfilableQueue() override {
+            delete[]eventInfoBits;
+            delete[]eventInfoConstCharPtrArgs;
+        }
     };
 
     Config *config;
-    int configSchemaLen;
-    char *configSchema;
+    Queue *queue;
 
-    Backend(Config *config, int configSchemaLen, char *configSchema)
-            : config(config), configSchemaLen(configSchemaLen), configSchema(configSchema) {}
+    Backend(Config *config, Queue *queue)
+            : config(config), queue(queue) {}
 
-    virtual ~Backend() {};
+    virtual Buffer *getOrCreateBuffer(BufferState *bufferState) = 0;
 
     virtual void info() = 0;
 
-    virtual int getMaxComputeUnits() = 0;
+    virtual void computeStart() = 0;
 
-    virtual long compileProgram(int len, char *source) = 0;
+    virtual void computeEnd() = 0;
 
+    virtual CompilationUnit *compile(int len, char *source) = 0;
 
+    virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) = 0;
+
+    virtual ~Backend() {};
 };
 
-extern "C" long getBackend(void *config, int configSchemaLen, char *configSchema);
-extern "C" void info(long backendHandle);
-extern "C" int getMaxComputeUnits(long backendHandle);
-extern "C" long compileProgram(long backendHandle, int len, char *source);
-extern "C" long getKernel(long programHandle, int len, char *name);
-extern "C" void releaseBackend(long backendHandle);
-extern "C" void releaseProgram(long programHandle);
-extern "C" bool programOK(long programHandle);
-extern "C" void releaseKernel(long kernelHandle);
-extern "C" long ndrange(long kernelHandle, void *argArray);
+#ifdef shared_cpp
+const  char *Backend::Config::bitNames[] = {
+              "MINIMIZE_COPIES",
+              "TRACE",
+              "PROFILE",
+              "SHOW_CODE",
+              "SHOW_KERNEL_MODEL",
+              "SHOW_COMPUTE_MODEL",
+              "INFO",
+              "TRACE_COPIES",
+              "TRACE_SKIPPED_COPIES",
+              "TRACE_ENQUEUES",
+              "TRACE_CALLS"
+              "SHOW_WHY_BIT",
+              "USE_STATE_BIT",
+              "SHOW_STATE_BIT"
+        };
+#endif
 
+template<typename T>
+T *bufferOf(const char *name) {
+    size_t lenIncludingBufferState = sizeof(T);
+    size_t lenExcludingBufferState = lenIncludingBufferState - sizeof(BufferState);
+    T *buffer = (T *) new unsigned char[lenIncludingBufferState];
+    auto *bufferState = (BufferState *) ((char *) buffer + lenExcludingBufferState);
+    bufferState->magic1 = bufferState->magic2 = BufferState::MAGIC;
+    bufferState->ptr = buffer;
+    bufferState->length = sizeof(T) - sizeof(BufferState);
+    bufferState->state = BufferState::NEW_STATE;
+    bufferState->vendorPtr = nullptr;
+    bufferState->dump(name);
+    return buffer;
+}

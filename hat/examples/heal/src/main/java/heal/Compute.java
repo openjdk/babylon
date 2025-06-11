@@ -53,6 +53,10 @@ import hat.buffer.S32Array2D;
 
 import javax.swing.JTextField;
 import java.awt.Point;
+
+import static hat.ifacemapper.MappableIface.*;
+
+import hat.util.ui.SevenSegmentDisplay;
 import jdk.incubator.code.CodeReflection;
 import java.util.stream.IntStream;
 
@@ -88,8 +92,7 @@ public class Compute {
      *  }
      */
 
-    public static void heal(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, Point bestMatchOffset,
-                            JTextField maskTB, JTextField healTB) {
+    public static void heal(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, Point bestMatchOffset) {
         long start = System.currentTimeMillis();
         Selection.Mask mask = selection.getMask();
         var dest = new int[mask.maskRGBData.length];
@@ -102,8 +105,8 @@ public class Compute {
                     : s32Array2D.get( x,  y );
         });
 
-        maskTB.setText(Long.toString(System.currentTimeMillis() - start));
-        /*   TODO .. Implement lapclacian
+        //maskTB.setText(Long.toString(System.currentTimeMillis() - start));
+        /*   TODO .. Implement laplacian
          * int[] stencil = new int[]{-1, 1, -mask.width, mask.width};
          *
          * int[] laplaced = new int[dest.length];
@@ -168,7 +171,7 @@ public class Compute {
             s32Array2D.set( x,  y, dest[i]);
         });
      //   System.out.println("heal2 " + (System.currentTimeMillis() - start) + "ms");
-        healTB.setText(Long.toString(System.currentTimeMillis() - start));
+      //  healTB.setText(Long.toString(System.currentTimeMillis() - start));
     }
 
     @CodeReflection
@@ -188,11 +191,11 @@ public class Compute {
 
     @CodeReflection
     public static void bestFitCore(int id,
-                                  S32Array2D s32Array2D,
-                                  Box searchArea,
-                                  Box selBox,
-                                  XYRGBList xyrgbList,
-                                  F32Array sumArray) {
+                                   @RO S32Array2D s32Array2D,
+                                   @RO Box searchArea,
+                                   @RO Box selBox,
+                                   @RO XYRGBList xyrgbList,
+                                   @RW F32Array sumArray) {
         int x = searchArea.x1() + id % searchArea.width();
         int y = searchArea.y1() + id / searchArea.width();
         float sum = 0;
@@ -227,18 +230,22 @@ public class Compute {
     }
 
     @CodeReflection
-    public static void bestFitKernel(KernelContext kc,
-                                  S32Array2D s32Array2D,
-                                  Box searchArea,
-                                  Box selectionBox,
-                                  XYRGBList xyrgbList,
-                                  F32Array sumArray) {
+    public static void bestFitKernel(@RO KernelContext kc,
+                                     @RO S32Array2D s32Array2D,
+                                     @RO Box searchArea,
+                                     @RO Box selectionBox,
+                                     @RO XYRGBList xyrgbList,
+                                     @RO F32Array sumArray) {
         bestFitCore(kc.x, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
     }
 
     @CodeReflection
-    public static void  bestFitCompute(ComputeContext cc,
-             Point bestMatchOffset, S32Array2D s32Array2D, Box searchArea, Box selectionBox, XYRGBList xyrgbList){
+    public static void  bestFitCompute(@RO ComputeContext cc,
+                                       @WO Point bestMatchOffset,
+                                       @RO S32Array2D s32Array2D,
+                                       @RO Box searchArea,
+                                       @RO Box selectionBox,
+                                       @RO XYRGBList xyrgbList){
 
         F32Array sumArrayF32 = F32Array.create(cc.accelerator, searchArea.area());
 
@@ -264,7 +271,7 @@ public class Compute {
         bestMatchOffset.setLocation(x - selectionBox.x1(),y - selectionBox.y1());
     }
 
-    public static Point getBestMatchOffset(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, JTextField searchTB) {
+    public static Point getBestMatchOffset(Accelerator accelerator, S32Array2D s32Array2D, Selection selection, SevenSegmentDisplay searchSevenSegmentDisplay) {
         final Point bestMatchOffset  =new Point(0,0);
         if (!selection.pointList.isEmpty()) {
             long hatStart = System.currentTimeMillis();
@@ -316,7 +323,8 @@ public class Compute {
             accelerator.compute(cc->
                     Compute.bestFitCompute(cc, bestMatchOffset, s32Array2D, searchArea, selectionBox, xyrgbList
             ));
-            searchTB.setText(Long.toString(System.currentTimeMillis() - hatStart));
+            searchSevenSegmentDisplay.set((int)(System.currentTimeMillis() - hatStart));
+           // searchTB.setText(Long.toString(System.currentTimeMillis() - hatStart));
         }
         return bestMatchOffset;
     }

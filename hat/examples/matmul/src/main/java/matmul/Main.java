@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,10 +34,12 @@ import jdk.incubator.code.CodeReflection;
 
 import java.util.Random;
 
+import static hat.ifacemapper.MappableIface.*;
+
 public class Main {
 
     @CodeReflection
-    public static void matrixMultiplyKernel(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.x < kc.maxX) {
             for (int j = 0; j < size; j++) {
                 float acc = 0;
@@ -50,7 +52,7 @@ public class Main {
     }
 
     @CodeReflection
-    public static void matrixMultiply(ComputeContext cc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+    public static void matrixMultiply(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
         cc.dispatchKernel(size,
                 kc -> matrixMultiplyKernel(kc, matrixA, matrixB, matrixC, size)
         );

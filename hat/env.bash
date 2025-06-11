@@ -29,16 +29,21 @@ END_OF_LICENSE
 
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then 
    # We just bail if it was not sourced.. We want to set AND export PATH and JAVA_HOME...
+   # So we must be sourced.  Otherwise we just fork a new shell, set the vars in the temp shell and exit
    echo "You must source this file ..."
    echo "Using either "
    echo "    . ${0}"
    echo "or"
    echo "    source ${0}"
-   exit 1;  # this is ok because we were not sourced 
+   exit 1;  # exiting here is ONLY ok because we were not sourced.
 else
 
-  # We were indeed sourced so don't exit below here or we will trash the users shell ;)
-  #    possibly loging them out 
+  # We were sourced so must not exit below or we will trash the users shell ;) possibly logging them out 
+  # We first need to determine the arch an os types so we can construct/test against something like
+  #    macosx-aarch64-server-release
+  #       ^     ^
+  #       |     + ${archtype}
+  #       + ${ostype}
 
   OS=$(uname -s )
   if [[ "$OS" == Linux ]]; then
@@ -46,6 +51,7 @@ else
   elif  [[ "$OS" == Darwin ]]; then
     export ostype=macosx
   else
+    # Windows?
     echo "Could not determine ostype uname -s returned ${OS}"
   fi
 
@@ -57,6 +63,7 @@ else
   elif  [[ "$ARCH" == arm64 ]]; then
     export archtype=aarch64
   else
+    #MIPS?
     echo "Could not determine aarchtype uname -m returned ${ARCH}"
   fi
 
@@ -68,20 +75,44 @@ else
     # or
     #   We can locate one because we are a subdir of BABYLON using ${PWD}/..
 
-    # export BABYLON_JDK_HOME=${BABYLON_JDK_HOME:-$(realpath ${PWD}/..)}
-
     if [[ -z "${BABYLON_JDK_HOME}" ]]; then 
        echo "No user provided BABYLON_JDK_HOME var, we will try \${PWD}/.. = $(realpath ${PWD}/..)"
        export BABYLON_JDK_HOME=$(realpath ${PWD}/..)
+       echo "We found a babylon build here ${BABYLON_JDK_HOME}"
     else
        echo "Using user supplied BABYLON_JDK_HOME ${BABYLON_JDK_HOME}"
     fi
 
+    if command -v jextract; then 
+       echo 'jextract in your PATH'
+       export JEXTRACT_HOME=$(dirname $(dirname $(command -v jextract)))
+    else
+       if [[ -z "${JEXTRACT_HOME}" ]]; then 
+          echo "No user provided JEXTRACT_HOME var, we will try ~/jextract-22"
+          if [[ -d ~/jextract-22/bin ]]; then 
+             export JEXTRACT_HOME=$(realpath ~/jextract-22)
+             echo "We found jextract here ${JEXTRACT_HOME}"
+          fi
+       else
+          echo "Using user supplied JEXTRACT_HOME ${JEXTRACT_HOME}"
+       fi
+    fi
+
+    if [[ -d "${JEXTRACT_HOME}/bin" ]]; then
+      if echo ${PATH} | grep ${JEXTRACT_HOME} >/dev/null ;then
+         echo "PATH already contains \${JEXTRACT_HOME}/bin"
+      else
+         export SAFE_PATH=${PATH}
+         echo "Adding \${JEXTRACT_HOME}/bin prefix to PATH, SAFE_PATH contains previous value"
+         export PATH=${JEXTRACT_HOME}/bin:${PATH}
+      fi
+    else
+      echo 'You will need to add jextract your PATH to be able to build'
+      echo 'Either add it, or JEXTRACT_HOME'
+    fi
 
     if [[ -d "${BABYLON_JDK_HOME}/build" ]]; then
-      #echo "\${BABYLON_JDK_HOME}/build seems ok!"
       export JAVA_HOME=${BABYLON_JDK_HOME}/build/${ostype}-${archtype}-server-release/jdk
-      #echo "exporting JAVA_HOME=${JAVA_HOME}"
       if echo ${PATH} | grep ${JAVA_HOME} >/dev/null ;then
          echo "PATH already contains \${JAVA_HOME}/bin"
       else
@@ -89,15 +120,6 @@ else
          echo "Adding \${JAVA_HOME}/bin prefix to PATH, SAFE_PATH contains previous value"
          export PATH=${JAVA_HOME}/bin:${PATH}
       fi
-
-      if [[ ${1} = "clean" ]]; then 
-         rm -rf build maven-build thirdparty repoDir
-      fi 
-      if [[ ! -e bldr/Bldr.java ]]; then 
-         ln -s src/main/java/bldr/Bldr.java bldr/Bldr.java
-         echo "Created a symlink bldr/Bldr.java "
-      fi 
-      echo "SUCCESS!"
     else
       echo "We expected either:-"
       echo "    \${PWD} to be in a hat subdir of a compiled babylon jdk build" 

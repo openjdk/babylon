@@ -25,69 +25,57 @@
 package hat.backend.ffi;
 
 
-import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.buffer.BackendConfig;
+import hat.buffer.Buffer;
+import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.Schema;
+import hat.ifacemapper.BufferState;
 
 public class OpenCLBackend extends C99FFIBackend {
 
-    interface OpenCLConfig extends BackendConfig {
-        // See backends/opencl/include/opencl_backend.h
-        //  class OpenCLConfig{
-        //       public:
-        //         boolean gpu;
-        //         boolean verbose;
-        //   };
-        boolean gpu();
+   // final Config config;
 
-        void gpu(boolean gpu);
 
-      //  boolean verbose();
+    public OpenCLBackend(String configSpec) {
+        this(Config.of(configSpec));
+    }
 
-       // void verbose(boolean verbose);
-        Schema<OpenCLConfig> schema = Schema.of(OpenCLConfig.class, s->s.fields("gpu"));
-
-        static OpenCLConfig create(Accelerator accelerator, boolean gpu, boolean verbose) {
-            OpenCLConfig config =schema.allocate(accelerator);
-            config.gpu(gpu);
-         //   config.verbose(verbose);
-            return config;
-        }
-
+    public OpenCLBackend(Config config) {
+        super("opencl_backend", config);
 
     }
 
+
     public OpenCLBackend() {
-        super("opencl_backend");
-        getBackend(null);//OpenCLConfig.create( MethodHandles.lookup(),this, true, true));
-        info();
+        this(Config.of());
     }
 
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        //System.out.println("OpenCL backend received computeContext");
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+        // System.out.println("OpenCL backend received computeContext minimizing = "+ config.isMINIMIZE_COPIES());
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint, config.isSHOW_COMPUTE_MODEL(), config.isMINIMIZE_COPIES());
     }
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
-            System.out.println(code);
-            long programHandle = compileProgram(code);
-            if (programOK(programHandle)) {
-                long kernelHandle = getKernel(programHandle, kernelCallGraph.entrypoint.method.getName());
-                return new CompiledKernel(this, kernelCallGraph, code, kernelHandle, args);
+            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args, config.isSHOW_KERNEL_MODEL());
+            if (config.isSHOW_CODE()) {
+                System.out.println(code);
+            }
+            var compilationUnit = backendBridge.compile(code);
+            if (compilationUnit.ok()) {
+                var kernel = compilationUnit.getKernel( kernelCallGraph.entrypoint.method.getName());
+                return new CompiledKernel(this, kernelCallGraph, kernel, args);
             } else {
                 throw new IllegalStateException("opencl failed to compile ");
             }
         });
-        compiledKernel.dispatch(ndRange,args);
+        compiledKernel.dispatch(ndRange, args);
 
     }
+
 }

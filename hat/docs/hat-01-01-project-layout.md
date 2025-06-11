@@ -15,6 +15,7 @@
     * [Cascade Interface Mapping](hat-04-02-cascade-interface-mapping.md)
 * Implementation Detail
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
+    * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
 
 ---
 
@@ -40,7 +41,13 @@ ${BABYLON_JDK}
      |    |    +--opengl
      |    |    +--cuda
      |
-     +--hat                        * Note maven style layout
+     +--hat
+     |    + Script.java
+     |    + run.java + @run
+     |    + bld.java + @bld
+     |    + clean.java + @bld
+     |
+     +--hat-core                      * Note maven style layout
      |    +--src/main/java
      |    |    +--hat/
      |    |

@@ -1,4 +1,4 @@
-package nbody;
+package hat.backend.jextracted;
 /*
  * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  *

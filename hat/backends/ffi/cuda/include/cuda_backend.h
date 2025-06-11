@@ -52,95 +52,135 @@
 #include <cuda.h>
 #include <builtin_types.h>
 
-#define CUDA_TYPES
-
 #include "shared.h"
 
 #include <fstream>
 
 #include<vector>
+#include <thread>
 
-//extern void __checkCudaErrors(CUresult err, const char *file, const int line);
+struct WHERE{
+    const char* f;
+    int l;
+    cudaError_enum e;
+    const char* t;
+    void report() const{
+        if (e == CUDA_SUCCESS){
+           // std::cout << t << "  OK at " << f << " line " << l << std::endl;
+        }else {
+            const char *buf;
+            cuGetErrorName(e, &buf);
+            std::cerr << t << " CUDA error = " << e << " " << buf <<std::endl<< "      " << f << " line " << l << std::endl;
+            exit(-1);
+        }
+    }
+};
 
-//#define checkCudaErrors(err)  __checkCudaErrors (err, __FILE__, __LINE__)
-
-class Ptx {
+class PtxSource: public Text  {
 public:
-    size_t len;
-    char *text;
+    PtxSource();
+    PtxSource(size_t len);
+    PtxSource(size_t len, char *text);
+    PtxSource(char *text);
+    ~PtxSource() = default;
+    static PtxSource *nvcc(const char *cudaSource, size_t len);
+};
 
-    Ptx(size_t len);
-
-    ~Ptx();
-
-    static Ptx *nvcc(const char *cudaSource, size_t len);
+class CudaSource:public Text  {
+public:
+    CudaSource(size_t len, char *text, bool isCopy);
+    CudaSource(size_t len);
+    CudaSource(char* text);
+    CudaSource();
+    ~CudaSource() = default;
 };
 
 class CudaBackend : public Backend {
 public:
-    class CudaConfig : public Backend::Config {
+class CudaQueue: public Backend::Queue {
     public:
-        boolean gpu;
+         std::thread::id streamCreationThread;
+        CUstream cuStream;
+        CudaQueue(Backend *backend);
+        void init();
+         void wait() override;
+
+         void release() override;
+
+         void computeStart() override;
+
+         void computeEnd() override;
+
+         void copyToDevice(Buffer *buffer) override;
+
+         void copyFromDevice(Buffer *buffer) override;
+
+        virtual void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
+
+        virtual ~CudaQueue();
+
+};
+
+    class CudaBuffer : public Backend::Buffer {
+    public:
+        CUdeviceptr devicePtr;
+        CudaBuffer(Backend *backend, BufferState *bufferState);
+        virtual ~CudaBuffer();
     };
 
-    class CudaProgram : public Backend::Program {
-        class CudaKernel : public Backend::Program::Kernel {
-            class CudaBuffer : public Backend::Program::Kernel::Buffer {
-            public:
-                CUdeviceptr devicePtr;
-
-                CudaBuffer(Backend::Program::Kernel *kernel, Arg_s *arg);
-
-                void copyToDevice();
-
-                void copyFromDevice();
-
-                virtual ~CudaBuffer();
-            };
-
-        private:
-            CUfunction function;
-            cudaStream_t cudaStream;
-        public:
-            CudaKernel(Backend::Program *program, char* name, CUfunction function);
-
-            ~CudaKernel() override;
-
-            long ndrange( void *argArray);
-        };
+    class CudaModule : public Backend::CompilationUnit {
 
     private:
         CUmodule module;
-        Ptx *ptx;
+        CudaSource cudaSource;
+        PtxSource ptxSource;
+        Log log;
 
     public:
-        CudaProgram(Backend *backend, BuildInfo *buildInfo, Ptx *ptx, CUmodule module);
+        class CudaKernel : public Backend::CompilationUnit::Kernel {
 
-        ~CudaProgram();
+        public:
+            bool setArg(KernelArg *arg) override;
+            bool setArg(KernelArg *arg, Buffer *buffer) override;
+            CudaKernel(Backend::CompilationUnit *program, char* name, CUfunction function);
+            ~CudaKernel() override;
+            static CudaKernel * of(long kernelHandle);
+            static CudaKernel * of(Backend::CompilationUnit::Kernel *kernel);
 
-        long getKernel(int nameLen, char *name);
-
+            CUfunction function;
+            void *argslist[100];
+        };
+        CudaModule(Backend *backend, char *cudaSrc,   char *log, bool ok, CUmodule module);
+        ~CudaModule();
+        static CudaModule * of(long moduleHandle);
+        static CudaModule * of(Backend::CompilationUnit *compilationUnit);
+        Kernel *getKernel(int nameLen, char *name);
+        CudaKernel *getCudaKernel(char *name);
+        CudaKernel *getCudaKernel(int nameLen, char *name);
         bool programOK();
     };
 
 private:
+    CUresult initStatus;
     CUdevice device;
     CUcontext context;
 public:
+    void info();
+    CudaModule * compile(CudaSource *cudaSource);
+    CudaModule * compile(CudaSource &cudaSource);
+    PtxSource *nvcc(CudaSource *cudaSource);
+    Backend::CompilationUnit * compile(int len, char *source) override;
+    void computeStart() override;
+    void computeEnd() override;
+    CudaBuffer * getOrCreateBuffer(BufferState *bufferState) override;
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
 
-    CudaBackend(CudaConfig *config, int configSchemaLen, char *configSchema);
-
+    CudaBackend(int mode);
     CudaBackend();
 
     ~CudaBackend();
-
-    int getMaxComputeUnits();
-
-    void info();
-
-    long compileProgram(int len, char *source);
-
-    //static const char *errorMsg(CUresult status);
-
+    static CudaBackend * of(long backendHandle);
+    static CudaBackend * of(Backend *backend);
 };
+
 

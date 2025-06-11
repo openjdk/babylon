@@ -36,29 +36,29 @@ public class TestSynchronized {
 
     @CodeReflection
     @LoweredModel(value = """
-            func @"test1" (%0 : java.lang.Object, %1 : int)int -> {
-                %2 : Var<java.lang.Object> = var %0 @"m";
-                %3 : Var<int> = var %1 @"i";
-                %4 : java.lang.Object = var.load %2;
+            func @"test1" (%0 : java.type:"java.lang.Object", %1 : java.type:"int")java.type:"int" -> {
+                %2 : Var<java.type:"java.lang.Object"> = var %0 @"m";
+                %3 : Var<java.type:"int"> = var %1 @"i";
+                %4 : java.type:"java.lang.Object" = var.load %2;
                 branch ^block_1(%4);
 
-              ^block_1(%5 : java.lang.Object):
+              ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
                 exception.region.enter ^block_2 ^block_4;
 
               ^block_2:
-                %7 : int = var.load %3;
-                %8 : int = constant @"1";
-                %9 : int = add %7 %8;
+                %7 : java.type:"int" = var.load %3;
+                %8 : java.type:"int" = constant @1;
+                %9 : java.type:"int" = add %7 %8;
                 var.store %3 %9;
                 monitor.exit %5;
                 exception.region.exit ^block_3 ^block_4;
 
               ^block_3:
-                %10 : int = var.load %3;
+                %10 : java.type:"int" = var.load %3;
                 return %10;
 
-              ^block_4(%11 : java.lang.Throwable):
+              ^block_4(%11 : java.type:"java.lang.Throwable"):
                 exception.region.enter ^block_5 ^block_4;
 
               ^block_5:
@@ -79,24 +79,24 @@ public class TestSynchronized {
 
     @CodeReflection
     @LoweredModel(value = """
-            func @"test2" (%0 : java.lang.Object, %1 : int)int -> {
-                %2 : Var<java.lang.Object> = var %0 @"m";
-                %3 : Var<int> = var %1 @"i";
-                %4 : java.lang.Object = var.load %2;
+            func @"test2" (%0 : java.type:"java.lang.Object", %1 : java.type:"int")java.type:"int" -> {
+                %2 : Var<java.type:"java.lang.Object"> = var %0 @"m";
+                %3 : Var<java.type:"int"> = var %1 @"i";
+                %4 : java.type:"java.lang.Object" = var.load %2;
                 branch ^block_1(%4);
 
-              ^block_1(%5 : java.lang.Object):
+              ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
                 exception.region.enter ^block_2 ^block_8;
 
               ^block_2:
-                %7 : int = var.load %3;
-                %8 : int = constant @"0";
-                %9 : boolean = gt %7 %8;
+                %7 : java.type:"int" = var.load %3;
+                %8 : java.type:"int" = constant @0;
+                %9 : java.type:"boolean" = gt %7 %8;
                 cbranch %9 ^block_3 ^block_5;
 
               ^block_3:
-                %10 : int = constant @"-1";
+                %10 : java.type:"int" = constant @-1;
                 monitor.exit %5;
                 exception.region.exit ^block_4 ^block_8;
 
@@ -107,18 +107,18 @@ public class TestSynchronized {
                 branch ^block_6;
 
               ^block_6:
-                %11 : int = var.load %3;
-                %12 : int = constant @"1";
-                %13 : int = add %11 %12;
+                %11 : java.type:"int" = var.load %3;
+                %12 : java.type:"int" = constant @1;
+                %13 : java.type:"int" = add %11 %12;
                 var.store %3 %13;
                 monitor.exit %5;
                 exception.region.exit ^block_7 ^block_8;
 
               ^block_7:
-                %14 : int = var.load %3;
+                %14 : java.type:"int" = var.load %3;
                 return %14;
 
-              ^block_8(%15 : java.lang.Throwable):
+              ^block_8(%15 : java.type:"java.lang.Throwable"):
                 exception.region.enter ^block_9 ^block_8;
 
               ^block_9:

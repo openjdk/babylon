@@ -24,13 +24,18 @@
  */
 package life;
 
+import hat.ifacemapper.MappableIface;
+import hat.util.ui.SevenSegmentDisplay;
+
 import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
-import javax.swing.JTextField;
+import javax.swing.JPanel;
+import javax.swing.JToggleButton;
 import javax.swing.WindowConstants;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -46,56 +51,99 @@ import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
+import java.awt.image.ImageObserver;
 
 public class Viewer extends JFrame {
 
+    public boolean isReadyForUpdate(long now) {
+        incGenerations();
+        return  (state.lastUIUpdateCompleted    && ((now - state.timeOfLastUIUpdate) >= state.msPerFrame));
+    }
 
-    private final Object doorBell = new Object();
+    public boolean stillRunning() {
+       return  state.generations < state.maxGenerations;
+    }
+
+    public void incGenerations() {
+        state.generations++;
+        state.generationsSinceLastChange++;
+    }
+
+     void update(long now, @MappableIface.RO Main.CellGrid cellGrid, int from) {
+
+        if (state.deviceOrModeModified) {
+            state.generationsSinceLastChange = 0;
+            state.timeOfLastChange = now;
+            state.deviceOrModeModified = false;
+        }
+        controls.updateCounters(now);
+        cellGrid.copySliceTo(mainPanel.rasterData, from);
+        state.lastUIUpdateCompleted =false;
+        mainPanel.repaint();
+        state.timeOfLastUIUpdate = now;
+    }
+
+    public static class State {
+        public final long requiredFrameRate = 5;
+        public final long msPerFrame = 1000/requiredFrameRate;
+        public final long maxGenerations = 1000000;
+        private final Object doorBell = new Object();
+        public long generations = 0;
+        public volatile boolean minimizingCopies = false;
+        public volatile boolean usingGPU = false;
+        volatile private boolean started = false;
+        public long generationsSinceLastChange = 0;
+        public long timeOfLastChange = 0;
+        public long timeOfLastUIUpdate;
+        public volatile boolean lastUIUpdateCompleted = false;
+
+        public volatile boolean deviceOrModeModified = false;
+
+        State() {
+
+        }
+    }
     final Controls controls;
     final MainPanel mainPanel;
-    volatile private boolean started=false;
-
-    static final public class MainPanel extends JComponent {
+    public final State state;
+    static final public class MainPanel extends JComponent implements ImageObserver {
         final double IN = 1.1;
-        final double OUT = 1/IN;
+        final double OUT = 1 / IN;
         private final BufferedImage image;
-        private final byte[] rasterData;
+        final byte[] rasterData;
         private final double initialZoomFactor;
         private double zoomFactor;
         private double prevZoomFactor;
         private boolean zooming;
-        private boolean released;
+        private boolean mouseReleased;
         private double xOffset = 0;
         private double yOffset = 0;
         private Point startPoint;
+        final private State state;
 
+        record Drag(int xDiff, int yDiff) { }
 
-        class Drag{
-            public int xDiff;
-            public int yDiff;
-            Drag(int xDiff, int yDiff) {
-                this.xDiff = xDiff;
-                this.yDiff = yDiff;
-            }
-        }
         Drag drag = null;
 
         @Override
         public Dimension getPreferredSize() {
-            return new Dimension((int)(image.getWidth()*zoomFactor), (int)(image.getHeight()*zoomFactor));
+            return new Dimension((int) (image.getWidth() * zoomFactor), (int) (image.getHeight() * zoomFactor));
         }
-        public MainPanel(BufferedImage image) {
+
+        public MainPanel(BufferedImage image, State state) {
+            this.state = state;
             this.image = image;
+
             Rectangle bounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-            this.initialZoomFactor = Math.min((bounds.width-20)/(float)image.getWidth(),
-                    (bounds.height-20)/(float)image.getHeight());
+            this.initialZoomFactor = Math.min((bounds.width - 20) / (float) image.getWidth(),
+                    (bounds.height - 20) / (float) image.getHeight());
             this.rasterData = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
-            this.prevZoomFactor =initialZoomFactor;
+            this.prevZoomFactor = initialZoomFactor;
             this.zoomFactor = initialZoomFactor;
             addMouseWheelListener(e -> {
                 zooming = true;
-                zoomFactor = zoomFactor * ((e.getWheelRotation() < 0)?IN:OUT);
-                if (zoomFactor < initialZoomFactor ){
+                zoomFactor = zoomFactor * ((e.getWheelRotation() < 0) ? IN : OUT);
+                if (zoomFactor < initialZoomFactor) {
                     zoomFactor = initialZoomFactor;
                     prevZoomFactor = zoomFactor;
                 }
@@ -112,115 +160,148 @@ public class Viewer extends JFrame {
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    released = false;
+                    mouseReleased = false;
                     startPoint = MouseInfo.getPointerInfo().getLocation();
+                    repaint();
                 }
 
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                    released = true;
+                    mouseReleased = true;
                     repaint();
                 }
             });
         }
 
         @Override
+        public void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            state.lastUIUpdateCompleted =  true;
+        }
+
+        @Override
         public void paint(Graphics g) {
             super.paint(g);
             Graphics2D g2 = (Graphics2D) g;
-            AffineTransform at = new AffineTransform();
+            AffineTransform affineTransform = new AffineTransform();
             if (zooming) {
                 double xRel = MouseInfo.getPointerInfo().getLocation().getX() - getLocationOnScreen().getX();
                 double yRel = MouseInfo.getPointerInfo().getLocation().getY() - getLocationOnScreen().getY();
                 double zoomDiv = zoomFactor / prevZoomFactor;
                 xOffset = (zoomDiv) * (xOffset) + (1 - zoomDiv) * xRel;
                 yOffset = (zoomDiv) * (yOffset) + (1 - zoomDiv) * yRel;
-                at.translate(xOffset, yOffset);
+                affineTransform.translate(xOffset, yOffset);
                 prevZoomFactor = zoomFactor;
                 zooming = false;
-            } else if (drag!= null) {
-                at.translate(xOffset +drag.xDiff, yOffset + drag.yDiff);
-                if (released) {
+            } else if (drag != null) {
+                affineTransform.translate(xOffset + drag.xDiff, yOffset + drag.yDiff);
+                if (mouseReleased) {
                     xOffset += drag.xDiff;
                     yOffset += drag.yDiff;
                     drag = null;
                 }
-            } else{
-                at.translate(xOffset, yOffset);
+            } else {
+                affineTransform.translate(xOffset, yOffset);
             }
-            at.scale(zoomFactor, zoomFactor);
-            g2.transform(at);
-            g2.setColor(Color.BLACK);
-            g2.fillRect(0-5000, 0-5000, image.getWidth()+10000, image.getHeight()+10000);
-            g2.drawImage(image, 0,0, image.getWidth(), image.getHeight(), 0, 0, image.getWidth(), image.getHeight(), this);
+            affineTransform.scale(zoomFactor, zoomFactor);
+            g2.transform(affineTransform);
+            g2.setColor(Color.DARK_GRAY);
+            g2.fillRect(-image.getWidth(), -image.getHeight(), image.getWidth() * 3, image.getHeight() * 3);
+            g2.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), 0, 0, image.getWidth(), image.getHeight(), null);
         }
-    }
-    public static class Controls{
-        JTextField generation;
-        JTextField generationsPerSecond;
 
-        JButton start;
-        JMenuBar menuBar;
-        Controls(){
-            menuBar = new JMenuBar();
-            ((JButton) menuBar.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
-            this.start = (JButton) menuBar.add(new JButton("Start"));
-            menuBar.add(Box.createHorizontalStrut(40));
-            generation = create ("Gen");
-            generationsPerSecond = create ("Gen/Sec");
-        }
-        JTextField create (String name){
-            menuBar.add(new JLabel(name));
-            JTextField textField = (JTextField) menuBar.add(new JTextField("",5));
-            textField.setEditable(false);
-            return textField;
-        }
     }
 
-    Viewer(String title, Main.Control control,Main.CellGrid cellGrid) {
+    public static class Controls {
+        public final JMenuBar menuBar;
+        private final JButton startButton;
+        private JToggleButton useGPUToggleButton;
+        private JToggleButton minimizeCopiesToggleButton;
+        private SevenSegmentDisplay generationsPerSecondSevenSegment;
+        private final SevenSegmentDisplay generationSevenSegment;
+
+        private State state;
+
+        Controls( State state) {
+            this.state = state;
+            this.menuBar = new JMenuBar();
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+
+            ((JButton) panel.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
+            this.startButton = (JButton) panel.add(new JButton("Start"));
+
+            panel.add(new JLabel("Generation"));
+            this.generationSevenSegment = (SevenSegmentDisplay)
+                    panel.add(new SevenSegmentDisplay(6,30,panel.getForeground(),panel.getBackground()));
+
+            panel.add(new JLabel("Gen/Sec"));
+
+            this.generationsPerSecondSevenSegment = (SevenSegmentDisplay)
+                    panel.add(new SevenSegmentDisplay(6,30,panel.getForeground(),panel.getBackground()));
+            panel.add(Box.createHorizontalStrut(400));
+            menuBar.add(panel);
+
+        }
+
+        JToggleButton addToggle(JComponent component, String def, String alt) {
+            var toggleButton = (JToggleButton) component.add(new JToggleButton(def));
+            toggleButton.addChangeListener(event -> {
+                if (((JToggleButton) event.getSource()).isSelected()) {
+                    ((JToggleButton) event.getSource()).setText(alt);
+                } else {
+                    ((JToggleButton) event.getSource()).setText(def);
+                }
+                state.deviceOrModeModified = true;
+            });
+            return toggleButton;
+        }
+
+        public void updateCounters(long now) {
+            generationSevenSegment.set((int)state.generationsSinceLastChange);
+            long interval= (now -state.timeOfLastChange);
+            if (state.generationsSinceLastChange > 0 && interval>0) { // no div/0
+                int gps = (int)((1000*state.generationsSinceLastChange)/interval);
+               /* System.out.println("gps "+(int)gps
+                        + " interval="+interval
+                        + " state.generationsSinceLastChange="+state.generationsSinceLastChange
+                        + " state.timeOfLastChange="+state.timeOfLastChange);*/
+
+                    generationsPerSecondSevenSegment.set( gps);
+            }
+        }
+    }
+    Viewer(String title, Main.CellGrid cellGrid, State state) {
         super(title);
-        this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY));
-        this.controls = new Controls();
-        setJMenuBar(controls.menuBar);
-        controls.start.addActionListener(_ -> {started=true;synchronized (doorBell) {doorBell.notify();}});
+        this.state = state;
+        this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY), state);
+        this.controls = new Controls( state);
+        setJMenuBar(this.controls.menuBar);
+        controls.startButton.addActionListener(_ -> {
+            state.started = true;
+            synchronized (state.doorBell) {
+                state.doorBell.notify();
+            }
+        });
         this.getContentPane().add(this.mainPanel);
         this.setLocationRelativeTo(null);
         this.pack();
         this.setVisible(true);
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+        cellGrid.copySliceTo(mainPanel.rasterData, 0);  // We assume that the original data starts in the lo end of the grid
     }
 
     public void waitForStart() {
-        while (!started) {
-            synchronized (doorBell) {
+        while (!state.started) {
+            synchronized (state.doorBell) {
                 try {
-                    doorBell.wait();
+                    state.doorBell.wait();
                 } catch (final InterruptedException ie) {
                     ie.getStackTrace();
                 }
             }
         }
     }
-     long start=0L;
-    int generationCounter=0;
-    public boolean isVisible(){
-        return true;
-    }
-    public boolean isReadyForUpdate(){
-        if (start==0L) {
-            start = System.currentTimeMillis();
-        }else {
-            this.controls.generation.setText(String.format("%8d", ++generationCounter));
-            this.controls.generationsPerSecond.setText(
-                    String.format("%5.2f", (generationCounter * 1000f) / (System.currentTimeMillis() - start))
-            );
-            mainPanel.repaint();
-        }
-        return true;
-    }
 
-    public void update(Main.CellGrid cellGrid, int to) {
-        cellGrid.copySliceTo(mainPanel.rasterData, to);
-        mainPanel.repaint();
-    }
 }

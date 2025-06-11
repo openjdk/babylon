@@ -30,6 +30,8 @@ link_directories(
 add_library(mock_backend SHARED
     ${SHARED_BACKEND}/cpp/shared.cpp
     ${MOCK_BACKEND}/cpp/mock_backend.cpp
+     ${SHARED_BACKEND}/cpp/strutil.cpp
+        ${SHARED_BACKEND}/include/strutil.h
 )
 
 
@@ -40,6 +42,9 @@ add_executable(mock_info
 target_link_libraries(mock_info
     mock_backend
 )
+
+
+
 
 
 

@@ -45,15 +45,6 @@ public non-sealed interface TypeElement extends CodeItem {
                 return t.identifier;
             }
 
-            // Unpack array-like identifier [+
-            int dimensions = 0;
-            if (t.arguments.size() == 1) {
-                dimensions = dimensions(t.identifier);
-                if (dimensions > 0) {
-                    t = t.arguments.getFirst();
-                }
-            }
-
             StringBuilder s = new StringBuilder();
             s.append(t.identifier);
             if (!t.arguments.isEmpty()) {
@@ -63,28 +54,46 @@ public non-sealed interface TypeElement extends CodeItem {
                 s.append(args);
             }
 
-            // Write out array-like syntax at end []+
-            if (dimensions > 0) {
-                s.append("[]".repeat(dimensions));
-            }
-
             return s.toString();
         }
 
-        static int dimensions(String identifier) {
-            if (!identifier.isEmpty() && identifier.charAt(0) == '[') {
-                for (int i = 1; i < identifier.length(); i++) {
-                    if (identifier.charAt(i) != '[') {
-                        return 0;
-                    }
-                }
-                return identifier.length();
-            } else {
-                return 0;
-            }
+        // Factories
+
+        public static ExternalizedTypeElement of(String s) {
+            return new ExternalizedTypeElement(s, List.of());
         }
 
-        // Factories
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement a) {
+            return new ExternalizedTypeElement(s, List.of(a));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement a1, ExternalizedTypeElement a2) {
+            return new ExternalizedTypeElement(s, List.of(a1, a2));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement a1, ExternalizedTypeElement a2,
+                                                 ExternalizedTypeElement a3) {
+            return new ExternalizedTypeElement(s, List.of(a1, a2, a3));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement a1, ExternalizedTypeElement a2,
+                                                 ExternalizedTypeElement a3, ExternalizedTypeElement a4) {
+            return new ExternalizedTypeElement(s, List.of(a1, a2, a3, a4));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 ExternalizedTypeElement... arguments) {
+            return new ExternalizedTypeElement(s, List.of(arguments));
+        }
+
+        public static ExternalizedTypeElement of(String s,
+                                                 List<ExternalizedTypeElement> arguments) {
+            return new ExternalizedTypeElement(s, arguments);
+        }
 
         /**
          * Parses a string as an externalized type element.
@@ -97,8 +106,8 @@ public non-sealed interface TypeElement extends CodeItem {
          * @param s the string
          * @return the externalized code type.
          */
-            public static ExternalizedTypeElement ofString(String s) {
-        return jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(s);
+        public static ExternalizedTypeElement ofString(String s) {
+            return jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(s);
         }
     }
 

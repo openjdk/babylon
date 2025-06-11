@@ -28,30 +28,30 @@ package hat.backend.jextracted;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.backend.ffi.C99FFIBackend;
-import hat.buffer.BackendConfig;
+//import hat.backend.ffi.C99FFIBackend;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
-public class OpenCLBackend extends C99FFIBackend {
+import java.lang.invoke.MethodHandle;
 
-    interface OpenCLConfig extends BackendConfig {
-        boolean gpu();
+import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-        void gpu(boolean gpu);
+public class OpenCLBackend extends C99JExtractedBackend{
 
-        Schema<OpenCLConfig> schema = Schema.of(OpenCLConfig.class, s->s.fields("gpu"));
-
-        static OpenCLConfig create(Accelerator accelerator, boolean gpu, boolean verbose) {
-            OpenCLConfig config =schema.allocate(accelerator);
-            config.gpu(gpu);
-            return config;
+    final MethodHandle getBackend_MH;
+    public long getBackend(int mode, int platform, int device) {
+        try {
+         //   backendHandle = (long) getBackend_MH.invoke(mode, platform, device);
+        } catch (Throwable throwable) {
+            throw new IllegalStateException(throwable);
         }
+        return 0l;//backendHandle;
     }
 
     public OpenCLBackend() {
         super("opencl_backend");
-        getBackend(null);//OpenCLConfig.create( MethodHandles.lookup(),this, true, true));
+        getBackend_MH  = null;// nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
+        getBackend(0,0,0);
         info();
     }
 

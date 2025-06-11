@@ -26,78 +26,105 @@
 
 class SpirvBackend : public Backend {
 public:
-    class SpirvConfig : public Backend::Config {
-    public :
-    };
 
-    class SpirvProgram : public Backend::Program {
-        class SpirvKernel : public Backend::Program::Kernel {
+    class SpirvProgram : public Backend::CompilationUnit {
+        class SpirvKernel : public Backend::CompilationUnit::Kernel {
         public:
-            SpirvKernel(Backend::Program *program, char *name)
-                    : Backend::Program::Kernel(program, name) {
+            SpirvKernel(Backend::CompilationUnit *compilationUnit, char *name)
+                    : Backend::CompilationUnit::Kernel(compilationUnit, name) {
             }
 
             ~SpirvKernel() {
             }
-
-            long ndrange(void *argArray) {
-                std::cout << "spirv ndrange() " << std::endl;
-                return 0;
+            bool setArg(KernelArg *arg, Buffer *buffer) override{
+                return false ;
+            }
+            bool setArg(KernelArg *arg) override{
+                return false ;
             }
         };
 
     public:
-        SpirvProgram(Backend *backend, BuildInfo *buildInfo)
-                : Backend::Program(backend, buildInfo) {
+        SpirvProgram(Backend *backend, char *src, char *log, bool ok)
+                : Backend::CompilationUnit(backend,src,log,ok) {
         }
 
         ~SpirvProgram() {
         }
 
-        long getKernel(int nameLen, char *name) {
-            return (long) new SpirvKernel(this, name);
-        }
-
-        bool programOK() {
-            return true;
+        Kernel *getKernel(int nameLen, char *name) {
+            return new SpirvKernel(this, name);
         }
     };
+    class SpirvQueue: public Backend::Queue{
+    public:
+        void wait()override{};
+        void release()override{};
+        void computeStart()override{};
+        void computeEnd()override{};
+        void dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) override{
+            std::cout << "spirv dispatch() " << std::endl;
+            size_t dims = 1;
+            if (backend->config->trace | backend->config->traceEnqueues){
+                std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->maxX << std::endl;
+            }
 
-public:
-
-    SpirvBackend(SpirvConfig *spirvConfig, int spirvConfigSchemeLen, char *spirvBackendSchema)
-            : Backend(spirvConfig, spirvConfigSchemeLen, spirvBackendSchema) {
-        if (spirvConfig == nullptr) {
-            std::cout << "spirvConfig == null" << std::endl;
-        } else {
-            std::cout << "spirvConfig != null" << std::endl;
         }
+        void copyToDevice(Buffer *buffer) override{}
+        void copyFromDevice(Buffer *buffer) override{};
+        explicit SpirvQueue(Backend *backend):Queue(backend){}
+        ~SpirvQueue() override =default;
+    };
+public:
+    SpirvBackend(int mode): Backend(new Config(mode), new SpirvQueue(this)) {
     }
 
     ~SpirvBackend() {
     }
 
-    int getMaxComputeUnits() {
-        std::cout << "spirv getMaxComputeUnits()" << std::endl;
-        return 0;
-    }
+    Buffer * getOrCreateBuffer(BufferState *bufferState) override{
+        Buffer *buffer = nullptr;
 
-    void info() {
+      /* if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){
+            openclBuffer = new OpenCLBuffer(this,  bufferState);
+            if (openclConfig.trace){
+                std::cout << "We allocated arg buffer "<<std::endl;
+            }
+        }else{
+            if (openclConfig.trace){
+                std::cout << "Were reusing  buffer  buffer "<<std::endl;
+            }
+            openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
+        }*/
+        return buffer;
+    }
+    bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override {
+        std::cout << "attempting  to get buffer from SpirvBackend "<<std::endl;
+        return false;
+    }
+    void info() override{
         std::cout << "spirv info()" << std::endl;
     }
+     void computeStart() override{
+       std::cout << "spirv compute start()" << std::endl;
+     }
+        void computeEnd() override {
+          std::cout << "spirv compute start()" << std::endl;
+        }
 
-    long compileProgram(int len, char *source) {
-        std::cout << "spirv compileProgram()" << std::endl;
+    CompilationUnit* compile(int len, char *source) override{
+        std::cout << "spirv compile()" << std::endl;
         size_t srcLen = ::strlen(source);
         char *src = new char[srcLen + 1];
         ::strncpy(src, source, srcLen);
         src[srcLen] = '\0';
         std::cout << "native compiling " << src << std::endl;
-        return (long) new SpirvProgram(this, new BuildInfo(src, nullptr, false));
+
+        SpirvProgram *spirvProgram = new SpirvProgram(this,  src, nullptr, false);
+        return dynamic_cast<CompilationUnit*>(spirvProgram);
     }
 };
 
-long getBackend(void *config, int configSchemaLen, char *configSchema) {
-    SpirvBackend::SpirvConfig *spirvConfig = (SpirvBackend::SpirvConfig *) config;
-    return (long) new SpirvBackend(spirvConfig, configSchemaLen, configSchema);
+long getBackend(int mode) {
+    return reinterpret_cast<long>(new SpirvBackend(mode));
 }

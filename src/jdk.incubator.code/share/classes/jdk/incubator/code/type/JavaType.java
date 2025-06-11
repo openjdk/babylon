@@ -29,14 +29,11 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.reflect.Executable;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.GenericDeclaration;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
+import java.lang.reflect.*;
+
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.type.WildcardType.BoundKind;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -48,7 +45,7 @@ import java.util.stream.Stream;
  *     <li>{@linkplain ClassType class types}, e.g. {@code String}, {@code List<? extends Number>}</li>
  *     <li>{@linkplain ArrayType array types}, e.g. {@code Object[][]}, {@code List<Runnable>[]}</li>
  *     <li>{@linkplain WildcardType wildcard types}, e.g. {@code ? extends Number}, {@code ? super ArrayList<String>}</li>
- *     <li>{@linkplain TypeVarRef type-variables}, e.g. {@code T extends Runnable}</li>
+ *     <li>{@linkplain TypeVariableType type-variables}, e.g. {@code T extends Runnable}</li>
  * </ul>
  * Java types can be constructed from either {@linkplain ClassDesc nominal descriptors} or
  * {@linkplain Type reflective type mirrors}. Conversely, Java types can be
@@ -57,7 +54,7 @@ import java.util.stream.Stream;
  * @sealedGraph
  */
 public sealed interface JavaType extends TypeElement permits ClassType, ArrayType,
-                                                             PrimitiveType, WildcardType, TypeVarRef {
+                                                             PrimitiveType, WildcardType, TypeVariableType {
 
     /** {@link JavaType} representing {@code void} */
     PrimitiveType VOID = new PrimitiveType(ConstantDescs.CD_void);
@@ -208,9 +205,10 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
         };
     }
 
-    private static TypeVarRef.Owner owner(GenericDeclaration genDecl) {
+    private static TypeVariableType.Owner owner(GenericDeclaration genDecl) {
         return switch (genDecl) {
-            case Executable e -> MethodRef.method(e);
+            case Constructor<?> c -> ConstructorRef.constructor(c);
+            case Method m -> MethodRef.method(m);
             case Class<?> t -> (ClassType)type(t);
             default -> throw new InternalError();
         };
@@ -346,16 +344,7 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      * @param owner the type-variable owner.
      * @return a type-variable reference.
      */
-    static TypeVarRef typeVarRef(String name, TypeVarRef.Owner owner, JavaType bound) {
-        return new TypeVarRef(name, owner, bound);
-    }
-
-    /**
-     * Constructs a Java type from a string representation.
-     * @param s string representation
-     * @return a Java type corresponding to the provided string representation
-     */
-    static JavaType ofString(String s) {
-        return (JavaType) CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(s));
+    static TypeVariableType typeVarRef(String name, TypeVariableType.Owner owner, JavaType bound) {
+        return new TypeVariableType(name, owner, bound);
     }
 }

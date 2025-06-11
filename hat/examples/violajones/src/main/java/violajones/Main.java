@@ -26,7 +26,6 @@ package violajones;
 
 import hat.Accelerator;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
 import violajones.attic.ViolaJonesRaw;
@@ -46,7 +45,7 @@ public class Main {
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
         boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));
         String imageName = (args.length>2 && args[1].equals("--image"))?args[2]:System.getProperty("image", "Nasa1996");
-        System.out.println("Using image "+imageName+".jpg");
+      //  System.out.println("Using image "+imageName+".jpg");
         BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream("/images/"+imageName+".jpg"));
                //"/images/team.jpg"
               // "/images/eggheads.jpg"
@@ -65,24 +64,32 @@ public class Main {
         S08x3RGBImage rgbImage = S08x3RGBImage.create(accelerator, nasa1996.getWidth(),nasa1996.getHeight());
         rgbImage.syncFromRaster(nasa1996);
         ResultTable resultTable = ResultTable.create(accelerator,1000);
-        System.out.println("result table layout "+Buffer.getLayout(resultTable));
-        HaarViewer harViz = null;
+       // System.out.println("result table layout "+Buffer.getLayout(resultTable));
+        Viewer viewer = null;
         if (!headless){
-            harViz = new HaarViewer(accelerator, nasa1996, rgbImage, cascade, null, null);
+            viewer = new Viewer(accelerator, nasa1996, rgbImage, cascade, null, null);
         }
 
         ScaleTable scaleTable = ScaleTable.createFrom(accelerator,new ScaleTable.Constraints(cascade,rgbImage.width(),rgbImage.height()));
-
-
-        for (int i = 0; i < 10; i++) {
+        long accum=0L;
+        int count = 2;
+        for (int i = 0; i < count; i++) {
             resultTable.atomicResultTableCount(0);
-            accelerator.compute(cc ->
-                    ViolaJonesCoreCompute.compute(cc, cascade, nasa1996, rgbImage, resultTable,scaleTable)
-            );
-            System.out.println(resultTable.atomicResultTableCount()+ "faces found");
+            long start = System.currentTimeMillis();
+
+            accelerator.compute(cc -> ViolaJonesCoreCompute.compute(cc, cascade, rgbImage, resultTable,scaleTable));
+            if (headless) {
+                System.out.print(resultTable.atomicResultTableCount() + "faces found in");
+                System.out.println((System.currentTimeMillis() - start)+"ms");
+            }else{
+                if (i>0){
+                  accum += (System.currentTimeMillis() - start);
+                   if (viewer != null) {
+                      viewer.showResults(resultTable, null, null, accum/(count-1));
+                   }
+                }
+            }
         }
-        if (harViz != null) {
-            harViz.showResults(resultTable, null, null);
-        }
+
     }
 }

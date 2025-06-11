@@ -30,6 +30,8 @@ import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.type.JavaType;
 
+import java.lang.invoke.MethodHandles;
+
 public class CudaHatKernelBuilder extends C99HATKernelBuilder<CudaHatKernelBuilder> {
 
     @Override
@@ -66,8 +68,8 @@ public class CudaHatKernelBuilder extends C99HATKernelBuilder<CudaHatKernelBuild
     }
 
     @Override
-    public CudaHatKernelBuilder functionDeclaration(JavaType javaType, String name) {
-        return externC().space().keyword("__device__").space().keyword("inline").space().type(javaType).space().identifier(name);
+    public CudaHatKernelBuilder functionDeclaration(CodeBuilderContext codeBuilderContext,JavaType javaType, String name) {
+        return externC().space().keyword("__device__").space().keyword("inline").space().type(codeBuilderContext,javaType).space().identifier(name);
     }
 
     @Override
@@ -79,7 +81,7 @@ public class CudaHatKernelBuilder extends C99HATKernelBuilder<CudaHatKernelBuild
     @Override
     public CudaHatKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
         return identifier("atomicAdd").paren(_ -> {
-             ampersand().recurse(buildContext, OpWrapper.wrap(instanceResult.op()));
+             ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),instanceResult.op()));
              rarrow().identifier(name).comma().literal(1);
         });
     }

@@ -30,7 +30,10 @@ import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 
+import static hat.ifacemapper.MappableIface.*;
 import jdk.incubator.code.CodeReflection;
+
+import java.lang.invoke.MethodHandles;
 
 public class Main {
     @CodeReflection
@@ -40,7 +43,7 @@ public class Main {
     }
 
     @CodeReflection
-    public static void squareKernel(KernelContext kc, S32Array s32Array) {
+    public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
         if (kc.x<kc.maxX){
            int value = s32Array.array(kc.x);     // arr[cc.x]
            s32Array.array(kc.x, squareit(value));  // arr[cc.x]=value*value
@@ -48,7 +51,7 @@ public class Main {
     }
 
     @CodeReflection
-    public static void square(ComputeContext cc, S32Array s32Array) {
+    public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
         cc.dispatchKernel(s32Array.length(),
                 kc -> squareKernel(kc, s32Array)
         );
@@ -56,8 +59,8 @@ public class Main {
 
 
     public static void main(String[] args) {
-        var lookup = java.lang.invoke.MethodHandles.lookup();
-        var accelerator = new Accelerator(lookup, Backend.FIRST);//new JavaMultiThreadedBackend());
+
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
         var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);

@@ -40,7 +40,7 @@ questions.
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat</artifactId>
+            <artifactId>hat-core</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
@@ -53,20 +53,20 @@ questions.
                 <version>1.8</version>
                 <executions>
                     <execution>
+                        <id>1</id>
                         <phase>install</phase>
-                        <configuration>
-                            <target>
-                                <copy file="target/hat-example-matmul-1.0.jar" todir="${hat.target}"/>
-                            </target>
-                        </configuration>
                         <goals>
                             <goal>run</goal>
                         </goals>
+                        <configuration>
+                            <target>
+                                <copy file="target/${project.artifactId}-${project.version}.jar" toDir="${hat.build}"/>
+                            </target>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
-
 
 </project>

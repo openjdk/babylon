@@ -54,6 +54,7 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.CoreOp.*;
+import jdk.incubator.code.op.OpFactory;
 import jdk.incubator.code.parser.OpParser;
 import jdk.incubator.code.type.ArrayType;
 import jdk.incubator.code.type.FieldRef;
@@ -61,6 +62,7 @@ import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.type.TypeElementFactory;
 import jdk.incubator.code.type.VarType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -92,6 +94,8 @@ public final class BytecodeGenerator {
             StringConcatFactory.class.describeConstable().orElseThrow(),
             "makeConcat",
             CD_CallSite);
+    private static final MethodTypeDesc opMethodDesc = MethodTypeDesc.of(Op.class.describeConstable().get(),
+            OpFactory.class.describeConstable().get(), TypeElementFactory.class.describeConstable().get());
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -165,13 +169,12 @@ public final class BytecodeGenerator {
                 LambdaOp lop = lambdaSink.get(i);
                 if (quotable.get(i)) {
                     // return (FuncOp) OpParser.fromOpString(opText)
-                    clb.withMethod("op$lambda$" + i, MethodTypeDesc.of(FuncOp.class.describeConstable().get()),
+                    clb.withMethod("op$lambda$" + i, opMethodDesc,
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
                                 .loadConstant(quote(lop).toText())
                                 .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
                                         "fromStringOfFuncOp",
                                         MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
-                                .checkcast(FuncOp.class.describeConstable().get())
                                 .areturn()));
                 }
                 generateMethod(lookup, className, "lambda$" + i, lop, clb, lambdaSink, quotable);
@@ -397,7 +400,7 @@ public final class BytecodeGenerator {
             // When there is no next operation
             case null -> false;
             // New object cannot use first operand from stack, new array fall through to the default
-            case NewOp op when !(op.constructorType().returnType() instanceof ArrayType) ->
+            case NewOp op when !(op.constructorDescriptor().type().returnType() instanceof ArrayType) ->
                 false;
             // For lambda the effective operands are captured values
             case LambdaOp op ->
@@ -741,7 +744,7 @@ public final class BytecodeGenerator {
                         // Processing is deferred to the CondBrOp, do not process the op result
                     }
                     case NewOp op -> {
-                        switch (op.constructorType().returnType()) {
+                        switch (op.constructorDescriptor().type().returnType()) {
                             case ArrayType at -> {
                                 processOperands(op);
                                 if (at.dimensions() == 1) {
@@ -762,12 +765,12 @@ public final class BytecodeGenerator {
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
-                                        MethodRef.toNominalDescriptor(op.constructorType())
+                                        MethodRef.toNominalDescriptor(op.constructorDescriptor().type())
                                                  .changeReturnType(ConstantDescs.CD_void));
                             }
                             default ->
                                 throw new IllegalArgumentException("Invalid return type: "
-                                                                    + op.constructorType().returnType());
+                                                                    + op.constructorDescriptor().type().returnType());
                         }
                         push(op.result());
                     }
@@ -901,7 +904,7 @@ public final class BytecodeGenerator {
                                         MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
                                                 className,
                                                 "op$lambda$" + lambdaIndex,
-                                                MethodTypeDesc.of(FuncOp.class.describeConstable().get()))));
+                                                opMethodDesc)));
                                 quotable.set(lambdaSink.size());
                             } else {
                                 cob.invokedynamic(DynamicCallSiteDesc.of(

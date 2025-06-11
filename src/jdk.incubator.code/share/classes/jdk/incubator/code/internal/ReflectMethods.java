@@ -47,6 +47,7 @@ import com.sun.tools.javac.comp.DeferredAttr.FilterScanner;
 import com.sun.tools.javac.comp.Flow;
 import com.sun.tools.javac.comp.Lower;
 import com.sun.tools.javac.comp.CodeReflectionTransformer;
+import com.sun.tools.javac.comp.Resolve;
 import com.sun.tools.javac.comp.TypeEnvs;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
@@ -91,6 +92,7 @@ import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.op.ExtendedOp;
 import jdk.incubator.code.type.*;
 import jdk.incubator.code.type.WildcardType.BoundKind;
+import jdk.incubator.code.writer.OpBuilder;
 
 import javax.lang.model.element.Modifier;
 import javax.tools.JavaFileObject;
@@ -130,6 +132,7 @@ public class ReflectMethods extends TreeTranslator {
     private final Types types;
     private final Names names;
     private final Symtab syms;
+    private final Resolve resolve;
     private final Gen gen;
     private final Log log;
     private final Lower lower;
@@ -138,6 +141,7 @@ public class ReflectMethods extends TreeTranslator {
     private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
+    private final CodeModelStorageOption codeModelStorageOption;
 
     // @@@ Separate out mutable state
     private TreeMaker make;
@@ -154,8 +158,10 @@ public class ReflectMethods extends TreeTranslator {
         lineDebugInfo =
                 options.isUnset(G_CUSTOM) ||
                         options.isSet(G_CUSTOM, "lines");
+        codeModelStorageOption = CodeModelStorageOption.parse(options.get("codeModelStorageOption"));
         names = Names.instance(context);
         syms = Symtab.instance(context);
+        resolve = Resolve.instance(context);
         types = Types.instance(context);
         gen = Gen.instance(context);
         log = Log.instance(context);
@@ -206,7 +212,7 @@ public class ReflectMethods extends TreeTranslator {
                     log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
                 // create a static method that returns the op
-                classOps.add(opMethodDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), funcOp));
+                classOps.add(opMethodDecl(methodName(bodyScanner.symbolToErasedMethodRef(tree.sym)), funcOp, codeModelStorageOption));
             } catch (UnsupportedASTException ex) {
                 // whoops, some AST node inside the method body were not supported. Log it and move on.
                 log.note(ex.tree, MethodIrSkip(tree.sym.enclClass(), tree.sym, ex.tree.getTag().toString()));
@@ -254,7 +260,7 @@ public class ReflectMethods extends TreeTranslator {
                     log.note(QuotedIrDump(funcOp.toText()));
                 }
                 // create a static method that returns the FuncOp representing the lambda
-                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp);
+                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
                 classOps.add(opMethod);
 
                 switch (kind) {
@@ -267,8 +273,12 @@ public class ReflectMethods extends TreeTranslator {
                         // @@@ Could probably use MethodHandles.publicLookup()
                         JCMethodInvocation lookup = make.App(make.Ident(crSyms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
                         interpreterArgs.append(lookup);
-                        // Deserialize the func operation
-                        JCMethodInvocation op = make.App(opMethodId);
+                        // Get the func operation
+                        JCFieldAccess opFactory = make.Select(make.Ident(crSyms.extendedOpType.tsym),
+                                crSyms.extendedOpFactorySym);
+                        JCFieldAccess typeFactory = make.Select(make.Ident(crSyms.coreTypeFactoryType.tsym),
+                                crSyms.coreTypeFactorySym);
+                        JCMethodInvocation op = make.App(opMethodId, com.sun.tools.javac.util.List.of(opFactory, typeFactory));
                         interpreterArgs.append(op);
                         // Append captured vars
                         ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
@@ -315,7 +325,7 @@ public class ReflectMethods extends TreeTranslator {
                     log.note(QuotedIrDump(funcOp.toText()));
                 }
                 // create a method that returns the FuncOp representing the lambda
-                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp);
+                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
                 classOps.add(opMethod);
                 tree.codeModel = opMethod.sym;
                 super.visitReference(tree);
@@ -388,19 +398,39 @@ public class ReflectMethods extends TreeTranslator {
         return names.fromChars(sigCh, 0, sigCh.length);
     }
 
-    private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op) {
-        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.funcOpType,
-                com.sun.tools.javac.util.List.nil(), syms.methodClass);
-        var mn = names.fromString("op$").append(methodName);
-        var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, mn, mt, currentClassSym);
-        currentClassSym.members().enter(ms);
+    private enum CodeModelStorageOption {
+        TEXT, CODE_BUILDER;
 
-        var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
-                com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
-        var ret = make.Return(make.TypeCast(crSyms.funcOpType, opFromStr));
+        public static CodeModelStorageOption parse(String s) {
+            if (s == null) {
+                return CodeModelStorageOption.CODE_BUILDER;
+            }
+            return CodeModelStorageOption.valueOf(s);
+        }
+    }
 
-        var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
-        return md;
+    private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
+        switch (codeModelStorageOption) {
+            case TEXT -> {
+                var paramTypes = com.sun.tools.javac.util.List.of(crSyms.opFactoryType, crSyms.typeElementFactoryType);
+                var mt = new MethodType(paramTypes, crSyms.opType,
+                        com.sun.tools.javac.util.List.nil(), syms.methodClass);
+                var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
+                currentClassSym.members().enter(ms);
+                var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
+                        com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
+                var ret = make.Return(opFromStr);
+                var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
+                return md;
+            }
+            case CODE_BUILDER -> {
+                var opBuilder = OpBuilder.createBuilderFunction(op);
+                var cmToASTTransformer = new CodeModelToAST(make, names, syms, resolve, types, typeEnvs.get(currentClassSym), crSyms);
+                return cmToASTTransformer.transformFuncOpToAST(opBuilder, methodName);
+            }
+            case null, default ->
+                    throw new IllegalStateException("unknown code model storage option: " + codeModelStorageOption);
+        }
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {
@@ -645,6 +675,7 @@ public class ReflectMethods extends TreeTranslator {
                         !seenClasses.contains(tree.type.tsym)) {
                     throw unsupported(tree);
                 }
+                super.visitNewClass(tree);
             }
 
             @Override
@@ -1395,7 +1426,8 @@ public class ReflectMethods extends TreeTranslator {
             // builder associated with the nearest statement tree
             for (JCVariableDecl jcVar : variables) {
                 // @@@ use uninitialized variable
-                Value init = variablesStack.block.op(defaultValue(jcVar.type));
+                Value defaultValue = variablesStack.block.op(defaultValue(jcVar.type));
+                Value init = convert(defaultValue, jcVar.type);
                 Op.Result op = variablesStack.block.op(CoreOp.var(jcVar.name.toString(), typeToTypeElement(jcVar.type), init));
                 variablesStack.localToOp.put(jcVar.sym, op);
             }
@@ -1454,16 +1486,19 @@ public class ReflectMethods extends TreeTranslator {
 
             // Create erased method type reference for constructor, where
             // the return type declares the class to instantiate
-            // @@@ require symbol site type?
+            // We need to manually construct the constructor reference,
+            // as the signature of the constructor symbol is not augmented
+            // with enclosing this and captured params.
             MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
             argtypes.addAll(methodRef.type().parameterTypes());
             FunctionType constructorType = FunctionType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
                     argtypes);
+            ConstructorRef constructorRef = ConstructorRef.constructor(constructorType);
 
             args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
-            result = append(CoreOp._new(typeToTypeElement(type), constructorType, args));
+            result = append(CoreOp._new(tree.varargsElement != null, typeToTypeElement(type), constructorRef, args));
         }
 
         @Override
@@ -1491,9 +1526,9 @@ public class ReflectMethods extends TreeTranslator {
                 }
 
                 JavaType arrayType = typeToTypeElement(tree.type);
-                FunctionType constructorType = FunctionType.functionType(arrayType,
+                ConstructorRef constructorRef = ConstructorRef.constructor(arrayType,
                         indexes.stream().map(Value::type).toList());
-                result = append(CoreOp._new(arrayType, constructorType, indexes));
+                result = append(CoreOp._new(constructorRef, indexes));
             }
         }
 
@@ -1689,7 +1724,7 @@ public class ReflectMethods extends TreeTranslator {
                 // body
                 pushBody(tree, caseBodyType);
                 append(CoreOp._throw(
-                        append(CoreOp._new(FunctionType.functionType(JavaType.type(MatchException.class))))
+                        append(CoreOp._new(ConstructorRef.constructor(MatchException.class)))
                 ));
                 bodies.add(stack.body);
                 popBody();
@@ -2328,7 +2363,8 @@ public class ReflectMethods extends TreeTranslator {
                 case POSTINC, POSTDEC, PREINC, PREDEC -> {
                     // Capture applying rhs and operation
                     Function<Value, Value> scanRhs = (lhs) -> {
-                        Value one = append(numericOneValue(tree.type));
+                        Type unboxedType = types.unboxedTypeOrType(tree.type);
+                        Value one = convert(append(numericOneValue(unboxedType)), unboxedType);
                         Value unboxedLhs = unboxIfNeeded(lhs);
 
                         Value unboxedLhsPlusOne = switch (tree.getTag()) {
@@ -2652,11 +2688,9 @@ public class ReflectMethods extends TreeTranslator {
 
         Op defaultValue(Type t) {
             return switch (t.getTag()) {
-                case BYTE -> CoreOp.constant(typeToTypeElement(t), (byte)0);
+                case BYTE, SHORT, INT -> CoreOp.constant(JavaType.INT, 0);
                 case CHAR -> CoreOp.constant(typeToTypeElement(t), (char)0);
                 case BOOLEAN -> CoreOp.constant(typeToTypeElement(t), false);
-                case SHORT -> CoreOp.constant(typeToTypeElement(t), (short)0);
-                case INT -> CoreOp.constant(typeToTypeElement(t), 0);
                 case FLOAT -> CoreOp.constant(typeToTypeElement(t), 0f);
                 case LONG -> CoreOp.constant(typeToTypeElement(t), 0L);
                 case DOUBLE -> CoreOp.constant(typeToTypeElement(t), 0d);
@@ -2666,14 +2700,11 @@ public class ReflectMethods extends TreeTranslator {
 
         Op numericOneValue(Type t) {
             return switch (t.getTag()) {
-                case BYTE -> CoreOp.constant(typeToTypeElement(t), (byte)1);
+                case BYTE, SHORT, INT -> CoreOp.constant(JavaType.INT, 1);
                 case CHAR -> CoreOp.constant(typeToTypeElement(t), (char)1);
-                case SHORT -> CoreOp.constant(typeToTypeElement(t), (short)1);
-                case INT -> CoreOp.constant(typeToTypeElement(t), 1);
                 case FLOAT -> CoreOp.constant(typeToTypeElement(t), 1f);
                 case LONG -> CoreOp.constant(typeToTypeElement(t), 1L);
                 case DOUBLE -> CoreOp.constant(typeToTypeElement(t), 1d);
-                case CLASS -> numericOneValue(types.unboxedType(t));
                 default -> throw new UnsupportedOperationException(t.toString());
             };
         }

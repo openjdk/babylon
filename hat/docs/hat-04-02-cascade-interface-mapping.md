@@ -1,5 +1,5 @@
 
-# More Complex Interface Mapping Example - The Cascade
+# More Complex Interface Mapping MavenStyleProject - The Cascade
 
 ----
 
@@ -15,10 +15,11 @@
     * [Cascade Interface Mapping](hat-04-02-cascade-interface-mapping.md)
 * Implementation Detail
     * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
+    * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
 
 ----
 
-# More Complex Interface Mapping Example - The Cascade
+# More Complex Interface Mapping MavenStyleProject - The Cascade
 
 Previously we showed probably the minimal useful mapping with S32Array
 

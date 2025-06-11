@@ -943,7 +943,7 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             if (!(selectorExpression.type() instanceof PrimitiveType) && !haveNullCase()) {
                 Block.Builder throwBlock = b.block();
                 throwBlock.op(_throw(
-                        throwBlock.op(_new(FunctionType.functionType(JavaType.type(NullPointerException.class))))
+                        throwBlock.op(_new(ConstructorRef.constructor(NullPointerException.class)))
                 ));
 
                 Block.Builder continueBlock = b.block();
@@ -2923,7 +2923,6 @@ public sealed abstract class ExtendedOp extends ExternalizableOp {
             public static RecordPatternOp create(ExternalizedOp def) {
                 RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR, true,
                         v -> switch (v) {
-                            case String s -> RecordTypeRef.ofString(s);
                             case RecordTypeRef rtd -> rtd;
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported record type descriptor value:" + v);

@@ -29,10 +29,10 @@ import jdk.incubator.code.type.MethodRef;
 import jdk.incubator.code.type.RecordTypeRef;
 import jdk.incubator.code.TypeElement;
 import java.util.List;
-
-import static java.util.stream.Collectors.joining;
+import java.util.Objects;
 
 public final class RecordTypeRefImpl implements RecordTypeRef {
+
     final TypeElement recordType;
     final List<ComponentRef> components;
 
@@ -62,11 +62,25 @@ public final class RecordTypeRefImpl implements RecordTypeRef {
     }
 
     @Override
-    public String toString() {
-        return components.stream()
-                .map(c -> c.type().externalize() + " " + c.name())
-                .collect(joining(", ", "(", ")")) +
-                recordType.externalize();
+    public ExternalizedTypeElement externalize() {
+        return JavaTypeUtils.recordRef(recordType.externalize(),
+                components.stream().map(ComponentRef::name).toList(),
+                components.stream().map(c -> c.type().externalize()).toList());
     }
 
+    @Override
+    public String toString() {
+        return JavaTypeUtils.toExternalRefString(externalize());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof RecordTypeRefImpl that)) return false;
+        return Objects.equals(recordType, that.recordType) && Objects.equals(components, that.components);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(recordType, components);
+    }
 }

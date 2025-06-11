@@ -28,7 +28,7 @@
 #include <cstring>
 #include <iostream>
 #include <iomanip>
-#include "cursor.h"
+#include "schema_cursor.h"
 
 
 struct Schema {
@@ -42,12 +42,12 @@ struct Schema {
         Node(Node *parent, const char* type):parent(parent), type(type) {
         }
 
-        Node *addChild(Cursor *cursor, Node *child) {
+        Node *addChild(SchemaCursor *cursor, Node *child) {
             children.push_back(child);
             return child->parse(cursor);
         }
 
-        virtual Node *parse(Cursor *cursor) {
+        virtual Node *parse(SchemaCursor *cursor) {
             cursor->error(std::cerr, __FILE__, __LINE__, "In Node virtual parse!");
             return nullptr;
         };
@@ -66,7 +66,7 @@ struct Schema {
         Array(Node *paren): Node(paren, "Array"), flexible(false), elementCount(0), elementName(nullptr), elementType(nullptr) {
         }
 
-        Array *parse(Cursor *cursor) override;
+        Array *parse(SchemaCursor *cursor) override;
 
         ~Array() override {
             if (elementType) {
@@ -101,7 +101,7 @@ struct Schema {
                 : AbstractNamedNode(paren, "FieldNode", name), typeName(nullptr) {
         }
 
-        FieldNode *parse(Cursor *cursor) override ;
+        FieldNode *parse(SchemaCursor *cursor) override ;
 
         ~FieldNode() override {
             if (typeName) {
@@ -120,7 +120,7 @@ struct Schema {
 
         }
 
-         AbstractStructOrUnionNode *parse(Cursor *cursor) override;
+         AbstractStructOrUnionNode *parse(SchemaCursor *cursor) override;
 
         ~AbstractStructOrUnionNode() override =default;
     };
@@ -130,7 +130,7 @@ struct Schema {
                 : AbstractStructOrUnionNode(parent, "UnionNode", '|', '>',  name) {
         }
 
-         UnionNode *parse(Cursor *cursor) override;
+         UnionNode *parse(SchemaCursor *cursor) override;
 
         ~UnionNode() override =default;
     };
@@ -142,7 +142,7 @@ struct Schema {
          StructNode(Node *parent, char *name)
                 : StructNode(parent, "StructNode",  name) {
         }
-        StructNode *parse(Cursor *cursor) override ;
+        StructNode *parse(SchemaCursor *cursor) override ;
         ~StructNode() override =default;
     };
 
@@ -151,7 +151,7 @@ struct Schema {
         explicit ArgStructNode(Node *parent, bool complete, char *name)
                 : StructNode(parent, "ArgStructNode",   name), complete(complete) {
         }
-        //virtual StructNode *parse(Cursor *cursor) ;
+        //virtual StructNode *parse(SchemaCursor *cursor) ;
         ~ArgStructNode() override =default;
     };
 
@@ -162,7 +162,7 @@ struct Schema {
                 : Node(parent, "ArgNode"), idx(idx) {
         }
 
-         ArgNode *parse(Cursor *cursor) override;
+         ArgNode *parse(SchemaCursor *cursor) override;
 
         virtual ~ArgNode() =default;
     };
@@ -172,7 +172,7 @@ struct Schema {
                 : Node(nullptr, "Schema") {
         }
 
-        virtual SchemaNode *parse(Cursor *cursor);
+        virtual SchemaNode *parse(SchemaCursor *cursor);
 
         virtual ~SchemaNode() =default;
     };

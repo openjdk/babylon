@@ -27,23 +27,38 @@ package life;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.backend.Backend;
 import hat.buffer.Buffer;
+import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
-
+import jdk.incubator.code.CodeReflection;
+import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.CodeReflection;
+import java.util.List;
+import java.util.stream.IntStream;
 
+import static hat.backend.Backend.FIRST;
+import static hat.ifacemapper.MappableIface.RO;
+import static hat.ifacemapper.MappableIface.RW;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class Main {
 
+    public final static byte ALIVE = (byte) 0xff;
+    public final static byte DEAD = 0x00;
+
     public interface CellGrid extends Buffer {
+        /*
+         * struct CellGrid{
+         *     int width;
+         *     int height;
+         *     byte[width*height*2] cellArray;
+         *  }
+         */
         int width();
 
         int height();
@@ -63,14 +78,24 @@ public class Main {
         ValueLayout valueLayout = JAVA_BYTE;
         long headerOffset = JAVA_INT.byteOffset() * 2;
 
-        default CellGrid copySliceTo(byte[] bytes, int to) {
+        default void copySliceTo(byte[] bytes, int to) {
             long offset = headerOffset + to * valueLayout.byteOffset();
             MemorySegment.copy(Buffer.getMemorySegment(this), valueLayout, offset, bytes, 0, width() * height());
-            return this;
+
+        }
+
+        default int wxh() {
+            return width() * height();
         }
     }
 
     public interface Control extends Buffer {
+        /*
+         * struct Control{
+         *     int from;
+         *     int to;
+         *  }
+         */
         int from();
 
         void from(int from);
@@ -79,63 +104,124 @@ public class Main {
 
         void to(int to);
 
-        Schema<Control> schema = Schema.of(Control.class, lifeSupport -> lifeSupport.fields("from", "to"));
+        Schema<Control> schema = Schema.of(
+                Control.class, control ->
+                        control.fields("from", "to"));//, "generation", "requiredFrameRate", "maxGenerations"));
 
         static Control create(Accelerator accelerator, CellGrid cellGrid) {
             var instance = schema.allocate(accelerator);
-            instance.to(cellGrid.width() * cellGrid.height());
-            instance.from(0);
+            instance.from(cellGrid.width() * cellGrid.height());
+            instance.to(0);
             return instance;
         }
     }
 
 
-    public final static byte ALIVE = (byte) 0xff;
-    public final static byte DEAD = 0x00;
 
     public static class Compute {
-        @CodeReflection
-        public static int val(CellGrid grid, int from, int w, int x, int y) {
-            return grid.cell( ((long) y * w)  + x +from)&1;
-        }
+        public static final String codeHeader = """
+                #define ALIVE -1
+                #define DEAD 0
+                 typedef struct control_s{
+                     int from;
+                     int to;
+                     long generation;
+                 }control_t;
+
+                 typedef struct cellGrid_s{
+                     int width;
+                     int height;
+                     signed char cellArray[0];
+                 }cellGrid_t;
+
+                """;
+
+        final static String codeVal = """
+                 inline int val(__global cellGrid_t *CLWrapCellGrid, int from, int w, int x, int y) {
+                     return CLWrapCellGrid->cellArray[((y * w) + x + from)] & 1;
+                 }
+                """;
+
 
         @CodeReflection
-        public static void life(KernelContext kc, Control control, CellGrid cellGrid) {
-            if (kc.x < kc.maxX) {
-                int w = cellGrid.width();
-                int h = cellGrid.height();
-                int from = control.from();
-                int to = control.to();
-                int x = kc.x % w;
-                int y = kc.x / w;
-                byte cell = cellGrid.cell(kc.x + from);
-                if (x>0 && x<(w-1) && y>0 && y<(h-1)) { // passports please
-                    int count =
-                            val(cellGrid,from,w,x-1,y-1)
-                            +val(cellGrid,from,w,x-1,y+0)
-                            +val(cellGrid,from,w,x-1,y+1)
-                            +val(cellGrid,from,w,x+0,y-1)
-                            +val(cellGrid,from,w,x+0,y+1)
-                            +val(cellGrid,from,w,x+1,y+0)
-                            +val(cellGrid,from,w,x+1,y-1)
-                            +val(cellGrid,from,w,x+1,y+1);
-                    cell =  ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
+        public static int val(@RO CellGrid grid, int from, int w, int x, int y) {
+            return grid.cell(((long) y * w) + x + from) & 1;
+        }
+
+        final static String codeLifePerIdx = """
+                 __kernel void life( __global  cellGrid_t *CLWrapCellGrid ,__global control_t *CLWrapControl ){
+                    int kcx = get_global_id(0);
+                    int w = CLWrapCellGrid->width;
+                    int h = CLWrapCellGrid->height;
+                    int from = CLWrapControl->from;
+                    int to = CLWrapControl->to;
+                    int x = kcx % w;
+                    int y = kcx / w;
+                    signed char cell = CLWrapCellGrid->cellArray[kcx + from];
+                    if (x > 0 && x < (w - 1) && y > 0 && y < (h - 1)) { // passports please
+                        int count =
+                                val(CLWrapCellGrid, from, w, x - 1, y - 1)
+                                        + val(CLWrapCellGrid, from, w, x - 1, y + 0)
+                                        + val(CLWrapCellGrid, from, w, x - 1, y + 1)
+                                        + val(CLWrapCellGrid, from, w, x + 0, y - 1)
+                                        + val(CLWrapCellGrid, from, w, x + 0, y + 1)
+                                        + val(CLWrapCellGrid, from, w, x + 1, y + 0)
+                                        + val(CLWrapCellGrid, from, w, x + 1, y - 1)
+                                        + val(CLWrapCellGrid, from, w, x + 1, y + 1);
+                        cell = ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
+                    }
+                    CLWrapCellGrid->cellArray[kcx + to]=  cell;
                 }
-                cellGrid.cell(kc.x + to, cell);
+                """;
+
+        @CodeReflection
+        public static void lifePerIdx(int idx, @RO Control control, @RW CellGrid cellGrid) {
+            int w = cellGrid.width();
+            int h = cellGrid.height();
+            int from = control.from();
+            int to = control.to();
+            int x = idx % w;
+            int y = idx / w;
+            byte cell = cellGrid.cell(idx + from);
+            if (x > 0 && x < (w - 1) && y > 0 && y < (h - 1)) { // passports please
+                int count =
+                        val(cellGrid, from, w, x - 1, y - 1)
+                                + val(cellGrid, from, w, x - 1, y + 0)
+                                + val(cellGrid, from, w, x - 1, y + 1)
+                                + val(cellGrid, from, w, x + 0, y - 1)
+                                + val(cellGrid, from, w, x + 0, y + 1)
+                                + val(cellGrid, from, w, x + 1, y + 0)
+                                + val(cellGrid, from, w, x + 1, y - 1)
+                                + val(cellGrid, from, w, x + 1, y + 1);
+                cell = ((count == 3) || ((count == 2) && (cell == ALIVE))) ? ALIVE : DEAD;// B3/S23.
+            }
+            cellGrid.cell(idx + to, cell);
+        }
+
+
+        @CodeReflection
+        public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
+            if (kc.x < kc.maxX) {
+                Compute.lifePerIdx(kc.x, control, cellGrid);
             }
         }
 
 
+
+
         @CodeReflection
-        static public void compute(final ComputeContext cc, Viewer viewer, Control ctrl, CellGrid grid) {
-            while (viewer.isVisible()) {
-                cc.dispatchKernel(
-                        grid.width() * grid.height(),
-                        kc -> Compute.life(kc, ctrl, grid)
-                );
-                int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to); //swap from/to
-                if (viewer.isReadyForUpdate()) {
-                    viewer.update(grid, to);
+        static public void compute(final @RO ComputeContext cc,
+                                   Viewer viewer, @RO Control ctrl, @RW CellGrid grid) {
+            viewer.state.timeOfLastChange = System.currentTimeMillis();
+            int range = grid.width() * grid.height();
+            while (viewer.stillRunning()) {
+                cc.dispatchKernel(range, kc -> Compute.life(kc, ctrl, grid));
+
+                int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
+
+                long now = System.currentTimeMillis();
+                if (viewer.isReadyForUpdate(now)){
+                    viewer.update(now,grid,to);
                 }
             }
         }
@@ -143,27 +229,36 @@ public class Main {
 
 
     public static void main(String[] args) {
-        boolean headless = Boolean.getBoolean("headless") || (args.length > 0 && args[0].equals("--headless"));
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup());//,new OpenCLBackend("INFO,MINIMIZE_COPIES,SHOW_COMPUTE_MODEL"));
 
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), /*Backend.JAVA_MULTITHREADED);//*/Backend.FIRST);
-
+        Arena arena = Arena.global();
         PatternData patternData = RleParser.readPatternData(
                 Main.class.getClassLoader().getResourceAsStream("orig.rle")
         );
-        CellGrid cellGrid = CellGrid.create(accelerator,
-                  patternData.getMetaData().getWidth() + 2,
-                patternData.getMetaData().getHeight() + 2
 
-        );
+        // We oversize the grid by adding 1 to n,e,w and s
+        CellGrid cellGrid = CellGrid.create(accelerator,
+                patternData.getMetaData().getWidth() + 2,
+                patternData.getMetaData().getHeight() + 2);
+
+        // By shifting all cells +1,+1 so we only need to scan 1..width-1, 1..height-1
+        // we don't worry about possibly finding cells in 0,n width,n or n,0 height,n
         patternData.getLiveCells().getCoordinates().stream().forEach(c ->
                 cellGrid.cell((1 + c.getX()) + (1 + c.getY()) * cellGrid.width(), ALIVE)
         );
 
         Control control = Control.create(accelerator, cellGrid);
-        final Viewer viewer = new Viewer("Life", control, cellGrid);
-        viewer.update(cellGrid, 0);
+
+        Viewer.State state = new Viewer.State();
+        Viewer viewer = new Viewer("Life", cellGrid, state);
+
+        var tempFrom = control.from();
+        control.from(control.to());
+        control.to(tempFrom);
+
+        viewer.mainPanel.repaint();
         viewer.waitForStart();
-        accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
+         accelerator.compute(cc -> Compute.compute(cc, viewer, control, cellGrid));
 
     }
 }

@@ -28,6 +28,6 @@ public class MockDeviceInfo {
 
     public static void main(String[] args) {
         MockBackend mockBackend = new MockBackend();
-        mockBackend.info();
+        mockBackend.backendBridge.info();
     }
 }

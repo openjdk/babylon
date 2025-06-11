@@ -35,8 +35,8 @@ import jdk.incubator.code.CodeReflection;
 public class ThrowTest {
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : ThrowTest)void -> {
-                %1 : java.lang.RuntimeException = new @"func<java.lang.RuntimeException>";
+            func @"test1" (%0 : java.type:"ThrowTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.RuntimeException" = new @java.ref:"java.lang.RuntimeException::()";
                 throw %1;
             };
             """)

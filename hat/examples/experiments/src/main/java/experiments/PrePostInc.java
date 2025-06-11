@@ -55,14 +55,15 @@ public class PrePostInc {
         }
 
         static public void main(String[] args) throws Exception {
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
             Method pre = PrePostInc.class.getDeclaredMethod("preInc",  int.class);
             Method post = PrePostInc.class.getDeclaredMethod("postInc",  int.class);
             CoreOp.FuncOp preFunc = Op.ofMethod(pre).get();
             CoreOp.FuncOp postFunc = Op.ofMethod(post).get();
 
-            Object preResult = Interpreter.invoke(MethodHandles.lookup(),preFunc,5);
+            Object preResult = Interpreter.invoke(lookup,preFunc,5);
             System.out.println("Pre "+ preResult);
-            Object postResult = Interpreter.invoke(MethodHandles.lookup(),postFunc,5);
+            Object postResult = Interpreter.invoke(lookup,postFunc,5);
             System.out.println("Pre "+ postResult);
           //  javaFunc.writeTo(System.out);
 

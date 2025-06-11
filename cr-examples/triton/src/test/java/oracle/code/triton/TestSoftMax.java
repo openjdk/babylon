@@ -37,50 +37,50 @@ import java.util.List;
 public class TestSoftMax {
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"max_float_float_float" (%0 : float, %1 : float)float -> {
-                    %2 : float = arith.maximumf %0 %1;
+            module ()java.type:"void" -> {
+                tt.func @"max_float_float_float" (%0 : java.type:"float", %1 : java.type:"float")java.type:"float" -> {
+                    %2 : java.type:"float" = arith.maximumf %0 %1;
                     tt.return %2;
                 };
-                tt.func @"reduce_max_float_float_float_0" (%3 : tensor<x64, float>)float -> {
-                    %4 : float = tt.reduce %3 @axis="0" (%5 : float, %6 : float)float -> {
-                        %7 : float = tt.call %5 %6 @"max_float_float_float";
+                tt.func @"reduce_max_float_float_float_0" (%3 : tensor<x64, java.type:"float">)java.type:"float" -> {
+                    %4 : java.type:"float" = tt.reduce %3 @axis=0 (%5 : java.type:"float", %6 : java.type:"float")java.type:"float" -> {
+                        %7 : java.type:"float" = tt.call %5 %6 @"max_float_float_float";
                         tt.reduce.return %7;
                     };
                     tt.return %4;
                 };
-                tt.func @"sum_float_float_float" (%8 : float, %9 : float)float -> {
-                    %10 : float = arith.addf %8 %9;
+                tt.func @"sum_float_float_float" (%8 : java.type:"float", %9 : java.type:"float")java.type:"float" -> {
+                    %10 : java.type:"float" = arith.addf %8 %9;
                     tt.return %10;
                 };
-                tt.func @"reduce_sum_float_float_float_0" (%11 : tensor<x64, float>)float -> {
-                    %12 : float = tt.reduce %11 @axis="0" (%13 : float, %14 : float)float -> {
-                        %15 : float = tt.call %13 %14 @"sum_float_float_float";
+                tt.func @"reduce_sum_float_float_float_0" (%11 : tensor<x64, java.type:"float">)java.type:"float" -> {
+                    %12 : java.type:"float" = tt.reduce %11 @axis=0 (%13 : java.type:"float", %14 : java.type:"float")java.type:"float" -> {
+                        %15 : java.type:"float" = tt.call %13 %14 @"sum_float_float_float";
                         tt.reduce.return %15;
                     };
                     tt.return %12;
                 };
-                tt.func @"softmax_kernel_ptr<float>_ptr<float>_int_int_int_64_void" (%16 : ptr<float>, %17 : ptr<float>, %18 : int, %19 : int, %20 : int)void -> {
-                    %21 : int = tt.get_program_id @"0";
-                    %22 : int = arith.muli %21 %18;
-                    %23 : ptr<float> = tt.addptr %17 %22;
-                    %24 : tensor<x64, int> = tt.make_range @start="0" @end="64";
-                    %25 : tensor<x64, ptr<float>> = tt.splat %23;
-                    %26 : tensor<x64, ptr<float>> = tt.addptr %25 %24;
-                    %27 : tensor<x64, int> = tt.splat %20;
-                    %28 : tensor<x64, boolean> = arith.cmpi %24 %27 @"slt";
-                    %29 : tensor<x64, float> = tt.load %26 %28;
-                    %30 : float = tt.call %29 @"reduce_max_float_float_float_0";
-                    %31 : tensor<x64, float> = tt.splat %30;
-                    %32 : tensor<x64, float> = arith.subf %29 %31;
-                    %33 : tensor<x64, float> = math.exp %32;
-                    %34 : float = tt.call %33 @"reduce_sum_float_float_float_0";
-                    %35 : tensor<x64, float> = tt.splat %34;
-                    %36 : tensor<x64, float> = arith.divf %33 %35;
-                    %37 : int = arith.muli %21 %19;
-                    %38 : ptr<float> = tt.addptr %16 %37;
-                    %39 : tensor<x64, ptr<float>> = tt.splat %38;
-                    %40 : tensor<x64, ptr<float>> = tt.addptr %39 %24;
+                tt.func @sym_name="softmax_kernel_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_int_int_int_64_void" (%16 : ptr<java.type:"float">, %17 : ptr<java.type:"float">, %18 : java.type:"int", %19 : java.type:"int", %20 : java.type:"int")java.type:"void" -> {
+                    %21 : java.type:"int" = tt.get_program_id @0;
+                    %22 : java.type:"int" = arith.muli %21 %18;
+                    %23 : ptr<java.type:"float"> = tt.addptr %17 %22;
+                    %24 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
+                    %25 : tensor<x64, ptr<java.type:"float">> = tt.splat %23;
+                    %26 : tensor<x64, ptr<java.type:"float">> = tt.addptr %25 %24;
+                    %27 : tensor<x64, java.type:"int"> = tt.splat %20;
+                    %28 : tensor<x64, java.type:"boolean"> = arith.cmpi %24 %27 @"slt";
+                    %29 : tensor<x64, java.type:"float"> = tt.load %26 %28;
+                    %30 : java.type:"float" = tt.call %29 @"reduce_max_float_float_float_0";
+                    %31 : tensor<x64, java.type:"float"> = tt.splat %30;
+                    %32 : tensor<x64, java.type:"float"> = arith.subf %29 %31;
+                    %33 : tensor<x64, java.type:"float"> = math.exp %32;
+                    %34 : java.type:"float" = tt.call %33 @"reduce_sum_float_float_float_0";
+                    %35 : tensor<x64, java.type:"float"> = tt.splat %34;
+                    %36 : tensor<x64, java.type:"float"> = arith.divf %33 %35;
+                    %37 : java.type:"int" = arith.muli %21 %19;
+                    %38 : ptr<java.type:"float"> = tt.addptr %16 %37;
+                    %39 : tensor<x64, ptr<java.type:"float">> = tt.splat %38;
+                    %40 : tensor<x64, ptr<java.type:"float">> = tt.addptr %39 %24;
                     tt.store %40 %36 %28;
                     tt.return;
                 };
@@ -133,53 +133,53 @@ public class TestSoftMax {
     }
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"max_float_float_float" (%0 : float, %1 : float)float -> {
-                    %2 : float = arith.maximumf %0 %1;
+            module ()java.type:"void" -> {
+                tt.func @"max_float_float_float" (%0 : java.type:"float", %1 : java.type:"float")java.type:"float" -> {
+                    %2 : java.type:"float" = arith.maximumf %0 %1;
                     tt.return %2;
                 };
-                tt.func @"reduce_max_float_float_float_0" (%3 : tensor<x64, float>)float -> {
-                    %4 : float = tt.reduce %3 @axis="0" (%5 : float, %6 : float)float -> {
-                        %7 : float = tt.call %5 %6 @"max_float_float_float";
+                tt.func @"reduce_max_float_float_float_0" (%3 : tensor<x64, java.type:"float">)java.type:"float" -> {
+                    %4 : java.type:"float" = tt.reduce %3 @axis=0 (%5 : java.type:"float", %6 : java.type:"float")java.type:"float" -> {
+                        %7 : java.type:"float" = tt.call %5 %6 @"max_float_float_float";
                         tt.reduce.return %7;
                     };
                     tt.return %4;
                 };
-                tt.func @"sum_float_float_float" (%8 : float, %9 : float)float -> {
-                    %10 : float = arith.addf %8 %9;
+                tt.func @"sum_float_float_float" (%8 : java.type:"float", %9 : java.type:"float")java.type:"float" -> {
+                    %10 : java.type:"float" = arith.addf %8 %9;
                     tt.return %10;
                 };
-                tt.func @"reduce_sum_float_float_float_0" (%11 : tensor<x64, float>)float -> {
-                    %12 : float = tt.reduce %11 @axis="0" (%13 : float, %14 : float)float -> {
-                        %15 : float = tt.call %13 %14 @"sum_float_float_float";
+                tt.func @"reduce_sum_float_float_float_0" (%11 : tensor<x64, java.type:"float">)java.type:"float" -> {
+                    %12 : java.type:"float" = tt.reduce %11 @axis=0 (%13 : java.type:"float", %14 : java.type:"float")java.type:"float" -> {
+                        %15 : java.type:"float" = tt.call %13 %14 @"sum_float_float_float";
                         tt.reduce.return %15;
                     };
                     tt.return %12;
                 };
-                tt.func @"softmax_kernel2_ptr<float>_ptr<float>_1_1_10_64_void" (%16 : ptr<float>, %17 : ptr<float>)void -> {
-                    %18 : int = arith.constant @"1";
-                    %19 : int = arith.constant @"1";
-                    %20 : int = arith.constant @"10";
-                    %21 : int = tt.get_program_id @"0";
-                    %22 : int = arith.muli %21 %18;
-                    %23 : ptr<float> = tt.addptr %17 %22;
-                    %24 : tensor<x64, int> = tt.make_range @start="0" @end="64";
-                    %25 : tensor<x64, ptr<float>> = tt.splat %23;
-                    %26 : tensor<x64, ptr<float>> = tt.addptr %25 %24;
-                    %27 : tensor<x64, int> = tt.splat %20;
-                    %28 : tensor<x64, boolean> = arith.cmpi %24 %27 @"slt";
-                    %29 : tensor<x64, float> = tt.load %26 %28;
-                    %30 : float = tt.call %29 @"reduce_max_float_float_float_0";
-                    %31 : tensor<x64, float> = tt.splat %30;
-                    %32 : tensor<x64, float> = arith.subf %29 %31;
-                    %33 : tensor<x64, float> = math.exp %32;
-                    %34 : float = tt.call %33 @"reduce_sum_float_float_float_0";
-                    %35 : tensor<x64, float> = tt.splat %34;
-                    %36 : tensor<x64, float> = arith.divf %33 %35;
-                    %37 : int = arith.muli %21 %19;
-                    %38 : ptr<float> = tt.addptr %16 %37;
-                    %39 : tensor<x64, ptr<float>> = tt.splat %38;
-                    %40 : tensor<x64, ptr<float>> = tt.addptr %39 %24;
+                tt.func @sym_name="softmax_kernel2_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_1_1_10_64_void" (%16 : ptr<java.type:"float">, %17 : ptr<java.type:"float">)java.type:"void" -> {
+                    %18 : java.type:"int" = arith.constant @1;
+                    %19 : java.type:"int" = arith.constant @1;
+                    %20 : java.type:"int" = arith.constant @10;
+                    %21 : java.type:"int" = tt.get_program_id @0;
+                    %22 : java.type:"int" = arith.muli %21 %18;
+                    %23 : ptr<java.type:"float"> = tt.addptr %17 %22;
+                    %24 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
+                    %25 : tensor<x64, ptr<java.type:"float">> = tt.splat %23;
+                    %26 : tensor<x64, ptr<java.type:"float">> = tt.addptr %25 %24;
+                    %27 : tensor<x64, java.type:"int"> = tt.splat %20;
+                    %28 : tensor<x64, java.type:"boolean"> = arith.cmpi %24 %27 @"slt";
+                    %29 : tensor<x64, java.type:"float"> = tt.load %26 %28;
+                    %30 : java.type:"float" = tt.call %29 @"reduce_max_float_float_float_0";
+                    %31 : tensor<x64, java.type:"float"> = tt.splat %30;
+                    %32 : tensor<x64, java.type:"float"> = arith.subf %29 %31;
+                    %33 : tensor<x64, java.type:"float"> = math.exp %32;
+                    %34 : java.type:"float" = tt.call %33 @"reduce_sum_float_float_float_0";
+                    %35 : tensor<x64, java.type:"float"> = tt.splat %34;
+                    %36 : tensor<x64, java.type:"float"> = arith.divf %33 %35;
+                    %37 : java.type:"int" = arith.muli %21 %19;
+                    %38 : ptr<java.type:"float"> = tt.addptr %16 %37;
+                    %39 : tensor<x64, ptr<java.type:"float">> = tt.splat %38;
+                    %40 : tensor<x64, ptr<java.type:"float">> = tt.addptr %39 %24;
                     tt.store %40 %36 %28;
                     tt.return;
                 };

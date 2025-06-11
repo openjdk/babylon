@@ -25,9 +25,6 @@
 package violajones.ifaces;
 
 import hat.Accelerator;
-import hat.buffer.After;
-import hat.buffer.Atomic;
-import hat.buffer.BoundBy;
 import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.ifacemapper.Schema;
@@ -46,14 +43,14 @@ public interface ResultTable extends Buffer {
         void width(float width);
         void height(float height);
     }
-    @Atomic
+
     void atomicResultTableCount(int atomicResultTableCount);
     int atomicResultTableCount();
 
-    @After("atomicResultTableCount")
+
     int length();
 
-    @BoundBy("length")
+
     Result result(long idx);
 
 

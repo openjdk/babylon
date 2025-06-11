@@ -36,7 +36,7 @@ questions.
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat</artifactId>
+            <artifactId>hat-core</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
