@@ -28,11 +28,10 @@ package oracle.code.triton;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.Patterns;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.CoreOp.VarAccessOp.VarLoadOp;
-import jdk.incubator.code.op.CoreOp.VarAccessOp.VarStoreOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,9 +40,9 @@ import static jdk.incubator.code.analysis.Patterns.*;
 // @@@ Very basic, limited, and partially correct
 public class SimpleCountedForLoopInfo {
 
-    final ExtendedOp.JavaForOp fop;
+    final JavaOp.JavaForOp fop;
 
-    SimpleCountedForLoopInfo(ExtendedOp.JavaForOp fop) {
+    SimpleCountedForLoopInfo(JavaOp.JavaForOp fop) {
         this.fop = fop;
 
         if (fop.init().yieldType().equals(JavaType.VOID)) {
@@ -91,8 +90,8 @@ public class SimpleCountedForLoopInfo {
          */
 
         Patterns.OpPattern p = opP(CoreOp.YieldOp.class,
-                opP(CoreOp.LtOp.class,
-                        opP(VarLoadOp.class,
+                opP(JavaOp.LtOp.class,
+                        opP(CoreOp.VarAccessOp.VarLoadOp.class,
                                 blockParameterP()),
                         opResultP()));
 
@@ -120,10 +119,10 @@ public class SimpleCountedForLoopInfo {
         }
          */
 
-        Patterns.OpPattern p = opP(VarStoreOp.class,
+        Patterns.OpPattern p = opP(CoreOp.VarAccessOp.VarStoreOp.class,
                 blockParameterP(),
-                opP(CoreOp.AddOp.class,
-                        opP(VarLoadOp.class, blockParameterP()),
+                opP(JavaOp.AddOp.class,
+                        opP(CoreOp.VarAccessOp.VarLoadOp.class, blockParameterP()),
                         opResultP()));
 
         // Match against last store op

@@ -26,8 +26,14 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.*;
-import jdk.incubator.code.type.*;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreTypeFactory;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.*;
 import java.util.function.Consumer;
 

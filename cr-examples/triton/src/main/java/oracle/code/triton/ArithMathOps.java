@@ -26,8 +26,10 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.*;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
