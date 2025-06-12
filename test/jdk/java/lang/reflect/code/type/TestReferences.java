@@ -22,27 +22,27 @@
  */
 
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.*;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
+import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.CodeReflection;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 /*
  * @test
- * @modules jdk.incubator.code/jdk.incubator.code.type.impl
+ * @modules jdk.incubator.code/jdk.incubator.code.dialect.java.impl
  * @run testng TestReferences
  */
 
 public class TestReferences {
+
+    interface X {
+        Object value();
+    }
+
+    interface Y extends X {
+        Boolean value();
+    }
 
     @DataProvider
     public Object[][] methodRefs() {

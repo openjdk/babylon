@@ -39,13 +39,13 @@ import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
 import jdk.incubator.code.internal.ReflectMethods;
-import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.op.OpFactory;
-import jdk.incubator.code.type.CoreTypeFactory;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.TypeElementFactory;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.core.CoreTypeFactory;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.writer.OpWriter;
 import jdk.internal.access.SharedSecrets;
 
@@ -546,7 +546,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
         opMethod.setAccessible(true);
         try {
-            FuncOp funcOp = (FuncOp) opMethod.invoke(null, ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
+            FuncOp funcOp = (FuncOp) opMethod.invoke(null, JavaOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

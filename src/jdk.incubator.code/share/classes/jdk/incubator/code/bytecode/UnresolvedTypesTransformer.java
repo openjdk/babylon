@@ -30,12 +30,9 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.ArrayType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.PrimitiveType;
-import jdk.incubator.code.type.VarType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.core.VarType;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -127,11 +124,11 @@ final class UnresolvedTypesTransformer {
             int i = op.operands().indexOf(v);
             if (i >= 0) {
                 changed |= switch (op) {
-                    case CoreOp.LshlOp _, CoreOp.LshrOp _, CoreOp.AshrOp _ ->
+                    case JavaOp.LshlOp _, JavaOp.LshrOp _, JavaOp.AshrOp _ ->
                         i == 0 && resolveTo(ut, op.resultType());
-                    case CoreOp.BinaryOp bo ->
+                    case JavaOp.BinaryOp bo ->
                         resolveTo(ut, bo.resultType());
-                    case CoreOp.InvokeOp io -> {
+                    case JavaOp.InvokeOp io -> {
                         MethodRef id = io.invokeDescriptor();
                         if (io.hasReceiver()) {
                             if (i == 0) yield resolveTo(ut, id.refType());
@@ -139,7 +136,7 @@ final class UnresolvedTypesTransformer {
                         }
                         yield resolveTo(ut, id.type().parameterTypes().get(i));
                     }
-                    case CoreOp.FieldAccessOp fao ->
+                    case JavaOp.FieldAccessOp fao ->
                         resolveTo(ut, fao.fieldDescriptor().refType());
                     case CoreOp.ReturnOp ro ->
                         resolveTo(ut, ro.ancestorBody().bodyType().returnType());
@@ -147,11 +144,11 @@ final class UnresolvedTypesTransformer {
                         resolveTo(ut, vo.varValueType());
                     case CoreOp.VarAccessOp.VarStoreOp vso ->
                         resolveTo(ut, vso.varType().valueType());
-                    case CoreOp.NewOp no ->
+                    case JavaOp.NewOp no ->
                         resolveTo(ut, no.constructorDescriptor().type().parameterTypes().get(i));
-                    case CoreOp.ArrayAccessOp.ArrayLoadOp alo ->
+                    case JavaOp.ArrayAccessOp.ArrayLoadOp alo ->
                         resolveTo(ut, toArray(alo.resultType()));
-                    case CoreOp.ArrayAccessOp.ArrayStoreOp aso ->
+                    case JavaOp.ArrayAccessOp.ArrayStoreOp aso ->
                         switch (i) {
                             case 0 -> resolveFrom(ut, toArray(aso.operands().get(2).type()));
                             case 2 -> resolveTo(ut, toComponent(aso.operands().get(0).type()));
@@ -183,16 +180,16 @@ final class UnresolvedTypesTransformer {
             }
         } else if (v instanceof Op.Result or) {
             changed |= switch (or.op()) {
-                case CoreOp.UnaryOp uo ->
+                case JavaOp.UnaryOp uo ->
                     resolveFrom(ut, uo.operands().getFirst().type());
-                case CoreOp.BinaryOp bo ->
+                case JavaOp.BinaryOp bo ->
                     resolveFrom(ut, bo.operands().getFirst().type())
                     || resolveFrom(ut, bo.operands().get(1).type());
                 case CoreOp.VarAccessOp.VarLoadOp vlo ->
                     resolveFrom(ut, vlo.varType().valueType());
                 case CoreOp.VarOp vo ->
                     resolveVarOpType(ut, vo);
-                case CoreOp.ArrayAccessOp.ArrayLoadOp alo ->
+                case JavaOp.ArrayAccessOp.ArrayLoadOp alo ->
                     resolveFrom(ut, toComponent(alo.operands().getFirst().type()));
                 default -> false;
             };
@@ -313,11 +310,11 @@ final class UnresolvedTypesTransformer {
                     cc.mapValue(op.result(), block.op(vop.isUninitialized()
                             ? CoreOp.var(vop.varName(), resolvedMap.get(ut))
                             : CoreOp.var(vop.varName(), resolvedMap.get(ut), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
-                case CoreOp.ArrayAccessOp.ArrayLoadOp alop when op.resultType() instanceof UnresolvedType -> {
+                case JavaOp.ArrayAccessOp.ArrayLoadOp alop when op.resultType() instanceof UnresolvedType -> {
                     List<Value> opers = alop.operands();
                     Value array = opers.getFirst();
                     Value index = opers.getLast();
-                    cc.mapValue(op.result(), block.op(CoreOp.arrayLoadOp(cc.getValueOrDefault(array, array), cc.getValueOrDefault(index, index))));
+                    cc.mapValue(op.result(), block.op(JavaOp.arrayLoadOp(cc.getValueOrDefault(array, array), cc.getValueOrDefault(index, index))));
                 }
                 default ->
                     block.op(op);
@@ -329,11 +326,11 @@ final class UnresolvedTypesTransformer {
     private static OpTransformer unifyOperandsTransformer() {
         return (block, op) -> {
             switch (op) {
-                case CoreOp.BinaryTestOp _ ->
+                case JavaOp.BinaryTestOp _ ->
                     unify(block, op, JavaType.INT, JavaType.INT);
-                case CoreOp.LshlOp _, CoreOp.LshrOp _, CoreOp.AshrOp _ ->
+                case JavaOp.LshlOp _, JavaOp.LshrOp _, JavaOp.AshrOp _ ->
                     unify(block, op, op.resultType(), JavaType.INT);
-                case CoreOp.BinaryOp _ ->
+                case JavaOp.BinaryOp _ ->
                     unify(block, op, op.resultType(), op.resultType());
                 default ->
                     block.op(op);
@@ -348,12 +345,12 @@ final class UnresolvedTypesTransformer {
         Value first = operands.getFirst();
         boolean changed = false;
         if (first.type() instanceof PrimitiveType && !first.type().equals(firstType)) {
-            cc.mapValue(first, block.op(CoreOp.conv(firstType, cc.getValueOrDefault(first, first))));
+            cc.mapValue(first, block.op(JavaOp.conv(firstType, cc.getValueOrDefault(first, first))));
             changed = true;
         }
         Value second = operands.get(1);
         if (second.type() instanceof PrimitiveType && !second.type().equals(secondType)) {
-            cc.mapValue(second, block.op(CoreOp.conv(secondType, cc.getValueOrDefault(second, second))));
+            cc.mapValue(second, block.op(JavaOp.conv(secondType, cc.getValueOrDefault(second, second))));
             changed = true;
         }
         if (changed) {

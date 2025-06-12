@@ -11,10 +11,10 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.op.CoreOp.FuncOp;
-import static jdk.incubator.code.op.CoreOp.VarAccessOp.VarLoadOp;
-import static jdk.incubator.code.op.CoreOp.VarAccessOp.VarStoreOp;
-import static jdk.incubator.code.op.CoreOp.VarOp;
+import static jdk.incubator.code.dialect.core.CoreOp.FuncOp;
+import static jdk.incubator.code.dialect.core.CoreOp.VarAccessOp.VarLoadOp;
+import static jdk.incubator.code.dialect.core.CoreOp.VarAccessOp.VarStoreOp;
+import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
 
 /*
  * @test

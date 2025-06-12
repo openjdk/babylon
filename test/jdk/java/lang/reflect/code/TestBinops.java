@@ -31,7 +31,7 @@ import jdk.incubator.code.Op;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandles;

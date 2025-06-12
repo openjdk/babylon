@@ -22,8 +22,9 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.*;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.*;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -339,7 +340,7 @@ final class PartialEvaluator {
                     return co.value();
                 }
             }
-            case CoreOp.InvokeOp co -> {
+            case JavaOp.InvokeOp co -> {
                 MethodType target = resolveToMethodType(l, o.opType());
                 MethodHandles.Lookup il = switch (co.invokeKind()) {
                     case STATIC, INSTANCE -> l;
@@ -351,7 +352,7 @@ final class PartialEvaluator {
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
-            case CoreOp.NewOp no -> {
+            case JavaOp.NewOp no -> {
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 JavaType nType = (JavaType) no.resultType();
                 if (nType instanceof ArrayType at) {
@@ -406,7 +407,7 @@ final class PartialEvaluator {
                 copy.set(two.index(), bc.getValue(o.operands().get(1)));
                 return Collections.unmodifiableList(copy);
             }
-            case CoreOp.FieldAccessOp.FieldLoadOp fo -> {
+            case JavaOp.FieldAccessOp.FieldLoadOp fo -> {
                 if (fo.operands().isEmpty()) {
                     VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
                     return vh.get();
@@ -416,7 +417,7 @@ final class PartialEvaluator {
                     return vh.get(v);
                 }
             }
-            case CoreOp.FieldAccessOp.FieldStoreOp fo -> {
+            case JavaOp.FieldAccessOp.FieldStoreOp fo -> {
                 if (fo.operands().size() == 1) {
                     Object v = bc.getValue(o.operands().get(0));
                     VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
@@ -429,46 +430,46 @@ final class PartialEvaluator {
                 }
                 return null;
             }
-            case CoreOp.InstanceOfOp io -> {
+            case JavaOp.InstanceOfOp io -> {
                 Object v = bc.getValue(o.operands().get(0));
                 return isInstance(l, io.type(), v);
             }
-            case CoreOp.CastOp co -> {
+            case JavaOp.CastOp co -> {
                 Object v = bc.getValue(o.operands().get(0));
                 return cast(l, co.type(), v);
             }
-            case CoreOp.ArrayLengthOp arrayLengthOp -> {
+            case JavaOp.ArrayLengthOp arrayLengthOp -> {
                 Object a = bc.getValue(o.operands().get(0));
                 return Array.getLength(a);
             }
-            case CoreOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp -> {
+            case JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp -> {
                 Object a = bc.getValue(o.operands().get(0));
                 Object index = bc.getValue(o.operands().get(1));
                 return Array.get(a, (int) index);
             }
-            case CoreOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
+            case JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
                 Object a = bc.getValue(o.operands().get(0));
                 Object index = bc.getValue(o.operands().get(1));
                 Object v = bc.getValue(o.operands().get(2));
                 Array.set(a, (int) index, v);
                 return null;
             }
-            case CoreOp.ArithmeticOperation arithmeticOperation -> {
+            case JavaOp.ArithmeticOperation arithmeticOperation -> {
                 MethodHandle mh = opHandle(l, o.opName(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
-            case CoreOp.TestOperation testOperation -> {
+            case JavaOp.TestOperation testOperation -> {
                 MethodHandle mh = opHandle(l, o.opName(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
-            case CoreOp.ConvOp convOp -> {
+            case JavaOp.ConvOp convOp -> {
                 MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
-            case CoreOp.ConcatOp concatOp -> {
+            case JavaOp.ConcatOp concatOp -> {
                 return o.operands().stream()
                         .map(bc::getValue)
                         .map(String::valueOf)
@@ -535,7 +536,7 @@ final class PartialEvaluator {
         return c.cast(v);
     }
 
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, CoreOp.InvokeOp.InvokeKind kind) {
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, JavaOp.InvokeOp.InvokeKind kind) {
         try {
             return d.resolveToHandle(l, kind);
         } catch (ReflectiveOperationException e) {

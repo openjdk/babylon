@@ -27,24 +27,25 @@
  * @run testng TestBlockParameters
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
 
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.JavaType.INT;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.java.JavaType.INT;
 
 public class TestBlockParameters {
     static FuncOp m() {
         return func("f", functionType(INT, INT, INT))
                 .body(fe -> {
-                    LambdaOp lop = lambda(fe.parentBody(), functionType(INT, INT), JavaType.type(FunctionType.class))
+                    JavaOp.LambdaOp lop = JavaOp.lambda(fe.parentBody(), functionType(INT, INT), JavaType.type(FunctionType.class))
                             .body(le -> {
                                 le.op(_return(le.parameters().get(0)));
                             });

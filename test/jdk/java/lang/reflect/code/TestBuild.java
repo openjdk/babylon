@@ -21,6 +21,7 @@
  * questions.
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -28,11 +29,11 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
 import java.util.function.IntBinaryOperator;
 
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.FunctionType.VOID;
-import static jdk.incubator.code.type.JavaType.INT;
-import static jdk.incubator.code.type.JavaType.type;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.FunctionType.VOID;
+import static jdk.incubator.code.dialect.java.JavaType.INT;
+import static jdk.incubator.code.dialect.java.JavaType.type;
 
 /*
  * @test
@@ -43,15 +44,15 @@ import static jdk.incubator.code.type.JavaType.type;
 
 public class TestBuild {
 
-    public LambdaOp f() {
+    public JavaOp.LambdaOp f() {
         IntBinaryOperator ibo = (IntBinaryOperator & Quotable) (a, b) -> a + b;
         Quotable iboq = (Quotable) ibo;
-        return SSA.transform((LambdaOp) Op.ofQuotable(iboq).get().op());
+        return SSA.transform((JavaOp.LambdaOp) Op.ofQuotable(iboq).get().op());
     }
 
     @Test
     public void testBoundValueAsOperand() {
-        LambdaOp f = f();
+        JavaOp.LambdaOp f = f();
 
         var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
@@ -59,14 +60,14 @@ public class TestBuild {
         var a = f.body().entryBlock().parameters().get(0);
         var b = f.body().entryBlock().parameters().get(1);
         // Passing bound values as operands to a new unbound operation
-        var addop = add(a, b);
+        var addop = JavaOp.add(a, b);
 
         Assert.assertThrows(IllegalStateException.class, () -> block.op(addop));
     }
 
     @Test
     public void testBoundValueAsHeaderArgument() {
-        LambdaOp f = f();
+        JavaOp.LambdaOp f = f();
 
         var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
@@ -83,7 +84,7 @@ public class TestBuild {
 
     @Test
     public void testUnmappedBoundValue() {
-        LambdaOp f = f();
+        JavaOp.LambdaOp f = f();
 
         var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
@@ -95,7 +96,7 @@ public class TestBuild {
 
     @Test
     public void testMappingToBoundValue() {
-        LambdaOp f = f();
+        JavaOp.LambdaOp f = f();
 
         var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
@@ -107,14 +108,14 @@ public class TestBuild {
 
     @Test
     public void testMappedBoundValue() {
-        LambdaOp f = f();
+        JavaOp.LambdaOp f = f();
 
         var body = Body.Builder.of(null, f.invokableType());
         var block = body.entryBlock();
 
         var a = block.parameters().get(0);
         var b = block.parameters().get(1);
-        var result = block.op(add(a, b));
+        var result = block.op(JavaOp.add(a, b));
         // Map the bound value used as the operand to the bound return op to
         // the above value
         block.context().mapValue(f.body().entryBlock().firstOp().result(), result);
@@ -131,7 +132,7 @@ public class TestBuild {
 
         Block.Parameter a = block.parameters().get(0);
         Block.Parameter b = block.parameters().get(1);
-        Op.Result result = block.op(add(a, b));
+        Op.Result result = block.op(JavaOp.add(a, b));
 
         // Access the declaring block of values before the block and its body are
         // constructed
@@ -169,7 +170,7 @@ public class TestBuild {
 
         a = anotherBlock.parameters().get(0);
         b = anotherBlock.parameters().get(1);
-        var result = anotherBlock.op(add(a, b));
+        var result = anotherBlock.op(JavaOp.add(a, b));
         anotherBlock.op(_return(result));
 
         var f = func("f", body);
@@ -188,7 +189,7 @@ public class TestBuild {
         var bblock = bbody.entryBlock();
 
         // Operation uses values from another model
-        var addOp = add(aa, ab);
+        var addOp = JavaOp.add(aa, ab);
         Assert.assertThrows(IllegalStateException.class, () -> bblock.op(addOp));
     }
 
@@ -256,7 +257,7 @@ public class TestBuild {
         var body2 = Body.Builder.of(anotherBody, VOID);
         var block2 = body2.entryBlock();
         block2.op(_return());
-        var lambdaOp = lambda(type(Runnable.class), body2);
+        var lambdaOp = JavaOp.lambda(type(Runnable.class), body2);
 
         // Op's grandparent body is not parent body of block1
         Assert.assertThrows(IllegalStateException.class, () -> block1.op(lambdaOp));

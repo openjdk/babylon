@@ -22,11 +22,12 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 
-import static jdk.incubator.code.op.CoreOp.sub;
+import static jdk.incubator.code.dialect.java.JavaOp.sub;
 import static jdk.incubator.code.analysis.Patterns.*;
 
 public final class ExpressionElimination {
@@ -34,15 +35,15 @@ public final class ExpressionElimination {
     }
 
     static OpPattern negP(Pattern operand) {
-        return opP(CoreOp.NegOp.class, operand);
+        return opP(JavaOp.NegOp.class, operand);
     }
 
     static OpPattern addP(Pattern lhs, Pattern rhs) {
-        return opP(CoreOp.AddOp.class, lhs, rhs);
+        return opP(JavaOp.AddOp.class, lhs, rhs);
     }
 
     static OpPattern mulP(Pattern lhs, Pattern rhs) {
-        return opP(CoreOp.MulOp.class, lhs, rhs);
+        return opP(JavaOp.MulOp.class, lhs, rhs);
     }
 
     public static <T extends Op> T eliminate(T f) {

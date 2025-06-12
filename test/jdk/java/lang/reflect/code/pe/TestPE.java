@@ -22,10 +22,10 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
-import java.util.*;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 
@@ -47,7 +47,7 @@ public class TestPE {
     public static Predicate<Op> opConstants() {
         return op -> switch (op) {
             case CoreOp.ConstantOp _ -> true;
-            case CoreOp.InvokeOp _ -> false;
+            case JavaOp.InvokeOp _ -> false;
             case CoreOp.ReturnOp _ -> false;
             default -> op.result() != null;
         };

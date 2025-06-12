@@ -344,9 +344,9 @@ public class SwitchExpressionTest {
                 %7 : java.type:"java.lang.Object" = java.switch.expression %2
                     (%8 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %9 : java.type:"boolean" = pattern.match %8
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A>" -> {
-                                %10 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
-                                %11 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %10 @java.ref:"(java.lang.Number n)SwitchExpressionTest$A";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" -> {
+                                %10 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %10 @java.ref:"(java.lang.Number n)SwitchExpressionTest$A";
                                 yield %11;
                             }
                             (%12 : java.type:"java.lang.Number")java.type:"void" -> {
@@ -361,8 +361,8 @@ public class SwitchExpressionTest {
                     }
                     (%14 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %15 : java.type:"boolean" = pattern.match %14
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %16 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %16 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %16;
                             }
                             (%17 : java.type:"java.lang.String")java.type:"void" -> {
@@ -414,9 +414,9 @@ public class SwitchExpressionTest {
                 %9 : java.type:"java.lang.Object" = java.switch.expression %2
                     (%10 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %11 : java.type:"boolean" = pattern.match %10
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A>" -> {
-                                %12 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
-                                %13 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %12 @java.ref:"(java.lang.Number n)SwitchExpressionTest$A";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" -> {
+                                %12 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                %13 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %12 @java.ref:"(java.lang.Number n)SwitchExpressionTest$A";
                                 yield %13;
                             }
                             (%14 : java.type:"java.lang.Number")java.type:"void" -> {
@@ -433,8 +433,8 @@ public class SwitchExpressionTest {
                         %17 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
                                 %18 : java.type:"boolean" = pattern.match %16
-                                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                        %19 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                        %19 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                         yield %19;
                                     }
                                     (%20 : java.type:"java.lang.String")java.type:"void" -> {
@@ -460,8 +460,8 @@ public class SwitchExpressionTest {
                         %27 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
                                 %28 : java.type:"boolean" = pattern.match %26
-                                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                        %29 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                        %29 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                         yield %29;
                                     }
                                     (%30 : java.type:"java.lang.String")java.type:"void" -> {

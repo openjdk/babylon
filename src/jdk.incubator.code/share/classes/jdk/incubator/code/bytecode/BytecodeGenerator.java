@@ -32,7 +32,6 @@ import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import java.lang.classfile.attribute.ConstantValueAttribute;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.Constable;
 import java.lang.constant.ConstantDescs;
@@ -52,18 +51,14 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.CoreOp.*;
-import jdk.incubator.code.op.OpFactory;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp.*;
+import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.type.ArrayType;
-import jdk.incubator.code.type.FieldRef;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.PrimitiveType;
-import jdk.incubator.code.type.TypeElementFactory;
-import jdk.incubator.code.type.VarType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.core.VarType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -74,6 +69,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.lang.constant.ConstantDescs.*;
+import static jdk.incubator.code.dialect.java.JavaOp.*;
 
 /**
  * Transformer of code models to bytecode.
