@@ -43,10 +43,11 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.FieldRef;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.FieldRef;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
@@ -181,7 +182,7 @@ public final class OnnxRuntime {
                 .toList();
         List<Tensor> ret = model.run(arena, arguments);
 
-        ClassType retType = ((ClassType)((CoreOp.LambdaOp)q.op()).invokableType().returnType()).rawType();
+        ClassType retType = ((ClassType)((JavaOp.LambdaOp)q.op()).invokableType().returnType()).rawType();
         if (retType.equals(TENSOR_RAW_TYPE)) {
             return (T)ret.getFirst();
         } else if(retType.equals(LIST_RAW_TYPE)) {

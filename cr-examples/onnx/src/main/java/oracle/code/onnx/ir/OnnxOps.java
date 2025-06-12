@@ -27,7 +27,7 @@
 package oracle.code.onnx.ir;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.OpFactory;
+import jdk.incubator.code.dialect.OpFactory;
 
 import java.util.*;
 import oracle.code.onnx.Tensor;
