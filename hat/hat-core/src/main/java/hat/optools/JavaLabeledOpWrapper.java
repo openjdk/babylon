@@ -24,12 +24,12 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 
-public class JavaLabeledOpWrapper extends StructuralOpWrapper<ExtendedOp.JavaLabeledOp> {
-    public JavaLabeledOpWrapper( MethodHandles.Lookup lookup,ExtendedOp.JavaLabeledOp op) {
+public class JavaLabeledOpWrapper extends StructuralOpWrapper<JavaOp.JavaLabeledOp> {
+    public JavaLabeledOpWrapper( MethodHandles.Lookup lookup,JavaOp.JavaLabeledOp op) {
         super(lookup,op);
     }
 

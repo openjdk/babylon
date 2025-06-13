@@ -37,10 +37,10 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
 
 import java.lang.annotation.Annotation;
 import java.lang.foreign.Arena;
@@ -93,9 +93,9 @@ public abstract class FFIBackend extends FFIBackendDriver {
     }
 
     static void wrapInvoke(InvokeOpWrapper iow, Block.Builder bldr, ComputeContext.WRAPPER wrapper, Value cc, Value iface) {
-        bldr.op(CoreOp.invoke(wrapper.pre, cc, iface));
+        bldr.op(JavaOp.invoke(wrapper.pre, cc, iface));
         bldr.op(iow.op());
-        bldr.op(CoreOp.invoke(wrapper.post, cc, iface));
+        bldr.op(JavaOp.invoke(wrapper.post, cc, iface));
     }
 
     record TypeAndAccess(Annotation[] annotations, Value value, JavaType javaType) {
@@ -135,7 +135,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
     }
 
 
-        record PrePost(MethodRef pre,MethodRef post) {
+        record PrePost(MethodRef pre, MethodRef post) {
             static PrePost access() {
                 return new PrePost(ACCESS.pre, ACCESS.post);
             }
@@ -151,9 +151,9 @@ public abstract class FFIBackend extends FFIBackendDriver {
             void apply(Block.Builder bldr, CopyContext bldrCntxt, Value computeContext, InvokeOpWrapper invokeOW) {
                 if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
                     Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
-                    bldr.op(CoreOp.invoke(MUTATE.pre, computeContext, iface));  // cc->preMutate(iface);
+                    bldr.op(JavaOp.invoke(MUTATE.pre, computeContext, iface));  // cc->preMutate(iface);
                     bldr.op(invokeOW.op());                         // iface.v(newV);
-                    bldr.op(CoreOp.invoke(MUTATE.post, computeContext, iface));
+                    bldr.op(JavaOp.invoke(MUTATE.post, computeContext, iface));
                 }
             }
         }
@@ -172,14 +172,14 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 Value cc = bldrCntxt.getValue(prevFOW.parameter(0));
                 if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
                     Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
-                    bldr.op(CoreOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
+                    bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
                     bldr.op(invokeOW.op());                         // iface.v(newV);
-                    bldr.op(CoreOp.invoke(MUTATE.post, cc, iface)); // cc->postMutate(iface)
+                    bldr.op(JavaOp.invoke(MUTATE.post, cc, iface)); // cc->postMutate(iface)
                 } else if (invokeOW.isIfaceAccessor()) {            // iface.v()
                     Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
-                    bldr.op(CoreOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
+                    bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
                     bldr.op(invokeOW.op());                         // iface.v();
-                    bldr.op(CoreOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
+                    bldr.op(JavaOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
                 } else if (invokeOW.isComputeContextMethod() || invokeOW.isRawKernelCall()) { //dispatchKernel
                     bldr.op(invokeOW.op());
                 } else {
@@ -202,11 +202,11 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                 .filter(typeAndAccess -> typeAndAccess.isIface(prevFOW.lookup))//InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
                                 .forEach(typeAndAccess -> {
                                      if (typeAndAccess.ro()) {
-                                         bldr.op(CoreOp.invoke(ACCESS.pre, cc,  bldrCntxt.getValue(typeAndAccess.value)));
+                                         bldr.op(JavaOp.invoke(ACCESS.pre, cc,  bldrCntxt.getValue(typeAndAccess.value)));
                                   //   }else if (typeAndAccess.wo()||typeAndAccess.rw()) {
                                     //     bldr.op(CoreOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                      }else {
-                                         bldr.op(CoreOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                         bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                      }
                                 });
                         //  invokeOW.op().operands().stream()
@@ -219,11 +219,11 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                 .filter(typeAndAccess -> InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
                                 .forEach(typeAndAccess -> {
                                     if (typeAndAccess.ro()) {
-                                        bldr.op(CoreOp.invoke(ACCESS.post, cc,  bldrCntxt.getValue(typeAndAccess.value)));
+                                        bldr.op(JavaOp.invoke(ACCESS.post, cc,  bldrCntxt.getValue(typeAndAccess.value)));
                                  //   }else if (typeAndAccess.rw() || typeAndAccess.wo()) {
                                  //       bldr.op(CoreOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                     }else {
-                                        bldr.op(CoreOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
+                                        bldr.op(JavaOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                     }
                                 });
                     }else{

@@ -29,6 +29,7 @@
  */
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -37,8 +38,8 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
@@ -108,7 +109,7 @@ public class TestTransitiveInvokeModule {
             }
 
             CoreOp.FuncOp tf = rf.f.transform(rf.r.toString(), (block, op) -> {
-                if (op instanceof CoreOp.InvokeOp iop) {
+                if (op instanceof JavaOp.InvokeOp iop) {
                     MethodRef r = iop.invokeDescriptor();
                     Method em = null;
                     try {

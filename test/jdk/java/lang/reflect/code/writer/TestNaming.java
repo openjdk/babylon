@@ -30,16 +30,15 @@
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.io.StringWriter;
 import java.lang.reflect.Method;
 import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.writer.OpWriter;
 import jdk.incubator.code.CodeReflection;
-import java.util.Map;
+
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;

@@ -29,17 +29,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
 import jdk.incubator.code.TypeElement.ExternalizedTypeElement;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.parser.impl.Tokens.TokenKind;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.op.*;
+import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.parser.impl.DescParser;
 import jdk.incubator.code.parser.impl.Lexer;
 import jdk.incubator.code.parser.impl.Scanner;
 import jdk.incubator.code.parser.impl.Tokens;
-import jdk.incubator.code.type.CoreTypeFactory;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.TypeElementFactory;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
+import jdk.incubator.code.dialect.core.CoreTypeFactory;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -177,7 +180,7 @@ public final class OpParser {
      */
     //@@@ visit return type
     public static Op fromStringOfFuncOp(String in) {
-        Op op = fromString(ExtendedOp.FACTORY, in).get(0);
+        Op op = fromString(JavaOp.FACTORY, in).get(0);
         if (!(op instanceof CoreOp.FuncOp)) {
             throw new IllegalArgumentException("Op is not a FuncOp: " + op);
         }

@@ -29,7 +29,7 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.StructuralOpWrapper;
 
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
 
 
 public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {

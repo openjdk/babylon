@@ -33,7 +33,7 @@ import org.testng.annotations.Test;
 
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.reflect.Method;

@@ -28,8 +28,8 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

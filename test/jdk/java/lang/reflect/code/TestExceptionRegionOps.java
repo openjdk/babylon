@@ -27,29 +27,30 @@
  * @run testng TestExceptionRegionOps
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-import static jdk.incubator.code.op.CoreOp._return;
-import static jdk.incubator.code.op.CoreOp._throw;
-import static jdk.incubator.code.op.CoreOp.branch;
-import static jdk.incubator.code.op.CoreOp.constant;
-import static jdk.incubator.code.op.CoreOp.exceptionRegionEnter;
-import static jdk.incubator.code.op.CoreOp.exceptionRegionExit;
-import static jdk.incubator.code.op.CoreOp.func;
-import static jdk.incubator.code.type.FunctionType.*;
-import static jdk.incubator.code.type.JavaType.*;
-import static jdk.incubator.code.type.JavaType.VOID;
+import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.java.JavaOp._throw;
+import static jdk.incubator.code.dialect.core.CoreOp.branch;
+import static jdk.incubator.code.dialect.core.CoreOp.constant;
+import static jdk.incubator.code.dialect.java.JavaOp.exceptionRegionEnter;
+import static jdk.incubator.code.dialect.java.JavaOp.exceptionRegionExit;
+import static jdk.incubator.code.dialect.core.CoreOp.func;
+import static jdk.incubator.code.dialect.core.FunctionType.*;
+import static jdk.incubator.code.dialect.java.JavaType.*;
+import static jdk.incubator.code.dialect.java.JavaType.VOID;
 
 public class TestExceptionRegionOps {
 
@@ -86,8 +87,8 @@ public class TestExceptionRegionOps {
 
                     // Start of exception region
                     enterER1.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(end.successor(),
                             catchER1ISE.successor(), catchER1IAE.successor()));
@@ -95,22 +96,22 @@ public class TestExceptionRegionOps {
 
                     // First catch block for exception region
                     catchER1ISE.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     // Second catch for exception region
                     catchER1IAE.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     //
                     end.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_return());
                     });
                 });
@@ -178,8 +179,8 @@ public class TestExceptionRegionOps {
 
                     // Start of exception region
                     enterER1.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(end.successor(),
                             catchER1ISE.successor(), catchER1T.successor()));
@@ -188,22 +189,22 @@ public class TestExceptionRegionOps {
 
                     // First catch block for exception region
                     catchER1ISE.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     // Second catch for exception region
                     catchER1T.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     //
                     end.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_return());
                     });
                 });
@@ -276,8 +277,8 @@ public class TestExceptionRegionOps {
 
                     // Start of first exception region
                     enterER1.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                     });
                     enterER1.op(exceptionRegionEnter(
                             enterER2.successor(),
@@ -285,8 +286,8 @@ public class TestExceptionRegionOps {
 
                     // Start of second exception region
                     enterER2.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of second exception region
                         b.op(exceptionRegionExit(b3.successor(),
                             catchER2.successor()));
@@ -294,14 +295,14 @@ public class TestExceptionRegionOps {
 
                     // Catch block for second exception region
                     catchER2.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(b3.successor()));
                     });
 
                     b3.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of first exception region
                         b.op(exceptionRegionExit(end.successor(),
                             catchER1.successor()));
@@ -309,15 +310,15 @@ public class TestExceptionRegionOps {
 
                     // Catch block for first exception region
                     catchER1.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 4))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 4))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     //
                     end.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 5))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 5))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_return());
                     });
                 });
@@ -400,16 +401,16 @@ public class TestExceptionRegionOps {
 
                     // Start of exception region
                     enterER1.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 0))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(exitER1.successor(),
                             catchRE.successor(), catchAll.successor()));
                     });
                     // Inline finally
                     exitER1.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
@@ -419,30 +420,30 @@ public class TestExceptionRegionOps {
                             catchAll.successor()));
                     // Start of exception region
                     enterER2.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         // End of exception region
                         b.op(exceptionRegionExit(exitER2.successor(),
                             catchAll.successor()));
                     });
                     // Inline finally
                     exitER2.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(branch(end.successor()));
                     });
 
                     // Catch all block for finally
                     catchAll.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_throw(catchAll.parameters().get(0)));
                     });
 
                     //
                     end.ops(b -> {
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
-                        b.op(CoreOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
+                        b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
                         b.op(_return());
                     });
                 });

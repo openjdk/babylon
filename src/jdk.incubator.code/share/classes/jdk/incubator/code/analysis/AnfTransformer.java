@@ -26,9 +26,9 @@
 package jdk.incubator.code.analysis;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.AnfDialect;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.dialect.anf.AnfDialect;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
 import java.util.*;
 import java.util.function.Function;
 

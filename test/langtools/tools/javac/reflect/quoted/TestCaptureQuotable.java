@@ -30,7 +30,7 @@
 
 import org.testng.annotations.*;
 
-import jdk.incubator.code.op.CoreOp.Var;
+import jdk.incubator.code.dialect.core.CoreOp.Var;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;

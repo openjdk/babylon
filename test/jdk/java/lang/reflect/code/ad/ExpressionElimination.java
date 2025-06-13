@@ -22,14 +22,14 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-import static jdk.incubator.code.op.CoreOp.sub;
+import static jdk.incubator.code.dialect.java.JavaOp.sub;
 import static jdk.incubator.code.analysis.Patterns.*;
 
 public final class ExpressionElimination {
@@ -39,15 +39,15 @@ public final class ExpressionElimination {
     static final JavaType J_L_MATH = JavaType.type(Math.class);
 
     static OpPattern negP(Pattern operand) {
-        return opP(CoreOp.NegOp.class, operand);
+        return opP(JavaOp.NegOp.class, operand);
     }
 
     static OpPattern addP(Pattern lhs, Pattern rhs) {
-        return opP(CoreOp.AddOp.class, lhs, rhs);
+        return opP(JavaOp.AddOp.class, lhs, rhs);
     }
 
     static OpPattern mulP(Pattern lhs, Pattern rhs) {
-        return opP(CoreOp.MulOp.class, lhs, rhs);
+        return opP(JavaOp.MulOp.class, lhs, rhs);
     }
 
     public static <T extends Op> T eliminate(T f) {
@@ -100,7 +100,7 @@ public final class ExpressionElimination {
             if (op instanceof Op.Pure) {
                 return true;
             } else {
-                return op instanceof CoreOp.InvokeOp c && c.invokeDescriptor().refType().equals(J_L_MATH);
+                return op instanceof JavaOp.InvokeOp c && c.invokeDescriptor().refType().equals(J_L_MATH);
             }
         };
 

@@ -24,13 +24,13 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
-public class ForOpWrapper extends LoopOpWrapper<ExtendedOp.JavaForOp> {
-    ForOpWrapper( MethodHandles.Lookup lookup,ExtendedOp.JavaForOp op) {
+public class ForOpWrapper extends LoopOpWrapper<JavaOp.JavaForOp> {
+    ForOpWrapper( MethodHandles.Lookup lookup,JavaOp.JavaForOp op) {
         super(lookup,op);
     }
 

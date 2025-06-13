@@ -13,8 +13,9 @@ import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.*;
 import com.sun.tools.javac.util.List;
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.*;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.*;
 
 import java.util.*;
 
@@ -78,8 +79,8 @@ public class CodeModelToAST {
         };
     }
 
-    private JCTree invokeOpToJCMethodInvocation(CoreOp.InvokeOp invokeOp) {
-        Value receiver = (invokeOp.invokeKind() == CoreOp.InvokeOp.InvokeKind.INSTANCE) ?
+    private JCTree invokeOpToJCMethodInvocation(JavaOp.InvokeOp invokeOp) {
+        Value receiver = (invokeOp.invokeKind() == JavaOp.InvokeOp.InvokeKind.INSTANCE) ?
                 invokeOp.operands().get(0) : null;
         List<Value> arguments = invokeOp.operands().stream()
                 .skip(receiver == null ? 0 : 1)
@@ -122,9 +123,9 @@ public class CodeModelToAST {
 
         java.util.List<Value> rootValues = funcOp.traverse(new ArrayList<>(), (l, ce) -> {
             boolean isRoot = switch (ce) {
-                case CoreOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_OP)
+                case JavaOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_OP)
                         || invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_PARAM) -> true;
-                case CoreOp.ReturnOp _, CoreOp.ArrayAccessOp.ArrayStoreOp _ -> true;
+                case CoreOp.ReturnOp _, JavaOp.ArrayAccessOp.ArrayStoreOp _ -> true;
                 case Op op when op.result() != null && op.result().uses().size() > 1 -> true;
                 default -> false;
             };
@@ -162,8 +163,8 @@ public class CodeModelToAST {
             case CoreOp.ConstantOp constantOp when constantOp.value() == null ->
                     treeMaker.Literal(TypeTag.BOT, null).setType(syms.botType);
             case CoreOp.ConstantOp constantOp -> treeMaker.Literal(constantOp.value());
-            case CoreOp.InvokeOp invokeOp -> invokeOpToJCMethodInvocation(invokeOp);
-            case CoreOp.NewOp newOp when newOp.resultType() instanceof ArrayType at -> {
+            case JavaOp.InvokeOp invokeOp -> invokeOpToJCMethodInvocation(invokeOp);
+            case JavaOp.NewOp newOp when newOp.resultType() instanceof ArrayType at -> {
                 var elemType = treeMaker.Ident(typeElementToType(at.componentType()).tsym);
                 var dims = new ListBuffer<JCTree.JCExpression>();
                 for (int d = 0; d < at.dimensions(); d++) {
@@ -173,7 +174,7 @@ public class CodeModelToAST {
                 na.type = typeElementToType(at);
                 yield na;
             }
-            case CoreOp.NewOp newOp -> {
+            case JavaOp.NewOp newOp -> {
                 var ownerType = typeElementToType(newOp.constructorDescriptor().refType());
                 var clazz = treeMaker.Ident(ownerType.tsym);
                 var args = new ListBuffer<JCTree.JCExpression>();
@@ -191,12 +192,12 @@ public class CodeModelToAST {
             }
             case CoreOp.ReturnOp returnOp ->
                     treeMaker.Return(toExpr(opToTree(returnOp.returnValue())));
-            case CoreOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
+            case JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
                 var sym = fieldDescriptorToSymbol(fieldLoadOp.fieldDescriptor());
                 Assert.check(sym.isStatic());
                 yield treeMaker.Select(treeMaker.Ident(sym.owner), sym);
             }
-            case CoreOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
+            case JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
                 var array = arrayStoreOp.operands().get(0);
                 var index = arrayStoreOp.operands().get(1);
                 var val = arrayStoreOp.operands().get(2);

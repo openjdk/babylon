@@ -23,11 +23,11 @@
 
 package oracle.code.triton;
 
+import jdk.incubator.code.dialect.java.JavaType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
