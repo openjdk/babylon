@@ -38,6 +38,7 @@ import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
+import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -539,14 +540,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         Method opMethod;
         try {
             // @@@ Use method handle with full power mode
-            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName, OpFactory.class,
-                    TypeElementFactory.class);
+            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName, DialectFactory.class);
         } catch (NoSuchMethodException e) {
             return Optional.empty();
         }
         opMethod.setAccessible(true);
         try {
-            FuncOp funcOp = (FuncOp) opMethod.invoke(null, JavaOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
+            FuncOp funcOp = (FuncOp) opMethod.invoke(null, JavaOp.DIALECT_FACTORY);
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

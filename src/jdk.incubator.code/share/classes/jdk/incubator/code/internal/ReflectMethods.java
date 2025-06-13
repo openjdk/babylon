@@ -275,11 +275,9 @@ public class ReflectMethods extends TreeTranslator {
                         JCMethodInvocation lookup = make.App(make.Ident(crSyms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
                         interpreterArgs.append(lookup);
                         // Get the func operation
-                        JCFieldAccess opFactory = make.Select(make.Ident(crSyms.javaOpType.tsym),
-                                crSyms.javaOpFactorySym);
-                        JCFieldAccess typeFactory = make.Select(make.Ident(crSyms.coreTypeFactoryType.tsym),
-                                crSyms.coreTypeFactorySym);
-                        JCMethodInvocation op = make.App(opMethodId, com.sun.tools.javac.util.List.of(opFactory, typeFactory));
+                        JCFieldAccess dialectFactory = make.Select(make.Ident(crSyms.javaOpType.tsym),
+                                crSyms.javaDialectFactorySym);
+                        JCMethodInvocation op = make.App(opMethodId, com.sun.tools.javac.util.List.of(dialectFactory));
                         interpreterArgs.append(op);
                         // Append captured vars
                         ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
@@ -413,7 +411,7 @@ public class ReflectMethods extends TreeTranslator {
     private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
         switch (codeModelStorageOption) {
             case TEXT -> {
-                var paramTypes = com.sun.tools.javac.util.List.of(crSyms.opFactoryType, crSyms.typeElementFactoryType);
+                var paramTypes = com.sun.tools.javac.util.List.of(crSyms.dialectFactoryType);
                 var mt = new MethodType(paramTypes, crSyms.opType,
                         com.sun.tools.javac.util.List.nil(), syms.methodClass);
                 var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currentClassSym);

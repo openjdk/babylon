@@ -49,12 +49,9 @@ public class CodeReflectionSymbols {
     public final MethodSymbol methodHandlesLookup;
     public final Type opType;
     public final Type funcOpType;
-    public final Type opFactoryType;
-    public final Type typeElementFactoryType;
+    public final Type dialectFactoryType;
     public final Type javaOpType;
-    public final Type coreTypeFactoryType;
-    public final Symbol.VarSymbol javaOpFactorySym;
-    public final Symbol.VarSymbol coreTypeFactorySym;
+    public final Symbol.VarSymbol javaDialectFactorySym;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -84,13 +81,9 @@ public class CodeReflectionSymbols {
                 syms.methodHandlesType.tsym);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
         syms.synthesizeEmptyInterfaceIfMissing(quotableType);
-        opFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.OpFactory");
-        typeElementFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.TypeElementFactory");
+        dialectFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.DialectFactory");
         javaOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.java.JavaOp");
-        coreTypeFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.core.CoreTypeFactory");
-        javaOpFactorySym = new Symbol.VarSymbol(PUBLIC | STATIC, names.fromString("FACTORY"), opFactoryType,
-                javaOpType.tsym);
-        coreTypeFactorySym = new Symbol.VarSymbol(PUBLIC | STATIC, names.fromString("CORE_TYPE_FACTORY"), typeElementFactoryType,
-                coreTypeFactoryType.tsym);
+        javaDialectFactorySym = new Symbol.VarSymbol(PUBLIC | STATIC, names.fromString("DIALECT_FACTORY"),
+                dialectFactoryType, javaOpType.tsym);
     }
 }

@@ -430,12 +430,9 @@ import sun.invoke.util.Wrapper;
                     if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
                         mtype = mtype.insertParameterTypes(0, implClass);
                     }
-                    // load arguments to quotableOpGetter: ExtendedOp.FACTORY and CORE_TYPE_FACTORY
+                    // load arguments to quotableOpGetter: JavaOp.DIALECT_FACTORY
                     cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.JAVA_OP_CLASS.describeConstable().get(),
-                            "FACTORY", CodeReflectionSupport.OP_FACTORY_CLASS.describeConstable().get());
-                    cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.CORE_TYPE_FACTORY_CLASS.describeConstable().get(),
-                            "CORE_TYPE_FACTORY",
-                            CodeReflectionSupport.TYPE_ELEMENT_FACTORY_CLASS.describeConstable().get());
+                            "DIALECT_FACTORY", CodeReflectionSupport.DIALECT_FACTORY.describeConstable().get());
                     cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get());
                     cob.checkcast(funcOpClassDesc);
                     cob.putstatic(lambdaClassEntry.asSymbol(), COMPILER_GENERATED_MODEL_FIELD_NAME, funcOpClassDesc);
@@ -507,10 +504,8 @@ import sun.invoke.util.Wrapper;
         static final Class<?> QUOTED_CLASS;
         static final Class<?> QUOTABLE_CLASS;
         static final MethodHandle HANDLE_MAKE_QUOTED;
+        static final Class<?> DIALECT_FACTORY;
         static final Class<?> JAVA_OP_CLASS;
-        static final Class<?> OP_FACTORY_CLASS;
-        static final Class<?> CORE_TYPE_FACTORY_CLASS;
-        static final Class<?> TYPE_ELEMENT_FACTORY_CLASS;
         static final Class<?> FUNC_OP_CLASS;
 
         static {
@@ -524,10 +519,8 @@ import sun.invoke.util.Wrapper;
                 MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
                         MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, FUNC_OP_CLASS, Object[].class));
                 HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
+                DIALECT_FACTORY = cl.loadClass("jdk.incubator.code.dialect.DialectFactory");
                 JAVA_OP_CLASS = cl.loadClass("jdk.incubator.code.dialect.java.JavaOp");
-                OP_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.dialect.OpFactory");
-                CORE_TYPE_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.dialect.core.CoreTypeFactory");
-                TYPE_ELEMENT_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.dialect.TypeElementFactory");
             } catch (Throwable ex) {
                 throw new ExceptionInInitializerError(ex);
             }

@@ -26,6 +26,7 @@
 package jdk.incubator.code.writer;
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.OpFactory;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.TypeElementFactory;
@@ -49,6 +50,12 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
 public class OpBuilder {
 
     static final JavaType J_C_O_EXTERNALIZED_OP = type(ExternalizableOp.ExternalizedOp.class);
+
+    static final MethodRef DIALECT_FACTORY_OP_FACTORY = MethodRef.method(DialectFactory.class, "opFactory",
+            OpFactory.class);
+
+    static final MethodRef DIALECT_FACTORY_TYPE_ELEMENT_FACTORY = MethodRef.method(DialectFactory.class, "typeElementFactory",
+            TypeElementFactory.class);
 
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
             Op.class, ExternalizableOp.ExternalizedOp.class);
@@ -113,8 +120,7 @@ public class OpBuilder {
             J_U_LIST);
 
     static final FunctionType BUILDER_F_TYPE = functionType(type(Op.class),
-            type(OpFactory.class),
-            type(TypeElementFactory.class));
+            type(DialectFactory.class));
 
 
     Map<Value, Value> valueMap;
@@ -126,6 +132,8 @@ public class OpBuilder {
     Map<TypeElement, Value> typeElementMap;
 
     Block.Builder builder;
+
+    Value dialectFactory;
 
     Value opFactory;
 
@@ -152,8 +160,9 @@ public class OpBuilder {
         Body.Builder body = Body.Builder.of(null, BUILDER_F_TYPE);
 
         builder = body.entryBlock();
-        opFactory = builder.parameters().get(0);
-        typeElementFactory = builder.parameters().get(1);
+        dialectFactory = builder.parameters().get(0);
+        opFactory = builder.op(invoke(DIALECT_FACTORY_OP_FACTORY, dialectFactory));
+        typeElementFactory = builder.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactory));
 
         Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
         Value result = buildOp(ancestorBody, op);
