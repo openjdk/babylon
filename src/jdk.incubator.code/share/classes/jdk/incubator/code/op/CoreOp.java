@@ -4495,6 +4495,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         if (!(fblock.ops().getLast() instanceof ReturnOp returnOp)) {
             throw new IllegalArgumentException("Last operation not a ReturnOp");
         }
+        if (returnOp.returnValue() == null) {
+            throw new IllegalArgumentException();
+        }
         if (!returnOp.returnValue().equals(qop.result())) {
             throw new IllegalArgumentException("Argument operation doesn't return the result of QuotedOp");
         }
@@ -4511,7 +4514,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                 throw new IllegalArgumentException();
             } else if (v.uses().size() == 1 && !(v.uses().iterator().next().op() instanceof VarOp) && !operandsAndCaptures.contains(v)) {
                 throw new IllegalArgumentException();
-            } else if (v.uses().size() > 1 && !operandsAndCaptures.contains(v)) {
+            } else if (v.uses().size() > 1 && v.uses().stream().anyMatch(u -> u.op().parentBlock() == fblock)) {
                 throw new IllegalArgumentException();
             }
         };
@@ -4524,6 +4527,9 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         for (Op o : ops) {
             switch (o) {
                 case VarOp varOp -> {
+                    if (varOp.isUninitialized()) {
+                        throw new IllegalArgumentException();
+                    }
                     if (varOp.initOperand() instanceof Op.Result opr && !(opr.op() instanceof ConstantOp)) {
                         throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
                     }
