@@ -35,10 +35,10 @@ public class TestQuoteOp {
         CoreOp.FuncOp fm = Op.ofMethod(f).orElseThrow();
         Op lop = fm.body().entryBlock().ops().stream().filter(op -> op instanceof CoreOp.LambdaOp).findFirst().orElseThrow();
 
-        fm.writeTo(System.out);
+//        fm.writeTo(System.out);
 
         CoreOp.FuncOp funcOp = CoreOp.quoteOp(lop);
-        funcOp.writeTo(System.out);
+//        funcOp.writeTo(System.out);
 
         CoreOp.OpAndValues opAndValues = CoreOp.quotedOp(funcOp);
         // op must have the same structure as lop
@@ -64,10 +64,10 @@ public class TestQuoteOp {
         CoreOp.FuncOp gm = Op.ofMethod(g).orElseThrow();
         Op invOp = gm.body().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.InvokeOp).findFirst().orElseThrow();
 
-        gm.writeTo(System.out);
+//        gm.writeTo(System.out);
 
         CoreOp.FuncOp funcOp = CoreOp.quoteOp(invOp);
-        funcOp.writeTo(System.out);
+//        funcOp.writeTo(System.out);
 
         CoreOp.OpAndValues opAndValues = CoreOp.quotedOp(funcOp);
         Op op = opAndValues.op();
@@ -90,7 +90,7 @@ public class TestQuoteOp {
         Op op = quoted.op();
         CoreOp.QuotedOp qop = ((CoreOp.QuotedOp) op.ancestorBody().parentOp());
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) qop.ancestorBody().parentOp());
-        fop.writeTo(System.out);
+//        fop.writeTo(System.out);
 
         CoreOp.OpAndValues opAndValues = CoreOp.quotedOp(fop);
 
