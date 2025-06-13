@@ -4512,7 +4512,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         Consumer<Value> validate = v -> {
             if (v.uses().isEmpty()) {
                 throw new IllegalArgumentException();
-            } else if (v.uses().size() == 1 && !(v.uses().iterator().next().op() instanceof VarOp) && !operandsAndCaptures.contains(v)) {
+            } else if (v.uses().size() == 1
+                    && !(v.uses().iterator().next().op() instanceof VarOp vop && vop.result().uses().size() >= 1
+                        && vop.result().uses().stream().noneMatch(u -> u.op().parentBlock() == fblock))
+                    && !operandsAndCaptures.contains(v)) {
                 throw new IllegalArgumentException();
             } else if (v.uses().size() > 1 && v.uses().stream().anyMatch(u -> u.op().parentBlock() == fblock)) {
                 throw new IllegalArgumentException();
@@ -4532,10 +4535,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                     }
                     if (varOp.initOperand() instanceof Op.Result opr && !(opr.op() instanceof ConstantOp)) {
                         throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
-                    }
-                    if (!operandsAndCaptures.contains(varOp.result())) {
-                        throw new IllegalArgumentException("Result of VarOp initialized with a block parameter," +
-                                "expected to be an operand or a captured value");
                     }
                 }
                 case ConstantOp cop -> validate.accept(cop.result());
