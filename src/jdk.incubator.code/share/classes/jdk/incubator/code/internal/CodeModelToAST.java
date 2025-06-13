@@ -22,6 +22,10 @@ import java.util.*;
 import static com.sun.tools.javac.code.Flags.*;
 
 public class CodeModelToAST {
+    private static final MethodRef M_BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
+            Op.Result.class, Op.class);
+    private static final MethodRef M_BLOCK_BUILDER_PARAM = MethodRef.method(Block.Builder.class, "parameter",
+            Block.Parameter.class, TypeElement.class);
 
     private final TreeMaker treeMaker;
     private final Names names;
@@ -31,13 +35,8 @@ public class CodeModelToAST {
     private final Types types;
     private final Symbol.ClassSymbol currClassSym;
     private final CodeReflectionSymbols crSym;
-    private Symbol.MethodSymbol ms;
-    private int localVarCount = 0; // used to name variables we introduce in the AST
     private final Map<Value, JCTree> valueToTree = new HashMap<>();
-    private static final MethodRef M_BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
-            Op.Result.class, Op.class);
-    private static final MethodRef M_BLOCK_BUILDER_PARAM = MethodRef.method(Block.Builder.class, "parameter",
-            Block.Parameter.class, TypeElement.class);
+    private int localVarCount = 0; // used to name variables we introduce in the AST
 
     public CodeModelToAST(TreeMaker treeMaker, Names names, Symtab syms, Resolve resolve,
                           Types types, Env<AttrContext> attrEnv, CodeReflectionSymbols crSym) {
@@ -112,9 +111,9 @@ public class CodeModelToAST {
     public JCTree.JCMethodDecl transformFuncOpToAST(CoreOp.FuncOp funcOp, Name methodName) {
         Assert.check(funcOp.body().blocks().size() == 1);
 
-        var paramTypes = List.of(crSym.opFactoryType, crSym.typeElementFactoryType);
+        var paramTypes = List.of(crSym.dialectFactoryType);
         var mt = new Type.MethodType(paramTypes, crSym.opType, List.nil(), syms.methodClass);
-        ms = new Symbol.MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currClassSym);
+        MethodSymbol ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currClassSym);
         currClassSym.members().enter(ms);
 
         for (int i = 0; i < funcOp.parameters().size(); i++) {

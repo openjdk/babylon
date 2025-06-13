@@ -51,13 +51,12 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.*;
-import jdk.incubator.code.dialect.OpFactory;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.parser.OpParser;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.core.VarType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,8 +89,9 @@ public final class BytecodeGenerator {
             StringConcatFactory.class.describeConstable().orElseThrow(),
             "makeConcat",
             CD_CallSite);
-    private static final MethodTypeDesc opMethodDesc = MethodTypeDesc.of(Op.class.describeConstable().get(),
-            OpFactory.class.describeConstable().get(), TypeElementFactory.class.describeConstable().get());
+
+    private static final MethodTypeDesc OP_METHOD_DESC = MethodTypeDesc.of(Op.class.describeConstable().get(),
+            DialectFactory.class.describeConstable().get());
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -165,7 +165,7 @@ public final class BytecodeGenerator {
                 LambdaOp lop = lambdaSink.get(i);
                 if (quotable.get(i)) {
                     // return (FuncOp) OpParser.fromOpString(opText)
-                    clb.withMethod("op$lambda$" + i, opMethodDesc,
+                    clb.withMethod("op$lambda$" + i, OP_METHOD_DESC,
                         ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
                                 .loadConstant(quote(lop).toText())
                                 .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
@@ -900,7 +900,7 @@ public final class BytecodeGenerator {
                                         MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
                                                 className,
                                                 "op$lambda$" + lambdaIndex,
-                                                opMethodDesc)));
+                                                OP_METHOD_DESC)));
                                 quotable.set(lambdaSink.size());
                             } else {
                                 cob.invokedynamic(DynamicCallSiteDesc.of(

@@ -123,7 +123,7 @@ public class TestCodeBuilder {
     static void test(CoreOp.FuncOp fExpected) {
         CoreOp.FuncOp fb = OpBuilder.createBuilderFunction(fExpected);
         CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
-                fb, JavaOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
+                fb, JavaOp.DIALECT_FACTORY);
         Assert.assertEquals(fActual.toText(), fExpected.toText());
     }
 
