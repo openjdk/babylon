@@ -24,13 +24,13 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
-public class LogicalOpWrapper extends BinaryOpWrapper<ExtendedOp.JavaConditionalOp> {
-    LogicalOpWrapper(MethodHandles.Lookup lookup,ExtendedOp.JavaConditionalOp op) {
+public class LogicalOpWrapper extends BinaryOpWrapper<JavaOp.JavaConditionalOp> {
+    LogicalOpWrapper(MethodHandles.Lookup lookup,JavaOp.JavaConditionalOp op) {
         super(lookup,op);
     }
 

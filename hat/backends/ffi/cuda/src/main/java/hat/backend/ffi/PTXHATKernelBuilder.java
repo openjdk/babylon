@@ -31,8 +31,9 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.foreign.MemoryLayout;
 import java.util.ArrayList;
@@ -181,7 +182,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                 switch (wrappedOp.op()){
                     case CoreOp.BranchOp op -> branch(op);
                     case CoreOp.ConditionalBranchOp op -> condBranch(op);
-                    case CoreOp.NegOp op -> neg(op);
+                    case JavaOp.NegOp op -> neg(op);
                     case PTXPtrOp op -> ptxPtr(op);
                     default -> throw new IllegalStateException("op translation doesn't exist");
                 }
@@ -244,22 +245,22 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
 
     PTXHATKernelBuilder symbol(Op op) {
         return switch (op) {
-            case CoreOp.ModOp _ -> rem();
-            case CoreOp.MulOp _ -> mul();
-            case CoreOp.DivOp _ -> div();
-            case CoreOp.AddOp _ -> add();
-            case CoreOp.SubOp _ -> sub();
-            case CoreOp.LtOp _ -> lt();
-            case CoreOp.GtOp _ -> gt();
-            case CoreOp.LeOp _ -> le();
-            case CoreOp.GeOp _ -> ge();
-            case CoreOp.NeqOp _ -> ne();
-            case CoreOp.EqOp _ -> eq();
-            case CoreOp.OrOp _ -> or();
-            case CoreOp.AndOp _ -> and();
-            case CoreOp.XorOp _ -> xor();
-            case CoreOp.LshlOp _ -> shl();
-            case CoreOp.AshrOp _, CoreOp.LshrOp _ -> shr();
+            case JavaOp.ModOp _ -> rem();
+            case JavaOp.MulOp _ -> mul();
+            case JavaOp.DivOp _ -> div();
+            case JavaOp.AddOp _ -> add();
+            case JavaOp.SubOp _ -> sub();
+            case JavaOp.LtOp _ -> lt();
+            case JavaOp.GtOp _ -> gt();
+            case JavaOp.LeOp _ -> le();
+            case JavaOp.GeOp _ -> ge();
+            case JavaOp.NeqOp _ -> ne();
+            case JavaOp.EqOp _ -> eq();
+            case JavaOp.OrOp _ -> or();
+            case JavaOp.AndOp _ -> and();
+            case JavaOp.XorOp _ -> xor();
+            case JavaOp.LshlOp _ -> shl();
+            case JavaOp.AshrOp _, JavaOp.LshrOp _ -> shr();
             default -> throw new IllegalStateException("Unexpected value");
         };
     }
@@ -267,10 +268,10 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     public void binaryOperation(BinaryArithmeticOrLogicOperation op) {
         symbol(op.op());
         if (getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
-                && (op.op() instanceof CoreOp.DivOp || op.op() instanceof CoreOp.MulOp)) {
+                && (op.op() instanceof JavaOp.DivOp || op.op() instanceof JavaOp.MulOp)) {
             rn();
         } else if (!getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
-                && op.op() instanceof CoreOp.MulOp) {
+                && op.op() instanceof JavaOp.MulOp) {
             lo();
         }
         resultType(op.resultType(), true).space();
@@ -438,7 +439,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         bra().space().block(op.successors().getLast().targetBlock());
     }
 
-    public void neg(CoreOp.NegOp op) {
+    public void neg(JavaOp.NegOp op) {
         neg().resultType(op.resultType(), true).space().reg(op.result(), getResultType(op.resultType())).commaSpace().reg(op.operands().getFirst());
     }
 
@@ -507,7 +508,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public PTXRegister getReg(Value val) {
-        if (varToRegMap.get(val) == null && val instanceof Op.Result result && result.op() instanceof CoreOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        if (varToRegMap.get(val) == null && val instanceof Op.Result result && result.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
             return fieldToRegMap.get(getFieldObj(fieldLoadOp.fieldDescriptor().name()));
         }
         if (varToRegMap.containsKey(val)) {

@@ -33,7 +33,8 @@ import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;

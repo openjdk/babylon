@@ -29,8 +29,9 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.MethodRef;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -39,7 +40,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
-    ModuleOpWrapper(MethodHandles.Lookup lookup,CoreOp.ModuleOp op) {
+    ModuleOpWrapper(MethodHandles.Lookup lookup, CoreOp.ModuleOp op) {
         super(lookup,op);
     }
 
@@ -69,7 +70,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
         return invokedMethod;
     } */
 
-     CoreOp.ModuleOp createTransitiveInvokeModule(
+    CoreOp.ModuleOp createTransitiveInvokeModule(
                                                         MethodRef methodRef, CoreOp.FuncOp entryFuncOp) {
         Closure closure = new Closure(new ArrayDeque<>(), new LinkedHashSet<>(), new ArrayList<>());
         closure.work.push(new MethodRefToEntryFuncOpCall(methodRef, entryFuncOp));
@@ -78,7 +79,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
             if (closure.funcsVisited.add(methodRefToEntryFuncOpCall.methodRef)) {
                 CoreOp.FuncOp tf = methodRefToEntryFuncOpCall.funcOp.transform(
                         methodRefToEntryFuncOpCall.methodRef.toString(), (blockBuilder, op) -> {
-                            if (op instanceof CoreOp.InvokeOp invokeOp && OpWrapper.wrap(lookup, invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
+                            if (op instanceof JavaOp.InvokeOp invokeOp && OpWrapper.wrap(lookup, invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
                                 Method invokedMethod = invokeOpWrapper.method();
                                 Optional<CoreOp.FuncOp> optionalInvokedFuncOp = Op.ofMethod(invokedMethod);
                                 if (optionalInvokedFuncOp.isPresent() && OpWrapper.wrap(lookup, optionalInvokedFuncOp.get()) instanceof FuncOpWrapper funcOpWrapper) {
