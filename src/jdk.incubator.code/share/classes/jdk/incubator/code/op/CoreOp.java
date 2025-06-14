@@ -4488,6 +4488,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
         Block fblock = funcOp.body().entryBlock();
 
+        if (fblock.ops().size() < 2) {
+            throw new IllegalArgumentException();
+        }
+
         if (!(fblock.ops().get(fblock.ops().size() - 2) instanceof QuotedOp qop)) {
             throw new IllegalArgumentException("Before last operation is not a QuotedOp");
         }
