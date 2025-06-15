@@ -103,11 +103,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
-import static com.sun.tools.javac.code.Flags.PARAMETER;
-import static com.sun.tools.javac.code.Flags.PUBLIC;
-import static com.sun.tools.javac.code.Flags.STATIC;
-import static com.sun.tools.javac.code.Flags.SYNTHETIC;
+import static com.sun.tools.javac.code.Flags.*;
 import static com.sun.tools.javac.code.Kinds.Kind.MTH;
 import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
@@ -412,7 +408,8 @@ public class ReflectMethods extends TreeTranslator {
             case TEXT -> {
                 var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
                         com.sun.tools.javac.util.List.nil(), syms.methodClass);
-                var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
+                var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
+
                 currentClassSym.members().enter(ms);
                 var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
                         com.sun.tools.javac.util.List.of(make.Literal(op.toText())));

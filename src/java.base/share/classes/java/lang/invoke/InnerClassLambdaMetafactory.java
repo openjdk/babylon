@@ -599,7 +599,7 @@ import sun.invoke.util.Wrapper;
     * Generate method #quoted()
      */
     private void generateQuotedMethod(ClassBuilder clb) {
-        clb.withMethod(NAME_METHOD_QUOTED, CodeReflectionSupport.MTD_Quoted, ACC_PUBLIC + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
+        clb.withMethod(NAME_METHOD_QUOTED, CodeReflectionSupport.MTD_Quoted, ACC_PRIVATE + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
             @Override
             public void accept(CodeBuilder cob) {
                 cob.aload(0)

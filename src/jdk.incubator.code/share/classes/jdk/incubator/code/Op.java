@@ -480,22 +480,28 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
 
     /**
-     * Returns the code model of the Quotable passed in.
-     * @param q the Quotable we want to get its code model.
-     * @return the code model of the Quotable passed in.
-     * @apiNote If the Quotable instance is a proxy instance, then the quoted code model is inaccessible and this method
-     * returns an empty optional.
+     * Returns the quoted code model of the given quotable reference, if present.
+     *
+     * @param q the quotable reference.
+     * @return the quoted code model or an empty optional if the
+     *         quoted code model is unavailable.
+     * @apiNote If the quotable reference is a proxy instance, then the
+     *          quoted code model is unavailable and this method
+     *          returns an empty optional.
      * @since 99
      */
     public static Optional<Quoted> ofQuotable(Quotable q) {
         Object oq = q;
         if (Proxy.isProxyClass(oq.getClass())) {
+            // @@@ The interpreter implements interpretation of
+            // lambdas using a proxy whose invocation handler
+            // supports the internal protocol to access the quoted instance
             oq = Proxy.getInvocationHandler(oq);
         }
 
         Method method;
         try {
-            method = oq.getClass().getMethod("__internal_quoted");
+            method = oq.getClass().getDeclaredMethod("__internal_quoted");
         } catch (NoSuchMethodException e) {
             return Optional.empty();
         }
@@ -511,7 +517,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the code model of the method body, if present.
+     * Returns the code model of the given method's body, if present.
+     *
+     * @param method the method.
      * @return the code model of the method body.
      * @since 99
      */

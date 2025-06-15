@@ -489,7 +489,7 @@ public final class Interpreter {
                                 }
                             }
 
-                            public Quoted __internal_quoted() {
+                            private Quoted __internal_quoted() {
                                 return quoted;
                             }
                         });

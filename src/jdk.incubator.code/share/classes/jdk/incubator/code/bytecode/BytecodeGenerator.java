@@ -164,7 +164,7 @@ public final class BytecodeGenerator {
                 if (quotable.get(i)) {
                     // return (FuncOp) OpParser.fromOpString(opText)
                     clb.withMethod("op$lambda$" + i, OP_METHOD_DESC,
-                        ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
+                        ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
                                 .loadConstant(quote(lop).toText())
                                 .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
                                         "fromStringOfFuncOp",

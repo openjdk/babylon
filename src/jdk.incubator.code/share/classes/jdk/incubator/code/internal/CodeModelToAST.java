@@ -113,7 +113,7 @@ public class CodeModelToAST {
         Assert.check(funcOp.body().blocks().size() == 1);
 
         var mt = new Type.MethodType(List.nil(), crSym.opType, List.nil(), syms.methodClass);
-        MethodSymbol ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currClassSym);
+        MethodSymbol ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currClassSym);
         currClassSym.members().enter(ms);
 
         for (int i = 0; i < funcOp.parameters().size(); i++) {
