@@ -27,7 +27,6 @@ package jdk.incubator.code.dialect.core;
 
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.OpFactory;

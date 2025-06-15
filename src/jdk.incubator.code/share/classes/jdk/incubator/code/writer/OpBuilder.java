@@ -141,9 +141,14 @@ public class OpBuilder {
 
     /**
      * Transform the given code model to one that builds it.
+     * <p>
+     * This method initially applies the function {@code dialectFactoryF} to
+     * the block builder that is used to build resulting code model. The result
+     * is a dialect factory value which is subsequently used to build operations
+     * that construct type elements and operations present in the given code model.
      *
      * @param op the code model.
-     * @param dialectFactoryF a function that produces a value to a dialect factory instance.
+     * @param dialectFactoryF a function that builds code items to produce a dialect factory value.
      * @return the building code model.
      */
     public static FuncOp createBuilderFunction(Op op, Function<Block.Builder, Value> dialectFactoryF) {
