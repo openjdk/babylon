@@ -58,7 +58,6 @@ import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import static java.lang.constant.ConstantDescs.*;
 import static java.lang.invoke.MethodHandleNatives.Constants.NESTMATE_CLASS;
 import static java.lang.invoke.MethodHandleNatives.Constants.STRONG_LOADER_LINK;
-import static java.lang.invoke.MethodType.methodType;
 import jdk.internal.constant.ConstantUtils;
 import jdk.internal.constant.MethodTypeDescImpl;
 import jdk.internal.vm.annotation.Stable;
@@ -430,9 +429,6 @@ import sun.invoke.util.Wrapper;
                     if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
                         mtype = mtype.insertParameterTypes(0, implClass);
                     }
-                    // load arguments to quotableOpGetter: JavaOp.DIALECT_FACTORY
-                    cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.JAVA_OP_CLASS.describeConstable().get(),
-                            "DIALECT_FACTORY", CodeReflectionSupport.DIALECT_FACTORY.describeConstable().get());
                     cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get());
                     cob.checkcast(funcOpClassDesc);
                     cob.putstatic(lambdaClassEntry.asSymbol(), COMPILER_GENERATED_MODEL_FIELD_NAME, funcOpClassDesc);
@@ -504,8 +500,6 @@ import sun.invoke.util.Wrapper;
         static final Class<?> QUOTED_CLASS;
         static final Class<?> QUOTABLE_CLASS;
         static final MethodHandle HANDLE_MAKE_QUOTED;
-        static final Class<?> DIALECT_FACTORY;
-        static final Class<?> JAVA_OP_CLASS;
         static final Class<?> FUNC_OP_CLASS;
 
         static {
@@ -519,8 +513,6 @@ import sun.invoke.util.Wrapper;
                 MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
                         MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, FUNC_OP_CLASS, Object[].class));
                 HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
-                DIALECT_FACTORY = cl.loadClass("jdk.incubator.code.dialect.DialectFactory");
-                JAVA_OP_CLASS = cl.loadClass("jdk.incubator.code.dialect.java.JavaOp");
             } catch (Throwable ex) {
                 throw new ExceptionInInitializerError(ex);
             }

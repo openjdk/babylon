@@ -34,6 +34,7 @@ import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.*;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -119,56 +120,55 @@ public class OpBuilder {
             J_U_MAP,
             J_U_LIST);
 
-    static final FunctionType BUILDER_F_TYPE = functionType(type(Op.class),
-            type(DialectFactory.class));
+    static final FunctionType BUILDER_F_TYPE = functionType(type(Op.class));
 
 
-    Map<Value, Value> valueMap;
+    final Map<Value, Value> valueMap;
 
-    Map<Block, Value> blockMap;
+    final Map<Block, Value> blockMap;
 
-    Map<ExternalizedTypeElement, Value> exTypeElementMap;
+    final Map<ExternalizedTypeElement, Value> exTypeElementMap;
 
-    Map<TypeElement, Value> typeElementMap;
+    final Map<TypeElement, Value> typeElementMap;
 
-    Block.Builder builder;
+    final Block.Builder builder;
 
-    Value dialectFactory;
+    final Value dialectFactory;
 
-    Value opFactory;
+    final Value opFactory;
 
-    Value typeElementFactory;
+    final Value typeElementFactory;
 
     /**
      * Transform the given code model to one that builds it.
      *
-     * @param op the code model
+     * @param op the code model.
+     * @param dialectFactoryF a function that produces a value to a dialect factory instance.
      * @return the building code model.
      */
-    public static FuncOp createBuilderFunction(Op op) {
-        return new OpBuilder().build(op);
+    public static FuncOp createBuilderFunction(Op op, Function<Block.Builder, Value> dialectFactoryF) {
+        return new OpBuilder(dialectFactoryF).build(op);
     }
 
-    OpBuilder() {
+    OpBuilder(Function<Block.Builder, Value> dialectFactoryF) {
         this.valueMap = new HashMap<>();
         this.blockMap = new HashMap<>();
         this.exTypeElementMap = new HashMap<>();
         this.typeElementMap = new HashMap<>();
+
+        Body.Builder body = Body.Builder.of(null, BUILDER_F_TYPE);
+        this.builder = body.entryBlock();
+        this.dialectFactory = dialectFactoryF.apply(builder);
+        this.opFactory = builder.op(invoke(DIALECT_FACTORY_OP_FACTORY, dialectFactory));
+        this.typeElementFactory = builder.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactory));
     }
 
     FuncOp build(Op op) {
-        Body.Builder body = Body.Builder.of(null, BUILDER_F_TYPE);
-
-        builder = body.entryBlock();
-        dialectFactory = builder.parameters().get(0);
-        opFactory = builder.op(invoke(DIALECT_FACTORY_OP_FACTORY, dialectFactory));
-        typeElementFactory = builder.op(invoke(DIALECT_FACTORY_TYPE_ELEMENT_FACTORY, dialectFactory));
-
         Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
         Value result = buildOp(ancestorBody, op);
         builder.op(_return(result));
 
-        return func("builder." + op.opName(), body);
+        return func("builder." + op.opName(), builder.parentBody());
     }
 
 

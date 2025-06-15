@@ -109,10 +109,10 @@ public class CodeModelToAST {
     }
 
     public JCTree.JCMethodDecl transformFuncOpToAST(CoreOp.FuncOp funcOp, Name methodName) {
+        Assert.check(funcOp.parameters().isEmpty());
         Assert.check(funcOp.body().blocks().size() == 1);
 
-        var paramTypes = List.of(crSym.dialectFactoryType);
-        var mt = new Type.MethodType(paramTypes, crSym.opType, List.nil(), syms.methodClass);
+        var mt = new Type.MethodType(List.nil(), crSym.opType, List.nil(), syms.methodClass);
         MethodSymbol ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currClassSym);
         currClassSym.members().enter(ms);
 

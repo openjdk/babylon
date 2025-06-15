@@ -540,13 +540,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         Method opMethod;
         try {
             // @@@ Use method handle with full power mode
-            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName, DialectFactory.class);
+            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
         } catch (NoSuchMethodException e) {
             return Optional.empty();
         }
         opMethod.setAccessible(true);
         try {
-            FuncOp funcOp = (FuncOp) opMethod.invoke(null, JavaOp.DIALECT_FACTORY);
+            FuncOp funcOp = (FuncOp) opMethod.invoke(null);
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

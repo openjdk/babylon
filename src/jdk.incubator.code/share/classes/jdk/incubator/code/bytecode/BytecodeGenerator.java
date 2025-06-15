@@ -51,7 +51,6 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.java.*;
@@ -90,8 +89,7 @@ public final class BytecodeGenerator {
             "makeConcat",
             CD_CallSite);
 
-    private static final MethodTypeDesc OP_METHOD_DESC = MethodTypeDesc.of(Op.class.describeConstable().get(),
-            DialectFactory.class.describeConstable().get());
+    private static final MethodTypeDesc OP_METHOD_DESC = MethodTypeDesc.of(Op.class.describeConstable().get());
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed

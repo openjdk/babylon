@@ -25,7 +25,6 @@
 
 package jdk.incubator.code.internal;
 
-import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.ModuleSymbol;
 import com.sun.tools.javac.code.Symtab;
@@ -48,10 +47,6 @@ public class CodeReflectionSymbols {
     public final MethodSymbol opParserFromString;
     public final MethodSymbol methodHandlesLookup;
     public final Type opType;
-    public final Type funcOpType;
-    public final Type dialectFactoryType;
-    public final Type javaOpType;
-    public final Symbol.VarSymbol javaDialectFactorySym;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -62,7 +57,6 @@ public class CodeReflectionSymbols {
         quotableType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quotable");
         Type opInterpreterType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.interpreter.Interpreter");
         opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
-        funcOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.core.CoreOp$FuncOp");
         opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,
                 names.fromString("invoke"),
                 new MethodType(List.of(syms.methodHandleLookupType, opType, new ArrayType(syms.objectType, syms.arrayClass)), syms.objectType,
@@ -81,9 +75,5 @@ public class CodeReflectionSymbols {
                 syms.methodHandlesType.tsym);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
         syms.synthesizeEmptyInterfaceIfMissing(quotableType);
-        dialectFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.DialectFactory");
-        javaOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.java.JavaOp");
-        javaDialectFactorySym = new Symbol.VarSymbol(PUBLIC | STATIC, names.fromString("DIALECT_FACTORY"),
-                dialectFactoryType, javaOpType.tsym);
     }
 }
