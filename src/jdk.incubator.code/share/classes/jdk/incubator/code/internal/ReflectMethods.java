@@ -87,6 +87,7 @@ import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 import com.sun.tools.javac.util.Options;
 import jdk.incubator.code.*;
+import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.TupleType;
@@ -102,11 +103,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static com.sun.tools.javac.code.Flags.NOOUTERTHIS;
-import static com.sun.tools.javac.code.Flags.PARAMETER;
-import static com.sun.tools.javac.code.Flags.PUBLIC;
-import static com.sun.tools.javac.code.Flags.STATIC;
-import static com.sun.tools.javac.code.Flags.SYNTHETIC;
+import static com.sun.tools.javac.code.Flags.*;
 import static com.sun.tools.javac.code.Kinds.Kind.MTH;
 import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
@@ -275,11 +272,7 @@ public class ReflectMethods extends TreeTranslator {
                         JCMethodInvocation lookup = make.App(make.Ident(crSyms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
                         interpreterArgs.append(lookup);
                         // Get the func operation
-                        JCFieldAccess opFactory = make.Select(make.Ident(crSyms.javaOpType.tsym),
-                                crSyms.javaOpFactorySym);
-                        JCFieldAccess typeFactory = make.Select(make.Ident(crSyms.coreTypeFactoryType.tsym),
-                                crSyms.coreTypeFactorySym);
-                        JCMethodInvocation op = make.App(opMethodId, com.sun.tools.javac.util.List.of(opFactory, typeFactory));
+                        JCMethodInvocation op = make.App(opMethodId);
                         interpreterArgs.append(op);
                         // Append captured vars
                         ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
@@ -413,10 +406,10 @@ public class ReflectMethods extends TreeTranslator {
     private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
         switch (codeModelStorageOption) {
             case TEXT -> {
-                var paramTypes = com.sun.tools.javac.util.List.of(crSyms.opFactoryType, crSyms.typeElementFactoryType);
-                var mt = new MethodType(paramTypes, crSyms.opType,
+                var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
                         com.sun.tools.javac.util.List.nil(), syms.methodClass);
-                var ms = new MethodSymbol(PUBLIC | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
+                var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
+
                 currentClassSym.members().enter(ms);
                 var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
                         com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
@@ -425,7 +418,9 @@ public class ReflectMethods extends TreeTranslator {
                 return md;
             }
             case CODE_BUILDER -> {
-                var opBuilder = OpBuilder.createBuilderFunction(op);
+                var opBuilder = OpBuilder.createBuilderFunction(op,
+                        b -> b.op(JavaOp.fieldLoad(
+                                FieldRef.field(JavaOp.class, "DIALECT_FACTORY", DialectFactory.class))));
                 var cmToASTTransformer = new CodeModelToAST(make, names, syms, resolve, types, typeEnvs.get(currentClassSym), crSyms);
                 return cmToASTTransformer.transformFuncOpToAST(opBuilder, methodName);
             }
