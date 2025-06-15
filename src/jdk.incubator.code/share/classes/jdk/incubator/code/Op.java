@@ -38,15 +38,10 @@ import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
-import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.OpFactory;
-import jdk.incubator.code.dialect.core.CoreTypeFactory;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.writer.OpWriter;
 import jdk.internal.access.SharedSecrets;
 
