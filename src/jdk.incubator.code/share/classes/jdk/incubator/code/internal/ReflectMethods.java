@@ -404,29 +404,34 @@ public class ReflectMethods extends TreeTranslator {
     }
 
     private JCMethodDecl opMethodDecl(Name methodName, CoreOp.FuncOp op, CodeModelStorageOption codeModelStorageOption) {
-        switch (codeModelStorageOption) {
-            case TEXT -> {
-                var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
-                        com.sun.tools.javac.util.List.nil(), syms.methodClass);
-                var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
+        // Create the method that constructs the code model stored in the class file
+        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
+                com.sun.tools.javac.util.List.nil(), syms.methodClass);
+        var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
+        currentClassSym.members().enter(ms);
 
-                currentClassSym.members().enter(ms);
+        // Create the method body
+        var body = switch (codeModelStorageOption) {
+            case TEXT -> {
+                // Code model is stored in textual form as a constant string
+                // and is constructed by parsing the string
                 var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
                         com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
-                var ret = make.Return(opFromStr);
-                var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(ret)));
-                return md;
+                yield make.Return(opFromStr);
             }
             case CODE_BUILDER -> {
+                // Code model is stored as code that builds the code model
+                // using the builder API and public APIs
                 var opBuilder = OpBuilder.createBuilderFunction(op,
                         b -> b.op(JavaOp.fieldLoad(
                                 FieldRef.field(JavaOp.class, "DIALECT_FACTORY", DialectFactory.class))));
-                var cmToASTTransformer = new CodeModelToAST(make, names, syms, resolve, types, typeEnvs.get(currentClassSym), crSyms);
-                return cmToASTTransformer.transformFuncOpToAST(opBuilder, methodName);
+                var cmToASTTransformer = new CodeModelToAST(make, names, syms, resolve, types, typeEnvs.get(currentClassSym));
+                yield cmToASTTransformer.transformFuncOpToAST(opBuilder, ms);
             }
-            case null, default ->
-                    throw new IllegalStateException("unknown code model storage option: " + codeModelStorageOption);
-        }
+        };
+
+        var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
+        return md;
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {

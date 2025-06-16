@@ -33,21 +33,17 @@ public class CodeModelToAST {
     private final Env<AttrContext> attrEnv;
     private final Resolve resolve;
     private final Types types;
-    private final Symbol.ClassSymbol currClassSym;
-    private final CodeReflectionSymbols crSym;
     private final Map<Value, JCTree> valueToTree = new HashMap<>();
     private int localVarCount = 0; // used to name variables we introduce in the AST
 
     public CodeModelToAST(TreeMaker treeMaker, Names names, Symtab syms, Resolve resolve,
-                          Types types, Env<AttrContext> attrEnv, CodeReflectionSymbols crSym) {
+                          Types types, Env<AttrContext> attrEnv) {
         this.treeMaker = treeMaker;
         this.names = names;
         this.syms = syms;
         this.resolve = resolve;
         this.types = types;
         this.attrEnv = attrEnv;
-        this.currClassSym = attrEnv.enclClass.sym;
-        this.crSym = crSym;
     }
 
     private Type typeElementToType(TypeElement jt) {
@@ -108,17 +104,9 @@ public class CodeModelToAST {
         }
     }
 
-    public JCTree.JCMethodDecl transformFuncOpToAST(CoreOp.FuncOp funcOp, Name methodName) {
+    public JCTree.JCStatement transformFuncOpToAST(CoreOp.FuncOp funcOp, MethodSymbol ms) {
         Assert.check(funcOp.parameters().isEmpty());
         Assert.check(funcOp.body().blocks().size() == 1);
-
-        var mt = new Type.MethodType(List.nil(), crSym.opType, List.nil(), syms.methodClass);
-        MethodSymbol ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currClassSym);
-        currClassSym.members().enter(ms);
-
-        for (int i = 0; i < funcOp.parameters().size(); i++) {
-            valueToTree.put(funcOp.parameters().get(i), treeMaker.Ident(ms.params().get(i)));
-        }
 
         java.util.List<Value> rootValues = funcOp.traverse(new ArrayList<>(), (l, ce) -> {
             boolean isRoot = switch (ce) {
@@ -129,7 +117,7 @@ public class CodeModelToAST {
                 default -> false;
             };
             if (isRoot) {
-                l.add(((Op)ce).result());
+                l.add(((Op) ce).result());
             }
             return l;
         });
@@ -150,7 +138,7 @@ public class CodeModelToAST {
         }
         var mb = treeMaker.Block(0, stats.toList());
 
-        return treeMaker.MethodDef(ms, mb);
+        return mb;
     }
 
     private JCTree opToTree(Value v) {
