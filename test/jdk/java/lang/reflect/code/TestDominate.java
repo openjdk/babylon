@@ -347,7 +347,7 @@ public class TestDominate {
                     %18 : java.type:"void" = return;
                 };
                 """;
-        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfFuncOp(m);
+        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
 
         Map<Block, Block> ipdoms = f.body().immediatePostDominators();
         Assert.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));
@@ -388,7 +388,7 @@ public class TestDominate {
                     %18 : java.type:"void" = return;
                 };
                 """;
-        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfFuncOp(m);
+        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
 
         Map<Block, Block> ipdoms = f.body().immediatePostDominators();
         Assert.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));

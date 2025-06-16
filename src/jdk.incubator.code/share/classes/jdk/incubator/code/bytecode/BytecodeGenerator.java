@@ -167,7 +167,7 @@ public final class BytecodeGenerator {
                         ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
                                 .loadConstant(quote(lop).toText())
                                 .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
-                                        "fromStringOfFuncOp",
+                                        "fromStringOfJavaCodeModel",
                                         MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
                                 .areturn()));
                 }
