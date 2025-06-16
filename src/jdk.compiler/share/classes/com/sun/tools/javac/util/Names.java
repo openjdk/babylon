@@ -233,6 +233,9 @@ public class Names {
     public final Name quoted;
     public final Name quotable;
 
+    // special annotation names
+    public final Name requiresIdentityInternal;
+
     public final Name.Table table;
 
     @SuppressWarnings("this-escape")
@@ -422,6 +425,9 @@ public class Names {
         jdk_incubator_code = fromString("jdk.incubator.code");
         quoted = fromString("Quoted");
         quotable = fromString("Quotable");
+
+        // special annotations:
+        requiresIdentityInternal = fromString("jdk.internal.RequiresIdentity+Annotation");
     }
 
     protected Name.Table createTable(Options options) {

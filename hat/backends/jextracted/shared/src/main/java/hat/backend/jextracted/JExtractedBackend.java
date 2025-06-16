@@ -37,8 +37,8 @@ import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.foreign.Arena;
 
@@ -83,9 +83,9 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     }
 
     static void wrapInvoke(InvokeOpWrapper iow, Block.Builder bldr, ComputeContext.WRAPPER wrapper, Value cc, Value iface) {
-        bldr.op(CoreOp.invoke(wrapper.pre, cc, iface));
+        bldr.op(JavaOp.invoke(wrapper.pre, cc, iface));
         bldr.op(iow.op());
-        bldr.op(CoreOp.invoke(wrapper.post, cc, iface));
+        bldr.op(JavaOp.invoke(wrapper.post, cc, iface));
     }
 
     protected static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
@@ -101,27 +101,27 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                 Value cc = bldrCntxt.getValue(prevFOW.parameter(0));
                 if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
                     Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
-                    bldr.op(CoreOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
+                    bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
                     bldr.op(invokeOW.op());                         // iface.v(newV);
-                    bldr.op(CoreOp.invoke(MUTATE.post, cc, iface)); // cc->postMutate(iface)
+                    bldr.op(JavaOp.invoke(MUTATE.post, cc, iface)); // cc->postMutate(iface)
                 } else if (invokeOW.isIfaceAccessor()) {            // iface.v()
                     Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
-                    bldr.op(CoreOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
+                    bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
                     bldr.op(invokeOW.op());                         // iface.v();
-                    bldr.op(CoreOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
+                    bldr.op(JavaOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
                 } else if (invokeOW.isComputeContextMethod() || invokeOW.isRawKernelCall()) { //dispatchKernel
                     bldr.op(invokeOW.op());
                 } else {
                     invokeOW.op().operands().stream()
                             .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
                             .forEach(value ->
-                                    bldr.op(CoreOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(value)))
+                                    bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(value)))
                             );
                     bldr.op(invokeOW.op());
                     invokeOW.op().operands().stream()
                             .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
                             .forEach(value -> bldr.op(
-                                    CoreOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(value)))
+                                    JavaOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(value)))
                             );
                 }
                 return bldr;

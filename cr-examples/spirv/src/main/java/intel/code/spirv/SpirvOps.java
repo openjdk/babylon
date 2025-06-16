@@ -33,10 +33,10 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.FieldRef;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.FieldRef;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 
 public class SpirvOps {
     private static final String NAME_PREFIX = "spirv.";

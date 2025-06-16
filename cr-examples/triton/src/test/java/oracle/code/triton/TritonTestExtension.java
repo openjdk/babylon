@@ -23,6 +23,9 @@
 
 package oracle.code.triton;
 
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -43,9 +46,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
@@ -103,7 +104,7 @@ public class TritonTestExtension implements ParameterResolver {
                     TritonOps.FACTORY.andThen(ArithMathOps.FACTORY)
                             .andThen(TritonTestOps.FACTORY)
                             .andThen(SCFOps.FACTORY)
-                            .andThen(CoreOp.FACTORY),
+                            .andThen(JavaOp.FACTORY),
                     TritonOps.TYPE_FACTORY,
                     tcm.value()).get(0);
         }

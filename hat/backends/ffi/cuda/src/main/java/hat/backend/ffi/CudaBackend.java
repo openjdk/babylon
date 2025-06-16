@@ -36,7 +36,8 @@ import hat.optools.OpWrapper;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -135,7 +136,7 @@ public class CudaBackend extends C99FFIBackend {
         return FuncOpWrapper.wrap(func.lookup,func.op().transform((block, op) -> {
             CopyContext cc = block.context();
             // use first operand of invoke to figure out schema
-            if (op instanceof CoreOp.InvokeOp invokeOp
+            if (op instanceof JavaOp.InvokeOp invokeOp
                     && OpWrapper.wrap(func.lookup,invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
                 if (invokeOpWrapper.isIfaceBufferMethod()
                         && invokeOp.operands().getFirst() instanceof Op.Result invokeResult

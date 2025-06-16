@@ -26,15 +26,19 @@
 package jdk.incubator.code.writer;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.OpFactory;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.type.*;
+import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.*;
+
 import java.util.*;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.JavaType.*;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.java.JavaOp.*;
+import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /**
  * A transformer of code models to models that build them.

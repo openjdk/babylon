@@ -24,6 +24,8 @@
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
+
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.internal.classfile.components.ClassPrinter;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
@@ -36,12 +38,12 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.bytecode.BytecodeLift;
 import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -389,7 +391,7 @@ public class TestBytecode {
     static int consumeQuotable(int i, QuotableFunc f) {
         Assert.assertNotNull(Op.ofQuotable(f).get());
         Assert.assertNotNull(Op.ofQuotable(f).get().op());
-        Assert.assertTrue(Op.ofQuotable(f).get().op() instanceof CoreOp.LambdaOp);
+        Assert.assertTrue(Op.ofQuotable(f).get().op() instanceof JavaOp.LambdaOp);
         return f.apply(i + 1);
     }
 

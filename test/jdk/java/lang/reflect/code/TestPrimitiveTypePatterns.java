@@ -9,21 +9,21 @@ import jdk.incubator.code.Body;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.CodeReflection;
 import java.lang.runtime.ExactConversionsSupport;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.op.ExtendedOp.match;
-import static jdk.incubator.code.op.ExtendedOp.typePattern;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.PrimitiveType.*;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.java.JavaOp.match;
+import static jdk.incubator.code.dialect.java.JavaOp.typePattern;
+import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.java.PrimitiveType.*;
 
 /*
  * @test
@@ -153,7 +153,7 @@ public class TestPrimitiveTypePatterns {
         var expectedConvMethod = conversionMethodRef(sourceType, targetType);
         var actualConvMethod = lmodel.elements()
                 .mapMulti((ce, c) -> {
-                    if (ce instanceof InvokeOp op) {
+                    if (ce instanceof JavaOp.InvokeOp op) {
                         c.accept(op.invokeDescriptor());
                     }
                 })
@@ -375,7 +375,7 @@ public class TestPrimitiveTypePatterns {
 
             var patternVar = fblock.op(var(fblock.op(constant(targetType, defaultValue(targetType)))));
 
-            var pattern = Body.Builder.of(fblock.parentBody(), functionType(ExtendedOp.Pattern.bindingType(targetType)));
+            var pattern = Body.Builder.of(fblock.parentBody(), functionType(JavaOp.Pattern.bindingType(targetType)));
             pattern.entryBlock().op(_yield(
                     pattern.entryBlock().op(typePattern(targetType, null))
             ));

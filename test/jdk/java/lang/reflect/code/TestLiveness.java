@@ -27,6 +27,7 @@
  * @run testng TestLiveness
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -35,8 +36,8 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.Liveness;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.parser.OpParser;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +57,7 @@ public class TestLiveness {
 
     @Test
     public void testF() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, F).getFirst();
+        Op op = OpParser.fromString(JavaOp.FACTORY, F).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -88,7 +89,7 @@ public class TestLiveness {
 
     @Test
     public void testIfElse() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, IF_ELSE).getFirst();
+        Op op = OpParser.fromString(JavaOp.FACTORY, IF_ELSE).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -126,7 +127,7 @@ public class TestLiveness {
 
     @Test
     public void testLoop() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, LOOP).getFirst();
+        Op op = OpParser.fromString(JavaOp.FACTORY, LOOP).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -195,7 +196,7 @@ public class TestLiveness {
 
     @Test
     public void testIfElseNested() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, IF_ELSE_NESTED).getFirst();
+        Op op = OpParser.fromString(JavaOp.FACTORY, IF_ELSE_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -256,7 +257,7 @@ public class TestLiveness {
 
     @Test
     public void testLoopNested() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, LOOP_NESTED).getFirst();
+        Op op = OpParser.fromString(JavaOp.FACTORY, LOOP_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(

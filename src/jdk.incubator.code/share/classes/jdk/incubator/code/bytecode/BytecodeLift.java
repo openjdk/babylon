@@ -25,7 +25,9 @@
 
 package jdk.incubator.code.bytecode;
 
-import jdk.incubator.code.type.*;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.*;
 import jdk.internal.classfile.impl.BytecodeHelpers;
 
 import java.lang.classfile.Attributes;
@@ -52,7 +54,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AccessFlag;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
@@ -255,22 +257,22 @@ public final class BytecodeLift {
                     // Conditional branch
                     Value operand = stack.pop();
                     Op cop = switch (inst.opcode()) {
-                        case IFNE -> CoreOp.eq(operand, liftConstant(0));
-                        case IFEQ -> CoreOp.neq(operand, liftConstant(0));
-                        case IFGE -> CoreOp.lt(operand, liftConstant(0));
-                        case IFLE -> CoreOp.gt(operand, liftConstant(0));
-                        case IFGT -> CoreOp.le(operand, liftConstant(0));
-                        case IFLT -> CoreOp.ge(operand, liftConstant(0));
-                        case IFNULL -> CoreOp.neq(operand, liftConstant(null));
-                        case IFNONNULL -> CoreOp.eq(operand, liftConstant(null));
-                        case IF_ICMPNE -> CoreOp.eq(stack.pop(), operand);
-                        case IF_ICMPEQ -> CoreOp.neq(stack.pop(), operand);
-                        case IF_ICMPGE -> CoreOp.lt(stack.pop(), operand);
-                        case IF_ICMPLE -> CoreOp.gt(stack.pop(), operand);
-                        case IF_ICMPGT -> CoreOp.le(stack.pop(), operand);
-                        case IF_ICMPLT -> CoreOp.ge(stack.pop(), operand);
-                        case IF_ACMPEQ -> CoreOp.neq(stack.pop(), operand);
-                        case IF_ACMPNE -> CoreOp.eq(stack.pop(), operand);
+                        case IFNE -> JavaOp.eq(operand, liftConstant(0));
+                        case IFEQ -> JavaOp.neq(operand, liftConstant(0));
+                        case IFGE -> JavaOp.lt(operand, liftConstant(0));
+                        case IFLE -> JavaOp.gt(operand, liftConstant(0));
+                        case IFGT -> JavaOp.le(operand, liftConstant(0));
+                        case IFLT -> JavaOp.ge(operand, liftConstant(0));
+                        case IFNULL -> JavaOp.neq(operand, liftConstant(null));
+                        case IFNONNULL -> JavaOp.eq(operand, liftConstant(null));
+                        case IF_ICMPNE -> JavaOp.eq(stack.pop(), operand);
+                        case IF_ICMPEQ -> JavaOp.neq(stack.pop(), operand);
+                        case IF_ICMPGE -> JavaOp.lt(stack.pop(), operand);
+                        case IF_ICMPLE -> JavaOp.gt(stack.pop(), operand);
+                        case IF_ICMPGT -> JavaOp.le(stack.pop(), operand);
+                        case IF_ICMPLT -> JavaOp.ge(stack.pop(), operand);
+                        case IF_ACMPEQ -> JavaOp.neq(stack.pop(), operand);
+                        case IF_ACMPNE -> JavaOp.eq(stack.pop(), operand);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
                     Block.Builder branch = targetBlockForBranch(inst.target());
@@ -295,7 +297,7 @@ public final class BytecodeLift {
                     endOfFlow();
                 }
                 case ThrowInstruction _ -> {
-                    op(CoreOp._throw(stack.pop()));
+                    op(JavaOp._throw(stack.pop()));
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
@@ -305,13 +307,13 @@ public final class BytecodeLift {
                     op(SlotOp.store(inst.slot(), stack.pop()));
                 }
                 case IncrementInstruction inst -> {
-                    op(SlotOp.store(inst.slot(), op(CoreOp.add(op(SlotOp.load(inst.slot(), TypeKind.INT)), liftConstant(inst.constant())))));
+                    op(SlotOp.store(inst.slot(), op(JavaOp.add(op(SlotOp.load(inst.slot(), TypeKind.INT)), liftConstant(inst.constant())))));
                 }
                 case ConstantInstruction inst -> {
                     stack.push(liftConstant(inst.constantValue()));
                 }
                 case ConvertInstruction inst -> {
-                    stack.push(op(CoreOp.conv(switch (inst.toType()) {
+                    stack.push(op(JavaOp.conv(switch (inst.toType()) {
                         case BYTE -> JavaType.BYTE;
                         case SHORT -> JavaType.SHORT;
                         case INT -> JavaType.INT;
@@ -329,37 +331,37 @@ public final class BytecodeLift {
                     Value operand = stack.pop();
                     stack.push(op(switch (inst.opcode()) {
                         case IADD, LADD, FADD, DADD ->
-                                CoreOp.add(stack.pop(), operand);
+                                JavaOp.add(stack.pop(), operand);
                         case ISUB, LSUB, FSUB, DSUB ->
-                                CoreOp.sub(stack.pop(), operand);
+                                JavaOp.sub(stack.pop(), operand);
                         case IMUL, LMUL, FMUL, DMUL ->
-                                CoreOp.mul(stack.pop(), operand);
+                                JavaOp.mul(stack.pop(), operand);
                         case IDIV, LDIV, FDIV, DDIV ->
-                                CoreOp.div(stack.pop(), operand);
+                                JavaOp.div(stack.pop(), operand);
                         case IREM, LREM, FREM, DREM ->
-                                CoreOp.mod(stack.pop(), operand);
+                                JavaOp.mod(stack.pop(), operand);
                         case INEG, LNEG, FNEG, DNEG ->
-                                CoreOp.neg(operand);
+                                JavaOp.neg(operand);
                         case ARRAYLENGTH ->
-                                CoreOp.arrayLength(operand);
+                                JavaOp.arrayLength(operand);
                         case IAND, LAND ->
-                                CoreOp.and(stack.pop(), operand);
+                                JavaOp.and(stack.pop(), operand);
                         case IOR, LOR ->
-                                CoreOp.or(stack.pop(), operand);
+                                JavaOp.or(stack.pop(), operand);
                         case IXOR, LXOR ->
-                                CoreOp.xor(stack.pop(), operand);
+                                JavaOp.xor(stack.pop(), operand);
                         case ISHL, LSHL ->
-                                CoreOp.lshl(stack.pop(), operand);
+                                JavaOp.lshl(stack.pop(), operand);
                         case ISHR, LSHR ->
-                                CoreOp.ashr(stack.pop(), operand);
+                                JavaOp.ashr(stack.pop(), operand);
                         case IUSHR, LUSHR ->
-                                CoreOp.lshr(stack.pop(), operand);
+                                JavaOp.lshr(stack.pop(), operand);
                         case LCMP ->
-                                CoreOp.invoke(LCMP, stack.pop(), operand);
+                                JavaOp.invoke(LCMP, stack.pop(), operand);
                         case FCMPL, FCMPG ->
-                                CoreOp.invoke(FCMP, stack.pop(), operand);
+                                JavaOp.invoke(FCMP, stack.pop(), operand);
                         case DCMPL, DCMPG ->
-                                CoreOp.invoke(DCMP, stack.pop(), operand);
+                                JavaOp.invoke(DCMP, stack.pop(), operand);
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));
@@ -371,15 +373,15 @@ public final class BytecodeLift {
                                 JavaType.type(inst.typeSymbol()));
                         switch (inst.opcode()) {
                             case GETFIELD ->
-                                stack.push(op(CoreOp.fieldLoad(fd, stack.pop())));
+                                stack.push(op(JavaOp.fieldLoad(fd, stack.pop())));
                             case GETSTATIC ->
-                                stack.push(op(CoreOp.fieldLoad(fd)));
+                                stack.push(op(JavaOp.fieldLoad(fd)));
                             case PUTFIELD -> {
                                 Value value = stack.pop();
-                                op(CoreOp.fieldStore(fd, stack.pop(), value));
+                                op(JavaOp.fieldStore(fd, stack.pop(), value));
                             }
                             case PUTSTATIC ->
-                                op(CoreOp.fieldStore(fd, stack.pop()));
+                                op(JavaOp.fieldStore(fd, stack.pop()));
                             default ->
                                 throw new IllegalArgumentException("Unsupported field opcode: " + inst.opcode());
                         }
@@ -387,13 +389,13 @@ public final class BytecodeLift {
                 case ArrayStoreInstruction _ -> {
                     Value value = stack.pop();
                     Value index = stack.pop();
-                    op(CoreOp.arrayStoreOp(stack.pop(), index, value));
+                    op(JavaOp.arrayStoreOp(stack.pop(), index, value));
                 }
                 case ArrayLoadInstruction ali -> {
                     Value index = stack.pop();
                     Value array = stack.pop();
                     if (array.type() instanceof UnresolvedType) {
-                        stack.push(op(CoreOp.arrayLoadOp(array, index, switch (ali.typeKind()) {
+                        stack.push(op(JavaOp.arrayLoadOp(array, index, switch (ali.typeKind()) {
                             case BYTE -> UnresolvedType.unresolvedInt(); // @@@ Create UnresolvedType.unresolvedByteOrBoolean();
                             case CHAR -> JavaType.CHAR;
                             case DOUBLE -> JavaType.DOUBLE;
@@ -405,7 +407,7 @@ public final class BytecodeLift {
                             case BOOLEAN, VOID -> throw new IllegalArgumentException("Unexpected array load instruction type");
                         })));
                     } else {
-                        stack.push(op(CoreOp.arrayLoadOp(array, index)));
+                        stack.push(op(JavaOp.arrayLoadOp(array, index)));
                     }
                 }
                 case InvokeInstruction inst -> {
@@ -421,23 +423,23 @@ public final class BytecodeLift {
                     Op.Result result = switch (inst.opcode()) {
                         case INVOKEVIRTUAL, INVOKEINTERFACE -> {
                             operands.add(stack.pop());
-                            yield op(CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.INSTANCE, false,
+                            yield op(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.INSTANCE, false,
                                     mDesc.type().returnType(), mDesc, operands.reversed()));
                         }
                         case INVOKESTATIC ->
-                                op(CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.STATIC, false,
+                                op(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.STATIC, false,
                                         mDesc.type().returnType(), mDesc, operands.reversed()));
                         case INVOKESPECIAL -> {
                             if (inst.owner().asSymbol().equals(newStack.peek()) && inst.name().equalsString(ConstantDescs.INIT_NAME)) {
                                 newStack.pop();
-                                yield op(CoreOp._new(
+                                yield op(JavaOp._new(
                                         ConstructorRef.constructor(
                                                 mDesc.refType(),
                                                 mType.parameterTypes()),
                                         operands.reversed()));
                             } else {
                                 operands.add(stack.pop());
-                                yield op(CoreOp.invoke(CoreOp.InvokeOp.InvokeKind.SUPER, false,
+                                yield op(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.SUPER, false,
                                         mDesc.type().returnType(), mDesc, operands.reversed()));
                             }
                         }
@@ -468,7 +470,7 @@ public final class BytecodeLift {
                         }
                         FunctionType lambdaFunc = FunctionType.functionType(JavaType.type(mt.returnType()),
                                                                             mt.parameterList().stream().map(JavaType::type).toList());
-                        CoreOp.LambdaOp.Builder lambda = CoreOp.lambda(currentBlock.parentBody(),
+                        JavaOp.LambdaOp.Builder lambda = JavaOp.lambda(currentBlock.parentBody(),
                                                                        lambdaFunc,
                                                                        JavaType.type(inst.typeSymbol().returnType()));
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
@@ -481,7 +483,7 @@ public final class BytecodeLift {
                         } else {
                             // lambda call to a MH
                             stack.push(op(lambda.body(eb -> {
-                                Op.Result ret = eb.op(CoreOp.invoke(
+                                Op.Result ret = eb.op(JavaOp.invoke(
                                         MethodRef.method(JavaType.type(dmhd.owner()),
                                                          dmhd.methodName(),
                                                          lambdaFunc.returnType(),
@@ -499,7 +501,7 @@ public final class BytecodeLift {
                         Value res = null;
                         if (bsm.methodName().equals("makeConcat")) {
                             for (Value argVal : args) {
-                                res = res == null ? argVal : op(CoreOp.concat(res, argVal));
+                                res = res == null ? argVal : op(JavaOp.concat(res, argVal));
                             }
                         } else {
                             assert bsm.methodName().equals("makeConcatWithConstants");
@@ -517,7 +519,7 @@ public final class BytecodeLift {
                                         yield liftConstant(recipe.substring(start, ri--));
                                     }
                                 };
-                                res = res == null ? argVal : op(CoreOp.concat(res, argVal));
+                                res = res == null ? argVal : op(JavaOp.concat(res, argVal));
                             }
                         }
                         if (res != null) stack.push(res);
@@ -532,8 +534,8 @@ public final class BytecodeLift {
                                                             bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
 
                         Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, inst.name().toString(), mtd, inst.bootstrapArgs());
-                        Value methodHandle = op(CoreOp.invoke(MethodRef.method(CallSite.class, "dynamicInvoker", MethodHandle.class),
-                                                    op(CoreOp.invoke(JavaType.type(ConstantDescs.CD_CallSite), bsmRef, bootstrapArgs))));
+                        Value methodHandle = op(JavaOp.invoke(MethodRef.method(CallSite.class, "dynamicInvoker", MethodHandle.class),
+                                                    op(JavaOp.invoke(JavaType.type(ConstantDescs.CD_CallSite), bsmRef, bootstrapArgs))));
 
                         //invocation
                         List<Value> operands = new ArrayList<>();
@@ -544,7 +546,7 @@ public final class BytecodeLift {
                         MethodRef mDesc = MethodRef.method(JavaType.type(ConstantDescs.CD_MethodHandle),
                                                            "invokeExact",
                                                            MethodRef.ofNominalDescriptor(mtd));
-                        Op.Result result = op(CoreOp.invoke(mDesc, operands.reversed()));
+                        Op.Result result = op(JavaOp.invoke(mDesc, operands.reversed()));
                         if (!result.type().equals(JavaType.VOID)) {
                             stack.push(result);
                         }
@@ -562,7 +564,7 @@ public final class BytecodeLift {
                     }
                 }
                 case NewPrimitiveArrayInstruction inst -> {
-                    stack.push(op(CoreOp.newArray(
+                    stack.push(op(JavaOp.newArray(
                             switch (inst.typeKind()) {
                                 case BOOLEAN -> JavaType.BOOLEAN_ARRAY;
                                 case BYTE -> JavaType.BYTE_ARRAY;
@@ -578,22 +580,22 @@ public final class BytecodeLift {
                             stack.pop())));
                 }
                 case NewReferenceArrayInstruction inst -> {
-                    stack.push(op(CoreOp.newArray(
+                    stack.push(op(JavaOp.newArray(
                             JavaType.type(inst.componentType().asSymbol().arrayType()),
                             stack.pop())));
                 }
                 case NewMultiArrayInstruction inst -> {
-                    stack.push(op(CoreOp._new(
+                    stack.push(op(JavaOp._new(
                             ConstructorRef.constructor(
                                     JavaType.type(inst.arrayType().asSymbol()),
                                     Collections.nCopies(inst.dimensions(), JavaType.INT)),
                             IntStream.range(0, inst.dimensions()).mapToObj(_ -> stack.pop()).toList().reversed())));
                 }
                 case TypeCheckInstruction inst when inst.opcode() == Opcode.CHECKCAST -> {
-                    stack.push(op(CoreOp.cast(JavaType.type(inst.type().asSymbol()), stack.pop())));
+                    stack.push(op(JavaOp.cast(JavaType.type(inst.type().asSymbol()), stack.pop())));
                 }
                 case TypeCheckInstruction inst -> {
-                    stack.push(op(CoreOp.instanceOf(JavaType.type(inst.type().asSymbol()), stack.pop())));
+                    stack.push(op(JavaOp.instanceOf(JavaType.type(inst.type().asSymbol()), stack.pop())));
                 }
                 case StackInstruction inst -> {
                     switch (inst.opcode()) {
@@ -692,8 +694,8 @@ public final class BytecodeLift {
                 case MonitorInstruction inst -> {
                     var monitor = stack.pop();
                     switch (inst.opcode()) {
-                        case MONITORENTER -> op(CoreOp.monitorEnter(monitor));
-                        case MONITOREXIT -> op(CoreOp.monitorExit(monitor));
+                        case MONITORENTER -> op(JavaOp.monitorEnter(monitor));
+                        case MONITOREXIT -> op(JavaOp.monitorExit(monitor));
                         default ->
                                 throw new UnsupportedOperationException("Unsupported stack instruction: " + inst);
                     }
@@ -710,9 +712,9 @@ public final class BytecodeLift {
     }
 
     private Op.Result liftConstantsIntoArray(TypeElement arrayType, Object... constants) {
-        Op.Result array = op(CoreOp.newArray(arrayType, liftConstant(constants.length)));
+        Op.Result array = op(JavaOp.newArray(arrayType, liftConstant(constants.length)));
         for (int i = 0; i < constants.length; i++) {
-            op(CoreOp.arrayStoreOp(array, liftConstant(i), liftConstant(constants[i])));
+            op(JavaOp.arrayStoreOp(array, liftConstant(i), liftConstant(constants[i])));
         }
         return array;
     }
@@ -742,34 +744,34 @@ public final class BytecodeLift {
             case Long l -> op(CoreOp.constant(JavaType.LONG, l));
             case String s -> op(CoreOp.constant(JavaType.J_L_STRING, s));
             case DirectMethodHandleDesc dmh -> {
-                Op.Result lookup = op(CoreOp.invoke(LOOKUP));
+                Op.Result lookup = op(JavaOp.invoke(LOOKUP));
                 Op.Result owner = liftConstant(dmh.owner());
                 Op.Result name = liftConstant(dmh.methodName());
                 MethodTypeDesc invDesc = dmh.invocationType();
                 yield op(switch (dmh.kind()) {
                     case STATIC, INTERFACE_STATIC  ->
-                        CoreOp.invoke(FIND_STATIC, lookup, owner, name, liftConstant(invDesc));
+                        JavaOp.invoke(FIND_STATIC, lookup, owner, name, liftConstant(invDesc));
                     case VIRTUAL, INTERFACE_VIRTUAL ->
-                        CoreOp.invoke(FIND_VIRTUAL, lookup, owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)));
+                        JavaOp.invoke(FIND_VIRTUAL, lookup, owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)));
                     case SPECIAL, INTERFACE_SPECIAL ->
                         //CoreOp.invoke(MethodRef.method(e), "findSpecial", owner, name, liftConstant(invDesc.dropParameterTypes(0, 1)), lookup.lookupClass());
                         throw new UnsupportedOperationException(dmh.toString());
                     case CONSTRUCTOR       ->
-                        CoreOp.invoke(FIND_CONSTRUCTOR, lookup, owner, liftConstant(invDesc.changeReturnType(ConstantDescs.CD_Void)));
+                        JavaOp.invoke(FIND_CONSTRUCTOR, lookup, owner, liftConstant(invDesc.changeReturnType(ConstantDescs.CD_Void)));
                     case GETTER            ->
-                        CoreOp.invoke(FIND_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
+                        JavaOp.invoke(FIND_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
                     case STATIC_GETTER     ->
-                        CoreOp.invoke(FIND_STATIC_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
+                        JavaOp.invoke(FIND_STATIC_GETTER, lookup, owner, name, liftConstant(invDesc.returnType()));
                     case SETTER            ->
-                        CoreOp.invoke(FIND_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(1)));
+                        JavaOp.invoke(FIND_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(1)));
                     case STATIC_SETTER     ->
-                        CoreOp.invoke(FIND_STATIC_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(0)));
+                        JavaOp.invoke(FIND_STATIC_SETTER, lookup, owner, name, liftConstant(invDesc.parameterType(0)));
                 });
             }
             case MethodTypeDesc mt -> op(switch (mt.parameterCount()) {
-                case 0 -> CoreOp.invoke(METHOD_TYPE_0, liftConstant(mt.returnType()));
-                case 1 -> CoreOp.invoke(METHOD_TYPE_1, liftConstant(mt.returnType()), liftConstant(mt.parameterType(0)));
-                default -> CoreOp.invoke(METHOD_TYPE_L, liftConstant(mt.returnType()), liftConstantsIntoArray(CLASS_ARRAY, (Object[])mt.parameterArray()));
+                case 0 -> JavaOp.invoke(METHOD_TYPE_0, liftConstant(mt.returnType()));
+                case 1 -> JavaOp.invoke(METHOD_TYPE_1, liftConstant(mt.returnType()), liftConstant(mt.parameterType(0)));
+                default -> JavaOp.invoke(METHOD_TYPE_L, liftConstant(mt.returnType()), liftConstantsIntoArray(CLASS_ARRAY, (Object[])mt.parameterArray()));
             });
             case DynamicConstantDesc<?> v when v.bootstrapMethod().owner().equals(ConstantDescs.CD_ConstantBootstraps)
                                          && v.bootstrapMethod().methodName().equals("nullConstant")
@@ -785,7 +787,7 @@ public final class BytecodeLift {
                                                     bsm.methodName(),
                                                     JavaType.type(bsmDesc.returnType()),
                                                     bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
-                yield op(CoreOp.invoke(bsmRef, bootstrapArgs));
+                yield op(JavaOp.invoke(bsmRef, bootstrapArgs));
             }
             case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
             case Byte b -> op(CoreOp.constant(JavaType.BYTE, b));
@@ -797,7 +799,7 @@ public final class BytecodeLift {
 
     private Value[] liftBootstrapArgs(MethodTypeDesc bsmDesc, String name, ConstantDesc desc, List<ConstantDesc> bsmArgs) {
         Value[] bootstrapArgs = new Value[bsmDesc.parameterCount()];
-        bootstrapArgs[0] = op(CoreOp.invoke(LOOKUP));
+        bootstrapArgs[0] = op(JavaOp.invoke(LOOKUP));
         bootstrapArgs[1] = liftConstant(name);
         bootstrapArgs[2] = liftConstant(desc);
         ClassDesc lastArgType = bsmDesc.parameterType(bsmDesc.parameterCount() - 1);
@@ -820,20 +822,20 @@ public final class BytecodeLift {
     private void liftSwitch(Label defaultTarget, List<SwitchCase> cases) {
         Value v = stack.pop();
         if (!valueType(v).equals(PrimitiveType.INT)) {
-            v = op(CoreOp.conv(PrimitiveType.INT, v));
+            v = op(JavaOp.conv(PrimitiveType.INT, v));
         }
         SwitchCase last = cases.getLast();
         Block.Builder def = targetBlockForBranch(defaultTarget);
         for (SwitchCase sc : cases) {
             if (sc == last) {
                 op(CoreOp.conditionalBranch(
-                        op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
+                        op(JavaOp.eq(v, liftConstant(sc.caseValue()))),
                         successorWithStack(targetBlockForBranch(sc.target())),
                         successorWithStack(def)));
             } else {
                 Block.Builder next = entryBlock.block();
                 op(CoreOp.conditionalBranch(
-                        op(CoreOp.eq(v, liftConstant(sc.caseValue()))),
+                        op(JavaOp.eq(v, liftConstant(sc.caseValue()))),
                         successorWithStack(targetBlockForBranch(sc.target())),
                         next.successor()));
                 currentBlock = next;
@@ -914,7 +916,7 @@ public final class BytecodeLift {
         Block.Reference catcher = (ehi == targetExceptionHandlerIndex
                 ? initialBlock
                 : targetBlockForExceptionHandler(handlerEreStack, ehi)).successor();
-        currentBlock.op(enter ? CoreOp.exceptionRegionEnter(ref, catcher) : CoreOp.exceptionRegionExit(ref, catcher));
+        currentBlock.op(enter ? JavaOp.exceptionRegionEnter(ref, catcher) : JavaOp.exceptionRegionExit(ref, catcher));
     }
 
     Block.Reference successorWithStack(Block.Builder next) {

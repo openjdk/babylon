@@ -27,8 +27,9 @@ package jdk.incubator.code.interpreter;
 
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.writer.OpWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -132,9 +133,9 @@ public final class Verifier {
                     verifyBlockReferences(op, br.successors());
                 case CoreOp.ConditionalBranchOp cbr ->
                     verifyBlockReferences(op, cbr.successors());
-                case CoreOp.ArithmeticOperation _, CoreOp.TestOperation _ ->
+                case JavaOp.ArithmeticOperation _, JavaOp.TestOperation _ ->
                     verifyOpHandleExists(op, op.opName());
-                case CoreOp.ConvOp _ -> {
+                case JavaOp.ConvOp _ -> {
                     verifyOpHandleExists(op, op.opName() + "_" + op.opType().returnType());
                 }
                 default -> {}
@@ -209,7 +210,7 @@ public final class Verifier {
                     verifyCatchStack(b, cbr, cbr.trueBranch(), catchBlocks, map);
                     verifyCatchStack(b, cbr, cbr.falseBranch(), catchBlocks, map);
                 }
-                case CoreOp.ExceptionRegionEnter ere -> {
+                case JavaOp.ExceptionRegionEnter ere -> {
                     List<Block> newCatchBlocks = new ArrayList<>();
                     newCatchBlocks.addAll(catchBlocks);
                     for (Block.Reference cb : ere.catchBlocks()) {
@@ -218,7 +219,7 @@ public final class Verifier {
                     }
                     verifyCatchStack(b, ere, ere.start(), newCatchBlocks, map);
                 }
-                case CoreOp.ExceptionRegionExit ere -> {
+                case JavaOp.ExceptionRegionExit ere -> {
                     List<Block> exitedCatchBlocks = ere.catchBlocks().stream().map(Block.Reference::targetBlock).toList();
                     if (exitedCatchBlocks.size() > catchBlocks.size() || !catchBlocks.reversed().subList(0, exitedCatchBlocks.size()).equals(exitedCatchBlocks)) {
                         error("%s %s exited catch blocks %s does not match actual stack %s", b, ere, exitedCatchBlocks, catchBlocks);

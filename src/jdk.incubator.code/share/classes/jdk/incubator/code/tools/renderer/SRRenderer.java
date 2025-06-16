@@ -27,13 +27,13 @@ package jdk.incubator.code.tools.renderer;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
 import java.io.*;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.nio.charset.StandardCharsets;
 
 /**

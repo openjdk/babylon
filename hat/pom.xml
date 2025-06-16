@@ -58,8 +58,8 @@ questions.
                         <!-- <arg>- -add-exports=java.base/jdk.internal=ALL-UNNAMED</arg> -->
                         <!-- <arg>- -add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg> -->
                     </compilerArgs>
-                    <source>25</source>
-                    <target>25</target>
+                    <source>26</source>
+                    <target>26</target>
                     <showDeprecation>true</showDeprecation>
                     <failOnError>true</failOnError>
                     <showWarnings>true</showWarnings>

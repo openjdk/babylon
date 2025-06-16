@@ -44,8 +44,8 @@ public class PatternsTest {
                 %4 : java.type:"java.lang.String" = constant @null;
                 %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
                 %6 : java.type:"boolean" = pattern.match %3
-                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                        %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                         yield %7;
                     }
                     (%8 : java.type:"java.lang.String")java.type:"void" -> {
@@ -70,8 +70,8 @@ public class PatternsTest {
                     ()java.type:"boolean" -> {
                         %5 : java.type:"java.lang.Object" = var.load %2;
                         %6 : java.type:"boolean" = pattern.match %5
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %7;
                             }
                             (%8 : java.type:"java.lang.String")java.type:"void" -> {
@@ -109,8 +109,8 @@ public class PatternsTest {
                     ()java.type:"boolean" -> {
                         %5 : java.type:"java.lang.Object" = var.load %2;
                         %6 : java.type:"boolean" = pattern.match %5
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %7;
                             }
                             (%8 : java.type:"java.lang.String")java.type:"void" -> {
@@ -167,12 +167,12 @@ public class PatternsTest {
                     ()java.type:"boolean" -> {
                         %9 : java.type:"PatternsTest$Rectangle" = var.load %2;
                         %10 : java.type:"boolean" = pattern.match %9
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" -> {
-                                %11 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"p";
-                                %12 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$Color>" = pattern.type @"c";
-                                %13 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$ColoredPoint>" = pattern.record %11 %12 @java.ref:"(PatternsTest$ConcretePoint p, PatternsTest$Color c)PatternsTest$ColoredPoint";
-                                %14 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$ColoredPoint>" = pattern.type @"lr";
-                                %15 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %13 %14 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" -> {
+                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"p";
+                                %12 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$Color>" = pattern.type @"c";
+                                %13 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$ColoredPoint>" = pattern.record %11 %12 @java.ref:"(PatternsTest$ConcretePoint p, PatternsTest$Color c)PatternsTest$ColoredPoint";
+                                %14 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$ColoredPoint>" = pattern.type @"lr";
+                                %15 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %13 %14 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
                                 yield %15;
                             }
                             (%16 : java.type:"PatternsTest$ConcretePoint", %17 : java.type:"PatternsTest$Color", %18 : java.type:"PatternsTest$ColoredPoint")java.type:"void" -> {
@@ -228,8 +228,8 @@ public class PatternsTest {
                     ()java.type:"boolean" -> {
                         %5 : java.type:"java.lang.Object" = var.load %2;
                         %6 : java.type:"boolean" = pattern.match %5
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %7;
                             }
                             (%8 : java.type:"java.lang.String")java.type:"void" -> {
@@ -266,8 +266,8 @@ public class PatternsTest {
                     ()java.type:"boolean" -> {
                         %5 : java.type:"java.lang.Object" = var.load %2;
                         %6 : java.type:"boolean" = pattern.match %5
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %7;
                             }
                             (%8 : java.type:"java.lang.String")java.type:"void" -> {
@@ -313,8 +313,8 @@ public class PatternsTest {
                             ()java.type:"boolean" -> {
                                 %12 : java.type:"java.lang.Object" = var.load %2;
                                 %13 : java.type:"boolean" = pattern.match %12
-                                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" -> {
-                                        %14 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" -> {
+                                        %14 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
                                         yield %14;
                                     }
                                     (%15 : java.type:"java.lang.Number")java.type:"void" -> {
@@ -356,8 +356,8 @@ public class PatternsTest {
                 %4 : java.type:"java.lang.String" = constant @null;
                 %5 : Var<java.type:"java.lang.String"> = var %4;
                 %6 : java.type:"boolean" = pattern.match %3
-                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                        %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type;
+                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type;
                         yield %7;
                     }
                     (%8 : java.type:"java.lang.String")java.type:"void" -> {
@@ -379,10 +379,10 @@ public class PatternsTest {
                 %4 : java.type:"PatternsTest$ConcretePoint" = constant @null;
                 %5 : Var<java.type:"PatternsTest$ConcretePoint"> = var %4 @"cp";
                 %6 : java.type:"boolean" = pattern.match %3
-                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" -> {
-                        %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$MatchAll" = pattern.match.all;
-                        %8 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"cp";
-                        %9 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %7 %8 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
+                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" -> {
+                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$MatchAll" = pattern.match.all;
+                        %8 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"cp";
+                        %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %7 %8 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
                         yield %9;
                     }
                     (%10 : java.type:"PatternsTest$ConcretePoint")java.type:"void" -> {
@@ -405,8 +405,8 @@ public class PatternsTest {
                 %4 : java.type:"byte" = conv %3;
                 %5 : Var<java.type:"byte"> = var %4 @"b";
                 %6 : java.type:"boolean" = pattern.match %2
-                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<byte>" -> {
-                        %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<byte>" = pattern.type @"b";
+                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" -> {
+                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" = pattern.type @"b";
                         yield %7;
                     }
                     (%8 : java.type:"byte")java.type:"void" -> {
@@ -429,8 +429,8 @@ public class PatternsTest {
                 %4 : java.type:"short" = conv %3;
                 %5 : Var<java.type:"short"> = var %4 @"s";
                 %6 : java.type:"boolean" = pattern.match %2
-                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<short>" -> {
-                        %7 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<short>" = pattern.type @"s";
+                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<short>" -> {
+                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<short>" = pattern.type @"s";
                         yield %7;
                     }
                     (%8 : java.type:"short")java.type:"void" -> {

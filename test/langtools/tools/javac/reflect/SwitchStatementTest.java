@@ -1087,8 +1087,8 @@ public class SwitchStatementTest {
                 java.switch.statement %4
                     (%9 : java.type:"SwitchStatementTest$I")java.type:"boolean" -> {
                         %10 : java.type:"boolean" = pattern.match %9
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchStatementTest$K>" -> {
-                                %11 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchStatementTest$K>" = pattern.type @"k";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<SwitchStatementTest$K>" -> {
+                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<SwitchStatementTest$K>" = pattern.type @"k";
                                 yield %11;
                             }
                             (%12 : java.type:"SwitchStatementTest$K")java.type:"void" -> {
@@ -1106,8 +1106,8 @@ public class SwitchStatementTest {
                     }
                     (%16 : java.type:"SwitchStatementTest$I")java.type:"boolean" -> {
                         %17 : java.type:"boolean" = pattern.match %16
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchStatementTest$J>" -> {
-                                %18 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<SwitchStatementTest$J>" = pattern.type @"j";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<SwitchStatementTest$J>" -> {
+                                %18 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<SwitchStatementTest$J>" = pattern.type @"j";
                                 yield %18;
                             }
                             (%19 : java.type:"SwitchStatementTest$J")java.type:"void" -> {
@@ -1168,8 +1168,8 @@ public class SwitchStatementTest {
                     }
                     (%13 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %14 : java.type:"boolean" = pattern.match %13
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Object>" -> {
-                                %15 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Object>" = pattern.type @"o";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Object>" -> {
+                                %15 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Object>" = pattern.type @"o";
                                 yield %15;
                             }
                             (%16 : java.type:"java.lang.Object")java.type:"void" -> {
@@ -1212,8 +1212,8 @@ public class SwitchStatementTest {
                 java.switch.statement %4
                     (%9 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %10 : java.type:"boolean" = pattern.match %9
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" -> {
-                                %11 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" -> {
+                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
                                 yield %11;
                             }
                             (%12 : java.type:"java.lang.Integer")java.type:"void" -> {
@@ -1231,8 +1231,8 @@ public class SwitchStatementTest {
                     }
                     (%16 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %17 : java.type:"boolean" = pattern.match %16
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %18 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %18 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %18;
                             }
                             (%19 : java.type:"java.lang.String")java.type:"void" -> {
@@ -1287,8 +1287,8 @@ public class SwitchStatementTest {
                 java.switch.statement %4
                     (%9 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %10 : java.type:"boolean" = pattern.match %9
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" -> {
-                                %11 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" -> {
+                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
                                 yield %11;
                             }
                             (%12 : java.type:"java.lang.Integer")java.type:"void" -> {
@@ -1306,8 +1306,8 @@ public class SwitchStatementTest {
                     }
                     (%16 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %17 : java.type:"boolean" = pattern.match %16
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %18 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %18 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %18;
                             }
                             (%19 : java.type:"java.lang.String")java.type:"void" -> {
@@ -1368,8 +1368,8 @@ public class SwitchStatementTest {
                 java.switch.statement %4
                     (%9 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %10 : java.type:"boolean" = pattern.match %9
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" -> {
-                                %11 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" -> {
+                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
                                 yield %11;
                             }
                             (%12 : java.type:"java.lang.Integer")java.type:"void" -> {
@@ -1387,8 +1387,8 @@ public class SwitchStatementTest {
                     }
                     (%16 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %17 : java.type:"boolean" = pattern.match %16
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %18 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %18 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %18;
                             }
                             (%19 : java.type:"java.lang.String")java.type:"void" -> {
@@ -1448,8 +1448,8 @@ public class SwitchStatementTest {
                 java.switch.statement %4
                     (%9 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %10 : java.type:"boolean" = pattern.match %9
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" -> {
-                                %11 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" -> {
+                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
                                 yield %11;
                             }
                             (%12 : java.type:"java.lang.Number")java.type:"void" -> {
@@ -1464,8 +1464,8 @@ public class SwitchStatementTest {
                     }
                     (%14 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %15 : java.type:"boolean" = pattern.match %14
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %16 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %16 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                 yield %16;
                             }
                             (%17 : java.type:"java.lang.String")java.type:"void" -> {
@@ -1548,8 +1548,8 @@ public class SwitchStatementTest {
                         %17 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
                                 %18 : java.type:"boolean" = pattern.match %16
-                                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" -> {
-                                        %19 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" -> {
+                                        %19 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
                                         yield %19;
                                     }
                                     (%20 : java.type:"java.lang.Integer")java.type:"void" -> {
@@ -1578,8 +1578,8 @@ public class SwitchStatementTest {
                         %29 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
                                 %30 : java.type:"boolean" = pattern.match %28
-                                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" -> {
-                                        %31 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" -> {
+                                        %31 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" = pattern.type @"i";
                                         yield %31;
                                     }
                                     (%32 : java.type:"java.lang.Integer")java.type:"void" -> {
@@ -1653,8 +1653,8 @@ public class SwitchStatementTest {
                 java.switch.statement %4
                     (%17 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %18 : java.type:"boolean" = pattern.match %17
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                %19 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type;
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %19 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type;
                                 yield %19;
                             }
                             (%20 : java.type:"java.lang.String")java.type:"void" -> {
@@ -1672,8 +1672,8 @@ public class SwitchStatementTest {
                     }
                     (%24 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %25 : java.type:"boolean" = pattern.match %24
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.util.RandomAccess>" -> {
-                                %26 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.util.RandomAccess>" = pattern.type;
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.util.RandomAccess>" -> {
+                                %26 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.util.RandomAccess>" = pattern.type;
                                 yield %26;
                             }
                             (%27 : java.type:"java.util.RandomAccess")java.type:"void" -> {
@@ -1691,8 +1691,8 @@ public class SwitchStatementTest {
                     }
                     (%31 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %32 : java.type:"boolean" = pattern.match %31
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<int[]>" -> {
-                                %33 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<int[]>" = pattern.type;
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int[]>" -> {
+                                %33 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int[]>" = pattern.type;
                                 yield %33;
                             }
                             (%34 : java.type:"int[]")java.type:"void" -> {
@@ -1710,8 +1710,8 @@ public class SwitchStatementTest {
                     }
                     (%38 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %39 : java.type:"boolean" = pattern.match %38
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.util.Stack[][]>" -> {
-                                %40 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.util.Stack[][]>" = pattern.type;
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.util.Stack[][]>" -> {
+                                %40 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.util.Stack[][]>" = pattern.type;
                                 yield %40;
                             }
                             (%41 : java.type:"java.util.Stack[][]")java.type:"void" -> {
@@ -1729,8 +1729,8 @@ public class SwitchStatementTest {
                     }
                     (%45 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %46 : java.type:"boolean" = pattern.match %45
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.util.Collection[][][]>" -> {
-                                %47 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.util.Collection[][][]>" = pattern.type;
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.util.Collection[][][]>" -> {
+                                %47 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.util.Collection[][][]>" = pattern.type;
                                 yield %47;
                             }
                             (%48 : java.type:"java.util.Collection[][][]")java.type:"void" -> {
@@ -1748,8 +1748,8 @@ public class SwitchStatementTest {
                     }
                     (%52 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %53 : java.type:"boolean" = pattern.match %52
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" -> {
-                                %54 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" -> {
+                                %54 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
                                 yield %54;
                             }
                             (%55 : java.type:"java.lang.Number")java.type:"void" -> {
@@ -1807,9 +1807,9 @@ public class SwitchStatementTest {
                 java.switch.statement %4
                     (%7 : java.type:"java.lang.Object")java.type:"boolean" -> {
                         %8 : java.type:"boolean" = pattern.match %7
-                            ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchStatementTest$R>" -> {
-                                %9 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
-                                %10 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchStatementTest$R>" = pattern.record %9 @java.ref:"(java.lang.Number n)SwitchStatementTest$R";
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchStatementTest$R>" -> {
+                                %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                %10 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchStatementTest$R>" = pattern.record %9 @java.ref:"(java.lang.Number n)SwitchStatementTest$R";
                                 yield %10;
                             }
                             (%11 : java.type:"java.lang.Number")java.type:"void" -> {
@@ -1865,8 +1865,8 @@ public class SwitchStatementTest {
                         %10 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
                                 %11 : java.type:"boolean" = pattern.match %9
-                                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" -> {
-                                        %12 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                        %12 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
                                         yield %12;
                                     }
                                     (%13 : java.type:"java.lang.String")java.type:"void" -> {
@@ -1899,9 +1899,9 @@ public class SwitchStatementTest {
                         %26 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
                                 %27 : java.type:"boolean" = pattern.match %25
-                                    ()java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchStatementTest$R>" -> {
-                                        %28 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
-                                        %29 : java.type:"jdk.incubator.code.op.ExtendedOp$Pattern$Record<SwitchStatementTest$R>" = pattern.record %28 @java.ref:"(java.lang.Number n)SwitchStatementTest$R";
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchStatementTest$R>" -> {
+                                        %28 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                        %29 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchStatementTest$R>" = pattern.record %28 @java.ref:"(java.lang.Number n)SwitchStatementTest$R";
                                         yield %29;
                                     }
                                     (%30 : java.type:"java.lang.Number")java.type:"void" -> {

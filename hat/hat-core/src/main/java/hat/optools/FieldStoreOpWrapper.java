@@ -24,15 +24,15 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.ClassType;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 
-public class FieldStoreOpWrapper extends FieldAccessOpWrapper<CoreOp.FieldAccessOp.FieldStoreOp> implements StoreOpWrapper {
+public class FieldStoreOpWrapper extends FieldAccessOpWrapper<JavaOp.FieldAccessOp.FieldStoreOp> implements StoreOpWrapper {
 
 
-    FieldStoreOpWrapper( MethodHandles.Lookup lookup,CoreOp.FieldAccessOp.FieldStoreOp op) {
+    FieldStoreOpWrapper( MethodHandles.Lookup lookup,JavaOp.FieldAccessOp.FieldStoreOp op) {
         super(lookup,op);
     }
 

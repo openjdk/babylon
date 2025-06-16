@@ -33,12 +33,12 @@ import static org.testng.Assert.*;
 
 import org.testng.annotations.*;
 
-import jdk.incubator.code.type.ArrayType;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.PrimitiveType;
-import jdk.incubator.code.type.TypeVariableType;
-import jdk.incubator.code.type.WildcardType.BoundKind;
+import jdk.incubator.code.dialect.java.ArrayType;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
+import jdk.incubator.code.dialect.java.TypeVariableType;
+import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
 import java.util.ArrayList;
 import java.util.List;
 

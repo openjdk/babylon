@@ -51,9 +51,9 @@ public class CodeReflectionSymbols {
     public final Type funcOpType;
     public final Type opFactoryType;
     public final Type typeElementFactoryType;
-    public final Type extendedOpType;
+    public final Type javaOpType;
     public final Type coreTypeFactoryType;
-    public final Symbol.VarSymbol extendedOpFactorySym;
+    public final Symbol.VarSymbol javaOpFactorySym;
     public final Symbol.VarSymbol coreTypeFactorySym;
 
     CodeReflectionSymbols(Context context) {
@@ -65,7 +65,7 @@ public class CodeReflectionSymbols {
         quotableType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quotable");
         Type opInterpreterType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.interpreter.Interpreter");
         opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
-        funcOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.op.CoreOp$FuncOp");
+        funcOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.core.CoreOp$FuncOp");
         opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,
                 names.fromString("invoke"),
                 new MethodType(List.of(syms.methodHandleLookupType, opType, new ArrayType(syms.objectType, syms.arrayClass)), syms.objectType,
@@ -84,12 +84,12 @@ public class CodeReflectionSymbols {
                 syms.methodHandlesType.tsym);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
         syms.synthesizeEmptyInterfaceIfMissing(quotableType);
-        opFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.op.OpFactory");
-        typeElementFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.type.TypeElementFactory");
-        extendedOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.op.ExtendedOp");
-        coreTypeFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.type.CoreTypeFactory");
-        extendedOpFactorySym = new Symbol.VarSymbol(PUBLIC | STATIC, names.fromString("FACTORY"), opFactoryType,
-                extendedOpType.tsym);
+        opFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.OpFactory");
+        typeElementFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.TypeElementFactory");
+        javaOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.java.JavaOp");
+        coreTypeFactoryType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.core.CoreTypeFactory");
+        javaOpFactorySym = new Symbol.VarSymbol(PUBLIC | STATIC, names.fromString("FACTORY"), opFactoryType,
+                javaOpType.tsym);
         coreTypeFactorySym = new Symbol.VarSymbol(PUBLIC | STATIC, names.fromString("CORE_TYPE_FACTORY"), typeElementFactoryType,
                 coreTypeFactoryType.tsym);
     }

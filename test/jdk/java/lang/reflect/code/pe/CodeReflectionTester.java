@@ -24,8 +24,8 @@
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.parser.OpParser;
 import jdk.incubator.code.writer.OpWriter;
 
@@ -34,11 +34,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class CodeReflectionTester {
 
@@ -133,7 +129,7 @@ public class CodeReflectionTester {
     static String canonicalizeModel(Member m, String d) {
         Op o;
         try {
-            o = OpParser.fromString(ExtendedOp.FACTORY, d).get(0);
+            o = OpParser.fromString(JavaOp.FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }

@@ -45,12 +45,14 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.op.OpFactory;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -125,7 +127,7 @@ public class OpsAndTypes {
                    Were T is either a primitive or a nested iface mapping and foo matches the field name
                  */
 
-                if (op instanceof CoreOp.InvokeOp invokeOp
+                if (op instanceof JavaOp.InvokeOp invokeOp
                         && OpWrapper.wrap(lookup, invokeOp) instanceof InvokeOpWrapper invokeOpWrapper
                         && invokeOpWrapper.hasOperands()
                         && invokeOpWrapper.isIfaceBufferMethod()

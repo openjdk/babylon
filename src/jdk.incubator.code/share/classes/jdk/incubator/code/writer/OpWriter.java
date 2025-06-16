@@ -30,12 +30,11 @@ import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.impl.JavaTypeUtils;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.lang.reflect.Array;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;

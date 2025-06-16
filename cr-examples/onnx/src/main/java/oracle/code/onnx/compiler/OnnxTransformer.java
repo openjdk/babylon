@@ -8,8 +8,10 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.*;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.TupleType;
+import jdk.incubator.code.dialect.java.*;
 import oracle.code.onnx.OnnxOperators;
 import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.OnnxOp;
@@ -52,7 +54,7 @@ public final class OnnxTransformer {
     public record ModuleAndInitializers(CoreOp.ModuleOp module, SequencedCollection<FieldRef> initializers, Map<Value, String> namesMap) {}
 
     public static ModuleAndInitializers transform(MethodHandles.Lookup l, Quoted quotedLambda) {
-        CoreOp.LambdaOp lambda = (CoreOp.LambdaOp) quotedLambda.op();
+        JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quotedLambda.op();
         assert lambda.parameters().isEmpty();
 
         List<Value> captures = lambda.capturedValues();
@@ -94,7 +96,7 @@ public final class OnnxTransformer {
 
     static void collectModuleFunctions(MethodHandles.Lookup l, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline, CoreOp.FuncOp func) {
         func.traverse(null, (_, op) -> {
-            if(op instanceof CoreOp.InvokeOp io && resolve(l, io) instanceof CoreOp.FuncOp f) {
+            if(op instanceof JavaOp.InvokeOp io && resolve(l, io) instanceof CoreOp.FuncOp f) {
                 collectModuleFunctions(l, funcs, doNotInline, f);
                 doNotInline.add(funcs.putIfAbsent(io.invokeDescriptor(), f));
             }
@@ -123,7 +125,7 @@ public final class OnnxTransformer {
     // transform all relevant invocations to func calls or inline
     static CoreOp.FuncOp mapOrInline(CoreOp.FuncOp f, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline) {
         return f.transform(f.funcName().isEmpty() ? findBetterName(funcs, doNotInline): f.funcName(), (bb, op) -> {
-            if (op instanceof CoreOp.InvokeOp io && funcs.get(io.invokeDescriptor()) instanceof CoreOp.FuncOp fo) {
+            if (op instanceof JavaOp.InvokeOp io && funcs.get(io.invokeDescriptor()) instanceof CoreOp.FuncOp fo) {
                 if (doNotInline.contains(fo)) {
                     bb.context().mapValue(op.result(), bb.op(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
                 } else {
@@ -141,7 +143,7 @@ public final class OnnxTransformer {
         // collect initializers (field load ops of tensors)
         record TI(TypeElement type, int index) {}
         var initializers = module.traverse(new LinkedHashMap<FieldRef, TI>(), (i, op) -> {
-            if (op instanceof CoreOp.FieldAccessOp.FieldLoadOp flo
+            if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flo
                     && (flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
                      || isRecord(l, flo.resultType()))) {
                 i.putIfAbsent(flo.fieldDescriptor(), new TI(convertType(l, flo.resultType()), i.size()));
@@ -163,7 +165,7 @@ public final class OnnxTransformer {
                         List<Block.Parameter> initArgs = bob.parameters().subList(argsSize, bob.parameters().size());
                         switch (op) {
                             // field loads mapped to initializers args
-                            case CoreOp.FieldAccessOp.FieldLoadOp flo when initializers.get(flo.fieldDescriptor()) instanceof TI ti -> {
+                            case JavaOp.FieldAccessOp.FieldLoadOp flo when initializers.get(flo.fieldDescriptor()) instanceof TI ti -> {
                                 bb.context().mapValue(op.result(), initArgs.get(ti.index()));
                             }
                             case CoreOp.FuncCallOp fco -> {
@@ -183,7 +185,7 @@ public final class OnnxTransformer {
         }).toList()), initializers.sequencedKeySet(), null);
     }
 
-    static CoreOp.FuncOp resolve(MethodHandles.Lookup l, CoreOp.InvokeOp io) {
+    static CoreOp.FuncOp resolve(MethodHandles.Lookup l, JavaOp.InvokeOp io) {
         try {
             var res = Op.ofMethod(io.invokeDescriptor().resolveToDirectMethod(l));
             if (res.isPresent()) {
@@ -313,7 +315,7 @@ public final class OnnxTransformer {
             }
             switch (op) {
                 // Transform invocation to ONNX operator to operation modeling the operator
-                case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(ONNX_OPERATORS_CLASS) -> {
+                case JavaOp.InvokeOp io when io.invokeDescriptor().refType().equals(ONNX_OPERATORS_CLASS) -> {
                     String operatorName = io.invokeDescriptor().name();
                     Class<? extends OnnxOp> opClass = onnxOpClassFromName(operatorName);
                     OnnxOp.OnnxSchema schema = schemaFromOnnxOpClass(opClass);
@@ -347,7 +349,7 @@ public final class OnnxTransformer {
                             }
                             case OPTIONAL -> {
                                 // Evaluation of expressions Optional.empty and Optional.of() with symbolic values
-                                if (v instanceof Op.Result r && r.op() instanceof CoreOp.InvokeOp optionalInvoke
+                                if (v instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp optionalInvoke
                                         && optionalInvoke.invokeDescriptor().refType().equals(JavaType.type(Optional.class))) {
                                     switch (optionalInvoke.invokeDescriptor().name()) {
                                         case "of" -> {
@@ -364,7 +366,7 @@ public final class OnnxTransformer {
                             }
                             case VARIADIC -> {
                                 // Evaluation of expressions List.of() with symbolic values
-                                if (v instanceof Op.Result r && r.op() instanceof CoreOp.InvokeOp listInvoke
+                                if (v instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp listInvoke
                                         && listInvoke.invokeDescriptor().refType().equals(JavaType.type(List.class))) {
                                     switch (listInvoke.invokeDescriptor().name()) {
                                         case "of" -> {
@@ -383,12 +385,12 @@ public final class OnnxTransformer {
                     if (opClass == ExplicitOnnxOps.If.class) {
                         // Explicit transformation of nested bodies
                         for (int i = 1; i < 3; i++) {
-                            var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
+                            var lambda = (JavaOp.LambdaOp)(((Op.Result)op.operands().get(i)).op());
                             opArgs.add(transformBodyTranslateTypes(l, lambda, bb, toOnnxOpTransformer(l, pe)));
                         }
                     } else if (opClass == ExplicitOnnxOps.Loop.class) {
                         // Explicit transformation of nested body
-                        var lambda = (CoreOp.LambdaOp)(((Op.Result)op.operands().get(3)).op());
+                        var lambda = (JavaOp.LambdaOp)(((Op.Result)op.operands().get(3)).op());
                         opArgs.add(transformBodyTranslateTypes(l, lambda, bb, toOnnxOpTransformer(l, pe)));
                     }
                     OnnxOp onnxOp;
@@ -401,38 +403,38 @@ public final class OnnxTransformer {
                     bb.context().mapValue(io.result(), result);
                 }
                 // Transform access to the result of an operator that is a record access
-                case CoreOp.InvokeOp io when
+                case JavaOp.InvokeOp io when
                         recordComponentAccessToTupleIndex(l, io.invokeDescriptor()) instanceof Integer index -> {
                     Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                     bb.context().mapValue(io.result(), result);
                 }
                 // Transform record construction
-                case CoreOp.NewOp no when isRecord(l, no.type()) -> {
+                case JavaOp.NewOp no when isRecord(l, no.type()) -> {
                     Op.Result result = bb.op(CoreOp.tuple(bb.context().getValues(no.operands())));
                     bb.context().mapValue(no.result(), result);
                 }
                 // Transform access to the result of an operator that is a list access
                 // @@@ raw use of List::get with constant argument
-                case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(LIST_CLASS) && io.invokeDescriptor().name().equals("get") -> {
-                    Op.Result result = bb.op(CoreOp.invoke(
+                case JavaOp.InvokeOp io when io.invokeDescriptor().refType().equals(LIST_CLASS) && io.invokeDescriptor().name().equals("get") -> {
+                    Op.Result result = bb.op(JavaOp.invoke(
                             io.invokeDescriptor(),
                             bb.context().getValue(io.operands().getFirst()),
                             bb.op(CoreOp.constant(JavaType.INT, pe.evaluatedAttributes.get(io).getLast()))));
                     bb.context().mapValue(io.result(), result);
                 }
                 // Skip nested lambdas
-                case CoreOp.LambdaOp _ -> {
+                case JavaOp.LambdaOp _ -> {
                 }
                 case CoreOp.FuncCallOp fco -> {
                     Op.Result result = bb.op(CoreOp.funcCall(fco.funcName(), convertType(l, fco.opType()), bb.context().getValues(fco.operands())));
                     bb.context().mapValue(fco.result(), result);
                 }
-                case CoreOp.FieldAccessOp.FieldLoadOp flo when flo.operands().isEmpty() -> {
-                    Op.Result result = bb.op(CoreOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor())));
+                case JavaOp.FieldAccessOp.FieldLoadOp flo when flo.operands().isEmpty() -> {
+                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor())));
                     bb.context().mapValue(flo.result(), result);
                 }
-                case CoreOp.FieldAccessOp.FieldLoadOp flo -> {
-                    Op.Result result = bb.op(CoreOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor()), bb.context().getValue(flo.operands().getFirst())));
+                case JavaOp.FieldAccessOp.FieldLoadOp flo -> {
+                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor()), bb.context().getValue(flo.operands().getFirst())));
                     bb.context().mapValue(flo.result(), result);
                 }
                 // Copy remaining operations, which may be removed later transformations

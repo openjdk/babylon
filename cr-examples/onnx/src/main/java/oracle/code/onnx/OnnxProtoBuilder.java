@@ -38,16 +38,16 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.TupleType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.TupleType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.writer.OpWriter;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 import oracle.code.onnx.proto.OnnxBuilder.*;
 import oracle.code.onnx.proto.OnnxConstants.*;
-import oracle.code.onnx.proto.OnnxModel;
 
 public final class OnnxProtoBuilder {
 
@@ -276,7 +276,7 @@ public final class OnnxProtoBuilder {
                     indexer.mapTupleLoad(tlo.result(), tlo.operands().getFirst(), tlo.index());
                 case CoreOp.TupleOp to ->
                     indexer.mapTupleElements(to.result(), to.operands());
-                case CoreOp.InvokeOp io when io.invokeDescriptor().refType().equals(JavaType.type(List.class)) -> {
+                case JavaOp.InvokeOp io when io.invokeDescriptor().refType().equals(JavaType.type(List.class)) -> {
                     if (io.invokeDescriptor().name().equals("get") && io.operands().getLast() instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co && co.value() instanceof Integer i) {
                         indexer.mapTupleLoad(io.result(), io.operands().getFirst(), i);
                     } else if (io.invokeDescriptor().name().equals("of")) {

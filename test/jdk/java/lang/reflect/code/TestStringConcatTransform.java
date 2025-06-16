@@ -42,7 +42,7 @@ import jdk.incubator.code.analysis.StringConcatTransformer;
 import java.lang.reflect.Method;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.CodeReflection;
 import java.util.Arrays;
 import java.util.HashMap;

@@ -33,10 +33,9 @@ import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.StringConcatFactory;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.bytecode.BytecodeLift;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.CodeReflection;
 
 /*
  * @test

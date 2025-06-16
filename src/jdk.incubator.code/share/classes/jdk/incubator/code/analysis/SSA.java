@@ -26,7 +26,7 @@
 package jdk.incubator.code.analysis;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;

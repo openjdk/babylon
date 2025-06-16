@@ -154,6 +154,8 @@
 
 #define JAVA_25_VERSION                   69
 
+#define JAVA_26_VERSION                   70
+
 void ClassFileParser::set_class_bad_constant_seen(short bad_constant) {
   assert((bad_constant == JVM_CONSTANT_Module ||
           bad_constant == JVM_CONSTANT_Package) && _major_version >= JAVA_9_VERSION,
@@ -176,7 +178,7 @@ void ClassFileParser::parse_constant_pool_entries(const ClassFileStream* const s
   const ClassFileStream cfs1 = *stream;
   const ClassFileStream* const cfs = &cfs1;
 
-  debug_only(const u1* const old_current = stream->current();)
+  DEBUG_ONLY(const u1* const old_current = stream->current();)
 
   // Used for batching symbol allocations.
   const char* names[SymbolTable::symbol_alloc_batch_size];
@@ -5015,6 +5017,7 @@ void ClassFileParser::fill_instance_klass(InstanceKlass* ik,
 
   // Set name and CLD before adding to CLD
   ik->set_class_loader_data(_loader_data);
+  ik->set_class_loader_type();
   ik->set_name(_class_name);
 
   // Add all classes to our internal class loader list here,
@@ -5243,7 +5246,7 @@ void ClassFileParser::fill_instance_klass(InstanceKlass* ik,
   // it's official
   set_klass(ik);
 
-  debug_only(ik->verify();)
+  DEBUG_ONLY(ik->verify();)
 }
 
 void ClassFileParser::update_class_name(Symbol* new_class_name) {

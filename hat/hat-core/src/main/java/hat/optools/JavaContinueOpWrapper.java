@@ -24,12 +24,13 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 
-public class JavaContinueOpWrapper extends OpWrapper<ExtendedOp.JavaContinueOp> {
-    public JavaContinueOpWrapper(MethodHandles.Lookup lookup,ExtendedOp.JavaContinueOp op) {
+public class JavaContinueOpWrapper extends OpWrapper<JavaOp.JavaContinueOp> {
+    public JavaContinueOpWrapper(MethodHandles.Lookup lookup, JavaOp.JavaContinueOp op) {
         super(lookup,op);
     }
 

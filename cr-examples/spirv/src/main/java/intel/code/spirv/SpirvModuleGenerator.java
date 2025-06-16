@@ -42,6 +42,11 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.math.BigInteger;
+
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.vector.VectorSpecies;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.Vector;
@@ -53,11 +58,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.JavaType;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVHeader;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVModule;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVFunction;
@@ -294,8 +295,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc("spirvdemo.IntArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.INT) ||
-                                call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc("spirvdemo.FloatArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.FLOAT)))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc.of("spirvdemo.IntArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.INT)) ||
+                                call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc.of("spirvdemo.FloatArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.FLOAT))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));

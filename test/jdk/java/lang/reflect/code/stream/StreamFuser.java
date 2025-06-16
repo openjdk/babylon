@@ -22,11 +22,11 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExtendedOp.JavaEnhancedForOp;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp.JavaEnhancedForOp;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -34,11 +34,11 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.op.ExtendedOp._continue;
-import static jdk.incubator.code.op.ExtendedOp.enhancedFor;
-import static jdk.incubator.code.type.JavaType.parameterized;
-import static jdk.incubator.code.type.JavaType.type;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.java.JavaOp._continue;
+import static jdk.incubator.code.dialect.java.JavaOp.enhancedFor;
+import static jdk.incubator.code.dialect.java.JavaType.parameterized;
+import static jdk.incubator.code.dialect.java.JavaType.type;
 
 public final class StreamFuser {
 
