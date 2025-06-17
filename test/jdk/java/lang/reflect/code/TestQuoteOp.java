@@ -264,6 +264,12 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
+""",
+              // model must contains at least two operations
+              """
+func @"q" (%5 : jdk.incubator.code.Quoted)jdk.incubator.code.Quoted -> {
+    return %5;
+};
 """
       };
 }
