@@ -24,8 +24,6 @@
  */
 package jdk.incubator.code.bytecode;
 
-import jdk.internal.classfile.impl.BytecodeHelpers;
-
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeTransform;
