@@ -399,4 +399,42 @@ public class TestJavaType {
     private static JavaType typeFromFlatString(String desc) {
         return JavaTypeUtils.toJavaType(JavaTypeUtils.parseExternalTypeString(desc));
     }
+
+    static class InnerTypes {
+
+        class Member { }
+
+        static class Nested { }
+
+        void m() {
+            class Local_I_M { }
+        }
+
+        static void s_m() {
+            class Local_S_M { }
+        }
+
+        InnerTypes() {
+            class Local_C { }
+        }
+    }
+
+    @Test
+    public void testInnerTypes() throws ReflectiveOperationException {
+        var innertypes = JavaType.type(InnerTypes.class);
+        var member = (ClassType)JavaType.type(InnerTypes.Member.class);
+        Assert.assertEquals(member.enclosingType().get(), innertypes);
+
+        var nested = (ClassType)JavaType.type(InnerTypes.Nested.class);
+        Assert.assertTrue(nested.enclosingType().isEmpty());
+
+        var local_s_m = (ClassType)JavaType.type(Class.forName("TestJavaType$InnerTypes$1Local_S_M"));
+        Assert.assertTrue(local_s_m.enclosingType().isEmpty());
+
+        var local_i_m = (ClassType)JavaType.type(Class.forName("TestJavaType$InnerTypes$1Local_I_M"));
+        Assert.assertEquals(local_i_m.enclosingType().get(), innertypes);
+
+        var local_c = (ClassType)JavaType.type(Class.forName("TestJavaType$InnerTypes$1Local_C"));
+        Assert.assertEquals(local_c.enclosingType().get(), innertypes);
+    }
 }
