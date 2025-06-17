@@ -27,12 +27,10 @@ package jdk.incubator.code.dialect.java;
 
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.DialectFactory;
+import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.OpFactory;
-import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.core.TupleType;
-import jdk.incubator.code.dialect.core.VarType;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -5296,6 +5294,9 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     // @@@ Compute lazily
     public static final OpFactory FACTORY = CoreOp.FACTORY.andThen(OpFactory.OP_FACTORY.get(JavaOp.class));
 
+    public static final DialectFactory DIALECT_FACTORY = new DialectFactory(
+            FACTORY,
+            CoreTypeFactory.CORE_TYPE_FACTORY);
 
     /**
      * Creates a lambda operation.
