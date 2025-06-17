@@ -693,7 +693,7 @@ public final class Interpreter {
         }
     }
 
-    public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
+    static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
         try {
             return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
         } catch (ReflectiveOperationException e) {
@@ -701,7 +701,7 @@ public final class Interpreter {
         }
     }
 
-    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>)jt.erasure().resolve(l);
