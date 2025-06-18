@@ -4578,7 +4578,4 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         return new Quoted(op, m);
     }
-    // TODO embed constant operand and capture in the body of FuncOp we produce (maybe later)
-    // TODO err message
-    // TODO move them to Quoted and accept args (list)
 }
