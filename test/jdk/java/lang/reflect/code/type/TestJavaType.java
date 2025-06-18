@@ -21,9 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.dialect.java.PrimitiveType;
-import jdk.incubator.code.dialect.java.TypeVariableType;
-import jdk.incubator.code.dialect.java.WildcardType;
+import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -34,10 +32,7 @@ import java.lang.constant.ConstantDescs;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
-import jdk.incubator.code.dialect.java.ArrayType;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.core.CoreTypeFactory;
-import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -178,7 +173,7 @@ public class TestJavaType {
     public void testTypeRoundTrip(Type type) throws ReflectiveOperationException {
         JavaType javaType = JavaType.type(type);
         Assert.assertEquals(type, javaType.resolve(MethodHandles.lookup()));
-        Assert.assertEquals(javaType, CoreTypeFactory.JAVA_TYPE_FACTORY.constructType(javaType.externalize()));
+        Assert.assertEquals(javaType, JavaOp.JAVA_TYPE_FACTORY.constructType(javaType.externalize()));
     }
 
     @Test(dataProvider = "types")

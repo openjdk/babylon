@@ -80,7 +80,7 @@ public class TestParse {
                     block.op(_return(or));
                 });
 
-        List<Op> ops = OpParser.fromString(JavaOp.FACTORY, f.toText());
+        List<Op> ops = OpParser.fromString(JavaOp.DIALECT_FACTORY, f.toText());
         assertTextEquals(f, ops.get(0));
     }
 
@@ -97,8 +97,8 @@ public class TestParse {
             """;
     @Test
     void testParseNamedBody() {
-        Op opE = OpParser.fromString(JavaOp.FACTORY, NAMED_BODY).get(0);
-        Op opA = OpParser.fromString(JavaOp.FACTORY, opE.toText()).get(0);
+        Op opE = OpParser.fromString(JavaOp.DIALECT_FACTORY, NAMED_BODY).get(0);
+        Op opA = OpParser.fromString(JavaOp.DIALECT_FACTORY, opE.toText()).get(0);
         assertTextEquals(opA, opE);
     }
 
@@ -111,8 +111,8 @@ public class TestParse {
             """;
     @Test
     void testEscapedString() {
-        Op opE = OpParser.fromString(JavaOp.FACTORY, ESCAPED_STRING).get(0);
-        Op opA = OpParser.fromString(JavaOp.FACTORY, opE.toText()).get(0);
+        Op opE = OpParser.fromString(JavaOp.DIALECT_FACTORY, ESCAPED_STRING).get(0);
+        Op opA = OpParser.fromString(JavaOp.DIALECT_FACTORY, opE.toText()).get(0);
         assertTextEquals(opA, opE);
 
         CoreOp.ConstantOp cop = (CoreOp.ConstantOp) opE.bodies().get(0).entryBlock().firstOp();

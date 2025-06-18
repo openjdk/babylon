@@ -162,7 +162,7 @@ public class SCFOps {
     }
 
 
-    public static final OpFactory FACTORY = OpFactory.OP_FACTORY.get(SCFOps.class);
+    public static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(SCFOps.class);
 
     static public YieldOp yield_(Value... values) {
         return yield_(List.of(values));

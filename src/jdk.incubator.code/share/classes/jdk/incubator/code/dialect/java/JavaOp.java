@@ -28,9 +28,11 @@ package jdk.incubator.code.dialect.java;
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.DialectFactory;
+import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,20 +45,21 @@ import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /**
- * The top-level operation class for the enclosed set of extended operations.
+ * The top-level operation class for Java operations.
  * <p>
- * A code model, produced by the Java compiler from Java program source, may consist of extended operations and core
+ * A code model, produced by the Java compiler from Java program source, may consist of core operations and Java
  * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
  * Java Language Specification
  * <p>
- * Extended operations model specific Java language constructs, often those with structured control flow and nested
- * code. Each operation is transformable into a sequence of core operations, commonly referred to as lowering. Those
- * that implement {@link Op.Lowerable} can transform themselves and will transform associated extended operations
- * that are not explicitly lowerable.
+ * Java operations model specific Java language constructs or Java program behaviour. Some Java operations model
+ * structured control flow and nested code. These operations are transformable, commonly referred to as lowering, into
+ * a sequence of other core or Java operations. Those that implement {@link Op.Lowerable} can transform themselves and
+ * will transform associated operations that are not explicitly lowerable.
  * <p>
- * A code model, produced by the Java compiler from source, and consisting of extended operations and core operations
- * can be transformed to one consisting only of core operations, where all extended operations are lowered. This
- * transformation preserves programing meaning. The resulting lowered code model also represents the same Java program.
+ * A code model, produced by the Java compiler from source, and consisting of core operations and Java operations
+ * can be transformed to one consisting only of non-lowerable operations, where all lowerable operations are lowered.
+ * This transformation preserves programing meaning. The resulting lowered code model also represents the same Java
+ * program.
  */
 public sealed abstract class JavaOp extends ExternalizableOp {
 
@@ -5287,16 +5290,39 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         }
     }
 
+    /**
+     * An operation factory for Java operations.
+     */
+    public static OpFactory JAVA_OP_FACTORY = OpFactory.OP_FACTORY.get(JavaOp.class);
 
     /**
-     * A factory for extended and core operations.
+     * A type element factory for Java type elements.
      */
-    // @@@ Compute lazily
-    public static final OpFactory FACTORY = CoreOp.FACTORY.andThen(OpFactory.OP_FACTORY.get(JavaOp.class));
+    public static final TypeElementFactory JAVA_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
+        case INFLATED_TYPE -> JavaTypeUtils.toJavaType(tree);
+        case INFLATED_REF -> JavaTypeUtils.toJavaRef(tree);
+        default -> throw new UnsupportedOperationException("Unsupported: " + tree);
+    };
 
+    /**
+     * An operation factory for core and Java operations.
+     */
+    public static final OpFactory OP_FACTORY = CoreOp.OP_FACTORY.andThen(JAVA_OP_FACTORY);
+
+    /**
+     * A type element factory for core type and Java type elements, where the core type elements can refer to
+     * Java type elements.
+     */
+    public static final TypeElementFactory TYPE_FACTORY = CoreOp.coreTypeFactory(JAVA_TYPE_FACTORY);
+
+    /**
+     * A Java dialect factory, for constructing core and Java operations and constructing
+     * core type and Java type elements, where the core type elements can refer to Java
+     * type elements.
+     */
     public static final DialectFactory DIALECT_FACTORY = new DialectFactory(
-            FACTORY,
-            CoreTypeFactory.CORE_TYPE_FACTORY);
+            OP_FACTORY,
+            TYPE_FACTORY);
 
     /**
      * Creates a lambda operation.

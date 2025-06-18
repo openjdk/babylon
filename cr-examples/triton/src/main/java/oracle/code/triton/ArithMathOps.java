@@ -469,7 +469,7 @@ public class ArithMathOps {
         }
     }
 
-    public static final OpFactory FACTORY = def -> {
+    public static final OpFactory OP_FACTORY = def -> {
         return switch (def.name()) {
             case ConstantOp.NAME -> ConstantOp.create(def);
             case ExpOp.NAME -> new ExpOp(def);

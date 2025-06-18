@@ -34,7 +34,6 @@ import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.core.CoreTypeFactory;
 import jdk.incubator.code.writer.OpBuilder;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
