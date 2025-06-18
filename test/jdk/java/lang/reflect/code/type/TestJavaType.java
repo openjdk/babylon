@@ -402,7 +402,13 @@ public class TestJavaType {
 
     static class InnerTypes {
 
-        class Member { }
+        class Member {
+            class One {
+                class Two {
+                    class Three { }
+                }
+            }
+        }
 
         static class Nested { }
 
@@ -424,6 +430,18 @@ public class TestJavaType {
         var innertypes = JavaType.type(InnerTypes.class);
         var member = (ClassType)JavaType.type(InnerTypes.Member.class);
         Assert.assertEquals(member.enclosingType().get(), innertypes);
+
+        var memberOne = (ClassType)JavaType.type(InnerTypes.Member.One.class);
+        Assert.assertEquals(memberOne.enclosingType().get(), member);
+        Assert.assertEquals(memberOne.toClassName(), InnerTypes.Member.One.class.getName());
+
+        var memberTwo = (ClassType)JavaType.type(InnerTypes.Member.One.Two.class);
+        Assert.assertEquals(memberTwo.enclosingType().get(), memberOne);
+        Assert.assertEquals(memberTwo.toClassName(), InnerTypes.Member.One.Two.class.getName());
+
+        var memberThree = (ClassType)JavaType.type(InnerTypes.Member.One.Two.Three.class);
+        Assert.assertEquals(memberThree.enclosingType().get(), memberTwo);
+        Assert.assertEquals(memberThree.toClassName(), InnerTypes.Member.One.Two.Three.class.getName());
 
         var nested = (ClassType)JavaType.type(InnerTypes.Nested.class);
         Assert.assertTrue(nested.enclosingType().isEmpty());
