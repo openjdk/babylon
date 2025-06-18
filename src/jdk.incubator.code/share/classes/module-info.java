@@ -47,8 +47,6 @@ module jdk.incubator.code {
     exports jdk.incubator.code.bytecode;
     exports jdk.incubator.code.interpreter;
     exports jdk.incubator.code.writer;
-    exports jdk.incubator.code.tools.dot;
-    exports jdk.incubator.code.tools.renderer;
 
     opens jdk.incubator.code.internal to java.base;
 
