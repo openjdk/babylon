@@ -51,6 +51,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.bytecode.impl.BranchCompactor;
+import jdk.incubator.code.bytecode.impl.LocalsCompactor;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.java.*;

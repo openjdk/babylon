@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package jdk.incubator.code.bytecode;
+package jdk.incubator.code.bytecode.impl;
 
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.CodeElement;
