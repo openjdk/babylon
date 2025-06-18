@@ -33,7 +33,6 @@ import java.lang.reflect.Method;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.analysis.AnfTransformer;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
