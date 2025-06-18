@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -23,14 +21,14 @@
  * questions.
  */
 
-package jdk.incubator.code.interpreter;
-
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.writer.OpWriter;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -189,14 +187,23 @@ public final class Verifier {
         return Object.class;
     }
 
+    static final Class<?> CLASS_INVOKABLE_LEAF_OPS;
+    static {
+        try {
+            CLASS_INVOKABLE_LEAF_OPS = Class.forName("jdk.incubator.code.interpreter.InvokableLeafOps");
+        } catch (ReflectiveOperationException roe) {
+            throw new InternalError(roe);
+        }
+    }
+
     private void verifyOpHandleExists(Op op, String opName) {
         try {
-            var mt = Interpreter.resolveToMethodType(lookup, op.opType()).erase();
-            MethodHandles.lookup().findStatic(InvokableLeafOps.class, opName, mt);
+            var mt = MethodRef.toNominalDescriptor(op.opType()).resolveConstantDesc(lookup).erase();
+            CLASS_INVOKABLE_LEAF_OPS.getDeclaredMethod(opName, mt.parameterArray());
         } catch (NoSuchMethodException nsme) {
             error("%s %s of type %s is not supported", op.parentBlock(), op, op.opType());
-        } catch (IllegalAccessException iae) {
-            error("%s %s %s",  op.parentBlock(), op, iae.getMessage());
+        } catch (ReflectiveOperationException roe) {
+            error("%s %s %s",  op.parentBlock(), op, roe.getMessage());
         }
     }
 
