@@ -10,8 +10,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import java.util.LinkedHashSet;
-import java.util.SequencedSet;
+import java.util.Iterator;
 import java.util.function.IntUnaryOperator;
 
 /*
@@ -35,22 +34,20 @@ public class TestQuoteOp {
         CoreOp.FuncOp fm = Op.ofMethod(f).orElseThrow();
         Op lop = fm.body().entryBlock().ops().stream().filter(op -> op instanceof CoreOp.LambdaOp).findFirst().orElseThrow();
 
-//        fm.writeTo(System.out);
-
         CoreOp.FuncOp funcOp = CoreOp.quoteOp(lop);
-//        funcOp.writeTo(System.out);
 
-        CoreOp.OpAndValues opAndValues = CoreOp.quotedOp(funcOp);
+        Object[] args = new Object[]{1, "a", this};
+        Quoted quoted = CoreOp.quotedOp(funcOp, args);
         // op must have the same structure as lop
         // for the moment, we don't have utility to check that
-        Op op = opAndValues.op();
 
-        Assert.assertTrue(lop.getClass().isInstance(op));
+        Assert.assertTrue(lop.getClass().isInstance(quoted.op()));
 
-        SequencedSet<Value> e = new LinkedHashSet<>();
-        e.addAll(op.operands());
-        e.addAll(op.capturedValues());
-        Assert.assertEquals(opAndValues.operandsAndCaptures(), e);
+        Iterator<Object> iterator = quoted.capturedValues().values().iterator();
+
+        Assert.assertEquals(((CoreOp.Var) iterator.next()).value(), args[0]);
+        Assert.assertEquals(((CoreOp.Var) iterator.next()).value(), args[1]);
+        Assert.assertEquals(iterator.next(), args[2]);
     }
 
     @CodeReflection
@@ -64,20 +61,17 @@ public class TestQuoteOp {
         CoreOp.FuncOp gm = Op.ofMethod(g).orElseThrow();
         Op invOp = gm.body().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.InvokeOp).findFirst().orElseThrow();
 
-//        gm.writeTo(System.out);
-
         CoreOp.FuncOp funcOp = CoreOp.quoteOp(invOp);
-//        funcOp.writeTo(System.out);
 
-        CoreOp.OpAndValues opAndValues = CoreOp.quotedOp(funcOp);
-        Op op = opAndValues.op();
+        Object[] args = {"abc", "b"};
+        Quoted quoted = CoreOp.quotedOp(funcOp, args);
 
-        Assert.assertTrue(invOp.getClass().isInstance(op));
+        Assert.assertTrue(invOp.getClass().isInstance(quoted.op()));
 
-        SequencedSet<Value> e = new LinkedHashSet<>();
-        e.addAll(op.operands());
-        e.addAll(op.capturedValues());
-        Assert.assertEquals(opAndValues.operandsAndCaptures(), e);
+        Iterator<Object> iterator = quoted.capturedValues().values().iterator();
+
+        Assert.assertEquals(iterator.next(), args[0]);
+        Assert.assertEquals(iterator.next(), args[1]);
     }
 
     @Test
@@ -86,26 +80,29 @@ public class TestQuoteOp {
         int z = 99;
         Quotable q = (IntUnaryOperator & Quotable) x -> x + y + z + hashCode();
 
+        // access FuncOp created by javac
         Quoted quoted = Op.ofQuotable(q).orElseThrow();
         Op op = quoted.op();
         CoreOp.QuotedOp qop = ((CoreOp.QuotedOp) op.ancestorBody().parentOp());
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) qop.ancestorBody().parentOp());
-//        fop.writeTo(System.out);
 
-        CoreOp.OpAndValues opAndValues = CoreOp.quotedOp(fop);
+        Object[] args = {this, 111};
+        Quoted quoted2 = CoreOp.quotedOp(fop, args);
 
-        SequencedSet<Value> e = new LinkedHashSet<>();
-        e.addAll(op.operands());
-        e.addAll(op.capturedValues());
-        Assert.assertEquals(opAndValues.operandsAndCaptures(), e);
+        Iterator<Object> iterator = quoted2.capturedValues().values().iterator();
+
+        Assert.assertEquals(((CoreOp.Var) iterator.next()).value(), y);
+        Assert.assertEquals(((CoreOp.Var) iterator.next()).value(), args[1]);
+        Assert.assertEquals(iterator.next(), args[0]);
     }
 
     @DataProvider
-    Object[] invalidCases() {
-      return new Object[] {
+    Object[][] invalidCases() {
+        return new Object[][]{
               // TODO describe error in a comment
-              // func op must have one block
-              """
+                {
+                        // func op must have one block
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     branch ^block_1;
 
@@ -118,7 +115,9 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
+""", new Object[]{}
+                },
+                {
               // before last op must be QuotedOp
               """
 func @"q" ()jdk.incubator.code.Quoted -> {
@@ -131,9 +130,11 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     %0 : boolean = constant @"false";
     return %5;
 };
-""",
-              // last op must be ReturnOp
-              """
+""", new Object[]{}
+                },
+                {
+                        // last op must be ReturnOp
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
       %6 : java.lang.Runnable = lambda ()void -> {
@@ -143,9 +144,11 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     yield %5;
 };
-""",
-              // the result of QuotedOp must be returned
-              """
+""", new Object[]{}
+                },
+                {
+                        // the result of QuotedOp must be returned
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
       %6 : java.lang.Runnable = lambda ()void -> {
@@ -155,9 +158,11 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return;
 };
-""",
-              // the result of QuotedOp must be returned
-              """
+""", new Object[]{}
+                },
+                {
+                        // the result of QuotedOp must be returned
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %0 : int = constant @"1";
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
@@ -168,9 +173,11 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %0;
 };
-""",
-              // param must be used
-              """
+""", new Object[]{}
+                },
+                {
+                        // param must be used
+                        """
 func @"q" (%0 : Object)jdk.incubator.code.Quoted -> {
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
       %6 : java.lang.Runnable = lambda ()void -> {
@@ -180,9 +187,11 @@ func @"q" (%0 : Object)jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-              // param used more than once, all uses must be as operand or capture of quoted op
-              """
+""", new Object[]{"s"}
+                },
+                {
+                        // param used more than once, all uses must be as operand or capture of quoted op
+                        """
 func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
     %2 : Var<int> = var %0 @"y";
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
@@ -193,9 +202,11 @@ func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-              // operations before quoted op must be ConstantOp or VarOp
-              """
+""", new Object[]{1}
+                },
+                {
+                        // operations before quoted op must be ConstantOp or VarOp
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %0 : java.lang.String = new @"java.lang.String::<new>()";
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
@@ -207,9 +218,11 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-              // constant op must be used
-              """
+""", new Object[]{}
+                },
+                {
+                        // constant op must be used
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %0 : int = constant @"1";
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
@@ -220,9 +233,11 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-              // constant used more than once, all its uses must be as operand or capture of quoted op
-              """
+""", new Object[]{}
+                },
+                {
+                        // constant used more than once, all its uses must be as operand or capture of quoted op
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %0 : int = constant @"1";
     %1 : Var<int> = var %0 @"y";
@@ -236,9 +251,11 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-              // var op must be initialized with param or result of constant op
-              """
+""", new Object[]{}
+                },
+                {
+                        // var op must be initialized with param or result of constant op
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %1 : Var<int> = var @"y";
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
@@ -250,41 +267,31 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-              // var op must be used as operand or capture of quoted op
-              """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %0 : int = constant @"1";
-    %1 : Var<int> = var %0 @"y";
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.lang.Runnable = lambda ()void -> {
-          return;
-      };
-      yield %6;
-    };
-    return %5;
-};
-""",
-              // model must contains at least two operations
-              """
+""", new Object[]{}
+                },
+                {
+                        // model must contains at least two operations
+                        """
 func @"q" (%5 : jdk.incubator.code.Quoted)jdk.incubator.code.Quoted -> {
     return %5;
 };
-"""
+""", new Object[]{null}
+                }
       };
 }
 
 
     @Test(dataProvider = "invalidCases")
-    void testInvalidCases(String model) {
+    void testInvalidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfFuncOp(model));
-        Assert.assertThrows(IllegalArgumentException.class, () -> CoreOp.quotedOp(fop));
+        Assert.assertThrows(IllegalArgumentException.class, () -> CoreOp.quotedOp(fop, args));
     }
 
     @DataProvider
-    Object[] validCases() {
-        return new Object[] {
-                """
+    Object[][] validCases() {
+        return new Object[][] {
+                {
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
       %6 : java.lang.Runnable = lambda ()void -> {
@@ -294,8 +301,10 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-                """
+""", new Object[] {}
+                },
+                {
+                        """
 func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
       %6 : java.util.function.IntSupplier = lambda ()int -> {
@@ -305,8 +314,10 @@ func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-                """
+""", new Object[] {1}
+                },
+                {
+                        """
 func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
     %1 : Var<int> = var %0;
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
@@ -318,8 +329,10 @@ func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-                """
+""", new Object[] {2}
+                },
+                {
+                        """
 func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
       %6 : java.util.function.IntSupplier = lambda ()int -> {
@@ -332,8 +345,10 @@ func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-                """
+""", new Object[] {3}
+                },
+                {
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %0 : int = constant @"1";
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
@@ -344,8 +359,10 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-                """
+""", new Object[] {}
+                },
+                {
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %0 : int = constant @"1";
     %5 : jdk.incubator.code.Quoted = quoted ()void -> {
@@ -359,8 +376,10 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
-                """
+""", new Object[] {}
+                },
+                {
+                        """
 func @"q" ()jdk.incubator.code.Quoted -> {
     %0 : int = constant @"1";
     %1 : Var<int> = var %0;
@@ -374,13 +393,14 @@ func @"q" ()jdk.incubator.code.Quoted -> {
     };
     return %5;
 };
-""",
+""", new Object[] {}
+                },
         };
     }
 
     @Test(dataProvider = "validCases")
-    void testValidCases(String model) {
+    void testValidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfFuncOp(model));
-        CoreOp.quotedOp(fop);
+        CoreOp.quotedOp(fop, args);
     }
 }

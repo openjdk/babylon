@@ -26,6 +26,7 @@
 package jdk.incubator.code;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * The quoted form of an operation.
@@ -64,7 +65,8 @@ public final class Quoted {
     public Quoted(Op op, SequencedMap<Value, Object> capturedValues) {
         // @@@ This check is potentially expensive, remove or keep as assert?
         // @@@ Or make Quoted an interface, with a module private implementation?
-        assert op.capturedValues().equals(new ArrayList<>(capturedValues.keySet()));
+        assert Stream.concat(op.operands().stream(), op.capturedValues().stream()).toList()
+                .equals(new ArrayList<>(capturedValues.keySet()));
         this.op = op;
         this.capturedValues = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(capturedValues));
     }

@@ -4479,9 +4479,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         });
     }
 
-    public record OpAndValues(Op op, SequencedSet<Value> operandsAndCaptures) { }
-
-    public static OpAndValues quotedOp(FuncOp funcOp) {
+    public static Quoted quotedOp(FuncOp funcOp, Object[] args) {
 
         if (funcOp.body().blocks().size() != 1) {
             throw new IllegalArgumentException("Argument operation has more then one block");
@@ -4546,6 +4544,41 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             }
         }
 
-        return new OpAndValues(op, operandsAndCaptures);
+        // map captured values to their corresponding runtime values
+        // captured value can be:
+        // 1- block param
+        // 2- result of VarOp whose initial value is constant
+        // 3- result of VarOp whose initial value is block param
+        // 4- result of ConstantOp
+        List<Block.Parameter> params = funcOp.parameters();
+        if (params.size() != args.length) {
+            throw new IllegalArgumentException();
+        }
+        SequencedMap<Value, Object> m = new LinkedHashMap<>();
+        for (Value v : operandsAndCaptures) {
+            switch (v) {
+                case Block.Parameter p -> {
+                    Object rv = args[params.indexOf(p)];
+                    m.put(v, rv);
+                }
+                case Result opr when opr.op() instanceof VarOp varOp -> {
+                    if (varOp.initOperand() instanceof Result r && r.op() instanceof ConstantOp cop) {
+                        m.put(v, Var.of(cop.value()));
+                    } else if (varOp.initOperand() instanceof Block.Parameter p) {
+                        Object rv = args[params.indexOf(p)];
+                        m.put(v, Var.of(rv));
+                    }
+                }
+                case Result opr when opr.op() instanceof ConstantOp cop -> {
+                    m.put(v, cop.value());
+                }
+                default -> throw new IllegalArgumentException();
+            }
+        }
+
+        return new Quoted(op, m);
     }
+    // TODO embed constant operand and capture in the body of FuncOp we produce (maybe later)
+    // TODO err message
+    // TODO move them to Quoted and accept args (list)
 }
