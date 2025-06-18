@@ -1,6 +1,6 @@
 package jdk.incubator.code;
 
-import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.factory.TypeElementFactory;
 import java.util.List;
 import java.util.stream.Collectors;
 

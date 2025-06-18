@@ -43,8 +43,8 @@ import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.factory.ExternalizableOp;
+import jdk.incubator.code.dialect.factory.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.TupleType;
@@ -134,7 +134,7 @@ public class OnnxModelTest {
         };
     }
 
-    static final OpFactory ONNX_OP_FACTORY = OpFactory.OP_FACTORY.get(ExplicitOnnxOps.class).andThen(OpFactory.OP_FACTORY.get(OnnxOps.class));
+    static final OpFactory ONNX_OP_FACTORY = OpFactory.OP_FACTORY_MAP.get(ExplicitOnnxOps.class).andThen(OpFactory.OP_FACTORY_MAP.get(OnnxOps.class));
 
     static final Map<String, OnnxOp.OnnxSchema> ONNX_SCHEMA_REGISTRY = collectSchemas(ExplicitOnnxOps.class, OnnxOps.class);
 

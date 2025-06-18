@@ -23,7 +23,7 @@
  * questions.
  */
 
-package jdk.incubator.code.dialect;
+package jdk.incubator.code.dialect.factory;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -72,7 +72,7 @@ public interface OpFactory {
      * Alternatively, the concrete class must declare public constructor with one parameter type of
      * {@link ExternalizableOp.ExternalizedOp}.
      */
-    ClassValue<OpFactory> OP_FACTORY = new ClassValue<>() {
+    ClassValue<OpFactory> OP_FACTORY_MAP = new ClassValue<>() {
         @Override
         protected OpFactory computeValue(Class<?> c) {
             // @@@ See https://bugs.openjdk.org/browse/JDK-8321207

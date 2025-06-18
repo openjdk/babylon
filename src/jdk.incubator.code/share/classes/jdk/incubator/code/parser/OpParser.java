@@ -29,9 +29,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
 import jdk.incubator.code.TypeElement.ExternalizedTypeElement;
-import jdk.incubator.code.dialect.DialectFactory;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.factory.DialectFactory;
+import jdk.incubator.code.dialect.factory.ExternalizableOp;
+import jdk.incubator.code.dialect.factory.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.parser.impl.Tokens.TokenKind;
@@ -41,7 +41,7 @@ import jdk.incubator.code.parser.impl.Lexer;
 import jdk.incubator.code.parser.impl.Scanner;
 import jdk.incubator.code.parser.impl.Tokens;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.factory.TypeElementFactory;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -172,7 +172,7 @@ public final class OpParser {
      * Parse a Java code model, modeling a method body or quoted lambda body, from
      * its serialized textual form obtained from an input string.
      * <p>
-     * This method uses the Java {@link JavaOp#DIALECT_FACTORY dialect factory}
+     * This method uses the Java {@link JavaOp#JAVA_DIALECT_FACTORY dialect factory}
      * for construction of operations and type elements.
      *
      * @param in the input string
@@ -183,7 +183,7 @@ public final class OpParser {
     public static Op fromStringOfJavaCodeModel(String in) {
         // @@@ Used produce code models stored as text in the class file,
         // can eventually be removed as storing text is now a backup option.
-        Op op = fromString(JavaOp.DIALECT_FACTORY, in).get(0);
+        Op op = fromString(JavaOp.JAVA_DIALECT_FACTORY, in).get(0);
         if (!(op instanceof CoreOp.FuncOp)) {
             throw new IllegalArgumentException("Op is not a FuncOp: " + op);
         }

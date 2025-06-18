@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 /**
  * A tuple type.
  */
-public final class TupleType implements TypeElement {
+public final class TupleType implements CoreType {
     static final String NAME = "Tuple";
 
     final List<TypeElement> componentTypes;

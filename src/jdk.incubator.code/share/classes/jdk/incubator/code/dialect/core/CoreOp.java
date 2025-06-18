@@ -27,10 +27,9 @@ package jdk.incubator.code.dialect.core;
 
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.java.*;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.factory.ExternalizableOp;
+import jdk.incubator.code.dialect.factory.OpFactory;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -1346,85 +1345,11 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
     }
 
-    //
-    // Arithmetic ops
-
 
     /**
      * An operation factory for core operations.
      */
-    public static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(CoreOp.class);
-
-    /**
-     * Creates a composed type element factory for core type elements and type elements from the given
-     * type element factory, where the core type elements can refer to type elements from the
-     * given type element factory.
-     *
-     * @param f the type element factory.
-     * @return the composed type element factory.
-     */
-    public static TypeElementFactory coreTypeFactory(TypeElementFactory f) {
-        class CodeModelFactory implements TypeElementFactory {
-            final TypeElementFactory thisThenF = this.andThen(f);
-
-            @Override
-            public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
-                return switch (tree.identifier()) {
-                    case VarType.NAME -> {
-                        if (tree.arguments().size() != 1) {
-                            throw new IllegalArgumentException();
-                        }
-
-                        TypeElement v = thisThenF.constructType(tree.arguments().getFirst());
-                        if (v == null) {
-                            throw new IllegalArgumentException("Bad type: " + tree);
-                        }
-                        yield VarType.varType(v);
-                    }
-                    case TupleType.NAME -> {
-                        if (tree.arguments().isEmpty()) {
-                            throw new IllegalArgumentException("Bad type: " + tree);
-                        }
-
-                        List<TypeElement> cs = new ArrayList<>(tree.arguments().size());
-                        for (TypeElement.ExternalizedTypeElement child : tree.arguments()) {
-                            TypeElement c = thisThenF.constructType(child);
-                            if (c == null) {
-                                throw new IllegalArgumentException("Bad type: " + tree);
-                            }
-                            cs.add(c);
-                        }
-                        yield TupleType.tupleType(cs);
-                    }
-                    case FunctionType.NAME -> {
-                        if (tree.arguments().isEmpty()) {
-                            throw new IllegalArgumentException("Bad type: " + tree);
-                        }
-
-                        TypeElement rt = thisThenF.constructType(tree.arguments().getFirst());
-                        if (rt == null) {
-                            throw new IllegalArgumentException("Bad type: " + tree);
-                        }
-                        List<TypeElement> pts = new ArrayList<>(tree.arguments().size() - 1);
-                        for (TypeElement.ExternalizedTypeElement child : tree.arguments().subList(1, tree.arguments().size())) {
-                            TypeElement c = thisThenF.constructType(child);
-                            if (c == null) {
-                                throw new IllegalArgumentException("Bad type: " + tree);
-                            }
-                            pts.add(c);
-                        }
-                        yield FunctionType.functionType(rt, pts);
-                    }
-                    default -> null;
-                };
-            }
-        }
-        if (f instanceof CodeModelFactory) {
-            throw new IllegalArgumentException();
-        }
-
-        return new CodeModelFactory().thisThenF;
-    }
+    public static final OpFactory CORE_OP_FACTORY = OpFactory.OP_FACTORY_MAP.get(CoreOp.class);
 
     /**
      * Creates a function operation builder

@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 /**
  * A function type.
  */
-public final class FunctionType implements TypeElement {
+public final class FunctionType implements CoreType {
     // @@@ Change to "->" when the textual form supports it
     static final String NAME = "func";
 

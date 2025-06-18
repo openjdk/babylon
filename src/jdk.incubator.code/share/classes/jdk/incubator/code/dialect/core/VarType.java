@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * A variable type.
  */
-public final class VarType implements TypeElement {
+public final class VarType implements CoreType {
     static final String NAME = "Var";
 
     final TypeElement valueType;

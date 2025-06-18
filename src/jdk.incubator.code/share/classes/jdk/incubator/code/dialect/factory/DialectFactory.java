@@ -1,4 +1,4 @@
-package jdk.incubator.code.dialect;
+package jdk.incubator.code.dialect.factory;
 
 /**
  * A dialect factory for constructing a dialect's operations and type elements from their
@@ -8,8 +8,4 @@ package jdk.incubator.code.dialect;
  * @param typeElementFactory the type element factory.
  */
 public record DialectFactory(OpFactory opFactory, TypeElementFactory typeElementFactory) {
-
-    // OpFactory
-    // OpDeclaration
-    // TypeElementFactory
 }

@@ -1,4 +1,4 @@
-package jdk.incubator.code.dialect;
+package jdk.incubator.code.dialect.factory;
 
 import jdk.incubator.code.TypeElement;
 

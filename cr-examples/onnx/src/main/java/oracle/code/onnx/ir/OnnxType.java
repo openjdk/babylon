@@ -26,7 +26,7 @@
 package oracle.code.onnx.ir;
 
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.factory.TypeElementFactory;
 
 import java.util.ArrayList;
 import java.util.List;

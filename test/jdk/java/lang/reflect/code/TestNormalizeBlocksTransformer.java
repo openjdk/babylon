@@ -27,13 +27,13 @@
  * @run testng TestNormalizeBlocksTransformer
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
-import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.parser.OpParser;
 import java.util.stream.Stream;
 
@@ -264,7 +264,7 @@ public class TestNormalizeBlocksTransformer {
     }
 
     static Object[] parse(String... models) {
-        return Stream.of(models).map(s -> OpParser.fromString(JavaOp.DIALECT_FACTORY, s).getFirst())
+        return Stream.of(models).map(s -> OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, s).getFirst())
                 .toArray(Object[]::new);
     }
 
