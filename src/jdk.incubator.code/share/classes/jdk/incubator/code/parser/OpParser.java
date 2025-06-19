@@ -28,14 +28,22 @@ package jdk.incubator.code.parser;
 import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.op.*;
+import jdk.incubator.code.TypeElement.ExternalizedTypeElement;
+import jdk.incubator.code.dialect.DialectFactory;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.parser.impl.Tokens.TokenKind;
+import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.parser.impl.DescParser;
 import jdk.incubator.code.parser.impl.Lexer;
 import jdk.incubator.code.parser.impl.Scanner;
 import jdk.incubator.code.parser.impl.Tokens;
-import jdk.incubator.code.type.CoreTypeFactory;
-import jdk.incubator.code.type.TypeElementFactory;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,9 +79,18 @@ import java.util.Map;
  *   @ Name = AttributeValue
  *
  * AttributeValue:
- *   Name
+ *   ExType
+ *   NumericAttributeValue
+ *   BooleanLiteral
+ *   CharacterLiteral
  *   StringLiteral
  *   NullLiteral
+ *
+ * NumericAttributeValue:
+ *    [ '-' ] IntLiteral
+ *    [ '-' ] LongLiteral
+ *    [ '-' ] FloatLiteral
+ *    [ '-' ] DoubleLiteral
  *
  * Bodies:
  *   Body {Body}
@@ -121,50 +138,52 @@ import java.util.Map;
  */
 public final class OpParser {
 
-    static final TypeElement.ExternalizedTypeElement VOID =
-            new TypeElement.ExternalizedTypeElement("void", List.of());
+    static final TypeElement.ExternalizedTypeElement VOID = JavaType.VOID.externalize();
+
+    // @@@ check failure from operation and type element factories
 
     /**
      * Parse a code model from its serialized textual form obtained from an input stream.
      *
-     * @param opFactory the operation factory used to construct operations from their general definition
+     * @param factory the dialect factory used to construct operations and type elements.
      * @param in the input stream
      * @return the list of operations
-     * @throws IOException if parsing fails
+     * @throws IOException if parsing fails to read from the input stream
+     * @throws IllegalArgumentException if parsing fails
      */
-    public static List<Op> fromStream(OpFactory opFactory, InputStream in) throws IOException {
-        return fromStream(opFactory, CoreTypeFactory.CORE_TYPE_FACTORY, in);
-    }
-
-    public static List<Op> fromStream(OpFactory opFactory, TypeElementFactory typeFactory, InputStream in) throws IOException {
+    public static List<Op> fromStream(DialectFactory factory, InputStream in) throws IOException {
         String s = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        return fromString(opFactory, typeFactory, s);
+        return fromString(factory, s);
     }
 
     /**
      * Parse a code model from its serialized textual form obtained from an input string.
      *
-     * @param opFactory the operation factory used to construct operations from their general definition
+     * @param factory the dialect factory used to construct operations and type elements.
      * @param in the input string
      * @return the list of operations
+     * @throws IllegalArgumentException if parsing fails
      */
-    public static List<Op> fromString(OpFactory opFactory, String in) {
-        return parse(opFactory, CoreTypeFactory.CORE_TYPE_FACTORY, in);
-    }
-
-    public static List<Op> fromString(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
-        return parse(opFactory, typeFactory, in);
+    public static List<Op> fromString(DialectFactory factory, String in) {
+        return parse(factory.opFactory(), factory.typeElementFactory(), in);
     }
 
     /**
-     * Parse a code model, modeling a method, from its serialized textual form obtained from an input string.
+     * Parse a Java code model, modeling a method body or quoted lambda body, from
+     * its serialized textual form obtained from an input string.
+     * <p>
+     * This method uses the Java {@link JavaOp#DIALECT_FACTORY dialect factory}
+     * for construction of operations and type elements.
      *
      * @param in the input string
-     * @return the func operation
+     * @return the code model
+     * @throws IllegalArgumentException if parsing fails or if top-level operation
+     * of the code model is not an instance of {@link CoreOp.FuncOp}
      */
-    //@@@ visit return type
-    public static Op fromStringOfFuncOp(String in) {
-        Op op = fromString(ExtendedOp.FACTORY, in).get(0);
+    public static Op fromStringOfJavaCodeModel(String in) {
+        // @@@ Used produce code models stored as text in the class file,
+        // can eventually be removed as storing text is now a backup option.
+        Op op = fromString(JavaOp.DIALECT_FACTORY, in).get(0);
         if (!(op instanceof CoreOp.FuncOp)) {
             throw new IllegalArgumentException("Op is not a FuncOp: " + op);
         }
@@ -254,8 +273,21 @@ public final class OpParser {
                 operands,
                 successors,
                 c.typeFactory.constructType(rtype),
-                opNode.attributes,
+                inflateAttributes(opNode.attributes, c.typeFactory),
                 bodies);
+    }
+
+    static Map<String, Object> inflateAttributes(Map<String, Object> attributes, TypeElementFactory typeFactory) {
+        Map<String, Object> newAttributes = new HashMap<>();
+        for (Map.Entry<String, Object> e : attributes.entrySet()) {
+            String name = e.getKey();
+            Object value = e.getValue();
+            if (value instanceof ExternalizedTypeElement ete) {
+                value = typeFactory.constructType(JavaTypeUtils.inflate(ete));
+            }
+            newAttributes.put(name, value);
+        }
+        return newAttributes;
     }
 
     static Body.Builder nodeToBody(BodyNode n, Context c, Body.Builder ancestorBody) {
@@ -403,7 +435,7 @@ public final class OpParser {
         Map<String, Object> attributes = new HashMap<>();
         while (lexer.acceptIf(Tokens.TokenKind.MONKEYS_AT)) {
             String attributeName;
-            if (lexer.is(Tokens.TokenKind.IDENTIFIER)) {
+            if (isNameStart()) {
                 attributeName = parseName();
                 lexer.accept(Tokens.TokenKind.EQ);
             } else {
@@ -415,9 +447,26 @@ public final class OpParser {
         return attributes;
     }
 
+    boolean isNameStart() {
+        // we need to lookahead to see if we can find an identifier followed by a '=',
+        // in which case we know what we're looking at is an attribute name
+        int curr = 0;
+        while (true) {
+            if (lexer.token(curr++).kind != TokenKind.IDENTIFIER) {
+                return false;
+            }
+            TokenKind next = lexer.token(curr++).kind;
+            if (next == TokenKind.EQ) {
+                return true;
+            } else if (next != TokenKind.DOT) {
+                return false;
+            }
+        }
+    }
+
     Object parseAttributeValue() {
         if (lexer.is(Tokens.TokenKind.IDENTIFIER)) {
-            return parseName();
+            return DescParser.parseExTypeElem(lexer);
         }
 
         Object value = parseLiteral(lexer.token());
@@ -430,6 +479,25 @@ public final class OpParser {
         return switch (t.kind) {
             case STRINGLITERAL -> t.stringVal();
             case NULL -> ExternalizableOp.NULL_ATTRIBUTE_VALUE;
+            case CHARLITERAL -> t.stringVal().charAt(0);
+            case TRUE -> true;
+            case FALSE -> false;
+            default -> parseNumericLiteral(t);
+        };
+    }
+
+    Object parseNumericLiteral(Tokens.Token t) {
+        String minusOpt = "";
+        if (t.kind == TokenKind.SUB) {
+            minusOpt = "-";
+            lexer.nextToken();
+            t = lexer.token();
+        }
+        return switch (t.kind) {
+            case INTLITERAL -> Integer.valueOf(minusOpt + t.stringVal());
+            case LONGLITERAL -> Long.valueOf(minusOpt + t.stringVal());
+            case FLOATLITERAL -> Float.valueOf(minusOpt + t.stringVal());
+            case DOUBLELITERAL -> Double.valueOf(minusOpt + t.stringVal());
             default -> throw lexer.unexpected();
         };
     }
@@ -601,7 +669,7 @@ public final class OpParser {
     }
 
     TypeElement.ExternalizedTypeElement parseExTypeElem() {
-        return DescParser.parseExTypeElem(lexer);
+        return JavaTypeUtils.inflate(DescParser.parseExTypeElem(lexer));
     }
 }
 

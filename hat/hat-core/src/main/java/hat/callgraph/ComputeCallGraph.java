@@ -35,9 +35,10 @@ import hat.util.Result;
 
 import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

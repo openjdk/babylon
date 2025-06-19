@@ -25,9 +25,9 @@
 package hat.callgraph;
 
 import hat.optools.FuncOpWrapper;
+import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
-import jdk.incubator.code.type.MethodRef;
 
 public class KernelEntrypoint extends KernelCallGraph.KernelReachableResolvedMethodCall implements Entrypoint {
     public KernelEntrypoint(CallGraph<KernelEntrypoint> callGraph, MethodRef targetMethodRef, Method method, FuncOpWrapper funcOpWrapper) {

@@ -27,6 +27,7 @@
  * @run testng TestLiveness
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -35,8 +36,8 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.Liveness;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.parser.OpParser;
 import java.util.HashMap;
 import java.util.List;
@@ -48,15 +49,15 @@ import java.util.stream.Collectors;
 public class TestLiveness {
 
     static final String F = """
-            func @"f" (%0 : int, %1 : int)int -> {
-                %2 : int = add %0 %1;
+            func @"f" (%0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
+                %2 : java.type:"int" = add %0 %1;
                 return %2;
             };
             """;
 
     @Test
     public void testF() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, F).getFirst();
+        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, F).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -65,30 +66,30 @@ public class TestLiveness {
     }
 
     static final String IF_ELSE = """
-            func @"ifelse" (%0 : int, %1 : int, %2 : int)int -> {
-                %3 : int = constant @"10";
-                %4 : boolean = lt %2 %3;
+            func @"ifelse" (%0 : java.type:"int", %1 : java.type:"int", %2 : java.type:"int")java.type:"int" -> {
+                %3 : java.type:"int" = constant @10;
+                %4 : java.type:"boolean" = lt %2 %3;
                 cbranch %4 ^block_0 ^block_1;
 
               ^block_0:
-                %5 : int = constant @"1";
-                %6 : int = add %0 %5;
+                %5 : java.type:"int" = constant @1;
+                %6 : java.type:"int" = add %0 %5;
                 branch ^block_2(%6, %1);
 
               ^block_1:
-                %7 : int = constant @"2";
-                %8 : int = add %1 %7;
+                %7 : java.type:"int" = constant @2;
+                %8 : java.type:"int" = add %1 %7;
                 branch ^block_2(%0, %8);
 
-              ^block_2(%9 : int, %10 : int):
-                %11 : int = add %9 %10;
+              ^block_2(%9 : java.type:"int", %10 : java.type:"int"):
+                %11 : java.type:"int" = add %9 %10;
                 return %11;
             };
             """;
 
     @Test
     public void testIfElse() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, IF_ELSE).getFirst();
+        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, IF_ELSE).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -101,22 +102,22 @@ public class TestLiveness {
     }
 
     static final String LOOP = """
-            func @"loop" (%0 : int)int -> {
-                %1 : int = constant @"0";
-                %2 : int = constant @"0";
+            func @"loop" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = constant @0;
+                %2 : java.type:"int" = constant @0;
                 branch ^block_0(%1, %2);
 
-              ^block_0(%3 : int, %4 : int):
-                %5 : boolean = lt %4 %0;
+              ^block_0(%3 : java.type:"int", %4 : java.type:"int"):
+                %5 : java.type:"boolean" = lt %4 %0;
                 cbranch %5 ^block_1 ^block_2;
 
               ^block_1:
-                %6 : int = add %3 %4;
+                %6 : java.type:"int" = add %3 %4;
                 branch ^block_3;
 
               ^block_3:
-                %7 : int = constant @"1";
-                %8 : int = add %4 %7;
+                %7 : java.type:"int" = constant @1;
+                %8 : java.type:"int" = add %4 %7;
                 branch ^block_0(%6, %8);
 
               ^block_2:
@@ -126,7 +127,7 @@ public class TestLiveness {
 
     @Test
     public void testLoop() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, LOOP).getFirst();
+        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, LOOP).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -140,62 +141,62 @@ public class TestLiveness {
     }
 
     static final String IF_ELSE_NESTED = """
-            func @"ifelseNested" (%0 : int, %1 : int, %2 : int, %3 : int, %4 : int)int -> {
-                %5 : int = constant @"20";
-                %6 : boolean = lt %4 %5;
+            func @"ifelseNested" (%0 : java.type:"int", %1 : java.type:"int", %2 : java.type:"int", %3 : java.type:"int", %4 : java.type:"int")java.type:"int" -> {
+                %5 : java.type:"int" = constant @20;
+                %6 : java.type:"boolean" = lt %4 %5;
                 cbranch %6 ^block_0 ^block_1;
 
               ^block_0:
-                %7 : int = constant @"10";
-                %8 : boolean = lt %4 %7;
+                %7 : java.type:"int" = constant @10;
+                %8 : java.type:"boolean" = lt %4 %7;
                 cbranch %8 ^block_2 ^block_3;
 
               ^block_2:
-                %9 : int = constant @"1";
-                %10 : int = add %0 %9;
+                %9 : java.type:"int" = constant @1;
+                %10 : java.type:"int" = add %0 %9;
                 branch ^block_4(%10, %1);
 
               ^block_3:
-                %11 : int = constant @"2";
-                %12 : int = add %1 %11;
+                %11 : java.type:"int" = constant @2;
+                %12 : java.type:"int" = add %1 %11;
                 branch ^block_4(%0, %12);
 
-              ^block_4(%13 : int, %14 : int):
-                %15 : int = constant @"3";
-                %16 : int = add %2 %15;
+              ^block_4(%13 : java.type:"int", %14 : java.type:"int"):
+                %15 : java.type:"int" = constant @3;
+                %16 : java.type:"int" = add %2 %15;
                 branch ^block_5(%13, %14, %16, %3);
 
               ^block_1:
-                %17 : int = constant @"20";
-                %18 : boolean = gt %4 %17;
+                %17 : java.type:"int" = constant @20;
+                %18 : java.type:"boolean" = gt %4 %17;
                 cbranch %18 ^block_6 ^block_7;
 
               ^block_6:
-                %19 : int = constant @"4";
-                %20 : int = add %0 %19;
+                %19 : java.type:"int" = constant @4;
+                %20 : java.type:"int" = add %0 %19;
                 branch ^block_8(%20, %1);
 
               ^block_7:
-                %21 : int = constant @"5";
-                %22 : int = add %1 %21;
+                %21 : java.type:"int" = constant @5;
+                %22 : java.type:"int" = add %1 %21;
                 branch ^block_8(%0, %22);
 
-              ^block_8(%23 : int, %24 : int):
-                %25 : int = constant @"6";
-                %26 : int = add %3 %25;
+              ^block_8(%23 : java.type:"int", %24 : java.type:"int"):
+                %25 : java.type:"int" = constant @6;
+                %26 : java.type:"int" = add %3 %25;
                 branch ^block_5(%23, %24, %2, %26);
 
-              ^block_5(%27 : int, %28 : int, %29 : int, %30 : int):
-                %31 : int = add %27 %28;
-                %32 : int = add %31 %29;
-                %33 : int = add %32 %30;
+              ^block_5(%27 : java.type:"int", %28 : java.type:"int", %29 : java.type:"int", %30 : java.type:"int"):
+                %31 : java.type:"int" = add %27 %28;
+                %32 : java.type:"int" = add %31 %29;
+                %33 : java.type:"int" = add %32 %30;
                 return %33;
             };
             """;
 
     @Test
     public void testIfElseNested() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, IF_ELSE_NESTED).getFirst();
+        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, IF_ELSE_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -214,39 +215,39 @@ public class TestLiveness {
     }
 
     static final String LOOP_NESTED = """
-            func @"loopNested" (%0 : int)int -> {
-                %1 : int = constant @"0";
-                %2 : int = constant @"0";
+            func @"loopNested" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = constant @0;
+                %2 : java.type:"int" = constant @0;
                 branch ^block_0(%1, %2);
 
-              ^block_0(%3 : int, %4 : int):
-                %5 : boolean = lt %4 %0;
+              ^block_0(%3 : java.type:"int", %4 : java.type:"int"):
+                %5 : java.type:"boolean" = lt %4 %0;
                 cbranch %5 ^block_1 ^block_2;
 
               ^block_1:
-                %6 : int = constant @"0";
+                %6 : java.type:"int" = constant @0;
                 branch ^block_3(%3, %6);
 
-              ^block_3(%7 : int, %8 : int):
-                %9 : boolean = lt %8 %0;
+              ^block_3(%7 : java.type:"int", %8 : java.type:"int"):
+                %9 : java.type:"boolean" = lt %8 %0;
                 cbranch %9 ^block_4 ^block_5;
 
               ^block_4:
-                %10 : int = add %7 %4;
-                %11 : int = add %10 %8;
+                %10 : java.type:"int" = add %7 %4;
+                %11 : java.type:"int" = add %10 %8;
                 branch ^block_6;
 
               ^block_6:
-                %12 : int = constant @"1";
-                %13 : int = add %8 %12;
+                %12 : java.type:"int" = constant @1;
+                %13 : java.type:"int" = add %8 %12;
                 branch ^block_3(%11, %13);
 
               ^block_5:
                 branch ^block_7;
 
               ^block_7:
-                %14 : int = constant @"1";
-                %15 : int = add %4 %14;
+                %14 : java.type:"int" = constant @1;
+                %15 : java.type:"int" = add %4 %14;
                 branch ^block_0(%7, %15);
 
               ^block_2:
@@ -256,7 +257,7 @@ public class TestLiveness {
 
     @Test
     public void testLoopNested() {
-        Op op = OpParser.fromString(CoreOp.FACTORY, LOOP_NESTED).getFirst();
+        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, LOOP_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(

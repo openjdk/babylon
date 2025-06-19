@@ -40,13 +40,13 @@ public class RuntimeTest {
     public void test() throws Exception {
         var ort = OnnxRuntime.getInstance();
         try (Arena arena = Arena.ofConfined()) {
-            var absOp = ort.createSession(arena, build(
+            var absOp = ort.createSession(arena, buildModel(
                     List.of(),
                     List.of(tensorInfo("x", FLOAT.id)),
                     List.of(node("Abs", List.of("x"), List.of("y"), Map.of())),
                     List.of("y")));
 
-            var addOp = ort.createSession(arena, build(
+            var addOp = ort.createSession(arena, buildModel(
                     List.of(),
                     List.of(tensorInfo("a", FLOAT.id), tensorInfo("b", FLOAT.id)),
                     List.of(node("Add", List.of("a", "b"), List.of("y"), Map.of())),
@@ -86,7 +86,7 @@ public class RuntimeTest {
     public void testIf() throws Exception {
         var ort = OnnxRuntime.getInstance();
         try (Arena arena = Arena.ofConfined()) {
-            var ifOp = ort.createSession(arena, build(
+            var ifOp = ort.createSession(arena, buildModel(
                     List.of(),
                     List.of(tensorInfo("cond", BOOL.id), tensorInfo("a", INT64.id), tensorInfo("b", INT64.id)),
                     List.of(node("If", List.of("cond"), List.of("y"), Map.of(
@@ -115,7 +115,7 @@ public class RuntimeTest {
     public void testLoop() throws Exception {
         var ort = OnnxRuntime.getInstance();
         try (Arena arena = Arena.ofConfined()) {
-            var forOp = ort.createSession(arena, build(
+            var forOp = ort.createSession(arena, buildModel(
                     List.of(),
                     List.of(tensorInfo("max", INT64.id), tensorInfo("cond", BOOL.id), tensorInfo("a", INT64.id)),
                     List.of(node("Loop", List.of("max", "cond", "a"), List.of("a_out"), Map.of(
@@ -139,10 +139,10 @@ public class RuntimeTest {
         String customDomain = RuntimeTest.class.getName();
         var ort = OnnxRuntime.getInstance();
         try (Arena arena = Arena.ofConfined()) {
-            var customFunction = ort.createSession(arena, build(
+            var customFunction = ort.createSession(arena, buildModel(
                     List.of(),
                     List.of(tensorInfo("x", INT64.id)),
-                    List.of(node(customDomain, "CustomFunction", List.of("x"), List.of("y"), Map.of())),
+                    List.of(node(customDomain + ".CustomFunction", List.of("x"), List.of("y"), Map.of())),
                     List.of("y"),
                     List.of(customDomain),
                     List.of(new FunctionProto()

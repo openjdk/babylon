@@ -32,10 +32,10 @@ import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -63,32 +63,32 @@ public class OpWrapper<T extends Op> {
         }
         return switch (op) {
             case CoreOp.ModuleOp $ -> (OW) new ModuleOpWrapper(lookup, $);
-            case ExtendedOp.JavaForOp $ -> (OW) new ForOpWrapper(lookup, $);
-            case ExtendedOp.JavaWhileOp $ -> (OW) new WhileOpWrapper(lookup, $);
-            case ExtendedOp.JavaIfOp $ -> (OW) new IfOpWrapper(lookup, $);
-            case CoreOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper(lookup, $);
-            case CoreOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper(lookup, $);
-            case CoreOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation(lookup, $);
-            case CoreOp.BinaryTestOp $ -> (OW) new BinaryTestOpWrapper(lookup, $);
+            case JavaOp.JavaForOp $ -> (OW) new ForOpWrapper(lookup, $);
+            case JavaOp.JavaWhileOp $ -> (OW) new WhileOpWrapper(lookup, $);
+            case JavaOp.JavaIfOp $ -> (OW) new IfOpWrapper(lookup, $);
+            case JavaOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper(lookup, $);
+            case JavaOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper(lookup, $);
+            case JavaOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation(lookup, $);
+            case JavaOp.BinaryTestOp $ -> (OW) new BinaryTestOpWrapper(lookup, $);
             case CoreOp.FuncOp $ -> (OW) new FuncOpWrapper(lookup, $);
             case CoreOp.VarOp $ -> (OW) new VarDeclarationOpWrapper(lookup, $);
             case CoreOp.YieldOp $ -> (OW) new YieldOpWrapper(lookup, $);
             case CoreOp.FuncCallOp $ -> (OW) new FuncCallOpWrapper(lookup, $);
-            case CoreOp.ConvOp $ -> (OW) new ConvOpWrapper(lookup, $);
+            case JavaOp.ConvOp $ -> (OW) new ConvOpWrapper(lookup, $);
             case CoreOp.ConstantOp $ -> (OW) new ConstantOpWrapper(lookup, $);
             case CoreOp.ReturnOp $ -> (OW) new ReturnOpWrapper(lookup, $);
             case CoreOp.VarAccessOp.VarStoreOp $ -> (OW) new VarStoreOpWrapper(lookup, $);
             case CoreOp.VarAccessOp.VarLoadOp $ -> (OW) new VarLoadOpWrapper(lookup, $);
-            case CoreOp.FieldAccessOp.FieldStoreOp $ -> (OW) new FieldStoreOpWrapper(lookup, $);
-            case CoreOp.FieldAccessOp.FieldLoadOp $ -> (OW) new FieldLoadOpWrapper(lookup, $);
-            case CoreOp.InvokeOp $ -> (OW) new InvokeOpWrapper(lookup, $);
+            case JavaOp.FieldAccessOp.FieldStoreOp $ -> (OW) new FieldStoreOpWrapper(lookup, $);
+            case JavaOp.FieldAccessOp.FieldLoadOp $ -> (OW) new FieldLoadOpWrapper(lookup, $);
+            case JavaOp.InvokeOp $ -> (OW) new InvokeOpWrapper(lookup, $);
             case CoreOp.TupleOp $ -> (OW) new TupleOpWrapper(lookup, $);
-            case CoreOp.LambdaOp $ -> (OW) new LambdaOpWrapper(lookup, $);
-            case ExtendedOp.JavaConditionalOp $ -> (OW) new LogicalOpWrapper(lookup, $);
-            case ExtendedOp.JavaConditionalExpressionOp $ -> (OW) new TernaryOpWrapper(lookup, $);
-            case ExtendedOp.JavaLabeledOp $ -> (OW) new JavaLabeledOpWrapper(lookup, $);
-            case ExtendedOp.JavaBreakOp $ -> (OW) new JavaBreakOpWrapper(lookup, $);
-            case ExtendedOp.JavaContinueOp $ -> (OW) new JavaContinueOpWrapper(lookup, $);
+            case JavaOp.LambdaOp $ -> (OW) new LambdaOpWrapper(lookup, $);
+            case JavaOp.JavaConditionalOp $ -> (OW) new LogicalOpWrapper(lookup, $);
+            case JavaOp.JavaConditionalExpressionOp $ -> (OW) new TernaryOpWrapper(lookup, $);
+            case JavaOp.JavaLabeledOp $ -> (OW) new JavaLabeledOpWrapper(lookup, $);
+            case JavaOp.JavaBreakOp $ -> (OW) new JavaBreakOpWrapper(lookup, $);
+            case JavaOp.JavaContinueOp $ -> (OW) new JavaContinueOpWrapper(lookup, $);
             default -> (OW) new OpWrapper<>(lookup,op);
         };
     }
@@ -135,7 +135,7 @@ public MethodHandles.Lookup lookup;
 
     public void selectCalls(Consumer<InvokeOpWrapper> consumer) {
         this.op.traverse(null, (map, op) -> {
-            if (op instanceof CoreOp.InvokeOp invokeOp) {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
                 consumer.accept(wrap(lookup,invokeOp));
             }
             return map;

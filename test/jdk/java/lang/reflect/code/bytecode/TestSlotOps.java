@@ -20,16 +20,17 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.SlotOp;
 import jdk.incubator.code.bytecode.SlotSSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 
 /*
  * @test
@@ -72,7 +73,7 @@ public class TestSlotOps {
                 trueBlock.op(SlotOp.store(0, oneConstant));
 
                 Value loadValue = trueBlock.op(SlotOp.load(0, JavaType.INT));
-                trueBlock.op(CoreOp.invoke(MethodRef.method(TestSlots.class, "m", void.class, int.class), loadValue));
+                trueBlock.op(JavaOp.invoke(MethodRef.method(TestSlots.class, "m", void.class, int.class), loadValue));
 
                 Value stringConstant = trueBlock.op(CoreOp.constant(JavaType.J_L_STRING, "TRUE"));
                 trueBlock.op(SlotOp.store(0, stringConstant));

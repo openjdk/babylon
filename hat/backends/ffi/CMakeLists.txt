@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(backends)
 set(CMAKE_CXX_STANDARD 14)
-
 if ("${HAT_TARGET}EMPTY" STREQUAL "EMPTY")
     message("HAT_TARGET is empty")
 else ()

@@ -25,13 +25,9 @@
 
 package jdk.incubator.code.internal;
 
-import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.CoreOp.FuncOp;
-
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.SequencedMap;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 
 public class QuotedHelper {
 

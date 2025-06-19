@@ -39,13 +39,9 @@ import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
 import jdk.incubator.code.internal.ReflectMethods;
-import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.op.OpFactory;
-import jdk.incubator.code.type.CoreTypeFactory;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.TypeElementFactory;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.writer.OpWriter;
 import jdk.internal.access.SharedSecrets;
 
@@ -181,6 +177,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             super(block, op.resultType());
 
             this.op = op;
+        }
+
+        @Override
+        public String toString() {
+            return "%result@" + Integer.toHexString(hashCode());
         }
 
         @Override
@@ -479,22 +480,28 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
 
     /**
-     * Returns the code model of the Quotable passed in.
-     * @param q the Quotable we want to get its code model.
-     * @return the code model of the Quotable passed in.
-     * @apiNote If the Quotable instance is a proxy instance, then the quoted code model is inaccessible and this method
-     * returns an empty optional.
+     * Returns the quoted code model of the given quotable reference, if present.
+     *
+     * @param q the quotable reference.
+     * @return the quoted code model or an empty optional if the
+     *         quoted code model is unavailable.
+     * @apiNote If the quotable reference is a proxy instance, then the
+     *          quoted code model is unavailable and this method
+     *          returns an empty optional.
      * @since 99
      */
     public static Optional<Quoted> ofQuotable(Quotable q) {
         Object oq = q;
         if (Proxy.isProxyClass(oq.getClass())) {
+            // @@@ The interpreter implements interpretation of
+            // lambdas using a proxy whose invocation handler
+            // supports the internal protocol to access the quoted instance
             oq = Proxy.getInvocationHandler(oq);
         }
 
         Method method;
         try {
-            method = oq.getClass().getMethod("__internal_quoted");
+            method = oq.getClass().getDeclaredMethod("__internal_quoted");
         } catch (NoSuchMethodException e) {
             return Optional.empty();
         }
@@ -510,7 +517,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the code model of the method body, if present.
+     * Returns the code model of the given method's body, if present.
+     *
+     * @param method the method.
      * @return the code model of the method body.
      * @since 99
      */
@@ -534,14 +543,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         Method opMethod;
         try {
             // @@@ Use method handle with full power mode
-            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName, OpFactory.class,
-                    TypeElementFactory.class);
+            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
         } catch (NoSuchMethodException e) {
             return Optional.empty();
         }
         opMethod.setAccessible(true);
         try {
-            FuncOp funcOp = (FuncOp) opMethod.invoke(null, ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
+            FuncOp funcOp = (FuncOp) opMethod.invoke(null);
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

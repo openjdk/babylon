@@ -24,12 +24,12 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
 
 public class VarDeclarationOpWrapper extends VarOpWrapper implements StoreOpWrapper {
-    public VarDeclarationOpWrapper( MethodHandles.Lookup lookup,CoreOp.VarOp op) {
+    public VarDeclarationOpWrapper(MethodHandles.Lookup lookup, CoreOp.VarOp op) {
         super(lookup, op);
     }
 }

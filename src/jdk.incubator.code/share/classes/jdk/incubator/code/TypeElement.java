@@ -1,6 +1,6 @@
 package jdk.incubator.code;
 
-import jdk.incubator.code.type.TypeElementFactory;
+import jdk.incubator.code.dialect.TypeElementFactory;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,15 +45,6 @@ public non-sealed interface TypeElement extends CodeItem {
                 return t.identifier;
             }
 
-            // Unpack array-like identifier [+
-            int dimensions = 0;
-            if (t.arguments.size() == 1) {
-                dimensions = dimensions(t.identifier);
-                if (dimensions > 0) {
-                    t = t.arguments.getFirst();
-                }
-            }
-
             StringBuilder s = new StringBuilder();
             s.append(t.identifier);
             if (!t.arguments.isEmpty()) {
@@ -63,25 +54,7 @@ public non-sealed interface TypeElement extends CodeItem {
                 s.append(args);
             }
 
-            // Write out array-like syntax at end []+
-            if (dimensions > 0) {
-                s.append("[]".repeat(dimensions));
-            }
-
             return s.toString();
-        }
-
-        static int dimensions(String identifier) {
-            if (!identifier.isEmpty() && identifier.charAt(0) == '[') {
-                for (int i = 1; i < identifier.length(); i++) {
-                    if (identifier.charAt(i) != '[') {
-                        return 0;
-                    }
-                }
-                return identifier.length();
-            } else {
-                return 0;
-            }
         }
 
         // Factories

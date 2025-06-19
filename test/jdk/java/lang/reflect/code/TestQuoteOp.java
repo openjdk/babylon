@@ -2,8 +2,8 @@ import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.parser.OpParser;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -32,7 +32,7 @@ public class TestQuoteOp {
     void testQuoteOpThatHasCaptures() throws NoSuchMethodException {
         Method f = getClass().getDeclaredMethod("f", int.class);
         CoreOp.FuncOp fm = Op.ofMethod(f).orElseThrow();
-        Op lop = fm.body().entryBlock().ops().stream().filter(op -> op instanceof CoreOp.LambdaOp).findFirst().orElseThrow();
+        Op lop = fm.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.LambdaOp).findFirst().orElseThrow();
 
         CoreOp.FuncOp funcOp = CoreOp.quoteOp(lop);
 
@@ -59,7 +59,7 @@ public class TestQuoteOp {
     void testQuoteOpThatHasOperands() throws NoSuchMethodException { // op with operands
         Method g = getClass().getDeclaredMethod("g", String.class);
         CoreOp.FuncOp gm = Op.ofMethod(g).orElseThrow();
-        Op invOp = gm.body().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.InvokeOp).findFirst().orElseThrow();
+        Op invOp = gm.body().entryBlock().ops().stream().filter(o -> o instanceof JavaOp.InvokeOp).findFirst().orElseThrow();
 
         CoreOp.FuncOp funcOp = CoreOp.quoteOp(invOp);
 
@@ -103,12 +103,12 @@ public class TestQuoteOp {
                 {
                         // func op must have one block
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
     branch ^block_1;
 
   ^block_1:
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-        %6 : java.lang.Runnable = lambda ()void -> {
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+        %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
             return;
         };
         yield %6;
@@ -120,14 +120,14 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 {
               // before last op must be QuotedOp
               """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.lang.Runnable = lambda ()void -> {
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
           return;
       };
       yield %6;
     };
-    %0 : boolean = constant @"false";
+    %0 : java.type:"boolean" = constant @false;
     return %5;
 };
 """, new Object[]{}
@@ -135,9 +135,9 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 {
                         // last op must be ReturnOp
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.lang.Runnable = lambda ()void -> {
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
           return;
       };
       yield %6;
@@ -149,9 +149,9 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 {
                         // the result of QuotedOp must be returned
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.lang.Runnable = lambda ()void -> {
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
           return;
       };
       yield %6;
@@ -163,10 +163,10 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 {
                         // the result of QuotedOp must be returned
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %0 : int = constant @"1";
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.lang.Runnable = lambda ()void -> {
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %0 : java.type:"int" = constant @1;
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
           return;
       };
       yield %6;
@@ -178,9 +178,9 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 {
                         // param must be used
                         """
-func @"q" (%0 : Object)jdk.incubator.code.Quoted -> {
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.lang.Runnable = lambda ()void -> {
+func @"q" (%0 : java.type:"Object")java.type:"jdk.incubator.code.Quoted" -> {
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
           return;
       };
       yield %6;
@@ -192,10 +192,10 @@ func @"q" (%0 : Object)jdk.incubator.code.Quoted -> {
                 {
                         // param used more than once, all uses must be as operand or capture of quoted op
                         """
-func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
-    %2 : Var<int> = var %0 @"y";
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-        %6 : java.util.function.IntSupplier = lambda ()int -> {
+func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %2 : Var<java.type:"int"> = var %0 @"y";
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+        %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
             return %0;
         };
         yield %6;
@@ -207,11 +207,11 @@ func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
                 {
                         // operations before quoted op must be ConstantOp or VarOp
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %0 : java.lang.String = new @"java.lang.String::<new>()";
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.util.function.IntSupplier = lambda ()int -> {
-           %7 : int = invoke %0 @"java.lang.String::length()int";
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %0 : java.type:"java.lang.String" = new @java.ref:"java.lang.String::()";
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+           %7 : java.type:"int" = invoke %0 @java.ref:"java.lang.String::length():int";
            return %7;
       };
       yield %6;
@@ -223,10 +223,10 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 {
                         // constant op must be used
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %0 : int = constant @"1";
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.lang.Runnable = lambda ()void -> {
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %0 : java.type:"int" = constant @1;
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
           return;
       };
       yield %6;
@@ -238,13 +238,13 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 {
                         // constant used more than once, all its uses must be as operand or capture of quoted op
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %0 : int = constant @"1";
-    %1 : Var<int> = var %0 @"y";
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.util.function.IntSupplier = lambda ()int -> {
-            %7 : int = var.load %1;
-            %8 : int = add %0 %7;
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %0 : java.type:"int" = constant @1;
+    %1 : Var<java.type:"int"> = var %0 @"y";
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %7 : java.type:"int" = var.load %1;
+            %8 : java.type:"int" = add %0 %7;
             return %8;
       };
       yield %6;
@@ -256,11 +256,11 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 {
                         // var op must be initialized with param or result of constant op
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %1 : Var<int> = var @"y";
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.util.function.IntSupplier = lambda ()int -> {
-            %7 : int = var.load %1;
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %1 : Var<java.type:"int"> = var @"y";
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %7 : java.type:"int" = var.load %1;
             return %7;
       };
       yield %6;
@@ -272,7 +272,7 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 {
                         // model must contains at least two operations
                         """
-func @"q" (%5 : jdk.incubator.code.Quoted)jdk.incubator.code.Quoted -> {
+func @"q" (%5 : java.type:"jdk.incubator.code.Quoted")java.type:"jdk.incubator.code.Quoted" -> {
     return %5;
 };
 """, new Object[]{null}
@@ -283,7 +283,7 @@ func @"q" (%5 : jdk.incubator.code.Quoted)jdk.incubator.code.Quoted -> {
 
     @Test(dataProvider = "invalidCases")
     void testInvalidCases(String model, Object[] args) {
-        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfFuncOp(model));
+        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
         Assert.assertThrows(IllegalArgumentException.class, () -> CoreOp.quotedOp(fop, args));
     }
 
@@ -292,9 +292,9 @@ func @"q" (%5 : jdk.incubator.code.Quoted)jdk.incubator.code.Quoted -> {
         return new Object[][] {
                 {
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.lang.Runnable = lambda ()void -> {
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
           return;
       };
       yield %6;
@@ -305,9 +305,9 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 },
                 {
                         """
-func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.util.function.IntSupplier = lambda ()int -> {
+func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
             return %0;
       };
       yield %6;
@@ -318,11 +318,11 @@ func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
                 },
                 {
                         """
-func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
-    %1 : Var<int> = var %0;
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.util.function.IntSupplier = lambda ()int -> {
-            %7 : int = var.load %1;
+func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %1 : Var<java.type:"int"> = var %0;
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %7 : java.type:"int" = var.load %1;
             return %7;
       };
       yield %6;
@@ -333,12 +333,12 @@ func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
                 },
                 {
                         """
-func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.util.function.IntSupplier = lambda ()int -> {
-            %7 : int = add %0 %0;
-            %8 : int = mul %0 %0;
-            %9 : int = sub %8 %7;
+func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %7 : java.type:"int" = add %0 %0;
+            %8 : java.type:"int" = mul %0 %0;
+            %9 : java.type:"int" = sub %8 %7;
             return %9;
       };
       yield %6;
@@ -349,10 +349,10 @@ func @"q" (%0 : int)jdk.incubator.code.Quoted -> {
                 },
                 {
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %0 : int = constant @"1";
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.util.function.IntSupplier = lambda ()int -> {
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %0 : java.type:"int" = constant @1;
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
             return %0;
       };
       yield %6;
@@ -363,13 +363,13 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 },
                 {
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %0 : int = constant @"1";
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.util.function.IntSupplier = lambda ()int -> {
-            %7 : int = add %0 %0;
-            %8 : int = mul %0 %0;
-            %9 : int = sub %8 %7;
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %0 : java.type:"int" = constant @1;
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %7 : java.type:"int" = add %0 %0;
+            %8 : java.type:"int" = mul %0 %0;
+            %9 : java.type:"int" = sub %8 %7;
             return %9;
       };
       yield %6;
@@ -380,13 +380,13 @@ func @"q" ()jdk.incubator.code.Quoted -> {
                 },
                 {
                         """
-func @"q" ()jdk.incubator.code.Quoted -> {
-    %0 : int = constant @"1";
-    %1 : Var<int> = var %0;
-    %5 : jdk.incubator.code.Quoted = quoted ()void -> {
-      %6 : java.util.function.IntSupplier = lambda ()int -> {
-            %7 : int = var.load %1;
-            %8 : int = mul %7 %7;
+func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
+    %0 : java.type:"int" = constant @1;
+    %1 : Var<java.type:"int"> = var %0;
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %7 : java.type:"int" = var.load %1;
+            %8 : java.type:"int" = mul %7 %7;
             return %8;
       };
       yield %6;
@@ -400,7 +400,7 @@ func @"q" ()jdk.incubator.code.Quoted -> {
 
     @Test(dataProvider = "validCases")
     void testValidCases(String model, Object[] args) {
-        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfFuncOp(model));
+        CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
         CoreOp.quotedOp(fop, args);
     }
 }

@@ -28,7 +28,7 @@ import hat.backend.codebuilders.C99HATKernelBuilder;
 import hat.optools.OpWrapper;
 
 import jdk.incubator.code.Op;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
 
 public class CudaC99HATKernelBuilder extends C99HATKernelBuilder<CudaC99HATKernelBuilder> {
 

@@ -31,19 +31,21 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.MethodRef;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
-    public LambdaOpWrapper( MethodHandles.Lookup lookup, CoreOp.LambdaOp op) {
+public class LambdaOpWrapper extends OpWrapper<JavaOp.LambdaOp> {
+    public LambdaOpWrapper( MethodHandles.Lookup lookup, JavaOp.LambdaOp op) {
         super(lookup,op);
     }
 
     public InvokeOpWrapper getInvoke(int index) {
-        var result = new Result<CoreOp.InvokeOp>();
+        var result = new Result<JavaOp.InvokeOp>();
         selectOnlyBlockOfOnlyBody(blockWrapper ->
                 result.of(blockWrapper.op(index))
         );
@@ -60,8 +62,8 @@ public class LambdaOpWrapper extends OpWrapper<CoreOp.LambdaOp> {
 
     public InvokeOpWrapper getQuotableTargetInvokeOpWrapper() {
         return OpWrapper.wrap(lookup, op().body().entryBlock().ops().stream()
-                .filter(op -> op instanceof CoreOp.InvokeOp)
-                .map(op -> (CoreOp.InvokeOp) op)
+                .filter(op -> op instanceof JavaOp.InvokeOp)
+                .map(op -> (JavaOp.InvokeOp) op)
                 .findFirst().get());
     }
 

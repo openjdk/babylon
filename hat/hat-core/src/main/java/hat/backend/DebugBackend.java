@@ -35,9 +35,9 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.FunctionType;
 
 public class DebugBackend extends BackendAdaptor {
     public enum HowToRunCompute{REFLECT, BABYLON_INTERPRETER, BABYLON_CLASSFILE}

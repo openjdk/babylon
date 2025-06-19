@@ -45,8 +45,8 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : MethodCallTest)void -> {
-                invoke %0 @"MethodCallTest::m()void";
+            func @"test1" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
+                invoke %0 @java.ref:"MethodCallTest::m():void";
                 return;
             };
             """)
@@ -56,8 +56,8 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : MethodCallTest)void -> {
-                invoke %0 @"MethodCallTest::m()void";
+            func @"test2" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
+                invoke %0 @java.ref:"MethodCallTest::m():void";
                 return;
             };
             """)
@@ -67,8 +67,8 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test2_1" (%0 : MethodCallTest)void -> {
-                invoke %0 @"MethodCallTest::m()void";
+            func @"test2_1" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
+                invoke %0 @java.ref:"MethodCallTest::m():void";
                 return;
             };
             """)
@@ -78,8 +78,8 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : MethodCallTest)int -> {
-                %1 : int = invoke %0 @"MethodCallTest::m_int()int";
+            func @"test3" (%0 : java.type:"MethodCallTest")java.type:"int" -> {
+                %1 : java.type:"int" = invoke %0 @java.ref:"MethodCallTest::m_int():int";
                 return %1;
             };
             """)
@@ -93,8 +93,8 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : MethodCallTest)void -> {
-                invoke @"MethodCallTest::ms()void";
+            func @"test4" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
+                invoke @java.ref:"MethodCallTest::ms():void";
                 return;
             };
             """)
@@ -104,8 +104,8 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test4_1" (%0 : MethodCallTest)void -> {
-                invoke @"MethodCallTest::ms()void";
+            func @"test4_1" (%0 : java.type:"MethodCallTest")java.type:"void" -> {
+                invoke @java.ref:"MethodCallTest::ms():void";
                 return;
             };
             """)
@@ -115,8 +115,8 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test4_2" (%0 : MethodCallTest)java.util.List<java.lang.String> -> {
-                %1 : java.util.List<java.lang.String> = invoke @"java.util.List::of()java.util.List";
+            func @"test4_2" (%0 : java.type:"MethodCallTest")java.type:"java.util.List<java.lang.String>" -> {
+                %1 : java.type:"java.util.List<java.lang.String>" = invoke @java.ref:"java.util.List::of():java.util.List";
                 return %1;
             };
             """)
@@ -130,13 +130,13 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : MethodCallTest, %1 : java.util.List<java.lang.Number>)void -> {
-                %2 : Var<java.util.List<java.lang.Number>> = var %1 @"l";
-                %3 : int = constant @"1";
-                %4 : java.lang.String = constant @"1";
-                %5 : java.util.List<java.lang.Number> = var.load %2;
-                %6 : java.lang.String = invoke %0 %3 %4 %5 @"MethodCallTest::m(int, java.lang.String, java.util.List)java.lang.String";
-                %7 : Var<java.lang.String> = var %6 @"s";
+            func @"test5" (%0 : java.type:"MethodCallTest", %1 : java.type:"java.util.List<java.lang.Number>")java.type:"void" -> {
+                %2 : Var<java.type:"java.util.List<java.lang.Number>"> = var %1 @"l";
+                %3 : java.type:"int" = constant @1;
+                %4 : java.type:"java.lang.String" = constant @"1";
+                %5 : java.type:"java.util.List<java.lang.Number>" = var.load %2;
+                %6 : java.type:"java.lang.String" = invoke %0 %3 %4 %5 @java.ref:"MethodCallTest::m(int, java.lang.String, java.util.List):java.lang.String";
+                %7 : Var<java.type:"java.lang.String"> = var %6 @"s";
                 return;
             };
             """)
@@ -167,12 +167,12 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test6" (%0 : MethodCallTest, %1 : MethodCallTest$A)void -> {
-                %2 : Var<MethodCallTest$A> = var %1 @"a";
-                %3 : MethodCallTest$A = var.load %2;
-                %4 : MethodCallTest$B = invoke %3 @"MethodCallTest$A::m()MethodCallTest$B";
-                %5 : MethodCallTest$C = invoke %4 @"MethodCallTest$B::m()MethodCallTest$C";
-                %6 : int = invoke %5 @"MethodCallTest$C::m()int";
+            func @"test6" (%0 : java.type:"MethodCallTest", %1 : java.type:"MethodCallTest$A")java.type:"void" -> {
+                %2 : Var<java.type:"MethodCallTest$A"> = var %1 @"a";
+                %3 : java.type:"MethodCallTest$A" = var.load %2;
+                %4 : java.type:"MethodCallTest$B" = invoke %3 @java.ref:"MethodCallTest$A::m():MethodCallTest$B";
+                %5 : java.type:"MethodCallTest$C" = invoke %4 @java.ref:"MethodCallTest$B::m():MethodCallTest$C";
+                %6 : java.type:"int" = invoke %5 @java.ref:"MethodCallTest$C::m():int";
                 return;
             };
             """)
@@ -182,11 +182,11 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test7" (%0 : MethodCallTest, %1 : MethodCallTest$A)void -> {
-                %2 : Var<MethodCallTest$A> = var %1 @"a";
-                %3 : MethodCallTest$A = var.load %2;
-                %4 : MethodCallTest$B = field.load %3 @"MethodCallTest$A::b()MethodCallTest$B";
-                %5 : MethodCallTest$C = invoke %4 @"MethodCallTest$B::m()MethodCallTest$C";
+            func @"test7" (%0 : java.type:"MethodCallTest", %1 : java.type:"MethodCallTest$A")java.type:"void" -> {
+                %2 : Var<java.type:"MethodCallTest$A"> = var %1 @"a";
+                %3 : java.type:"MethodCallTest$A" = var.load %2;
+                %4 : java.type:"MethodCallTest$B" = field.load %3 @java.ref:"MethodCallTest$A::b:MethodCallTest$B";
+                %5 : java.type:"MethodCallTest$C" = invoke %4 @java.ref:"MethodCallTest$B::m():MethodCallTest$C";
                 return;
             };
             """)
@@ -196,11 +196,11 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test8" (%0 : MethodCallTest, %1 : java.lang.String)void -> {
-                %2 : Var<java.lang.String> = var %1 @"s";
-                %3 : java.io.PrintStream = field.load @"java.lang.System::out()java.io.PrintStream";
-                %4 : java.lang.String = var.load %2;
-                invoke %3 %4 @"java.io.PrintStream::println(java.lang.String)void";
+            func @"test8" (%0 : java.type:"MethodCallTest", %1 : java.type:"java.lang.String")java.type:"void" -> {
+                %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
+                %3 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                %4 : java.type:"java.lang.String" = var.load %2;
+                invoke %3 %4 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                 return;
             };
             """)
@@ -221,13 +221,13 @@ public class MethodCallTest {
 
         @CodeReflection
         @IR("""
-                func @"test" (%0 : MethodCallTest$Y)void -> {
-                    invoke %0 @"MethodCallTest$Y::x()void";
-                    invoke %0 @"MethodCallTest$Y::y()void";
-                    invoke @"MethodCallTest$Y::sx()void";
-                    invoke @"MethodCallTest$Y::sy()void";
-                    invoke @"MethodCallTest$Y::sx()void";
-                    invoke @"MethodCallTest$Y::sy()void";
+                func @"test" (%0 : java.type:"MethodCallTest$Y")java.type:"void" -> {
+                    invoke %0 @java.ref:"MethodCallTest$Y::x():void";
+                    invoke %0 @java.ref:"MethodCallTest$Y::y():void";
+                    invoke @java.ref:"MethodCallTest$Y::sx():void";
+                    invoke @java.ref:"MethodCallTest$Y::sy():void";
+                    invoke @java.ref:"MethodCallTest$Y::sx():void";
+                    invoke @java.ref:"MethodCallTest$Y::sy():void";
                     return;
                 };
                 """)
@@ -245,18 +245,18 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test9" (%0 : MethodCallTest$Y)void -> {
-                %1 : Var<MethodCallTest$Y> = var %0 @"y";
-                %2 : MethodCallTest$Y = var.load %1;
-                invoke %2 @"MethodCallTest$Y::x()void";
-                %3 : MethodCallTest$Y = var.load %1;
-                invoke %3 @"MethodCallTest$Y::y()void";
-                %4 : MethodCallTest$Y = var.load %1;
-                invoke @"MethodCallTest$Y::sx()void";
-                %5 : MethodCallTest$Y = var.load %1;
-                invoke @"MethodCallTest$Y::sy()void";
-                invoke @"MethodCallTest$Y::sx()void";
-                invoke @"MethodCallTest$Y::sy()void";
+            func @"test9" (%0 : java.type:"MethodCallTest$Y")java.type:"void" -> {
+                %1 : Var<java.type:"MethodCallTest$Y"> = var %0 @"y";
+                %2 : java.type:"MethodCallTest$Y" = var.load %1;
+                invoke %2 @java.ref:"MethodCallTest$Y::x():void";
+                %3 : java.type:"MethodCallTest$Y" = var.load %1;
+                invoke %3 @java.ref:"MethodCallTest$Y::y():void";
+                %4 : java.type:"MethodCallTest$Y" = var.load %1;
+                invoke @java.ref:"MethodCallTest$Y::sx():void";
+                %5 : java.type:"MethodCallTest$Y" = var.load %1;
+                invoke @java.ref:"MethodCallTest$Y::sy():void";
+                invoke @java.ref:"MethodCallTest$Y::sx():void";
+                invoke @java.ref:"MethodCallTest$Y::sy():void";
                 return;
             };
             """)
@@ -273,17 +273,17 @@ public class MethodCallTest {
 
     @CodeReflection
     @IR("""
-            func @"test10" (%0 : java.util.ArrayList<java.lang.String>)void -> {
-                %1 : Var<java.util.ArrayList<java.lang.String>> = var %0 @"al";
-                %2 : java.util.ArrayList<java.lang.String> = var.load %1;
-                %3 : int = constant @"0";
-                %4 : java.lang.String = invoke %2 %3 @"java.util.ArrayList::get(int)java.lang.Object";
-                %5 : Var<java.lang.String> = var %4 @"s";
-                %6 : java.util.ArrayList<java.lang.String> = var.load %1;
-                %7 : Var<java.util.List<java.lang.String>> = var %6 @"l";
-                %8 : java.util.List<java.lang.String> = var.load %7;
-                %9 : int = constant @"0";
-                %10 : java.lang.String = invoke %8 %9 @"java.util.List::get(int)java.lang.Object";
+            func @"test10" (%0 : java.type:"java.util.ArrayList<java.lang.String>")java.type:"void" -> {
+                %1 : Var<java.type:"java.util.ArrayList<java.lang.String>"> = var %0 @"al";
+                %2 : java.type:"java.util.ArrayList<java.lang.String>" = var.load %1;
+                %3 : java.type:"int" = constant @0;
+                %4 : java.type:"java.lang.String" = invoke %2 %3 @java.ref:"java.util.ArrayList::get(int):java.lang.Object";
+                %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
+                %6 : java.type:"java.util.ArrayList<java.lang.String>" = var.load %1;
+                %7 : Var<java.type:"java.util.List<java.lang.String>"> = var %6 @"l";
+                %8 : java.type:"java.util.List<java.lang.String>" = var.load %7;
+                %9 : java.type:"int" = constant @0;
+                %10 : java.type:"java.lang.String" = invoke %8 %9 @java.ref:"java.util.List::get(int):java.lang.Object";
                 var.store %5 %10;
                 return;
             };

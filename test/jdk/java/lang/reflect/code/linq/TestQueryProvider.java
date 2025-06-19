@@ -21,14 +21,14 @@
  * questions.
  */
 
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
-import static jdk.incubator.code.op.CoreOp._return;
-import static jdk.incubator.code.op.CoreOp.func;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.JavaType.parameterized;
-import static jdk.incubator.code.type.JavaType.type;
+import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.core.CoreOp.func;
+import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.java.JavaType.parameterized;
+import static jdk.incubator.code.dialect.java.JavaType.type;
 
 public final class TestQueryProvider extends QueryProvider {
     public TestQueryProvider() {

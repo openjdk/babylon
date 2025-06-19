@@ -1,6 +1,7 @@
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -19,7 +20,7 @@ public class TestInvokeOp {
     @Test
     void test() {
         var f = getFuncOp(this.getClass(), "f");
-        var invokeOps = f.elements().filter(ce -> ce instanceof CoreOp.InvokeOp).map(ce -> ((CoreOp.InvokeOp) ce)).toList();
+        var invokeOps = f.elements().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> ((JavaOp.InvokeOp) ce)).toList();
 
         Assert.assertEquals(invokeOps.get(0).argOperands(), invokeOps.get(0).operands());
 
@@ -29,7 +30,7 @@ public class TestInvokeOp {
 
         Assert.assertEquals(invokeOps.get(3).argOperands(), invokeOps.get(3).operands().subList(0, 1));
 
-        for (CoreOp.InvokeOp invokeOp : invokeOps) {
+        for (JavaOp.InvokeOp invokeOp : invokeOps) {
             var l = new ArrayList<>(invokeOp.argOperands());
             if (invokeOp.isVarArgs()) {
                 l.addAll(invokeOp.varArgOperands());

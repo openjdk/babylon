@@ -30,11 +30,11 @@ import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.lang.reflect.Array;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -78,17 +78,30 @@ public final class OpWriter {
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.append("\"");
             toString(value, sb);
-            sb.append("\"");
             return sb.toString();
         }
 
         static void toString(Object o, StringBuilder sb) {
             if (o.getClass().isArray()) {
+                // note, while we can't parse back the array representation, this might be useful
+                // for non-externalizable ops that want better string representation of array attribute values (e.g. ONNX)
                 arrayToString(o, sb);
             } else {
-                quote(o.toString(), sb);
+                switch (o) {
+                    case Integer i -> sb.append(i);
+                    case Long l -> sb.append(l).append('L');
+                    case Float f -> sb.append(f).append('f');
+                    case Double d -> sb.append(d).append('d');
+                    case Character c -> sb.append('\'').append(c).append('\'');
+                    case Boolean b -> sb.append(b);
+                    case TypeElement te -> sb.append(JavaTypeUtils.flatten(te.externalize()));
+                    default -> {  // fallback to a string
+                        sb.append('"');
+                        quote(o.toString(), sb);
+                        sb.append('"');
+                    }
+                }
             }
         }
 
@@ -557,7 +570,7 @@ public final class OpWriter {
     }
 
     void writeType(TypeElement te) {
-        write(te.externalize().toString());
+        write(JavaTypeUtils.flatten(te.externalize()).toString());
     }
 
     void write(String s) {

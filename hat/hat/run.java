@@ -22,6 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
+import static java.lang.IO.print;
+import static java.lang.IO.println;
+
 class Config{
      boolean headless=false;
      boolean verbose = false;
@@ -165,7 +169,7 @@ void main(String[] argv) {
       }
       Script.java(java -> java
               .enable_preview()
-              .verbose(config.verbose)
+              .verbose(true)
               .enable_native_access("ALL-UNNAMED")
               .library_path(buildDir)
               .when(config.headless, Script.JavaBuilder::headless)

@@ -32,7 +32,6 @@ import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.TypeKind;
-import java.lang.classfile.attribute.ConstantValueAttribute;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.Constable;
 import java.lang.constant.ConstantDescs;
@@ -52,18 +51,14 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.CoreOp.*;
-import jdk.incubator.code.op.OpFactory;
+import jdk.incubator.code.bytecode.impl.BranchCompactor;
+import jdk.incubator.code.bytecode.impl.LocalsCompactor;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp.*;
+import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.type.ArrayType;
-import jdk.incubator.code.type.FieldRef;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.PrimitiveType;
-import jdk.incubator.code.type.TypeElementFactory;
-import jdk.incubator.code.type.VarType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.VarType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -74,6 +69,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.lang.constant.ConstantDescs.*;
+import static jdk.incubator.code.dialect.java.JavaOp.*;
 
 /**
  * Transformer of code models to bytecode.
@@ -94,8 +90,8 @@ public final class BytecodeGenerator {
             StringConcatFactory.class.describeConstable().orElseThrow(),
             "makeConcat",
             CD_CallSite);
-    private static final MethodTypeDesc opMethodDesc = MethodTypeDesc.of(Op.class.describeConstable().get(),
-            OpFactory.class.describeConstable().get(), TypeElementFactory.class.describeConstable().get());
+
+    private static final MethodTypeDesc OP_METHOD_DESC = MethodTypeDesc.of(Op.class.describeConstable().get());
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -169,11 +165,11 @@ public final class BytecodeGenerator {
                 LambdaOp lop = lambdaSink.get(i);
                 if (quotable.get(i)) {
                     // return (FuncOp) OpParser.fromOpString(opText)
-                    clb.withMethod("op$lambda$" + i, opMethodDesc,
-                        ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
+                    clb.withMethod("op$lambda$" + i, OP_METHOD_DESC,
+                        ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
                                 .loadConstant(CoreOp.quoteOp(lop).toText())
                                 .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
-                                        "fromStringOfFuncOp",
+                                        "fromStringOfJavaCodeModel",
                                         MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)
                                 .areturn()));
                 }
@@ -904,7 +900,7 @@ public final class BytecodeGenerator {
                                         MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
                                                 className,
                                                 "op$lambda$" + lambdaIndex,
-                                                opMethodDesc)));
+                                                OP_METHOD_DESC)));
                                 quotable.set(lambdaSink.size());
                             } else {
                                 cob.invokedynamic(DynamicCallSiteDesc.of(

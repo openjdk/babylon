@@ -27,5 +27,9 @@
 
 
 void main(String[] args) {
- Script.DirEntry.current().buildDir("build").remove();
+ var here = Script.DirEntry.current();
+ here.buildDir("build").remove();
+ here.buildDir("extractions/opencl/src").remove();
+ here.buildDir("extractions/opengl/src").remove();
+ here.buildDir("extractions/cuda/src").remove();
 }

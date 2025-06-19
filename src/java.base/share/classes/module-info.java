@@ -156,7 +156,6 @@ module java.base {
         java.compiler,
         java.desktop, // for ScopedValue
         jdk.compiler,
-        jdk.crypto.cryptoki, // participates in preview features
         jdk.incubator.vector, // participates in preview features
         jdk.jartool, // participates in preview features
         jdk.jdeps, // participates in preview features
@@ -164,8 +163,6 @@ module java.base {
         jdk.jlink,   // participates in preview features
         jdk.jshell, // participates in preview features
         jdk.incubator.code; // participates in preview features
-    exports jdk.internal.classfile.impl to
-        jdk.incubator.code;
     exports jdk.internal.access to
         java.desktop,
         java.logging,
@@ -275,8 +272,13 @@ module java.base {
         java.prefs,
         java.security.jgss,
         java.smartcardio,
+        java.naming,
+        java.rmi,
+        java.net.http,
         jdk.charsets,
+        jdk.incubator.vector,
         jdk.internal.vm.ci,
+        jdk.httpserver,
         jdk.jlink,
         jdk.jpackage,
         jdk.net;

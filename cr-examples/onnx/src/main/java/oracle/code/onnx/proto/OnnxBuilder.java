@@ -557,7 +557,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
     /// A serialized sparse-tensor value
     public static final class SparseTensorProto extends OnnxBuilder<SparseTensorProto> {
 
-        /// The sequence of non-default values are encoded as a tensor of shape [NNZ].
+        /// The sequence of non-default values are encoded as a tensor of shape \[NNZ].
         /// The default-value is zero for numeric tensors, and empty-string for string tensors.
         /// values must have a non-empty name present which serves as a name for SparseTensorProto
         /// when used in sparse_initializer list.
@@ -566,7 +566,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
         /// The indices of the non-default values, which may be stored in one of two formats.
         /// (a) Indices can be a tensor of shape [NNZ, rank] with the [i,j]-th value
         /// corresponding to the j-th index of the i-th value (in the values tensor).
-        /// (b) Indices can be a tensor of shape [NNZ], in which case the i-th value
+        /// (b) Indices can be a tensor of shape \[NNZ], in which case the i-th value
         /// must be the linearized-index of the i-th value (in the values tensor).
         /// The linearized-index can be converted into an index tuple (k_1,...,k_rank)
         /// using the shape provided below.
@@ -630,7 +630,7 @@ public sealed class OnnxBuilder<T extends OnnxBuilder> {
 
             /// This field MUST have a valid TensorProto.DataType value
             /// This field MUST be present for this version of the IR.
-            /// This field MUST refer to an integral type ([U]INT{8|16|32|64}) or STRING
+            /// This field MUST refer to an integral type (\[U]INT{8|16|32|64}) or STRING
             public Map keyType(int keyType) {return _f(1, keyType);}
 
             /// This field MUST be present for this version of the IR.

@@ -29,7 +29,7 @@ import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.dialect.ExternalizableOp;
 
 import java.util.List;
 

@@ -21,14 +21,16 @@
  * questions.
  */
 
+import jdk.incubator.code.Body;
+import jdk.incubator.code.parser.OpParser;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,11 +38,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static jdk.incubator.code.op.CoreOp._return;
-import static jdk.incubator.code.op.CoreOp.branch;
-import static jdk.incubator.code.op.CoreOp.conditionalBranch;
-import static jdk.incubator.code.op.CoreOp.constant;
-import static jdk.incubator.code.op.CoreOp.func;
+import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.core.CoreOp.branch;
+import static jdk.incubator.code.dialect.core.CoreOp.conditionalBranch;
+import static jdk.incubator.code.dialect.core.CoreOp.constant;
+import static jdk.incubator.code.dialect.core.CoreOp.func;
 
 /*
  * @test
@@ -50,6 +52,7 @@ import static jdk.incubator.code.op.CoreOp.func;
 
 public class TestDominate {
 
+    @Test
     public void testUnmodifiableIdoms() {
         CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
             Block.Builder ifBlock = entry.block();
@@ -71,6 +74,12 @@ public class TestDominate {
                 () -> idoms.put(f.body().entryBlock(), f.body().entryBlock()));
         Assert.assertThrows(UnsupportedOperationException.class,
                 idoms::clear);
+
+        Map<Block, Block> ipdoms = f.body().immediatePostDominators();
+        Assert.assertThrows(UnsupportedOperationException.class,
+                () -> ipdoms.put(f.body().entryBlock(), f.body().entryBlock()));
+        Assert.assertThrows(UnsupportedOperationException.class,
+                ipdoms::clear);
     }
 
     @Test
@@ -309,6 +318,106 @@ public class TestDominate {
         );
         Assert.assertEquals(df, dfExpected);
     }
+
+    @Test
+    public void testPostDominance() {
+        String m = """
+                func @"f" (%0 : java.type:"boolean")java.type:"void" -> {
+                    %5 : java.type:"void" = branch ^A;
+
+                  ^A:
+                    %8 : java.type:"void" = cbranch %0 ^B ^C;
+
+                  ^B:
+                    %11 : java.type:"void" = branch ^D;
+
+                  ^C:
+                    %13 : java.type:"void" = branch ^D;
+
+                  ^D:
+                    %15 : java.type:"void" = branch ^E;
+
+                  ^E:
+                    %15 : java.type:"void" = branch ^F;
+
+                  ^F:
+                    %16 : java.type:"void" = cbranch %0 ^E ^END;
+
+                  ^END:
+                    %18 : java.type:"void" = return;
+                };
+                """;
+        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
+
+        Map<Block, Block> ipdoms = f.body().immediatePostDominators();
+        Assert.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));
+
+        Block exit = ipdoms.containsKey(Body.IPDOM_EXIT) ? Body.IPDOM_EXIT : f.body().blocks().getLast();
+        Node<String> domTree = buildDomTree(exit, ipdoms).transform(b -> Integer.toString(b.index()));
+        Node<String> domTreeExpected =
+                node("7",
+                        node("6",
+                                node("5",
+                                        node("4",
+                                                node("2"),
+                                                node("3"),
+                                                node("1",
+                                                        node("0"))))));
+        Assert.assertEquals(domTree, domTreeExpected);
+    }
+
+    @Test
+    public void testPostDominanceFrontier() {
+        String m = """
+                func @"f" (%0 : java.type:"boolean")java.type:"void" -> {
+                    %5 : java.type:"void" = cbranch %0 ^B ^F;
+
+                  ^B:
+                    %8 : java.type:"void" = cbranch %0 ^C ^D;
+
+                  ^C:
+                    %11 : java.type:"void" = branch ^E;
+
+                  ^D:
+                    %13 : java.type:"void" = branch ^E;
+
+                  ^E:
+                    %15 : java.type:"void" = branch ^F;
+
+                  ^F:
+                    %18 : java.type:"void" = return;
+                };
+                """;
+        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
+
+        Map<Block, Block> ipdoms = f.body().immediatePostDominators();
+        Assert.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));
+
+        Block exit = ipdoms.containsKey(Body.IPDOM_EXIT) ? Body.IPDOM_EXIT : f.body().blocks().getLast();
+        Node<String> domTree = buildDomTree(exit, ipdoms).transform(b -> Integer.toString(b.index()));
+        Node<String> domTreeExpected =
+                node("5",
+                        node("4",
+                                node("1"),
+                                node("2"),
+                                node("3")),
+                        node("0"));
+        Assert.assertEquals(domTree, domTreeExpected);
+
+        Map<String, Set<String>> df = f.body().postDominanceFrontier().entrySet().stream()
+                .map(e -> Map.entry(Integer.toString(e.getKey().index()),
+                        e.getValue().stream().map(b -> Integer.toString(b.index())).collect(Collectors.toSet())))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        Map<String, Set<String>> dfExpected = Map.ofEntries(
+                Map.entry("1", Set.of("0")),
+                Map.entry("2", Set.of("1")),
+                Map.entry("3", Set.of("1")),
+                Map.entry("4", Set.of("0"))
+        );
+        Assert.assertEquals(df, dfExpected);
+    }
+
 
     static Node<Block> buildDomTree(Block entryBlock, Map<Block, Block> idoms) {
         Map<Block, Node<Block>> m = new HashMap<>();

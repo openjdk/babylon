@@ -23,14 +23,15 @@
 
 package oracle.code.triton;
 
+import jdk.incubator.code.dialect.DialectFactory;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.ScopedValue;
 import java.lang.annotation.ElementType;
@@ -43,9 +44,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
@@ -99,12 +98,11 @@ public class TritonTestExtension implements ParameterResolver {
                 return null;
             }
 
+
             return (TritonOps.ModuleOp) OpParser.fromString(
-                    TritonOps.FACTORY.andThen(ArithMathOps.FACTORY)
-                            .andThen(TritonTestOps.FACTORY)
-                            .andThen(SCFOps.FACTORY)
-                            .andThen(CoreOp.FACTORY),
-                    TritonOps.TYPE_FACTORY,
+                    new DialectFactory(
+                            TritonOps.DIALECT_FACTORY.opFactory().andThen(TritonTestOps.FACTORY),
+                            TritonOps.DIALECT_FACTORY.typeElementFactory()),
                     tcm.value()).get(0);
         }
 

@@ -25,14 +25,17 @@
 
 package oracle.code.json;
 
+import oracle.code.json.impl.JsonNullImpl;
+
 /**
  * The interface that represents JSON null.
  * <p>
  * A {@code JsonNull} can be produced by {@link Json#parse(String)}.
  * <p> Alternatively, {@link #of()} can be used to obtain a {@code JsonNull}.
  *
+ * @since 99
  */
-public sealed interface JsonNull extends JsonValue permits JsonNullImpl {
+public non-sealed interface JsonNull extends JsonValue {
 
     /**
      * {@return the {@code JsonNull} that represents a "null" JSON value}
@@ -40,4 +43,16 @@ public sealed interface JsonNull extends JsonValue permits JsonNullImpl {
     static JsonNull of() {
         return JsonNullImpl.NULL;
     }
+
+    /**
+     * {@return true if the given {@code obj} is a {@code JsonNull}}
+     */
+    @Override
+    boolean equals(Object obj);
+
+    /**
+     * {@return the hash code value of this {@code JsonNull}}
+     */
+    @Override
+    int hashCode();
 }

@@ -48,7 +48,7 @@ import oneapi.levelzero.ze_device_mem_alloc_desc_t;
 import oneapi.levelzero.ze_device_properties_t;
 import oneapi.levelzero.ze_driver_properties_t;
 import oneapi.levelzero.ze_driver_extension_properties_t;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import hat.ComputeContext;
