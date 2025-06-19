@@ -25,10 +25,10 @@
 
 package jdk.incubator.code.bytecode;
 
+import jdk.incubator.code.bytecode.impl.BytecodeHelpers;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
-import jdk.internal.classfile.impl.BytecodeHelpers;
 
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;

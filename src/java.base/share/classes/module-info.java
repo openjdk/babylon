@@ -163,8 +163,6 @@ module java.base {
         jdk.jlink,   // participates in preview features
         jdk.jshell, // participates in preview features
         jdk.incubator.code; // participates in preview features
-    exports jdk.internal.classfile.impl to
-        jdk.incubator.code;
     exports jdk.internal.access to
         java.desktop,
         java.logging,

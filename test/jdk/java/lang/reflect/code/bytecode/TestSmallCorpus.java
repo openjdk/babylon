@@ -33,7 +33,6 @@ import java.lang.classfile.instruction.*;
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.bytecode.BytecodeLift;
-import jdk.incubator.code.interpreter.Verifier;
 import jdk.incubator.code.dialect.core.CoreOp;
 import java.net.URI;
 import java.nio.file.FileSystem;

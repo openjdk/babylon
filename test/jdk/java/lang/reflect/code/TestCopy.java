@@ -62,7 +62,7 @@ public class TestCopy {
         CoreOp.FuncOp f = getFuncOp("f");
 
         ExternalizableOp.ExternalizedOp odef = ExternalizableOp.ExternalizedOp.externalizeOp(CopyContext.create(), f);
-        Op copy = CoreOp.FACTORY.constructOp(odef);
+        Op copy = CoreOp.OP_FACTORY.constructOp(odef);
 
         Assert.assertEquals(f.toText(), copy.toText());
     }

@@ -58,7 +58,7 @@ public class TestUsesDependsOn {
 
     @Test
     public void testDependsOn() {
-        Op f = OpParser.fromStringOfFuncOp(OP);
+        Op f = OpParser.fromStringOfJavaCodeModel(OP);
 
         Map<String, List<String>> dependsUpon = computeValueMap(f, Value::dependsOn);
 
@@ -82,7 +82,7 @@ public class TestUsesDependsOn {
 
     @Test
     public void testUses() {
-        Op f = OpParser.fromStringOfFuncOp(OP);
+        Op f = OpParser.fromStringOfJavaCodeModel(OP);
         f.writeTo(System.out);
 
         Map<String, List<String>> uses = computeValueMap(f, Value::uses);
