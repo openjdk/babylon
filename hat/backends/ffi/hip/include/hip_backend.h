@@ -50,7 +50,7 @@
 
 #include <iostream>
 #include <hip/hip_runtime.h>
-#include <builtin_types.h>
+//#include <builtin_types.h>
 
 #include "shared.h"
 
@@ -103,8 +103,9 @@ public:
 class HipQueue: public Backend::Queue {
     public:
          std::thread::id streamCreationThread;
-        CUstream cuStream;
-        HipQueue(Backend *backend);
+        //CUstream cuStream;
+        hipStream_t cuStream;
+        explicit HipQueue(Backend *backend);
         void init();
          void wait() override;
 
@@ -118,17 +119,18 @@ class HipQueue: public Backend::Queue {
 
          void copyFromDevice(Buffer *buffer) override;
 
-        virtual void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
+        void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
 
-        virtual ~HipQueue();
+        ~HipQueue() override;
 
 };
 
   class HipBuffer : public Backend::Buffer {
     public:
-        CUdeviceptr devicePtr;
+        //CUdeviceptr devicePtr;
+       hipDevice_t devicePtr;
         HipBuffer(Backend *backend, BufferState *bufferState);
-        virtual ~CudaBuffer();
+        ~HipBuffer() override;
     };
 
     class HipProgram : public Backend::CompilationUnit {
@@ -139,22 +141,22 @@ class HipQueue: public Backend::Queue {
             hipFunction_t kernel;
             hipStream_t hipStream;
         public:
-            HIPKernel(Backend::CompilationUnit *program, char* name, hipFunction_t kernel);
+            HipKernel(Backend::CompilationUnit *program, char* name, hipFunction_t kernel);
 
-            ~HIPKernel() override;
+            ~HipKernel() override;
 
-            long ndrange( void *argArray);
+            //long ndrange( void *argArray);
         };
 
     private:
-        HipModule_t module;
+        hipModule_t module;
         HipSource hipSource;
         PtxSource ptxSource;
         Log log;
 
     public:
-        HIPProgram(Backend *backend, BuildInfo *buildInfo, hipModule_t module);
-        ~HIPProgram();
+        HipProgram(Backend *backend, Backend::CompilationUnit::BuildInfo *buildInfo, hipModule_t module);
+        ~HipProgram();
 
         long getHipKernel(char *name);
         long getHipKernel(int nameLen, char *name);
@@ -168,9 +170,9 @@ private:
 public:
     void info();
 
-     HIPBackend(in mode);
-    HIPBackend();
-    ~HIPBackend();
+     HipBackend(int mode);
+    HipBackend();
+    ~HipBackend();
 
     int getMaxComputeUnits();
 

@@ -24,112 +24,121 @@
  */
 
 #include "opencl_backend.h"
-OpenCLBackend::OpenCLBuffer * OpenCLBackend::getOrCreateBuffer(BufferState *bufferState) {
+
+OpenCLBackend::OpenCLBuffer *OpenCLBackend::getOrCreateBuffer(BufferState *bufferState) {
     OpenCLBuffer *openclBuffer = nullptr;
-    if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){
-        openclBuffer = new OpenCLBuffer(this,  bufferState);
-        if (config->trace){
-           std::cout << "We allocated arg buffer "<<std::endl;
-       }
-    }else{
-        if (config->trace){
-            std::cout << "Were reusing  buffer  buffer "<<std::endl;
+    if (bufferState->vendorPtr == nullptr || bufferState->state == BufferState::NEW_STATE) {
+        openclBuffer = new OpenCLBuffer(this, bufferState);
+        if (config->trace) {
+            std::cout << "We allocated arg buffer " << std::endl;
         }
-        openclBuffer=  static_cast<OpenCLBuffer*>(bufferState->vendorPtr);
+    } else {
+        if (config->trace) {
+            std::cout << "Were reusing  buffer  buffer " << std::endl;
+        }
+        openclBuffer = static_cast<OpenCLBuffer *>(bufferState->vendorPtr);
     }
     return openclBuffer;
 }
+
 bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {
-    if (config->traceCalls){
-      std::cout << "getBufferFromDeviceIfDirty(" <<std::hex << (long)memorySegment << "," << std::dec<< memorySegmentLength <<"){"<<std::endl;
+    if (config->traceCalls) {
+        std::cout << "getBufferFromDeviceIfDirty(" << std::hex << (long) memorySegment << "," << std::dec <<
+                memorySegmentLength << "){" << std::endl;
     }
-    if (config->minimizeCopies){
-       BufferState * bufferState = BufferState::of(memorySegment,memorySegmentLength);
-       if (bufferState->state == BufferState::DEVICE_OWNED){
-           queue->copyFromDevice(static_cast<Backend::Buffer *>(bufferState->vendorPtr));
-          if (config->traceEnqueues | config->traceCopies){
-             std::cout << "copying buffer from device (from java access) "<< std::endl;
-          }
-          queue->wait();
-          queue->release();
-       }else{
-          std::cout << "HOW DID WE GET HERE 1 attempting  to get buffer but buffer is not device dirty"<<std::endl;
-          std::exit(1);
-       }
-    }else{
-     std::cerr << "HOW DID WE GET HERE ? java side should avoid calling getBufferFromDeviceIfDirty as we are not minimising buffers!"<<std::endl;
-     std::exit(1);
+    if (config->minimizeCopies) {
+        const BufferState *bufferState = BufferState::of(memorySegment, memorySegmentLength);
+        if (bufferState->state == BufferState::DEVICE_OWNED) {
+            queue->copyFromDevice(static_cast<Buffer *>(bufferState->vendorPtr));
+            if (config->traceEnqueues | config->traceCopies) {
+                std::cout << "copying buffer from device (from java access) " << std::endl;
+            }
+            queue->wait();
+            queue->release();
+        } else {
+            std::cout << "HOW DID WE GET HERE 1 attempting  to get buffer but buffer is not device dirty" << std::endl;
+            std::exit(1);
+        }
+    } else {
+        std::cerr <<
+                "HOW DID WE GET HERE ? java side should avoid calling getBufferFromDeviceIfDirty as we are not minimising buffers!"
+                << std::endl;
+        std::exit(1);
     }
-    if (config->traceCalls){
-      std::cout << "}getBufferFromDeviceIfDirty()"<<std::endl;
+    if (config->traceCalls) {
+        std::cout << "}getBufferFromDeviceIfDirty()" << std::endl;
     }
     return true;
 }
 
-OpenCLBackend::OpenCLBackend(int configBits )
-        : Backend(new Config(configBits), new OpenCLQueue(this)) {
-
+OpenCLBackend::OpenCLBackend(int configBits)
+    : Backend(new Config(configBits), new OpenCLQueue(this)) {
     cl_int status;
     cl_uint platformc = 0;
     if ((status = clGetPlatformIDs(0, NULL, &platformc)) != CL_SUCCESS) {
-        std::cerr << "clGetPlatformIDs (to get count) failed " << errorMsg(status)<<std::endl;
+        std::cerr << "clGetPlatformIDs (to get count) failed " << errorMsg(status) << std::endl;
         std::exit(1);
-        return;
     }
 
-    if (config->platform >= platformc){
-        std::cerr << "We only have "<<platformc<<" platform"<<((platformc>1)?"s":"")<<" (platform[0]-platform["<<(platformc-1)<<"] inclusive) you requested platform["<<config->platform<<"]"<< std::endl;
+    if (config->platform >= platformc) {
+        std::cerr << "We only have " << platformc << " platform" << ((platformc > 1) ? "s" : "") <<
+                " (platform[0]-platform[" << (platformc - 1) << "] inclusive) you requested platform[" << config->
+                platform << "]" << std::endl;
         std::exit(1);
         return;
     }
-    cl_platform_id *platforms = new cl_platform_id[platformc];
-    if ((status = clGetPlatformIDs(platformc, platforms, NULL)) != CL_SUCCESS) {
-        std::cerr << "clGetPlatformIDs failed " << errorMsg(status)<<std::endl;
+    auto *platforms = new cl_platform_id[platformc];
+    if ((status = clGetPlatformIDs(platformc, platforms, nullptr)) != CL_SUCCESS) {
+        std::cerr << "clGetPlatformIDs failed " << errorMsg(status) << std::endl;
         std::exit(1);
         return;
     }
     cl_uint devicec = 0;
-        platform_id = platforms[config->platform];
-        if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 0, NULL, &devicec)) != CL_SUCCESS) {
-            if (status != CL_SUCCESS){
-               std::cerr << "clGetDeviceIDs (to get count) failed " << errorMsg(status)<<std::endl;
-            }
-            delete[] platforms;
-            return;
+    platform_id = platforms[config->platform];
+    if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 0, nullptr, &devicec)) != CL_SUCCESS) {
+        if (status != CL_SUCCESS) {
+            std::cerr << "clGetDeviceIDs (to get count) failed " << errorMsg(status) << std::endl;
         }
-       if (config->device >= devicec){
-            std::cerr << "Platform["<<config->platform<<"] only has "<<devicec<<" device"<<((devicec>1)?"s":"")<<" (device[0]-device["<<(devicec-1)<<"] inclusive) and you requested device["<<config->device<<"]"<< std::endl;
-            std::cerr << "No device available " << errorMsg(CL_DEVICE_NOT_AVAILABLE)<<std::endl;
-              delete[] platforms;
-            std::exit(1);
-            return;
-        }
+        delete[] platforms;
+        return;
+    }
+    if (config->device >= devicec) {
+        std::cerr << "Platform[" << config->platform << "] only has " << devicec << " device" << (
+                    (devicec > 1) ? "s" : "") << " (device[0]-device[" << (devicec - 1) <<
+                "] inclusive) and you requested device[" << config->device << "]" << std::endl;
+        std::cerr << "No device available " << errorMsg(CL_DEVICE_NOT_AVAILABLE) << std::endl;
+        delete[] platforms;
+        std::exit(1);
+        return;
+    }
 
     if (devicec == 0) {
         status = CL_DEVICE_NOT_AVAILABLE;
-        std::cerr << "No device available " << errorMsg(status)<<std::endl;
-          delete[] platforms;
+        std::cerr << "No device available " << errorMsg(status) << std::endl;
+        delete[] platforms;
         return;
     }
-    cl_device_id *device_ids = new cl_device_id[devicec];             // compute device id
-    if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, devicec, device_ids, NULL)) != CL_SUCCESS) {
-        std::cerr << "clGetDeviceIDs failed " << errorMsg(status)<<std::endl;
+    auto *device_ids = new cl_device_id[devicec]; // compute device id
+    if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, devicec, device_ids, nullptr)) != CL_SUCCESS) {
+        std::cerr << "clGetDeviceIDs failed " << errorMsg(status) << std::endl;
         delete[] platforms;
         delete[] device_ids;
         return;
     }
-    if ((context = clCreateContext(nullptr, 1, &device_ids[config->device], NULL, NULL, &status)) == NULL || status != CL_SUCCESS) {
-        std::cerr << "clCreateContext failed " << errorMsg(status)<<std::endl;
+    if ((context = clCreateContext(nullptr, 1, &device_ids[config->device], nullptr, nullptr, &status)) == nullptr ||
+        status != CL_SUCCESS) {
+        std::cerr << "clCreateContext failed " << errorMsg(status) << std::endl;
         delete[] platforms;
         delete[] device_ids;
         return;
     }
 
     cl_command_queue_properties queue_props = CL_QUEUE_PROFILING_ENABLE;
-    auto openCLQueue = dynamic_cast<OpenCLQueue *>(queue);
-    if ((openCLQueue->command_queue = clCreateCommandQueue(context, device_ids[config->device], queue_props, &status)) == NULL ||
+    const auto openCLQueue = dynamic_cast<OpenCLQueue *>(queue);
+    if ((openCLQueue->command_queue = clCreateCommandQueue(context, device_ids[config->device], queue_props, &status))
+        == nullptr ||
         status != CL_SUCCESS) {
-        std::cerr << "clCreateCommandQueue failed " << errorMsg(status)<<std::endl;
+        std::cerr << "clCreateCommandQueue failed " << errorMsg(status) << std::endl;
         clReleaseContext(context);
         delete[] platforms;
         delete[] device_ids;
@@ -139,95 +148,95 @@ OpenCLBackend::OpenCLBackend(int configBits )
     device_id = device_ids[config->device];
     delete[] device_ids;
     delete[] platforms;
-
 }
 
 OpenCLBackend::~OpenCLBackend() {
     clReleaseContext(context);
-
 }
 
 void OpenCLBackend::computeStart() {
-  if (config->trace){
-     std::cout <<"compute start" <<std::endl;
-  }
+    if (config->trace) {
+        std::cout << "compute start" << std::endl;
+    }
     queue->computeStart();
 }
+
 void OpenCLBackend::computeEnd() {
-  queue->computeEnd();
+    queue->computeEnd();
     queue->wait();
 
- if (config->profile){
-     auto openCLQueue = dynamic_cast<OpenCLQueue *>(queue);
-     openCLQueue->showEvents(100);
- }
+    if (config->profile) {
+        const auto openCLQueue = dynamic_cast<OpenCLQueue *>(queue);
+        openCLQueue->showEvents(100);
+    }
     queue->release();
- if (config->trace){
-     std::cout <<"compute end" <<std::endl;
- }
+    if (config->trace) {
+        std::cout << "compute end" << std::endl;
+    }
 }
-  OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(OpenCLSource &openclSource){
+
+OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(OpenCLSource &openclSource) {
     return compileProgram(&openclSource);
-  }
-  OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(OpenCLSource *openclSource){
-      return compileProgram(openclSource->len, openclSource->text);
-  }
+}
 
-    OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(int len, char *text){
-        return dynamic_cast<OpenCLProgram *>(compile(len, text));
+OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(const OpenCLSource *openclSource) {
+    return compileProgram(openclSource->len, openclSource->text);
+}
+
+OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(int len, char *text) {
+    return dynamic_cast<OpenCLProgram *>(compile(len, text));
+}
+
+Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source) {
+    const size_t srcLen = ::strlen(source);
+    auto src = new char[srcLen + 1];
+    strncpy(src, source, srcLen);
+    src[srcLen] = '\0';
+    if (config->trace) {
+        std::cout << "native compiling " << src << std::endl;
+    }
+    cl_int status;
+    cl_program program;
+    if ((program = clCreateProgramWithSource(context, 1, (const char **) &src, nullptr, &status)) == nullptr ||
+        status != CL_SUCCESS) {
+        std::cerr << "clCreateProgramWithSource failed" << std::endl;
+        delete[] src;
+        return nullptr;
     }
 
-    Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source){
-     size_t srcLen = ::strlen(source);
-        char *src = new char[srcLen + 1];
-        ::strncpy(src, source, srcLen);
-        src[srcLen] = '\0';
-        if(config->trace){
-            std::cout << "native compiling " << src << std::endl;
-        }
-        cl_int status;
-        cl_program program;
-        if ((program = clCreateProgramWithSource(context, 1, (const char **) &src, nullptr, &status)) == nullptr ||
-            status != CL_SUCCESS) {
-            std::cerr << "clCreateProgramWithSource failed" << std::endl;
-            delete[] src;
-            return 0;
-        }
-
-        cl_int buildStatus = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
-        if (buildStatus != CL_SUCCESS) {
-           std::cerr << "buildStatus =failed" << std::endl;
-        }
-        size_t logLen = 0;
-        OpenCLProgram *openclProgram = nullptr;
-        if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &logLen)) != CL_SUCCESS) {
-            std::cerr << "clGetBuildInfo (getting log size) failed" << std::endl;
-            //openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram, src, nullptr, false);
-           openclProgram= new OpenCLProgram(this,  src,nullptr,buildStatus==CL_SUCCESS,program);
-        } else {
-            cl_build_status buildStatus;
-            clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(buildStatus), &buildStatus, nullptr);
-            if (logLen > 0) {
-                char *log = new char[logLen + 1];
-                if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, (void *) log,
-                                                    nullptr)) != CL_SUCCESS) {
-                    std::cerr << "clGetBuildInfo (getting log) failed" << std::endl;
-                    delete[] log;
-                    log = nullptr;
-                } else {
-                    log[logLen] = '\0';
-                    if (logLen > 1) {
-                        std::cerr << "logLen = " << logLen << " log  = " << log << std::endl;
-                    }
-                }
-                  openclProgram= new OpenCLProgram(this,  src,log,buildStatus==CL_SUCCESS,program);
-
+    cl_int buildStatus = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr);
+    if (buildStatus != CL_SUCCESS) {
+        std::cerr << "buildStatus =failed" << std::endl;
+    }
+    size_t logLen = 0;
+    OpenCLProgram *openclProgram = nullptr;
+    if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &logLen)) != CL_SUCCESS) {
+        std::cerr << "clGetBuildInfo (getting log size) failed" << std::endl;
+        //openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram, src, nullptr, false);
+        openclProgram = new OpenCLProgram(this, src, nullptr, buildStatus == CL_SUCCESS, program);
+    } else {
+        //  cl_build_status buildStatus;
+        clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(buildStatus), &buildStatus, nullptr);
+        if (logLen > 0) {
+            char *log = new char[logLen + 1];
+            if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, (void *) log,
+                                                nullptr)) != CL_SUCCESS) {
+                std::cerr << "clGetBuildInfo (getting log) failed" << std::endl;
+                delete[] log;
+                log = nullptr;
             } else {
-              openclProgram= new OpenCLProgram(this, src, nullptr, buildStatus==CL_SUCCESS, program);
+                log[logLen] = '\0';
+                if (logLen > 2) {
+                    std::cerr << "logLen = " << logLen << " log  = " << log << std::endl;
+                }
             }
+            openclProgram = new OpenCLProgram(this, src, log, buildStatus == CL_SUCCESS, program);
+        } else {
+            openclProgram = new OpenCLProgram(this, src, nullptr, buildStatus == CL_SUCCESS, program);
         }
-        return openclProgram;
     }
+    return openclProgram;
+}
 
 
 const char *OpenCLBackend::errorMsg(cl_int status) {
@@ -235,76 +244,75 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
         cl_int code;
         const char *msg;
     } error_table[] = {
-            {CL_SUCCESS,                         "success"},
-            {CL_DEVICE_NOT_FOUND,                "device not found",},
-            {CL_DEVICE_NOT_AVAILABLE,            "device not available",},
-            {CL_COMPILER_NOT_AVAILABLE,          "compiler not available",},
-            {CL_MEM_OBJECT_ALLOCATION_FAILURE,   "mem object allocation failure",},
-            {CL_OUT_OF_RESOURCES,                "out of resources",},
-            {CL_OUT_OF_HOST_MEMORY,              "out of host memory",},
-            {CL_PROFILING_INFO_NOT_AVAILABLE,    "profiling not available",},
-            {CL_MEM_COPY_OVERLAP,                "memcopy overlaps",},
-            {CL_IMAGE_FORMAT_MISMATCH,           "image format mismatch",},
-            {CL_IMAGE_FORMAT_NOT_SUPPORTED,      "image format not supported",},
-            {CL_BUILD_PROGRAM_FAILURE,           "build program failed",},
-            {CL_MAP_FAILURE,                     "map failed",},
-            {CL_INVALID_VALUE,                   "invalid value",},
-            {CL_INVALID_DEVICE_TYPE,             "invalid device type",},
-            {CL_INVALID_PLATFORM,                "invlaid platform",},
-            {CL_INVALID_DEVICE,                  "invalid device",},
-            {CL_INVALID_CONTEXT,                 "invalid context",},
-            {CL_INVALID_QUEUE_PROPERTIES,        "invalid queue properties",},
-            {CL_INVALID_COMMAND_QUEUE,           "invalid command queue",},
-            {CL_INVALID_HOST_PTR,                "invalid host ptr",},
-            {CL_INVALID_MEM_OBJECT,              "invalid mem object",},
-            {CL_INVALID_IMAGE_FORMAT_DESCRIPTOR, "invalid image format descriptor ",},
-            {CL_INVALID_IMAGE_SIZE,              "invalid image size",},
-            {CL_INVALID_SAMPLER,                 "invalid sampler",},
-            {CL_INVALID_BINARY,                  "invalid binary",},
-            {CL_INVALID_BUILD_OPTIONS,           "invalid build options",},
-            {CL_INVALID_PROGRAM,                 "invalid program ",},
-            {CL_INVALID_PROGRAM_EXECUTABLE,      "invalid program executable",},
-            {CL_INVALID_KERNEL_NAME,             "invalid kernel name",},
-            {CL_INVALID_KERNEL_DEFINITION,       "invalid definition",},
-            {CL_INVALID_KERNEL,                  "invalid kernel",},
-            {CL_INVALID_ARG_INDEX,               "invalid arg index",},
-            {CL_INVALID_ARG_VALUE,               "invalid arg value",},
-            {CL_INVALID_ARG_SIZE,                "invalid arg size",},
-            {CL_INVALID_KERNEL_ARGS,             "invalid kernel args",},
-            {CL_INVALID_WORK_DIMENSION,          "invalid work dimension",},
-            {CL_INVALID_WORK_GROUP_SIZE,         "invalid work group size",},
-            {CL_INVALID_WORK_ITEM_SIZE,          "invalid work item size",},
-            {CL_INVALID_GLOBAL_OFFSET,           "invalid global offset",},
-            {CL_INVALID_EVENT_WAIT_LIST,         "invalid event wait list",},
-            {CL_INVALID_EVENT,                   "invalid event",},
-            {CL_INVALID_OPERATION,               "invalid operation",},
-            {CL_INVALID_GL_OBJECT,               "invalid gl object",},
-            {CL_INVALID_BUFFER_SIZE,             "invalid buffer size",},
-            {CL_INVALID_MIP_LEVEL,               "invalid mip level",},
-            {CL_INVALID_GLOBAL_WORK_SIZE,        "invalid global work size",},
-            {-9999,                              "enqueueNdRangeKernel Illegal read or write to a buffer",},
-            {0,                                  NULL},
-    };
-    for (int i = 0; error_table[i].msg != NULL; i++) {
+                {CL_SUCCESS, "success"},
+                {CL_DEVICE_NOT_FOUND, "device not found",},
+                {CL_DEVICE_NOT_AVAILABLE, "device not available",},
+                {CL_COMPILER_NOT_AVAILABLE, "compiler not available",},
+                {CL_MEM_OBJECT_ALLOCATION_FAILURE, "mem object allocation failure",},
+                {CL_OUT_OF_RESOURCES, "out of resources",},
+                {CL_OUT_OF_HOST_MEMORY, "out of host memory",},
+                {CL_PROFILING_INFO_NOT_AVAILABLE, "profiling not available",},
+                {CL_MEM_COPY_OVERLAP, "memcopy overlaps",},
+                {CL_IMAGE_FORMAT_MISMATCH, "image format mismatch",},
+                {CL_IMAGE_FORMAT_NOT_SUPPORTED, "image format not supported",},
+                {CL_BUILD_PROGRAM_FAILURE, "build program failed",},
+                {CL_MAP_FAILURE, "map failed",},
+                {CL_INVALID_VALUE, "invalid value",},
+                {CL_INVALID_DEVICE_TYPE, "invalid device type",},
+                {CL_INVALID_PLATFORM, "invlaid platform",},
+                {CL_INVALID_DEVICE, "invalid device",},
+                {CL_INVALID_CONTEXT, "invalid context",},
+                {CL_INVALID_QUEUE_PROPERTIES, "invalid queue properties",},
+                {CL_INVALID_COMMAND_QUEUE, "invalid command queue",},
+                {CL_INVALID_HOST_PTR, "invalid host ptr",},
+                {CL_INVALID_MEM_OBJECT, "invalid mem object",},
+                {CL_INVALID_IMAGE_FORMAT_DESCRIPTOR, "invalid image format descriptor ",},
+                {CL_INVALID_IMAGE_SIZE, "invalid image size",},
+                {CL_INVALID_SAMPLER, "invalid sampler",},
+                {CL_INVALID_BINARY, "invalid binary",},
+                {CL_INVALID_BUILD_OPTIONS, "invalid build options",},
+                {CL_INVALID_PROGRAM, "invalid program ",},
+                {CL_INVALID_PROGRAM_EXECUTABLE, "invalid program executable",},
+                {CL_INVALID_KERNEL_NAME, "invalid kernel name",},
+                {CL_INVALID_KERNEL_DEFINITION, "invalid definition",},
+                {CL_INVALID_KERNEL, "invalid kernel",},
+                {CL_INVALID_ARG_INDEX, "invalid arg index",},
+                {CL_INVALID_ARG_VALUE, "invalid arg value",},
+                {CL_INVALID_ARG_SIZE, "invalid arg size",},
+                {CL_INVALID_KERNEL_ARGS, "invalid kernel args",},
+                {CL_INVALID_WORK_DIMENSION, "invalid work dimension",},
+                {CL_INVALID_WORK_GROUP_SIZE, "invalid work group size",},
+                {CL_INVALID_WORK_ITEM_SIZE, "invalid work item size",},
+                {CL_INVALID_GLOBAL_OFFSET, "invalid global offset",},
+                {CL_INVALID_EVENT_WAIT_LIST, "invalid event wait list",},
+                {CL_INVALID_EVENT, "invalid event",},
+                {CL_INVALID_OPERATION, "invalid operation",},
+                {CL_INVALID_GL_OBJECT, "invalid gl object",},
+                {CL_INVALID_BUFFER_SIZE, "invalid buffer size",},
+                {CL_INVALID_MIP_LEVEL, "invalid mip level",},
+                {CL_INVALID_GLOBAL_WORK_SIZE, "invalid global work size",},
+                {-9999, "enqueueNdRangeKernel Illegal read or write to a buffer",},
+                {0, nullptr},
+            };
+    for (int i = 0; error_table[i].msg != nullptr; i++) {
         if (error_table[i].code == status) {
             //std::cerr << " clerror '" << error_table[i].msg << "'" << std::endl;
             return error_table[i].msg;
         }
     }
     static char unknown[256];
-     #if defined (_WIN32)
+#if defined (_WIN32)
         _snprintf
-     #else
-        snprintf
-     #endif
-     (unknown, sizeof(unknown), "unmapped string for  error %d", status);
+#else
+    snprintf
+#endif
+            (unknown, sizeof(unknown), "unmapped string for  error %d", status);
     return unknown;
 }
 
 
 extern "C" long getBackend(int configBits) {
-  std::cerr << "Opencl Driver =" << std::hex<< configBits <<std::dec<< std::endl;
-
+    std::cerr << "Opencl Driver =" << std::hex << configBits << std::dec << std::endl;
     return reinterpret_cast<long>(new OpenCLBackend(configBits));
 }
 
@@ -317,11 +325,13 @@ void __checkOpenclErrors(cl_int status, const char *file, const int line) {
 }
 
 OpenCLSource::OpenCLSource()
-        : Text(0L) {
+    : Text(0L) {
 }
-OpenCLSource::OpenCLSource(size_t len)
-        : Text(len) {
+
+OpenCLSource::OpenCLSource(const size_t len)
+    : Text(len) {
 }
+
 OpenCLSource::OpenCLSource(char *text)
-        : Text(text, false) {
+    : Text(text, false) {
 }

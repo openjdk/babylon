@@ -24,9 +24,10 @@
  */
 
 #include "strutil.h"
+#include <cstring>
 
 void strutil::replaceInPlace(std::string &subject, const std::string &search,
-                                const std::string &replace) {
+                             const std::string &replace) {
     size_t pos = 0;
     while ((pos = subject.find(search, pos)) != std::string::npos) {
         subject.replace(pos, search.length(), replace);
@@ -39,14 +40,10 @@ bool strutil::endsWith(const std::string &str, const std::string &suffix) {
     return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 }
 
-   char *strutil::clone(char *name){
-                    size_t len =::strlen(name);
-                    char *buf = new char[len+1];
-                    memcpy(buf, name, len);
-                    buf[len]='\0';
-                    return buf;
-                }
-
-
-
-
+char *strutil::clone(char *name) {
+    size_t len = ::strlen(name);
+    char *buf = new char[len + 1];
+    memcpy(buf, name, len);
+    buf[len] = '\0';
+    return buf;
+}

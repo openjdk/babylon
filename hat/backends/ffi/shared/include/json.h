@@ -28,9 +28,7 @@
 #include <map>
 #include <vector>
 #include <functional>
-#include <iostream>
 #include <fstream>
-#include <sstream>
 #include "buffer_cursor.h"
 #include "fsutil.h"
 
@@ -44,38 +42,57 @@ class JSonValueNode;
 class JSonListNode;
 
 class JSonWriter {
-   std::ostream &o;
-   int indent;
-   public:
-   using Filter = std::function<bool(JSonNode *n)>;
+    std::ostream &o;
+    int indent;
 
-   explicit JSonWriter(std::ostream &o);
-     JSonWriter *put(std::string s);
-     JSonWriter *name(std::string n);
-     JSonWriter *comma();
-     JSonWriter *colon();
-     JSonWriter *oquote();
-     JSonWriter *cquote();
-     JSonWriter *obrace();
-     JSonWriter *cbrace();
-     JSonWriter *osbrace();
-     JSonWriter *csbrace();
-     JSonWriter *in();
-     JSonWriter *out();
-     JSonWriter *nl();
-     JSonWriter *write(JSonNode *, Filter filter);
-     JSonWriter *write(JSonNode *);
+public:
+    using Filter = std::function<bool(JSonNode *n)>;
+
+    explicit JSonWriter(std::ostream &o);
+
+    JSonWriter *put(std::string s);
+
+    JSonWriter *name(std::string n);
+
+    JSonWriter *comma();
+
+    JSonWriter *colon();
+
+    JSonWriter *oquote();
+
+    JSonWriter *cquote();
+
+    JSonWriter *obrace();
+
+    JSonWriter *cbrace();
+
+    JSonWriter *osbrace();
+
+    JSonWriter *csbrace();
+
+    JSonWriter *in();
+
+    JSonWriter *out();
+
+    JSonWriter *nl();
+
+    JSonWriter *write(JSonNode *, Filter filter);
+
+    JSonWriter *write(JSonNode *);
 };
 
 class JSonNode {
 public:
     using JSonNodeVisitor = std::function<void(JSonNode *n)>;
+
     enum Type {
         LIST, VALUE, OBJECT
     };
+
     enum ValueType {
         STRING, INTEGER, NUMBER, BOOLEAN
     };
+
     Type type;
     JSonObjectNode *parent;
     std::string name;
@@ -84,7 +101,7 @@ public:
 
     virtual bool hasNode(std::string name);
 
-   virtual JSonNode *getNode(std::string name);
+    virtual JSonNode *getNode(std::string name);
 
     JSonValueNode *asValue();
 
@@ -92,9 +109,11 @@ public:
 
     JSonObjectNode *asObject();
 
-   bool isList();
-   bool isObject();
-   bool isValue();
+    bool isList();
+
+    bool isObject();
+
+    bool isValue();
 
     static JSonNode *parse(char *text);
 
@@ -103,38 +122,49 @@ public:
     virtual ~JSonNode() = 0;
 
     JSonNode *get(std::string s, JSonNodeVisitor visitor);
-   JSonNode *collect(std::string s, std::vector<JSonNode *> &list);
+
+    JSonNode *collect(std::string s, std::vector<JSonNode *> &list);
+
     static std::string parseString(BufferCursor *c);
 
-    JSonObjectNode * remove();
+    JSonObjectNode *remove();
 
     bool write(std::ostream o);
+
     bool write(std::string filename);
 };
 
 
 class JSonObjectNode : public JSonNode {
 public:
-   friend JSonNode *JSonNode::get(std::string s, JSonNodeVisitor visitor);
-   friend JSonNode *JSonNode::collect(std::string s, std::vector<JSonNode *> &list);
-   friend JSonWriter *JSonWriter::write(JSonNode *node, JSonWriter::Filter filter);
+    friend JSonNode *JSonNode::get(std::string s, JSonNodeVisitor visitor);
+
+    friend JSonNode *JSonNode::collect(std::string s, std::vector<JSonNode *> &list);
+
+    friend JSonWriter *JSonWriter::write(JSonNode *node, JSonWriter::Filter filter);
+
     using JSonObjectNodeVisitor = std::function<void(JSonObjectNode *n)>;
     using JSonListNodeVisitor = std::function<void(JSonListNode *n)>;
-   protected:
+
+protected:
     std::map<std::string, JSonNode *> nameToChildMap;
     std::vector<JSonNode *> childArray;
-   public:
 
-    JSonObjectNode * remove(JSonNode *n);
-   JSonObjectNode * remove(std::string name);
-    JSonObjectNode(Type type, JSonObjectNode *parent, std::string name);
+public:
+    JSonObjectNode *remove(JSonNode *n);
 
-    JSonObjectNode(JSonObjectNode *parent, std::string name);
+    JSonObjectNode *remove(std::string name);
+
+    JSonObjectNode(Type type, JSonObjectNode *parent, const std::string &name);
+
+    JSonObjectNode(JSonObjectNode *parent, const std::string &name);
 
     ~JSonObjectNode() override;
 
     virtual JSonNode *parse(BufferCursor *cursor);
-    void visit(JSonNodeVisitor visitor);
+
+    void visit(const JSonNodeVisitor& visitor);
+
     JSonObjectNode *object(std::string name, JSonObjectNodeVisitor visitor);
 
     JSonObjectNode *list(std::string name, JSonListNodeVisitor visitor);
@@ -146,39 +176,44 @@ public:
     JSonObjectNode *number(std::string name, std::string value);
 
     JSonObjectNode *integer(std::string name, std::string value);
+
     JSonObjectNode *integer(std::string name, int value);
+
     JSonObjectNode *string(std::string name, std::string value);
-    JSonNode * add( JSonNode *newOne);
-    virtual bool hasNode(std::string name) override;
 
-    virtual JSonNode *getNode(std::string name) override;
+    JSonNode *add(JSonNode *newOne);
 
-    virtual JSonNode *clone(JSonObjectNode *newParent) override{
-       JSonObjectNode *copy = new JSonObjectNode(newParent, name);
+    bool hasNode(std::string name) override;
 
-       for (auto c:childArray){
-          copy->childArray.push_back(copy->nameToChildMap[c->name] = c->clone(copy));
-       }
-       return copy;
+    JSonNode *getNode(std::string name) override;
+
+    JSonNode *clone(JSonObjectNode *newParent) override {
+        auto *copy = new JSonObjectNode(newParent, name);
+
+        for (const auto c: childArray) {
+            copy->childArray.push_back(copy->nameToChildMap[c->name] = c->clone(copy));
+        }
+        return copy;
     }
 };
 
 
-class JSonValueNode : public JSonNode {
+class JSonValueNode final : public JSonNode {
 public:
     std::string value;
     ValueType valueType;
+
     JSonValueNode(JSonObjectNode *parent, std::string name, ValueType valueType, std::string value);
-    JSonNode *clone(JSonObjectNode *newParent) override{
-      return new JSonValueNode(newParent, name, valueType, value);
-   }
+
+    JSonNode *clone(JSonObjectNode *newParent) override {
+        return new JSonValueNode(newParent, name, valueType, value);
+    }
+
     ~JSonValueNode() override;
 };
 
-class JSonListNode : public JSonObjectNode {
+class JSonListNode final : public JSonObjectNode {
 public:
-
-
     JSonListNode(JSonObjectNode *parent, std::string name);
 
     JSonNode *parse(BufferCursor *cursor) override;
@@ -187,17 +222,18 @@ public:
 
     JSonObjectNode *item(JSonObjectNodeVisitor visitor);
 
-    int size();
+    int size() const;
 
 public:
-   JSonNode *clone(JSonObjectNode *newParent) override{
-      JSonListNode *copy = new JSonListNode(newParent, name);
+    JSonNode *clone(JSonObjectNode *newParent) override {
+        auto *copy = new JSonListNode(newParent, name);
 
-      for (auto c:childArray){
-         copy->childArray.push_back(copy->nameToChildMap[c->name] = c->clone(copy));
-      }
-      return copy;
-   }
+        for (const auto c: childArray) {
+            copy->childArray.push_back(copy->nameToChildMap[c->name] = c->clone(copy));
+        }
+        return copy;
+    }
+
     JSonObjectNode *boolean(std::string value);
 
     JSonObjectNode *boolean(bool value);
@@ -214,8 +250,9 @@ public:
 };
 
 
-class JSon{
-   public:
-   static JSonObjectNode *create(std::function<void(JSonObjectNode *)> builder);
-   static JSonNode *parseFile(std::string filename);
+class JSon {
+public:
+    static JSonObjectNode *create(std::function<void(JSonObjectNode *)> builder);
+
+    static JSonNode *parseFile(std::string filename);
 };

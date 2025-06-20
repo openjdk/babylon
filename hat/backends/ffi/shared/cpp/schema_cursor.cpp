@@ -24,151 +24,162 @@
  */
 
 #include "schema_cursor.h"
+#include <iostream>
+#include<cstring>
 
 
-    SchemaCursor::SchemaCursor(char *ptr): ptr(ptr) {
-    }
-     SchemaCursor::~SchemaCursor() {
-    }
-    void SchemaCursor::in(const char * location){
-        where.push(location);
-    }
-    void SchemaCursor::out(){
-        where.pop();
-    }
-    SchemaCursor *SchemaCursor::skipWhiteSpace() {
-        while (*ptr == ' ' || *ptr == '\n' || *ptr == '\t') {
-            step(1);
-        }
-        return this;
-    }
+SchemaCursor::SchemaCursor(char *ptr): ptr(ptr) {
+}
 
+SchemaCursor::~SchemaCursor() = default;
 
-    SchemaCursor *SchemaCursor::skipIdentifier() {
-        while (peekAlpha() || peekDigit()) {
-            step(1);
-        }
-        return this;
-    }
+void SchemaCursor::in(const char *location) {
+    where.push(location);
+}
 
-    void SchemaCursor::step(int count) {
-        while (count--) {
-            ptr++;
-        }
-    }
+void SchemaCursor::out() {
+    where.pop();
+}
 
-    bool SchemaCursor::peekAlpha() {
-        skipWhiteSpace();
-        return (::isalpha(*ptr));
-    }
-
-    bool SchemaCursor::peekDigit() {
-        skipWhiteSpace();
-        return (::isdigit(*ptr));
-    }
-
-    bool SchemaCursor::is(char ch) {
-        skipWhiteSpace();
-        if (*ptr == ch) {
-            step(1);
-            return true;
-        }
-        return false;
-    }
-    bool SchemaCursor::isColon() {
-       return is(':');
-    }
-
-    bool SchemaCursor::expect(char ch, const char *context,  int line ) {
-        if (is(ch)){
-            return true;
-        }
-        if (!where.empty()){
-            std::cerr << where.top() << " ";
-        }
-        std::cerr << "@" << line << ": parse error expecting  '" << ch << "' "<< context <<" looking at " << ptr << std::endl;
-        exit(1);
-        return false;
-    }
-    bool SchemaCursor::expect(char ch,  int line ) {
-        return expect(ch, "", line);
-    }
-    bool SchemaCursor::expectDigit(const char *context,  int line ) {
-        if (::isdigit(*ptr)){
-            return true;
-        }
-        if (!where.empty()){
-            std::cerr << where.top() << " ";
-        }
-        std::cerr << "@" << line << ": parse error expecting digit "<< context <<" looking at " << ptr << std::endl;
-        exit(1);
-        return false;
-    }
-    bool SchemaCursor::expectAlpha(const char *context,  int line ) {
-        if (::isalpha(*ptr)){
-            return true;
-        }
-        if (!where.empty()){
-            std::cerr << where.top() << " ";
-        }
-        std::cerr << "@" << line << ": parse error expecting alpha "<< context <<" looking at " << ptr << std::endl;
-        exit(1);
-        return false;
-    }
-    bool SchemaCursor::isEither(char ch1, char ch2, char*actual) {
-        skipWhiteSpace();
-        if (*ptr == ch1 || *ptr == ch2) {
-            step(1);
-            *actual = *ptr;
-            return true;
-        }
-        return false;
-    }
-    void SchemaCursor::expectEither(char ch1, char ch2, char*actual, int line) {
-        skipWhiteSpace();
-        if (*ptr == ch1 || *ptr == ch2) {
-            step(1);
-            *actual = *ptr;
-            return;
-        }
-        if (!where.empty()){
-            std::cerr << where.top() << " ";
-        }
-        std::cerr << "@" << line << ": parse error expecting  '" << ch1 << "' or '"<<ch2<< "'  looking at " << ptr << std::endl;
-        exit(1);
-
-    }
-
-    int SchemaCursor::getInt() {
-        int value = *ptr - '0';
+SchemaCursor *SchemaCursor::skipWhiteSpace() {
+    while (*ptr == ' ' || *ptr == '\n' || *ptr == '\t') {
         step(1);
-        if (peekDigit()) {
-            return value * 10 + getInt();
-        }
-        return value;
     }
+    return this;
+}
 
-    long SchemaCursor::getLong() {
-        long value = *ptr - '0';
+
+SchemaCursor *SchemaCursor::skipIdentifier() {
+    while (peekAlpha() || peekDigit()) {
         step(1);
-        if (peekDigit()) {
-            return value * 10 + getLong();
-        }
-        return value;
     }
+    return this;
+}
 
-    char *SchemaCursor::getIdentifier() {
-        char *identifierStart = ptr;
-        skipIdentifier();
-        size_t len = ptr - identifierStart;
-        char *identifier = new char[len + 1];
-        std::memcpy(identifier, identifierStart, len);
-        identifier[len] = '\0';
-        return identifier;
+void SchemaCursor::step(int count) {
+    while (count--) {
+        ptr++;
     }
+}
 
-    void SchemaCursor::error(std::ostream &ostream, const char *file, int line, const char *str) {
-        ostream << file << ":" << "@" << line << ": parse error " << str << " looking at " << ptr << std::endl;
-        exit(1);
+bool SchemaCursor::peekAlpha() {
+    skipWhiteSpace();
+    return (::isalpha(*ptr));
+}
+
+bool SchemaCursor::peekDigit() {
+    skipWhiteSpace();
+    return (::isdigit(*ptr));
+}
+
+bool SchemaCursor::is(const char ch) {
+    skipWhiteSpace();
+    if (*ptr == ch) {
+        step(1);
+        return true;
     }
+    return false;
+}
 
+bool SchemaCursor::isColon() {
+    return is(':');
+}
+
+bool SchemaCursor::expect(char ch, const char *context, int line) {
+    if (is(ch)) {
+        return true;
+    }
+    if (!where.empty()) {
+        std::cerr << where.top() << " ";
+    }
+    std::cerr << "@" << line << ": parse error expecting  '" << ch << "' " << context << " looking at " << ptr <<
+            std::endl;
+   // exit(1);
+    return false;
+}
+
+bool SchemaCursor::expect(const char ch, const int line) {
+    return expect(ch, "", line);
+}
+
+bool SchemaCursor::expectDigit(const char *context, const int line) {
+    if (::isdigit(*ptr)) {
+        return true;
+    }
+    if (!where.empty()) {
+        std::cerr << where.top() << " ";
+    }
+    std::cerr << "@" << line << ": parse error expecting digit " << context << " looking at " << ptr << std::endl;
+   // exit(1);
+    return false;
+}
+
+bool SchemaCursor::expectAlpha(const char *context, const int line) {
+    if (::isalpha(*ptr)) {
+        return true;
+    }
+    if (!where.empty()) {
+        std::cerr << where.top() << " ";
+    }
+    std::cerr << "@" << line << ": parse error expecting alpha " << context << " looking at " << ptr << std::endl;
+ //   exit(1);
+    return false;
+}
+
+bool SchemaCursor::isEither(const char ch1, const char ch2, char *actual) {
+    skipWhiteSpace();
+    if (*ptr == ch1 || *ptr == ch2) {
+        step(1);
+        *actual = *ptr;
+        return true;
+    }
+    return false;
+}
+
+void SchemaCursor::expectEither(const char ch1, const char ch2, char *actual, const int line) {
+    skipWhiteSpace();
+    if (*ptr == ch1 || *ptr == ch2) {
+        step(1);
+        *actual = *ptr;
+        return;
+    }
+    if (!where.empty()) {
+        std::cerr << where.top() << " ";
+    }
+    std::cerr << "@" << line << ": parse error expecting  '" << ch1 << "' or '" << ch2 << "'  looking at " << ptr <<
+            std::endl;
+    exit(1);
+}
+
+int SchemaCursor::getInt() {
+    const int value = *ptr - '0';
+    step(1);
+    if (peekDigit()) {
+        return value * 10 + getInt();
+    }
+    return value;
+}
+
+long SchemaCursor::getLong() {
+    const long value = *ptr - '0';
+    step(1);
+    if (peekDigit()) {
+        return value * 10 + getLong();
+    }
+    return value;
+}
+
+char *SchemaCursor::getIdentifier() {
+    const char *identifierStart = ptr;
+    skipIdentifier();
+    const size_t len = ptr - identifierStart;
+    auto identifier = new char[len + 1];
+    memcpy(identifier, identifierStart, len);
+    identifier[len] = '\0';
+    return identifier;
+}
+
+void SchemaCursor::error(std::ostream &ostream, const char *file,  const int line, const char *str) const {
+    ostream << file << ":" << "@" << line << ": parse error " << str << " looking at " << ptr << std::endl;
+    exit(1);
+}

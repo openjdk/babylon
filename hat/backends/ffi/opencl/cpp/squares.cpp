@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     )");
 
     auto *program =openclBackend.compileProgram(openclSource);
-    int maxX = 32;
+    const int maxX = 32;
     auto *kernelContextWithBufferState = bufferOf<KernelContextWithBufferState>("kernelContext");
     kernelContextWithBufferState->x=0;
     kernelContextWithBufferState->maxX=maxX;
@@ -118,10 +118,10 @@ int main(int argc, char **argv) {
     }
 
     ArgArray_2 args2Array{.argc = 2, .argv={
-            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = (void *) kernelContextWithBufferState, .sizeInBytes = sizeof(KernelContextWithBufferState), .access = RO_BYTE}}},
-            {.idx = 1, .variant = '&',.value = {.buffer ={.memorySegment = (void *) s32Array1024WithBufferState, .sizeInBytes = sizeof(S32Array1024WithBufferState), .access = RW_BYTE}}}
+            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(kernelContextWithBufferState), .sizeInBytes = sizeof(KernelContextWithBufferState), .access = RO_BYTE}}},
+            {.idx = 1, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(s32Array1024WithBufferState), .sizeInBytes = sizeof(S32Array1024WithBufferState), .access = RW_BYTE}}}
     }};
-    auto kernel = program->getOpenCLKernel((char*)"squareKernel");
+    const auto kernel = program->getOpenCLKernel((char*)"squareKernel");
     kernel->ndrange( reinterpret_cast<ArgArray_s *>(&args2Array));
     for (int i=0; i < s32Array1024WithBufferState->length; i++){
         std::cout << i << " array[" << i << "]=" << s32Array1024WithBufferState->array[i] << std::endl;

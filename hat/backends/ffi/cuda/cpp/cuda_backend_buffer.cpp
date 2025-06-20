@@ -34,31 +34,26 @@
 CudaBackend::CudaBuffer::CudaBuffer(Backend *backend,  BufferState *bufferState)
         : Buffer(backend, bufferState), devicePtr() {
 
-    auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
+    const auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
     if (cudaBackend->config->traceCalls) {
         std::cout << "CudaBuffer()" << std::endl;
     }
 
     WHERE{.f=__FILE__, .l=__LINE__,
-            .e=cuMemAlloc(&devicePtr, (size_t) bufferState->length),
+            .e=cuMemAlloc(&devicePtr, static_cast<size_t>(bufferState->length)),
             .t="cuMemAlloc"
     }.report();
     if (cudaBackend->config->traceCalls) {
-        std::cout << "devptr=" << std::hex<<  (long)devicePtr << "stream=" <<dynamic_cast<CudaQueue *>(backend->queue)->cuStream <<std::dec <<std::endl;
+        std::cout << "devptr=" << std::hex<<  static_cast<long>(devicePtr) << "stream=" <<dynamic_cast<CudaQueue *>(backend->queue)->cuStream <<std::dec <<std::endl;
     }
-    // Attempt to solve healing brush crash (where thread for creation of stream differs from the one where we are copying).
-  //  WHERE{.f=__FILE__, .l=__LINE__,
-    //        .e=cuStreamAttachMemAsync(dynamic_cast<CudaQueue *>(backend->queue)->cuStream, devicePtr, 0,  CU_MEM_ATTACH_GLOBAL),
-    //        .t="cuStreamAttachMemAsync"
-   // }.report();
 
   bufferState->vendorPtr= static_cast<void *>(this);
 }
 
 CudaBackend::CudaBuffer::~CudaBuffer() {
-    auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
+    const auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
     if (cudaBackend->config->traceCalls) {
-        std::thread::id thread_id = std::this_thread::get_id();
+        const std::thread::id thread_id = std::this_thread::get_id();
 
         std::cout << "~CudaBuffer()"<< "devptr =" << std::hex << (long) devicePtr << std::dec
                 << " thread=" <<thread_id

@@ -115,7 +115,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             );
 
             braceNlIndented(_ -> {
-                //scope();
                 StreamCounter.of(buildContext.funcOpWrapper.wrappedRootOpStream(), (c, root) ->
                         nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                 );
@@ -124,7 +123,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public T kernelEntrypoint(KernelEntrypoint kernelEntrypoint, Object[] args) {
+    public T kernelEntrypoint(KernelEntrypoint kernelEntrypoint,Object... args) {
 
         nl();
         CodeBuilderContext buildContext = new CodeBuilderContext(kernelEntrypoint.funcOpWrapper());

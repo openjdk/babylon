@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -82,12 +81,5 @@ void Hex::bytes(std::ostream &s, char *p, size_t len, std::function<void(std::os
         for (int c = len - (len % 16); c < len; c++) {
             ascii(s, p[c]);
         }
-
     }
-
-
 }
-
-
-
-

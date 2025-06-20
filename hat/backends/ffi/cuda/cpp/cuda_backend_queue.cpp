@@ -51,11 +51,6 @@ void CudaBackend::CudaQueue::init(){
     }
     }
 
-//void CudaBackend::CudaQueue::sync(const char *file, int line) const {
-
-//}
-
-
 void CudaBackend::CudaQueue::wait(){
     WHERE{.f=__FILE__, .l=__LINE__,
           .e=cuStreamSynchronize(cuStream),
@@ -83,7 +78,6 @@ void CudaBackend::CudaQueue::release(){
 }
 
 CudaBackend::CudaQueue::~CudaQueue(){
-   // delete []events;
     WHERE{.f=__FILE__, .l=__LINE__,
             .e=cuStreamDestroy(cuStream),
             .t= "cuStreamDestroy"
@@ -91,9 +85,8 @@ CudaBackend::CudaQueue::~CudaQueue(){
 }
 
 void CudaBackend::CudaQueue::copyToDevice(Buffer *buffer) {
-    //auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
-    auto *cudaBuffer = dynamic_cast<CudaBuffer *>(buffer);
-    std::thread::id thread_id = std::this_thread::get_id();
+    const auto *cudaBuffer = dynamic_cast<CudaBuffer *>(buffer);
+    const std::thread::id thread_id = std::this_thread::get_id();
     if (thread_id != streamCreationThread){
         std::cout << "copyToDevice()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
     }
@@ -102,7 +95,7 @@ void CudaBackend::CudaQueue::copyToDevice(Buffer *buffer) {
         std::cout << "copyToDevice() 0x"
                 << std::hex<<cudaBuffer->bufferState->length<<std::dec << "/"
                 << cudaBuffer->bufferState->length << " "
-                << "devptr=" << std::hex<<  (long)cudaBuffer->devicePtr <<std::dec
+                << "devptr=" << std::hex<<  static_cast<long>(cudaBuffer->devicePtr) <<std::dec
                 << " thread=" <<thread_id
                   << std::endl;
     }
@@ -118,9 +111,8 @@ void CudaBackend::CudaQueue::copyToDevice(Buffer *buffer) {
 }
 
 void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
-    auto *cudaBuffer = dynamic_cast<CudaBuffer *>(buffer);
-    //auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
-    std::thread::id thread_id = std::this_thread::get_id();
+    const auto *cudaBuffer = dynamic_cast<CudaBuffer *>(buffer);
+    const std::thread::id thread_id = std::this_thread::get_id();
     if (thread_id != streamCreationThread){
         std::cout << "copyFromDevice()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
     }
@@ -129,7 +121,7 @@ void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
         std::cout << "copyFromDevice() 0x"
                   << std::hex<<cudaBuffer->bufferState->length<<std::dec << "/"
                   << cudaBuffer->bufferState->length << " "
-                  << "devptr=" << std::hex<<  (long)cudaBuffer->devicePtr <<std::dec
+                  << "devptr=" << std::hex<<  static_cast<long>(cudaBuffer->devicePtr) <<std::dec
                 << " thread=" <<thread_id
                   << std::endl;
     }
@@ -147,9 +139,9 @@ void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
 }
 
 void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
-    auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
+    const auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
 
-    int range = kernelContext->maxX;
+    const int range = kernelContext->maxX;
     int rangediv1024 = range / 1024;
     int rangemod1024 = range % 1024;
     if (rangemod1024 > 0) {
@@ -162,12 +154,12 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
 //  auto status= static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
 
 //  cudaBackend->cudaQueue.wait();
-    std::thread::id thread_id = std::this_thread::get_id();
+    const std::thread::id thread_id = std::this_thread::get_id();
     if (thread_id != streamCreationThread){
         std::cout << "dispatch()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
     }
 
-    auto status = cuLaunchKernel(cudaKernel->function,
+    const auto status = cuLaunchKernel(cudaKernel->function,
                                  rangediv1024, 1, 1,
                                  1024, 1, 1,
                                  0, cuStream,
