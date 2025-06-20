@@ -1,7 +1,9 @@
+import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.parser.OpParser;
@@ -11,6 +13,7 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.function.IntUnaryOperator;
 
 /*
@@ -409,12 +412,40 @@ func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
 };
 """, new Object[] {}
                 },
+                {
+                        """
+func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %1 : Var<java.type:"int"> = var %0;
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %7 : java.type:"int" = var.load %1;
+            %8 : java.type:"int" = add %7 %2;
+            return %8;
+      };
+      yield %6;
+    };
+    return %5;
+};
+""", new Object[]{8, 9}
+                }
         };
     }
 
     @Test(dataProvider = "validCases")
     void testValidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
-        CoreOp.quotedOp(fop, args);
+        Quoted quoted = CoreOp.quotedOp(fop, args);
+
+        for (Map.Entry<Value, Object> e : quoted.capturedValues().entrySet()) {
+            Value sv = e.getKey();
+            Object rv = e.getValue();
+            // assert only when captured value is block param, or result of VarOp initialized with block param
+            if (sv instanceof Op.Result opr && opr.op() instanceof CoreOp.VarOp vop
+                    && vop.initOperand() instanceof Block.Parameter p) {
+                Assert.assertEquals(((CoreOp.Var) rv).value(), args[p.index()]);
+            } else if (sv instanceof Block.Parameter p) {
+                Assert.assertEquals(rv, args[p.index()]);
+            }
+        }
     }
 }
