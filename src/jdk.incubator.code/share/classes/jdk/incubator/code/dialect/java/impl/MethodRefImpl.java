@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.dialect.java.impl;
 
+import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.invoke.MethodHandle;
@@ -139,7 +140,7 @@ public final class MethodRefImpl implements MethodRef {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
         return JavaTypeUtils.methodRef(name, refType.externalize(),
                 type.returnType().externalize(),
                 type.parameterTypes().stream().map(TypeElement::externalize).toList());

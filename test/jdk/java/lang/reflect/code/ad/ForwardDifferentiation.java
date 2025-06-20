@@ -26,6 +26,7 @@ import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -122,7 +123,7 @@ public final class ForwardDifferentiation {
 
 
     static final JavaType J_L_MATH = JavaType.type(Math.class);
-    static final FunctionType D_D = FunctionType.functionType(DOUBLE, DOUBLE);
+    static final FunctionType D_D = CoreType.functionType(DOUBLE, DOUBLE);
     static final MethodRef J_L_MATH_SIN = MethodRef.method(J_L_MATH, "sin", D_D);
     static final MethodRef J_L_MATH_COS = MethodRef.method(J_L_MATH, "cos", D_D);
 

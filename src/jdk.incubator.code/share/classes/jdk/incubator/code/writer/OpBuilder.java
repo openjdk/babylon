@@ -29,7 +29,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.OpFactory;
 import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.*;
 
@@ -38,7 +38,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 
@@ -56,13 +56,13 @@ public class OpBuilder {
             OpFactory.class);
 
     static final MethodRef DIALECT_FACTORY_TYPE_ELEMENT_FACTORY = MethodRef.method(DialectFactory.class, "typeElementFactory",
-            TypeElementFactory.class);
+            ExternalizableTypeElement.TypeElementFactory.class);
 
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
             Op.class, ExternalizableOp.ExternalizedOp.class);
 
-    static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
-            TypeElement.class, ExternalizedTypeElement.class);
+    static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(ExternalizableTypeElement.TypeElementFactory.class, "constructType",
+            TypeElement.class, ExternalizableTypeElement.ExternalizedTypeElement.class);
 
     static final MethodRef BODY_BUILDER_OF = MethodRef.method(Body.Builder.class, "of",
             Body.Builder.class, Body.Builder.class, FunctionType.class);
@@ -85,7 +85,7 @@ public class OpBuilder {
             Block.Parameter.class, TypeElement.class);
 
     // static varargs
-    static final MethodRef FUNCTION_TYPE_FUNCTION_TYPE = MethodRef.method(FunctionType.class, "functionType",
+    static final MethodRef FUNCTION_TYPE_FUNCTION_TYPE = MethodRef.method(CoreType.class, "functionType",
             FunctionType.class, TypeElement.class, TypeElement[].class);
 
 
@@ -105,7 +105,7 @@ public class OpBuilder {
             J_U_MAP, array(J_U_MAP_ENTRY, 1));
 
 
-    static final JavaType EX_TYPE_ELEM = type(ExternalizedTypeElement.class);
+    static final JavaType EX_TYPE_ELEM = type(ExternalizableTypeElement.ExternalizedTypeElement.class);
 
     static final MethodRef EX_TYPE_ELEM_OF_LIST = MethodRef.method(EX_TYPE_ELEM, "of",
             EX_TYPE_ELEM, J_L_STRING, J_U_LIST);
@@ -127,7 +127,7 @@ public class OpBuilder {
 
     final Map<Block, Value> blockMap;
 
-    final Map<ExternalizedTypeElement, Value> exTypeElementMap;
+    final Map<ExternalizableTypeElement.ExternalizedTypeElement, Value> exTypeElementMap;
 
     final Map<TypeElement, Value> typeElementMap;
 
@@ -283,14 +283,14 @@ public class OpBuilder {
         });
     }
 
-    Value buildExternalizedType(ExternalizedTypeElement e) {
+    Value buildExternalizedType(ExternalizableTypeElement.ExternalizedTypeElement e) {
         // Cannot use computeIfAbsent due to recursion
         if (exTypeElementMap.get(e) instanceof Value v) {
             return v;
         }
 
         List<Value> arguments = new ArrayList<>();
-        for (ExternalizedTypeElement a : e.arguments()) {
+        for (ExternalizableTypeElement.ExternalizedTypeElement a : e.arguments()) {
             arguments.add(buildExternalizedType(a));
         }
 

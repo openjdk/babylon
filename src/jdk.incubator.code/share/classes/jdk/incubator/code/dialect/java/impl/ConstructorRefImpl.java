@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.dialect.java.impl;
 
+import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ConstructorRef;
@@ -107,7 +108,7 @@ public final class ConstructorRefImpl implements ConstructorRef {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
         return JavaTypeUtils.constructorRef(type.returnType().externalize(),
                 type.parameterTypes().stream().map(TypeElement::externalize).toList());
     }

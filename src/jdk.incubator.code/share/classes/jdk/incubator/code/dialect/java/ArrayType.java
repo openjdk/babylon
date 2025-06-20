@@ -30,6 +30,7 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
 
+import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 /**
@@ -78,7 +79,7 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
         return JavaTypeUtils.arrayType(componentType.externalize());
     }
 

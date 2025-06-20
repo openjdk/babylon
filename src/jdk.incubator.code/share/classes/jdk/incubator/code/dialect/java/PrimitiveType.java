@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.dialect.java;
 
+import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.lang.constant.ClassDesc;
@@ -50,7 +51,7 @@ public final class PrimitiveType implements JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
         return JavaTypeUtils.primitiveType(type.displayName());
     }
 

@@ -1,13 +1,12 @@
 package jdk.incubator.code.dialect.core;
 
+import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.TypeElement;
-import java.util.List;
-import java.util.Objects;
 
 /**
  * A variable type.
  */
-public final class VarType implements TypeElement {
+public final class VarType implements CoreType {
     static final String NAME = "Var";
 
     final TypeElement valueType;
@@ -24,8 +23,9 @@ public final class VarType implements TypeElement {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, List.of(valueType.externalize()));
+    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+        return ExternalizableTypeElement.ExternalizedTypeElement.of(NAME,
+                valueType.externalize());
     }
 
     @Override
@@ -43,16 +43,5 @@ public final class VarType implements TypeElement {
     @Override
     public int hashCode() {
         return valueType.hashCode();
-    }
-
-    /**
-     * Constructs a variable type.
-     *
-     * @param valueType the variable's value type.
-     * @return a variable type.
-     */
-    public static VarType varType(TypeElement valueType) {
-        Objects.requireNonNull(valueType);
-        return new VarType(valueType);
     }
 }

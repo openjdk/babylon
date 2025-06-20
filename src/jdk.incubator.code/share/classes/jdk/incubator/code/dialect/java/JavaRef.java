@@ -1,5 +1,6 @@
 package jdk.incubator.code.dialect.java;
 
+import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.TypeElement;
 
 /**
@@ -11,8 +12,8 @@ import jdk.incubator.code.TypeElement;
  * reflected representation, much like the symbolic description of a Java type
  * can be resolved to an instance of {@link java.lang.reflect.Type Type}.
  */
-public sealed interface JavaRef extends TypeElement
-    permits MethodRef, ConstructorRef, FieldRef, RecordTypeRef {
+public sealed interface JavaRef extends ExternalizableTypeElement
+        permits MethodRef, ConstructorRef, FieldRef, RecordTypeRef {
     // @@@ Enhance TypeElement to traverse children
     //     - Uniform tree traversal and transformation independent of
     //       externalization.

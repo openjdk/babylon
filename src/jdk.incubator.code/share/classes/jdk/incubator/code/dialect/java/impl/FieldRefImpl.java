@@ -25,6 +25,7 @@
 
 package jdk.incubator.code.dialect.java.impl;
 
+import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.FieldRef;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -114,7 +115,7 @@ public final class FieldRefImpl implements FieldRef {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
         return JavaTypeUtils.fieldRef(name, refType.externalize(), type.externalize());
     }
 

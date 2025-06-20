@@ -29,8 +29,8 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.OpFactory;
-import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -115,7 +115,7 @@ public class TritonOps {
             super(NAME, JavaType.VOID,
                     List.of());
 
-            Body.Builder bodyC = Body.Builder.of(null, FunctionType.VOID);
+            Body.Builder bodyC = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
             Map<String, FuncOp> table = new HashMap<>();
             for (FuncOp f : functions) {
@@ -833,9 +833,9 @@ public class TritonOps {
 
     static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(TritonOps.class);
 
-    static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
+    static final ExternalizableTypeElement.TypeElementFactory TRITON_TYPE_FACTORY = new ExternalizableTypeElement.TypeElementFactory() {
         @Override
-        public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
+        public TypeElement constructType(ExternalizableTypeElement.ExternalizedTypeElement tree) {
             return switch (tree.identifier()) {
                 case PtrType.NAME -> {
                     if (tree.arguments().size() != 1) {
@@ -859,7 +859,7 @@ public class TritonOps {
 
                     List<Integer> shape = new ArrayList<>();
                     for (int i = 0; i < tree.arguments().size() - 1; i++) {
-                        TypeElement.ExternalizedTypeElement a = tree.arguments().get(i);
+                        ExternalizableTypeElement.ExternalizedTypeElement a = tree.arguments().get(i);
                         if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
@@ -888,12 +888,12 @@ public class TritonOps {
     };
 
     // Triton types then Java types
-    static final TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
+    static final ExternalizableTypeElement.TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
             TRITON_TYPE_FACTORY.andThen(JavaOp.JAVA_TYPE_FACTORY);
 
     // Triton types then Java types, combined with core types
-    static final TypeElementFactory TYPE_FACTORY =
-            CoreOp.coreTypeFactory(TRITON_JAVA_TYPE_FACTORY);
+    static final ExternalizableTypeElement.TypeElementFactory TYPE_FACTORY =
+            CoreType.coreTypeFactory(TRITON_JAVA_TYPE_FACTORY);
 
     public static final DialectFactory DIALECT_FACTORY = new DialectFactory(
             OP_FACTORY.andThen(ArithMathOps.OP_FACTORY)
