@@ -56,13 +56,13 @@ public class OpBuilder {
             OpFactory.class);
 
     static final MethodRef DIALECT_FACTORY_TYPE_ELEMENT_FACTORY = MethodRef.method(DialectFactory.class, "typeElementFactory",
-            ExternalizableTypeElement.TypeElementFactory.class);
+            TypeElementFactory.class);
 
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
             Op.class, ExternalizableOp.ExternalizedOp.class);
 
-    static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(ExternalizableTypeElement.TypeElementFactory.class, "constructType",
-            TypeElement.class, ExternalizableTypeElement.ExternalizedTypeElement.class);
+    static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
+            TypeElement.class, ExternalizedTypeElement.class);
 
     static final MethodRef BODY_BUILDER_OF = MethodRef.method(Body.Builder.class, "of",
             Body.Builder.class, Body.Builder.class, FunctionType.class);
@@ -105,7 +105,7 @@ public class OpBuilder {
             J_U_MAP, array(J_U_MAP_ENTRY, 1));
 
 
-    static final JavaType EX_TYPE_ELEM = type(ExternalizableTypeElement.ExternalizedTypeElement.class);
+    static final JavaType EX_TYPE_ELEM = type(ExternalizedTypeElement.class);
 
     static final MethodRef EX_TYPE_ELEM_OF_LIST = MethodRef.method(EX_TYPE_ELEM, "of",
             EX_TYPE_ELEM, J_L_STRING, J_U_LIST);
@@ -127,7 +127,7 @@ public class OpBuilder {
 
     final Map<Block, Value> blockMap;
 
-    final Map<ExternalizableTypeElement.ExternalizedTypeElement, Value> exTypeElementMap;
+    final Map<ExternalizedTypeElement, Value> exTypeElementMap;
 
     final Map<TypeElement, Value> typeElementMap;
 
@@ -283,14 +283,14 @@ public class OpBuilder {
         });
     }
 
-    Value buildExternalizedType(ExternalizableTypeElement.ExternalizedTypeElement e) {
+    Value buildExternalizedType(ExternalizedTypeElement e) {
         // Cannot use computeIfAbsent due to recursion
         if (exTypeElementMap.get(e) instanceof Value v) {
             return v;
         }
 
         List<Value> arguments = new ArrayList<>();
-        for (ExternalizableTypeElement.ExternalizedTypeElement a : e.arguments()) {
+        for (ExternalizedTypeElement a : e.arguments()) {
             arguments.add(buildExternalizedType(a));
         }
 
