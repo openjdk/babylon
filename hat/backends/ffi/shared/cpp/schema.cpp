@@ -25,7 +25,6 @@
 #include "schema.h"
 
 void Schema::show(std::ostream &out, char *argArray) {
-
 }
 
 void indent(std::ostream &out, int depth, char ch) {
@@ -36,28 +35,28 @@ void indent(std::ostream &out, int depth, char ch) {
 
 void Schema::show(std::ostream &out, int depth, Node *node) {
     indent(out, depth, ' ');
-    if (auto *schemaNode = dynamic_cast<SchemaNode *>(node)) {
+    if (const auto *schemaNode = dynamic_cast<SchemaNode *>(node)) {
         std::cout << schemaNode->type;
-    } else if (auto *arg = dynamic_cast<ArgNode *>(node)) {
+    } else if (const auto *arg = dynamic_cast<ArgNode *>(node)) {
         std::cout << arg->idx;
-    } else if (auto *structNode = dynamic_cast<StructNode *>(node)) {
-        std::cout  <<  ((structNode->name== nullptr)?"?":structNode->name);
-    } else if (auto *unionNode = dynamic_cast<UnionNode *>(node)) {
-        std::cout <<  ((unionNode->name== nullptr)?"?":unionNode->name);
-      } else if (auto *array = dynamic_cast<Array *>(node)) {
-        if(array->flexible) {
+    } else if (const auto *structNode = dynamic_cast<StructNode *>(node)) {
+        std::cout << ((structNode->name == nullptr) ? "?" : structNode->name);
+    } else if (const auto *unionNode = dynamic_cast<UnionNode *>(node)) {
+        std::cout << ((unionNode->name == nullptr) ? "?" : unionNode->name);
+    } else if (auto *array = dynamic_cast<Array *>(node)) {
+        if (array->flexible) {
             std::cout << "[*]";
-        }else{
+        } else {
             std::cout << "[" << array->elementCount << "]";
         }
     } else if (auto *fieldNode = dynamic_cast<FieldNode *>(node)) {
-        std::cout  << ((fieldNode->name== nullptr)?"?":fieldNode->name)<<":"<<fieldNode->typeName;
+        std::cout << ((fieldNode->name == nullptr) ? "?" : fieldNode->name) << ":" << fieldNode->typeName;
     } else {
         std::cout << "<node?>";
     }
     if (node->children.empty()) {
         std::cout << std::endl;
-    }else{
+    } else {
         std::cout << "{" << std::endl;
         for (Node *n: node->children) {
             show(out, depth + 1, n);
@@ -84,7 +83,7 @@ Schema::Array *Schema::Array::parse(SchemaCursor *cursor) {
         elementCount = cursor->getLong();
     }
     cursor->expect(':', "after element count in array", __LINE__);
-    char *identifier= nullptr;
+    char *identifier = nullptr;
     if (cursor->is('?')) {
     } else if (cursor->peekAlpha()) {
         identifier = cursor->getIdentifier();
@@ -93,11 +92,11 @@ Schema::Array *Schema::Array::parse(SchemaCursor *cursor) {
     }
     cursor->expect(':', "after name in array", __LINE__);
     if (cursor->peekAlpha()) {
-        elementType = addChild(cursor, new  FieldNode(this, identifier));
+        elementType = addChild(cursor, new FieldNode(this, identifier));
     } else if (cursor->is('{')) {
-        elementType = addChild(cursor, new  StructNode(this,  identifier));
+        elementType = addChild(cursor, new StructNode(this, identifier));
     } else if (cursor->is('<')) {
-        elementType = addChild(cursor, new  UnionNode(this, identifier));
+        elementType = addChild(cursor, new UnionNode(this, identifier));
     } else {
         cursor->error(std::cerr, __FILE__, __LINE__, "expecting type  for element");
     }
@@ -117,11 +116,11 @@ Schema::AbstractStructOrUnionNode *Schema::AbstractStructOrUnionNode::parse(Sche
         }
         cursor->expect(':', "after StrutOrUnion name", __LINE__);
         if (cursor->peekAlpha()) {
-            typeNode = addChild(cursor, new  FieldNode(this, identifier));
+            typeNode = addChild(cursor, new FieldNode(this, identifier));
         } else if (cursor->is('[')) {
             typeNode = addChild(cursor, new Array(this));
         } else if (cursor->is('{')) {
-            typeNode = addChild(cursor, new StructNode(this, identifier ));
+            typeNode = addChild(cursor, new StructNode(this, identifier));
         } else if (cursor->is('<')) {
             typeNode = addChild(cursor, new UnionNode(this, identifier));
         } else {
@@ -149,7 +148,7 @@ Schema::ArgNode *Schema::ArgNode::parse(SchemaCursor *cursor) {
     cursor->expect(':', __LINE__);
     if (cursor->peekAlpha()) {
         addChild(cursor, new FieldNode(this, nullptr));
-    }else{
+    } else {
         cursor->expectDigit("long byteCount of buffer", __LINE__);
         long bytes = cursor->getLong();
         if (cursor->isEither('#', '+', &actual)) {
@@ -185,5 +184,3 @@ Schema::SchemaNode *Schema::SchemaNode::parse(SchemaCursor *cursor) {
     cursor->out();
     return this;
 }
-
-

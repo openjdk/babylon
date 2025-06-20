@@ -22,21 +22,22 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
- #include <string.h>
+#include <string.h>
 #include <iostream>
 #include "buffer_cursor.h"
 
 
 Mark::Mark(BufferCursor *cursor)
-        : cursor(cursor), ptr(nullptr), end(nullptr) {}
+    : cursor(cursor), ptr(nullptr), end(nullptr) {
+}
 
-std::string Mark::str(char *end) {
+std::string Mark::str(char *end) const {
     cursor->isValid(end);
     return std::string(ptr, end - ptr);
 }
 
 size_t Mark::getSize() {
-    cursor->isValid((char *) (cursor->get() - ptr));
+    cursor->isValid(reinterpret_cast<char *>(cursor->get() - ptr));
     return cursor->get() - ptr;
 }
 
@@ -45,19 +46,20 @@ std::string Mark::str() {
 }
 
 std::string Mark::str(int delta) {
-    return std::string(ptr, getSize()+delta);
+    return std::string(ptr, getSize() + delta);
 }
 
 
-char *Mark::getStart(){
+char *Mark::getStart() {
     return ptr;
 }
-char *Mark::getEnd(){
+
+char *Mark::getEnd() {
     return setEnd();
 }
 
-char *Mark::setEnd(){
-    if (end == nullptr){
+char *Mark::setEnd() {
+    if (end == nullptr) {
         end = cursor->get();
     }
     return end;
@@ -69,16 +71,16 @@ char *BufferCursor::get() {
 }
 
 bool BufferCursor::isValid(char *p) {
-  // if (p> endPtr){
-     // std::cerr << "p beyond end " << endPtr-p << std::endl;
-  // }
-  // if (p< startPtr){
-   //   std::cerr << "p before start " << p-startPtr << std::endl;
-  // }
+    // if (p> endPtr){
+    // std::cerr << "p beyond end " << endPtr-p << std::endl;
+    // }
+    // if (p< startPtr){
+    //   std::cerr << "p before start " << p-startPtr << std::endl;
+    // }
     return p >= startPtr && p <= endPtr;
 }
 
-bool BufferCursor::end() {
+bool BufferCursor::end() const {
     // isValid(ptr);
     return ptr >= endPtr;
 }
@@ -86,21 +88,19 @@ bool BufferCursor::end() {
 BufferCursor *BufferCursor::advance(int i) {
     if (isValid(ptr)) {
         ptr += i;
-     //   if (isValid(ptr)) {
-            return this;
+        //   if (isValid(ptr)) {
+        return this;
         //} else {
-           // std::cerr << "ptr after advance is invalid";
-          //  return this;
-         //   std::exit(1);
-
+        // std::cerr << "ptr after advance is invalid";
+        //  return this;
+        //   std::exit(1);
     } else {
         std::cerr << "ptr before advance is invalid";
         std::exit(1);
     }
-
 }
 
-BufferCursor *BufferCursor::backup(int i) {
+BufferCursor *BufferCursor::backup(const int i) {
     if (isValid(ptr)) {
         ptr -= i;
         if (isValid(ptr)) {
@@ -113,7 +113,6 @@ BufferCursor *BufferCursor::backup(int i) {
         std::cerr << "ptr before backup is invalid";
         std::exit(1);
     }
-
 }
 
 BufferCursor *BufferCursor::advance() {
@@ -125,9 +124,9 @@ BufferCursor *BufferCursor::backup() {
 }
 
 char BufferCursor::ch() {
-    if (!isValid(ptr)){
-       std::cerr << "read past end!" << std::endl;
-       std::exit(1);
+    if (!isValid(ptr)) {
+        std::cerr << "read past end!" << std::endl;
+        std::exit(1);
     }
     return *ptr;
 }
@@ -171,9 +170,11 @@ bool BufferCursor::isLookingAtAlpha() {
 bool BufferCursor::isLookingAtDigit() {
     return (isLookingAtOneOf("0123456789"));
 }
+
 bool BufferCursor::isLookingAtOctalDigit() {
     return (isLookingAtOneOf("01234567"));
 }
+
 bool BufferCursor::isLookingAtHexDigit() {
     return (isLookingAtOneOf("0123456789abcdefABCDEF"));
 }
@@ -334,26 +335,25 @@ BufferCursor *BufferCursor::reset() {
 }
 
 BufferCursor::BufferCursor(PureRange *pureRange)
-        : startPtr(pureRange->getStart()), ptr(pureRange->getStart()), endPtr(pureRange->getEnd()) {
-
+    : startPtr(pureRange->getStart()), ptr(pureRange->getStart()), endPtr(pureRange->getEnd()) {
 }
 
 BufferCursor::BufferCursor(char *ptr, size_t
-len)
-        : startPtr(ptr), ptr(ptr), endPtr(ptr + len) {
-
+                           len)
+    : startPtr(ptr), ptr(ptr), endPtr(ptr + len) {
 }
 
 BufferCursor::BufferCursor(char *ptr)
-        : startPtr(ptr), ptr(ptr), endPtr(ptr + ::strlen(ptr)) {
+    : startPtr(ptr), ptr(ptr), endPtr(ptr + ::strlen(ptr)) {
+}
 
+BufferCursor::~BufferCursor() {
+    for (auto mark: marks) {
+        delete mark;
+    }
+    marks.clear();
 }
-BufferCursor::~BufferCursor(){
-   for (auto mark:marks){
-      delete mark;
-   }
-   marks.clear();
-}
+
 void BufferCursor::show(std::ostream &o) {
     char *safe = ptr;
     while (!end()) {
@@ -382,7 +382,7 @@ char *BufferCursor::getEnd() {
     return endPtr;
 }
 
-size_t BufferCursor::getSize(){
+size_t BufferCursor::getSize() {
     return endPtr - startPtr;
 }
 

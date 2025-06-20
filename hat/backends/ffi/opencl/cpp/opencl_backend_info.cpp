@@ -35,7 +35,7 @@ static T info(cl_device_id device_id, cl_device_info device_info){
 static char *strInfo(cl_device_id device_id, cl_device_info device_info){
     size_t sz;
     cl_int  status = clGetDeviceInfo(device_id, device_info, 0, nullptr,  &sz);
-    char *ptr = new char[sz+1];
+    auto ptr = new char[sz+1];
     status = clGetDeviceInfo(device_id, device_info, sz, ptr,nullptr);
     return ptr;
 }
@@ -109,8 +109,7 @@ PlatformInfo::~PlatformInfo(){
 
 
 void OpenCLBackend::info() {
-    PlatformInfo platformInfo(this);
-    cl_int status;
+    const PlatformInfo platformInfo(this);
     std::cerr << "platform{" <<std::endl;
     std::cerr << "   CL_PLATFORM_VENDOR..\"" << platformInfo.vendorName <<"\""<<std::endl;
     std::cerr << "   CL_PLATFORM_VERSION.\"" << platformInfo.versionName <<"\""<<std::endl;
@@ -135,9 +134,4 @@ void OpenCLBackend::info() {
     std::cerr <<  "         CL_DEVICE_BUILT_IN_KERNELS......... "<<  platformInfo.deviceInfo.builtInKernels<<std::endl;
     std::cerr <<  "}"<<std::endl;
 }
-
-//int OpenCLBackend::getMaxComputeUnits() {
- //   PlatformInfo platformInfo(this);
- //   return platformInfo.deviceInfo.maxComputeUnits;
-//}
 

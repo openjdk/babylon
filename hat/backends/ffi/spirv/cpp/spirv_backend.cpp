@@ -24,18 +24,17 @@
  */
 #include "shared.h"
 
-class SpirvBackend : public Backend {
+class SpirvBackend final: public Backend {
 public:
 
-    class SpirvProgram : public Backend::CompilationUnit {
-        class SpirvKernel : public Backend::CompilationUnit::Kernel {
+    class SpirvProgram final : public CompilationUnit {
+        class SpirvKernel final : public Kernel {
         public:
-            SpirvKernel(Backend::CompilationUnit *compilationUnit, char *name)
-                    : Backend::CompilationUnit::Kernel(compilationUnit, name) {
+            SpirvKernel(CompilationUnit *compilationUnit, char *name)
+                    : Kernel(compilationUnit, name) {
             }
 
-            ~SpirvKernel() {
-            }
+            ~SpirvKernel() override = default;
             bool setArg(KernelArg *arg, Buffer *buffer) override{
                 return false ;
             }
@@ -46,25 +45,23 @@ public:
 
     public:
         SpirvProgram(Backend *backend, char *src, char *log, bool ok)
-                : Backend::CompilationUnit(backend,src,log,ok) {
+                : CompilationUnit(backend,src,log,ok) {
         }
 
-        ~SpirvProgram() {
-        }
+        ~SpirvProgram() override = default;
 
-        Kernel *getKernel(int nameLen, char *name) {
+        Kernel *getKernel(int nameLen, char *name) override {
             return new SpirvKernel(this, name);
         }
     };
-    class SpirvQueue: public Backend::Queue{
+    class SpirvQueue final : public Queue{
     public:
         void wait()override{};
         void release()override{};
         void computeStart()override{};
         void computeEnd()override{};
-        void dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) override{
+        void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override{
             std::cout << "spirv dispatch() " << std::endl;
-            size_t dims = 1;
             if (backend->config->trace | backend->config->traceEnqueues){
                 std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->maxX << std::endl;
             }
@@ -76,11 +73,10 @@ public:
         ~SpirvQueue() override =default;
     };
 public:
-    SpirvBackend(int mode): Backend(new Config(mode), new SpirvQueue(this)) {
+    explicit SpirvBackend(const int mode): Backend(new Config(mode), new SpirvQueue(this)) {
     }
 
-    ~SpirvBackend() {
-    }
+    ~SpirvBackend() override = default;
 
     Buffer * getOrCreateBuffer(BufferState *bufferState) override{
         Buffer *buffer = nullptr;
@@ -114,17 +110,17 @@ public:
 
     CompilationUnit* compile(int len, char *source) override{
         std::cout << "spirv compile()" << std::endl;
-        size_t srcLen = ::strlen(source);
+        const size_t srcLen = ::strlen(source);
         char *src = new char[srcLen + 1];
-        ::strncpy(src, source, srcLen);
+        strncpy(src, source, srcLen);
         src[srcLen] = '\0';
         std::cout << "native compiling " << src << std::endl;
 
-        SpirvProgram *spirvProgram = new SpirvProgram(this,  src, nullptr, false);
-        return dynamic_cast<CompilationUnit*>(spirvProgram);
+        const auto spirvProgram = new SpirvProgram(this,  src, nullptr, false);
+        return spirvProgram;
     }
 };
 
-long getBackend(int mode) {
+long getBackend(const int mode) {
     return reinterpret_cast<long>(new SpirvBackend(mode));
 }

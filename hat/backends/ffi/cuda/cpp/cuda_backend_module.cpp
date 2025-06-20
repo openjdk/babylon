@@ -28,17 +28,17 @@
 #include "cuda_backend.h"
 
 
-CudaBackend::CudaModule::CudaModule(Backend *backend, char *src, char  *log,  bool ok, CUmodule module)
-        : Backend::CompilationUnit(backend, src, log, ok), cudaSource(src), ptxSource(),log(log), module(module) {
+CudaBackend::CudaModule::CudaModule(Backend *backend, char *cudaSource, char  *log, const bool ok, const CUmodule module)
+        : CompilationUnit(backend, cudaSource, log, ok), cudaSource(cudaSource), ptxSource(),log(log), module(module) {
 }
 
 CudaBackend::CudaModule::~CudaModule() = default;
 CudaBackend::CudaModule * CudaBackend::CudaModule::of(long moduleHandle){
-    return reinterpret_cast<CudaBackend::CudaModule *>(moduleHandle);
+    return reinterpret_cast<CudaModule *>(moduleHandle);
 }
-Backend::CompilationUnit::Kernel * CudaBackend::CudaModule::getKernel(int len, char *name) {
-    CudaKernel* cudaKernel= getCudaKernel(len, name);
-    return dynamic_cast<Backend::CompilationUnit::Kernel *>(cudaKernel);
+Backend::CompilationUnit::Kernel * CudaBackend::CudaModule::getKernel(const int nameLen, char *name) {
+    CudaKernel* cudaKernel= getCudaKernel(nameLen, name);
+    return cudaKernel;
 
 }
 CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(char *name) {

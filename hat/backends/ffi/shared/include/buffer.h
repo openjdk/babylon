@@ -22,61 +22,63 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
- #pragma once
+#pragma once
 
 #include <cstring>
-#include <stdlib.h>
 #include <ostream>
 #include <functional>
 
 class PureMark {
 public:
     virtual char *getStart() = 0;
-    virtual ~PureMark(){}
 
+    virtual ~PureMark() = default;
 };
-class PureRange : public PureMark{
+
+class PureRange : public PureMark {
 public:
     virtual char *getEnd() = 0;
-    virtual size_t getSize() = 0;
-    virtual ~PureRange(){
 
+    virtual size_t getSize() = 0;
+
+    ~PureRange() override {
     }
 };
 
-class Buffer : public PureRange{
-private:
-    size_t max;  // max size before we need to realloc.
+class Buffer : public PureRange {
+    size_t max; // max size before we need to realloc.
 protected:
     char *memory;
-    size_t size;  // size requested
+    size_t size; // size requested
 public:
     Buffer();
 
-    Buffer(size_t size);
+    explicit Buffer(size_t size);
 
-    Buffer(char *mem, size_t size);
+    Buffer(const char *mem, size_t size);
 
-    Buffer(char *fileName);
+    explicit Buffer(const char *fileName);
 
-    Buffer(std::string fileName);
+    explicit Buffer(const std::string &fileName);
 
     void resize(size_t size);
 
     void dump(std::ostream &s);
 
-    void dump(std::ostream &s, std::function<void(std::ostream &)> prefix );
+    void dump(std::ostream &s, std::function<void(std::ostream &)> prefix);
 
     size_t write(int fd);
 
     size_t read(int fd, size_t size);
 
-    virtual ~Buffer();
+    ~Buffer() override;
 
-   // char *getPtr();
     char *getStart() override;
+
     char *getEnd() override;
+
     size_t getSize() override;
+
     std::string str();
 };
 
@@ -84,14 +86,13 @@ class GrowableBuffer : public Buffer {
 public:
     GrowableBuffer();
 
-    GrowableBuffer(size_t size);
+    explicit GrowableBuffer(size_t size);
 
     GrowableBuffer(char *mem, size_t size);
 
-    GrowableBuffer(char *fileName);
+    explicit GrowableBuffer(char *fileName);
 
     void add(void *contents, size_t bytes);
 
     void add(char c);
-
 };

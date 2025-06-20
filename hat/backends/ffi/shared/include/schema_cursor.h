@@ -24,47 +24,57 @@
  */
 
 #pragma once
-#include <vector>
-#include <cstring>
-#include <iostream>
 #include <iomanip>
 #include <stack>
 
 struct SchemaCursor {
 private:
     std::stack<const char *> where;
+
 public:
     char *ptr;
+
     SchemaCursor(char *ptr);
+
     virtual ~SchemaCursor();
-    void in(const char * location);
+
+    void in(const char *location);
+
     void out();
+
 private:
     SchemaCursor *skipWhiteSpace();
+
     SchemaCursor *skipIdentifier();
+
 public:
-    void step(int count) ;
+    void step(int count);
 
     bool peekAlpha();
 
-    bool peekDigit() ;
+    bool peekDigit();
 
     bool is(char ch);
+
     bool isColon();
 
-    bool expect(char ch, const char *context,  int line ) ;
-    bool expect(char ch,  int line ) ;
-    bool expectDigit(const char *context,  int line );
-    bool expectAlpha(const char *context,  int line );
-    bool isEither(char ch1, char ch2, char*actual) ;
-    void expectEither(char ch1, char ch2, char*actual, int line);
+    bool expect(char ch, const char *context, int line);
 
-    int getInt() ;
+    bool expect(char ch, int line);
+
+    bool expectDigit(const char *context, int line);
+
+    bool expectAlpha(const char *context, int line);
+
+    bool isEither(char ch1, char ch2, char *actual);
+
+    void expectEither(char ch1, char ch2, char *actual, int line);
+
+    int getInt();
 
     long getLong();
 
     char *getIdentifier();
 
-    void error(std::ostream &ostream, const char *file, int line, const char *str);
-
+    void error(std::ostream &ostream, const char *file, int line, const char *str) const;
 };

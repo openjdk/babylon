@@ -28,48 +28,52 @@
 #include <vector>
 #include "buffer.h"
 
-
 class BufferCursor;
-
 class Range;
 
-class Mark : public PureRange {
-private:
+class Mark final : public PureRange {
     BufferCursor *cursor;
     char *ptr;
     char *end;
-
-private:
     friend BufferCursor;
-    Mark(BufferCursor *);
+
+    explicit Mark(BufferCursor *);
 
 public:
     char *getStart() override;
+
     char *getEnd() override;
-    size_t getSize() override ;
+
+    size_t getSize() override;
+
     char *setEnd();
-    std::string str(char *end);
+
+    std::string str(char *end) const;
+
     std::string str();
+
     std::string str(int delta);
 };
 
-class BufferCursor : public PureRange {
+class BufferCursor final : public PureRange {
 protected:
     char *startPtr, *ptr, *endPtr;
     std::vector<Mark *> marks;
-public:
 
+public:
     char *get();
 
     char *getStart() override;
+
     char *getEnd() override;
-    size_t getSize() override ;
+
+    size_t getSize() override;
 
     BufferCursor *moveToOffset(int offset);
 
     virtual bool isValid(char *p);
 
-    bool end();
+    bool end() const;
 
     BufferCursor *advance(int i);
 
@@ -87,7 +91,7 @@ public:
 
     char chAndAdvance();
 
-    bool isLookingAt(const char c);
+    bool isLookingAt(char c);
 
     BufferCursor *skipWhiteSpace();
 
@@ -135,7 +139,7 @@ public:
 
     BufferCursor *moveTo(Mark *mark);
 
-    BufferCursor *stepOver(const char c);
+    BufferCursor *stepOver(char c);
 
     BufferCursor *stepOver(const char *s);
 
@@ -143,13 +147,13 @@ public:
 
     BufferCursor *reset();
 
-    BufferCursor(PureRange *pureRange);
+    explicit BufferCursor(PureRange *pureRange);
+
     BufferCursor(char *ptr, size_t len);
 
+    explicit BufferCursor(char *ptr);
 
-    BufferCursor(char *ptr);
-
-    virtual ~BufferCursor();
+    ~BufferCursor() override;
 
     void show(std::ostream &o);
 };

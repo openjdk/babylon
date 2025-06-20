@@ -22,6 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+#include <fstream>
 #define shared_cpp
 
 #include "shared.h"
@@ -30,7 +31,7 @@
 
 
 void hexdump(void *ptr, int buflen) {
-    unsigned char *buf = (unsigned char *) ptr;
+    auto *buf = static_cast<unsigned char *>(ptr);
     int i, j;
     for (i = 0; i < buflen; i += 16) {
         printf("%06x: ", i);
@@ -89,7 +90,7 @@ void Sled::show(std::ostream &out, void *argArray) {
                 break;
             }
             default: {
-                std::cerr << "unexpected variant (shared.cpp) '" << (char) arg->variant << "'" << std::endl;
+                std::cerr << "unexpected variant (shared.cpp) '" << static_cast<char>(arg->variant) << "'" << std::endl;
                 exit(1);
             }
         }
@@ -107,6 +108,7 @@ extern "C" void info(long backendHandle) {
     auto *backend = reinterpret_cast<Backend *>(backendHandle);
     backend->info();
 }
+
 extern "C" void computeStart(long backendHandle) {
     if (INFO) {
         std::cout << "trampolining through backendHandle to backend.computeStart()" << std::endl;
@@ -114,6 +116,7 @@ extern "C" void computeStart(long backendHandle) {
     auto *backend = reinterpret_cast<Backend *>(backendHandle);
     backend->computeStart();
 }
+
 extern "C" void computeEnd(long backendHandle) {
     if (INFO) {
         std::cout << "trampolining through backendHandle to backend.computeEnd()" << std::endl;
@@ -121,14 +124,16 @@ extern "C" void computeEnd(long backendHandle) {
     auto *backend = reinterpret_cast<Backend *>(backendHandle);
     backend->computeEnd();
 }
+
 extern "C" void releaseBackend(long backendHandle) {
     auto *backend = reinterpret_cast<Backend *>(backendHandle);
     delete backend;
 }
+
 extern "C" long compile(long backendHandle, int len, char *source) {
     if (INFO) {
         std::cout << "trampolining through backendHandle to backend.compile() "
-                  << std::hex << backendHandle << std::dec << std::endl;
+                << std::hex << backendHandle << std::dec << std::endl;
     }
     auto *backend = reinterpret_cast<Backend *>(backendHandle);
     long compilationUnitHandle = reinterpret_cast<long>(backend->compile(len, source));
@@ -137,10 +142,11 @@ extern "C" long compile(long backendHandle, int len, char *source) {
     }
     return compilationUnitHandle;
 }
+
 extern "C" long getKernel(long compilationUnitHandle, int nameLen, char *name) {
     if (INFO) {
         std::cout << "trampolining through programHandle to compilationUnit.getKernel()"
-                  << std::hex << compilationUnitHandle << std::dec << std::endl;
+                << std::hex << compilationUnitHandle << std::dec << std::endl;
     }
     auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
     return reinterpret_cast<long>(compilationUnit->getKernel(nameLen, name));
@@ -154,6 +160,7 @@ extern "C" long ndrange(long kernelHandle, void *argArray) {
     kernel->ndrange(argArray);
     return (long) 0;
 }
+
 extern "C" void releaseKernel(long kernelHandle) {
     if (INFO) {
         std::cout << "trampolining through to releaseKernel " << std::endl;
@@ -169,6 +176,7 @@ extern "C" void releaseCompilationUnit(long compilationUnitHandle) {
     auto compilationUnit = reinterpret_cast<Backend::CompilationUnit *>(compilationUnitHandle);
     delete compilationUnit;
 }
+
 extern "C" bool compilationUnitOK(long compilationUnitHandle) {
     if (INFO) {
         std::cout << "trampolining through to compilationUnitHandleOK " << std::endl;
@@ -187,25 +195,24 @@ extern "C" bool getBufferFromDeviceIfDirty(long backendHandle, long memorySegmen
 }
 
 
-Backend::Config::Config(int configBits)
-        :
-        configBits(configBits),
-        minimizeCopies((configBits & MINIMIZE_COPIES_BIT) == MINIMIZE_COPIES_BIT),
-        alwaysCopy(!minimizeCopies),
-        trace((configBits & TRACE_BIT) == TRACE_BIT),
-        traceCopies((configBits & TRACE_COPIES_BIT) == TRACE_COPIES_BIT),
-        traceEnqueues((configBits & TRACE_ENQUEUES_BIT) == TRACE_ENQUEUES_BIT),
-        traceCalls((configBits & TRACE_CALLS_BIT) == TRACE_CALLS_BIT),
-        traceSkippedCopies((configBits & TRACE_SKIPPED_COPIES_BIT) == TRACE_SKIPPED_COPIES_BIT),
-        info((configBits & INFO_BIT) == INFO_BIT),
-        showCode((configBits & SHOW_CODE_BIT) == SHOW_CODE_BIT),
-        profile((configBits & PROFILE_BIT) == PROFILE_BIT),
-        showWhy((configBits & SHOW_WHY_BIT) == SHOW_WHY_BIT),
-        showState((configBits & SHOW_STATE_BIT) == SHOW_STATE_BIT),
-        ptx((configBits & PTX_BIT) == PTX_BIT),
-
-        platform((configBits & 0xf)),
-        device((configBits & 0xf0) >> 4) {
+Backend::Config::Config(int configBits): configBits(configBits),
+                                         minimizeCopies((configBits & MINIMIZE_COPIES_BIT) == MINIMIZE_COPIES_BIT),
+                                         alwaysCopy(!minimizeCopies),
+                                         trace((configBits & TRACE_BIT) == TRACE_BIT),
+                                         traceCopies((configBits & TRACE_COPIES_BIT) == TRACE_COPIES_BIT),
+                                         traceEnqueues((configBits & TRACE_ENQUEUES_BIT) == TRACE_ENQUEUES_BIT),
+                                         traceCalls((configBits & TRACE_CALLS_BIT) == TRACE_CALLS_BIT),
+                                         traceSkippedCopies(
+                                             (configBits & TRACE_SKIPPED_COPIES_BIT) == TRACE_SKIPPED_COPIES_BIT),
+                                         info((configBits & INFO_BIT) == INFO_BIT),
+                                         showCode((configBits & SHOW_CODE_BIT) == SHOW_CODE_BIT),
+                                         profile((configBits & PROFILE_BIT) == PROFILE_BIT),
+                                         showWhy((configBits & SHOW_WHY_BIT) == SHOW_WHY_BIT),
+                                         showState((configBits & SHOW_STATE_BIT) == SHOW_STATE_BIT),
+                                         ptx((configBits & PTX_BIT) == PTX_BIT),
+                                         interpret((configBits & INTERPRET_BIT) == INTERPRET_BIT),
+                                         platform((configBits & 0xf)),
+                                         device((configBits & 0xf0) >> 4) {
     if (info) {
         std::cout << "native showCode " << showCode << std::endl;
         std::cout << "native info " << info << std::endl;
@@ -220,45 +227,43 @@ Backend::Config::Config(int configBits)
         std::cout << "native showWhy " << showWhy << std::endl;
         std::cout << "native showState " << showState << std::endl;
         std::cout << "native ptx " << ptx << std::endl;
+        std::cout << "native interpret " << interpret << std::endl;
         std::cout << "native platform " << platform << std::endl;
         std::cout << "native device " << device << std::endl;
     }
 }
 
-Backend::Config::~Config() {
-}
+Backend::Config::~Config() = default;
 
 Backend::Queue::Queue(Backend *backend)
-        : backend(backend) {
+    : backend(backend) {
 }
 
-Backend::Queue::~Queue() {
-
-}
+Backend::Queue::~Queue() = default;
 
 Text::Text(size_t len, char *text, bool isCopy)
-        : len(len), text(text), isCopy(isCopy) {
+    : len(len), text(text), isCopy(isCopy) {
     // std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
 }
 
 Text::Text(char *text, bool isCopy)
-        : len(std::strlen(text)), text(text), isCopy(isCopy) {
+    : len(std::strlen(text)), text(text), isCopy(isCopy) {
     // std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
 }
 
 Text::Text(size_t len)
-        : len(len), text(len > 0 ? new char[len] : nullptr), isCopy(true) {
+    : len(len), text(len > 0 ? new char[len] : nullptr), isCopy(true) {
     //  std::cout << "in Text len="<<len<<" isCopy="<<isCopy << std::endl;
 }
 
-void Text::write(std::string &filename) const {
+void Text::write(const std::string &filename) const {
     std::ofstream out;
     out.open(filename, std::ofstream::trunc);
     out.write(text, len);
     out.close();
 }
 
-void Text::read(std::string &filename) {
+void Text::read(const std::string &filename) {
     if (isCopy && text) {
         delete[] text;
     }
@@ -295,12 +300,12 @@ Text::~Text() {
     len = 0;
 }
 
-Log::Log(size_t len)
-        : Text(len) {
+Log::Log(const size_t len)
+    : Text(len) {
 }
 
 Log::Log(char *text)
-        : Text(text, false) {
+    : Text(text, false) {
 }
 
 long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
@@ -343,7 +348,8 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
 
                 Buffer *buffer = compilationUnit->backend->getOrCreateBuffer(bufferState);
 
-                bool kernelReadsFromThisArg = (arg->value.buffer.access == RW_BYTE) || (arg->value.buffer.access == RO_BYTE);
+                bool kernelReadsFromThisArg = (arg->value.buffer.access == RW_BYTE) || (
+                                                  arg->value.buffer.access == RO_BYTE);
                 bool copyToDevice =
                         compilationUnit->backend->config->alwaysCopy
                         || (bufferState->state == BufferState::NEW_STATE)
@@ -352,16 +358,16 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
 
                 if (compilationUnit->backend->config->showWhy) {
                     std::cout <<
-                              "config.alwaysCopy=" << compilationUnit->backend->config->alwaysCopy
-                              << " | arg.RW=" << (arg->value.buffer.access == RW_BYTE)
-                              << " | arg.RO=" << (arg->value.buffer.access == RO_BYTE)
-                              << " | kernel.needsToRead=" << kernelReadsFromThisArg
-                              << " | Buffer state = " << BufferState::stateNames[bufferState->state]
-                              << " so ";
+                            "config.alwaysCopy=" << compilationUnit->backend->config->alwaysCopy
+                            << " | arg.RW=" << (arg->value.buffer.access == RW_BYTE)
+                            << " | arg.RO=" << (arg->value.buffer.access == RO_BYTE)
+                            << " | kernel.needsToRead=" << kernelReadsFromThisArg
+                            << " | Buffer state = " << BufferState::stateNames[bufferState->state]
+                            << " so ";
                 }
                 if (copyToDevice) {
                     compilationUnit->backend->queue->copyToDevice(buffer);
-                   // buffer->copyToDevice();
+                    // buffer->copyToDevice();
                     if (compilationUnit->backend->config->traceCopies) {
                         std::cout << "copying arg " << arg->idx << " to device " << std::endl;
                     }
@@ -390,14 +396,15 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                 break;
             }
             default: {
-                std::cerr << "unexpected variant setting args in OpenCLkernel::kernelContext " << (char) arg->variant << std::endl;
+                std::cerr << "unexpected variant setting args in OpenCLkernel::kernelContext " << (char) arg->variant <<
+                        std::endl;
                 exit(1);
             }
         }
     }
 
-    if (kernelContext == nullptr){
-        std::cerr << "Looks like we recieved a kernel dispatch with xero args kernel='"<<name<<"'" << std::endl;
+    if (kernelContext == nullptr) {
+        std::cerr << "Looks like we recieved a kernel dispatch with xero args kernel='" << name << "'" << std::endl;
         exit(1);
     }
 
@@ -410,7 +417,8 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     compilationUnit->backend->queue->dispatch(kernelContext, this);
 
 
-    for (int i = 0; i < argSled.argc(); i++) { // note i = 1... we never need to copy back the KernelContext
+    for (int i = 0; i < argSled.argc(); i++) {
+        // note i = 1... we never need to copy back the KernelContext
         KernelArg *arg = argSled.arg(i);
         if (arg->variant == '&') {
             BufferState *bufferState = BufferState::of(arg);
@@ -418,18 +426,18 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
             bool kernelWroteToThisArg = (arg->value.buffer.access == WO_BYTE) | (arg->value.buffer.access == RW_BYTE);
             if (compilationUnit->backend->config->showWhy) {
                 std::cout <<
-                          "config.alwaysCopy=" << compilationUnit->backend->config->alwaysCopy
-                          << " | arg.WO=" << (arg->value.buffer.access == WO_BYTE)
-                          << " | arg.RW=" << (arg->value.buffer.access == RW_BYTE)
-                          << " | kernel.wroteToThisArg=" << kernelWroteToThisArg
-                          << "Buffer state = " << BufferState::stateNames[bufferState->state]
-                          << " so ";
+                        "config.alwaysCopy=" << compilationUnit->backend->config->alwaysCopy
+                        << " | arg.WO=" << (arg->value.buffer.access == WO_BYTE)
+                        << " | arg.RW=" << (arg->value.buffer.access == RW_BYTE)
+                        << " | kernel.wroteToThisArg=" << kernelWroteToThisArg
+                        << "Buffer state = " << BufferState::stateNames[bufferState->state]
+                        << " so ";
             }
 
             auto *buffer = static_cast<Buffer *>(bufferState->vendorPtr);
             if (compilationUnit->backend->config->alwaysCopy) {
                 compilationUnit->backend->queue->copyFromDevice(buffer);
-               // buffer->copyFromDevice();
+                // buffer->copyFromDevice();
                 if (compilationUnit->backend->config->traceCopies || compilationUnit->backend->config->traceEnqueues) {
                     std::cout << "copying arg " << arg->idx << " from device " << std::endl;
                 }
@@ -453,5 +461,3 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     }
     return 0;
 }
-
-

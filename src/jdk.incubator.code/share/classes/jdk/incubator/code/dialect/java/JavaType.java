@@ -190,6 +190,7 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
      */
     static JavaType type(Type reflectiveType) {
         return switch (reflectiveType) {
+            case Class<?> c when outer(c) instanceof JavaType outer -> qualified(outer, c.getSimpleName());
             case Class<?> c -> type(c.describeConstable().get());
             case ParameterizedType pt when pt.getOwnerType() == null -> parameterized(type(pt.getRawType()),
                     Stream.of(pt.getActualTypeArguments()).map(JavaType::type).toList());
@@ -212,6 +213,22 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
             case Class<?> t -> (ClassType)type(t);
             default -> throw new InternalError();
         };
+    }
+
+    private static JavaType outer(Class<?> c) {
+        if (c.isLocalClass() || c.isAnonymousClass()) {
+            if (c.getEnclosingMethod() instanceof Method enclMethod &&
+                    (enclMethod.getModifiers() & Modifier.STATIC) == 0) {
+                // local or anon class defined in an instance method
+                return type(enclMethod.getDeclaringClass());
+            } else if (c.getEnclosingConstructor() instanceof Constructor<?> enclConstr) {
+                // local or anon class defined in a method
+                return type(enclConstr.getDeclaringClass());
+            }
+        } else if (c.isMemberClass() && (c.getModifiers() & Modifier.STATIC) == 0) {
+            return type(c.getDeclaringClass());
+        }
+        return null;
     }
 
     /**

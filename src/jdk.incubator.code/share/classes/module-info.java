@@ -41,15 +41,12 @@ module jdk.incubator.code {
     exports jdk.incubator.code;
     exports jdk.incubator.code.parser;
     exports jdk.incubator.code.dialect;
-    exports jdk.incubator.code.dialect.anf;
     exports jdk.incubator.code.dialect.core;
     exports jdk.incubator.code.dialect.java;
     exports jdk.incubator.code.analysis;
     exports jdk.incubator.code.bytecode;
     exports jdk.incubator.code.interpreter;
     exports jdk.incubator.code.writer;
-    exports jdk.incubator.code.tools.dot;
-    exports jdk.incubator.code.tools.renderer;
 
     opens jdk.incubator.code.internal to java.base;
 

@@ -25,7 +25,6 @@
 
 #pragma once
 #include <vector>
-#include <cstring>
 #include <iostream>
 #include <iomanip>
 #include "schema_cursor.h"
@@ -33,13 +32,12 @@
 
 struct Schema {
     struct Node {
-
         Node *parent;
         const char *type;
 
         std::vector<Node *> children;
 
-        Node(Node *parent, const char* type):parent(parent), type(type) {
+        Node(Node *parent, const char *type): parent(parent), type(type) {
         }
 
         Node *addChild(SchemaCursor *cursor, Node *child) {
@@ -56,36 +54,33 @@ struct Schema {
     };
 
 
-
-    struct Array : public Node {
+    struct Array final : Node {
         bool flexible;
         long elementCount;
         char *elementName;
         Node *elementType;
 
-        Array(Node *paren): Node(paren, "Array"), flexible(false), elementCount(0), elementName(nullptr), elementType(nullptr) {
+        explicit Array(Node *paren): Node(paren, "Array"), flexible(false), elementCount(0), elementName(nullptr),
+                                     elementType(nullptr) {
         }
 
         Array *parse(SchemaCursor *cursor) override;
 
         ~Array() override {
-            if (elementType) {
-                delete elementType;
-            }
-            if (elementName) {
-                delete[] elementName;
-            }
+            delete elementType;
+            delete[] elementName;
         }
     };
 
-    struct AbstractNamedNode : public Node {
+    struct AbstractNamedNode : Node {
         char *name;
         Node *typeNode;
 
-        AbstractNamedNode(Node *parent, const char *type, char *name): Node(parent, type), name(name), typeNode(nullptr) {
+        AbstractNamedNode(Node *parent, const char *type, char *name): Node(parent, type), name(name),
+                                                                       typeNode(nullptr) {
         }
 
-        ~AbstractNamedNode() {
+        ~AbstractNamedNode() override {
             if (name) {
                 delete[] name;
             }
@@ -95,13 +90,15 @@ struct Schema {
             }
         }
     };
-    struct FieldNode : public AbstractNamedNode {
+
+    struct FieldNode : AbstractNamedNode {
         char *typeName;
+
         FieldNode(Node *paren, char *name)
-                : AbstractNamedNode(paren, "FieldNode", name), typeName(nullptr) {
+            : AbstractNamedNode(paren, "FieldNode", name), typeName(nullptr) {
         }
 
-        FieldNode *parse(SchemaCursor *cursor) override ;
+        FieldNode *parse(SchemaCursor *cursor) override;
 
         ~FieldNode() override {
             if (typeName) {
@@ -110,74 +107,80 @@ struct Schema {
         }
     };
 
-    struct AbstractStructOrUnionNode : public AbstractNamedNode {
+    struct AbstractStructOrUnionNode : AbstractNamedNode {
         char separator;
         char terminator;
 
 
         AbstractStructOrUnionNode(Node *parent, const char *type, char separator, char terminator, char *name)
-                : AbstractNamedNode(parent, type, name), separator(separator), terminator(terminator) {
-
+            : AbstractNamedNode(parent, type, name), separator(separator), terminator(terminator) {
         }
 
-         AbstractStructOrUnionNode *parse(SchemaCursor *cursor) override;
+        AbstractStructOrUnionNode *parse(SchemaCursor *cursor) override;
 
-        ~AbstractStructOrUnionNode() override =default;
+        ~AbstractStructOrUnionNode() override = default;
     };
 
-    struct UnionNode : public AbstractStructOrUnionNode {
+    struct UnionNode final : AbstractStructOrUnionNode {
         UnionNode(Node *parent, char *name)
-                : AbstractStructOrUnionNode(parent, "UnionNode", '|', '>',  name) {
+            : AbstractStructOrUnionNode(parent, "UnionNode", '|', '>', name) {
         }
 
-         UnionNode *parse(SchemaCursor *cursor) override;
+        UnionNode *parse(SchemaCursor *cursor) override;
 
-        ~UnionNode() override =default;
+        ~UnionNode() override = default;
     };
 
-    struct StructNode : public AbstractStructOrUnionNode {
-         StructNode(Node *parent, const char *type, char *name)
-                : AbstractStructOrUnionNode(parent,type, ',', '}',  name) {
+    struct StructNode : AbstractStructOrUnionNode {
+        StructNode(Node *parent, const char *type, char *name)
+            : AbstractStructOrUnionNode(parent, type, ',', '}', name) {
         }
-         StructNode(Node *parent, char *name)
-                : StructNode(parent, "StructNode",  name) {
+
+        StructNode(Node *parent, char *name)
+            : StructNode(parent, "StructNode", name) {
         }
-        StructNode *parse(SchemaCursor *cursor) override ;
-        ~StructNode() override =default;
+
+        StructNode *parse(SchemaCursor *cursor) override;
+
+        ~StructNode() override = default;
     };
 
-    struct ArgStructNode : public StructNode {
+    struct ArgStructNode final : StructNode {
         bool complete;
+
         explicit ArgStructNode(Node *parent, bool complete, char *name)
-                : StructNode(parent, "ArgStructNode",   name), complete(complete) {
+            : StructNode(parent, "ArgStructNode", name), complete(complete) {
         }
-        //virtual StructNode *parse(SchemaCursor *cursor) ;
-        ~ArgStructNode() override =default;
+
+        ~ArgStructNode() override = default;
     };
 
 
-    struct ArgNode : public Node {
+    struct ArgNode : Node {
         int idx;
+
         ArgNode(Node *parent, int idx)
-                : Node(parent, "ArgNode"), idx(idx) {
+            : Node(parent, "ArgNode"), idx(idx) {
         }
 
-         ArgNode *parse(SchemaCursor *cursor) override;
+        ArgNode *parse(SchemaCursor *cursor) override;
 
-        virtual ~ArgNode() =default;
+        ~ArgNode() override = default;
     };
 
-    struct SchemaNode : public Node {
+    struct SchemaNode : Node {
         SchemaNode()
-                : Node(nullptr, "Schema") {
+            : Node(nullptr, "Schema") {
         }
 
-        virtual SchemaNode *parse(SchemaCursor *cursor);
+        SchemaNode *parse(SchemaCursor *cursor) override;
 
-        virtual ~SchemaNode() =default;
+        ~SchemaNode() override = default;
     };
 
     static void show(std::ostream &out, char *schema);
-    static void show(std::ostream &out, int depth, Node* node);
-    static void show(std::ostream &out, SchemaNode* schemaNode);
+
+    static void show(std::ostream &out, int depth, Node *node);
+
+    static void show(std::ostream &out, SchemaNode *schemaNode);
 };

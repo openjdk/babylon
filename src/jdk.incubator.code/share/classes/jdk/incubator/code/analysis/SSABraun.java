@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package jdk.incubator.code.analysis;
 
 import jdk.incubator.code.Block;
@@ -19,7 +43,7 @@ import java.util.SequencedSet;
 import java.util.Set;
 
 /**
- * This is an implementation of SSA construction based on
+ * An implementation of SSA construction based on
  * <a href="https://doi.org/10.1007/978-3-642-37051-9">
  * Simple end Efficient Construction of Static Single Assignment Form (pp 102-122)
  * </a>.
@@ -30,8 +54,7 @@ import java.util.Set;
  *     <li>Adapt to work with multiple bodies.</li>
  * </ul>
  */
-public class SSAConstruction implements OpTransformer {
-
+final class SSABraun implements OpTransformer {
     private final Map<CoreOp.VarOp, Map<Block, Val>> currentDef = new HashMap<>();
     private final Set<Block> sealedBlocks = new HashSet<>();
     private final Map<Block, Map<CoreOp.VarOp, Phi>> incompletePhis = new HashMap<>();
@@ -50,15 +73,15 @@ public class SSAConstruction implements OpTransformer {
     // we use this set to be able to correct that during transformation
     private final Set<Phi> deletedPhis = new HashSet<>();
 
-    public static <O extends Op> O transform(O nestedOp) {
-        SSAConstruction construction = new SSAConstruction();
+    static <O extends Op & Op.Nested> O transform(O nestedOp) {
+        SSABraun construction = new SSABraun();
         construction.prepare(nestedOp);
         @SuppressWarnings("unchecked")
-        O temp = (O) nestedOp.transform(CopyContext.create(), construction);
-        return temp;
+        O ssaOp = (O) nestedOp.transform(CopyContext.create(), construction);
+        return ssaOp;
     }
 
-    private SSAConstruction() {
+    private SSABraun() {
     }
 
     private void prepare(Op nestedOp) {
@@ -284,7 +307,7 @@ public class SSAConstruction implements OpTransformer {
             return Objects.hash(this.variable, this.block);
         }
 
-        public List<Phi> replaceBy(Val same, SSAConstruction construction) {
+        public List<Phi> replaceBy(Val same, SSABraun construction) {
             List<Phi> usingPhis = new ArrayList<>();
             for (Object user : this.users) {
                 if (user == this) {

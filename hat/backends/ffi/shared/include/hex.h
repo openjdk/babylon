@@ -24,7 +24,6 @@
  */
 #pragma once
 
-
 #include <iostream>
 #include <functional>
 
@@ -37,6 +36,3 @@ public:
 
     static void bytes(std::ostream &s, char *p, size_t len, std::function<void(std::ostream &)> prefix);
 };
-
-
-

@@ -55,8 +55,6 @@
 #include "shared.h"
 
 #include <fstream>
-
-#include<vector>
 #include <thread>
 
 struct WHERE{
@@ -76,34 +74,34 @@ struct WHERE{
     }
 };
 
-class PtxSource: public Text  {
+class PtxSource final : public Text  {
 public:
     PtxSource();
-    PtxSource(size_t len);
+    explicit PtxSource(size_t len);
     PtxSource(size_t len, char *text);
-    PtxSource(char *text);
-    ~PtxSource() = default;
-    static PtxSource *nvcc(const char *cudaSource, size_t len);
+    PtxSource(size_t len, char *text, bool isCopy);
+    explicit PtxSource(char *text);
+    ~PtxSource() override = default;
 };
 
-class CudaSource:public Text  {
+class CudaSource final :public Text  {
 public:
     CudaSource(size_t len, char *text, bool isCopy);
-    CudaSource(size_t len);
-    CudaSource(char* text);
+    explicit CudaSource(size_t len);
+    explicit CudaSource(char* text);
     CudaSource();
-    ~CudaSource() = default;
+    ~CudaSource() override = default;
 };
 
-class CudaBackend : public Backend {
+class CudaBackend final : public Backend {
 public:
-class CudaQueue: public Backend::Queue {
+class CudaQueue final : public Backend::Queue {
     public:
-         std::thread::id streamCreationThread;
+        std::thread::id streamCreationThread;
         CUstream cuStream;
-        CudaQueue(Backend *backend);
+        explicit CudaQueue(Backend *backend);
         void init();
-         void wait() override;
+        void wait() override;
 
          void release() override;
 
@@ -115,29 +113,27 @@ class CudaQueue: public Backend::Queue {
 
          void copyFromDevice(Buffer *buffer) override;
 
-        virtual void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
+        void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
 
-        virtual ~CudaQueue();
+        ~CudaQueue() override;
 
 };
 
-    class CudaBuffer : public Backend::Buffer {
+    class CudaBuffer final : public Buffer {
     public:
         CUdeviceptr devicePtr;
         CudaBuffer(Backend *backend, BufferState *bufferState);
-        virtual ~CudaBuffer();
+        ~CudaBuffer() override;
     };
 
-    class CudaModule : public Backend::CompilationUnit {
-
-    private:
+    class CudaModule final : public CompilationUnit {
         CUmodule module;
         CudaSource cudaSource;
         PtxSource ptxSource;
         Log log;
 
     public:
-        class CudaKernel : public Backend::CompilationUnit::Kernel {
+        class CudaKernel final : public Kernel {
 
         public:
             bool setArg(KernelArg *arg) override;
@@ -148,13 +144,13 @@ class CudaQueue: public Backend::Queue {
             static CudaKernel * of(Backend::CompilationUnit::Kernel *kernel);
 
             CUfunction function;
-            void *argslist[100];
+            void *argslist[100]{};
         };
         CudaModule(Backend *backend, char *cudaSrc,   char *log, bool ok, CUmodule module);
-        ~CudaModule();
+        ~CudaModule() override;
         static CudaModule * of(long moduleHandle);
-        static CudaModule * of(Backend::CompilationUnit *compilationUnit);
-        Kernel *getKernel(int nameLen, char *name);
+        //static CudaModule * of(CompilationUnit *compilationUnit);
+        Kernel *getKernel(int nameLen, char *name) override;
         CudaKernel *getCudaKernel(char *name);
         CudaKernel *getCudaKernel(int nameLen, char *name);
         bool programOK();
@@ -165,20 +161,21 @@ private:
     CUdevice device;
     CUcontext context;
 public:
-    void info();
-    CudaModule * compile(CudaSource *cudaSource);
-    CudaModule * compile(CudaSource &cudaSource);
-    PtxSource *nvcc(CudaSource *cudaSource);
-    Backend::CompilationUnit * compile(int len, char *source) override;
+    void info() override;
+    CudaModule * compile(const CudaSource *cudaSource);
+    CudaModule * compile(const CudaSource &cudaSource);
+    CudaModule * compile(const PtxSource *ptxSource);
+    CudaModule * compile(const PtxSource &ptxSource);
+    static PtxSource *nvcc(const CudaSource *cudaSource);
+    CompilationUnit * compile(int len, char *source) override;
     void computeStart() override;
     void computeEnd() override;
     CudaBuffer * getOrCreateBuffer(BufferState *bufferState) override;
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
 
-    CudaBackend(int mode);
-    CudaBackend();
+    explicit CudaBackend(int mode);
 
-    ~CudaBackend();
+    ~CudaBackend() override;
     static CudaBackend * of(long backendHandle);
     static CudaBackend * of(Backend *backend);
 };
