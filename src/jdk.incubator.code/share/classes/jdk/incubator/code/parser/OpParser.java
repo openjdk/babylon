@@ -28,7 +28,7 @@ package jdk.incubator.code.parser;
 import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
-import jdk.incubator.code.ExternalizableTypeElement.ExternalizedTypeElement;
+import jdk.incubator.code.ExternalizableTypeElement.*;
 import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.OpFactory;
@@ -189,7 +189,7 @@ public final class OpParser {
         return op;
     }
 
-    static List<Op> parse(OpFactory opFactory, ExternalizableTypeElement.TypeElementFactory typeFactory, String in) {
+    static List<Op> parse(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
         Lexer lexer = Scanner.factory().newScanner(in);
         lexer.nextToken();
 
@@ -203,7 +203,7 @@ public final class OpParser {
     static final class Context {
         final Context parent;
         final OpFactory opFactory;
-        final ExternalizableTypeElement.TypeElementFactory typeFactory;
+        final TypeElementFactory typeFactory;
         final Map<String, Value> valueMap;
         final Map<String, Block.Builder> blockMap;
 
@@ -215,7 +215,7 @@ public final class OpParser {
             this.blockMap = new HashMap<>();
         }
 
-        Context(OpFactory opFactory, ExternalizableTypeElement.TypeElementFactory typeFactory) {
+        Context(OpFactory opFactory, TypeElementFactory typeFactory) {
             this.parent = null;
             this.opFactory = opFactory;
             this.typeFactory = typeFactory;
@@ -276,7 +276,7 @@ public final class OpParser {
                 bodies);
     }
 
-    static Map<String, Object> inflateAttributes(Map<String, Object> attributes, ExternalizableTypeElement.TypeElementFactory typeFactory) {
+    static Map<String, Object> inflateAttributes(Map<String, Object> attributes, TypeElementFactory typeFactory) {
         Map<String, Object> newAttributes = new HashMap<>();
         for (Map.Entry<String, Object> e : attributes.entrySet()) {
             String name = e.getKey();
