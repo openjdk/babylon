@@ -270,12 +270,26 @@ func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
 """, new Object[]{}
                 },
                 {
-                        // model must contains at least two operations
+                        // model must contain at least two operations
                         """
 func @"q" (%5 : java.type:"jdk.incubator.code.Quoted")java.type:"jdk.incubator.code.Quoted" -> {
     return %5;
 };
 """, new Object[]{null}
+                },
+                // args length must be equal to params size
+                {
+                        """
+func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+      %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            return %0;
+      };
+      yield %6;
+    };
+    return %5;
+};
+""", new Object[]{1, 2}
                 }
       };
 }
