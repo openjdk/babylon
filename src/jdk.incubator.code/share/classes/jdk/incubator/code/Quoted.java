@@ -142,29 +142,33 @@ public final class Quoted {
         });
     }
 
+    private static RuntimeException invalidQuotedModel(CoreOp.FuncOp model) {
+        return new RuntimeException("Invalid code model for quoted operation : " + model);
+    }
+
     public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object[] args) {
 
         if (funcOp.body().blocks().size() != 1) {
-            throw new IllegalArgumentException("Argument operation has more then one block");
+            throw invalidQuotedModel(funcOp);
         }
         Block fblock = funcOp.body().entryBlock();
 
         if (fblock.ops().size() < 2) {
-            throw new IllegalArgumentException();
+            throw invalidQuotedModel(funcOp);
         }
 
         if (!(fblock.ops().get(fblock.ops().size() - 2) instanceof CoreOp.QuotedOp qop)) {
-            throw new IllegalArgumentException("Before last operation is not a QuotedOp");
+            throw invalidQuotedModel(funcOp);
         }
 
         if (!(fblock.ops().getLast() instanceof CoreOp.ReturnOp returnOp)) {
-            throw new IllegalArgumentException("Last operation not a ReturnOp");
+            throw invalidQuotedModel(funcOp);
         }
         if (returnOp.returnValue() == null) {
-            throw new IllegalArgumentException();
+            throw invalidQuotedModel(funcOp);
         }
         if (!returnOp.returnValue().equals(qop.result())) {
-            throw new IllegalArgumentException("Argument operation doesn't return the result of QuotedOp");
+            throw invalidQuotedModel(funcOp);
         }
 
         Op op = qop.quotedOp();
@@ -176,14 +180,14 @@ public final class Quoted {
         // validation rule of block params and constant op result
         Consumer<Value> validate = v -> {
             if (v.uses().isEmpty()) {
-                throw new IllegalArgumentException();
+                throw invalidQuotedModel(funcOp);
             } else if (v.uses().size() == 1
                     && !(v.uses().iterator().next().op() instanceof CoreOp.VarOp vop && vop.result().uses().size() >= 1
                     && vop.result().uses().stream().noneMatch(u -> u.op().parentBlock() == fblock))
                     && !operandsAndCaptures.contains(v)) {
-                throw new IllegalArgumentException();
+                throw invalidQuotedModel(funcOp);
             } else if (v.uses().size() > 1 && v.uses().stream().anyMatch(u -> u.op().parentBlock() == fblock)) {
-                throw new IllegalArgumentException();
+                throw invalidQuotedModel(funcOp);
             }
         };
 
@@ -196,14 +200,14 @@ public final class Quoted {
             switch (o) {
                 case CoreOp.VarOp varOp -> {
                     if (varOp.isUninitialized()) {
-                        throw new IllegalArgumentException();
+                        throw invalidQuotedModel(funcOp);
                     }
                     if (varOp.initOperand() instanceof Op.Result opr && !(opr.op() instanceof CoreOp.ConstantOp)) {
-                        throw new IllegalArgumentException("VarOp initial value came from an operation that's not a ConstantOp");
+                        throw invalidQuotedModel(funcOp);
                     }
                 }
                 case CoreOp.ConstantOp cop -> validate.accept(cop.result());
-                default -> throw new IllegalArgumentException("Operation not a VarOp nor a ConstantOp, " + o);
+                default -> throw invalidQuotedModel(funcOp);
             }
         }
 
@@ -215,7 +219,7 @@ public final class Quoted {
         // 4- result of ConstantOp
         List<Block.Parameter> params = funcOp.parameters();
         if (params.size() != args.length) {
-            throw new IllegalArgumentException();
+            throw invalidQuotedModel(funcOp);
         }
         SequencedMap<Value, Object> m = new LinkedHashMap<>();
         for (Value v : operandsAndCaptures) {
@@ -235,7 +239,7 @@ public final class Quoted {
                 case Op.Result opr when opr.op() instanceof CoreOp.ConstantOp cop -> {
                     m.put(v, cop.value());
                 }
-                default -> throw new IllegalArgumentException();
+                default -> throw invalidQuotedModel(funcOp);
             }
         }
 
