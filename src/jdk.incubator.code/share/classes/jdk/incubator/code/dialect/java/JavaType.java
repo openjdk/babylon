@@ -32,7 +32,6 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.*;
 
 import jdk.incubator.code.ExternalizableTypeElement;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
 
 import java.util.List;

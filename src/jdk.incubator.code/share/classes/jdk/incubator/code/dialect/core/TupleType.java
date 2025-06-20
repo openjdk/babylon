@@ -25,8 +25,8 @@ public final class TupleType implements CoreType {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
-        return ExternalizableTypeElement.ExternalizedTypeElement.of(NAME,
+    public ExternalizedTypeElement externalize() {
+        return ExternalizedTypeElement.of(NAME,
                 componentTypes.stream().map(TypeElement::externalize).toList());
     }
 

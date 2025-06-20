@@ -87,8 +87,8 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
-        ExternalizableTypeElement.ExternalizedTypeElement exEnclosing = enclosing == null ?
+    public ExternalizedTypeElement externalize() {
+        ExternalizedTypeElement exEnclosing = enclosing == null ?
                 VOID.externalize() : enclosing.externalize();
         String name = enclosing == null ?
                 toClassName() :

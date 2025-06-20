@@ -23,8 +23,8 @@ public final class VarType implements CoreType {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
-        return ExternalizableTypeElement.ExternalizedTypeElement.of(NAME,
+    public ExternalizedTypeElement externalize() {
+        return ExternalizedTypeElement.of(NAME,
                 valueType.externalize());
     }
 

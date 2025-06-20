@@ -74,7 +74,7 @@ public final class WildcardType implements JavaType {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+    public ExternalizedTypeElement externalize() {
         return JavaTypeUtils.wildcardType(boundKind(), boundType.externalize());
     }
 

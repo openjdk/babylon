@@ -79,7 +79,7 @@ public final class ArrayType implements JavaType {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+    public ExternalizedTypeElement externalize() {
         return JavaTypeUtils.arrayType(componentType.externalize());
     }
 

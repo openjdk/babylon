@@ -36,8 +36,8 @@ public final class FunctionType implements CoreType {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
-        return ExternalizableTypeElement.ExternalizedTypeElement.of(NAME,
+    public ExternalizedTypeElement externalize() {
+        return ExternalizedTypeElement.of(NAME,
                 Stream.concat(Stream.of(returnType), parameterTypes.stream())
                         .map(TypeElement::externalize).toList());
     }

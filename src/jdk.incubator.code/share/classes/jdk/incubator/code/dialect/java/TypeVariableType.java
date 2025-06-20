@@ -102,7 +102,7 @@ public final class TypeVariableType implements JavaType {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+    public ExternalizedTypeElement externalize() {
         return JavaTypeUtils.typeVarType(name, owner.externalize(), bound.externalize());
     }
 

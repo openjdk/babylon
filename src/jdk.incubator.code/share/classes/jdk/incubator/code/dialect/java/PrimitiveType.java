@@ -51,7 +51,7 @@ public final class PrimitiveType implements JavaType {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+    public ExternalizedTypeElement externalize() {
         return JavaTypeUtils.primitiveType(type.displayName());
     }
 
