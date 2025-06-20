@@ -1912,14 +1912,14 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         for (Value v : operandsAndCaptures) {
             switch (v) {
                 case Block.Parameter p -> {
-                    Object rv = args[params.indexOf(p)];
+                    Object rv = args[p.index()];
                     m.put(v, rv);
                 }
                 case Result opr when opr.op() instanceof CoreOp.VarOp varOp -> {
                     if (varOp.initOperand() instanceof Result r && r.op() instanceof CoreOp.ConstantOp cop) {
                         m.put(v, CoreOp.Var.of(cop.value()));
                     } else if (varOp.initOperand() instanceof Block.Parameter p) {
-                        Object rv = args[params.indexOf(p)];
+                        Object rv = args[p.index()];
                         m.put(v, CoreOp.Var.of(rv));
                     }
                 }
