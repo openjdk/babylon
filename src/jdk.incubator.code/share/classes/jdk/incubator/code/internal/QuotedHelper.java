@@ -26,12 +26,11 @@
 package jdk.incubator.code.internal;
 
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 
 public class QuotedHelper {
 
     public static Quoted makeQuoted(FuncOp funcOp, Object[] args) {
-        return CoreOp.quotedOp(funcOp, args);
+        return Quoted.quotedOp(funcOp, args);
     }
 }

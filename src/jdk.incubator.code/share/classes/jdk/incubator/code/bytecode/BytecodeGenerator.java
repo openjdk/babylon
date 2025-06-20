@@ -49,11 +49,11 @@ import java.lang.reflect.Modifier;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
+import jdk.incubator.code.Quoted;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.impl.BranchCompactor;
 import jdk.incubator.code.bytecode.impl.LocalsCompactor;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.parser.OpParser;
@@ -167,7 +167,7 @@ public final class BytecodeGenerator {
                     // return (FuncOp) OpParser.fromOpString(opText)
                     clb.withMethod("op$lambda$" + i, OP_METHOD_DESC,
                         ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC, mb -> mb.withCode(cb -> cb
-                                .loadConstant(CoreOp.quoteOp(lop).toText())
+                                .loadConstant(Quoted.quoteOp(lop).toText())
                                 .invoke(Opcode.INVOKESTATIC, OpParser.class.describeConstable().get(),
                                         "fromStringOfJavaCodeModel",
                                         MethodTypeDesc.of(Op.class.describeConstable().get(), CD_String), false)

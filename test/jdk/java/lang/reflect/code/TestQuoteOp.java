@@ -37,10 +37,10 @@ public class TestQuoteOp {
         CoreOp.FuncOp fm = Op.ofMethod(f).orElseThrow();
         Op lop = fm.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.LambdaOp).findFirst().orElseThrow();
 
-        CoreOp.FuncOp funcOp = CoreOp.quoteOp(lop);
+        CoreOp.FuncOp funcOp = Quoted.quoteOp(lop);
 
         Object[] args = new Object[]{1, "a", this};
-        Quoted quoted = CoreOp.quotedOp(funcOp, args);
+        Quoted quoted = Quoted.quotedOp(funcOp, args);
         // op must have the same structure as lop
         // for the moment, we don't have utility to check that
 
@@ -64,10 +64,10 @@ public class TestQuoteOp {
         CoreOp.FuncOp gm = Op.ofMethod(g).orElseThrow();
         Op invOp = gm.body().entryBlock().ops().stream().filter(o -> o instanceof JavaOp.InvokeOp).findFirst().orElseThrow();
 
-        CoreOp.FuncOp funcOp = CoreOp.quoteOp(invOp);
+        CoreOp.FuncOp funcOp = Quoted.quoteOp(invOp);
 
         Object[] args = {"abc", "b"};
-        Quoted quoted = CoreOp.quotedOp(funcOp, args);
+        Quoted quoted = Quoted.quotedOp(funcOp, args);
 
         Assert.assertTrue(invOp.getClass().isInstance(quoted.op()));
 
@@ -90,7 +90,7 @@ public class TestQuoteOp {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) qop.ancestorBody().parentOp());
 
         Object[] args = {this, 111};
-        Quoted quoted2 = CoreOp.quotedOp(fop, args);
+        Quoted quoted2 = Quoted.quotedOp(fop, args);
 
         Iterator<Object> iterator = quoted2.capturedValues().values().iterator();
 
@@ -301,7 +301,7 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
     @Test(dataProvider = "invalidCases")
     void testInvalidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
-        Assert.assertThrows(IllegalArgumentException.class, () -> CoreOp.quotedOp(fop, args));
+        Assert.assertThrows(IllegalArgumentException.class, () -> Quoted.quotedOp(fop, args));
     }
 
     @DataProvider
@@ -434,7 +434,7 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
     @Test(dataProvider = "validCases")
     void testValidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
-        Quoted quoted = CoreOp.quotedOp(fop, args);
+        Quoted quoted = Quoted.quotedOp(fop, args);
 
         for (Map.Entry<Value, Object> e : quoted.capturedValues().entrySet()) {
             Value sv = e.getKey();
