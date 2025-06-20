@@ -63,7 +63,7 @@ public final class RecordTypeRefImpl implements RecordTypeRef {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+    public ExternalizedTypeElement externalize() {
         return JavaTypeUtils.recordRef(recordType.externalize(),
                 components.stream().map(ComponentRef::name).toList(),
                 components.stream().map(c -> c.type().externalize()).toList());

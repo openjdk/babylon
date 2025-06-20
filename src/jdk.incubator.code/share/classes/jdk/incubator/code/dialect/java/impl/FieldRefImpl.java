@@ -115,7 +115,7 @@ public final class FieldRefImpl implements FieldRef {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+    public ExternalizedTypeElement externalize() {
         return JavaTypeUtils.fieldRef(name, refType.externalize(), type.externalize());
     }
 

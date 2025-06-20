@@ -140,7 +140,7 @@ public final class MethodRefImpl implements MethodRef {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+    public ExternalizedTypeElement externalize() {
         return JavaTypeUtils.methodRef(name, refType.externalize(),
                 type.returnType().externalize(),
                 type.parameterTypes().stream().map(TypeElement::externalize).toList());

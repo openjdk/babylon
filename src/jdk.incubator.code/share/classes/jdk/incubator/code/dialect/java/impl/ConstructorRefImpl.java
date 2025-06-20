@@ -108,7 +108,7 @@ public final class ConstructorRefImpl implements ConstructorRef {
     }
 
     @Override
-    public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+    public ExternalizedTypeElement externalize() {
         return JavaTypeUtils.constructorRef(type.returnType().externalize(),
                 type.parameterTypes().stream().map(TypeElement::externalize).toList());
     }
