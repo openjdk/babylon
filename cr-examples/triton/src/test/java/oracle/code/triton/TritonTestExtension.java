@@ -23,9 +23,10 @@
 
 package oracle.code.triton;
 
-import jdk.incubator.code.dialect.DialectFactory;
+import jdk.incubator.code.dialect.factory.DialectFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.factory.OpFactory;
+import jdk.incubator.code.dialect.factory.TypeElementFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtensionContext;

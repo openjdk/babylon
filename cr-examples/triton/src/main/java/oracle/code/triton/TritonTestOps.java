@@ -29,8 +29,8 @@ import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.factory.ExternalizableOp;
+import jdk.incubator.code.dialect.factory.OpFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.List;
@@ -65,7 +65,7 @@ public class TritonTestOps {
     }
 
 
-    public static final OpFactory FACTORY = OpFactory.OP_FACTORY.get(TritonTestOps.class);
+    public static final OpFactory FACTORY = OpFactory.OP_FACTORY_MAP.get(TritonTestOps.class);
 
     public static ConsumeOp consume(Value... operands) {
         return consume(List.of(operands));

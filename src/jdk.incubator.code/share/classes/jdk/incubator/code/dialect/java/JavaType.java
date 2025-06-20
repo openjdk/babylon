@@ -32,7 +32,10 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.*;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.factory.TypeElementFactory;
 import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
+import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -182,6 +185,21 @@ public sealed interface JavaType extends TypeElement permits ClassType, ArrayTyp
     JavaType erasure();
 
     // Factories
+
+    /**
+     * A type element factory for Java type elements that is not composed with any other type element factory.
+     */
+    TypeElementFactory JAVA_ONLY_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
+        case INFLATED_TYPE -> JavaTypeUtils.toJavaType(tree);
+        case INFLATED_REF -> JavaTypeUtils.toJavaRef(tree);
+        default -> throw new UnsupportedOperationException("Unsupported: " + tree);
+    };
+
+    /**
+     * A type element factory for core type elements composed with Java type elements, where the core type elements can
+     * refer to Java type elements.
+     */
+    TypeElementFactory JAVA_TYPE_FACTORY = CoreType.coreTypeFactory(JAVA_ONLY_TYPE_FACTORY);
 
     /**
      * Constructs a Java type from a reflective type mirror.

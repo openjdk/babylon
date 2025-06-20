@@ -83,7 +83,7 @@ public class TestVarOp {
             return block;
         });
 
-        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, f.toText()).get(0);
+        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, f.toText()).get(0);
         boolean allNullNames = op.elements()
                 .flatMap(ce -> ce instanceof CoreOp.VarOp vop ? Stream.of(vop) : null)
                 .allMatch(CoreOp.VarOp::isUnnamedVariable);

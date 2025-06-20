@@ -23,12 +23,12 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.factory.ExternalizableOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static jdk.incubator.code.dialect.OpFactory.*;
+import static jdk.incubator.code.dialect.factory.OpFactory.*;
 
 public final class AnfDialect {
 

@@ -24,32 +24,7 @@
  */
 
 /**
- * A module which provides classes and interfaces for obtaining reflective information about
- * classes and objects.
- * {@incubating}
- *
- * @moduleGraph
+ * Functionality for dialect factories and the construction of operations and type elements
+ * from their externalized representation.
  */
-
-import jdk.incubator.code.internal.ReflectMethods;
-import jdk.internal.javac.ParticipatesInPreview;
-
-@ParticipatesInPreview
-module jdk.incubator.code {
-    requires transitive jdk.compiler;
-
-    exports jdk.incubator.code;
-    exports jdk.incubator.code.parser;
-    exports jdk.incubator.code.dialect.core;
-    exports jdk.incubator.code.dialect.factory;
-    exports jdk.incubator.code.dialect.java;
-    exports jdk.incubator.code.analysis;
-    exports jdk.incubator.code.bytecode;
-    exports jdk.incubator.code.interpreter;
-    exports jdk.incubator.code.writer;
-
-    opens jdk.incubator.code.internal to java.base;
-
-    provides com.sun.tools.javac.comp.CodeReflectionTransformer with
-            ReflectMethods.Provider;
-}
+package jdk.incubator.code.dialect.factory;
