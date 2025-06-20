@@ -173,7 +173,7 @@ struct Schema {
             : Node(nullptr, "Schema") {
         }
 
-        virtual SchemaNode *parse(SchemaCursor *cursor);
+        SchemaNode *parse(SchemaCursor *cursor) override;
 
         ~SchemaNode() override = default;
     };
