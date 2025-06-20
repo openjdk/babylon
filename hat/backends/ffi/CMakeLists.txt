@@ -14,6 +14,7 @@ if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (SHARED_BACKEND "${CMAKE_SOURCE_DIR}/shared")
     message("SHARED_BACKEND=${SHARED_BACKEND}")
 endif()
+add_subdirectory(shared)
 
 include_directories(
     ${SHARED_BACKEND}/include
@@ -49,11 +50,5 @@ if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
 endif()
 add_subdirectory(mock)
 
-add_executable(schemadump
-        ${SHARED_BACKEND}/cpp/schema.cpp
-        ${SHARED_BACKEND}/cpp/schemadump.cpp
-        ${SHARED_BACKEND}/cpp/schema_cursor.cpp
-        ${SHARED_BACKEND}/include/schema_cursor.h
-        ${SHARED_BACKEND}/include/schema.h
-)
+
 
