@@ -128,7 +128,7 @@ class HipQueue: public Backend::Queue {
   class HipBuffer : public Backend::Buffer {
     public:
         //CUdeviceptr devicePtr;
-       hipDevice_t devicePtr; 
+       hipDevice_t devicePtr;
         HipBuffer(Backend *backend, BufferState *bufferState);
         ~HipBuffer() override;
     };

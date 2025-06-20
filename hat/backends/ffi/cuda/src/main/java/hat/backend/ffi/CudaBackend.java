@@ -52,143 +52,7 @@ public class CudaBackend extends C99FFIBackend {
     final int addressSize = 64;
 
     final static HashMap<String, String> mathFns = new HashMap<>();
-    final Set<String> usedMathFns = new HashSet<>();
-
-
-    public CudaBackend(String configSpec) {
-        this(Config.of(configSpec));
-    }
-
-    public CudaBackend() {
-        this(Config.of());
-    }
-
-    public CudaBackend(Config config) {
-        super("cuda_backend", config);
-    }
-
-    @Override
-    public void computeContextHandoff(ComputeContext computeContext) {
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
-    }
-
-    @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
-        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code =config.isPTX() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph,  args);
-            if (config.isSHOW_CODE()) {
-                System.out.println(code);
-            }
-            var compilationUnit = backendBridge.compile(code);
-            if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel(kernelCallGraph.entrypoint.method.getName());
-                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
-            } else {
-                throw new IllegalStateException("cuda failed to compile ");
-            }
-        });
-        compiledKernel.dispatch(ndRange,args);
-    }
-
-    String createC99(KernelCallGraph kernelCallGraph,  Object... args){
-        return createCode(kernelCallGraph, new CudaHATKernelBuilder(), args);
-    }
-
-    ///   Same as OpenCL backend until here
-
-
-    String createPTX(KernelCallGraph kernelCallGraph, Object... args){
-        var builder = new PTXHATKernelBuilder();
-        StringBuilder out = new StringBuilder();
-        StringBuilder invokedMethods = new StringBuilder();
-        FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op());
-        FuncOpWrapper lowered = f.lower();
-        HashMap<String, Object> argsMap = new HashMap<>();
-        for (int i = 0; i < args.length; i++) {
-            argsMap.put(f.paramTable().list().get(i).varOp.varName(), args[i]);
-        }
-        builder.ptxHeader(major, minor, target, addressSize);
-        out.append(builder.getTextAndReset());
-
-        for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
-            FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op());
-            FuncOpWrapper loweredFunc = calledFunc.lower();
-            loweredFunc = transformPTXPtrs(loweredFunc, argsMap, usedMathFns);
-            invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
-        }
-
-        lowered = transformPTXPtrs(lowered, argsMap, usedMathFns);
-        for (String s : usedMathFns) {
-            out.append("\n").append(mathFns.get(s)).append("\n");
-        }
-
-        out.append(invokedMethods);
-
-        out.append(createFunction(builder.nl().nl(), lowered, true));
-        if (config.isSHOW_KERNEL_MODEL()){
-            System.out.println("ptx follows\n"+out);
-        }
-
-        return out.toString();
-    }
-
-      static  public FuncOpWrapper transformPTXPtrs(FuncOpWrapper func, HashMap<String, Object> argsMap, Set<String> usedMathFns) {
-        return FuncOpWrapper.wrap(func.lookup,func.op().transform((block, op) -> {
-            CopyContext cc = block.context();
-            // use first operand of invoke to figure out schema
-            if (op instanceof JavaOp.InvokeOp invokeOp
-                    && OpWrapper.wrap(func.lookup,invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
-                if (invokeOpWrapper.isIfaceBufferMethod()
-                        && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
-                        && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
-                        && varLoadResult.op() instanceof CoreOp.VarOp varOp
-                        && argsMap.get(varOp.varName()) instanceof Buffer buffer) {
-                    List<Value> inputOperands = invokeOp.operands();
-                    List<Value> outputOperands = cc.getValues(inputOperands);
-                    Op.Result inputResult = invokeOp.result();
-                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(buffer);
-                    PTXHATKernelBuilder.PTXPtrOp ptxOp = new PTXHATKernelBuilder.PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
-                    Op.Result outputResult = block.op(ptxOp);
-                    cc.mapValue(inputResult, outputResult);
-                } else if (invokeOpWrapper.op().invokeDescriptor().refType().toString().equals("java.lang.Math")
-                        && mathFns.containsKey(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString())){
-                    usedMathFns.add(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString());
-                    block.apply(op);
-                } else {
-                    block.apply(op);
-                }
-            } else {
-                block.apply(op);
-            }
-            return block;
-        }));
-    }
-
-    static public String createFunction(PTXHATKernelBuilder builder, FuncOpWrapper lowered, boolean entry) {
-        FuncOpWrapper ssa = lowered.ssa();
-        String out, body;
-
-        // building fn info (name, params)
-        builder.functionHeader(lowered.functionName(), entry, lowered.op().body().yieldType());
-
-        // printing out params
-        builder.parameters(lowered.paramTable().list());
-
-        // building body of fn
-        builder.functionPrologue();
-
-        out = builder.getTextAndReset();
-        ssa.firstBody().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(o->OpWrapper.wrap(lowered.lookup,o))));
-
-        builder.functionEpilogue();
-        body = builder.getTextAndReset();
-
-        builder.ptxRegisterDecl();
-        out += builder.getText() + body;
-        return out;
-    }
-
-    public static void loadMathFns() {
+    static {
         mathFns.put("log_float",
                 """
                 .func  (.param .b32 func_retval0) log(
@@ -485,5 +349,142 @@ public class CudaBackend extends C99FFIBackend {
                     ret;
                 }"""
         );
+    }
+
+
+    final Set<String> usedMathFns = new HashSet<>();
+
+
+    public CudaBackend(String configSpec) {
+        this(Config.of(configSpec));
+    }
+
+    public CudaBackend() {
+        this(Config.of());
+    }
+
+    public CudaBackend(Config config) {
+        super("cuda_backend", config);
+    }
+
+    @Override
+    public void computeContextHandoff(ComputeContext computeContext) {
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
+    }
+
+    @Override
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
+            String code =config.isPTX() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph,  args);
+            if (config.isSHOW_CODE()) {
+                System.out.println(code);
+            }
+            var compilationUnit = backendBridge.compile(code);
+            if (compilationUnit.ok()) {
+                var kernel = compilationUnit.getKernel(kernelCallGraph.entrypoint.method.getName());
+                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
+            } else {
+                throw new IllegalStateException("cuda failed to compile ");
+            }
+        });
+        compiledKernel.dispatch(ndRange,args);
+    }
+
+    String createC99(KernelCallGraph kernelCallGraph,  Object... args){
+        return createCode(kernelCallGraph, new CudaHATKernelBuilder(), args);
+    }
+
+    ///   Same as OpenCL backend until here
+
+
+    String createPTX(KernelCallGraph kernelCallGraph, Object... args){
+        var builder = new PTXHATKernelBuilder();
+        StringBuilder out = new StringBuilder();
+        StringBuilder invokedMethods = new StringBuilder();
+        FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op());
+        FuncOpWrapper lowered = f.lower();
+        HashMap<String, Object> argsMap = new HashMap<>();
+        for (int i = 0; i < args.length; i++) {
+            argsMap.put(f.paramTable().list().get(i).varOp.varName(), args[i]);
+        }
+        builder.ptxHeader(major, minor, target, addressSize);
+        out.append(builder.getTextAndReset());
+
+        for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
+            FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op());
+            FuncOpWrapper loweredFunc = calledFunc.lower();
+            loweredFunc = transformPTXPtrs(loweredFunc, argsMap, usedMathFns);
+            invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+        }
+
+        lowered = transformPTXPtrs(lowered, argsMap, usedMathFns);
+        for (String s : usedMathFns) {
+            out.append("\n").append(mathFns.get(s)).append("\n");
+        }
+
+        out.append(invokedMethods);
+
+        out.append(createFunction(builder.nl().nl(), lowered, true));
+        if (config.isSHOW_KERNEL_MODEL()){
+            System.out.println("ptx follows\n"+out);
+        }
+
+        return out.toString();
+    }
+
+      static  public FuncOpWrapper transformPTXPtrs(FuncOpWrapper func, HashMap<String, Object> argsMap, Set<String> usedMathFns) {
+        return FuncOpWrapper.wrap(func.lookup,func.op().transform((block, op) -> {
+            CopyContext cc = block.context();
+            // use first operand of invoke to figure out schema
+            if (op instanceof JavaOp.InvokeOp invokeOp
+                    && OpWrapper.wrap(func.lookup,invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
+                if (invokeOpWrapper.isIfaceBufferMethod()
+                        && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
+                        && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
+                        && varLoadResult.op() instanceof CoreOp.VarOp varOp
+                        && argsMap.get(varOp.varName()) instanceof Buffer buffer) {
+                    List<Value> inputOperands = invokeOp.operands();
+                    List<Value> outputOperands = cc.getValues(inputOperands);
+                    Op.Result inputResult = invokeOp.result();
+                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(buffer);
+                    PTXHATKernelBuilder.PTXPtrOp ptxOp = new PTXHATKernelBuilder.PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
+                    Op.Result outputResult = block.op(ptxOp);
+                    cc.mapValue(inputResult, outputResult);
+                } else if (invokeOpWrapper.op().invokeDescriptor().refType().toString().equals("java.lang.Math")
+                        && mathFns.containsKey(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString())){
+                    usedMathFns.add(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString());
+                    block.apply(op);
+                } else {
+                    block.apply(op);
+                }
+            } else {
+                block.apply(op);
+            }
+            return block;
+        }));
+    }
+
+    static public String createFunction(PTXHATKernelBuilder builder, FuncOpWrapper lowered, boolean entry) {
+        FuncOpWrapper ssa = lowered.ssa();
+        String out, body;
+
+        // building fn info (name, params)
+        builder.functionHeader(lowered.functionName(), entry, lowered.op().body().yieldType());
+
+        // printing out params
+        builder.parameters(lowered.paramTable().list());
+
+        // building body of fn
+        builder.functionPrologue();
+
+        out = builder.getTextAndReset();
+        ssa.firstBody().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(o->OpWrapper.wrap(lowered.lookup,o))));
+
+        builder.functionEpilogue();
+        body = builder.getTextAndReset();
+
+        builder.ptxRegisterDecl();
+        out += builder.getText() + body;
+        return out;
     }
 }
