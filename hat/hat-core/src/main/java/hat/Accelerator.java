@@ -40,7 +40,9 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -197,7 +199,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
 
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
-        LambdaOpWrapper lambda = OpWrapper.wrap(lookup,(CoreOp.LambdaOp) quoted.op());
+        LambdaOpWrapper lambda = OpWrapper.wrap(lookup,(JavaOp.LambdaOp) quoted.op());
         Method method = lambda.getQuotableTargetMethod();
 
         // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.

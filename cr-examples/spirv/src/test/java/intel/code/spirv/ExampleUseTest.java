@@ -29,7 +29,7 @@ import java.lang.reflect.Method;
 import java.lang.foreign.MemorySegment;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Test;
 
 public class ExampleUseTest {

@@ -27,8 +27,7 @@ package jdk.incubator.code.internal;
 
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 
 import java.lang.invoke.MethodHandles;
 

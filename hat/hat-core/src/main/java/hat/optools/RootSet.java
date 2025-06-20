@@ -26,7 +26,7 @@ package hat.optools;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -43,7 +43,7 @@ static Node<Value> dependencyTree(Value value) {
     List<Node<Value>> children = new ArrayList<>();
     for (Value dependencyOnValue : value.dependsOn()) {
         Node<Value> child;
-        if (dependencyOnValue instanceof Op.Result or && or.op() instanceof CoreOps.VarAccessOp.VarLoadOp) {
+        if (dependencyOnValue instanceof Op.Result or && or.op() instanceof JavaOps.VarAccessOp.VarLoadOp) {
             // Break the tree at a var load
             child = new Node<>(dependencyOnValue, List.of());
         } else {

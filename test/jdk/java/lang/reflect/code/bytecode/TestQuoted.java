@@ -27,7 +27,7 @@ import org.testng.annotations.Test;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import java.lang.invoke.MethodHandle;

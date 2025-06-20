@@ -26,15 +26,14 @@
 package jdk.incubator.code.analysis;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.*;
+import jdk.incubator.code.dialect.java.*;
 
 import java.util.*;
 
 /**
- * StringConcatTransformer is an {@link java.lang.reflect.code.OpTransformer} that removes concatenation operations
+ * StringConcatTransformer is an {@link jdk.incubator.code.OpTransformer} that removes concatenation operations
  * from blocks and replaces them with equivalent {@link java.lang.StringBuilder} operations. This provides a pathway
- * to remove {@link java.lang.reflect.code.op.CoreOp.ConcatOp} for easier lowering to Bytecode.
+ * to remove {@link jdk.incubator.code.dialect.java.JavaOp.ConcatOp} for easier lowering to Bytecode.
  */
 public final class StringConcatTransformer implements OpTransformer {
 
@@ -47,15 +46,15 @@ public final class StringConcatTransformer implements OpTransformer {
     @Override
     public Block.Builder apply(Block.Builder block, Op op) {
         switch (op) {
-            case CoreOp.ConcatOp cz when isRootConcat(cz) -> {
+            case JavaOp.ConcatOp cz when isRootConcat(cz) -> {
                 // Create a string builder and build by traversing tree of operands
-                Op.Result builder = block.apply(CoreOp._new(ConstructorRef.constructor(J_L_STRING_BUILDER)));
+                Op.Result builder = block.apply(JavaOp._new(ConstructorRef.constructor(J_L_STRING_BUILDER)));
                 buildFromTree(block, builder, cz);
                 // Convert to string
-                Value s = block.op(CoreOp.invoke(SB_TO_STRING_REF, builder));
+                Value s = block.op(JavaOp.invoke(SB_TO_STRING_REF, builder));
                 block.context().mapValue(cz.result(), s);
             }
-            case CoreOp.ConcatOp _ -> {
+            case JavaOp.ConcatOp _ -> {
                 // Process later when building from root concat
             }
             default -> block.op(op);
@@ -63,14 +62,14 @@ public final class StringConcatTransformer implements OpTransformer {
         return block;
     }
 
-    static boolean isRootConcat(CoreOp.ConcatOp cz) {
+    static boolean isRootConcat(JavaOp.ConcatOp cz) {
         // Root of concat tree, zero uses, two or more uses,
         // or one use that is not a subsequent concat op
         Set<Op.Result> uses = cz.result().uses();
-        return uses.size() != 1 || !(uses.iterator().next().op() instanceof CoreOp.ConcatOp);
+        return uses.size() != 1 || !(uses.iterator().next().op() instanceof JavaOp.ConcatOp);
     }
 
-    static void buildFromTree(Block.Builder block, Op.Result builder, CoreOp.ConcatOp cz) {
+    static void buildFromTree(Block.Builder block, Op.Result builder, JavaOp.ConcatOp cz) {
         // Process concat op's operands from left to right
         buildFromTree(block, builder, cz.operands().get(0));
         buildFromTree(block, builder, cz.operands().get(1));
@@ -78,7 +77,7 @@ public final class StringConcatTransformer implements OpTransformer {
 
     static void buildFromTree(Block.Builder block, Op.Result builder, Value v) {
         if (v instanceof Op.Result r &&
-                r.op() instanceof CoreOp.ConcatOp cz &&
+                r.op() instanceof JavaOp.ConcatOp cz &&
                 r.uses().size() == 1) {
             // Node of tree, recursively traverse the operands
             buildFromTree(block, builder, cz);
@@ -96,7 +95,7 @@ public final class StringConcatTransformer implements OpTransformer {
         if (type instanceof PrimitiveType) {
             //Widen Short and Byte to Int.
             if (type.equals(JavaType.BYTE) || type.equals(JavaType.SHORT)) {
-                arg = block.op(CoreOp.conv(JavaType.INT, arg));
+                arg = block.op(JavaOp.conv(JavaType.INT, arg));
                 type = JavaType.INT;
             }
         } else if (!type.equals(JavaType.J_L_STRING)){
@@ -104,7 +103,7 @@ public final class StringConcatTransformer implements OpTransformer {
         }
 
         MethodRef methodDesc = MethodRef.method(J_L_STRING_BUILDER, "append", J_L_STRING_BUILDER, type);
-        return CoreOp.invoke(methodDesc, builder, arg);
+        return JavaOp.invoke(methodDesc, builder, arg);
     }
 
 

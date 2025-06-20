@@ -25,7 +25,7 @@
 
 package jdk.incubator.code;
 
-import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.dialect.core.FunctionType;
 import java.util.*;
 
 /**

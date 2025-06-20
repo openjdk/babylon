@@ -58,7 +58,6 @@ import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import static java.lang.constant.ConstantDescs.*;
 import static java.lang.invoke.MethodHandleNatives.Constants.NESTMATE_CLASS;
 import static java.lang.invoke.MethodHandleNatives.Constants.STRONG_LOADER_LINK;
-import static java.lang.invoke.MethodType.methodType;
 import jdk.internal.constant.ConstantUtils;
 import jdk.internal.constant.MethodTypeDescImpl;
 import jdk.internal.vm.annotation.Stable;
@@ -430,12 +429,6 @@ import sun.invoke.util.Wrapper;
                     if (quotableOpGetterInfo.getReferenceKind() != MethodHandleInfo.REF_invokeStatic) {
                         mtype = mtype.insertParameterTypes(0, implClass);
                     }
-                    // load arguments to quotableOpGetter: ExtendedOp.FACTORY and CORE_TYPE_FACTORY
-                    cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.EXTENDED_OP_CLASS.describeConstable().get(),
-                            "FACTORY", CodeReflectionSupport.OP_FACTORY_CLASS.describeConstable().get());
-                    cob.fieldAccess(Opcode.GETSTATIC, CodeReflectionSupport.CORE_TYPE_FACTORY_CLASS.describeConstable().get(),
-                            "CORE_TYPE_FACTORY",
-                            CodeReflectionSupport.TYPE_ELEMENT_FACTORY_CLASS.describeConstable().get());
                     cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get());
                     cob.checkcast(funcOpClassDesc);
                     cob.putstatic(lambdaClassEntry.asSymbol(), COMPILER_GENERATED_MODEL_FIELD_NAME, funcOpClassDesc);
@@ -507,10 +500,6 @@ import sun.invoke.util.Wrapper;
         static final Class<?> QUOTED_CLASS;
         static final Class<?> QUOTABLE_CLASS;
         static final MethodHandle HANDLE_MAKE_QUOTED;
-        static final Class<?> EXTENDED_OP_CLASS;
-        static final Class<?> OP_FACTORY_CLASS;
-        static final Class<?> CORE_TYPE_FACTORY_CLASS;
-        static final Class<?> TYPE_ELEMENT_FACTORY_CLASS;
         static final Class<?> FUNC_OP_CLASS;
 
         static {
@@ -520,14 +509,10 @@ import sun.invoke.util.Wrapper;
                 QUOTED_CLASS = cl.loadClass("jdk.incubator.code.Quoted");
                 QUOTABLE_CLASS = cl.loadClass("jdk.incubator.code.Quotable");
                 Class<?> quotedHelper = cl.loadClass("jdk.incubator.code.internal.QuotedHelper");
-                FUNC_OP_CLASS = cl.loadClass("jdk.incubator.code.op.CoreOp$FuncOp");
+                FUNC_OP_CLASS = cl.loadClass("jdk.incubator.code.dialect.core.CoreOp$FuncOp");
                 MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
                         MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, FUNC_OP_CLASS, Object[].class));
                 HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
-                EXTENDED_OP_CLASS = cl.loadClass("jdk.incubator.code.op.ExtendedOp");
-                OP_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.op.OpFactory");
-                CORE_TYPE_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.type.CoreTypeFactory");
-                TYPE_ELEMENT_FACTORY_CLASS = cl.loadClass("jdk.incubator.code.type.TypeElementFactory");
             } catch (Throwable ex) {
                 throw new ExceptionInInitializerError(ex);
             }
@@ -614,7 +599,7 @@ import sun.invoke.util.Wrapper;
     * Generate method #quoted()
      */
     private void generateQuotedMethod(ClassBuilder clb) {
-        clb.withMethod(NAME_METHOD_QUOTED, CodeReflectionSupport.MTD_Quoted, ACC_PUBLIC + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
+        clb.withMethod(NAME_METHOD_QUOTED, CodeReflectionSupport.MTD_Quoted, ACC_PRIVATE + ACC_FINAL, new MethodBody(new Consumer<CodeBuilder>() {
             @Override
             public void accept(CodeBuilder cob) {
                 cob.aload(0)

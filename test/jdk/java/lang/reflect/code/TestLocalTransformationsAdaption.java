@@ -21,14 +21,15 @@
  * questions.
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.PrintStream;
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.FieldRef;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.FieldRef;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -42,12 +43,12 @@ import java.util.function.IntUnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.op.CoreOp.arrayStoreOp;
-import static jdk.incubator.code.op.CoreOp.constant;
-import static jdk.incubator.code.op.CoreOp.fieldLoad;
-import static jdk.incubator.code.op.CoreOp.newArray;
-import static jdk.incubator.code.type.MethodRef.method;
-import static jdk.incubator.code.type.JavaType.*;
+import static jdk.incubator.code.dialect.java.JavaOp.arrayStoreOp;
+import static jdk.incubator.code.dialect.core.CoreOp.constant;
+import static jdk.incubator.code.dialect.java.JavaOp.fieldLoad;
+import static jdk.incubator.code.dialect.java.JavaOp.newArray;
+import static jdk.incubator.code.dialect.java.MethodRef.method;
+import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /*
  * @test
@@ -125,7 +126,7 @@ public class TestLocalTransformationsAdaption {
                     printConstantString(block, "EXIT");
                     break;
                 }
-                case CoreOp.ThrowOp throwOp: {
+                case JavaOp.ThrowOp throwOp: {
                     printConstantString(block, "EXIT");
                     break;
                 }
@@ -155,7 +156,7 @@ public class TestLocalTransformationsAdaption {
     static void printConstantString(Function<Op, Op.Result> opBuilder, String s) {
         Op.Result c = opBuilder.apply(constant(J_L_STRING, s));
         Value System_out = opBuilder.apply(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
-        opBuilder.apply(CoreOp.invoke(method(PrintStream.class, "println", void.class, String.class), System_out, c));
+        opBuilder.apply(JavaOp.invoke(method(PrintStream.class, "println", void.class, String.class), System_out, c));
     }
 
     static Op getNearestInvokeableAncestorOp(Op op) {
@@ -173,10 +174,10 @@ public class TestLocalTransformationsAdaption {
 
         CoreOp.FuncOp fc = f.transform((block, op) -> {
             switch (op) {
-                case CoreOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(ADD_METHOD): {
+                case JavaOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(ADD_METHOD): {
                     // Get the adapted operands, and pass those to the new call method
                     List<Value> adaptedOperands = block.context().getValues(op.operands());
-                    Op.Result adaptedResult = block.apply(CoreOp.invoke(ADD_WITH_PRINT_METHOD, adaptedOperands));
+                    Op.Result adaptedResult = block.apply(JavaOp.invoke(ADD_WITH_PRINT_METHOD, adaptedOperands));
                     // Map the old call result to the new call result, so existing operations can be
                     // adapted to use the new result
                     block.context().mapValue(invokeOp.result(), adaptedResult);
@@ -205,7 +206,7 @@ public class TestLocalTransformationsAdaption {
 
         CoreOp.FuncOp fc = f.transform((block, op) -> {
             switch (op) {
-                case CoreOp.InvokeOp invokeOp: {
+                case JavaOp.InvokeOp invokeOp: {
                     printCall(block.context(), invokeOp, block);
                     break;
                 }
@@ -224,7 +225,7 @@ public class TestLocalTransformationsAdaption {
         Assert.assertEquals(x, f(2));
     }
 
-    static void printCall(CopyContext cc, CoreOp.InvokeOp invokeOp, Function<Op, Op.Result> opBuilder) {
+    static void printCall(CopyContext cc, JavaOp.InvokeOp invokeOp, Function<Op, Op.Result> opBuilder) {
         List<Value> adaptedInvokeOperands = cc.getValues(invokeOp.operands());
 
         String prefix = "ENTER";
@@ -246,7 +247,7 @@ public class TestLocalTransformationsAdaption {
 
             if (operand.type().equals(INT)) {
                 operand = opBuilder.apply(
-                        CoreOp.invoke(method(Integer.class, "valueOf", Integer.class, int.class), operand));
+                        JavaOp.invoke(method(Integer.class, "valueOf", Integer.class, int.class), operand));
                 // @@@ Other primitive types
             }
             opBuilder.apply(
@@ -258,7 +259,7 @@ public class TestLocalTransformationsAdaption {
                         prefix + ": " + invokeOp.invokeDescriptor() + "(" + formatString(adaptedInvokeOperands) + ")%n"));
         Value System_out = opBuilder.apply(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
         opBuilder.apply(
-                CoreOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
+                JavaOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
                         System_out, formatString, formatArray));
 
         // Method call
@@ -271,7 +272,7 @@ public class TestLocalTransformationsAdaption {
 
         if (adaptedInvokeResult.type().equals(INT)) {
             adaptedInvokeResult = opBuilder.apply(
-                    CoreOp.invoke(method(Integer.class, "valueOf", Integer.class, int.class), adaptedInvokeResult));
+                    JavaOp.invoke(method(Integer.class, "valueOf", Integer.class, int.class), adaptedInvokeResult));
             // @@@ Other primitive types
         }
         opBuilder.apply(
@@ -281,7 +282,7 @@ public class TestLocalTransformationsAdaption {
                 constant(J_L_STRING,
                         prefix + ": " + invokeOp.invokeDescriptor() + " -> " + formatString(adaptedInvokeResult.type()) + "%n"));
         opBuilder.apply(
-                CoreOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
+                JavaOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
                         System_out, formatString, formatArray));
     }
 

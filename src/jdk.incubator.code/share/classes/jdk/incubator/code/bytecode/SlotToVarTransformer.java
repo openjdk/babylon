@@ -33,8 +33,9 @@ import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -66,7 +67,7 @@ final class SlotToVarTransformer {
         public ExcStackMap apply(Block b) {
             BitSet excStack = map.computeIfAbsent(b, _ -> new BitSet());
             switch (b.terminatingOp()) {
-                case CoreOp.ExceptionRegionEnter ere -> {
+                case JavaOp.ExceptionRegionEnter ere -> {
                     BitSet entries = new BitSet();
                     for (Block.Reference cbr : ere.catchBlocks()) {
                         Block cb = cbr.targetBlock();
@@ -81,7 +82,7 @@ final class SlotToVarTransformer {
                     entries.or(excStack);
                     map.put(ere.start().targetBlock(), entries);
                 }
-                case CoreOp.ExceptionRegionExit ere -> {
+                case JavaOp.ExceptionRegionExit ere -> {
                     excStack = (BitSet) excStack.clone();
                     for (Block.Reference cbr : ere.catchBlocks()) {
                         excStack.clear(catchBlocks.indexOf(cbr.targetBlock()));

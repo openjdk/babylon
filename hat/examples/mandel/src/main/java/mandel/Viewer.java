@@ -139,7 +139,7 @@ public class Viewer extends JFrame {
         ((JButton) panel.add(new JButton("Exit"))).addActionListener(_ -> System.exit(0));
         panel.add(new JLabel("FPS"));
         this.framesSecondSevenSegment = (SevenSegmentDisplay)
-                panel.add(new SevenSegmentDisplay(3,30,panel.getForeground(),panel.getBackground()));
+                panel.add(new SevenSegmentDisplay(4,30,panel.getForeground(),panel.getBackground()));
         panel.add(Box.createHorizontalStrut(400));
         menuBar.add(panel);
         this.setJMenuBar(menuBar);

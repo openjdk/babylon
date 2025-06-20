@@ -27,10 +27,10 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -38,11 +38,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static jdk.incubator.code.op.CoreOp._return;
-import static jdk.incubator.code.op.CoreOp.branch;
-import static jdk.incubator.code.op.CoreOp.conditionalBranch;
-import static jdk.incubator.code.op.CoreOp.constant;
-import static jdk.incubator.code.op.CoreOp.func;
+import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.core.CoreOp.branch;
+import static jdk.incubator.code.dialect.core.CoreOp.conditionalBranch;
+import static jdk.incubator.code.dialect.core.CoreOp.constant;
+import static jdk.incubator.code.dialect.core.CoreOp.func;
 
 /*
  * @test
@@ -347,7 +347,7 @@ public class TestDominate {
                     %18 : java.type:"void" = return;
                 };
                 """;
-        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfFuncOp(m);
+        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
 
         Map<Block, Block> ipdoms = f.body().immediatePostDominators();
         Assert.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));
@@ -388,7 +388,7 @@ public class TestDominate {
                     %18 : java.type:"void" = return;
                 };
                 """;
-        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfFuncOp(m);
+        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
 
         Map<Block, Block> ipdoms = f.body().immediatePostDominators();
         Assert.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));

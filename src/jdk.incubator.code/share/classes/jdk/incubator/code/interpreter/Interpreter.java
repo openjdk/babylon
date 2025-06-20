@@ -31,8 +31,10 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.*;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.TypeElement;
 
 import java.util.*;
@@ -195,7 +197,7 @@ public final class Interpreter {
             erStack.push(erb);
         }
 
-        void popExceptionRegion(CoreOp.ExceptionRegionExit ere) {
+        void popExceptionRegion(JavaOp.ExceptionRegionExit ere) {
             ere.catchBlocks().forEach(catchBlock -> {
                 if (erStack.peek().catchBlock != catchBlock.targetBlock()) {
                     // @@@ Use internal exception type
@@ -349,7 +351,7 @@ public final class Interpreter {
                 Block.Reference sb = b.branch();
 
                 oc.successor(sb);
-            } else if (to instanceof CoreOp.ThrowOp _throw) {
+            } else if (to instanceof JavaOp.ThrowOp _throw) {
                 Throwable t = (Throwable) oc.getValue(_throw.argument());
                 processThrowable(oc, l, t);
             } else if (to instanceof CoreOp.ReturnOp ret) {
@@ -364,7 +366,7 @@ public final class Interpreter {
                 Object yr = yv == null ? null : oc.getValue(yv);
                 oc.popTo(yieldContext);
                 return yr;
-            } else if (to instanceof CoreOp.ExceptionRegionEnter ers) {
+            } else if (to instanceof JavaOp.ExceptionRegionEnter ers) {
                 int erStackDepth = oc.erStack.size();
                 ers.catchBlocks().forEach(catchBlock -> {
                     var er = new ExceptionRegionRecord(oc.stack.peek(), erStackDepth, catchBlock.targetBlock());
@@ -372,7 +374,7 @@ public final class Interpreter {
                 });
 
                 oc.successor(ers.start());
-            } else if (to instanceof CoreOp.ExceptionRegionExit ere) {
+            } else if (to instanceof JavaOp.ExceptionRegionExit ere) {
                 oc.popExceptionRegion(ere);
 
                 oc.successor(ere.end());
@@ -443,7 +445,7 @@ public final class Interpreter {
                         new IllegalStateException(
                                 "Function " + name + " cannot be resolved: top level op is not a module"));
             }
-        } else if (o instanceof CoreOp.InvokeOp co) {
+        } else if (o instanceof JavaOp.InvokeOp co) {
             MethodType target = resolveToMethodType(l, o.opType());
             MethodHandles.Lookup il = switch (co.invokeKind()) {
                 case STATIC, INSTANCE -> l;
@@ -454,7 +456,7 @@ public final class Interpreter {
             mh = mh.asType(target).asFixedArity();
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
-        } else if (o instanceof CoreOp.NewOp no) {
+        } else if (o instanceof JavaOp.NewOp no) {
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             MethodHandle mh = resolveToConstructorHandle(l, no.constructorDescriptor());
             return invoke(mh, values);
@@ -462,7 +464,7 @@ public final class Interpreter {
             SequencedMap<Value, Object> capturedValues = qo.capturedValues().stream()
                     .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
             return new Quoted(qo.quotedOp(), capturedValues);
-        } else if (o instanceof CoreOp.LambdaOp lo) {
+        } else if (o instanceof JavaOp.LambdaOp lo) {
             SequencedMap<Value, Object> capturedValuesAndArguments = lo.capturedValues().stream()
                     .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
             Class<?> fi = resolveToClass(l, lo.functionalInterface());
@@ -487,7 +489,7 @@ public final class Interpreter {
                                 }
                             }
 
-                            public Quoted __internal_quoted() {
+                            private Quoted __internal_quoted() {
                                 return quoted;
                             }
                         });
@@ -532,7 +534,7 @@ public final class Interpreter {
         } else if (o instanceof CoreOp.TupleWithOp two) {
             TupleRecord tb = (TupleRecord) oc.getValue(o.operands().get(0));
             return tb.with(two.index(), oc.getValue(o.operands().get(1)));
-        } else if (o instanceof CoreOp.FieldAccessOp.FieldLoadOp fo) {
+        } else if (o instanceof JavaOp.FieldAccessOp.FieldLoadOp fo) {
             if (fo.operands().isEmpty()) {
                 VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
                 return vh.get();
@@ -541,7 +543,7 @@ public final class Interpreter {
                 VarHandle vh = fieldHandle(l, fo.fieldDescriptor());
                 return vh.get(v);
             }
-        } else if (o instanceof CoreOp.FieldAccessOp.FieldStoreOp fo) {
+        } else if (o instanceof JavaOp.FieldAccessOp.FieldStoreOp fo) {
             if (fo.operands().size() == 1) {
                 Object v = oc.getValue(o.operands().get(0));
                 VarHandle vh = fieldStaticHandle(l, fo.fieldDescriptor());
@@ -553,34 +555,34 @@ public final class Interpreter {
                 vh.set(r, v);
             }
             return null;
-        } else if (o instanceof CoreOp.InstanceOfOp io) {
+        } else if (o instanceof JavaOp.InstanceOfOp io) {
             Object v = oc.getValue(o.operands().get(0));
             return isInstance(l, io.type(), v);
-        } else if (o instanceof CoreOp.CastOp co) {
+        } else if (o instanceof JavaOp.CastOp co) {
             Object v = oc.getValue(o.operands().get(0));
             return cast(l, co.type(), v);
-        } else if (o instanceof CoreOp.ArrayLengthOp) {
+        } else if (o instanceof JavaOp.ArrayLengthOp) {
             Object a = oc.getValue(o.operands().get(0));
             return Array.getLength(a);
-        } else if (o instanceof CoreOp.ArrayAccessOp.ArrayLoadOp) {
+        } else if (o instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
             Object a = oc.getValue(o.operands().get(0));
             Object index = oc.getValue(o.operands().get(1));
             return Array.get(a, (int) index);
-        } else if (o instanceof CoreOp.ArrayAccessOp.ArrayStoreOp) {
+        } else if (o instanceof JavaOp.ArrayAccessOp.ArrayStoreOp) {
             Object a = oc.getValue(o.operands().get(0));
             Object index = oc.getValue(o.operands().get(1));
             Object v = oc.getValue(o.operands().get(2));
             Array.set(a, (int) index, v);
             return null;
-        } else if (o instanceof CoreOp.ArithmeticOperation || o instanceof CoreOp.TestOperation) {
+        } else if (o instanceof JavaOp.ArithmeticOperation || o instanceof JavaOp.TestOperation) {
             MethodHandle mh = opHandle(l, o.opName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
-        } else if (o instanceof CoreOp.ConvOp) {
+        } else if (o instanceof JavaOp.ConvOp) {
             MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
-        } else if (o instanceof CoreOp.AssertOp _assert) {
+        } else if (o instanceof JavaOp.AssertOp _assert) {
             Body testBody = _assert.bodies.get(0);
             boolean testResult = (boolean) interpretBody(l, testBody, oc, List.of());
             if (!testResult) {
@@ -593,12 +595,12 @@ public final class Interpreter {
                 }
             }
             return null;
-        } else if (o instanceof CoreOp.ConcatOp) {
+        } else if (o instanceof JavaOp.ConcatOp) {
             return o.operands().stream()
                     .map(oc::getValue)
                     .map(String::valueOf)
                     .collect(Collectors.joining());
-        } else if (o instanceof CoreOp.MonitorOp.MonitorEnterOp) {
+        } else if (o instanceof JavaOp.MonitorOp.MonitorEnterOp) {
             Object monitorTarget = oc.getValue(o.operands().get(0));
             if (monitorTarget == null) {
                 throw new NullPointerException();
@@ -606,7 +608,7 @@ public final class Interpreter {
             ReentrantLock lock = oc.locks.computeIfAbsent(monitorTarget, _ -> new ReentrantLock());
             lock.lock();
             return null;
-        } else if (o instanceof CoreOp.MonitorOp.MonitorExitOp) {
+        } else if (o instanceof JavaOp.MonitorOp.MonitorExitOp) {
             Object monitorTarget = oc.getValue(o.operands().get(0));
             if (monitorTarget == null) {
                 throw new NullPointerException();
@@ -628,13 +630,13 @@ public final class Interpreter {
         try {
             INVOKE_LAMBDA_MH = MethodHandles.lookup().findStatic(Interpreter.class, "invokeLambda",
                     MethodType.methodType(Object.class, MethodHandles.Lookup.class,
-                            CoreOp.LambdaOp.class, Object[].class, Object[].class));
+                            JavaOp.LambdaOp.class, Object[].class, Object[].class));
         } catch (Throwable t) {
             throw new InternalError(t);
         }
     }
 
-    static Object invokeLambda(MethodHandles.Lookup l, CoreOp.LambdaOp op, Object[] capturedArgs, Object[] args) {
+    static Object invokeLambda(MethodHandles.Lookup l, JavaOp.LambdaOp op, Object[] capturedArgs, Object[] args) {
         List<Object> arguments = new ArrayList<>(Arrays.asList(args));
         arguments.addAll(Arrays.asList(capturedArgs));
         return invoke(l, op, arguments);
@@ -667,7 +669,7 @@ public final class Interpreter {
         return c.cast(v);
     }
 
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, CoreOp.InvokeOp.InvokeKind kind) {
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, JavaOp.InvokeOp.InvokeKind kind) {
         try {
             return d.resolveToHandle(l, kind);
         } catch (ReflectiveOperationException e) {
@@ -691,7 +693,7 @@ public final class Interpreter {
         }
     }
 
-    public static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
+    static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
         try {
             return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
         } catch (ReflectiveOperationException e) {
@@ -699,7 +701,7 @@ public final class Interpreter {
         }
     }
 
-    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>)jt.erasure().resolve(l);

@@ -24,13 +24,13 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
-public class IfOpWrapper extends StructuralOpWrapper<ExtendedOp.JavaIfOp> {
-    public IfOpWrapper(MethodHandles.Lookup lookup,ExtendedOp.JavaIfOp op) {
+public class IfOpWrapper extends StructuralOpWrapper<JavaOp.JavaIfOp> {
+    public IfOpWrapper(MethodHandles.Lookup lookup,JavaOp.JavaIfOp op) {
         super(lookup,op);
     }
 

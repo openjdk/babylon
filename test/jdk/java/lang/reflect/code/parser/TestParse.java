@@ -27,25 +27,26 @@
  * @run testng TestParse
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.parser.OpParser;
 import java.util.List;
 import java.util.function.IntUnaryOperator;
 
-import static jdk.incubator.code.op.CoreOp._return;
-import static jdk.incubator.code.op.CoreOp.add;
-import static jdk.incubator.code.op.CoreOp.constant;
-import static jdk.incubator.code.op.CoreOp.func;
-import static jdk.incubator.code.op.CoreOp.lambda;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.JavaType.INT;
-import static jdk.incubator.code.type.JavaType.type;
+import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.java.JavaOp.add;
+import static jdk.incubator.code.dialect.core.CoreOp.constant;
+import static jdk.incubator.code.dialect.core.CoreOp.func;
+import static jdk.incubator.code.dialect.java.JavaOp.lambda;
+import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.java.JavaType.INT;
+import static jdk.incubator.code.dialect.java.JavaType.type;
 
 public class TestParse {
 
@@ -63,7 +64,7 @@ public class TestParse {
                     // functional type = (int)int
                     // op type = ()IntUnaryOperator
                     //   captures i
-                    CoreOp.LambdaOp lambda = lambda(block.parentBody(),
+                    JavaOp.LambdaOp lambda = lambda(block.parentBody(),
                             functionType(INT, INT), type(IntUnaryOperator.class))
                             .body(lbody -> {
                                 Block.Builder lblock = lbody.entryBlock();
@@ -75,11 +76,11 @@ public class TestParse {
 
                     Op.Result fi = block.op(lambda);
                     Op.Result fortyTwo = block.op(constant(INT, 42));
-                    Op.Result or = block.op(CoreOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
+                    Op.Result or = block.op(JavaOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
                     block.op(_return(or));
                 });
 
-        List<Op> ops = OpParser.fromString(CoreOp.FACTORY, f.toText());
+        List<Op> ops = OpParser.fromString(JavaOp.DIALECT_FACTORY, f.toText());
         assertTextEquals(f, ops.get(0));
     }
 
@@ -96,8 +97,8 @@ public class TestParse {
             """;
     @Test
     void testParseNamedBody() {
-        Op opE = OpParser.fromString(CoreOp.FACTORY, NAMED_BODY).get(0);
-        Op opA = OpParser.fromString(CoreOp.FACTORY, opE.toText()).get(0);
+        Op opE = OpParser.fromString(JavaOp.DIALECT_FACTORY, NAMED_BODY).get(0);
+        Op opA = OpParser.fromString(JavaOp.DIALECT_FACTORY, opE.toText()).get(0);
         assertTextEquals(opA, opE);
     }
 
@@ -110,8 +111,8 @@ public class TestParse {
             """;
     @Test
     void testEscapedString() {
-        Op opE = OpParser.fromString(CoreOp.FACTORY, ESCAPED_STRING).get(0);
-        Op opA = OpParser.fromString(CoreOp.FACTORY, opE.toText()).get(0);
+        Op opE = OpParser.fromString(JavaOp.DIALECT_FACTORY, ESCAPED_STRING).get(0);
+        Op opA = OpParser.fromString(JavaOp.DIALECT_FACTORY, opE.toText()).get(0);
         assertTextEquals(opA, opE);
 
         CoreOp.ConstantOp cop = (CoreOp.ConstantOp) opE.bodies().get(0).entryBlock().firstOp();

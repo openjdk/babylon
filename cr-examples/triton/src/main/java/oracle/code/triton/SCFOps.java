@@ -26,10 +26,12 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.*;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.TupleType;
+import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.TupleType;
+import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -160,7 +162,7 @@ public class SCFOps {
     }
 
 
-    public static final OpFactory FACTORY = OpFactory.OP_FACTORY.get(SCFOps.class);
+    public static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(SCFOps.class);
 
     static public YieldOp yield_(Value... values) {
         return yield_(List.of(values));

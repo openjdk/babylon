@@ -28,7 +28,7 @@ package oracle.code.onnx.ir;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.dialect.ExternalizableOp;
 
 import java.util.*;
 

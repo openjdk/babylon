@@ -1,6 +1,6 @@
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

@@ -24,12 +24,12 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 
-public class UnaryArithmeticOrLogicOpWrapper extends UnaryOpWrapper<CoreOp.UnaryOp> {
-    UnaryArithmeticOrLogicOpWrapper( MethodHandles.Lookup lookup,CoreOp.UnaryOp op) {
+public class UnaryArithmeticOrLogicOpWrapper extends UnaryOpWrapper<JavaOp.UnaryOp> {
+    UnaryArithmeticOrLogicOpWrapper( MethodHandles.Lookup lookup,JavaOp.UnaryOp op) {
         super(lookup,op);
     }
 }

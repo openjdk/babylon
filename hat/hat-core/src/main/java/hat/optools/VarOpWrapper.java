@@ -24,8 +24,8 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.invoke.MethodHandles;
 

@@ -27,6 +27,7 @@
  * @run testng TestVarOp
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -34,11 +35,10 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.type.CoreTypeFactory;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
@@ -83,7 +83,7 @@ public class TestVarOp {
             return block;
         });
 
-        Op op = OpParser.fromString(CoreOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY, f.toText()).get(0);
+        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, f.toText()).get(0);
         boolean allNullNames = op.elements()
                 .flatMap(ce -> ce instanceof CoreOp.VarOp vop ? Stream.of(vop) : null)
                 .allMatch(CoreOp.VarOp::isUnnamedVariable);

@@ -35,9 +35,10 @@ import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -163,7 +164,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     }
 
     public BiMap<Block.Parameter, CoreOp.VarOp> parameterVarOpMap = new BiMap<>();
-    public BiMap<Block.Parameter, CoreOp.InvokeOp> parameterInvokeOpMap = new BiMap<>();
+    public BiMap<Block.Parameter, JavaOp.InvokeOp> parameterInvokeOpMap = new BiMap<>();
     public BiMap<Block.Parameter, OpsAndTypes.HatPtrOp> parameterHatPtrOpMap = new BiMap<>();
     public FuncOpWrapper( MethodHandles.Lookup lookup,CoreOp.FuncOp op) {
         super(lookup,op);
@@ -175,7 +176,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
                 if (resultOp instanceof CoreOp.VarOp varOp) {
                     parameterVarOpMap.add(parameter, varOp);
                     paramTable.add(Map.entry(parameter, varOp));
-                }else if (resultOp instanceof CoreOp.InvokeOp invokeOp) {
+                }else if (resultOp instanceof JavaOp.InvokeOp invokeOp) {
                     parameterInvokeOpMap.add(parameter,invokeOp);
                 }else if (resultOp instanceof OpsAndTypes.HatPtrOp hatPtrOp) {
                     parameterHatPtrOpMap.add(parameter,hatPtrOp);
@@ -228,7 +229,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
 
     public FuncOpWrapper transformInvokes(WrappedInvokeOpTransformer wrappedOpTransformer) {
         return OpWrapper.wrap(lookup,op().transform((b, op) -> {
-            if (op instanceof CoreOp.InvokeOp invokeOp) {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
                 wrappedOpTransformer.apply(b, OpWrapper.wrap(lookup,invokeOp));
             } else {
                 b.op(op);
@@ -239,7 +240,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
 
     public FuncOpWrapper transformIfaceInvokes(BiConsumer<Block.Builder,InvokeOpWrapper> wrappedOpTransformer) {
         return OpWrapper.wrap(lookup,op().transform((b, op) -> {
-            if (op instanceof CoreOp.InvokeOp invokeOp) {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
                 InvokeOpWrapper wrapped = OpWrapper.wrap(lookup,invokeOp);
                 if (wrapped.isIfaceBufferMethod()) {
                     wrappedOpTransformer.accept(b,wrapped);

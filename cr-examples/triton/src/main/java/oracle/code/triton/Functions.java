@@ -27,8 +27,9 @@ package oracle.code.triton;
 
 import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.dialect.core.CoreOp;
+
 import java.util.Optional;
 import java.util.stream.Stream;
 

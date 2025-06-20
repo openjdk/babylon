@@ -26,10 +26,10 @@ package hat.callgraph;
 
 import hat.ComputeContext;
 import hat.optools.FuncOpWrapper;
+import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import jdk.incubator.code.type.MethodRef;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
