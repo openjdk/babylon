@@ -26,9 +26,9 @@
 #include "opencl_backend.h"
 
 OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, BufferState *bufferState)
-        : Backend::Buffer(backend, bufferState) {
+        : Buffer(backend, bufferState) {
     cl_int status;
-    auto * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
+    const auto * openclBackend = dynamic_cast<OpenCLBackend *>(backend);
     clMem = clCreateBuffer(
         openclBackend->context,
         CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,

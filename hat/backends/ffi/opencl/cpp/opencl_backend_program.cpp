@@ -26,7 +26,7 @@
 #include "opencl_backend.h"
 
 OpenCLBackend::OpenCLProgram::OpenCLProgram(Backend *backend,  char *src, char *log, bool ok, cl_program program)
-    : Backend::CompilationUnit(backend, src,log, ok), program(program) {
+    : CompilationUnit(backend, src,log, ok), program(program) {
 }
 
 OpenCLBackend::OpenCLProgram::~OpenCLProgram() {
@@ -39,14 +39,14 @@ OpenCLBackend::OpenCLProgram::~OpenCLProgram() {
     if (status != CL_SUCCESS){
        std::cerr << "Failed to get kernel "<<name<<" "<<errorMsg(status)<<std::endl;
     }
-    return dynamic_cast<Backend::CompilationUnit::Kernel *>(new OpenCLKernel(this,name, kernel));
+    return new OpenCLKernel(this,name, kernel);
 }
 OpenCLBackend::OpenCLProgram::OpenCLKernel *OpenCLBackend::OpenCLProgram::getOpenCLKernel(int len, char *name) {
-   return dynamic_cast<OpenCLProgram::OpenCLKernel *>(getKernel(len, name));
+   return dynamic_cast<OpenCLKernel *>(getKernel(len, name));
 }
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel *OpenCLBackend::OpenCLProgram::getOpenCLKernel(char *name) {
-   return getOpenCLKernel(::strlen(name), name);
+   return getOpenCLKernel(strlen(name), name);
 }
 
 

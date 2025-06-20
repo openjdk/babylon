@@ -71,11 +71,10 @@ public abstract class FFIBackend extends FFIBackendDriver {
             computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
         }
 
-
         boolean interpret = false;
      //   long ns = System.nanoTime();
         backendBridge.computeStart();
-        if (interpret) {
+        if (config.isINTERPRET()) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op(), args);
         } else {
             try {
@@ -144,10 +143,6 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 return new PrePost(MUTATE.pre, MUTATE.post);
             }
 
-          //  static PrePost escape() {
-            //    return new PrePost(ESCAPE.pre, ESCAPE.post);
-           // }
-
             void apply(Block.Builder bldr, CopyContext bldrCntxt, Value computeContext, InvokeOpWrapper invokeOW) {
                 if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
                     Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
@@ -158,11 +153,11 @@ public abstract class FFIBackend extends FFIBackendDriver {
             }
         }
 
-    protected static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod, boolean show, boolean inject) {
+    protected  FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         FuncOpWrapper prevFOW = computeMethod.funcOpWrapper();
         FuncOpWrapper returnFOW = prevFOW;
-        if (inject) {
-            if (show) {
+        if (config.isSHOW_COMPUTE_MODEL()) {
+            if (config.isSHOW_COMPUTE_MODEL()) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 returnFOW.op().writeTo(System.out);
             }
@@ -232,12 +227,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 return bldr;
             });
-            if (show) {
+            if (config.isSHOW_COMPUTE_MODEL()) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
                 returnFOW.op().writeTo(System.out);
             }
         }else{
-            if (show) {
+            if (config.isSHOW_COMPUTE_MODEL()) {
                 System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
                 returnFOW.op().writeTo(System.out);
             }

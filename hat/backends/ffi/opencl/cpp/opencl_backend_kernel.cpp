@@ -24,61 +24,28 @@
  */
 #include "opencl_backend.h"
 
-
-/*
-  OpenCLKernel
-  */
-
 OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::CompilationUnit *compilationUnit, char* name, cl_kernel kernel)
-    : Backend::CompilationUnit::Kernel(compilationUnit, name), kernel(kernel){
+    : Kernel(compilationUnit, name), kernel(kernel){
 }
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
     clReleaseKernel(kernel);
 }
 
-
-/*
-void dispatchKernel(Kernel kernel, KernelContext kc, Arg ... args) {
-    for (int argn = 0; argn<args.length; argn++){
-      Arg arg = args[argn];
-      if (alwaysCopyBuffers || (((arg.flags &JavaDirty)==JavaDirty) && kernel.readsFrom(arg))) {
-         enqueueCopyToDevice(arg);
-      }
-    }
-    enqueueKernel(kernel);
-    waitForKernel();
-
-    for (int argn = 0; argn<args.length; argn++){
-      Arg arg = args[argn];
-      if (alwaysCopyBuffers){
-         enqueueCopyFromDevice(arg);
-         arg.flags = 0;
-      }else{
-          if (kernel.writesTo(arg)) {
-             arg.flags = DeviceDirty;
-          }else{
-             arg.flags = 0;
-          }
-      }
-    }
-
-}
-*/
-
 bool OpenCLBackend::OpenCLProgram::OpenCLKernel::setArg(KernelArg *arg, Buffer *buffer){
-    auto * openCLBuffer = dynamic_cast<OpenCLBuffer *>(buffer);
-    cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openCLBuffer->clMem);
+    const auto * openCLBuffer = dynamic_cast<OpenCLBuffer *>(buffer);
+    const cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openCLBuffer->clMem);
     if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        std::cerr << errorMsg(status) << std::endl;
         return false;
     }
     return true;
 }
+
 bool OpenCLBackend::OpenCLProgram::OpenCLKernel::setArg(KernelArg *arg) {
-    cl_int status = clSetKernelArg(kernel, arg->idx, arg->size(), (void *) &arg->value);
+    const cl_int status = clSetKernelArg(kernel, arg->idx, arg->size(), (void *) &arg->value);
     if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        std::cerr << errorMsg(status) << std::endl;
         return false;
     }
     return true;

@@ -30,23 +30,21 @@ import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.type.JavaType;
 
-import java.lang.invoke.MethodHandles;
-
-public class CudaHatKernelBuilder extends C99HATKernelBuilder<CudaHatKernelBuilder> {
+public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
     @Override
-    public CudaHatKernelBuilder defines() {
+    public CudaHATKernelBuilder defines() {
         return this
                 .hashDefine("NDRANGE_CUDA")
                 .hashDefine("__global");
     }
 
     @Override
-    public CudaHatKernelBuilder pragmas() {
+    public CudaHATKernelBuilder pragmas() {
         return self();
     }
 
-    public CudaHatKernelBuilder globalId() {
+    public CudaHATKernelBuilder globalId() {
         return identifier("blockIdx").dot().identifier("x")
                 .asterisk()
                 .identifier("blockDim").dot().identifier("x")
@@ -55,7 +53,7 @@ public class CudaHatKernelBuilder extends C99HATKernelBuilder<CudaHatKernelBuild
     }
 
     @Override
-    public CudaHatKernelBuilder globalSize() {
+    public CudaHATKernelBuilder globalSize() {
         return identifier("gridDim").dot().identifier("x")
                 .asterisk()
                 .identifier("blockDim").dot().identifier("x");
@@ -63,23 +61,23 @@ public class CudaHatKernelBuilder extends C99HATKernelBuilder<CudaHatKernelBuild
 
 
     @Override
-    public CudaHatKernelBuilder kernelDeclaration(String name) {
+    public CudaHATKernelBuilder kernelDeclaration(String name) {
         return externC().space().keyword("__global__").space().voidType().space().identifier(name);
     }
 
     @Override
-    public CudaHatKernelBuilder functionDeclaration(CodeBuilderContext codeBuilderContext,JavaType javaType, String name) {
+    public CudaHATKernelBuilder functionDeclaration(CodeBuilderContext codeBuilderContext, JavaType javaType, String name) {
         return externC().space().keyword("__device__").space().keyword("inline").space().type(codeBuilderContext,javaType).space().identifier(name);
     }
 
     @Override
-    public CudaHatKernelBuilder globalPtrPrefix() {
+    public CudaHATKernelBuilder globalPtrPrefix() {
         return self();
     }
 
 
     @Override
-    public CudaHatKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
+    public CudaHATKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
         return identifier("atomicAdd").paren(_ -> {
              ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),instanceResult.op()));
              rarrow().identifier(name).comma().literal(1);

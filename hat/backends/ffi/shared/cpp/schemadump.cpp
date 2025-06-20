@@ -26,7 +26,7 @@
 #include "schema.h"
 
 int main(int argc, char **argv) {
-    char *rgbToGrey = (char *) R"(3
+    const char *rgbToGrey = R"(3
        (!:32#KernelContext:{
           x:s32,
           maxX:s32
@@ -35,12 +35,14 @@ int main(int argc, char **argv) {
            width:s32,height:s32,elementsPerPixel:s32,bufferedImageType:s32,data:[*:?:s8]}),
        (?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]})
     )";
-    char *gradientRow = (char *) "4(!:32#KernelContext:{x:s32,maxX:s32}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]})";
-    char *gradientCol = (char *)
+    const char *gradientRow =
+            "4(!:32#KernelContext:{x:s32,maxX:s32}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]})";
+    const char *gradientCol =
             "3(!:32#KernelContext:{x:s32,maxX:s32}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]})";
-    char* squares = (char*)"2(!:32#KernelContext:{x:s32,maxX:s32}),(?:4+S32Array:{length:s32,array:[*:?:s32]})";
-    char *suaresadd=(char*)"3(!:32#KernelContext:{x:s32,maxX:s32}),(?:4+S32Array:{length:s32,array:[*:?:s32]}),(?:s32)";
-    char *cascadeSchema = (char *) R"(6
+    const char *squares = "2(!:32#KernelContext:{x:s32,maxX:s32}),(?:4+S32Array:{length:s32,array:[*:?:s32]})";
+    const char *suaresadd =
+            "3(!:32#KernelContext:{x:s32,maxX:s32}),(?:4+S32Array:{length:s32,array:[*:?:s32]}),(?:s32)";
+    const char *cascadeSchema = R"(6
         (!:32#KernelContext:{x:s32,maxX:s32}),
         (!:163472#Cascade:{
             width:s32,
@@ -100,7 +102,7 @@ int main(int argc, char **argv) {
         (?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),
         (?:8+ScaleTable:{length:s32,multiScaleAccumulativeRange:s32,scale:[*:Scale:{scaleValue:f32,scaledXInc:f32,scaledYInc:f32,invArea:f32,scaledFeatureWidth:s32,scaledFeatureHeight:s32,gridWidth:s32,gridHeight:s32,gridSize:s32,accumGridSizeMin:s32,accumGridSizeMax:s32}]}),
         (?:8+ResultTable:{length:s32,atomicResultTableCount:s32,result:[*:Result:{x:f32,y:f32,width:f32,height:f32}]}))";
-    char *schema = suaresadd;
+    char *schema = (char *) suaresadd;
     std::cout << "schema = '" << schema << "'" << std::endl;
     SchemaCursor cursor(schema);
     Schema::SchemaNode schemaNode;
@@ -109,4 +111,3 @@ int main(int argc, char **argv) {
 
     Schema::show(std::cout, &schemaNode);
 }
-

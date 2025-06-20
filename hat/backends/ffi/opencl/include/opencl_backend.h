@@ -28,139 +28,179 @@
 #ifdef __APPLE__
    #include <opencl/opencl.h>
 #else
-   #include <CL/cl.h>
-   #include <malloc.h>
-   #if defined (_WIN32)
+#include <CL/cl.h>
+#include <malloc.h>
+#if defined (_WIN32)
        #include "windows.h"
-   #endif
+#endif
 #endif
 #include "shared.h"
 
-class OpenCLSource:public Text  {
+class OpenCLSource final : public Text {
 public:
-    OpenCLSource(size_t len, char *text, bool isCopy);
-    OpenCLSource(size_t len);
-    OpenCLSource(char* text);
+    explicit OpenCLSource(size_t len);
+
+    explicit OpenCLSource(char *text);
+
     OpenCLSource();
-    ~OpenCLSource() = default;
+
+    ~OpenCLSource() override = default;
 };
 
 extern void __checkOpenclErrors(cl_int status, const char *file, const int line);
 
 #define checkOpenCLErrors(err)  __checkOpenclErrors (err, __FILE__, __LINE__)
 
-class OpenCLBackend : public Backend {
+class OpenCLBackend final : public Backend {
 public:
-    class OpenCLBuffer : public Backend::Buffer {
+    class OpenCLBuffer final : public Backend::Buffer {
     public:
         cl_mem clMem;
+
         OpenCLBuffer(Backend *backend, BufferState *bufferState);
-        virtual ~OpenCLBuffer();
+
+        ~OpenCLBuffer() override;
     };
 
-    class OpenCLProgram : public Backend::CompilationUnit {
-        public:
+    class OpenCLProgram final : public Backend::CompilationUnit {
+    public:
         class OpenCLKernel : public Backend::CompilationUnit::Kernel {
         public:
             cl_kernel kernel;
-            OpenCLKernel(Backend::CompilationUnit *compilationUnit, char* name,cl_kernel kernel);
+
+            OpenCLKernel(Backend::CompilationUnit *compilationUnit, char *name, cl_kernel kernel);
+
             bool setArg(KernelArg *arg) override;
+
             bool setArg(KernelArg *arg, Buffer *buffer) override;
+
             ~OpenCLKernel() override;
         };
+
     private:
         cl_program program;
+
     public:
         OpenCLProgram(Backend *backend, char *src, char *log, bool ok, cl_program program);
+
         ~OpenCLProgram() override;
+
         OpenCLKernel *getOpenCLKernel(char *name);
+
         OpenCLKernel *getOpenCLKernel(int nameLen, char *name);
+
         CompilationUnit::Kernel *getKernel(int nameLen, char *name) override;
     };
+
     class OpenCLQueue : public Backend::ProfilableQueue {
     public:
         cl_command_queue command_queue;
         cl_event *events;
 
-        cl_event *eventListPtr();
-        cl_event *nextEventPtr();
+        cl_event *eventListPtr() const;
+
+        cl_event *nextEventPtr() const;
 
         explicit OpenCLQueue(Backend *backend);
 
-         void wait() override;
-         void release() override;
-         void computeStart() override;
-         void computeEnd() override;
-         void showEvents(int width) override;
-         void inc(int bits) override;
-         void inc(int bits, const char *arg) override;
-         void marker(int bits) override;
-         void marker(int bits, const char *arg) override;
-         void markAsStartComputeAndInc() override;
-         void markAsEndComputeAndInc() override;
-         void markAsEnterKernelDispatchAndInc() override;
-         void markAsLeaveKernelDispatchAndInc() override;
+        void wait() override;
 
-         void copyToDevice(Buffer *buffer) override;
-         void copyFromDevice(Buffer *buffer) override;
+        void release() override;
+
+        void computeStart() override;
+
+        void computeEnd() override;
+
+        void showEvents(int width) override;
+
+        void inc(int bits) override;
+
+        void inc(int bits, const char *arg) override;
+
+        void marker(int bits) override;
+
+        void marker(int bits, const char *arg) override;
+
+        void markAsStartComputeAndInc() override;
+
+        void markAsEndComputeAndInc() override;
+
+        void markAsEnterKernelDispatchAndInc() override;
+
+        void markAsLeaveKernelDispatchAndInc() override;
+
+        void copyToDevice(Buffer *buffer) override;
+
+        void copyFromDevice(Buffer *buffer) override;
 
 
         void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
-         ~OpenCLQueue() override;
+
+        ~OpenCLQueue() override;
     };
-public:
+
     cl_platform_id platform_id;
     cl_context context;
     cl_device_id device_id;
+
     explicit OpenCLBackend(int configBits);
+
     ~OpenCLBackend() override;
 
     OpenCLBuffer *getOrCreateBuffer(BufferState *bufferState) override;
-    OpenCLProgram *compileProgram(OpenCLSource &openclSource) ;
-    OpenCLProgram *compileProgram(OpenCLSource *openclSource);
+
+    OpenCLProgram *compileProgram(OpenCLSource &openclSource);
+
+    OpenCLProgram *compileProgram(const OpenCLSource *openclSource);
+
     OpenCLProgram *compileProgram(int len, char *source);
 
     CompilationUnit *compile(int len, char *source) override;
+
     void computeStart() override;
+
     void computeEnd() override;
+
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
+
     void info() override;
 
-public:
     static const char *errorMsg(cl_int status);
 };
 
 
-struct PlatformInfo{
-    struct DeviceInfo{
-      OpenCLBackend *openclBackend;
-      cl_int maxComputeUnits;
-      cl_int maxWorkItemDimensions;
-      cl_device_type deviceType;
-      size_t maxWorkGroupSize;
-      cl_ulong globalMemSize;
-      cl_ulong localMemSize;
-      cl_ulong maxMemAllocSize;
-      char *profile;
-      char *deviceVersion;
-      size_t *maxWorkItemSizes ;
-      char *driverVersion;
-      char *cVersion;
-      char *name;
-      char *extensions;
-      char *builtInKernels;
-      char *deviceTypeStr;
-      explicit DeviceInfo(OpenCLBackend *openclBackend);
-      ~DeviceInfo();
+struct PlatformInfo {
+    struct DeviceInfo {
+        OpenCLBackend *openclBackend;
+        cl_int maxComputeUnits;
+        cl_int maxWorkItemDimensions;
+        cl_device_type deviceType{};
+        size_t maxWorkGroupSize;
+        cl_ulong globalMemSize;
+        cl_ulong localMemSize;
+        cl_ulong maxMemAllocSize;
+        char *profile;
+        char *deviceVersion;
+        size_t *maxWorkItemSizes;
+        char *driverVersion;
+        char *cVersion;
+        char *name;
+        char *extensions;
+        char *builtInKernels;
+        char *deviceTypeStr;
+
+        explicit DeviceInfo(OpenCLBackend *openclBackend);
+
+        ~DeviceInfo();
     };
-  OpenCLBackend *openclBackend;
-  char *versionName;
-  char *vendorName;
-  char *name;
-  DeviceInfo deviceInfo;
 
-  explicit PlatformInfo(OpenCLBackend *openclBackend);
-  ~PlatformInfo();
+    OpenCLBackend *openclBackend;
+    char *versionName;
+    char *vendorName;
+    char *name;
+    DeviceInfo deviceInfo;
+
+    explicit PlatformInfo(OpenCLBackend *openclBackend);
+
+    ~PlatformInfo();
 };
-
-

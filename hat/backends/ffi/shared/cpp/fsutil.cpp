@@ -22,8 +22,14 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
- #include <map>
+#include <map>
 #include <mutex>
+#include <iostream>
+#include <fstream>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "fsutil.h"
 #include "strutil.h"
 //#define TRACEMEM
@@ -144,7 +150,6 @@ void fsutil::forEachDirName(const std::string &dirName, std::function<void(std::
             std::string name = dirName + "/" + ent->d_name;
             if (ent->d_type & DT_DIR && std::strcmp(ent->d_name, ".") != 0 && std::strcmp(ent->d_name, "..") != 0) {
                 visitor(name);
-
             }
             closedir(d);
         }
@@ -189,7 +194,6 @@ void fsutil::send(const std::string &fileName, int to) {
 
 
 size_t fsutil::size(const std::string &fileName) {
-
     struct stat st;
     stat(fileName.c_str(), &st);
     return st.st_size;
@@ -202,8 +206,8 @@ bool fsutil::isDir(const std::string &dirName) {
 
 bool fsutil::removeFile(const std::string &dirName) {
     struct stat buffer;
-    if (stat(dirName.c_str(), &buffer) == 0 && S_ISREG(buffer.st_mode)){
-        std::cerr << "removing file '"+dirName<<"'"<<std::endl;
+    if (stat(dirName.c_str(), &buffer) == 0 && S_ISREG(buffer.st_mode)) {
+        std::cerr << "removing file '" + dirName << "'" << std::endl;
         return (::unlink(dirName.c_str()) == 0);
     }
     return false;
@@ -213,6 +217,7 @@ bool fsutil::isFile(const std::string &fileName) {
     struct stat buffer;
     return (stat(fileName.c_str(), &buffer) == 0 && S_ISREG(buffer.st_mode));
 }
+
 bool fsutil::isFileOrLink(const std::string &fileName) {
     struct stat buffer;
     return (stat(fileName.c_str(), &buffer) == 0 && (S_ISREG(buffer.st_mode) || (S_ISLNK(buffer.st_mode))));
@@ -222,6 +227,7 @@ bool fsutil::isFile(const std::string &dirName, const std::string &fileName) {
     std::string path = dirName + "/" + fileName;
     return isFile(path);
 }
+
 bool fsutil::isFileOrLink(const std::string &dirName, const std::string &fileName) {
     std::string path = dirName + "/" + fileName;
     return isFileOrLink(path);
@@ -266,7 +272,7 @@ std::string fsutil::getFile(const std::string &path) {
 BufferCursor *fsutil::getFileBufferCursor(const std::string &path) {
     size_t s = size(path);
     // read directly into buffer!  buffer(path.c_str());
-    char *buf = (char *)malloc(s+1);
+    char *buf = (char *) malloc(s + 1);
     BufferCursor *buffer = new BufferCursor(buf, s + 1);
     int fd = open(path.c_str(), O_RDONLY);
     ::read(fd, buffer->getStart(), buffer->getSize());
@@ -281,6 +287,6 @@ void fsutil::putFile(const std::string &path, const std::string &content) {
 }
 
 void fsutil::putFileBufferCursor(const std::string &path, BufferCursor *buffer) {
-     std::cerr << "who the hell called putFileBUffer" << std::endl;
-     ::exit(1);
+    std::cerr << "who the hell called putFileBUffer" << std::endl;
+    ::exit(1);
 }

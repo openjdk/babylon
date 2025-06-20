@@ -24,12 +24,12 @@
  */
 #include "shared.h"
 
-class MockBackend : public Backend {
+class MockBackend final : public Backend {
 public:
 
 
-    class MockProgram : public Backend::CompilationUnit {
-        class MockKernel : public Backend::CompilationUnit::Kernel {
+    class MockProgram final : public Backend::CompilationUnit {
+        class MockKernel final : public Backend::CompilationUnit::Kernel {
         public:
             MockKernel(Backend::CompilationUnit *compilationUnit, char *name)
                     : Backend::CompilationUnit::Kernel(compilationUnit, name) {
@@ -48,14 +48,13 @@ public:
                 : Backend::CompilationUnit(backend, src,log, ok) {
         }
 
-        ~MockProgram() {
-        }
+        ~MockProgram() override = default;
 
-        Kernel* getKernel(int nameLen, char *name) {
+        Kernel* getKernel(int nameLen, char *name) override {
             return new MockKernel(this, name);
         }
     };
-    class MockQueue: public Backend::Queue{
+    class MockQueue final : public Backend::Queue{
     public:
         void wait()override{};
         void release()override{};
@@ -76,11 +75,9 @@ public:
     };
 public:
 
-    MockBackend(int configBits): Backend(new Config(configBits), new MockQueue(this)) {
-    }
+    explicit MockBackend(int configBits): Backend(new Config(configBits), new MockQueue(this)) {}
 
-    ~MockBackend() {
-    }
+    ~MockBackend() override = default;
     Buffer * getOrCreateBuffer(BufferState *bufferState) override{
         Buffer *buffer = nullptr;
 
@@ -122,8 +119,8 @@ public:
         ::strncpy(src, source, srcLen);
         src[srcLen] = '\0';
         std::cout << "native compiling " << src << std::endl;
-        MockProgram *mockProgram = new MockProgram(this,src, nullptr, false);
-        return dynamic_cast<CompilationUnit*>(mockProgram);
+        auto *mockProgram = new MockProgram(this,src, nullptr, false);
+        return mockProgram;
     }
 };
 

@@ -19,7 +19,7 @@ uint64_t timeSinceEpochMillisec() {
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
-HIPBackend::HIPProgram::HIPKernel::HIPBuffer::HIPBuffer(Backend::Program::Kernel *kernel, Arg_s *arg)
+HipBackend::HipBuffer::HipBuffer(Backend::CompilationUnit::Kernel *kernel, Arg_s *arg)
         : Buffer(kernel, arg), devicePtr() {
     /*
      *   (void *) arg->value.buffer.memorySegment,
@@ -35,7 +35,7 @@ HIPBackend::HIPProgram::HIPKernel::HIPBuffer::HIPBuffer(Backend::Program::Kernel
     arg->value.buffer.vendorPtr = static_cast<void *>(this);
 }
 
-HIPBackend::HIPProgram::HIPKernel::HIPBuffer::~HIPBuffer() {
+HipBackend::HipBuffer::~HipBuffer() {
 
 #ifdef VERBOSE
     std::cout << "hipFree()"
@@ -46,8 +46,8 @@ HIPBackend::HIPProgram::HIPKernel::HIPBuffer::~HIPBuffer() {
     arg->value.buffer.vendorPtr = nullptr;
 }
 
-void HIPBackend::HIPProgram::HIPKernel::HIPBuffer::copyToDevice() {
-    auto hipKernel = dynamic_cast<HIPKernel*>(kernel);
+void HipBackend::HipBuffer::copyToDevice() {
+    auto hipKernel = dynamic_cast<HipKernel*>(kernel);
 #ifdef VERBOSE
     std::cout << "copyToDevice() 0x"   << std::hex<<arg->value.buffer.sizeInBytes<<std::dec << " "<< arg->value.buffer.sizeInBytes << " "
               << "devptr " << std::hex<<  (long)devicePtr <<std::dec
@@ -67,8 +67,8 @@ void HIPBackend::HIPProgram::HIPKernel::HIPBuffer::copyToDevice() {
     HIP_CHECK(hipMemcpyHtoDAsync(devicePtr, arg->value.buffer.memorySegment, arg->value.buffer.sizeInBytes, hipKernel->hipStream));
 }
 
-void HIPBackend::HIPProgram::HIPKernel::HIPBuffer::copyFromDevice() {
-    auto hipKernel = dynamic_cast<HIPKernel*>(kernel);
+void HipBackend::HipBuffer::copyFromDevice() {
+    auto hipKernel = dynamic_cast<HipKernel*>(kernel);
 #ifdef VERBOSE
     std::cout << "copyFromDevice() 0x" << std::hex<<arg->value.buffer.sizeInBytes<<std::dec << " "<< arg->value.buffer.sizeInBytes << " "
               << "devptr " << std::hex<<  (long)devicePtr <<std::dec
@@ -96,13 +96,13 @@ void HIPBackend::HIPProgram::HIPKernel::HIPBuffer::copyFromDevice() {
     }
 }
 
-HIPBackend::HIPProgram::HIPKernel::HIPKernel(Backend::Program *program, char * name, hipFunction_t kernel)
-        : Backend::Program::Kernel(program, name), kernel(kernel),hipStream() {
+HipBackend::HipProgram::HipKernel::HipKernel(Backend::CompilationUnit *program, char * name, hipFunction_t kernel)
+        : Backend::CompilationUnit::Kernel(program, name), kernel(kernel),hipStream() {
 }
 
-HIPBackend::HIPProgram::HIPKernel::~HIPKernel() = default;
+HipBackend::HipProgram::HipKernel::~HipKernel() = default;
 
-long HIPBackend::HIPProgram::HIPKernel::ndrange(void *argArray) {
+long HipBackend::HipProgram::HipKernel::ndrange(void *argArray) {
 #ifdef VERBOSE
     std::cout << "ndrange(" << range << ") " << name << std::endl;
 #endif
@@ -121,7 +121,7 @@ long HIPBackend::HIPProgram::HIPKernel::ndrange(void *argArray) {
                 if (arg->idx == 0){
                     ndrange = static_cast<NDRange *>(arg->value.buffer.memorySegment);
                 }
-                auto hipBuffer = new HIPBuffer(this, arg);
+                auto hipBuffer = new HipBuffer(this, arg);
                 hipBuffer->copyToDevice();
                 argslist[arg->idx] = static_cast<void *>(&hipBuffer->devicePtr);
                 break;
@@ -165,7 +165,7 @@ long HIPBackend::HIPProgram::HIPKernel::ndrange(void *argArray) {
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
-            static_cast<HIPBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
+            static_cast<HipBuffer *>(arg->value.buffer.vendorPtr)->copyFromDevice();
 
         }
     }
@@ -173,7 +173,7 @@ long HIPBackend::HIPProgram::HIPKernel::ndrange(void *argArray) {
     for (int i = 0; i < argSled.argc(); i++) {
         Arg_s *arg = argSled.arg(i);
         if (arg->variant == '&') {
-            delete static_cast<HIPBuffer *>(arg->value.buffer.vendorPtr);
+            delete static_cast<HipBuffer *>(arg->value.buffer.vendorPtr);
             arg->value.buffer.vendorPtr = nullptr;
         }
     }
@@ -184,53 +184,53 @@ long HIPBackend::HIPProgram::HIPKernel::ndrange(void *argArray) {
 }
 
 
-HIPBackend::HIPProgram::HIPProgram(Backend *backend, BuildInfo *buildInfo, hipModule_t module)
-        : Backend::Program(backend, buildInfo), module(module) {
+HipBackend::HipProgram::HipProgram(Backend *backend, BuildInfo *buildInfo, hipModule_t module)
+        : Backend::CompilationUnit(backend, buildInfo), module(module) {
 }
 
-HIPBackend::HIPProgram::~HIPProgram() = default;
+HipBackend::HipProgram::~HipProgram() = default;
 
-long HIPBackend::HIPProgram::getKernel(int nameLen, char *name) {
+long HipBackend::HipProgram::getKernel(int nameLen, char *name) {
 
     hipFunction_t kernel;
     HIP_CHECK(hipModuleGetFunction(&kernel, module, name));
-    long kernelHandle =  reinterpret_cast<long>(new HIPKernel(this, name, kernel));
+    long kernelHandle =  reinterpret_cast<long>(new HipKernel(this, name, kernel));
 
     return kernelHandle;
 }
 
-bool HIPBackend::HIPProgram::programOK() {
+bool HipBackend::HipProgram::programOK() {
     return true;
 }
 
-HIPBackend::HIPBackend(HIPBackend::HIPConfig *hipConfig, int
+HipBackend::HipBackend(HipBackend::HIPConfig *hipConfig, int
 configSchemaLen, char *configSchema)
         : Backend((Backend::Config*) hipConfig, configSchemaLen, configSchema), device(),context()  {
 #ifdef VERBOSE
-    std::cout << "HIPBackend constructor " << ((hipConfig == nullptr) ? "hipConfig== null" : "got hipConfig")
+    std::cout << "HipBackend constructor " << ((hipConfig == nullptr) ? "hipConfig== null" : "got hipConfig")
               << std::endl;
 #endif
     int deviceCount = 0;
     hipError_t err = hipInit(0);
     if (err == HIP_SUCCESS) {
         hipGetDeviceCount(&deviceCount);
-        std::cout << "HIPBackend device count" << std::endl;
+        std::cout << "HipBackend device count" << std::endl;
         hipDeviceGet(&device, 0);
-        std::cout << "HIPBackend device ok" << std::endl;
+        std::cout << "HipBackend device ok" << std::endl;
         hipCtxCreate(&context, 0, device);
-        std::cout << "HIPBackend context created ok" << std::endl;
+        std::cout << "HipBackend context created ok" << std::endl;
     } else {
-        std::cout << "HIPBackend failed, we seem to have the runtime library but no device, no context, nada "
+        std::cout << "HipBackend failed, we seem to have the runtime library but no device, no context, nada "
                   << std::endl;
         exit(1);
     }
 }
 
-HIPBackend::HIPBackend() : HIPBackend(nullptr, 0, nullptr) {
+HipBackend::HipBackend() : HipBackend(nullptr, 0, nullptr) {
 
 }
 
-HIPBackend::~HIPBackend() {
+HipBackend::~HipBackend() {
 #ifdef VERBOSE
     std::cout << "freeing context" << std::endl;
 #endif
@@ -243,13 +243,13 @@ HIPBackend::~HIPBackend() {
     }
 }
 
-int HIPBackend::getMaxComputeUnits() {
+int HipBackend::getMaxComputeUnits() {
     std::cout << "getMaxComputeUnits()" << std::endl;
     int value = 1;
     return value;
 }
 
-void HIPBackend::info() {
+void HipBackend::info() {
     char name[100];
     hipDeviceGetName(name, sizeof(name), device);
     std::cout << "> Using device 0: " << name << std::endl;
@@ -280,7 +280,7 @@ void HIPBackend::info() {
 
 }
 
-long HIPBackend::compileProgram(int len, char *source) {
+long HipBackend::compileProgram(int len, char *source) {
 
 #ifdef VERBOSE
     std::cout << "inside compileProgram" << std::endl;
@@ -335,12 +335,12 @@ long HIPBackend::compileProgram(int len, char *source) {
     hipModuleLoadData(&module, kernel_binary.data());
     hiprtcDestroyProgram(&prog);
 
-    return reinterpret_cast<long>(new HIPProgram(this, nullptr, module));
+    return reinterpret_cast<long>(new HipProgram(this, nullptr, module));
 }
 
 long getBackend(void *config, int configSchemaLen, char *configSchema) {
     long backendHandle = reinterpret_cast<long>(
-            new HIPBackend(static_cast<HIPBackend::HIPConfig *>(config), configSchemaLen,
+            new HipBackend(static_cast<HipBackend::HIPConfig *>(config), configSchemaLen,
                             configSchema));
 #ifdef VERBOSE
     std::cout << "getBackend() -> backendHandle=" << std::hex << backendHandle << std::dec << std::endl;

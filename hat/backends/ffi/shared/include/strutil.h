@@ -24,28 +24,13 @@
  */
 #pragma once
 
-#include <sys/stat.h>
-#include <dirent.h>
-#include <fstream>
-#include <iostream>
-#include <vector>
-#include <memory>
-#include <functional>
-#include <cstring>
-#include <unistd.h>
-#include <fcntl.h>
-#include <cstdlib>
-#include <sys/wait.h>
-#include <sstream>
+
 #include <iomanip>
-#include <functional>
 
 namespace strutil {
-     void replaceInPlace(std::string &subject, const std::string &search,const std::string &replace);
-     bool endsWith(const std::string &str, const std::string &suffix);
-     char *clone(char *name);
+    void replaceInPlace(std::string &subject, const std::string &search, const std::string &replace);
+
+    bool endsWith(const std::string &str, const std::string &suffix);
+
+    char *clone(char *name);
 };
-
-
-
-

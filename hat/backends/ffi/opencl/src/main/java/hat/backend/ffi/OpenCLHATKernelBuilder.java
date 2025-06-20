@@ -30,11 +30,9 @@ import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.type.JavaType;
 
-import java.lang.invoke.MethodHandles;
-
-public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
+public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
     @Override
-    public OpenCLHatKernelBuilder defines() {
+    public OpenCLHATKernelBuilder defines() {
         hashDefine("NDRANGE_OPENCL");
         pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable");
         pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
@@ -43,39 +41,39 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder pragmas() {
+    public OpenCLHATKernelBuilder pragmas() {
         return self().
                 pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable").
                 pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
     }
 
     @Override
-    public OpenCLHatKernelBuilder globalId() {
+    public OpenCLHATKernelBuilder globalId() {
         return identifier("get_global_id").oparen().literal(0).cparen();
     }
 
     @Override
-    public OpenCLHatKernelBuilder globalSize() {
+    public OpenCLHATKernelBuilder globalSize() {
         return identifier("get_global_size").oparen().literal(0).cparen();
     }
 
     @Override
-    public OpenCLHatKernelBuilder kernelDeclaration(String name) {
+    public OpenCLHATKernelBuilder kernelDeclaration(String name) {
         return keyword("__kernel").space().voidType().space().identifier(name);
     }
 
     @Override
-    public OpenCLHatKernelBuilder functionDeclaration(CodeBuilderContext codeBuilderContext,JavaType type, String name) {
+    public OpenCLHATKernelBuilder functionDeclaration(CodeBuilderContext codeBuilderContext, JavaType type, String name) {
         return keyword("inline").space().type(codeBuilderContext,type).space().identifier(name);
     }
 
     @Override
-    public OpenCLHatKernelBuilder globalPtrPrefix() {
+    public OpenCLHATKernelBuilder globalPtrPrefix() {
         return keyword("__global");
     }
 
     @Override
-    public OpenCLHatKernelBuilder atomicInc(CodeBuilderContext buildContext,  Op.Result instanceResult, String name){
+    public OpenCLHATKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ -> {
               ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),instanceResult.op()));
               rarrow().identifier(name);
