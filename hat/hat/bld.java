@@ -91,7 +91,8 @@ void main(String[] args) {
                 ├──life                                // Maven style layout
                 ├──nbody                               // Maven style layout
                 ├──experiments                         // Maven style layout
-                └──violajones                          // Maven style layout
+                ├──violajones                          // Maven style layout
+                └──matmul                              // Maven style layout
        """;
     class Artifacts{
         static Script.MavenStyleProject javaSeqBackend;
@@ -281,13 +282,13 @@ if (Artifacts.jextractedOpenGL != null
     );
 
     var examplesDir = dir.existingDir("examples");
-    Stream.of(
-            "blackscholes",
-                    "heal",
-                    "life",
-                    "mandel",
-                    "squares",
-                    "violajones"
+    Stream.of("blackscholes",
+              "heal",
+              "life",
+              "mandel",
+              "squares",
+              "violajones",
+              "matmul"
             )
             .parallel()
             .map(examplesDir::existingDir)
@@ -334,7 +335,4 @@ if (Artifacts.jextractedOpenGL != null
         Script.cmake($ -> $
                 .build(cmakeBuildDir)
         );
-
-
 }
-
