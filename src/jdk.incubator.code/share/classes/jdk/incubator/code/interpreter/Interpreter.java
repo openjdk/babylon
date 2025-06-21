@@ -229,7 +229,7 @@ public final class Interpreter {
         }
     }
 
-    static final class VarBox
+    public static final class VarBox
             implements CoreOp.Var<Object> {
         Object value;
 
@@ -237,7 +237,7 @@ public final class Interpreter {
             return value;
         }
 
-        VarBox(Object value) {
+        public VarBox(Object value) {
             this.value = value;
         }
 

@@ -26,13 +26,11 @@
 package jdk.incubator.code.internal;
 
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 
-import java.lang.invoke.MethodHandles;
-
 public class QuotedHelper {
-    public static Quoted makeQuoted(MethodHandles.Lookup lookup, FuncOp op, Object[] args) {
-        return (Quoted)Interpreter.invoke(lookup, op, args);
+
+    public static Quoted makeQuoted(FuncOp funcOp, Object[] args) {
+        return Quoted.quotedOp(funcOp, args);
     }
 }
