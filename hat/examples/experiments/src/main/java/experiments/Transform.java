@@ -32,12 +32,15 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.MethodRef;
+
 import java.util.List;
 import java.util.Map;
+
+import static jdk.incubator.code.dialect.core.FunctionType.VOID;
 
 public class Transform {
         @CodeReflection
@@ -66,7 +69,7 @@ public class Transform {
 
             MyOp(String opName) {
                 super(opName, List.of());
-                this.type = JavaType.VOID;
+                this.type = VOID;
             }
 
             MyOp(String opName, TypeElement type, List<Value> operands) {
@@ -126,7 +129,7 @@ public class Transform {
             CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
 
             CoreOp.FuncOp transformed = javaFunc.transform((builder, op) -> {
-                if (op instanceof CoreOp.InvokeOp invokeOp) {
+                if (op instanceof JavaOp.InvokeOp invokeOp) {
                     //  CopyContext cc = builder.context();
                     //  Block.Builder bb = builder;
                     // var invokePre = CoreOp.invoke(PRE);

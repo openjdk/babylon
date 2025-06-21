@@ -38,6 +38,7 @@
 #include <stack>
 
 #include "strutil.h"
+#include "config.h"
 
 #ifdef __APPLE__
 #define SNPRINTF snprintf
@@ -365,52 +366,14 @@ public:
     int maxX;
 };
 
+
 class Backend {
 public:
-    class Config {
+    class Config final : public BasicConfig {
     public:
-        // These must sync with hat/backend/ffi/Mode.java
-        // Bits 0-3 select platform id 0..5
-        // Bits 4-7 select device id 0..15
-        static constexpr int START_BIT_IDX = 16;
-        static constexpr int MINIMIZE_COPIES_BIT = 1 << START_BIT_IDX;
-        static constexpr int TRACE_BIT = 1 << 17;
-        static constexpr int PROFILE_BIT = 1 << 18;
-        static constexpr int SHOW_CODE_BIT = 1 << 19;
-        static constexpr int SHOW_KERNEL_MODEL_BIT = 1 << 20;
-        static constexpr int SHOW_COMPUTE_MODEL_BIT = 1 << 21;
-        static constexpr int INFO_BIT = 1 << 22;
-        static constexpr int TRACE_COPIES_BIT = 1 << 23;
-        static constexpr int TRACE_SKIPPED_COPIES_BIT = 1 << 24;
-        static constexpr int TRACE_ENQUEUES_BIT = 1 << 25;
-        static constexpr int TRACE_CALLS_BIT = 1 << 26;
-        static constexpr int SHOW_WHY_BIT = 1 << 27;
-        static constexpr int SHOW_STATE_BIT = 1 << 28;
-        static constexpr int PTX_BIT = 1 << 29;
-        static constexpr int INTERPRET_BIT = 1 << 30;
-        static constexpr int END_BIT_IDX = 31;
-
-        const static char *bitNames[]; // See below for out of line definition
-        int configBits;
-        bool minimizeCopies;
-        bool alwaysCopy;
-        bool trace;
-        bool profile;
-        bool showCode;
-        bool info;
-        bool traceCopies;
-        bool traceSkippedCopies;
-        bool traceEnqueues;
-        bool traceCalls;
-        bool showWhy;
-        bool showState;
-        bool ptx;
-        bool interpret;
-        int platform; //0..15
-        int device; //0..15
         explicit Config(int mode);
 
-        virtual ~Config();
+        ~Config() override;
     };
 
     class Buffer {
@@ -567,24 +530,7 @@ public:
     virtual ~Backend() = default;
 };
 
-#ifdef shared_cpp
-const char *Backend::Config::bitNames[] = {
-    "MINIMIZE_COPIES",
-    "TRACE",
-    "PROFILE",
-    "SHOW_CODE",
-    "SHOW_KERNEL_MODEL",
-    "SHOW_COMPUTE_MODEL",
-    "INFO",
-    "TRACE_COPIES",
-    "TRACE_SKIPPED_COPIES",
-    "TRACE_ENQUEUES",
-    "TRACE_CALLS",
-    "SHOW_WHY_BIT",
-    "USE_STATE_BIT",
-    "SHOW_STATE_BIT"
-};
-#endif
+
 
 template<typename T>
 T *bufferOf(const char *name) {
