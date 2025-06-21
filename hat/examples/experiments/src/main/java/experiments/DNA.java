@@ -31,9 +31,10 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,7 +76,7 @@ public class DNA {
         var funcOp = Op.ofMethod(method).get();
         var transformed = funcOp.transform((builder, op) -> {
             CopyContext cc = builder.context();
-            if (op instanceof CoreOp.InvokeOp invokeOp) {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
                // List<Value> operands = new ArrayList<>();
                 //builder.op(new DNAOp("dna", JavaType.INT, operands));
                 List<Value> inputOperands = invokeOp.operands();

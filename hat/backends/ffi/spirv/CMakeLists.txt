@@ -16,8 +16,8 @@ endif()
 message("SPIRV")
 
 include_directories(
-    ${SPIRV_BACKEND}/include
-    ${SHARED_BACKEND}/include
+    ${SPIRV_BACKEND}/src/main/native/include
+    ${SHARED_BACKEND}/src/main/native/include
     ${SPIRV_INCLUDE_DIR}
 )
 link_directories(
@@ -25,17 +25,15 @@ link_directories(
 )
 
 add_library(spirv_backend SHARED
-    ${SHARED_BACKEND}/cpp/shared.cpp
-    ${SPIRV_BACKEND}/cpp/spirv_backend.cpp
-    ${SHARED_BACKEND}/cpp/strutil.cpp
-    ${SHARED_BACKEND}/include/strutil.h
+    ${SPIRV_BACKEND}/src/main/native/cpp/spirv_backend.cpp
 )
 
 add_executable(spirv_info
-    ${SPIRV_BACKEND}/cpp/info.cpp
+    ${SPIRV_BACKEND}/src/main/native/cpp/info.cpp
 )
 
 target_link_libraries(spirv_info
+        shared_backend
     spirv_backend
 )
 

@@ -26,7 +26,7 @@ package hat.backend.ffi;
 
 public class CudaDeviceInfo {
     public static void main(String[] args) {
-        CudaBackend cudaBackend = new CudaBackend();
-        cudaBackend.backendBridge.info();
+        CudaBackend backend = new CudaBackend();
+        backend.backendBridge.info();
     }
 }
