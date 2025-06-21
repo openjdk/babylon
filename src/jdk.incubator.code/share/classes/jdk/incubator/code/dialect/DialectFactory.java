@@ -1,5 +1,7 @@
 package jdk.incubator.code.dialect;
 
+import jdk.incubator.code.ExternalizableTypeElement;
+
 /**
  * A dialect factory for constructing a dialect's operations and type elements from their
  * externalized form.
@@ -7,7 +9,7 @@ package jdk.incubator.code.dialect;
  * @param opFactory the operation factory.
  * @param typeElementFactory the type element factory.
  */
-public record DialectFactory(OpFactory opFactory, TypeElementFactory typeElementFactory) {
+public record DialectFactory(OpFactory opFactory, ExternalizableTypeElement.TypeElementFactory typeElementFactory) {
 
     // OpFactory
     // OpDeclaration

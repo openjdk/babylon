@@ -23,9 +23,9 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp.JavaEnhancedForOp;
 import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
@@ -184,7 +184,7 @@ public final class StreamFuser {
                 throw new IllegalArgumentException("Quoted consumer is not closure operation");
             }
 
-            return func("fused.forEach", FunctionType.functionType(JavaType.VOID, sourceType))
+            return func("fused.forEach", CoreType.functionType(JavaType.VOID, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);
 
@@ -213,7 +213,7 @@ public final class StreamFuser {
             }
 
             JavaType collectType = (JavaType) supplier.invokableType().returnType();
-            return func("fused.collect", FunctionType.functionType(collectType, sourceType))
+            return func("fused.collect", CoreType.functionType(collectType, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);
 

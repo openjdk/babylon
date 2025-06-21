@@ -40,7 +40,7 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.util.List;
 import java.util.Map;
 
-import static jdk.incubator.code.dialect.core.FunctionType.VOID;
+import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 
 public class Transform {
         @CodeReflection
@@ -69,7 +69,7 @@ public class Transform {
 
             MyOp(String opName) {
                 super(opName, List.of());
-                this.type = VOID;
+                this.type = FUNCTION_TYPE_VOID;
             }
 
             MyOp(String opName, TypeElement type, List<Value> operands) {

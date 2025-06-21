@@ -79,7 +79,7 @@ public final class TensorType extends TritonType {
             args.add(new ExternalizedTypeElement("x" + i, List.of()));
         }
         args.add(eType.externalize());
-        return new ExternalizedTypeElement(NAME, args);
+        return ExternalizedTypeElement.of(NAME, args);
     }
 
     @Override

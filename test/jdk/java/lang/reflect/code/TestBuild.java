@@ -30,8 +30,8 @@ import jdk.incubator.code.analysis.SSA;
 import java.util.function.IntBinaryOperator;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
-import static jdk.incubator.code.dialect.core.FunctionType.VOID;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 import static jdk.incubator.code.dialect.java.JavaType.INT;
 import static jdk.incubator.code.dialect.java.JavaType.type;
 
@@ -195,10 +195,10 @@ public class TestBuild {
 
     @Test
     public void testHeaderFromOtherBody() {
-        var abody = Body.Builder.of(null, VOID);
+        var abody = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var ablock = abody.entryBlock().block();
 
-        var bbody = Body.Builder.of(null, VOID);
+        var bbody = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var bblock = bbody.entryBlock();
 
         // Operation uses header with target block from another model
@@ -208,14 +208,14 @@ public class TestBuild {
 
     @Test
     public void testHeaderFromEntryBlock() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
         Assert.assertThrows(IllegalStateException.class, block::successor);
     }
 
     @Test
     public void testBuiltBodyBuilder() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
         block.op(_return());
         func("f", body);
@@ -226,22 +226,22 @@ public class TestBuild {
 
     @Test
     public void testBodyBuilderWithBuiltAncestor() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
         block.op(_return());
         func("f", body);
 
         // ancestor body is built
-        Assert.assertThrows(IllegalStateException.class, () -> Body.Builder.of(body, VOID));
+        Assert.assertThrows(IllegalStateException.class, () -> Body.Builder.of(body, FUNCTION_TYPE_VOID));
     }
 
     @Test
     public void testBodyBuilderWithUnbuiltChildren() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
         block.op(_return());
 
-        Body.Builder.of(body, VOID);
+        Body.Builder.of(body, FUNCTION_TYPE_VOID);
 
         // Great-grandchild body is not built
         Assert.assertThrows(IllegalStateException.class, () -> func("f", body));
@@ -249,12 +249,12 @@ public class TestBuild {
 
     @Test
     public void testMistmatchedBody() {
-        var body1 = Body.Builder.of(null, VOID);
+        var body1 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block1 = body1.entryBlock();
 
-        var anotherBody = Body.Builder.of(null, VOID);
+        var anotherBody = Body.Builder.of(null, FUNCTION_TYPE_VOID);
 
-        var body2 = Body.Builder.of(anotherBody, VOID);
+        var body2 = Body.Builder.of(anotherBody, FUNCTION_TYPE_VOID);
         var block2 = body2.entryBlock();
         block2.op(_return());
         var lambdaOp = JavaOp.lambda(type(Runnable.class), body2);
@@ -265,7 +265,7 @@ public class TestBuild {
 
     @Test
     public void testAppendAfterTerminatingOperation() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
         block.op(_return());
 
@@ -275,7 +275,7 @@ public class TestBuild {
 
     @Test
     public void testNoTerminatingOperation() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
         block.op(constant(INT, 0));
 
@@ -285,7 +285,7 @@ public class TestBuild {
 
     @Test
     public void testUnreferencedBlocksRemoved() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
         block.op(_return());
 
@@ -300,7 +300,7 @@ public class TestBuild {
 
     @Test
     public void testEmptyEntryBlock() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
 
         Assert.assertThrows(IllegalStateException.class, () -> func("f", body));
@@ -308,7 +308,7 @@ public class TestBuild {
 
     @Test
     public void testNonEmptyEntryBlockNoTerminatingOp() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
         // No terminating op
         block.op(constant(INT, 0));
@@ -318,7 +318,7 @@ public class TestBuild {
 
     @Test
     public void testEmptyBlockWithPredecessor() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var entryBlock = body.entryBlock();
         // Create empty block
         var block = entryBlock.block();
@@ -330,7 +330,7 @@ public class TestBuild {
 
     @Test
     public void testNonEmptyBlockNoTerminatingOp() {
-        var body = Body.Builder.of(null, VOID);
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var entryBlock = body.entryBlock();
         // Create empty block
         var block = entryBlock.block();

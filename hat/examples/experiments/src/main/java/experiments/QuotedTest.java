@@ -39,7 +39,7 @@ import static jdk.incubator.code.dialect.core.CoreOp._return;
 import static jdk.incubator.code.dialect.core.CoreOp.closureCall;
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
 import static jdk.incubator.code.dialect.core.CoreOp.func;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaOp.add;
 import static jdk.incubator.code.dialect.java.JavaType.INT;
 /*

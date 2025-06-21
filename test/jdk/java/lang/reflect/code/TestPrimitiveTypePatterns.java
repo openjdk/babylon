@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaOp.match;
 import static jdk.incubator.code.dialect.java.JavaOp.typePattern;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.PrimitiveType.*;
 
 /*

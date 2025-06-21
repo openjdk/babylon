@@ -27,6 +27,7 @@
  * @run testng TestVarOp
  */
 
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -37,7 +38,6 @@ import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.util.List;
@@ -55,7 +55,7 @@ public class TestVarOp {
     @Test
     public void testTypeSubstitutionAndPreserve() {
         CoreOp.FuncOp f = getFuncOp("f");
-        CoreOp.FuncOp ft = CoreOp.func("f", FunctionType.functionType(JavaType.J_L_OBJECT, JavaType.type(CharSequence.class)))
+        CoreOp.FuncOp ft = CoreOp.func("f", CoreType.functionType(JavaType.J_L_OBJECT, JavaType.type(CharSequence.class)))
                 .body(fb -> {
                     fb.transformBody(f.body(), fb.parameters(), OpTransformer.COPYING_TRANSFORMER);
                 });

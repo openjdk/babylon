@@ -34,7 +34,7 @@ import jdk.incubator.code.CodeReflection;
 
 import static jdk.incubator.code.dialect.core.CoreOp._return;
 import static jdk.incubator.code.dialect.core.CoreOp.func;
-import static jdk.incubator.code.dialect.core.FunctionType.VOID;
+import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 
 public class CodeReflectionTester {
 
@@ -145,7 +145,7 @@ public class CodeReflectionTester {
     }
 
     static Op getModelOfQuotedOp(Quoted quoted) {
-        return func("f", VOID).body(fblock -> {
+        return func("f", FUNCTION_TYPE_VOID).body(fblock -> {
             CopyContext cc = fblock.context();
             for (Value cv : quoted.capturedValues().keySet()) {
                 Block.Parameter p = fblock.parameter(cv.type());

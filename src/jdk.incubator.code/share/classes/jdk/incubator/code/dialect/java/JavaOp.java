@@ -28,7 +28,6 @@ package jdk.incubator.code.dialect.java;
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.DialectFactory;
-import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.OpFactory;
@@ -2695,9 +2694,9 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     public static final class JavaIfOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
-        static final FunctionType PREDICATE_TYPE = FunctionType.functionType(BOOLEAN);
+        static final FunctionType PREDICATE_TYPE = CoreType.functionType(BOOLEAN);
 
-        static final FunctionType ACTION_TYPE = FunctionType.VOID;
+        static final FunctionType ACTION_TYPE = CoreType.FUNCTION_TYPE_VOID;
 
         public static class IfBuilder {
             final Body.Builder ancestorBody;
@@ -2814,7 +2813,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             if (bodyCs.size() % 2 == 0) {
                 bodyCs = new ArrayList<>(bodyCs);
                 Body.Builder end = Body.Builder.of(bodyCs.get(0).ancestorBody(),
-                        FunctionType.VOID);
+                        CoreType.FUNCTION_TYPE_VOID);
                 end.entryBlock().op(_yield());
                 bodyCs.add(end);
             }
@@ -2831,11 +2830,11 @@ public sealed abstract class JavaOp extends ExternalizableOp {
                 } else {
                     action = bodies.get(i + 1);
                     Body fromPred = bodies.get(i);
-                    if (!fromPred.bodyType().equals(FunctionType.functionType(BOOLEAN))) {
+                    if (!fromPred.bodyType().equals(CoreType.functionType(BOOLEAN))) {
                         throw new IllegalArgumentException("Illegal predicate body descriptor: " + fromPred.bodyType());
                     }
                 }
-                if (!action.bodyType().equals(FunctionType.VOID)) {
+                if (!action.bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
                     throw new IllegalArgumentException("Illegal action body descriptor: " + action.bodyType());
                 }
             }
@@ -3198,12 +3197,12 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             InitBuilder(Body.Builder ancestorBody,
                         List<? extends TypeElement> initTypes) {
                 this.ancestorBody = ancestorBody;
-                this.initTypes = initTypes.stream().map(VarType::varType).toList();
+                this.initTypes = initTypes.stream().map(CoreType::varType).toList();
             }
 
             public JavaForOp.CondBuilder init(Consumer<Block.Builder> c) {
                 Body.Builder init = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(TupleType.tupleType(initTypes)));
+                        CoreType.functionType(CoreType.tupleType(initTypes)));
                 c.accept(init.entryBlock());
 
                 return new CondBuilder(ancestorBody, initTypes, init);
@@ -3225,7 +3224,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
             public JavaForOp.UpdateBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder cond = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(BOOLEAN, initTypes));
+                        CoreType.functionType(BOOLEAN, initTypes));
                 c.accept(cond.entryBlock());
 
                 return new UpdateBuilder(ancestorBody, initTypes, init, cond);
@@ -3249,7 +3248,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
             public JavaForOp.BodyBuilder cond(Consumer<Block.Builder> c) {
                 Body.Builder update = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(VOID, initTypes));
+                        CoreType.functionType(VOID, initTypes));
                 c.accept(update.entryBlock());
 
                 return new BodyBuilder(ancestorBody, initTypes, init, cond, update);
@@ -3276,7 +3275,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
             public JavaForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(VOID, initTypes));
+                        CoreType.functionType(VOID, initTypes));
                 c.accept(body.entryBlock());
 
                 return new JavaForOp(init, cond, update, body);
@@ -3465,7 +3464,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
             public DefinitionBuilder expression(Consumer<Block.Builder> c) {
                 Body.Builder expression = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(iterableType));
+                        CoreType.functionType(iterableType));
                 c.accept(expression.entryBlock());
 
                 return new DefinitionBuilder(ancestorBody, elementType, expression);
@@ -3490,7 +3489,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
             public BodyBuilder definition(TypeElement bodyElementType, Consumer<Block.Builder> c) {
                 Body.Builder definition = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(bodyElementType, elementType));
+                        CoreType.functionType(bodyElementType, elementType));
                 c.accept(definition.entryBlock());
 
                 return new BodyBuilder(ancestorBody, elementType, expression, definition);
@@ -3513,7 +3512,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
             public JavaEnhancedForOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(VOID, elementType));
+                        CoreType.functionType(VOID, elementType));
                 c.accept(body.entryBlock());
 
                 return new JavaEnhancedForOp(expression, definition, body);
@@ -3720,7 +3719,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             public JavaWhileOp.BodyBuilder predicate(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
 
                 return new JavaWhileOp.BodyBuilder(ancestorBody, body);
@@ -3737,7 +3736,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             public JavaWhileOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.VOID);
+                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(body.entryBlock());
 
                 return new JavaWhileOp(List.of(predicate, body));
@@ -3770,14 +3769,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
                     .map(bc -> bc.build(this)).toList();
 
             // @@@ This will change with pattern bindings
-            if (!bodies.get(0).bodyType().equals(FunctionType.functionType(BOOLEAN))) {
+            if (!bodies.get(0).bodyType().equals(CoreType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + FunctionType.functionType(BOOLEAN) +
+                        "Predicate body descriptor should be " + CoreType.functionType(BOOLEAN) +
                                 " but is " + bodies.get(0).bodyType());
             }
-            if (!bodies.get(1).bodyType().equals(FunctionType.VOID)) {
+            if (!bodies.get(1).bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + FunctionType.functionType(VOID) +
+                        "Body descriptor should be " + CoreType.functionType(VOID) +
                                 " but is " + bodies.get(1).bodyType());
             }
         }
@@ -3868,7 +3867,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             public JavaDoWhileOp predicate(Consumer<Block.Builder> c) {
-                Body.Builder predicate = Body.Builder.of(ancestorBody, FunctionType.functionType(BOOLEAN));
+                Body.Builder predicate = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(predicate.entryBlock());
 
                 return new JavaDoWhileOp(List.of(body, predicate));
@@ -3883,7 +3882,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             public JavaDoWhileOp.PredicateBuilder body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.VOID);
+                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(body.entryBlock());
 
                 return new JavaDoWhileOp.PredicateBuilder(ancestorBody, body);
@@ -3915,14 +3914,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             this.bodies = Stream.of(body, predicate).filter(Objects::nonNull)
                     .map(bc -> bc.build(this)).toList();
 
-            if (!bodies.get(0).bodyType().equals(FunctionType.VOID)) {
+            if (!bodies.get(0).bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
                 throw new IllegalArgumentException(
-                        "Body descriptor should be " + FunctionType.functionType(VOID) +
+                        "Body descriptor should be " + CoreType.functionType(VOID) +
                                 " but is " + bodies.get(1).bodyType());
             }
-            if (!bodies.get(1).bodyType().equals(FunctionType.functionType(BOOLEAN))) {
+            if (!bodies.get(1).bodyType().equals(CoreType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body descriptor should be " + FunctionType.functionType(BOOLEAN) +
+                        "Predicate body descriptor should be " + CoreType.functionType(BOOLEAN) +
                                 " but is " + bodies.get(0).bodyType());
             }
         }
@@ -4030,7 +4029,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             for (Body b : bodies) {
-                if (!b.bodyType().equals(FunctionType.functionType(BOOLEAN))) {
+                if (!b.bodyType().equals(CoreType.functionType(BOOLEAN))) {
                     throw new IllegalArgumentException("Body conditional body descriptor: " + b.bodyType());
                 }
             }
@@ -4126,7 +4125,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             public Builder and(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -4181,7 +4180,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             public Builder or(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(BOOLEAN));
+                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -4270,7 +4269,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             Body cond = bodies.get(0);
-            if (!cond.bodyType().equals(FunctionType.functionType(BOOLEAN))) {
+            if (!cond.bodyType().equals(CoreType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException("Illegal cond body descriptor: " + cond.bodyType());
             }
         }
@@ -4344,7 +4343,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
             public CatchBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(VOID, resourceTypes));
+                        CoreType.functionType(VOID, resourceTypes));
                 c.accept(body.entryBlock());
 
                 return new CatchBuilder(ancestorBody, resources, body);
@@ -4367,7 +4366,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             // @@@ multi-catch
             public CatchBuilder _catch(TypeElement exceptionType, Consumer<Block.Builder> c) {
                 Body.Builder _catch = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(VOID, exceptionType));
+                        CoreType.functionType(VOID, exceptionType));
                 c.accept(_catch.entryBlock());
                 catchers.add(_catch);
 
@@ -4375,7 +4374,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             public JavaTryOp _finally(Consumer<Block.Builder> c) {
-                Body.Builder _finally = Body.Builder.of(ancestorBody, FunctionType.VOID);
+                Body.Builder _finally = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(_finally.entryBlock());
 
                 return new JavaTryOp(resources, body, catchers, _finally);
@@ -5298,7 +5297,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     /**
      * A type element factory for Java type elements.
      */
-    public static final TypeElementFactory JAVA_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
+    public static final ExternalizableTypeElement.TypeElementFactory JAVA_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
         case INFLATED_TYPE -> JavaTypeUtils.toJavaType(tree);
         case INFLATED_REF -> JavaTypeUtils.toJavaRef(tree);
         default -> throw new UnsupportedOperationException("Unsupported: " + tree);
@@ -5313,7 +5312,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * A type element factory for core type and Java type elements, where the core type elements can refer to
      * Java type elements.
      */
-    public static final TypeElementFactory TYPE_FACTORY = CoreOp.coreTypeFactory(JAVA_TYPE_FACTORY);
+    public static final ExternalizableTypeElement.TypeElementFactory TYPE_FACTORY = CoreType.coreTypeFactory(JAVA_TYPE_FACTORY);
 
     /**
      * A Java dialect factory, for constructing core and Java operations and constructing
@@ -6354,7 +6353,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * @return the try operation builder
      */
     public static JavaTryOp.CatchBuilder _try(Body.Builder ancestorBody, Consumer<Block.Builder> c) {
-        Body.Builder _try = Body.Builder.of(ancestorBody, FunctionType.VOID);
+        Body.Builder _try = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
         c.accept(_try.entryBlock());
         return new JavaTryOp.CatchBuilder(ancestorBody, null, _try);
     }
@@ -6370,9 +6369,9 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     public static JavaTryOp.BodyBuilder tryWithResources(Body.Builder ancestorBody,
                                                          List<? extends TypeElement> resourceTypes,
                                                          Consumer<Block.Builder> c) {
-        resourceTypes = resourceTypes.stream().map(VarType::varType).toList();
+        resourceTypes = resourceTypes.stream().map(CoreType::varType).toList();
         Body.Builder resources = Body.Builder.of(ancestorBody,
-                FunctionType.functionType(TupleType.tupleType(resourceTypes)));
+                CoreType.functionType(CoreType.tupleType(resourceTypes)));
         c.accept(resources.entryBlock());
         return new JavaTryOp.BodyBuilder(ancestorBody, resourceTypes, resources);
     }

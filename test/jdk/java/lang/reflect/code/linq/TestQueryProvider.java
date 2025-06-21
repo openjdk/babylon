@@ -26,7 +26,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 
 import static jdk.incubator.code.dialect.core.CoreOp._return;
 import static jdk.incubator.code.dialect.core.CoreOp.func;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaType.parameterized;
 import static jdk.incubator.code.dialect.java.JavaType.type;
 

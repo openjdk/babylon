@@ -27,7 +27,6 @@ package jdk.incubator.code.dialect.core;
 
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.OpFactory;
@@ -307,7 +306,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             super(NAME,
                     List.of());
 
-            Body.Builder bodyC = Body.Builder.of(null, FunctionType.VOID);
+            Body.Builder bodyC = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
             SequencedMap<String, FuncOp> table = new LinkedHashMap<>();
             for (FuncOp f : functions) {
@@ -965,7 +964,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             this.varName = that.varName;
             this.resultType = that.isResultTypeOverridable()
-                    ? VarType.varType(initOperand().type()) : that.resultType;
+                    ? CoreType.varType(initOperand().type()) : that.resultType;
         }
 
         boolean isResultTypeOverridable() {
@@ -985,7 +984,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             super(NAME, List.of(init));
 
             this.varName =  varName == null ? "" : varName;
-            this.resultType = VarType.varType(type);
+            this.resultType = CoreType.varType(type);
         }
 
         // @@@ This and the above constructor can be merged when
@@ -994,7 +993,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             super(NAME, List.of());
 
             this.varName =  varName == null ? "" : varName;
-            this.resultType = VarType.varType(type);
+            this.resultType = CoreType.varType(type);
         }
 
         @Override
@@ -1197,7 +1196,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         @Override
         public TypeElement resultType() {
-            return TupleType.tupleTypeFromValues(operands());
+            return CoreType.tupleTypeFromValues(operands());
         }
     }
 
@@ -1342,89 +1341,15 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             List<TypeElement> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
             tupleComponentTypes.set(index, value.type());
-            return TupleType.tupleType(tupleComponentTypes);
+            return CoreType.tupleType(tupleComponentTypes);
         }
     }
-
-    //
-    // Arithmetic ops
 
 
     /**
      * An operation factory for core operations.
      */
     public static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(CoreOp.class);
-
-    /**
-     * Creates a composed type element factory for core type elements and type elements from the given
-     * type element factory, where the core type elements can refer to type elements from the
-     * given type element factory.
-     *
-     * @param f the type element factory.
-     * @return the composed type element factory.
-     */
-    public static TypeElementFactory coreTypeFactory(TypeElementFactory f) {
-        class CodeModelFactory implements TypeElementFactory {
-            final TypeElementFactory thisThenF = this.andThen(f);
-
-            @Override
-            public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
-                return switch (tree.identifier()) {
-                    case VarType.NAME -> {
-                        if (tree.arguments().size() != 1) {
-                            throw new IllegalArgumentException();
-                        }
-
-                        TypeElement v = thisThenF.constructType(tree.arguments().getFirst());
-                        if (v == null) {
-                            throw new IllegalArgumentException("Bad type: " + tree);
-                        }
-                        yield VarType.varType(v);
-                    }
-                    case TupleType.NAME -> {
-                        if (tree.arguments().isEmpty()) {
-                            throw new IllegalArgumentException("Bad type: " + tree);
-                        }
-
-                        List<TypeElement> cs = new ArrayList<>(tree.arguments().size());
-                        for (TypeElement.ExternalizedTypeElement child : tree.arguments()) {
-                            TypeElement c = thisThenF.constructType(child);
-                            if (c == null) {
-                                throw new IllegalArgumentException("Bad type: " + tree);
-                            }
-                            cs.add(c);
-                        }
-                        yield TupleType.tupleType(cs);
-                    }
-                    case FunctionType.NAME -> {
-                        if (tree.arguments().isEmpty()) {
-                            throw new IllegalArgumentException("Bad type: " + tree);
-                        }
-
-                        TypeElement rt = thisThenF.constructType(tree.arguments().getFirst());
-                        if (rt == null) {
-                            throw new IllegalArgumentException("Bad type: " + tree);
-                        }
-                        List<TypeElement> pts = new ArrayList<>(tree.arguments().size() - 1);
-                        for (TypeElement.ExternalizedTypeElement child : tree.arguments().subList(1, tree.arguments().size())) {
-                            TypeElement c = thisThenF.constructType(child);
-                            if (c == null) {
-                                throw new IllegalArgumentException("Bad type: " + tree);
-                            }
-                            pts.add(c);
-                        }
-                        yield FunctionType.functionType(rt, pts);
-                    }
-                    default -> null;
-                };
-            }
-        }
-        if (f instanceof CodeModelFactory) {
-            throw new IllegalArgumentException();
-        }
-
-        return new CodeModelFactory().thisThenF;
-    }
 
     /**
      * Creates a function operation builder
@@ -1523,7 +1448,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public static QuotedOp quoted(Body.Builder ancestorBody,
                                   Function<Block.Builder, Op> opFunc) {
-        Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.VOID);
+        Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
         Block.Builder block = body.entryBlock();
         block.op(_yield(
                 block.op(opFunc.apply(block))));
