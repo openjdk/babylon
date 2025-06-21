@@ -153,10 +153,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-    public T varName(CoreOp.VarOp varOp) {
-        identifier(varOp.varName());
-        return self();
-    }
+
 
     @Override
     public T varLoad(CodeBuilderContext buildContext, VarLoadOpWrapper varAccessOpWrapper) {

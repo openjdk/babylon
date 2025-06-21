@@ -30,6 +30,7 @@ add_library(shared_backend SHARED
     ${SHARED_BACKEND}/src/main/native/include/fsutil.h
     ${SHARED_BACKEND}/src/main/native/cpp/strutil.cpp
     ${SHARED_BACKEND}/src/main/native/include/strutil.h
+        ${SHARED_BACKEND}/src/main/native/include/config.h
 )
 
 add_executable(schemadump

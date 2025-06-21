@@ -4,7 +4,7 @@
     <exclude-output />
     <content url="file://$MODULE_DIR$/../hat-core/">
       <sourceFolder url="file://$MODULE_DIR$/../hat-core/src/main/java" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../hat-core/src/main/test"  />
+      <excludeFolder url="file://$MODULE_DIR$/../hat-core/src/main/test" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
