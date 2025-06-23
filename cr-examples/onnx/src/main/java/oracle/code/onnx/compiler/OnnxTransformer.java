@@ -225,6 +225,7 @@ public final class OnnxTransformer {
 
         // ONNX model transformation
         func = transformToOnnx(l, func, pe);
+        System.out.println(func.toText());
 
         // remove redundant args from func calls of funcs with already dropped unused parameters
         // functions are listed in post-ordered and recursion is not allowed
@@ -266,9 +267,11 @@ public final class OnnxTransformer {
 
     static CoreOp.FuncOp transformToOnnx(MethodHandles.Lookup l, CoreOp.FuncOp func, OnnxPartialEvaluator pe) {
         FunctionType ft = convertType(l, func);
-        return CoreOp.func(func.funcName(), ft).body(b -> {
+        var func2 = CoreOp.func(func.funcName(), ft).body(b -> {
             b.transformBody(func.body(), b.parameters(), toOnnxOpTransformer(l, pe));
         });
+        // double transformation to fix return type by the returned tuple type
+        return CoreOp.func(func2.funcName(), convertType(l, func2)).body(b -> b.transformBody(func2.body(), b.parameters(), OpTransformer.COPYING_TRANSFORMER));
     }
 
     static CoreOp.FuncOp removeDropedFuncCallsArgs(CoreOp.FuncOp func, Map<String, BitSet> paramsToDropMap) {
@@ -452,8 +455,24 @@ public final class OnnxTransformer {
                     Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.result()), flo.fieldDescriptor(), bb.context().getValue(flo.operands().getFirst())));
                     bb.context().mapValue(flo.result(), result);
                 }
+                case JavaOp.ArrayAccessOp.ArrayStoreOp aso when aso.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp cop -> {
+                    var list  = (List<Value>)bb.context().computePropertyIfAbsent(aso.operands().getFirst(), _ -> new ArrayList<Value>());
+                    int index = (Integer)cop.value();
+                    while (index >= list.size()) list.add(null);
+                    list.set(index, aso.operands().get(2));
+                }
+                case CoreOp.ReturnOp ro when bb.context().getProperty(ro.operands().getFirst()) instanceof List list -> {
+                    bb.op(CoreOp._return(bb.op(CoreOp.tuple(bb.context().getValues(list)))));
+                }
                 // Copy remaining operations, which may be removed later transformations
-                default -> bb.op(op);
+                default -> {
+                    try {
+                        bb.op(op);
+                    } catch (Exception e) {
+                        System.out.println(op.toText());
+                        throw e;
+                    }
+                }
             }
             return bb;
         };
@@ -590,7 +609,7 @@ public final class OnnxTransformer {
     }
 
     static FunctionType convertType(MethodHandles.Lookup l, CoreOp.FuncOp fo) {
-        return FunctionType.functionType(convertType(l, fo.invokableType().returnType()), fo.parameters().stream().map(p -> convertType(l, p)).toList());
+        return FunctionType.functionType(convertType(l, fo.body().entryBlock().terminatingOp().operands().getFirst()), fo.parameters().stream().map(p -> convertType(l, p)).toList());
     }
 
     static TypeElement convertType(MethodHandles.Lookup l, Value value) {
@@ -611,6 +630,8 @@ public final class OnnxTransformer {
         for (var use : uses) {
             int s = switch (use.op()) {
                 case JavaOp.ArrayAccessOp.ArrayLoadOp alo when alo.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co ->
+                    (Integer)co.value() + 1;
+                case JavaOp.ArrayAccessOp.ArrayStoreOp alo when alo.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co ->
                     (Integer)co.value() + 1;
                 case CoreOp.VarOp _, CoreOp.VarAccessOp.VarLoadOp _ ->
                     countConstantArraySize(use.op().result().uses());

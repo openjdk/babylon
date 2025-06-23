@@ -350,6 +350,17 @@ public class SimpleTest {
         assertEquals(constantArrayInit(), execute(() -> constantArrayInit()));
     }
 
+    @CodeReflection
+    public Tensor<Float>[] constantArrayReturn(Tensor<Float> value) {
+        return new Tensor[]{Identity(value)};
+    }
+
+    @Test
+    public void testConstantArrayReturn() throws Exception {
+        Tensor<Float> val = Tensor.ofFlat(3f);
+        assertEquals(constantArrayReturn(val)[0], execute(() -> constantArrayReturn(val))[0]);
+    }
+
     static void assertEquals(Tensor expected, Tensor actual) {
 
         var expectedType = expected.elementType();

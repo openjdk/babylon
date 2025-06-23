@@ -44,6 +44,7 @@ import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -189,7 +190,11 @@ public final class OnnxRuntime {
                 .toList();
         List<Tensor> ret = model.run(arena, arguments);
 
-        ClassType retType = ((ClassType)((JavaOp.LambdaOp)q.op()).invokableType().returnType()).rawType();
+        TypeElement type = ((JavaOp.LambdaOp)q.op()).invokableType().returnType();
+        if (type instanceof ArrayType) {
+            return (T)ret.toArray(Tensor[]::new);
+        }
+        ClassType retType = ((ClassType)type).rawType();
         if (retType.equals(TENSOR_RAW_TYPE)) {
             return (T)ret.getFirst();
         } else if(retType.equals(LIST_RAW_TYPE)) {
