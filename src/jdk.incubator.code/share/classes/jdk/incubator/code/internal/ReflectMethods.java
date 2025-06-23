@@ -421,7 +421,7 @@ public class ReflectMethods extends TreeTranslator {
                 // using the builder API and public APIs
                 var opBuilder = OpBuilder.createBuilderFunction(op,
                         b -> b.op(JavaOp.fieldLoad(
-                                FieldRef.field(JavaOp.class, "DIALECT_FACTORY", DialectFactory.class))));
+                                FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
                 var cmToASTTransformer = new CodeModelToAST(make, names, syms, resolve, types, typeEnvs.get(currentClassSym));
                 yield cmToASTTransformer.transformFuncOpToAST(opBuilder, ms);
             }

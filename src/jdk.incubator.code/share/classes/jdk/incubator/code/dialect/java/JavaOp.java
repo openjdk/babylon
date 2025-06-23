@@ -5298,7 +5298,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * core type and Java type elements, where the core type elements can refer to Java
      * type elements.
      */
-    public static final DialectFactory DIALECT_FACTORY = new DialectFactory(
+    public static final DialectFactory JAVA_DIALECT_FACTORY = new DialectFactory(
             JAVA_OP_FACTORY,
             JAVA_TYPE_FACTORY);
 
