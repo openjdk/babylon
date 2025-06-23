@@ -361,6 +361,20 @@ public class SimpleTest {
         assertEquals(constantArrayReturn(val)[0], execute(() -> constantArrayReturn(val))[0]);
     }
 
+    public record ConstantArrayWrap(Tensor<Float> key, @ArrayLen(1) Tensor<Float>[] values) {}
+
+    @CodeReflection
+    public ConstantArrayWrap constantArrayInRecordReturn(Tensor<Float> key, Tensor<Float> value) {
+        return new ConstantArrayWrap(Identity(key), new Tensor[]{Identity(value)});
+    }
+
+    @Test
+    public void testConstantArrayInRecordReturn() throws Exception {
+        Tensor<Float> key = Tensor.ofFlat(1f);
+        Tensor<Float> val = Tensor.ofFlat(3f);
+        assertEquals(constantArrayInRecordReturn(key, val).values()[0], execute(() -> constantArrayInRecordReturn(key, val)).values()[0]);
+    }
+
     static void assertEquals(Tensor expected, Tensor actual) {
 
         var expectedType = expected.elementType();

@@ -34,6 +34,7 @@ import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.RecordComponent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -199,9 +200,9 @@ public final class OnnxRuntime {
             return (T)ret.getFirst();
         } else if(retType.equals(LIST_RAW_TYPE)) {
             return (T)ret;
-        } else if(getRecordConstructor(l, retType) instanceof Constructor recordConstructor) {
+        } else if(getRecordClass(l, retType) instanceof Class cls) {
             try {
-                return (T)recordConstructor.newInstance(ret.toArray());
+                return (T)cls.getConstructors()[0].newInstance(unflat(ret, cls.getRecordComponents()));
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -210,11 +211,25 @@ public final class OnnxRuntime {
         }
     }
 
-    static Constructor getRecordConstructor(MethodHandles.Lookup l, ClassType ct) {
+    static Object[] unflat(List<Tensor> values, RecordComponent[] rcs) {
+        Object[] ret = new Object[rcs.length];
+        for (int i = 0, j = 0; i < rcs.length; i++) {
+            if (rcs[i].getType().isArray() && rcs[i].getAnnotation(ExplicitOnnxOperators.ArrayLen.class) instanceof ExplicitOnnxOperators.ArrayLen al) {
+                ret[i] = values.subList(j, j + al.value()).toArray(Tensor[]::new);
+                j += al.value();
+            } else {
+                ret[i] = values.get(j++);
+            }
+        }
+        return ret;
+    }
+
+
+    static Class getRecordClass(MethodHandles.Lookup l, ClassType ct) {
         try {
             var t = ct.resolve(l);
             while (t instanceof ParameterizedType pt) t = pt.getRawType();
-            if (t instanceof Class c && c.isRecord()) return c.getConstructors()[0];
+            if (t instanceof Class c && c.isRecord()) return c;
         } catch (ReflectiveOperationException _) {
         }
         return null;

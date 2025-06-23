@@ -67,17 +67,26 @@ public final class OnnxProtoBuilder {
         }
 
         void setName(Value val, String name) {
-            if (val instanceof Block.Parameter bp && val.type() instanceof TupleType tt) {
-                for (int i = 0; i < tt.componentTypes().size(); i++) {
-                    remap.put(baseName(val, i), name + i);
+            switch (val) {
+                case Op.Result or when or.op() instanceof CoreOp.TupleOp to -> {
+                    remap.put(baseName(val), name);
+                    for (int i = 0; i < to.operands().size(); i++) {
+                        setName(to.operands().get(i), name + "." + i);
+                    }
                 }
-            } else {
-                remap.put(baseName(val), name);
-                if (val instanceof Op.Result or && or.op() instanceof CoreOp.TupleLoadOp tlo) {
-                    Value tr = tlo.operands().getFirst();
-                    remap.put(baseName(tr, tlo.index()), name);
-                    if (tr instanceof Op.Result tor && tor.op() instanceof CoreOp.TupleOp to) {
-                        setName(to.operands().get(tlo.index()), name);
+                case Block.Parameter bp when val.type() instanceof TupleType tt -> {
+                    for (int i = 0; i < tt.componentTypes().size(); i++) {
+                        remap.put(baseName(val, i), name +"." + i);
+                    }
+                }
+                default -> {
+                    remap.put(baseName(val), name);
+                    if (val instanceof Op.Result or && or.op() instanceof CoreOp.TupleLoadOp tlo) {
+                        Value tr = tlo.operands().getFirst();
+                        remap.put(baseName(tr, tlo.index()), name);
+                        if (tr instanceof Op.Result tor && tor.op() instanceof CoreOp.TupleOp to) {
+                            setName(to.operands().get(tlo.index()), name);
+                        }
                     }
                 }
             }

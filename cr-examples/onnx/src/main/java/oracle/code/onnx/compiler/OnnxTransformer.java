@@ -225,7 +225,6 @@ public final class OnnxTransformer {
 
         // ONNX model transformation
         func = transformToOnnx(l, func, pe);
-        System.out.println(func.toText());
 
         // remove redundant args from func calls of funcs with already dropped unused parameters
         // functions are listed in post-ordered and recursion is not allowed
@@ -428,7 +427,13 @@ public final class OnnxTransformer {
                 }
                 // Transform record construction
                 case JavaOp.NewOp no when isRecord(l, no.type()) -> {
-                    Op.Result result = bb.op(CoreOp.tuple(bb.context().getValues(no.operands())));
+                    Op.Result result = bb.op(CoreOp.tuple(no.operands().stream().map(v -> {
+                        Value mv = bb.context().getValueOrDefault(v, null);
+                        if (mv == null && bb.context().getProperty(skipVars(v)) instanceof List list) {
+                            mv = bb.op(CoreOp.tuple(bb.context().getValues((List<Value>) list)));
+                        }
+                        return mv;
+                    }).toList()));
                     bb.context().mapValue(no.result(), result);
                 }
                 // Transform access to the result of an operator that is a list access
@@ -466,16 +471,15 @@ public final class OnnxTransformer {
                 }
                 // Copy remaining operations, which may be removed later transformations
                 default -> {
-                    try {
-                        bb.op(op);
-                    } catch (Exception e) {
-                        System.out.println(op.toText());
-                        throw e;
-                    }
+                    bb.op(op);
                 }
             }
             return bb;
         };
+    }
+
+    static Value skipVars(Value v) {
+        return v instanceof Op.Result or && or.op() instanceof CoreOp.VarAccessOp.VarLoadOp vlo ? vlo.varOp().initOperand() : v;
     }
 
     // @@@ Copy of Body::transform content to translate types
@@ -564,6 +568,12 @@ public final class OnnxTransformer {
                         }
                     }
                     tupleComponentTypes.add(convertType(l, e));
+                }
+                case GenericArrayType gat when rc.getAnnotation(OnnxOperators.ArrayLen.class) instanceof OnnxOperators.ArrayLen al-> {
+                    var cType = convertType(l, JavaType.type(gat.getGenericComponentType()));
+                    var tContent = new TypeElement[al.value()];
+                    Arrays.fill(tContent, cType);
+                    tupleComponentTypes.add(TupleType.tupleType(tContent));
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + rc.getGenericType());
             }
