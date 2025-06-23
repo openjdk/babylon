@@ -25,7 +25,7 @@
 
 package jdk.incubator.code.dialect.java;
 
-import jdk.incubator.code.dialect.ExternalizableTypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.lang.constant.ClassDesc;

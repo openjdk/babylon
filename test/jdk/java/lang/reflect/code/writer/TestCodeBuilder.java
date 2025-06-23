@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.dialect.DialectFactory;
+import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -34,7 +34,7 @@ import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.writer.OpBuilder;
+import jdk.incubator.code.extern.OpBuilder;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;

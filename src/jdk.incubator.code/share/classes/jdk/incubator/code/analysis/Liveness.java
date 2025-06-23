@@ -29,7 +29,7 @@ import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import jdk.incubator.code.*;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;

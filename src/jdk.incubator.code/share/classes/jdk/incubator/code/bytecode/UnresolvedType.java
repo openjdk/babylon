@@ -25,7 +25,7 @@
 
 package jdk.incubator.code.bytecode;
 
-import jdk.incubator.code.dialect.ExternalizableTypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
 import jdk.incubator.code.TypeElement;
 import java.util.List;
 

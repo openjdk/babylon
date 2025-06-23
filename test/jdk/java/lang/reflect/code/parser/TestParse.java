@@ -23,7 +23,6 @@
 
 /*
  * @test
- * @modules jdk.incubator.code/jdk.incubator.code.parser.impl
  * @run testng TestParse
  */
 
@@ -35,7 +34,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import java.util.List;
 import java.util.function.IntUnaryOperator;
 

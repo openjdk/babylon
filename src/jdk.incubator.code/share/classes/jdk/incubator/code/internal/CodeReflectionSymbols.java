@@ -62,7 +62,7 @@ public class CodeReflectionSymbols {
                 new MethodType(List.of(syms.methodHandleLookupType, opType, new ArrayType(syms.objectType, syms.arrayClass)), syms.objectType,
                         List.nil(), syms.methodClass),
                 opInterpreterType.tsym);
-        Type opParserType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.parser.OpParser");
+        Type opParserType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.extern.OpParser");
         opParserFromString = new MethodSymbol(PUBLIC | STATIC,
                 names.fromString("fromStringOfJavaCodeModel"),
                 new MethodType(List.of(syms.stringType), opType,

@@ -32,7 +32,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.TupleType;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Test;

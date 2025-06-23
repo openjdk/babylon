@@ -87,11 +87,11 @@ import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 import com.sun.tools.javac.util.Options;
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.DialectFactory;
+import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
-import jdk.incubator.code.writer.OpBuilder;
+import jdk.incubator.code.extern.OpBuilder;
 
 import javax.lang.model.element.Modifier;
 import javax.tools.JavaFileObject;

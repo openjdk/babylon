@@ -34,7 +34,7 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;

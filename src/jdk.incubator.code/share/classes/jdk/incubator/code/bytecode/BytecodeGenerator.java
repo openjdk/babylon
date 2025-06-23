@@ -57,7 +57,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.*;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 import java.util.ArrayList;

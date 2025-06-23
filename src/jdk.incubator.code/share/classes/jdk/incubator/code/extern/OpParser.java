@@ -23,24 +23,20 @@
  * questions.
  */
 
-package jdk.incubator.code.parser;
+package jdk.incubator.code.extern;
 
 import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.ExternalizableTypeElement.*;
-import jdk.incubator.code.dialect.DialectFactory;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
-import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.extern.ExternalizableTypeElement.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.parser.impl.Tokens.TokenKind;
-import jdk.incubator.code.parser.impl.DescParser;
-import jdk.incubator.code.parser.impl.Lexer;
-import jdk.incubator.code.parser.impl.Scanner;
-import jdk.incubator.code.parser.impl.Tokens;
+import jdk.incubator.code.extern.impl.Tokens.TokenKind;
+import jdk.incubator.code.extern.impl.DescParser;
+import jdk.incubator.code.extern.impl.Lexer;
+import jdk.incubator.code.extern.impl.Scanner;
+import jdk.incubator.code.extern.impl.Tokens;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 

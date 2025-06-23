@@ -43,7 +43,7 @@ import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.internal.access.SharedSecrets;
 
 import javax.annotation.processing.ProcessingEnvironment;

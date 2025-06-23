@@ -23,16 +23,16 @@
  * questions.
  */
 
-package jdk.incubator.code.parser.impl;
+package jdk.incubator.code.extern.impl;
 
-import jdk.incubator.code.parser.impl.Position.LineMap;
+import jdk.incubator.code.extern.impl.Position.LineMap;
 
 import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static jdk.incubator.code.parser.impl.Tokens.DUMMY;
-import static jdk.incubator.code.parser.impl.Tokens.Token;
+import static jdk.incubator.code.extern.impl.Tokens.DUMMY;
+import static jdk.incubator.code.extern.impl.Tokens.Token;
 
 /**
  * The lexical analyzer maps an input stream consisting of

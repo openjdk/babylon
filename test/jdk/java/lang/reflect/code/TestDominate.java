@@ -23,7 +23,7 @@
 
 import jdk.incubator.code.Body;
 import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

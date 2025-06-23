@@ -23,7 +23,7 @@
  * questions.
  */
 
-package jdk.incubator.code.dialect;
+package jdk.incubator.code.extern;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

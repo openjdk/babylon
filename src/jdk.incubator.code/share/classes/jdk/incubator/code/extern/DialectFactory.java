@@ -1,4 +1,4 @@
-package jdk.incubator.code.dialect;
+package jdk.incubator.code.extern;
 
 /**
  * A dialect factory for constructing a dialect's operations and type elements from their

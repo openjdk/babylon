@@ -9,7 +9,7 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;

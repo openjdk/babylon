@@ -23,10 +23,10 @@
  * questions.
  */
 
-package jdk.incubator.code.parser.impl;
+package jdk.incubator.code.extern.impl;
 
-import jdk.incubator.code.parser.impl.Position.LineMap;
-import jdk.incubator.code.parser.impl.Tokens.Token;
+import jdk.incubator.code.extern.impl.Position.LineMap;
+import jdk.incubator.code.extern.impl.Tokens.Token;
 import java.util.Arrays;
 
 /**
