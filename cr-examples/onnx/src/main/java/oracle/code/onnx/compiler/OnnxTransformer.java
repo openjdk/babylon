@@ -145,8 +145,16 @@ public final class OnnxTransformer {
         var initializers = module.traverse(new LinkedHashMap<FieldRef, TI>(), (i, op) -> {
             if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flo
                     && (flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
-                     || isRecord(l, flo.resultType()))) {
-                i.putIfAbsent(flo.fieldDescriptor(), new TI(convertType(l, flo.resultType()), i.size()));
+                     || isRecord(l, flo.resultType())
+                     || flo.resultType() instanceof ArrayType at && at.componentType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
+                    )) {
+                var targetType = convertType(l, flo.result());
+                // computataion of the tuple size created out of the static array initializer field
+                i.compute(flo.fieldDescriptor(), (fd, ti) -> ti == null
+                        ? new TI(targetType, i.size())
+                        : targetType instanceof TupleType newTt && ti.type() instanceof TupleType oldTt && newTt.componentTypes().size() > oldTt.componentTypes().size()
+                                ? new TI(newTt, ti.index())
+                                : ti);
             }
             return i;
         });
@@ -410,7 +418,9 @@ public final class OnnxTransformer {
                 }
                 // Transform constant array load access
                 case JavaOp.ArrayAccessOp.ArrayLoadOp alo -> {
-                    Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(alo.operands().getFirst()), (Integer)((CoreOp.ConstantOp)((Op.Result)alo.operands().get(1)).op()).value()));
+                    var tuple = bb.context().getValue(alo.operands().getFirst());
+                    int index = (Integer)((CoreOp.ConstantOp)((Op.Result)alo.operands().get(1)).op()).value();
+                    Op.Result result = bb.op(CoreOp.tupleLoad(tuple, index));
                     bb.context().mapValue(alo.result(), result);
                 }
                 // Transform record construction
@@ -435,11 +445,11 @@ public final class OnnxTransformer {
                     bb.context().mapValue(fco.result(), result);
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flo when flo.operands().isEmpty() -> {
-                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor())));
+                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.result()), flo.fieldDescriptor()));
                     bb.context().mapValue(flo.result(), result);
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flo -> {
-                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor()), bb.context().getValue(flo.operands().getFirst())));
+                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.result()), flo.fieldDescriptor(), bb.context().getValue(flo.operands().getFirst())));
                     bb.context().mapValue(flo.result(), result);
                 }
                 // Copy remaining operations, which may be removed later transformations
@@ -579,26 +589,21 @@ public final class OnnxTransformer {
         return FunctionType.functionType(convertType(l, t.returnType()), t.parameterTypes().stream().map(pt -> convertType(l, pt)).toList());
     }
 
-    static FieldRef convertType(MethodHandles.Lookup l, FieldRef t) {
-        return FieldRef.field(convertType(l, t.refType()), t.name(), convertType(l, t.type()));
-    }
-
-
     static FunctionType convertType(MethodHandles.Lookup l, CoreOp.FuncOp fo) {
         return FunctionType.functionType(convertType(l, fo.invokableType().returnType()), fo.parameters().stream().map(p -> convertType(l, p)).toList());
     }
 
-    static TypeElement convertType(MethodHandles.Lookup l, Block.Parameter parameter) {
+    static TypeElement convertType(MethodHandles.Lookup l, Value value) {
         // convert 1-dimensional constantly accessed constant arrays into tuples
-        if (parameter.type() instanceof ArrayType at && at.dimensions() == 1) {
-            int size = countConstantArraySize(parameter.uses());
+        if (value.type() instanceof ArrayType at && at.dimensions() == 1) {
+            int size = countConstantArraySize(value.uses());
             if (size >= 0) {
                 var targs = new TypeElement[size];
                 Arrays.fill(targs, convertType(l, at.componentType()));
                 return TupleType.tupleType(targs);
             }
         }
-        return convertType(l, parameter.type());
+        return convertType(l, value.type());
     }
 
     static int countConstantArraySize(Set<Op.Result> uses) {

@@ -222,6 +222,10 @@ public final class OnnxProtoBuilder {
                         } catch (ReflectiveOperationException e) {
                             throw new IllegalArgumentException(e);
                         }
+                    } else if (val instanceof Tensor[] tarr) {
+                        for (int tai = 0; tai < tarr.length; tai++) {
+                            tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer), tai), tarr[tai], tensorDataExternalizer));
+                        }
                     } else {
                         tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer)), (Tensor)val, tensorDataExternalizer));
                     }

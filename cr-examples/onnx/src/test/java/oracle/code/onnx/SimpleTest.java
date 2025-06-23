@@ -327,14 +327,27 @@ public class SimpleTest {
     }
 
     @CodeReflection
-    public Tensor<Float> arrayArg(Tensor<Float>[] arg) {
-        return Identity(arg[0]);
+    public Tensor<Float> constantArrayArg(Tensor<Float>[] arg) {
+        return Identity(arg[1]);
     }
 
     @Test
-    public void testArrayArg() throws Exception {
-        Tensor<Float>[] arg = new Tensor[]{Tensor.ofFlat(3f)};
-        assertEquals(arrayArg(arg), execute(() -> arrayArg(arg)));
+    public void testConstantArrayArg() throws Exception {
+        Tensor<Float>[] arg = new Tensor[]{Tensor.ofFlat(2f), Tensor.ofFlat(3f)};
+        assertEquals(constantArrayArg(arg), execute(() -> constantArrayArg(arg)));
+    }
+
+    static final Tensor<Float>[] INIT_1_2 = new Tensor[]{Tensor.ofFlat(1f), Tensor.ofFlat(2f)};
+
+
+    @CodeReflection
+    public Tensor<Float> constantArrayInit() {
+        return Identity(INIT_1_2[1]);
+    }
+
+    @Test
+    public void testConstantArrayInit() throws Exception {
+        assertEquals(constantArrayInit(), execute(() -> constantArrayInit()));
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
