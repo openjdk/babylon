@@ -1349,7 +1349,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     /**
      * An operation factory for core operations.
      */
-    public static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(CoreOp.class);
+    public static final OpFactory CORE_OP_FACTORY = OpFactory.OP_FACTORY.get(CoreOp.class);
 
     /**
      * Creates a function operation builder

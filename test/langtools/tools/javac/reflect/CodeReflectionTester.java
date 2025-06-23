@@ -130,7 +130,7 @@ public class CodeReflectionTester {
     static String canonicalizeModel(Member m, String d) {
         Op o;
         try {
-            o = OpParser.fromString(JavaOp.DIALECT_FACTORY, d).get(0);
+            o = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }

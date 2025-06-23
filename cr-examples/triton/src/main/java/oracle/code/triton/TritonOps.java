@@ -887,7 +887,7 @@ public class TritonOps {
 
     // Triton types then Java types
     static final TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
-            TRITON_TYPE_FACTORY.andThen(JavaOp.JAVA_TYPE_FACTORY);
+            TRITON_TYPE_FACTORY.andThen(JavaType.JAVA_ONLY_TYPE_FACTORY);
 
     // Triton types then Java types, combined with core types
     static final TypeElementFactory TYPE_FACTORY =
@@ -896,7 +896,7 @@ public class TritonOps {
     public static final DialectFactory DIALECT_FACTORY = new DialectFactory(
             OP_FACTORY.andThen(ArithMathOps.OP_FACTORY)
                     .andThen(SCFOps.OP_FACTORY)
-                    .andThen(JavaOp.OP_FACTORY),
+                    .andThen(JavaOp.JAVA_OP_FACTORY),
             TYPE_FACTORY
     );
 }

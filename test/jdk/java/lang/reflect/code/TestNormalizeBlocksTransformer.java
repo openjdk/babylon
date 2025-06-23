@@ -264,7 +264,7 @@ public class TestNormalizeBlocksTransformer {
     }
 
     static Object[] parse(String... models) {
-        return Stream.of(models).map(s -> OpParser.fromString(JavaOp.DIALECT_FACTORY, s).getFirst())
+        return Stream.of(models).map(s -> OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, s).getFirst())
                 .toArray(Object[]::new);
     }
 
