@@ -41,9 +41,9 @@ import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.ExternalizableTypeElement;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
+import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;

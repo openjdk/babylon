@@ -23,7 +23,7 @@
  * questions.
  */
 
-package jdk.incubator.code.parser.impl;
+package jdk.incubator.code.extern.impl;
 
 final class Errors {
 

@@ -1,6 +1,6 @@
 package jdk.incubator.code.dialect.java;
 
-import jdk.incubator.code.dialect.ExternalizableTypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
 
 /**
  * A symbolic reference to a Java class member or a Java type including members,

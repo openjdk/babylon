@@ -28,8 +28,8 @@ package oracle.code.onnx.ir;
 import java.util.*;
 import jdk.incubator.code.*;
 import jdk.incubator.code.Op.Nested;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.OpFactory;
 
 public sealed class ExplicitOnnxOps permits OnnxOps {
 

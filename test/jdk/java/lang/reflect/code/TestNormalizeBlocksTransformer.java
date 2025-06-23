@@ -34,7 +34,7 @@ import org.testng.annotations.Test;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import java.util.stream.Stream;
 
 public class TestNormalizeBlocksTransformer {

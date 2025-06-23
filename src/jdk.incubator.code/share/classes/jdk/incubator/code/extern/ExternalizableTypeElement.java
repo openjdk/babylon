@@ -1,4 +1,4 @@
-package jdk.incubator.code.dialect;
+package jdk.incubator.code.extern;
 
 import jdk.incubator.code.TypeElement;
 
@@ -98,7 +98,7 @@ public interface ExternalizableTypeElement extends TypeElement {
          * @return the externalized code type.
          */
         public static ExternalizedTypeElement ofString(String s) {
-            return jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(s);
+            return jdk.incubator.code.extern.impl.DescParser.parseExTypeElem(s);
         }
     }
 

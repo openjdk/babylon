@@ -23,7 +23,14 @@
  * questions.
  */
 
-/**
- * Functionality for dialects, operations and types, declared in code models that can represent program functionality.
- */
-package jdk.incubator.code.dialect;
+package jdk.incubator.code.extern.impl;
+
+final class Log {
+    Log() {
+    }
+
+    public void error(int pos, Errors.Error errorKey) {
+        // @@@ Exception
+        throw new IllegalStateException("Lexer error: " + errorKey.toString() + " :" + pos);
+    }
+}

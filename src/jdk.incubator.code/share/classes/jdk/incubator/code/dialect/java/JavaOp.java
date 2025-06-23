@@ -27,11 +27,11 @@ package jdk.incubator.code.dialect.java;
 
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.DialectFactory;
-import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.extern.DialectFactory;
+import jdk.incubator.code.extern.TypeElementFactory;
 import jdk.incubator.code.dialect.core.*;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.util.*;

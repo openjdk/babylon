@@ -23,14 +23,13 @@
  * questions.
  */
 
-package jdk.incubator.code.writer;
+package jdk.incubator.code.extern;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 

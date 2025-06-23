@@ -23,7 +23,7 @@
  * questions.
  */
 
-package jdk.incubator.code.dialect;
+package jdk.incubator.code.extern;
 
 import jdk.incubator.code.*;
 

@@ -28,8 +28,8 @@ import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpParser;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.CodeReflection;
 
 import static jdk.incubator.code.dialect.core.CoreOp._return;

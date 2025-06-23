@@ -30,7 +30,7 @@ import hat.text.CodeBuilder;
 import hat.util.StreamCounter;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;

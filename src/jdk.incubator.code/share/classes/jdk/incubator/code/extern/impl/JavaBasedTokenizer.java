@@ -23,9 +23,9 @@
  * questions.
  */
 
-package jdk.incubator.code.parser.impl;
+package jdk.incubator.code.extern.impl;
 
-import jdk.incubator.code.parser.impl.Tokens.TokenKind;
+import jdk.incubator.code.extern.impl.Tokens.TokenKind;
 import java.util.ArrayList;
 import java.util.List;
 

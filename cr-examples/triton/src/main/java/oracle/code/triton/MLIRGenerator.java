@@ -6,7 +6,7 @@ import java.io.UncheckedIOException;
 import java.io.Writer;
 import jdk.incubator.code.*;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.HashMap;
