@@ -173,7 +173,7 @@ public class TestJavaType {
     public void testTypeRoundTrip(Type type) throws ReflectiveOperationException {
         JavaType javaType = JavaType.type(type);
         Assert.assertEquals(type, javaType.resolve(MethodHandles.lookup()));
-        Assert.assertEquals(javaType, JavaOp.JAVA_TYPE_FACTORY.constructType(javaType.externalize()));
+        Assert.assertEquals(javaType, JavaType.JAVA_ONLY_TYPE_FACTORY.constructType(javaType.externalize()));
     }
 
     @Test(dataProvider = "types")

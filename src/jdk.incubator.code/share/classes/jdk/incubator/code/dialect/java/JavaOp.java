@@ -28,11 +28,9 @@ package jdk.incubator.code.dialect.java;
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
 import jdk.incubator.code.extern.DialectFactory;
-import jdk.incubator.code.extern.TypeElementFactory;
 import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.extern.OpFactory;
-import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -5291,29 +5289,9 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     }
 
     /**
-     * An operation factory for Java operations.
+     * An operation factory for core operations composed with Java operations.
      */
-    public static OpFactory JAVA_OP_FACTORY = OpFactory.OP_FACTORY.get(JavaOp.class);
-
-    /**
-     * A type element factory for Java type elements.
-     */
-    public static final TypeElementFactory JAVA_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
-        case INFLATED_TYPE -> JavaTypeUtils.toJavaType(tree);
-        case INFLATED_REF -> JavaTypeUtils.toJavaRef(tree);
-        default -> throw new UnsupportedOperationException("Unsupported: " + tree);
-    };
-
-    /**
-     * An operation factory for core and Java operations.
-     */
-    public static final OpFactory OP_FACTORY = CoreOp.OP_FACTORY.andThen(JAVA_OP_FACTORY);
-
-    /**
-     * A type element factory for core type and Java type elements, where the core type elements can refer to
-     * Java type elements.
-     */
-    public static final TypeElementFactory TYPE_FACTORY = CoreType.coreTypeFactory(JAVA_TYPE_FACTORY);
+    public static final OpFactory JAVA_OP_FACTORY = CoreOp.CORE_OP_FACTORY.andThen(OpFactory.OP_FACTORY.get(JavaOp.class));
 
     /**
      * A Java dialect factory, for constructing core and Java operations and constructing
@@ -5321,8 +5299,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * type elements.
      */
     public static final DialectFactory DIALECT_FACTORY = new DialectFactory(
-            OP_FACTORY,
-            TYPE_FACTORY);
+            JAVA_OP_FACTORY,
+            JAVA_TYPE_FACTORY);
 
     /**
      * Creates a lambda operation.
