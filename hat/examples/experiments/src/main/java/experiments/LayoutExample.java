@@ -37,9 +37,11 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -123,7 +125,7 @@ public class LayoutExample {
         for (Block.Parameter p : f.parameters()) {
             pTypes.add(transformStructClassToPtr(l, p.type()));
         }
-        return FunctionType.functionType(
+        return CoreType.functionType(
                 transformStructClassToPtr(l, f.invokableType().returnType()), pTypes);
     }
 
@@ -205,7 +207,7 @@ public class LayoutExample {
         }
     }
 
-    public static final class PtrType implements TypeElement {
+    public static final class PtrType implements ExternalizableTypeElement {
         static final String NAME = "ptr";
         MemoryLayout layout;
         Schema schema;

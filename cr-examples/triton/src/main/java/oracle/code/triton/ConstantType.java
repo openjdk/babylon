@@ -63,9 +63,9 @@ public final class ConstantType extends TritonType {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME,
+        return ExternalizedTypeElement.of(NAME,
                 List.of(cType.externalize(),
-                        new ExternalizedTypeElement("c" + value, List.of())));
+                        ExternalizedTypeElement.of("c" + value)));
     }
 
     @Override

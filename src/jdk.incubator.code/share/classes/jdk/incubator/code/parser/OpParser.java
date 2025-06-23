@@ -28,20 +28,20 @@ package jdk.incubator.code.parser;
 import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
-import jdk.incubator.code.TypeElement.ExternalizedTypeElement;
+import jdk.incubator.code.dialect.ExternalizableTypeElement.*;
 import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.parser.impl.Tokens.TokenKind;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.parser.impl.DescParser;
 import jdk.incubator.code.parser.impl.Lexer;
 import jdk.incubator.code.parser.impl.Scanner;
 import jdk.incubator.code.parser.impl.Tokens;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -138,7 +138,7 @@ import java.util.Map;
  */
 public final class OpParser {
 
-    static final TypeElement.ExternalizedTypeElement VOID = JavaType.VOID.externalize();
+    static final ExternalizedTypeElement VOID = JavaType.VOID.externalize();
 
     // @@@ check failure from operation and type element factories
 
@@ -257,12 +257,12 @@ public final class OpParser {
         }
     }
 
-    static Op nodeToOp(OpNode opNode, TypeElement.ExternalizedTypeElement rtype, Context c, Body.Builder ancestorBody) {
+    static Op nodeToOp(OpNode opNode, ExternalizedTypeElement rtype, Context c, Body.Builder ancestorBody) {
         ExternalizableOp.ExternalizedOp opdef = nodeToOpDef(opNode, rtype, c, ancestorBody);
         return c.opFactory.constructOpOrFail(opdef);
     }
 
-    static ExternalizableOp.ExternalizedOp nodeToOpDef(OpNode opNode, TypeElement.ExternalizedTypeElement rtype, Context c, Body.Builder ancestorBody) {
+    static ExternalizableOp.ExternalizedOp nodeToOpDef(OpNode opNode, ExternalizedTypeElement rtype, Context c, Body.Builder ancestorBody) {
         String operationName = opNode.name;
         List<Value> operands = opNode.operands.stream().map(c::getValue).toList();
         List<Block.Reference> successors = opNode.successors.stream()
@@ -293,7 +293,7 @@ public final class OpParser {
     static Body.Builder nodeToBody(BodyNode n, Context c, Body.Builder ancestorBody) {
         Body.Builder body = Body.Builder.of(ancestorBody,
                 // Create function type with just the return type and add parameters afterward
-                FunctionType.functionType(c.typeFactory.constructType(n.rtype)));
+                CoreType.functionType(c.typeFactory.constructType(n.rtype)));
         Block.Builder eb = body.entryBlock();
 
         // Create blocks upfront for forward referencing successors
@@ -355,7 +355,7 @@ public final class OpParser {
                          List<String> arguments) {
     }
 
-    record BodyNode(TypeElement.ExternalizedTypeElement rtype,
+    record BodyNode(ExternalizedTypeElement rtype,
                     List<BlockNode> blocks) {
     }
 
@@ -365,7 +365,7 @@ public final class OpParser {
     }
 
     record ValueNode(String name,
-                     TypeElement.ExternalizedTypeElement type) {
+                     ExternalizedTypeElement type) {
     }
 
     final Lexer lexer;
@@ -583,7 +583,7 @@ public final class OpParser {
         // Entry block header
         List<ValueNode> arguments = parseBlockHeaderArguments(true);
         // Body return type
-        TypeElement.ExternalizedTypeElement rtype = parseExTypeElem();
+        ExternalizedTypeElement rtype = parseExTypeElem();
 
         lexer.accept(Tokens.TokenKind.ARROW);
         lexer.accept(Tokens.TokenKind.LBRACE);
@@ -621,7 +621,7 @@ public final class OpParser {
 
         lexer.accept(Tokens.TokenKind.COLON);
 
-        TypeElement.ExternalizedTypeElement type = parseExTypeElem();
+        ExternalizedTypeElement type = parseExTypeElem();
 
         return new ValueNode(valueName, type);
     }
@@ -668,7 +668,7 @@ public final class OpParser {
         return name.toString();
     }
 
-    TypeElement.ExternalizedTypeElement parseExTypeElem() {
+    ExternalizedTypeElement parseExTypeElem() {
         return JavaTypeUtils.inflate(DescParser.parseExTypeElem(lexer));
     }
 }

@@ -39,15 +39,13 @@ import java.lang.foreign.SequenceLayout;
 import java.lang.foreign.StructLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
+
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -111,7 +109,7 @@ public class OpsAndTypes {
             transformedTypeElements.add(parameterTypeElement);
         }
         TypeElement returnTypeElement = convertToPtrTypeIfPossible(lookup, funcOp.invokableType().returnType(), null, null);
-        return FunctionType.functionType(returnTypeElement, transformedTypeElements);
+        return CoreType.functionType(returnTypeElement, transformedTypeElements);
     }
 
     public static <T extends MappableIface> CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup lookup,
@@ -234,7 +232,7 @@ public class OpsAndTypes {
     }
 
 
-    public abstract sealed static class HatType implements TypeElement permits HatPtrType {
+    public abstract sealed static class HatType implements ExternalizableTypeElement permits HatPtrType {
         String name;
 
         HatType(String name) {

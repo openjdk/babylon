@@ -31,7 +31,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.*;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
 
 import java.util.List;
@@ -53,8 +53,8 @@ import java.util.stream.Stream;
  * or be {@linkplain #resolve(Lookup) resolved} into reflective type mirrors.
  * @sealedGraph
  */
-public sealed interface JavaType extends TypeElement permits ClassType, ArrayType,
-                                                             PrimitiveType, WildcardType, TypeVariableType {
+public sealed interface JavaType extends ExternalizableTypeElement
+        permits ClassType, ArrayType, PrimitiveType, WildcardType, TypeVariableType {
 
     /** {@link JavaType} representing {@code void} */
     PrimitiveType VOID = new PrimitiveType(ConstantDescs.CD_void);

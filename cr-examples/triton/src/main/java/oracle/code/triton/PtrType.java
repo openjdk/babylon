@@ -56,7 +56,7 @@ public final class PtrType extends TritonType {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, List.of(rType.externalize()));
+        return ExternalizedTypeElement.of(NAME, List.of(rType.externalize()));
     }
 
     @Override

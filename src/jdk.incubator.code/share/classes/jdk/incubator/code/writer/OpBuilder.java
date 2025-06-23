@@ -30,6 +30,7 @@ import jdk.incubator.code.dialect.DialectFactory;
 import jdk.incubator.code.dialect.OpFactory;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.*;
 
@@ -38,7 +39,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 
@@ -85,7 +86,7 @@ public class OpBuilder {
             Block.Parameter.class, TypeElement.class);
 
     // static varargs
-    static final MethodRef FUNCTION_TYPE_FUNCTION_TYPE = MethodRef.method(FunctionType.class, "functionType",
+    static final MethodRef FUNCTION_TYPE_FUNCTION_TYPE = MethodRef.method(CoreType.class, "functionType",
             FunctionType.class, TypeElement.class, TypeElement[].class);
 
 

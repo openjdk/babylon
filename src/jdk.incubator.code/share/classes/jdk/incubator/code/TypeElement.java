@@ -1,8 +1,6 @@
 package jdk.incubator.code;
 
-import jdk.incubator.code.dialect.TypeElementFactory;
-import java.util.List;
-import java.util.stream.Collectors;
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
 
 /**
  * A type, that defines a set of values.
@@ -21,103 +19,24 @@ public non-sealed interface TypeElement extends CodeItem {
     // e.g., arguments, is an array etc. (dimensions)
 
     /**
-     * A type element's externalized content in structured symbolic form.
-     * <p>
-     * A {@link TypeElement type element} can be constructed from an externalized type element
-     * using a {@link TypeElementFactory}.
-     *
-     * @param identifier the externalized type's identifier
-     * @param arguments  the externalized type's arguments
-     */
-    record ExternalizedTypeElement(String identifier, List<ExternalizedTypeElement> arguments) {
-
-        public ExternalizedTypeElement {
-            arguments = List.copyOf(arguments);
-        }
-
-        @Override
-        public String toString() {
-            return toString(this);
-        }
-
-        static String toString(ExternalizedTypeElement t) {
-            if (t.arguments.isEmpty()) {
-                return t.identifier;
-            }
-
-            StringBuilder s = new StringBuilder();
-            s.append(t.identifier);
-            if (!t.arguments.isEmpty()) {
-                String args = t.arguments.stream()
-                        .map(Object::toString)
-                        .collect(Collectors.joining(", ", "<", ">"));
-                s.append(args);
-            }
-
-            return s.toString();
-        }
-
-        // Factories
-
-        public static ExternalizedTypeElement of(String s) {
-            return new ExternalizedTypeElement(s, List.of());
-        }
-
-        public static ExternalizedTypeElement of(String s,
-                                                 ExternalizedTypeElement a) {
-            return new ExternalizedTypeElement(s, List.of(a));
-        }
-
-        public static ExternalizedTypeElement of(String s,
-                                                 ExternalizedTypeElement a1, ExternalizedTypeElement a2) {
-            return new ExternalizedTypeElement(s, List.of(a1, a2));
-        }
-
-        public static ExternalizedTypeElement of(String s,
-                                                 ExternalizedTypeElement a1, ExternalizedTypeElement a2,
-                                                 ExternalizedTypeElement a3) {
-            return new ExternalizedTypeElement(s, List.of(a1, a2, a3));
-        }
-
-        public static ExternalizedTypeElement of(String s,
-                                                 ExternalizedTypeElement a1, ExternalizedTypeElement a2,
-                                                 ExternalizedTypeElement a3, ExternalizedTypeElement a4) {
-            return new ExternalizedTypeElement(s, List.of(a1, a2, a3, a4));
-        }
-
-        public static ExternalizedTypeElement of(String s,
-                                                 ExternalizedTypeElement... arguments) {
-            return new ExternalizedTypeElement(s, List.of(arguments));
-        }
-
-        public static ExternalizedTypeElement of(String s,
-                                                 List<ExternalizedTypeElement> arguments) {
-            return new ExternalizedTypeElement(s, arguments);
-        }
-
-        /**
-         * Parses a string as an externalized type element.
-         * <p>
-         * For any given externalized type element, {@code te}, the following
-         * expression returns {@code true}.
-         * {@snippet lang=java :
-         * te.equals(ExternalizedTypeElement.ofString(te.toString()));
-         * }
-         * @param s the string
-         * @return the externalized code type.
-         */
-        public static ExternalizedTypeElement ofString(String s) {
-            return jdk.incubator.code.parser.impl.DescParser.parseExTypeElem(s);
-        }
-    }
-
-    /**
      * Externalizes this type element's content.
      *
+     * @implSpec
+     * The default implementation returns an externalized type element with
+     * an identifier that is the result of applying {@code toString} to this object, and
+     * with no arguments.
+     *
      * @return the type element's content.
-     * @throws UnsupportedOperationException if the type element is not externalizable
      */
-    ExternalizedTypeElement externalize();
+    default ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+        // @@@ Certain externalizable type elements are composed of other type elements,
+        // which may or may not be externalizable. OpWriter is designed to work with
+        // non-externalizable type elements, but in such cases OpParser will fail
+        // to parse what OpWriter produces.
+        // @@@ Should this throw UnsupportedOperationException
+        // @@@ Should this be a static helper method on ExternalizableTypeElement?
+        return ExternalizableTypeElement.ExternalizedTypeElement.of(toString());
+    }
 
     /**
      * Return a string representation of this Java type.

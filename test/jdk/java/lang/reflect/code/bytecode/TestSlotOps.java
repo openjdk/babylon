@@ -20,6 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.annotations.Test;
 
@@ -28,7 +29,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.SlotOp;
 import jdk.incubator.code.bytecode.SlotSSA;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 
@@ -53,7 +53,7 @@ public class TestSlotOps {
     }
 
     static CoreOp.FuncOp build() {
-        return CoreOp.func("f", FunctionType.functionType(JavaType.J_L_STRING)).body(b -> {
+        return CoreOp.func("f", CoreType.functionType(JavaType.J_L_STRING)).body(b -> {
             Block.Builder trueBlock = b.block();
             Block.Builder falseBlock = b.block();
             Block.Builder exitBlock = b.block();

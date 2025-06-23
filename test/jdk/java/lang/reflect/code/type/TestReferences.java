@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import org.testng.Assert;
@@ -81,7 +81,7 @@ public class TestReferences {
 
     @Test(dataProvider = "externalizedMethodRefs")
     public void testExternalizedMethodRef(String mds, String refType, String name) {
-        TypeElement.ExternalizedTypeElement emr = TypeElement.ExternalizedTypeElement.ofString(mds);
+        ExternalizableTypeElement.ExternalizedTypeElement emr = ExternalizableTypeElement.ExternalizedTypeElement.ofString(mds);
         MethodRef mr = (MethodRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(emr));
         Assert.assertEquals(JavaTypeUtils.flatten(mr.externalize()).toString(), mds);
         Assert.assertEquals(mr.refType().toString(), refType);
@@ -114,7 +114,7 @@ public class TestReferences {
 
     @Test(dataProvider = "externalizedConstructorRefs")
     public void testExternalizedConstructorRef(String crs, String refType) {
-        TypeElement.ExternalizedTypeElement ecr = TypeElement.ExternalizedTypeElement.ofString(crs);
+        ExternalizableTypeElement.ExternalizedTypeElement ecr = ExternalizableTypeElement.ExternalizedTypeElement.ofString(crs);
         ConstructorRef cr = (ConstructorRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ecr));
 
         Assert.assertEquals(JavaTypeUtils.flatten(cr.externalize()).toString(), crs);
@@ -153,7 +153,7 @@ public class TestReferences {
 
     @Test(dataProvider = "externalizedFieldRefs")
     public void testExternalizedFieldRef(String frs, String refType, String name, String type) {
-        TypeElement.ExternalizedTypeElement efr = TypeElement.ExternalizedTypeElement.ofString(frs);
+        ExternalizableTypeElement.ExternalizedTypeElement efr = ExternalizableTypeElement.ExternalizedTypeElement.ofString(frs);
         FieldRef fr = (FieldRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(efr));
 
         Assert.assertEquals(JavaTypeUtils.flatten(fr.externalize()).toString(), frs);
@@ -193,7 +193,7 @@ public class TestReferences {
 
     @Test(dataProvider = "externalizedRecordTypeRefs")
     public void testExternalizedRecordTypeRef(String rtds) {
-        TypeElement.ExternalizedTypeElement ertr = TypeElement.ExternalizedTypeElement.ofString(rtds);
+        ExternalizableTypeElement.ExternalizedTypeElement ertr = ExternalizableTypeElement.ExternalizedTypeElement.ofString(rtds);
         RecordTypeRef rtr = (RecordTypeRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ertr));
         Assert.assertEquals(JavaTypeUtils.flatten(rtr.externalize()).toString(), rtds);
     }
