@@ -1,6 +1,7 @@
 package jdk.incubator.code.dialect.java.impl;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
 import jdk.incubator.code.extern.ExternalizableTypeElement.ExternalizedTypeElement;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.impl.Lexer;
@@ -467,7 +468,7 @@ public class JavaTypeUtils {
         return tree.identifier();
     }
 
-    private static boolean isSameType(ExternalizedTypeElement tree, TypeElement typeElement) {
+    private static boolean isSameType(ExternalizedTypeElement tree, ExternalizableTypeElement typeElement) {
         return tree.equals(typeElement.externalize());
     }
 

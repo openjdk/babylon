@@ -31,6 +31,7 @@ import jdk.incubator.code.dialect.java.ConstructorRef;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;
@@ -108,8 +109,8 @@ public final class ConstructorRefImpl implements ConstructorRef {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return JavaTypeUtils.constructorRef(type.returnType().externalize(),
-                type.parameterTypes().stream().map(TypeElement::externalize).toList());
+        return JavaTypeUtils.constructorRef(ExternalizableTypeElement.externalize(type.returnType()),
+                type.parameterTypes().stream().map(ExternalizableTypeElement::externalize).toList());
     }
 
     @Override

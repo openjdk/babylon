@@ -32,6 +32,7 @@ import java.lang.reflect.Field;
 
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
 
 public final class FieldRefImpl implements FieldRef {
 
@@ -115,7 +116,8 @@ public final class FieldRefImpl implements FieldRef {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return JavaTypeUtils.fieldRef(name, refType.externalize(), type.externalize());
+        return JavaTypeUtils.fieldRef(name, ExternalizableTypeElement.externalize(refType),
+                ExternalizableTypeElement.externalize(type));
     }
 
     @Override

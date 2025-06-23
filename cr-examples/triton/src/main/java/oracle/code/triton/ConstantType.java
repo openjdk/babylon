@@ -26,6 +26,8 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -64,7 +66,7 @@ public final class ConstantType extends TritonType {
     @Override
     public ExternalizedTypeElement externalize() {
         return ExternalizedTypeElement.of(NAME,
-                List.of(cType.externalize(),
+                List.of(ExternalizableTypeElement.externalize(cType),
                         ExternalizedTypeElement.of("c" + value)));
     }
 

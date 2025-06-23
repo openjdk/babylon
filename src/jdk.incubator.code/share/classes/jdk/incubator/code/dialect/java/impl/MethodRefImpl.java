@@ -35,6 +35,8 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
+
 import java.util.List;
 import java.util.function.Function;
 
@@ -140,9 +142,9 @@ public final class MethodRefImpl implements MethodRef {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return JavaTypeUtils.methodRef(name, refType.externalize(),
-                type.returnType().externalize(),
-                type.parameterTypes().stream().map(TypeElement::externalize).toList());
+        return JavaTypeUtils.methodRef(name, ExternalizableTypeElement.externalize(refType),
+                ExternalizableTypeElement.externalize(type.returnType()),
+                type.parameterTypes().stream().map(ExternalizableTypeElement::externalize).toList());
     }
 
     @Override

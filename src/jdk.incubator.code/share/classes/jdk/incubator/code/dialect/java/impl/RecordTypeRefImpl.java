@@ -28,6 +28,8 @@ package jdk.incubator.code.dialect.java.impl;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.RecordTypeRef;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -63,9 +65,9 @@ public final class RecordTypeRefImpl implements RecordTypeRef {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return JavaTypeUtils.recordRef(recordType.externalize(),
+        return JavaTypeUtils.recordRef(ExternalizableTypeElement.externalize(recordType),
                 components.stream().map(ComponentRef::name).toList(),
-                components.stream().map(c -> c.type().externalize()).toList());
+                components.stream().map(c -> ExternalizableTypeElement.externalize(c.type())).toList());
     }
 
     @Override

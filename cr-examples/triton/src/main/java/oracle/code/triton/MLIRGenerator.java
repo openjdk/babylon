@@ -8,6 +8,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -518,7 +519,7 @@ public final class MLIRGenerator {
             sb = new StringBuilder();
             sb.append("(");
             sb.append(parameters.stream()
-                .map(v -> TypeConverter.mapType(v.type().externalize().toString()))
+                .map(v -> TypeConverter.mapType(ExternalizableTypeElement.externalize(v.type()).toString()))
                 .collect(Collectors.joining(", ")));
             sb.append(") -> ");
             sb.append(TypeConverter.mapType(retType));
@@ -726,7 +727,7 @@ public final class MLIRGenerator {
     }
 
     void writeType(TypeElement te) {
-        write(TypeConverter.mapType(te.externalize().toString()));
+        write(TypeConverter.mapType(ExternalizableTypeElement.externalize(te).toString()));
     }
 
     void write(String s) {

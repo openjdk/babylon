@@ -26,6 +26,8 @@
 package intel.code.spirv;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
+
 import java.util.Objects;
 import java.util.List;
 
@@ -65,7 +67,9 @@ public final class PointerType extends SpirvType {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, List.of(referentType.externalize(), storageType.externalize()));
+        return ExternalizedTypeElement.of(NAME,
+                List.of(ExternalizableTypeElement.externalize(referentType),
+                        ExternalizableTypeElement.externalize(storageType)));
     }
 
     @Override

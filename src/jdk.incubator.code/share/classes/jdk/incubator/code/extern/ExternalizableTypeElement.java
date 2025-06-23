@@ -108,4 +108,21 @@ public interface ExternalizableTypeElement extends TypeElement {
      * @return the type element's content.
      */
     ExternalizedTypeElement externalize();
+
+    /**
+     * Externalizes the given type element.
+     * <p>
+     * If the type element is an instance of {@link ExternalizableTypeElement}
+     * then the type element is externalized by invoking {@link #externalize()},
+     * otherwise the type element is externalized with an identifier that is the
+     * result of applying {@code toString} to the type element, and with no arguments.
+     *
+     * @param te the type element
+     * @return the externalized type element
+     */
+    static ExternalizedTypeElement externalize(TypeElement te) {
+        return te instanceof ExternalizableTypeElement ete
+                ? ete.externalize()
+                : ExternalizedTypeElement.of(te.toString());
+    }
 }

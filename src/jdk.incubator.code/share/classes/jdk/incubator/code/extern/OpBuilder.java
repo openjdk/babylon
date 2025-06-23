@@ -126,7 +126,7 @@ public class OpBuilder {
 
     final Map<ExternalizedTypeElement, Value> exTypeElementMap;
 
-    final Map<TypeElement, Value> typeElementMap;
+    final Map<ExternalizableTypeElement, Value> typeElementMap;
 
     final Block.Builder builder;
 
@@ -274,8 +274,12 @@ public class OpBuilder {
     }
 
     Value buildType(TypeElement _t) {
-        return typeElementMap.computeIfAbsent(_t, t -> {
-            Value exTypeElem = buildExternalizedType(t.externalize());
+        if (!(_t instanceof ExternalizableTypeElement _ete)) {
+            throw new IllegalArgumentException("Type element is not externalizable: " + _t);
+        }
+
+        return typeElementMap.computeIfAbsent(_ete, ete -> {
+            Value exTypeElem = buildExternalizedType(ete.externalize());
             return builder.op(invoke(TYPE_ELEMENT_FACTORY_CONSTRUCT, typeElementFactory, exTypeElem));
         });
     }

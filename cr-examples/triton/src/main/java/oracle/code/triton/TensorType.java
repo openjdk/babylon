@@ -26,6 +26,8 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -78,7 +80,7 @@ public final class TensorType extends TritonType {
         for (int i : shape) {
             args.add(new ExternalizedTypeElement("x" + i, List.of()));
         }
-        args.add(eType.externalize());
+        args.add(ExternalizableTypeElement.externalize(eType));
         return ExternalizedTypeElement.of(NAME, args);
     }
 

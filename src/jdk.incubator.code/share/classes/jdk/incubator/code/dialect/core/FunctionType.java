@@ -1,6 +1,7 @@
 package jdk.incubator.code.dialect.core;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -38,7 +39,7 @@ public final class FunctionType implements CoreType {
     public ExternalizedTypeElement externalize() {
         return ExternalizedTypeElement.of(NAME,
                 Stream.concat(Stream.of(returnType), parameterTypes.stream())
-                        .map(TypeElement::externalize).toList());
+                        .map(ExternalizableTypeElement::externalize).toList());
     }
 
     @Override

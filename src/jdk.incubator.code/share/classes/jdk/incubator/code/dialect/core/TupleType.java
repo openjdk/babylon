@@ -1,6 +1,7 @@
 package jdk.incubator.code.dialect.core;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
 
 import java.util.List;
 
@@ -26,7 +27,7 @@ public final class TupleType implements CoreType {
     @Override
     public ExternalizedTypeElement externalize() {
         return ExternalizedTypeElement.of(NAME,
-                componentTypes.stream().map(TypeElement::externalize).toList());
+                componentTypes.stream().map(ExternalizableTypeElement::externalize).toList());
     }
 
     @Override
