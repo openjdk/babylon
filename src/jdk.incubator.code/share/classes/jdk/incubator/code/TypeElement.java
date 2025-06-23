@@ -1,5 +1,7 @@
 package jdk.incubator.code;
 
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
+
 /**
  * A type, that defines a set of values.
  * <p>

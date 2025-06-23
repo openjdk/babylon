@@ -42,6 +42,7 @@ import java.lang.invoke.MethodHandles;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;

@@ -25,7 +25,6 @@
 
 package jdk.incubator.code.dialect.java.impl;
 
-import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.FieldRef;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;

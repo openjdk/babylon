@@ -1,6 +1,5 @@
 package jdk.incubator.code.dialect.core;
 
-import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.TypeElement;
 
 /**

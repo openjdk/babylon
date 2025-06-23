@@ -26,9 +26,7 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.DialectFactory;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.dialect.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -833,7 +831,7 @@ public class TritonOps {
 
     static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(TritonOps.class);
 
-    static final ExternalizableTypeElement.TypeElementFactory TRITON_TYPE_FACTORY = new ExternalizableTypeElement.TypeElementFactory() {
+    static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
         @Override
         public TypeElement constructType(ExternalizableTypeElement.ExternalizedTypeElement tree) {
             return switch (tree.identifier()) {
@@ -888,11 +886,11 @@ public class TritonOps {
     };
 
     // Triton types then Java types
-    static final ExternalizableTypeElement.TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
+    static final TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
             TRITON_TYPE_FACTORY.andThen(JavaOp.JAVA_TYPE_FACTORY);
 
     // Triton types then Java types, combined with core types
-    static final ExternalizableTypeElement.TypeElementFactory TYPE_FACTORY =
+    static final TypeElementFactory TYPE_FACTORY =
             CoreType.coreTypeFactory(TRITON_JAVA_TYPE_FACTORY);
 
     public static final DialectFactory DIALECT_FACTORY = new DialectFactory(

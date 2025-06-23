@@ -1,4 +1,6 @@
-package jdk.incubator.code;
+package jdk.incubator.code.dialect;
+
+import jdk.incubator.code.TypeElement;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -8,42 +10,6 @@ import java.util.stream.Collectors;
  * via an instance of {@link ExternalizedTypeElement}.
  */
 public interface ExternalizableTypeElement extends TypeElement {
-
-    /**
-     * A type element factory for construction a {@link TypeElement} from its
-     * {@link ExternalizedTypeElement external content}.
-     */
-    @FunctionalInterface
-    interface TypeElementFactory {
-
-        /**
-         * Constructs a {@link TypeElement} from its
-         * {@link ExternalizedTypeElement external content}.
-         * <p>
-         * If there is no mapping from the external content to a type
-         * element then this method returns {@code null}.
-         *
-         * @param tree the externalized type element.
-         * @return the type element.
-         */
-        TypeElement constructType(ExternalizedTypeElement tree);
-
-        /**
-         * Compose this type element factory with another type element factory.
-         * <p>
-         * If there is no mapping in this type element factory then the result
-         * of the other type element factory is returned.
-         *
-         * @param after the other type element factory.
-         * @return the composed type element factory.
-         */
-        default TypeElementFactory andThen(TypeElementFactory after) {
-            return t -> {
-                TypeElement te = constructType(t);
-                return te != null ? te : after.constructType(t);
-            };
-        }
-    }
 
     /**
      * A type element's externalized content in structured symbolic form.

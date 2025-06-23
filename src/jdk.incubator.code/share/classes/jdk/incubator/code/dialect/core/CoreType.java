@@ -1,8 +1,9 @@
 package jdk.incubator.code.dialect.core;
 
-import jdk.incubator.code.ExternalizableTypeElement;
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.ArrayList;

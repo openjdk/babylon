@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.incubator.code.ExternalizableTypeElement;
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import org.testng.Assert;

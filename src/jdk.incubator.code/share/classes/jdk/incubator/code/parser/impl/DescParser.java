@@ -25,7 +25,7 @@
 
 package jdk.incubator.code.parser.impl;
 
-import jdk.incubator.code.ExternalizableTypeElement;
+import jdk.incubator.code.dialect.ExternalizableTypeElement;
 import jdk.incubator.code.parser.impl.Tokens.TokenKind;
 
 import java.util.ArrayList;

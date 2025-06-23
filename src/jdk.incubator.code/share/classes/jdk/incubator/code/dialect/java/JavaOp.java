@@ -28,6 +28,7 @@ package jdk.incubator.code.dialect.java;
 import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.DialectFactory;
+import jdk.incubator.code.dialect.TypeElementFactory;
 import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.OpFactory;
@@ -5297,7 +5298,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     /**
      * A type element factory for Java type elements.
      */
-    public static final ExternalizableTypeElement.TypeElementFactory JAVA_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
+    public static final TypeElementFactory JAVA_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
         case INFLATED_TYPE -> JavaTypeUtils.toJavaType(tree);
         case INFLATED_REF -> JavaTypeUtils.toJavaRef(tree);
         default -> throw new UnsupportedOperationException("Unsupported: " + tree);
@@ -5312,7 +5313,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * A type element factory for core type and Java type elements, where the core type elements can refer to
      * Java type elements.
      */
-    public static final ExternalizableTypeElement.TypeElementFactory TYPE_FACTORY = CoreType.coreTypeFactory(JAVA_TYPE_FACTORY);
+    public static final TypeElementFactory TYPE_FACTORY = CoreType.coreTypeFactory(JAVA_TYPE_FACTORY);
 
     /**
      * A Java dialect factory, for constructing core and Java operations and constructing

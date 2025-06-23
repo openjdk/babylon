@@ -25,7 +25,6 @@
 
 package jdk.incubator.code.dialect.java.impl;
 
-import jdk.incubator.code.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.RecordTypeRef;
 import jdk.incubator.code.TypeElement;
