@@ -257,7 +257,7 @@ public final class OnnxTransformer {
     }
 
     static CoreOp.FuncOp transformToOnnx(MethodHandles.Lookup l, CoreOp.FuncOp func, OnnxPartialEvaluator pe) {
-        FunctionType ft = convertType(l, func.invokableType());
+        FunctionType ft = convertType(l, func);
         return CoreOp.func(func.funcName(), ft).body(b -> {
             b.transformBody(func.body(), b.parameters(), toOnnxOpTransformer(l, pe));
         });
@@ -407,6 +407,11 @@ public final class OnnxTransformer {
                         recordComponentAccessToTupleIndex(l, io.invokeDescriptor()) instanceof Integer index -> {
                     Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                     bb.context().mapValue(io.result(), result);
+                }
+                // Transform constant array load access
+                case JavaOp.ArrayAccessOp.ArrayLoadOp alo -> {
+                    Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(alo.operands().getFirst()), (Integer)((CoreOp.ConstantOp)((Op.Result)alo.operands().get(1)).op()).value()));
+                    bb.context().mapValue(alo.result(), result);
                 }
                 // Transform record construction
                 case JavaOp.NewOp no when isRecord(l, no.type()) -> {
@@ -576,6 +581,40 @@ public final class OnnxTransformer {
 
     static FieldRef convertType(MethodHandles.Lookup l, FieldRef t) {
         return FieldRef.field(convertType(l, t.refType()), t.name(), convertType(l, t.type()));
+    }
+
+
+    static FunctionType convertType(MethodHandles.Lookup l, CoreOp.FuncOp fo) {
+        return FunctionType.functionType(convertType(l, fo.invokableType().returnType()), fo.parameters().stream().map(p -> convertType(l, p)).toList());
+    }
+
+    static TypeElement convertType(MethodHandles.Lookup l, Block.Parameter parameter) {
+        // convert 1-dimensional constantly accessed constant arrays into tuples
+        if (parameter.type() instanceof ArrayType at && at.dimensions() == 1) {
+            int size = countConstantArraySize(parameter.uses());
+            if (size >= 0) {
+                var targs = new TypeElement[size];
+                Arrays.fill(targs, convertType(l, at.componentType()));
+                return TupleType.tupleType(targs);
+            }
+        }
+        return convertType(l, parameter.type());
+    }
+
+    static int countConstantArraySize(Set<Op.Result> uses) {
+        int size = 0;
+        for (var use : uses) {
+            int s = switch (use.op()) {
+                case JavaOp.ArrayAccessOp.ArrayLoadOp alo when alo.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co ->
+                    (Integer)co.value() + 1;
+                case CoreOp.VarOp _, CoreOp.VarAccessOp.VarLoadOp _ ->
+                    countConstantArraySize(use.op().result().uses());
+                default -> -1;
+            };
+            if (s < 0) return -1;
+            size = Integer.max(size, s);
+        }
+        return size;
     }
 
     // @@@ Map of Java tensor types to ONNX tensor types

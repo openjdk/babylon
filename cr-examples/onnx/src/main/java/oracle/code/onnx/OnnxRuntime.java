@@ -168,7 +168,14 @@ public final class OnnxRuntime {
                     throw new IllegalStateException(e);
                 }
             }
-            default -> {}
+            // @@@ constant array last object must be consumed or the statically detected size and the actual size missmatch
+            case Object[] os -> {
+                for (var o : os) {
+                    expandArg(o, args);
+                }
+            }
+            default -> {
+            }
         }
     }
 

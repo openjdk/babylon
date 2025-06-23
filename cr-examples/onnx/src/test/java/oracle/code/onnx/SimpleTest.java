@@ -326,6 +326,17 @@ public class SimpleTest {
         assertEquals(recordArgAdd(arg), execute(() -> recordArgAdd(arg)));
     }
 
+    @CodeReflection
+    public Tensor<Float> arrayArg(Tensor<Float>[] arg) {
+        return Identity(arg[0]);
+    }
+
+    @Test
+    public void testArrayArg() throws Exception {
+        Tensor<Float>[] arg = new Tensor[]{Tensor.ofFlat(3f)};
+        assertEquals(arrayArg(arg), execute(() -> arrayArg(arg)));
+    }
+
     static void assertEquals(Tensor expected, Tensor actual) {
 
         var expectedType = expected.elementType();
