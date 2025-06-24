@@ -352,7 +352,7 @@ public final class OnnxTransformer {
             bob.context().mapValues(usedParameters, bob.parameters());
             bob.transformBody(func.body(), List.of(), (b, op) -> {
                 // Drop any non-terminating operation whose result is not used
-                if (op instanceof Op.Terminating || !op.result().uses().isEmpty() || op instanceof CoreOp.FuncOp) {
+                if (op instanceof Op.Terminating || !op.result().uses().isEmpty() || op instanceof CoreOp.FuncOp || op instanceof CoreOp.VarAccessOp.VarStoreOp) {
                     b.op(op);
                 }
                 return b;
