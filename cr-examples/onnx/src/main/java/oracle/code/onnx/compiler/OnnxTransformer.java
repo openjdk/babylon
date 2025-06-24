@@ -617,7 +617,7 @@ public final class OnnxTransformer {
                     var cType = convertType(l, JavaType.type(gat.getGenericComponentType()));
                     var tContent = new TypeElement[al.value()];
                     Arrays.fill(tContent, cType);
-                    tupleComponentTypes.add(TupleType.tupleType(tContent));
+                    tupleComponentTypes.add(CoreType.tupleType(tContent));
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + rc.getGenericType());
             }
@@ -663,7 +663,7 @@ public final class OnnxTransformer {
     }
 
     static FunctionType convertType(MethodHandles.Lookup l, CoreOp.FuncOp fo) {
-        return FunctionType.functionType(convertType(l, fo.body().entryBlock().terminatingOp().operands().getFirst()), fo.parameters().stream().map(p -> convertType(l, p)).toList());
+        return CoreType.functionType(convertType(l, fo.body().entryBlock().terminatingOp().operands().getFirst()), fo.parameters().stream().map(p -> convertType(l, p)).toList());
     }
 
     static TypeElement convertType(MethodHandles.Lookup l, Value value) {
@@ -673,7 +673,7 @@ public final class OnnxTransformer {
             if (size >= 0) {
                 var targs = new TypeElement[size];
                 Arrays.fill(targs, convertType(l, at.componentType()));
-                return TupleType.tupleType(targs);
+                return CoreType.tupleType(targs);
             }
         }
         return convertType(l, value.type());
@@ -683,9 +683,7 @@ public final class OnnxTransformer {
         int size = 0;
         for (var use : uses) {
             int s = switch (use.op()) {
-                case JavaOp.ArrayAccessOp.ArrayLoadOp alo when alo.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co ->
-                    (Integer)co.value() + 1;
-                case JavaOp.ArrayAccessOp.ArrayStoreOp alo when alo.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co ->
+                case JavaOp.ArrayAccessOp aao when aao.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co ->
                     (Integer)co.value() + 1;
                 case CoreOp.VarOp _, CoreOp.VarAccessOp.VarLoadOp _ ->
                     countConstantArraySize(use.op().result().uses());
