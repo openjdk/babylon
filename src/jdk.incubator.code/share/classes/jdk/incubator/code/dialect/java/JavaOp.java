@@ -61,10 +61,6 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  */
 public sealed abstract class JavaOp extends ExternalizableOp {
 
-    static final String PACKAGE_NAME = JavaOp.class.getPackageName();
-
-    static final String JavaOp_CLASS_NAME = PACKAGE_NAME + "." + JavaOp.class.getSimpleName();
-
     protected JavaOp(Op that, CopyContext cc) {
         super(that, cc);
     }
@@ -4769,8 +4765,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
     //
     // Patterns
-
-    static final String Pattern_CLASS_NAME = JavaOp_CLASS_NAME + "$" + Pattern.class.getSimpleName();
 
     // Reified pattern nodes
 
