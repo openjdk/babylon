@@ -4807,13 +4807,11 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
         // @@@ Pattern types
 
-        JavaType PATTERN_BINDING_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
-                "$" + Type.class.getSimpleName()));
-        JavaType PATTERN_RECORD_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
-                "$" + Pattern.Record.class.getSimpleName()));
+        JavaType PATTERN_BINDING_TYPE = JavaType.type(Type.class);
 
-        JavaType PATTERN_MATCH_ALL_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
-                "$" + Pattern.MatchAll.class.getSimpleName()));
+        JavaType PATTERN_RECORD_TYPE = JavaType.type(Record.class);
+
+        JavaType PATTERN_MATCH_ALL_TYPE = JavaType.type(MatchAll.class);
 
         static JavaType bindingType(TypeElement t) {
             return parameterized(PATTERN_BINDING_TYPE, (JavaType) t);
