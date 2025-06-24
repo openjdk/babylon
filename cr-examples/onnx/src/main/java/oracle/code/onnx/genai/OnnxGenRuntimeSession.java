@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import oracle.code.onnx.OnnxProtoBuilder;
 import oracle.code.onnx.OnnxRuntime;
@@ -145,9 +146,10 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
      */
     public static OnnxGenRuntimeSession buildFromCodeReflection(Object codeReflectionModelInstance, String methodName, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
         Method method = Stream.of(codeReflectionModelInstance.getClass().getDeclaredMethods()).filter(m -> m.getName().equals(methodName)).findFirst().orElseThrow();
-        CoreOp.FuncOp javaModel = Op.ofMethod(method).orElseThrow();
-        OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(MethodHandles.lookup(), javaModel);
-        List<Object> initializers = OnnxRuntime.getInitValues(MethodHandles.lookup(), onnxModel.initializers(), List.of(codeReflectionModelInstance));
+        MethodHandles.Lookup l = MethodHandles.lookup();
+        CoreOp.FuncOp javaModel = OnnxTransformer.evaluate(l, Op.ofMethod(method).orElseThrow());
+        OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(l, javaModel);
+        List<Object> initializers = OnnxRuntime.getInitValues(l, onnxModel.initializers(), List.of(codeReflectionModelInstance));
         try (OutputStream dataOutput = Files.newOutputStream(targetOnnxModelDir.resolve(targetExternalDataFileName))) {
             AtomicLong offset = new AtomicLong();
             byte[] protobufModel = OnnxProtoBuilder.buildModel("llm", onnxModel.module(), initializers, onnxModel.namesMap(), t -> {

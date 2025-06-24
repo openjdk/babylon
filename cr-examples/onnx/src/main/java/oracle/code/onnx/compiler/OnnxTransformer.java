@@ -199,30 +199,32 @@ public final class OnnxTransformer {
         try {
             var res = Op.ofMethod(io.invokeDescriptor().resolveToDirectMethod(l));
             if (res.isPresent()) {
-                var f = res.get();
-                try {
-                    f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-                    System.out.println(f.toText());
-                    f = PartialEvaluator.evaluate(l,
-                            op -> switch (op) {
-                                case CoreOp.ConstantOp _ -> true;
-                                case JavaOp.FieldAccessOp.FieldLoadOp _ -> false;
-                                case JavaOp.InvokeOp _ -> false;
-                                case CoreOp.ReturnOp _ -> false;
-                                case JavaOp.NewOp _ -> false;
-                                default -> op.result() != null;
-                            },
-                            new HashSet<>(), f);
-                    f = cleanUp(f);
-                } catch (PartialEvaluator.EvaluationException ee) {
-                    if (!(ee.getCause() instanceof UnsupportedOperationException)) {
-                        throw ee;
-                    }
-                }
-                return SSA.transform(f);
+                return SSA.transform(evaluate(l, res.get()));
             }
         } catch (ReflectiveOperationException | IllegalArgumentException _) {}
         return null;
+    }
+
+    public static CoreOp.FuncOp evaluate(MethodHandles.Lookup l, CoreOp.FuncOp f) {
+        try {
+            f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+            f = PartialEvaluator.evaluate(l,
+                    op -> switch (op) {
+                        case CoreOp.ConstantOp _ -> true;
+                        case JavaOp.FieldAccessOp.FieldLoadOp _ -> false;
+                        case JavaOp.InvokeOp _ -> false;
+                        case CoreOp.ReturnOp _ -> false;
+                        case JavaOp.NewOp _ -> false;
+                        default -> op.result() != null;
+                    },
+                    new HashSet<>(), f);
+            f = cleanUp(f);
+        } catch (PartialEvaluator.EvaluationException ee) {
+            if (!(ee.getCause() instanceof UnsupportedOperationException)) {
+                throw ee;
+            }
+        }
+        return f;
     }
 
     static CoreOp.FuncOp cleanUp(CoreOp.FuncOp f) {
@@ -472,6 +474,7 @@ public final class OnnxTransformer {
                         if (mv == null && bb.context().getProperty(skipVars(v)) instanceof List list) {
                             mv = bb.op(CoreOp.tuple(bb.context().getValues((List<Value>) list)));
                         }
+                        if (mv == null) System.out.println(no.toText());
                         return mv;
                     }).toList()));
                     bb.context().mapValue(no.result(), result);
