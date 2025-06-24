@@ -3,10 +3,12 @@ package oracle.code.onnx.compiler;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -197,10 +199,48 @@ public final class OnnxTransformer {
         try {
             var res = Op.ofMethod(io.invokeDescriptor().resolveToDirectMethod(l));
             if (res.isPresent()) {
-                return SSA.transform(res.get());
+                var f = res.get();
+                try {
+                    f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+                    System.out.println(f.toText());
+                    f = PartialEvaluator.evaluate(l,
+                            op -> switch (op) {
+                                case CoreOp.ConstantOp _ -> true;
+                                case JavaOp.FieldAccessOp.FieldLoadOp _ -> false;
+                                case JavaOp.InvokeOp _ -> false;
+                                case CoreOp.ReturnOp _ -> false;
+                                case JavaOp.NewOp _ -> false;
+                                default -> op.result() != null;
+                            },
+                            new HashSet<>(), f);
+                    f = cleanUp(f);
+                } catch (PartialEvaluator.EvaluationException ee) {
+                    if (!(ee.getCause() instanceof UnsupportedOperationException)) {
+                        throw ee;
+                    }
+                }
+                return SSA.transform(f);
             }
         } catch (ReflectiveOperationException | IllegalArgumentException _) {}
         return null;
+    }
+
+    static CoreOp.FuncOp cleanUp(CoreOp.FuncOp f) {
+        return removeUnusedOps(NormalizeBlocksTransformer.transform(f));
+    }
+
+    static CoreOp.FuncOp removeUnusedOps(CoreOp.FuncOp f) {
+        Predicate<Op> unused = op -> (op instanceof Op.Pure || op instanceof CoreOp.VarOp) &&
+                op.result().uses().isEmpty();
+        while (f.elements().skip(1).anyMatch(ce -> ce instanceof Op op && unused.test(op))) {
+            f = f.transform((block, op) -> {
+                if (!unused.test(op)) {
+                    block.op(op);
+                }
+                return block;
+            });
+        }
+        return f;
     }
 
     static CoreOp.ModuleOp transformModule(MethodHandles.Lookup l, CoreOp.ModuleOp module, Map<Value, String> namesMap) {

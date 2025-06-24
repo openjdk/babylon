@@ -358,7 +358,7 @@ public class SimpleTest {
     @Test
     public void testConstantArrayReturn() throws Exception {
         Tensor<Float> val = Tensor.ofFlat(3f);
-        assertEquals(constantArrayReturn(val)[0], execute(() -> constantArrayReturn(val))[0]);
+        assertEquals(constantArrayReturn(val), execute(() -> constantArrayReturn(val)));
     }
 
     public record ConstantArrayWrap(Tensor<Float> key, @ArrayLen(1) Tensor<Float>[] values) {}
@@ -373,6 +373,27 @@ public class SimpleTest {
         Tensor<Float> key = Tensor.ofFlat(1f);
         Tensor<Float> val = Tensor.ofFlat(3f);
         assertEquals(constantArrayInRecordReturn(key, val).values()[0], execute(() -> constantArrayInRecordReturn(key, val)).values()[0]);
+    }
+
+    @CodeReflection
+    public Tensor<Long>[] unrollingConstantArrayReturn() {
+        Tensor<Long>[] ret = new Tensor[5];
+        for (int i = 0; i < 5; i++) {
+            ret[i] = Constant((long)i);
+        }
+        return ret;
+    }
+
+    @Test
+    public void testUnrollingConstantArrayReturn() throws Exception {
+        assertEquals(unrollingConstantArrayReturn(), execute(() -> unrollingConstantArrayReturn()));
+    }
+
+    static void assertEquals(Tensor[] expected, Tensor[] actual) {
+        Assertions.assertEquals(expected.length, actual.length);
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals(expected[i], actual[i]);
+        }
     }
 
     static void assertEquals(Tensor expected, Tensor actual) {
