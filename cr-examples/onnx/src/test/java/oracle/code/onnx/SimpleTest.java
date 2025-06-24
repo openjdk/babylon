@@ -372,7 +372,7 @@ public class SimpleTest {
     public void testConstantArrayInRecordReturn() throws Exception {
         Tensor<Float> key = Tensor.ofFlat(1f);
         Tensor<Float> val = Tensor.ofFlat(3f);
-        assertEquals(constantArrayInRecordReturn(key, val).values()[0], execute(() -> constantArrayInRecordReturn(key, val)).values()[0]);
+        assertEquals(constantArrayInRecordReturn(key, val).values(), execute(() -> constantArrayInRecordReturn(key, val)).values());
     }
 
     @CodeReflection
