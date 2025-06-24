@@ -504,7 +504,7 @@ public final class OnnxTransformer {
                     bb.context().mapValue(flo.result(), result);
                 }
                 case JavaOp.ArrayAccessOp.ArrayStoreOp aso when aso.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp cop -> {
-                    var list  = (List<Value>)bb.context().computePropertyIfAbsent(aso.operands().getFirst(), _ -> new ArrayList<Value>());
+                    var list  = (List<Value>)bb.context().computePropertyIfAbsent(skipVars(aso.operands().getFirst()), _ -> new ArrayList<Value>());
                     int index = (Integer)cop.value();
                     while (index >= list.size()) list.add(null);
                     list.set(index, aso.operands().get(2));
