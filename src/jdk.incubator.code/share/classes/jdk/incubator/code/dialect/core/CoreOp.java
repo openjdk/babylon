@@ -44,8 +44,6 @@ import java.util.function.Function;
  */
 public sealed abstract class CoreOp extends ExternalizableOp {
 
-    static final String PACKAGE_NAME = CodeReflection.class.getPackageName();
-
     protected CoreOp(Op that, CopyContext cc) {
         super(that, cc);
     }
@@ -347,10 +345,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             implements Op.Nested, Op.Lowerable, Op.Pure {
         public static final String NAME = "quoted";
 
-        // Type name must be the same in the java.base and jdk.compiler module
-        static final String Quoted_CLASS_NAME = PACKAGE_NAME +
-                "." + Quoted.class.getSimpleName();
-        public static final JavaType QUOTED_TYPE = JavaType.type(ClassDesc.of(Quoted_CLASS_NAME));
+        public static final JavaType QUOTED_TYPE = JavaType.type(Quoted.class);
 
         final Body quotedBody;
 

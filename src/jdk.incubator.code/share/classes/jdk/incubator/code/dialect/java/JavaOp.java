@@ -61,10 +61,6 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  */
 public sealed abstract class JavaOp extends ExternalizableOp {
 
-    static final String PACKAGE_NAME = JavaOp.class.getPackageName();
-
-    static final String JavaOp_CLASS_NAME = PACKAGE_NAME + "." + JavaOp.class.getSimpleName();
-
     protected JavaOp(Op that, CopyContext cc) {
         super(that, cc);
     }
@@ -4770,8 +4766,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     //
     // Patterns
 
-    static final String Pattern_CLASS_NAME = JavaOp_CLASS_NAME + "$" + Pattern.class.getSimpleName();
-
     // Reified pattern nodes
 
     /**
@@ -4807,13 +4801,11 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
         // @@@ Pattern types
 
-        JavaType PATTERN_BINDING_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
-                "$" + Type.class.getSimpleName()));
-        JavaType PATTERN_RECORD_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
-                "$" + Pattern.Record.class.getSimpleName()));
+        JavaType PATTERN_BINDING_TYPE = JavaType.type(Type.class);
 
-        JavaType PATTERN_MATCH_ALL_TYPE = JavaType.type(ClassDesc.of(Pattern_CLASS_NAME +
-                "$" + Pattern.MatchAll.class.getSimpleName()));
+        JavaType PATTERN_RECORD_TYPE = JavaType.type(Record.class);
+
+        JavaType PATTERN_MATCH_ALL_TYPE = JavaType.type(MatchAll.class);
 
         static JavaType bindingType(TypeElement t) {
             return parameterized(PATTERN_BINDING_TYPE, (JavaType) t);

@@ -44,7 +44,6 @@ import java.util.function.Function;
  * <p>
  * A code model in textual form may be parsed back into the runtime form by parsing it.
  */
-// @@@ We cannot link to OpParser since this code is copied into the jdk.compiler module
 public final class OpWriter {
 
     static final class GlobalValueBlockNaming implements Function<CodeItem, String> {

@@ -179,7 +179,7 @@ public interface OpFactory {
             }
 
             try {
-/*__return MethodHandles.lookup().unreflect(method);__*/                return MethodHandles.publicLookup().unreflect(method);
+                return MethodHandles.publicLookup().unreflect(method);
             } catch (IllegalAccessException e) {
                 throw new InternalError("Inaccessible operation constructor for operation: " +
                         method);
@@ -194,7 +194,7 @@ public interface OpFactory {
         }
 
         try {
-/*__return MethodHandles.lookup().unreflectConstructor(constructor);__*/            return MethodHandles.publicLookup().unreflectConstructor(constructor);
+            return MethodHandles.publicLookup().unreflectConstructor(constructor);
         } catch (IllegalAccessException e) {
             throw new InternalError("Inaccessible operation constructor for operation: " +
                     constructor);
