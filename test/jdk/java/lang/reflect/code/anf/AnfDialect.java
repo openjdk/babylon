@@ -23,12 +23,13 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static jdk.incubator.code.dialect.OpFactory.*;
+import static jdk.incubator.code.extern.OpFactory.*;
 
 public final class AnfDialect {
 
@@ -49,7 +50,7 @@ public final class AnfDialect {
             }
 
             public AnfLetOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(yieldType));
+                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(yieldType));
                 c.accept(body.entryBlock());
                 return new AnfLetOp(body);
             }
@@ -109,7 +110,7 @@ public final class AnfDialect {
             }
 
             public AnfLetRecOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(yieldType));
+                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(yieldType));
                 c.accept(body.entryBlock());
                 return new AnfLetRecOp(body);
             }
@@ -181,7 +182,7 @@ public final class AnfDialect {
 
             public ElseBuilder if_(Consumer<Block.Builder> c) {
                 Body.Builder then_ = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(yieldType));
+                        CoreType.functionType(yieldType));
                 c.accept(then_.entryBlock());
 
                 return new ElseBuilder(this, then_);
@@ -199,7 +200,7 @@ public final class AnfDialect {
 
             public AnfIfOp else_(Consumer<Block.Builder> c) {
                 Body.Builder else_ = Body.Builder.of(thenBuilder.ancestorBody,
-                        FunctionType.functionType(thenBuilder.yieldType));
+                        CoreType.functionType(thenBuilder.yieldType));
                 c.accept(else_.entryBlock());
 
                 return new AnfIfOp(thenBuilder.test, then_, else_);
@@ -487,7 +488,7 @@ public final class AnfDialect {
         List<TypeElement> params = new ArrayList<>();
         params.add(funcType.returnType());
         params.addAll(funcType.parameterTypes());
-        return new AnfFuncOp.Builder(ancestorBody, funcName, FunctionType.functionType(funcType.returnType(), params));
+        return new AnfFuncOp.Builder(ancestorBody, funcName, CoreType.functionType(funcType.returnType(), params));
     }
 
     public static AnfFuncOp func(String funcName, Body.Builder body) {

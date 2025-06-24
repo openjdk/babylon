@@ -43,12 +43,13 @@ import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.TupleType;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 import oracle.code.onnx.CNNTest;
 import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.Tensor;
@@ -86,8 +87,8 @@ public class OnnxModelTest {
         }
         var returnType = g.output().size() == 1
                 ? toOnnxType(g.output().getFirst().type())
-                : TupleType.tupleType(g.output().stream().map(OnnxModel.ValueInfoProto::type).map(OnnxModelTest::toOnnxType).toList());
-        return FunctionType.functionType(returnType, paramTypes);
+                : CoreType.tupleType(g.output().stream().map(OnnxModel.ValueInfoProto::type).map(OnnxModelTest::toOnnxType).toList());
+        return CoreType.functionType(returnType, paramTypes);
     }
 
     static OnnxType toKeyType(int kt) {
@@ -281,7 +282,7 @@ public class OnnxModelTest {
                 // patch the op return type
                 TypeElement returnType = rawOp.onnxOutputs().size() == 1
                         ? inferTypeVariableType(rawOp.onnxOutputs().getFirst().type(), rawOp, n)
-                        : TupleType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
+                        : CoreType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
                 extOp = new ExternalizableOp.ExternalizedOp(
                         extOp.name(),
                         extOp.operands(),

@@ -36,13 +36,17 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.op.OpFactory;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
+import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
+
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -121,7 +125,7 @@ public class LayoutExample {
         for (Block.Parameter p : f.parameters()) {
             pTypes.add(transformStructClassToPtr(l, p.type()));
         }
-        return FunctionType.functionType(
+        return CoreType.functionType(
                 transformStructClassToPtr(l, f.invokableType().returnType()), pTypes);
     }
 
@@ -132,7 +136,7 @@ public class LayoutExample {
 
         var funcOp = builder.body(funcBlock -> {
             funcBlock.transformBody(f.body(), funcBlock.parameters(), (b, op) -> {
-                if (op instanceof CoreOp.InvokeOp invokeOp
+                if (op instanceof JavaOp.InvokeOp invokeOp
                         && invokeOp.hasReceiver()
                         && invokeOp.operands().getFirst() instanceof Value receiver) {
                     if (bufferOrBufferChildClass(l, receiver.type()) != null) {
@@ -203,7 +207,7 @@ public class LayoutExample {
         }
     }
 
-    public static final class PtrType implements TypeElement {
+    public static final class PtrType implements ExternalizableTypeElement {
         static final String NAME = "ptr";
         MemoryLayout layout;
         Schema schema;

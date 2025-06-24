@@ -55,8 +55,9 @@ import jdk.incubator.code.bytecode.impl.BranchCompactor;
 import jdk.incubator.code.bytecode.impl.LocalsCompactor;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.*;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.*;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 import java.util.ArrayList;
@@ -1289,7 +1290,7 @@ public final class BytecodeGenerator {
         List<TypeElement> params = captures.stream()
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
-        FunctionType ft = FunctionType.functionType(QuotedOp.QUOTED_TYPE, params);
+        FunctionType ft = CoreType.functionType(QuotedOp.QUOTED_TYPE, params);
 
         // Build the function that quotes the lambda
         return CoreOp.func("q", ft).body(b -> {

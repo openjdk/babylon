@@ -23,7 +23,6 @@
 
 /*
  * @test
- * @modules jdk.incubator.code/jdk.incubator.code.parser.impl
  * @run testng TestParse
  */
 
@@ -35,7 +34,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import java.util.List;
 import java.util.function.IntUnaryOperator;
 
@@ -44,7 +43,7 @@ import static jdk.incubator.code.dialect.java.JavaOp.add;
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
 import static jdk.incubator.code.dialect.core.CoreOp.func;
 import static jdk.incubator.code.dialect.java.JavaOp.lambda;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaType.INT;
 import static jdk.incubator.code.dialect.java.JavaType.type;
 
@@ -80,7 +79,7 @@ public class TestParse {
                     block.op(_return(or));
                 });
 
-        List<Op> ops = OpParser.fromString(JavaOp.DIALECT_FACTORY, f.toText());
+        List<Op> ops = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, f.toText());
         assertTextEquals(f, ops.get(0));
     }
 
@@ -97,8 +96,8 @@ public class TestParse {
             """;
     @Test
     void testParseNamedBody() {
-        Op opE = OpParser.fromString(JavaOp.DIALECT_FACTORY, NAMED_BODY).get(0);
-        Op opA = OpParser.fromString(JavaOp.DIALECT_FACTORY, opE.toText()).get(0);
+        Op opE = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, NAMED_BODY).get(0);
+        Op opA = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, opE.toText()).get(0);
         assertTextEquals(opA, opE);
     }
 
@@ -111,8 +110,8 @@ public class TestParse {
             """;
     @Test
     void testEscapedString() {
-        Op opE = OpParser.fromString(JavaOp.DIALECT_FACTORY, ESCAPED_STRING).get(0);
-        Op opA = OpParser.fromString(JavaOp.DIALECT_FACTORY, opE.toText()).get(0);
+        Op opE = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, ESCAPED_STRING).get(0);
+        Op opA = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, opE.toText()).get(0);
         assertTextEquals(opA, opE);
 
         CoreOp.ConstantOp cop = (CoreOp.ConstantOp) opE.bodies().get(0).entryBlock().firstOp();

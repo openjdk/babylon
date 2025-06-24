@@ -5,6 +5,7 @@
     <content url="file://$MODULE_DIR$/../wrap/glwrap">
       <sourceFolder url="file://$MODULE_DIR$/../wrap/glwrap/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../wrap/glwrap/src/main/resources" type="java-resource" />
+      <excludeFolder url="file://$MODULE_DIR$/../wrap/glwrap/src/main/java/wrap/glwrap" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

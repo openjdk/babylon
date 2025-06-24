@@ -38,11 +38,12 @@ import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.internal.access.SharedSecrets;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -401,7 +402,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public FunctionType opType() {
         List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
-        return FunctionType.functionType(resultType(), operandTypes);
+        return CoreType.functionType(resultType(), operandTypes);
     }
 
     /**

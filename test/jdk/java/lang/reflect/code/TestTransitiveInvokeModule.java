@@ -47,18 +47,18 @@ import java.util.stream.Stream;
 public class TestTransitiveInvokeModule {
 
     @CodeReflection
-    static void m(int i, List<Integer> l) {
+    static int m(int i, List<Integer> l) {
         if (i < 0) {
-            return;
+            return i;
         }
 
-        n(i - 1, l);
+        return n(i - 1, l);
     }
 
     @CodeReflection
-    static void n(int i, List<Integer> l) {
+    static int n(int i, List<Integer> l) {
         l.add(i);
-        m(i - 1, l);
+        return m(i - 1, l);
     }
 
     @Test
@@ -79,8 +79,9 @@ public class TestTransitiveInvokeModule {
         });
 
         List<Integer> r = new ArrayList<>();
-        Interpreter.invoke(MethodHandles.lookup(), module.functionTable().firstEntry().getValue(), 10, r);
+        Object result = Interpreter.invoke(MethodHandles.lookup(), module.functionTable().firstEntry().getValue(), 10, r);
         Assert.assertEquals(r, List.of(9, 7, 5, 3, 1, -1));
+        Assert.assertEquals(result, -2);
     }
 
     static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup l,
@@ -124,10 +125,12 @@ public class TestTransitiveInvokeModule {
                             work.push(call);
 
                             // Replace invocation with function call
-                            block.op(CoreOp.funcCall(
+                            Op.Result result = block.op(CoreOp.funcCall(
                                     call.r.toString(),
                                     call.f.invokableType(),
                                     block.context().getValues(iop.operands())));
+                            // Map invocation result to function call result
+                            block.context().mapValue(op.result(), result);
                             return block;
                         }
                     }

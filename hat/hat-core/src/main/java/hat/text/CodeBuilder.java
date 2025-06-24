@@ -80,12 +80,20 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T comma() {
         return symbol(",");
     }
-
+    public T tilde() {
+        return symbol("~");
+    }
 
     public T dot() {
         return symbol(".");
     }
 
+    public T leftShift() {
+        return symbol("<<");
+    }
+    public T rightShift() {
+        return symbol(">>");
+    }
 
     public T equals() {
         return symbol("=");
@@ -125,10 +133,19 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T staticKeyword() {
         return keyword("static");
     }
-
+    public T constexprKeyword() {
+        return keyword("constexpr");
+    }
 
     public T constKeyword() {
         return keyword("const");
+    }
+    public T explicitKeyword() {
+        return keyword("explicit");
+    }
+
+    public T virtualKeyword() {
+        return keyword("virtual");
     }
 
     public T ifKeyword() {
@@ -244,6 +261,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public T lt() {
         return symbol("<");
+    }
+    public T eq() {
+        return equals().equals();
     }
 
     public T lte() {
@@ -385,6 +405,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T cbrace() {
         return symbol("}");
     }
+
 
     public T csbrace() {
         return symbol("]");

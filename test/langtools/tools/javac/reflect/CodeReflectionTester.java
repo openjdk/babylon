@@ -28,13 +28,13 @@ import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpParser;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.CodeReflection;
 
 import static jdk.incubator.code.dialect.core.CoreOp._return;
 import static jdk.incubator.code.dialect.core.CoreOp.func;
-import static jdk.incubator.code.dialect.core.FunctionType.VOID;
+import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 
 public class CodeReflectionTester {
 
@@ -130,7 +130,7 @@ public class CodeReflectionTester {
     static String canonicalizeModel(Member m, String d) {
         Op o;
         try {
-            o = OpParser.fromString(JavaOp.DIALECT_FACTORY, d).get(0);
+            o = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }
@@ -145,7 +145,7 @@ public class CodeReflectionTester {
     }
 
     static Op getModelOfQuotedOp(Quoted quoted) {
-        return func("f", VOID).body(fblock -> {
+        return func("f", FUNCTION_TYPE_VOID).body(fblock -> {
             CopyContext cc = fblock.context();
             for (Value cv : quoted.capturedValues().keySet()) {
                 Block.Parameter p = fblock.parameter(cv.type());

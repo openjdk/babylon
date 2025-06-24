@@ -14,6 +14,7 @@ if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (SHARED_BACKEND "${CMAKE_SOURCE_DIR}/shared")
     message("SHARED_BACKEND=${SHARED_BACKEND}")
 endif()
+add_subdirectory(shared)
 
 include_directories(
     ${SHARED_BACKEND}/include
@@ -31,17 +32,17 @@ if ("${CUDA_BACKEND}EMPTY" STREQUAL "EMPTY")
 endif()
 add_subdirectory(cuda)
 
-if ("${SPIRV_BACKEND}EMPTY" STREQUAL "EMPTY")
-    set (SPIRV_BACKEND "${CMAKE_SOURCE_DIR}/spirv")
-    message("SPIRV_BACKEND=${SPIRV_BACKEND}")
-endif()
-add_subdirectory(spirv)
+#if ("${SPIRV_BACKEND}EMPTY" STREQUAL "EMPTY")
+#    set (SPIRV_BACKEND "${CMAKE_SOURCE_DIR}/spirv")
+#    message("SPIRV_BACKEND=${SPIRV_BACKEND}")
+#endif()
+#add_subdirectory(spirv)
 
-if ("${HIP_BACKEND}EMPTY" STREQUAL "EMPTY")
-    set (HIP_BACKEND "${CMAKE_SOURCE_DIR}/hip")
-    message("HIP_BACKEND=${HIP_BACKEND}")
-endif()
-add_subdirectory(hip)
+#if ("${HIP_BACKEND}EMPTY" STREQUAL "EMPTY")
+#    set (HIP_BACKEND "${CMAKE_SOURCE_DIR}/hip")
+ #   message("HIP_BACKEND=${HIP_BACKEND}")
+#endif()
+#add_subdirectory(hip)
 
 if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (MOCK_BACKEND "${CMAKE_SOURCE_DIR}/mock")
@@ -49,11 +50,5 @@ if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
 endif()
 add_subdirectory(mock)
 
-add_executable(schemadump
-        ${SHARED_BACKEND}/cpp/schema.cpp
-        ${SHARED_BACKEND}/cpp/schemadump.cpp
-        ${SHARED_BACKEND}/cpp/schema_cursor.cpp
-        ${SHARED_BACKEND}/include/schema_cursor.h
-        ${SHARED_BACKEND}/include/schema.h
-)
+
 

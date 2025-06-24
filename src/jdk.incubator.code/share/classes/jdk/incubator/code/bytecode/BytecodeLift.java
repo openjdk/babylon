@@ -26,6 +26,7 @@
 package jdk.incubator.code.bytecode;
 
 import jdk.incubator.code.bytecode.impl.BytecodeHelpers;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
@@ -468,7 +469,7 @@ public final class BytecodeLift {
                         if (capturedValues.length > 0) {
                             mt = mt.dropParameterTypes(0, capturedValues.length);
                         }
-                        FunctionType lambdaFunc = FunctionType.functionType(JavaType.type(mt.returnType()),
+                        FunctionType lambdaFunc = CoreType.functionType(JavaType.type(mt.returnType()),
                                                                             mt.parameterList().stream().map(JavaType::type).toList());
                         JavaOp.LambdaOp.Builder lambda = JavaOp.lambda(currentBlock.parentBody(),
                                                                        lambdaFunc,

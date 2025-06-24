@@ -11,6 +11,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.java.*;
@@ -66,7 +67,7 @@ public final class OnnxTransformer {
                         vop.initOperand() instanceof Block.Parameter p ? p : v)
                 .map(Value::type)
                 .toList();
-        FunctionType ft = FunctionType.functionType(lambda.invokableType().returnType(), normalizedCaptureTypes);
+        FunctionType ft = CoreType.functionType(lambda.invokableType().returnType(), normalizedCaptureTypes);
 
         CoreOp.FuncOp f = CoreOp.FuncOp.func("", ft).body(b -> {
             // Map input captured values
@@ -170,7 +171,7 @@ public final class OnnxTransformer {
         return new ModuleAndInitializers(CoreOp.module(module.functionTable().sequencedValues().stream().map(f -> {
             var ft = f.invokableType();
             int argsSize = ft.parameterTypes().size();
-            return CoreOp.func(f.funcName(), FunctionType.functionType(ft.returnType(), Stream.concat(ft.parameterTypes().stream(), initTypes.stream()).toList()))
+            return CoreOp.func(f.funcName(), CoreType.functionType(ft.returnType(), Stream.concat(ft.parameterTypes().stream(), initTypes.stream()).toList()))
                     .body(bob -> bob.transformBody(f.body(), bob.parameters(), (bb, op) -> {
                         List<Block.Parameter> initArgs = bob.parameters().subList(argsSize, bob.parameters().size());
                         switch (op) {
@@ -180,7 +181,7 @@ public final class OnnxTransformer {
                             }
                             case CoreOp.FuncCallOp fco -> {
                                 // attach initializers args to all func calls
-                                FunctionType newType = FunctionType.functionType(fco.opType().returnType(),
+                                FunctionType newType = CoreType.functionType(fco.opType().returnType(),
                                         Stream.concat(fco.opType().parameterTypes().stream(), initTypes.stream()).toList());
                                 List<Value> newOperands = Stream.concat(bb.context().getValues(fco.operands()).stream(), initArgs.stream()).toList();
                                 Op.Result newCall = bb.op(CoreOp.funcCall(fco.funcName(), newType, newOperands));
@@ -322,7 +323,7 @@ public final class OnnxTransformer {
                 CopyContext cc = bb.context();
                 List<Value> newOperands = IntStream.range(0, fco.operands().size()).filter(i -> !argsToDrop.get(i)).mapToObj(i -> cc.getValue(fco.operands().get(i))).toList();
                 CoreOp.FuncCallOp newCall = CoreOp.funcCall(fco.funcName(),
-                                                            FunctionType.functionType(fco.opType().returnType(),
+                                                            CoreType.functionType(fco.opType().returnType(),
                                                                                       newOperands.stream().map(Value::type).toList()),
                                                             newOperands);
                 cc.mapValue(op.result(), bb.op(newCall));
@@ -347,7 +348,7 @@ public final class OnnxTransformer {
                 })
                 .toList();
 
-        var funcType = FunctionType.functionType(func.invokableType().returnType(), usedParameters.stream().map(Value::type).toList());
+        var funcType = CoreType.functionType(func.invokableType().returnType(), usedParameters.stream().map(Value::type).toList());
         return CoreOp.func(func.funcName(), funcType).body(bob -> {
             bob.context().mapValues(usedParameters, bob.parameters());
             bob.transformBody(func.body(), List.of(), (b, op) -> {
@@ -531,7 +532,7 @@ public final class OnnxTransformer {
         // @@@ Pass in function type to override that of body's type?
 //        return iop.body().transform(cc, ot);
         FunctionType inputType = iop.invokableType();
-        FunctionType outputType = FunctionType.functionType(
+        FunctionType outputType = CoreType.functionType(
                 convertType(l, inputType.returnType()),
                 inputType.parameterTypes().stream().map(pt -> convertType(l, pt)).toList());
 
@@ -622,7 +623,7 @@ public final class OnnxTransformer {
             }
         }
 
-        return TupleType.tupleType(tupleComponentTypes);
+        return CoreType.tupleType(tupleComponentTypes);
     }
 
     static boolean isRecord(MethodHandles.Lookup l, TypeElement type) {
@@ -658,7 +659,7 @@ public final class OnnxTransformer {
     }
 
     static FunctionType convertType(MethodHandles.Lookup l, FunctionType t) {
-        return FunctionType.functionType(convertType(l, t.returnType()), t.parameterTypes().stream().map(pt -> convertType(l, pt)).toList());
+        return CoreType.functionType(convertType(l, t.returnType()), t.parameterTypes().stream().map(pt -> convertType(l, pt)).toList());
     }
 
     static FunctionType convertType(MethodHandles.Lookup l, CoreOp.FuncOp fo) {

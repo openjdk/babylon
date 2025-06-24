@@ -5,6 +5,7 @@
     <content url="file://$MODULE_DIR$/../examples/nbody">
       <sourceFolder url="file://$MODULE_DIR$/../examples/nbody/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../examples/nbody/src/main/resources" type="java-resource" />
+      <excludeFolder url="file://$MODULE_DIR$/../examples/nbody/src/main/java/nbody" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
