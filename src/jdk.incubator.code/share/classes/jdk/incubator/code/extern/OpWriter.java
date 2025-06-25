@@ -46,6 +46,11 @@ import java.util.function.Function;
  */
 public final class OpWriter {
 
+    /**
+     * The attribute name associated with the location attribute.
+     */
+    static final String ATTRIBUTE_LOCATION = "loc";
+
     static final class GlobalValueBlockNaming implements Function<CodeItem, String> {
         final Map<CodeItem, String> gn;
         int valueOrdinal = 0;
@@ -71,7 +76,7 @@ public final class OpWriter {
 
     static final class AttributeMapper {
         static String toString(Object value) {
-            if (value == ExternalizableOp.NULL_ATTRIBUTE_VALUE) {
+            if (value == Op.NULL_ATTRIBUTE_VALUE) {
                 return "null";
             }
 
@@ -440,12 +445,14 @@ public final class OpWriter {
             writeSpaceSeparatedList(op.successors(), this::writeSuccessor);
         }
 
-        Map<String, Object> attributes = op instanceof ExternalizableOp exop ? exop.attributes() : Map.of();
-        if (dropLocation && !attributes.isEmpty() &&
-                attributes.containsKey(ExternalizableOp.ATTRIBUTE_LOCATION)) {
-            attributes = new HashMap<>(attributes);
-            attributes.remove(ExternalizableOp.ATTRIBUTE_LOCATION);
+        if (!dropLocation) {
+            Location location = op.location();
+            if (location != null) {
+                write(" ");
+                writeAttribute(ATTRIBUTE_LOCATION, op.location());
+            }
         }
+        Map<String, Object> attributes = op.externalize();
         if (!attributes.isEmpty()) {
             write(" ");
             writeSpaceSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));

@@ -406,6 +406,23 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
+     * The attribute value that represents the external null value.
+     */
+    public static final Object NULL_ATTRIBUTE_VALUE = new Object();
+
+    /**
+     * Externalizes the operation's state as a map of attributes.
+     *
+     * <p>A null attribute value is represented by the constant
+     * value {@link #NULL_ATTRIBUTE_VALUE}.
+     *
+     * @return the operation's externalized state, as an unmodifiable map
+     */
+    public Map<String, Object> externalize() {
+        return Map.of();
+    }
+
+    /**
      * Traverse the operands of this operation that are the results of prior operations, recursively.
      * <p>
      * Traversal is performed in pre-order, reporting the operation of each operand to the visitor.
