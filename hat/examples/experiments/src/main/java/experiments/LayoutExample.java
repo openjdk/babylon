@@ -36,7 +36,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.extern.ExternalizableTypeElement;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -269,7 +268,7 @@ public class LayoutExample {
     }
 
     @OpFactory.OpDeclaration(PtrToMember.NAME)
-    public static final class PtrToMember extends ExternalizableOp {
+    public static final class PtrToMember extends Op {
         public static final String NAME = "ptr.to.member";
         public static final String ATTRIBUTE_OFFSET = "offset";
         public static final String ATTRIBUTE_NAME = "name";
@@ -345,11 +344,10 @@ public class LayoutExample {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put("", simpleMemberName);
-            attrs.put(ATTRIBUTE_OFFSET, memberOffset);
-            return attrs;
+        public Map<String, Object> externalize() {
+            return Map.of(
+                    "", simpleMemberName,
+                    ATTRIBUTE_OFFSET, memberOffset);
         }
 
         public String simpleMemberName() {

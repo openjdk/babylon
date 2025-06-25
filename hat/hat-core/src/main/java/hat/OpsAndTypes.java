@@ -41,7 +41,6 @@ import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.extern.ExternalizableTypeElement;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -52,7 +51,6 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -300,7 +298,7 @@ public class OpsAndTypes {
 
 
     @OpFactory.OpDeclaration(HatPtrOp.NAME)
-    public static final class HatPtrOp<T extends MappableIface> extends ExternalizableOp {
+    public static final class HatPtrOp<T extends MappableIface> extends Op {
         public static final String NAME = "ptr.to.member";
         public static final String ATTRIBUTE_OFFSET = "offset";
         public final OpsAndTypes.HatPtrType<T> hatPtrType;
@@ -360,11 +358,10 @@ public class OpsAndTypes {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put("", simpleMemberName);
-            attrs.put(ATTRIBUTE_OFFSET, memberOffset);
-            return attrs;
+        public Map<String, Object> externalize() {
+            return Map.of(
+                    "", simpleMemberName,
+                    ATTRIBUTE_OFFSET, memberOffset);
         }
     }
 
