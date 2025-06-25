@@ -72,7 +72,6 @@ public class TestVarOp {
     @Test
     public void testNoName() {
         CoreOp.FuncOp f = getFuncOp("f");
-        System.out.println(f.toText());
         f = f.transform((block, op) -> {
             if (op instanceof CoreOp.VarOp vop) {
                 Value init = block.context().getValue(vop.initOperand());
@@ -83,7 +82,6 @@ public class TestVarOp {
             }
             return block;
         });
-        System.out.println(f.toText());
 
         Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, f.toText()).get(0);
         boolean allNullNames = op.elements()
