@@ -100,6 +100,7 @@ public final class Quoted {
         return capturedValues;
     }
 
+    // Take an op from its original context to a new one where operands and captured values are parameters
     public static CoreOp.FuncOp quoteOp(Op op) {
 
         if (op.result() == null) {
@@ -146,6 +147,7 @@ public final class Quoted {
         return new RuntimeException("Invalid code model for quoted operation : " + model);
     }
 
+    // Extract the quoted operation from funcOp and maps the operands and captured values to the runtime values
     public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object[] args) {
 
         if (funcOp.body().blocks().size() != 1) {
