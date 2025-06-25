@@ -7,6 +7,7 @@ import java.io.Writer;
 import jdk.incubator.code.*;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -64,7 +65,7 @@ public final class MLIRGenerator {
      */
     static final class AttributeMapper {
         static String toString(String name, Object value) {
-            if (value == Op.NULL_ATTRIBUTE_VALUE)
+            if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE)
                 return "null";
             else if (name.equals("function_type") || name.equals("arg_attrs") || name.equals("value"))
                 return quote(value.toString());

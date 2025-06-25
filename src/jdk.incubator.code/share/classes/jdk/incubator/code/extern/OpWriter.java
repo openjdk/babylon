@@ -76,7 +76,7 @@ public final class OpWriter {
 
     static final class AttributeMapper {
         static String toString(Object value) {
-            if (value == Op.NULL_ATTRIBUTE_VALUE) {
+            if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE) {
                 return "null";
             }
 

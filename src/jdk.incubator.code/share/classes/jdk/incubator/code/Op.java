@@ -406,15 +406,10 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * The attribute value that represents the external null value.
-     */
-    public static final Object NULL_ATTRIBUTE_VALUE = new Object();
-
-    /**
      * Externalizes the operation's state as a map of attributes.
      *
      * <p>A null attribute value is represented by the constant
-     * value {@link #NULL_ATTRIBUTE_VALUE}.
+     * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
      *
      * @return the operation's externalized state, as an unmodifiable map
      */

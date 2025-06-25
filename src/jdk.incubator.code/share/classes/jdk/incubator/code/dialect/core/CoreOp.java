@@ -790,12 +790,12 @@ public sealed abstract class CoreOp extends Op {
             } else if (t.equals(JavaType.DOUBLE) && value instanceof Number n) {
                 return n.doubleValue();
             } else if (t.equals(JavaType.J_L_STRING)) {
-                return value == NULL_ATTRIBUTE_VALUE ?
+                return value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ?
                         null : (String)value;
             } else if (t.equals(JavaType.J_L_CLASS)) {
-                return value == NULL_ATTRIBUTE_VALUE ?
+                return value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ?
                         null : (TypeElement)value;
-            } else if (value == NULL_ATTRIBUTE_VALUE) {
+            } else if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
 
@@ -823,7 +823,7 @@ public sealed abstract class CoreOp extends Op {
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("", value == null ? NULL_ATTRIBUTE_VALUE : value);
+            return Map.of("", value == null ? ExternalizedOp.NULL_ATTRIBUTE_VALUE : value);
         }
 
         public Object value() {

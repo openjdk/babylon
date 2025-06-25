@@ -11,11 +11,11 @@ import java.util.function.Function;
  * of an {@link Op} associated with that state, such as the operation's name.
  *
  * @param name            the operation name
- * @parem location        the source location associated with the operation, may be null
+ * @param location        the source location associated with the operation, may be null
  * @param operands        the list of operands
  * @param successors      the list of successors
  * @param resultType      the operation result type
- * @param attributes      the operation's specific state as a map
+ * @param attributes      the operation's specific state as a map of attributes
  * @param bodyDefinitions the list of body builders for building the operation's bodies
  * @apiNote Deserializers of operations may utilize this record to construct operations,
  * thereby separating the specifics of deserializing from construction.
@@ -27,6 +27,11 @@ public record ExternalizedOp(String name,
                              TypeElement resultType,
                              Map<String, Object> attributes,
                              List<Body.Builder> bodyDefinitions) {
+
+    /**
+     * The attribute value that represents the external null value.
+     */
+    public static final Object NULL_ATTRIBUTE_VALUE = new Object();
 
     public ExternalizedOp {
         attributes = Map.copyOf(attributes);
@@ -43,7 +48,7 @@ public record ExternalizedOp(String name,
      *
      * <p>On successfully obtaining the attribute its value is converted by applying the value
      * to the mapping function. A {@code null} value is represented by the value
-     * {@link Op#NULL_ATTRIBUTE_VALUE}.
+     * {@link ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
      *
      * <p>If no attribute is present the {@code null} value is applied to the mapping function.
      *

@@ -484,7 +484,7 @@ public final class OpParser {
     Object parseLiteral(Tokens.Token t) {
         return switch (t.kind) {
             case STRINGLITERAL -> t.stringVal();
-            case NULL -> Op.NULL_ATTRIBUTE_VALUE;
+            case NULL -> ExternalizedOp.NULL_ATTRIBUTE_VALUE;
             case CHARLITERAL -> t.stringVal().charAt(0);
             case TRUE -> true;
             case FALSE -> false;
