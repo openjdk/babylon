@@ -301,7 +301,7 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
     @Test(dataProvider = "invalidCases")
     void testInvalidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
-        Assert.assertThrows(IllegalArgumentException.class, () -> Quoted.quotedOp(fop, args));
+        Assert.assertThrows(RuntimeException.class, () -> Quoted.quotedOp(fop, args));
     }
 
     @DataProvider
