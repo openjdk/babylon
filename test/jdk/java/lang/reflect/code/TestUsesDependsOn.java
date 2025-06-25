@@ -31,7 +31,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

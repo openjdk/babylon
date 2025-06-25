@@ -27,6 +27,7 @@
  * @run testng TestExceptionRegionOps
  */
 
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -48,7 +49,6 @@ import static jdk.incubator.code.dialect.core.CoreOp.constant;
 import static jdk.incubator.code.dialect.java.JavaOp.exceptionRegionEnter;
 import static jdk.incubator.code.dialect.java.JavaOp.exceptionRegionExit;
 import static jdk.incubator.code.dialect.core.CoreOp.func;
-import static jdk.incubator.code.dialect.core.FunctionType.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 import static jdk.incubator.code.dialect.java.JavaType.VOID;
 
@@ -71,7 +71,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void test() {
-        CoreOp.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
+        CoreOp.FuncOp f = func("f", CoreType.functionType(VOID, type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1ISE = fblock.block(type(IllegalStateException.class));
@@ -163,7 +163,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchThrowable() {
-        CoreOp.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
+        CoreOp.FuncOp f = func("f", CoreType.functionType(VOID, type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1ISE = fblock.block(type(IllegalStateException.class));
@@ -259,7 +259,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testNested() {
-        CoreOp.FuncOp f = func("f", functionType(VOID, type(IntConsumer.class)))
+        CoreOp.FuncOp f = func("f", CoreType.functionType(VOID, type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchER1 = fblock.block(type(IllegalArgumentException.class));
@@ -382,7 +382,7 @@ public class TestExceptionRegionOps {
 
     @Test
     public void testCatchFinally() {
-        CoreOp.FuncOp f = func("f", functionType(VOID, JavaType.type(IntConsumer.class)))
+        CoreOp.FuncOp f = func("f", CoreType.functionType(VOID, JavaType.type(IntConsumer.class)))
                 .body(fbody -> {
                     var fblock = fbody.entryBlock();
                     var catchRE = fblock.block(type(IllegalStateException.class));

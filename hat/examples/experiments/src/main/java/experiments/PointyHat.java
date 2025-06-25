@@ -40,9 +40,9 @@ import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
 
 public class PointyHat {
     public interface ColoredWeightedPoint extends Buffer {

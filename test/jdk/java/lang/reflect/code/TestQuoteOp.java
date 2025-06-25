@@ -6,7 +6,7 @@ import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

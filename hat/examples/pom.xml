@@ -47,6 +47,7 @@ questions.
         <module>violajones</module>
         <module>squares</module>
         <module>life</module>
+        <module>experiments</module>
     </modules>
     <profiles>
         <profile>

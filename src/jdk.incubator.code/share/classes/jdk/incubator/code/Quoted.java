@@ -26,6 +26,7 @@
 package jdk.incubator.code;
 
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 
@@ -113,7 +114,7 @@ public final class Quoted {
         List<TypeElement> params = inputOperandsAndCaptures.stream()
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
-        FunctionType ft = FunctionType.functionType(CoreOp.QuotedOp.QUOTED_TYPE, params);
+        FunctionType ft = CoreType.functionType(CoreOp.QuotedOp.QUOTED_TYPE, params);
 
         // Build the function that quotes the lambda
         return CoreOp.func("q", ft).body(b -> {

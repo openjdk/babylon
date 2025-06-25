@@ -27,7 +27,7 @@ package hat.backend;
 public class SpirvDeviceInfo {
 
     public static void main(String[] args) {
-        SpirvBackend spirvBackend = new SpirvBackend();
-        spirvBackend.info();
+        SpirvBackend backend = new SpirvBackend();
+        backend.info();
     }
 }

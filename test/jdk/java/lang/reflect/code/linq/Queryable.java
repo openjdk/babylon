@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 import static jdk.incubator.code.dialect.java.JavaType.parameterized;
 import static jdk.incubator.code.dialect.java.MethodRef.method;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaType.type;
 
 public interface Queryable<T> {

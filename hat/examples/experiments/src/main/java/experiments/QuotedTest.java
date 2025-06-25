@@ -31,17 +31,17 @@ import hat.optools.OpWrapper;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
 
-import static jdk.incubator.code.op.CoreOp._return;
-import static jdk.incubator.code.op.CoreOp.add;
-import static jdk.incubator.code.op.CoreOp.closureCall;
-import static jdk.incubator.code.op.CoreOp.constant;
-import static jdk.incubator.code.op.CoreOp.func;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.JavaType.INT;
+import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.core.CoreOp.closureCall;
+import static jdk.incubator.code.dialect.core.CoreOp.constant;
+import static jdk.incubator.code.dialect.core.CoreOp.func;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
+import static jdk.incubator.code.dialect.java.JavaOp.add;
+import static jdk.incubator.code.dialect.java.JavaType.INT;
 /*
 https://github.com/openjdk/babylon/tree/code-reflection/test/jdk/java/lang/reflect/code
 */

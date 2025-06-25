@@ -38,7 +38,7 @@ public abstract class FFIBackendDriver implements Backend {
     public boolean isAvailable() {
         return ffiLib.available;
     }
-protected final Config config;
+    protected final Config config;
 
     public static class BackendBridge {
         // CUDA this combines Device+Stream+Context
@@ -61,9 +61,6 @@ protected final Config config;
                     this.ndrange_MPtr = compilationUnitBridge.backendBridge.ffiLib.longHandleLongAddressFunc("ndrange");
                     this.name = name;
                 }
-
-
-
                 public void ndRange(ArgArray argArray) {
                     this.ndrange_MPtr.invoke(handle, Buffer.getMemorySegment(argArray));
                 }
@@ -77,8 +74,6 @@ protected final Config config;
             final FFILib.VoidHandleMethodPtr releaseCompilationUnit_MPtr;
             final FFILib.BooleanHandleMethodPtr compilationUnitOK_MPtr;
             final FFILib.LongHandleIntAddressMethodPtr getKernel_MPtr;
-
-
             long handle;
             Map<String, KernelBridge> kernels = new HashMap<>();
 
@@ -90,24 +85,18 @@ protected final Config config;
                 this.compilationUnitOK_MPtr = backendBridge.ffiLib.booleanHandleFunc("compilationUnitOK");
                 this.getKernel_MPtr = backendBridge.ffiLib.longHandleIntAddressFunc("getKernel");
             }
-
             void release() {
                 this.releaseCompilationUnit_MPtr.invoke(handle);
             }
-
             boolean ok() {
                 return this.compilationUnitOK_MPtr.invoke(handle);
             }
-
             public KernelBridge getKernel(String kernelName) {
-                KernelBridge kernelBridge = kernels.computeIfAbsent(kernelName, _ ->
+                return kernels.computeIfAbsent(kernelName, _ ->
                         new KernelBridge(this, kernelName,
                                 getKernel_MPtr.invoke(handle, kernelName.length(), Arena.global().allocateFrom(kernelName)))
                 );
-                return kernelBridge;
             }
-
-
         }
 
         final FFILib ffiLib;
@@ -118,15 +107,7 @@ protected final Config config;
         final FFILib.LongHandleIntAddressMethodPtr compile_MPtr;
         final FFILib.VoidHandleMethodPtr computeStart_MPtr;
         final FFILib.VoidHandleMethodPtr computeEnd_MPtr;
-        final FFILib.VoidAddressMethodPtr dumpArgArray_MPtr;
-/*
-  final FFILib.LongIntMethodPtr getBackend_MPtr;
-    getBackend_MPtr = ffiLib.longIntFunc("getBackend");
-    public long getBackend(int configBits) {
-        return backendBridge.handle = getBackend_MPtr.invoke(configBits);
-    }
 
- */
         final FFILib.VoidHandleMethodPtr info_MPtr;
         final FFILib.BooleanHandleAddressLongMethodPtr getBufferFromDeviceIfDirty_MPtr;
         BackendBridge(FFILib ffiLib, Config config) {
@@ -137,7 +118,6 @@ protected final Config config;
             }
             this.handle = getBackend(config.bits());
             this.compile_MPtr = ffiLib.longHandleIntAddressFunc("compile");
-            this.dumpArgArray_MPtr = ffiLib.voidAddressFunc("dumpArgArray");
             this.info_MPtr = ffiLib.voidHandleFunc("info");
             this.computeStart_MPtr = ffiLib.voidHandleFunc("computeStart");
             this.computeEnd_MPtr = ffiLib.voidHandleFunc("computeEnd");
@@ -145,9 +125,7 @@ protected final Config config;
         }
 
 
-        void release() {
-
-        }
+        void release() {}
 
         public long getBackend(int configBits) {
             return getBackend_MPtr.invoke(configBits);
@@ -166,34 +144,22 @@ protected final Config config;
 
         public Buffer getBufferFromDeviceIfDirty(Buffer buffer) {
             MemorySegment memorySegment = Buffer.getMemorySegment(buffer);
-            boolean ok = getBufferFromDeviceIfDirty_MPtr.invoke(handle, memorySegment, memorySegment.byteSize());
-            if (!ok) {
+            if (!getBufferFromDeviceIfDirty_MPtr.invoke(handle, memorySegment, memorySegment.byteSize())){
                 throw new IllegalStateException("Failed to get buffer from backend");
             }
             return buffer;
 
         }
-
         public void computeStart() {
             computeStart_MPtr.invoke(handle);
         }
-
         public void computeEnd() {
             computeEnd_MPtr.invoke(handle);
         }
-
         public void info() {
             info_MPtr.invoke(handle);
         }
-
-        public void dumpArgArray(ArgArray argArray) {
-            dumpArgArray_MPtr.invoke(Buffer.getMemorySegment(argArray));
-        }
-
-
     }
-
-
 
     public final FFILib ffiLib;
     public final BackendBridge backendBridge;
@@ -202,8 +168,6 @@ protected final Config config;
         this.ffiLib = new FFILib(libName);
         this.config = config;
         this.backendBridge = new BackendBridge(ffiLib, config);
-
     }
-
 
 }

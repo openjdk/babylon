@@ -35,13 +35,17 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.op.OpFactory;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
+import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
+
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -148,12 +152,12 @@ public class RawLayout {
         for (Block.Parameter p : f.parameters()) {
             pTypes.add(transformStructClassToPtr(l, p.type()));
         }
-        FunctionType functionType = FunctionType.functionType(
+        FunctionType functionType = CoreType.functionType(
                 transformStructClassToPtr(l, f.invokableType().returnType()),
                 pTypes);
         return CoreOp.func(f.funcName(), functionType).body(funcBlock -> {
             funcBlock.transformBody(f.body(), funcBlock.parameters(), (b, op) -> {
-                if (op instanceof CoreOp.InvokeOp iop && iop.hasReceiver()) {
+                if (op instanceof JavaOp.InvokeOp iop && iop.hasReceiver()) {
                     Value receiver = iop.operands().getFirst();
                     if (structClass(l, receiver.type()) instanceof Class<?> _) {
                         Value ptr = b.context().getValue(receiver);
@@ -234,7 +238,7 @@ public class RawLayout {
     }
 
 
-    public static final class PtrType implements TypeElement {
+    public static final class PtrType implements ExternalizableTypeElement {
         static final String NAME = "ptr";
         final MemoryLayout layout;
         final JavaType rType;

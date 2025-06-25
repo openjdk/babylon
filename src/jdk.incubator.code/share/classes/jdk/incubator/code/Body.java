@@ -25,6 +25,7 @@
 
 package jdk.incubator.code;
 
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import java.util.*;
 
@@ -125,7 +126,7 @@ public final class Body implements CodeElement<Body, Block> {
      */
     public FunctionType bodyType() {
         Block entryBlock = entryBlock();
-        return FunctionType.functionType(yieldType, entryBlock.parameterTypes());
+        return CoreType.functionType(yieldType, entryBlock.parameterTypes());
     }
 
     /**
@@ -642,7 +643,7 @@ public final class Body implements CodeElement<Body, Block> {
         public FunctionType bodyType() {
             TypeElement returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
-            return FunctionType.functionType(returnType, eb.parameterTypes());
+            return CoreType.functionType(returnType, eb.parameterTypes());
         }
 
         /**
@@ -719,7 +720,7 @@ public final class Body implements CodeElement<Body, Block> {
                 ? ancestorBlockBuilder.parentBody() : null;
         Builder body = Builder.of(ancestorBodyBuilder,
                 // Create function type with just the return type and add parameters afterward
-                FunctionType.functionType(yieldType),
+                CoreType.functionType(yieldType),
                 cc, ot);
 
         for (Block.Parameter p : entryBlock().parameters()) {

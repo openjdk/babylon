@@ -18,8 +18,8 @@ if(CUDAToolkit_FOUND)
 
     include_directories(
             ${CUDAToolkit_INCLUDE_DIRS} # was ${CUDAToolkit_INCLUDE_DIR}
-	        ${SHARED_BACKEND}/include
-	        ${CUDA_BACKEND}/include
+	        ${SHARED_BACKEND}/src/main/native/include
+	        ${CUDA_BACKEND}/src/main/native/include
     )
 
     link_directories(
@@ -28,49 +28,34 @@ if(CUDAToolkit_FOUND)
     )
 
     add_library(cuda_backend SHARED
-            ${SHARED_BACKEND}/cpp/shared.cpp
-            ${SHARED_BACKEND}/include/shared.h
-            ${SHARED_BACKEND}/cpp/buffer.cpp
-            ${SHARED_BACKEND}/include/buffer.h
-            ${SHARED_BACKEND}/cpp/schema_cursor.cpp
-            ${SHARED_BACKEND}/include/schema_cursor.h
-            ${SHARED_BACKEND}/cpp/buffer_cursor.cpp
-            ${SHARED_BACKEND}/include/buffer_cursor.h
-            ${SHARED_BACKEND}/cpp/hex.cpp
-            ${SHARED_BACKEND}/include/hex.h
-            ${SHARED_BACKEND}/cpp/json.cpp
-            ${SHARED_BACKEND}/include/json.h
-            ${SHARED_BACKEND}/cpp/fsutil.cpp
-            ${SHARED_BACKEND}/include/fsutil.h
-            ${SHARED_BACKEND}/cpp/strutil.cpp
-            ${SHARED_BACKEND}/include/strutil.h
-            ${CUDA_BACKEND}/include/cuda_backend.h
-	    ${CUDA_BACKEND}/cpp/cuda_backend.cpp
-            ${CUDA_BACKEND}/cpp/cuda_backend_buffer.cpp
-            ${CUDA_BACKEND}/cpp/cuda_backend_kernel.cpp
-            ${CUDA_BACKEND}/cpp/cuda_backend_module.cpp
-            ${CUDA_BACKEND}/cpp/cuda_backend_queue.cpp
+            ${CUDA_BACKEND}/src/main/native/include/cuda_backend.h
+	        ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend.cpp
+            ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend_buffer.cpp
+            ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend_kernel.cpp
+            ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend_module.cpp
+            ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend_queue.cpp
     )
 
     target_link_libraries(cuda_backend
+            shared_backend
             -lcuda
     )
 
     add_executable(cuda_info
-	    ${CUDA_BACKEND}/cpp/info.cpp
+	    ${CUDA_BACKEND}/src/main/native/cpp/info.cpp
     )
 
     add_executable(cuda_squares
-            ${CUDA_BACKEND}/cpp/squares.cpp
+            ${CUDA_BACKEND}/src/main/native/cpp/squares.cpp
     )
 
     target_link_libraries(cuda_squares
             cuda_backend
-            -lcuda
+
     )
 
     target_link_libraries(cuda_info
             cuda_backend
-            -lcuda
+
     )
 endif()
