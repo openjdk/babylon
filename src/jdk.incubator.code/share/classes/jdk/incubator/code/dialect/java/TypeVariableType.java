@@ -25,8 +25,9 @@
 
 package jdk.incubator.code.dialect.java;
 
-import jdk.incubator.code.extern.ExternalizableTypeElement;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
@@ -136,5 +137,5 @@ public final class TypeVariableType implements JavaType {
     /**
      * The owner of a type-variable - either a class or a method.
      */
-    public sealed interface Owner extends ExternalizableTypeElement permits ClassType, MethodRef, ConstructorRef { }
+    public sealed interface Owner extends TypeElement permits ClassType, MethodRef, ConstructorRef { }
 }

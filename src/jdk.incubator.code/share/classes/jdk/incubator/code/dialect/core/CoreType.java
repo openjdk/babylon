@@ -1,8 +1,8 @@
 package jdk.incubator.code.dialect.core;
 
-import jdk.incubator.code.extern.ExternalizableTypeElement;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.extern.TypeElementFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 /**
  *  The symbolic description of a core type.
  */
-public sealed interface CoreType extends ExternalizableTypeElement
+public sealed interface CoreType extends TypeElement
         permits FunctionType, TupleType, VarType {
 
     /**
@@ -30,7 +30,7 @@ public sealed interface CoreType extends ExternalizableTypeElement
             final TypeElementFactory thisThenF = this.andThen(f);
 
             @Override
-            public TypeElement constructType(ExternalizableTypeElement.ExternalizedTypeElement tree) {
+            public TypeElement constructType(ExternalizedTypeElement tree) {
                 return switch (tree.identifier()) {
                     case VarType.NAME -> {
                         if (tree.arguments().size() != 1) {
@@ -49,7 +49,7 @@ public sealed interface CoreType extends ExternalizableTypeElement
                         }
 
                         List<TypeElement> cs = new ArrayList<>(tree.arguments().size());
-                        for (ExternalizableTypeElement.ExternalizedTypeElement child : tree.arguments()) {
+                        for (ExternalizedTypeElement child : tree.arguments()) {
                             TypeElement c = thisThenF.constructType(child);
                             if (c == null) {
                                 throw new IllegalArgumentException("Bad type: " + tree);
@@ -68,7 +68,7 @@ public sealed interface CoreType extends ExternalizableTypeElement
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
                         List<TypeElement> pts = new ArrayList<>(tree.arguments().size() - 1);
-                        for (ExternalizableTypeElement.ExternalizedTypeElement child : tree.arguments().subList(1, tree.arguments().size())) {
+                        for (ExternalizedTypeElement child : tree.arguments().subList(1, tree.arguments().size())) {
                             TypeElement c = thisThenF.constructType(child);
                             if (c == null) {
                                 throw new IllegalArgumentException("Bad type: " + tree);

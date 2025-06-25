@@ -28,7 +28,6 @@ package jdk.incubator.code.extern;
 import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
-import jdk.incubator.code.extern.ExternalizableTypeElement.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;

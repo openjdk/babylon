@@ -25,7 +25,7 @@
 
 package jdk.incubator.code.extern.impl;
 
-import jdk.incubator.code.extern.ExternalizableTypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.extern.impl.Tokens.TokenKind;
 
 import java.util.ArrayList;
@@ -39,7 +39,7 @@ public final class DescParser {
      * @param desc the serialized externalized type element
      * @return the externalized type element
      */
-    public static ExternalizableTypeElement.ExternalizedTypeElement parseExTypeElem(String desc) {
+    public static ExternalizedTypeElement parseExTypeElem(String desc) {
         Scanner s = Scanner.factory().newScanner(desc);
         s.nextToken();
         return parseExTypeElem(s);
@@ -60,7 +60,7 @@ public final class DescParser {
     //    ExIdentSep:
     //        '.'
     //        ':'
-    public static ExternalizableTypeElement.ExternalizedTypeElement parseExTypeElem(Lexer l) {
+    public static ExternalizedTypeElement parseExTypeElem(Lexer l) {
         StringBuilder identifier = new StringBuilder();
         identifier.append(parseExTypeNamePart(l));
         while (l.is(TokenKind.DOT) || l.is(TokenKind.COLON)) {
@@ -68,7 +68,7 @@ public final class DescParser {
             l.nextToken();
             identifier.append(parseExTypeNamePart(l));
         }
-        List<ExternalizableTypeElement.ExternalizedTypeElement> args = new ArrayList<>();
+        List<ExternalizedTypeElement> args = new ArrayList<>();
         if (l.is(TokenKind.LT)) {
             l.accept(TokenKind.LT);
             args.add(parseExTypeElem(l));
@@ -78,7 +78,7 @@ public final class DescParser {
             }
             l.accept(TokenKind.GT);
         }
-        return new ExternalizableTypeElement.ExternalizedTypeElement(identifier.toString(), args);
+        return new ExternalizedTypeElement(identifier.toString(), args);
     }
 
     private static String parseExTypeNamePart(Lexer l) {

@@ -822,7 +822,7 @@ public class TritonOps {
 
     static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
         @Override
-        public TypeElement constructType(ExternalizableTypeElement.ExternalizedTypeElement tree) {
+        public TypeElement constructType(ExternalizedTypeElement tree) {
             return switch (tree.identifier()) {
                 case PtrType.NAME -> {
                     if (tree.arguments().size() != 1) {
@@ -846,7 +846,7 @@ public class TritonOps {
 
                     List<Integer> shape = new ArrayList<>();
                     for (int i = 0; i < tree.arguments().size() - 1; i++) {
-                        ExternalizableTypeElement.ExternalizedTypeElement a = tree.arguments().get(i);
+                        ExternalizedTypeElement a = tree.arguments().get(i);
                         if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }

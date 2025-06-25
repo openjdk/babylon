@@ -41,7 +41,7 @@ import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.extern.ExternalizableTypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -230,7 +230,7 @@ public class OpsAndTypes {
     }
 
 
-    public abstract sealed static class HatType implements ExternalizableTypeElement permits HatPtrType {
+    public abstract sealed static class HatType implements TypeElement permits HatPtrType {
         String name;
 
         HatType(String name) {

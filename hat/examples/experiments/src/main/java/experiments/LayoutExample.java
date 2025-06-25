@@ -36,7 +36,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.extern.ExternalizableTypeElement;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.CodeReflection;
@@ -206,7 +205,7 @@ public class LayoutExample {
         }
     }
 
-    public static final class PtrType implements ExternalizableTypeElement {
+    public static final class PtrType implements TypeElement {
         static final String NAME = "ptr";
         MemoryLayout layout;
         Schema schema;
