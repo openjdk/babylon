@@ -6,7 +6,6 @@ import java.io.UncheckedIOException;
 import java.io.Writer;
 import jdk.incubator.code.*;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.HashMap;
@@ -65,7 +64,7 @@ public final class MLIRGenerator {
      */
     static final class AttributeMapper {
         static String toString(String name, Object value) {
-            if (value == ExternalizableOp.NULL_ATTRIBUTE_VALUE)
+            if (value == Op.NULL_ATTRIBUTE_VALUE)
                 return "null";
             else if (name.equals("function_type") || name.equals("arg_attrs") || name.equals("value"))
                 return quote(value.toString());
@@ -559,7 +558,7 @@ public final class MLIRGenerator {
                 if (op.opName().equals("scf.for")) {
                     write(":" + String.valueOf(op.operands().size() - 3));
                 } else if (op.opName().equals("tuple.load")) {
-                    Object value = op instanceof ExternalizableOp exop ? exop.attributes().values().toArray()[0] : 0;
+                    Object value = op.externalize().isEmpty() ? 0 : op.externalize().values().toArray()[0];
                     m.put(number, namer.apply(op.operands().get(0)) + "#" + String.valueOf((int) value));
                 }
                 write(" = ");
@@ -604,12 +603,14 @@ public final class MLIRGenerator {
             }
         }
 
-        Map<String, Object> attributes = op instanceof ExternalizableOp exop ? exop.attributes() : Map.of();
-        if (dropLocation && !attributes.isEmpty() &&
-                attributes.containsKey(ExternalizableOp.ATTRIBUTE_LOCATION)) {
-            attributes = new HashMap<>(attributes);
-            attributes.remove(ExternalizableOp.ATTRIBUTE_LOCATION);
+        if (!dropLocation) {
+            Location location = op.location();
+            if (location != null) {
+                write(" ");
+                writeAttribute("loc", op.location());
+            }
         }
+        Map<String, Object> attributes = op.externalize();
         attributes = addAditionalAttributes(op, attributes);
         if (!attributes.isEmpty()) {
             write(" ");

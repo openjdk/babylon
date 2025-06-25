@@ -26,7 +26,7 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -39,7 +39,7 @@ import java.util.function.Consumer;
 public class SCFOps {
 
     @OpFactory.OpDeclaration(ForOp.NAME)
-    public static final class ForOp extends ExternalizableOp implements Op.Loop {
+    public static final class ForOp extends Op implements Op.Loop {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -70,7 +70,7 @@ public class SCFOps {
         final Body body;
 
         public ForOp(ExternalizedOp def) {
-            super(def);
+            super(def.name(), def.operands());;
 
             this.body = def.bodyDefinitions().get(0).build(this);
         }
@@ -109,11 +109,11 @@ public class SCFOps {
     }
 
     @OpFactory.OpDeclaration(YieldOp.NAME)
-    public static class YieldOp extends ExternalizableOp implements Op.Terminating {
+    public static class YieldOp extends Op implements Op.Terminating {
         public static final String NAME = "scf.yield";
 
         public YieldOp(ExternalizedOp def) {
-            super(def);
+            super(def.name(), def.operands());
         }
 
         YieldOp(YieldOp that, CopyContext cc) {

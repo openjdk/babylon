@@ -84,7 +84,7 @@ public class TranslateToSpirvModel  {
         for (int i = 0; i < paramCount; i++) {
             CoreOp.VarOp jvop = (CoreOp.VarOp)entryBlock.ops().get(i);
             TypeElement resultType = new PointerType(jvop.varValueType(), StorageType.CROSSWORKGROUP);
-            SpirvOps.VariableOp svop = new SpirvOps.VariableOp((String)jvop.attributes().get(""), resultType, jvop.varValueType());
+            SpirvOps.VariableOp svop = new SpirvOps.VariableOp((String)jvop.externalize().get(""), resultType, jvop.varValueType());
             spirvBlock.op(svop);
             valueMap.put(jvop.result(), svop.result());
             varOps.add(svop);
@@ -99,7 +99,7 @@ public class TranslateToSpirvModel  {
                 Op op = ops.get(i);
                 if (op instanceof CoreOp.VarOp jvop) {
                     TypeElement resultType = new PointerType(jvop.varValueType(), StorageType.CROSSWORKGROUP);
-                    SpirvOps.VariableOp svop = new SpirvOps.VariableOp((String)jvop.attributes().get(""), resultType, jvop.varValueType());
+                    SpirvOps.VariableOp svop = new SpirvOps.VariableOp((String)jvop.externalize().get(""), resultType, jvop.varValueType());
                     bodyBuilder.entryBlock().op(svop);
                     valueMap.put(jvop.result(), svop.result());
                     varOps.add(svop);

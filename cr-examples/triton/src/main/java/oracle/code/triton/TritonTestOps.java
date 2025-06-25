@@ -25,11 +25,8 @@
 
 package oracle.code.triton;
 
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.*;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -38,11 +35,11 @@ import java.util.List;
 public class TritonTestOps {
 
     @OpFactory.OpDeclaration(ConsumeOp.NAME)
-    public static class ConsumeOp extends ExternalizableOp {
+    public static class ConsumeOp extends Op {
         public static final String NAME = "tt.consume";
 
         public ConsumeOp(ExternalizedOp def) {
-            super(def);
+            super(def.name(), def.operands());
         }
 
         ConsumeOp(ConsumeOp that, CopyContext cc) {
