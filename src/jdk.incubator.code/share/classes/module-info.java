@@ -46,8 +46,6 @@ module jdk.incubator.code {
     exports jdk.incubator.code.bytecode;
     exports jdk.incubator.code.interpreter;
 
-    opens jdk.incubator.code.internal to java.base;
-
     provides com.sun.tools.javac.comp.CodeReflectionTransformer with
             ReflectMethods.Provider;
 }
