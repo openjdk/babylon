@@ -237,7 +237,7 @@ public final class Interpreter {
             return value;
         }
 
-        public VarBox(Object value) {
+        VarBox(Object value) {
             this.value = value;
         }
 
