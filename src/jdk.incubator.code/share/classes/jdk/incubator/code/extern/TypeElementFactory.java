@@ -4,14 +4,14 @@ import jdk.incubator.code.TypeElement;
 
 /**
  * A type element factory for construction a {@link TypeElement} from its
- * {@link ExternalizableTypeElement.ExternalizedTypeElement external content}.
+ * {@link ExternalizedTypeElement external content}.
  */
 @FunctionalInterface
 public interface TypeElementFactory {
 
     /**
      * Constructs a {@link TypeElement} from its
-     * {@link ExternalizableTypeElement.ExternalizedTypeElement external content}.
+     * {@link ExternalizedTypeElement external content}.
      * <p>
      * If there is no mapping from the external content to a type
      * element then this method returns {@code null}.
@@ -19,7 +19,7 @@ public interface TypeElementFactory {
      * @param tree the externalized type element.
      * @return the type element.
      */
-    TypeElement constructType(ExternalizableTypeElement.ExternalizedTypeElement tree);
+    TypeElement constructType(ExternalizedTypeElement tree);
 
     /**
      * Compose this type element factory with another type element factory.

@@ -31,6 +31,7 @@ import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
 
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 
 /**
  * An array type.

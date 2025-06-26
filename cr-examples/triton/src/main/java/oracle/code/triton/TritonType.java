@@ -25,8 +25,8 @@
 
 package oracle.code.triton;
 
-import jdk.incubator.code.extern.ExternalizableTypeElement;
+import jdk.incubator.code.TypeElement;
 
-public abstract sealed class TritonType implements ExternalizableTypeElement
+public abstract sealed class TritonType implements TypeElement
         permits ConstantType, PtrType, TensorType {
 }

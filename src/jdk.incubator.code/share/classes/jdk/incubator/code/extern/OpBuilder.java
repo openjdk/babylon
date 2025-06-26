@@ -47,7 +47,7 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  */
 public class OpBuilder {
 
-    static final JavaType J_C_O_EXTERNALIZED_OP = type(ExternalizableOp.ExternalizedOp.class);
+    static final JavaType J_C_E_EXTERNALIZED_OP = type(ExternalizedOp.class);
 
     static final MethodRef DIALECT_FACTORY_OP_FACTORY = MethodRef.method(DialectFactory.class, "opFactory",
             OpFactory.class);
@@ -56,7 +56,7 @@ public class OpBuilder {
             TypeElementFactory.class);
 
     static final MethodRef OP_FACTORY_CONSTRUCT = MethodRef.method(OpFactory.class, "constructOp",
-            Op.class, ExternalizableOp.ExternalizedOp.class);
+            Op.class, ExternalizedOp.class);
 
     static final MethodRef TYPE_ELEMENT_FACTORY_CONSTRUCT = MethodRef.method(TypeElementFactory.class, "constructType",
             TypeElement.class, ExternalizedTypeElement.class);
@@ -108,9 +108,15 @@ public class OpBuilder {
             EX_TYPE_ELEM, J_L_STRING, J_U_LIST);
 
 
+    static final JavaType J_C_LOCATION = type(Location.class);
+
+    static final MethodRef LOCATION_FROM_STRING = MethodRef.method(J_C_LOCATION, "fromString",
+            J_C_LOCATION, J_L_STRING);
+
     static final FunctionType EXTERNALIZED_OP_F_TYPE = functionType(
-            J_C_O_EXTERNALIZED_OP,
+            J_C_E_EXTERNALIZED_OP,
             J_L_STRING,
+            J_C_LOCATION,
             J_U_LIST,
             J_U_LIST,
             type(TypeElement.class),
@@ -207,17 +213,21 @@ public class OpBuilder {
         }
 
         Value opDef = buildOpDefinition(
+                inputOp,
                 inputOp.opName(),
+                inputOp.location(),
                 operands,
                 successors,
                 inputOp.resultType(),
-                inputOp instanceof ExternalizableOp exop ? exop.attributes() : Map.of(),
+                inputOp.externalize(),
                 bodies);
         return builder.op(invoke(OP_FACTORY_CONSTRUCT, opFactory, opDef));
     }
 
 
-    Value buildOpDefinition(String name,
+    Value buildOpDefinition(Op inputOp,
+                            String name,
+                            Location location,
                             List<Value> operands,
                             List<Value> successors,
                             TypeElement resultType,
@@ -225,12 +235,22 @@ public class OpBuilder {
                             List<Value> bodies) {
         List<Value> args = List.of(
                 builder.op(constant(J_L_STRING, name)),
+                buildLocation(location),
                 buildList(type(Value.class), operands),
                 buildList(type(Block.Reference.class), successors),
                 buildType(resultType),
-                buildAttributeMap(attributes),
+                buildAttributeMap(inputOp, attributes),
                 buildList(type(Body.Builder.class), bodies));
         return builder.op(_new(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
+    }
+
+    Value buildLocation(Location l) {
+        if (l == null) {
+            return builder.op(constant(J_C_LOCATION, null));
+        } else {
+            return builder.op(invoke(LOCATION_FROM_STRING,
+                    builder.op(constant(J_L_STRING, l.toString()))));
+        }
     }
 
     Value buildBody(Value ancestorBodyValue, Body inputBody) {
@@ -308,7 +328,7 @@ public class OpBuilder {
         return ve;
     }
 
-    Value buildAttributeMap(Map<String, Object> attributes) {
+    Value buildAttributeMap(Op inputOp, Map<String, Object> attributes) {
         List<Value> keysAndValues = new ArrayList<>();
         for (Map.Entry<String, Object> entry : attributes.entrySet()) {
             Value key = builder.op(constant(J_L_STRING, entry.getKey()));
@@ -354,16 +374,12 @@ public class OpBuilder {
             case TypeElement f -> {
                 yield buildType(f);
             }
-            case Location l -> {
-                // @@@ Construct location explicitly
-                yield builder.op(constant(J_L_STRING, l.toString()));
-            }
             case InvokeOp.InvokeKind ik -> {
                 FieldRef enumValueRef = FieldRef.field(InvokeOp.InvokeKind.class, ik.name(), InvokeOp.InvokeKind.class);
                 yield builder.op(fieldLoad(enumValueRef));
             }
-            case Object o when value == ExternalizableOp.NULL_ATTRIBUTE_VALUE -> {
-                yield builder.op(fieldLoad(FieldRef.field(ExternalizableOp.class,
+            case Object o when value == ExternalizedOp.NULL_ATTRIBUTE_VALUE -> {
+                yield builder.op(fieldLoad(FieldRef.field(ExternalizedOp.class,
                         "NULL_ATTRIBUTE_VALUE", Object.class)));
             }
             default -> {

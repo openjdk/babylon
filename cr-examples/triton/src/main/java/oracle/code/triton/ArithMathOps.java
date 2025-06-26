@@ -26,7 +26,7 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -36,11 +36,11 @@ import java.util.Map;
 
 public class ArithMathOps {
 
-    static abstract class ArithMathOp extends ExternalizableOp {
+    static abstract class ArithMathOp extends Op {
         final TypeElement resultType;
 
         public ArithMathOp(ExternalizedOp def) {
-            super(def);
+            super(def.name(), def.operands());;
 
             this.resultType = def.resultType();
         }
@@ -131,10 +131,8 @@ public class ArithMathOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put(ATTRIBUTE_CONSTANT_VALUE, value);
-            return attrs;
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_CONSTANT_VALUE, value);
         }
 
         public Object value() {
@@ -429,10 +427,8 @@ public class ArithMathOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put(ATTRIBUTE_PREDICATE, Long.valueOf(ck.ordinal()));
-            return attrs;
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_PREDICATE, Long.valueOf(ck.ordinal()));
         }
 
         public CompareKind kind() {

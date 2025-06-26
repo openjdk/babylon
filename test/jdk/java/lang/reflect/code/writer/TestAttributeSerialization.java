@@ -28,8 +28,8 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizedOp;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -39,12 +39,11 @@ import java.util.Map;
 
 public class TestAttributeSerialization {
 
-    static class TestOp extends ExternalizableOp {
+    static class TestOp extends Op {
         final Object attributeValue;
 
         TestOp(ExternalizedOp opdef) {
-            super(opdef);
-            this.attributeValue = null;
+            this((Object) null);
         }
 
         TestOp(TestOp that, CopyContext cc) {
@@ -68,7 +67,7 @@ public class TestAttributeSerialization {
         }
 
         @Override
-        public Map<String, Object> attributes() {
+        public Map<String, Object> externalize() {
             return Map.of("a", attributeValue);
         }
     }
