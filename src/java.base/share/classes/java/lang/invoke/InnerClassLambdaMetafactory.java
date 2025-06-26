@@ -380,7 +380,7 @@ import sun.invoke.util.Wrapper;
             if (useImplMethodHandle || quotableOpGetter != null) {
                 classdata = quotableOpGetter == null ?
                         List.of(implementation) :
-                        List.of(implementation, quotableOpGetter, CodeReflectionSupport.HANDLE_MAKE_QUOTED);
+                        List.of(implementation, quotableOpGetter, CodeReflectionSupport.QUOTED_OP_MH);
             } else {
                 classdata = null;
             }
@@ -492,14 +492,14 @@ import sun.invoke.util.Wrapper;
 
         // Create a Quoted from FuncOp and captured args Object[]
 
-        cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(CodeReflectionSupport.HANDLE_MAKE_QUOTED.type()))
+        cob.invokevirtual(CD_MethodHandle, "invokeExact", methodDesc(CodeReflectionSupport.QUOTED_OP_MH.type()))
            .putfield(lambdaClassEntry.asSymbol(), quotedInstanceFieldName, CodeReflectionSupport.CD_Quoted);
     }
 
     static class CodeReflectionSupport {
         static final Class<?> QUOTED_CLASS;
         static final Class<?> QUOTABLE_CLASS;
-        static final MethodHandle HANDLE_MAKE_QUOTED;
+        static final MethodHandle QUOTED_OP_MH;
         static final Class<?> FUNC_OP_CLASS;
 
         static {
@@ -508,11 +508,9 @@ import sun.invoke.util.Wrapper;
                 ClassLoader cl = layer.findLoader("jdk.incubator.code");
                 QUOTED_CLASS = cl.loadClass("jdk.incubator.code.Quoted");
                 QUOTABLE_CLASS = cl.loadClass("jdk.incubator.code.Quotable");
-                Class<?> quotedHelper = cl.loadClass("jdk.incubator.code.internal.QuotedHelper");
                 FUNC_OP_CLASS = cl.loadClass("jdk.incubator.code.dialect.core.CoreOp$FuncOp");
-                MethodHandle makeQuoted = Lookup.IMPL_LOOKUP.findStatic(quotedHelper, "makeQuoted",
-                        MethodType.methodType(QUOTED_CLASS, MethodHandles.Lookup.class, FUNC_OP_CLASS, Object[].class));
-                HANDLE_MAKE_QUOTED = makeQuoted.bindTo(Lookup.IMPL_LOOKUP);
+                QUOTED_OP_MH = Lookup.IMPL_LOOKUP.findStatic(QUOTED_CLASS, "quotedOp",
+                        MethodType.methodType(QUOTED_CLASS, FUNC_OP_CLASS, Object[].class));
             } catch (Throwable ex) {
                 throw new ExceptionInInitializerError(ex);
             }
