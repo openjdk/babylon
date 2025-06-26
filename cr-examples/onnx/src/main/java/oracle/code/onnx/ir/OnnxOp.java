@@ -26,13 +26,14 @@
 package oracle.code.onnx.ir;
 
 import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.util.*;
 
-public abstract class OnnxOp extends ExternalizableOp {
+public abstract class OnnxOp extends Op {
 
     public interface OnnxAttribute {
         String name();
@@ -229,7 +230,7 @@ public abstract class OnnxOp extends ExternalizableOp {
 
     @SuppressWarnings("unchecked")
     OnnxOp(OnnxSchema schema, ExternalizedOp def) {
-        super(def);
+        super(def.name(), def.operands());
 
         this.onnxAttributes = schema.attributes().isEmpty()
                 ? Map.of()
@@ -331,16 +332,15 @@ public abstract class OnnxOp extends ExternalizableOp {
     }
 
     @Override
-    public Map<String, Object> attributes() {
-        HashMap<String, Object> m = new HashMap<>(super.attributes());
-        m.putAll(onnxAttributes);
+    public Map<String, Object> externalize() {
+        HashMap<String, Object> m = new HashMap<>(onnxAttributes);
         if (!optionalInputArguments.isEmpty()) {
             m.put(ATTRIBUTE_OPTIONAL_INPUTS, optionalInputArguments);
         }
         if (!optionalOutputParameters.isEmpty()) {
             m.put(ATTRIBUTE_OPTIONAL_OUTPUTS, optionalOutputParameters);
         }
-        return m;
+        return Collections.unmodifiableMap(m);
     }
 
     // @@@ Change to Map<OnnxAttribute, Object>

@@ -26,6 +26,7 @@
 package intel.code.spirv;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import java.util.Objects;
 import java.util.List;
 

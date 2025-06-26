@@ -25,7 +25,7 @@
 
 package intel.code.spirv;
 
-import jdk.incubator.code.extern.ExternalizableTypeElement;
+import jdk.incubator.code.TypeElement;
 
-public abstract sealed class SpirvType implements ExternalizableTypeElement permits PointerType, StorageType {
+public abstract sealed class SpirvType implements TypeElement permits PointerType, StorageType {
 }

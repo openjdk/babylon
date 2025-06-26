@@ -26,6 +26,7 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import java.util.List;
 import java.util.Objects;
 

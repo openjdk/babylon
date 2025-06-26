@@ -41,7 +41,7 @@ import java.util.function.Function;
 
 /**
  * An operation factory for constructing an {@link Op operation} from its
- * {@link ExternalizableOp.ExternalizedOp external content}.
+ * {@link ExternalizedOp external content}.
  */
 @FunctionalInterface
 public interface OpFactory {
@@ -68,9 +68,9 @@ public interface OpFactory {
      * annotated with {@link OpDeclaration} and enclosed within a given class to compute over.
      * <p>
      * Each enclosed class annotated with {@code OpDeclaration} must declare a public static method named {@code create}
-     * with one parameter type of {@link ExternalizableOp.ExternalizedOp} and return type that is the concrete class type.
+     * with one parameter type of {@link ExternalizedOp} and return type that is the concrete class type.
      * Alternatively, the concrete class must declare public constructor with one parameter type of
-     * {@link ExternalizableOp.ExternalizedOp}.
+     * {@link ExternalizedOp}.
      */
     ClassValue<OpFactory> OP_FACTORY = new ClassValue<>() {
         @Override
@@ -84,7 +84,12 @@ public interface OpFactory {
                     return null;
                 }
 
-                return constructOp(opClass, def);
+                Op op = constructOp(opClass, def);
+                // Set location if available
+                if (op != null && def.location() != null) {
+                    op.setLocation(def.location());
+                }
+                return op;
             };
         }
     };
@@ -98,7 +103,7 @@ public interface OpFactory {
      * @param def the operation's external content
      * @return the operation, otherwise null
      */
-    Op constructOp(ExternalizableOp.ExternalizedOp def);
+    Op constructOp(ExternalizedOp def);
 
     /**
      * Constructs an {@link Op operation} from its external content.
@@ -111,7 +116,7 @@ public interface OpFactory {
      * @throws UnsupportedOperationException if there is no mapping from the operation's
      *                                       name to a concrete class of an {@code Op}
      */
-    default Op constructOpOrFail(ExternalizableOp.ExternalizedOp def) {
+    default Op constructOpOrFail(ExternalizedOp def) {
         Op op = constructOp(def);
         if (op == null) {
             throw new UnsupportedOperationException("Unsupported operation: " + def.name());
@@ -169,7 +174,7 @@ public interface OpFactory {
     private static MethodHandle getOpConstructorMethodHandle(Class<?> opClass) {
         Method method = null;
         try {
-            method = opClass.getMethod("create", ExternalizableOp.ExternalizedOp.class);
+            method = opClass.getMethod("create", ExternalizedOp.class);
         } catch (NoSuchMethodException e) {
         }
 
@@ -188,7 +193,7 @@ public interface OpFactory {
 
         Constructor<?> constructor;
         try {
-            constructor = opClass.getConstructor(ExternalizableOp.ExternalizedOp.class);
+            constructor = opClass.getConstructor(ExternalizedOp.class);
         } catch (NoSuchMethodException e) {
             return null;
         }
@@ -201,11 +206,11 @@ public interface OpFactory {
         }
     }
 
-    private static Op constructOp(Class<? extends Op> opClass, ExternalizableOp.ExternalizedOp opDef) {
+    private static Op constructOp(Class<? extends Op> opClass, ExternalizedOp opDef) {
         class Enclosed {
-            private static final ClassValue<Function<ExternalizableOp.ExternalizedOp, Op>> OP_CONSTRUCTOR = new ClassValue<>() {
+            private static final ClassValue<Function<ExternalizedOp, Op>> OP_CONSTRUCTOR = new ClassValue<>() {
                 @Override
-                protected Function<ExternalizableOp.ExternalizedOp, Op> computeValue(Class<?> opClass) {
+                protected Function<ExternalizedOp, Op> computeValue(Class<?> opClass) {
                     final MethodHandle opConstructorMH = getOpConstructorMethodHandle(opClass);
                     assert opConstructorMH != null;
 

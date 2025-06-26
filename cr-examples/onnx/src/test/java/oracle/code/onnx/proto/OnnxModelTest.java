@@ -43,7 +43,7 @@ import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -270,8 +270,9 @@ public class OnnxModelTest {
                 }
 
                 // get the op
-                ExternalizableOp.ExternalizedOp extOp = new ExternalizableOp.ExternalizedOp(
+                ExternalizedOp extOp = new ExternalizedOp(
                         opType,
+                        null,
                         inputs,
                         List.of(),
                         new OnnxType.TensorType(null),
@@ -283,8 +284,9 @@ public class OnnxModelTest {
                 TypeElement returnType = rawOp.onnxOutputs().size() == 1
                         ? inferTypeVariableType(rawOp.onnxOutputs().getFirst().type(), rawOp, n)
                         : CoreType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
-                extOp = new ExternalizableOp.ExternalizedOp(
+                extOp = new ExternalizedOp(
                         extOp.name(),
+                        null,
                         extOp.operands(),
                         extOp.successors(),
                         returnType,

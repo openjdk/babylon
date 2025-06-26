@@ -25,8 +25,9 @@
 
 package jdk.incubator.code.bytecode;
 
-import jdk.incubator.code.extern.ExternalizableTypeElement;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
+
 import java.util.List;
 
 sealed interface UnresolvedType extends TypeElement {
@@ -40,19 +41,19 @@ sealed interface UnresolvedType extends TypeElement {
     }
 
     static final class Ref implements UnresolvedType {
-        private static final ExternalizableTypeElement.ExternalizedTypeElement UNRESOLVED_REF = new ExternalizableTypeElement.ExternalizedTypeElement("?REF", List.of());
+        private static final ExternalizedTypeElement UNRESOLVED_REF = new ExternalizedTypeElement("?REF", List.of());
 
         @Override
-        public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+        public ExternalizedTypeElement externalize() {
             return UNRESOLVED_REF;
         }
     }
 
     static final class Int implements  UnresolvedType {
-        private static final ExternalizableTypeElement.ExternalizedTypeElement UNRESOLVED_INT = new ExternalizableTypeElement.ExternalizedTypeElement("?INT", List.of());
+        private static final ExternalizedTypeElement UNRESOLVED_INT = new ExternalizedTypeElement("?INT", List.of());
 
         @Override
-        public ExternalizableTypeElement.ExternalizedTypeElement externalize() {
+        public ExternalizedTypeElement externalize() {
             return UNRESOLVED_INT;
         }
     }

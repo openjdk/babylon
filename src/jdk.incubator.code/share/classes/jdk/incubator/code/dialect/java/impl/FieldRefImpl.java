@@ -32,6 +32,7 @@ import java.lang.reflect.Field;
 
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 
 public final class FieldRefImpl implements FieldRef {
 

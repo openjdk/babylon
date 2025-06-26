@@ -38,11 +38,11 @@ import java.util.function.Consumer;
 
 public class TritonOps {
 
-    static abstract class TritonOp extends ExternalizableOp {
+    static abstract class TritonOp extends Op {
         final TypeElement resultType;
 
         public TritonOp(ExternalizedOp def) {
-            super(def);
+            super(def.name(), def.operands());
 
             this.resultType = def.resultType();
         }
@@ -220,10 +220,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_FUNC_NAME, funcName);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_FUNC_NAME, funcName);
         }
 
         @Override
@@ -290,10 +288,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_FUNC_NAME, funcName);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_FUNC_NAME, funcName);
         }
 
         public String funcName() {
@@ -373,10 +369,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_AXIS, axis);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_AXIS, axis);
         }
 
         public int axis() {
@@ -450,10 +444,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_AXIS, axis);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_AXIS, axis);
         }
 
         public int axis() {
@@ -515,11 +507,10 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_START, start);
-            m.put(ATTRIBUTE_END, end);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(
+                    ATTRIBUTE_START, start,
+                    ATTRIBUTE_END, end);
         }
     }
 
@@ -563,10 +554,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_AXIS, axis);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_AXIS, axis);
         }
 
         public int axis() {
@@ -833,7 +822,7 @@ public class TritonOps {
 
     static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
         @Override
-        public TypeElement constructType(ExternalizableTypeElement.ExternalizedTypeElement tree) {
+        public TypeElement constructType(ExternalizedTypeElement tree) {
             return switch (tree.identifier()) {
                 case PtrType.NAME -> {
                     if (tree.arguments().size() != 1) {
@@ -857,7 +846,7 @@ public class TritonOps {
 
                     List<Integer> shape = new ArrayList<>();
                     for (int i = 0; i < tree.arguments().size() - 1; i++) {
-                        ExternalizableTypeElement.ExternalizedTypeElement a = tree.arguments().get(i);
+                        ExternalizedTypeElement a = tree.arguments().get(i);
                         if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }

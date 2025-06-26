@@ -28,7 +28,6 @@ package jdk.incubator.code.extern;
 import java.io.IOException;
 import java.io.InputStream;
 import jdk.incubator.code.*;
-import jdk.incubator.code.extern.ExternalizableTypeElement.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -254,18 +253,29 @@ public final class OpParser {
     }
 
     static Op nodeToOp(OpNode opNode, ExternalizedTypeElement rtype, Context c, Body.Builder ancestorBody) {
-        ExternalizableOp.ExternalizedOp opdef = nodeToOpDef(opNode, rtype, c, ancestorBody);
+        ExternalizedOp opdef = nodeToOpDef(opNode, rtype, c, ancestorBody);
         return c.opFactory.constructOpOrFail(opdef);
     }
 
-    static ExternalizableOp.ExternalizedOp nodeToOpDef(OpNode opNode, ExternalizedTypeElement rtype, Context c, Body.Builder ancestorBody) {
+    static ExternalizedOp nodeToOpDef(OpNode opNode, ExternalizedTypeElement rtype, Context c, Body.Builder ancestorBody) {
         String operationName = opNode.name;
         List<Value> operands = opNode.operands.stream().map(c::getValue).toList();
         List<Block.Reference> successors = opNode.successors.stream()
                 .map(n -> nodeToSuccessor(n, c)).toList();
         List<Body.Builder> bodies = opNode.bodies.stream()
                 .map(n -> nodeToBody(n, c.fork(false), ancestorBody)).toList();
-        return new ExternalizableOp.ExternalizedOp(operationName,
+        Location location = null;
+        if (!opNode.attributes.isEmpty()) {
+            Object v = opNode.attributes.remove(OpWriter.ATTRIBUTE_LOCATION);
+            location = switch (v) {
+                case String s -> Location.fromString(s);
+                case Location loc -> loc;
+                case null -> null;
+                default -> throw new UnsupportedOperationException("Unsupported location value:" + v);
+            };
+        }
+        return new ExternalizedOp(operationName,
+                location,
                 operands,
                 successors,
                 c.typeFactory.constructType(rtype),
@@ -474,7 +484,7 @@ public final class OpParser {
     Object parseLiteral(Tokens.Token t) {
         return switch (t.kind) {
             case STRINGLITERAL -> t.stringVal();
-            case NULL -> ExternalizableOp.NULL_ATTRIBUTE_VALUE;
+            case NULL -> ExternalizedOp.NULL_ATTRIBUTE_VALUE;
             case CHARLITERAL -> t.stringVal().charAt(0);
             case TRUE -> true;
             case FALSE -> false;

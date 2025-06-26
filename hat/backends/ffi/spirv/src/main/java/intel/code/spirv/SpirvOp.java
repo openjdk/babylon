@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.ExternalizableOp;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.TypeElement;
@@ -41,7 +40,7 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaType;
 
-public abstract class SpirvOp extends ExternalizableOp {
+public abstract class SpirvOp extends Op {
     static final String NAME_PREFIX = "spirv.";
     private final TypeElement type;
     private final Map<String, Object> attributes;
