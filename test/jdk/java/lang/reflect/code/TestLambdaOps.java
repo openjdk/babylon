@@ -27,15 +27,16 @@
  * @run testng TestLambdaOps
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.op.CoreOp.LambdaOp;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
+import jdk.incubator.code.dialect.java.JavaOp.LambdaOp;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -47,11 +48,11 @@ import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.op.CoreOp.constant;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.JavaType.INT;
-import static jdk.incubator.code.type.JavaType.type;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.core.CoreOp.constant;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
+import static jdk.incubator.code.dialect.java.JavaType.INT;
+import static jdk.incubator.code.dialect.java.JavaType.type;
 
 @Test
 public class TestLambdaOps {
@@ -82,20 +83,20 @@ public class TestLambdaOps {
                     // functional type = (int)int
                     // op type = ()Quoted<LambdaOp>
                     QuotedOp qop = quoted(block.parentBody(), qblock -> {
-                        return lambda(qblock.parentBody(),
+                        return JavaOp.lambda(qblock.parentBody(),
                                 functionType(INT, INT), type(IntUnaryOperator.class))
                                 .body(lblock -> {
                                     Block.Parameter li = lblock.parameters().get(0);
 
                                     lblock.op(_return(
                                             // capture i from function's body
-                                            lblock.op(add(i, li))
+                                            lblock.op(JavaOp.add(i, li))
                                     ));
                                 });
                     });
                     Op.Result lquoted = block.op(qop);
 
-                    Op.Result or = block.op(invoke(Builder.ACCEPT_METHOD, lquoted));
+                    Op.Result or = block.op(JavaOp.invoke(Builder.ACCEPT_METHOD, lquoted));
                     block.op(_return(or));
                 });
 
@@ -119,18 +120,18 @@ public class TestLambdaOps {
                     // functional type = (int)int
                     // op type = ()IntUnaryOperator
                     //   captures i
-                    LambdaOp lambda = lambda(block.parentBody(),
+                    LambdaOp lambda = JavaOp.lambda(block.parentBody(),
                             functionType(INT, INT), type(IntUnaryOperator.class))
                             .body(lblock -> {
                                 Block.Parameter li = lblock.parameters().get(0);
 
                                 lblock.op(_return(
-                                        lblock.op(add(i, li))));
+                                        lblock.op(JavaOp.add(i, li))));
                             });
                     Op.Result fi = block.op(lambda);
 
                     Op.Result fortyTwo = block.op(constant(INT, 42));
-                    Op.Result or = block.op(invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
+                    Op.Result or = block.op(JavaOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
                     block.op(_return(or));
                 });
 
@@ -236,7 +237,7 @@ public class TestLambdaOps {
     @Test(dataProvider = "methodRefLambdas")
     public void testIsMethodReference(Quotable q) {
         Quoted quoted = Op.ofQuotable(q).get();
-        CoreOp.LambdaOp lop = (CoreOp.LambdaOp) quoted.op();
+        LambdaOp lop = (LambdaOp) quoted.op();
         Assert.assertTrue(lop.methodReference().isPresent());
     }
 

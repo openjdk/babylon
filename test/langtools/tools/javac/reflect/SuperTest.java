@@ -42,23 +42,23 @@ public class SuperTest extends SuperClass implements SuperInterface {
 
     @CodeReflection
     @IR("""
-            func @"superClassFieldAccess" (%0 : SuperTest)void -> {
-                %1 : int = field.load %0 @"SuperClass::f()int";
-                %2 : Var<int> = var %1 @"i";
-                %3 : int = constant @"1";
-                field.store %0 %3 @"SuperClass::f()int";
-                %4 : int = field.load %0 @"SuperClass::f()int";
+            func @"superClassFieldAccess" (%0 : java.type:"SuperTest")java.type:"void" -> {
+                %1 : java.type:"int" = field.load %0 @java.ref:"SuperClass::f:int";
+                %2 : Var<java.type:"int"> = var %1 @"i";
+                %3 : java.type:"int" = constant @1;
+                field.store %0 %3 @java.ref:"SuperClass::f:int";
+                %4 : java.type:"int" = field.load %0 @java.ref:"SuperClass::f:int";
                 var.store %2 %4;
-                %5 : int = constant @"1";
-                field.store %0 %5 @"SuperClass::f()int";
-                %6 : int = field.load @"SuperClass::sf()int";
+                %5 : java.type:"int" = constant @1;
+                field.store %0 %5 @java.ref:"SuperClass::f:int";
+                %6 : java.type:"int" = field.load @java.ref:"SuperClass::sf:int";
                 var.store %2 %6;
-                %7 : int = constant @"1";
-                field.store %7 @"SuperClass::sf()int";
-                %8 : int = field.load @"SuperClass::sf()int";
+                %7 : java.type:"int" = constant @1;
+                field.store %7 @java.ref:"SuperClass::sf:int";
+                %8 : java.type:"int" = field.load @java.ref:"SuperClass::sf:int";
                 var.store %2 %8;
-                %9 : int = constant @"1";
-                field.store %9 @"SuperClass::sf()int";
+                %9 : java.type:"int" = constant @1;
+                field.store %9 @java.ref:"SuperClass::sf:int";
                 return;
             };
             """)
@@ -76,11 +76,11 @@ public class SuperTest extends SuperClass implements SuperInterface {
 
     @CodeReflection
     @IR("""
-            func @"superClassMethodInvocation" (%0 : SuperTest)void -> {
-                invoke %0 @invoke.kind="SUPER" @"SuperClass::get()void";
-                invoke %0 @invoke.kind="SUPER" @"SuperClass::get()void";
-                invoke @"SuperClass::sget()void";
-                invoke @"SuperClass::sget()void";
+            func @"superClassMethodInvocation" (%0 : java.type:"SuperTest")java.type:"void" -> {
+                invoke %0 @java.ref:"SuperClass::get():void" @invoke.kind="SUPER";
+                invoke %0 @java.ref:"SuperClass::get():void" @invoke.kind="SUPER";
+                invoke @java.ref:"SuperClass::sget():void";
+                invoke @java.ref:"SuperClass::sget():void";
                 return;
             };
             """)
@@ -94,8 +94,8 @@ public class SuperTest extends SuperClass implements SuperInterface {
 
     @CodeReflection
     @IR("""
-            func @"superInterfaceMethodInvocation" (%0 : SuperTest)void -> {
-                invoke %0 @invoke.kind="SUPER" @"SuperInterface::get()void";
+            func @"superInterfaceMethodInvocation" (%0 : java.type:"SuperTest")java.type:"void" -> {
+                invoke %0 @java.ref:"SuperInterface::get():void" @invoke.kind="SUPER";
                 return;
             };
             """)

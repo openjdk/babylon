@@ -121,6 +121,15 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
     public T identifier(String text) {
         return emitText(text);
     }
+    public T identifier(String text, int  padWidth) {
+        return emitText(text).emitText(" ".repeat(padWidth-text.length()));
+    }
+    public T intValue(int i) {
+        return emitText(Integer.toString(i));
+    }
+    public T intHexValue(int i) {
+        return emitText("0x").emitText(Integer.toHexString(i));
+    }
 
     public T append(String text) {
         return emitText(text);

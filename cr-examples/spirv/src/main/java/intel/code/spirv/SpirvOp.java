@@ -31,7 +31,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
 
 public abstract class SpirvOp extends Op {
     private final TypeElement type;

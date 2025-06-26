@@ -24,6 +24,8 @@
  * questions.
  */
 
+import static java.lang.IO.println;
+
 void main(String[] args){
   Script.DirEntry.current()
     .subDirs()

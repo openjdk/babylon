@@ -24,8 +24,8 @@ if(OPENCL_FOUND)
     endif()
 
     include_directories(
-        ${OPENCL_BACKEND}/include
-        ${SHARED_BACKEND}/include
+        ${OPENCL_BACKEND}/src/main/native/include
+        ${SHARED_BACKEND}/src/main/native/include
         ${OPENCL_INCLUDE_DIR}
     )
     link_directories(
@@ -33,52 +33,36 @@ if(OPENCL_FOUND)
     )
 
     add_library(opencl_backend SHARED
-        ${SHARED_BACKEND}/cpp/shared.cpp
-        ${SHARED_BACKEND}/include/shared.h
-        ${SHARED_BACKEND}/cpp/buffer.cpp
-        ${SHARED_BACKEND}/include/buffer.h
-        ${SHARED_BACKEND}/cpp/schema_cursor.cpp
-        ${SHARED_BACKEND}/include/schema_cursor.h
-        ${SHARED_BACKEND}/cpp/buffer_cursor.cpp
-        ${SHARED_BACKEND}/include/buffer_cursor.h
-        ${SHARED_BACKEND}/cpp/hex.cpp
-        ${SHARED_BACKEND}/include/hex.h
-        ${SHARED_BACKEND}/cpp/json.cpp
-        ${SHARED_BACKEND}/include/json.h
-        ${SHARED_BACKEND}/cpp/fsutil.cpp
-        ${SHARED_BACKEND}/include/fsutil.h
-        ${SHARED_BACKEND}/cpp/strutil.cpp
-        ${SHARED_BACKEND}/include/strutil.h
-
-        ${OPENCL_BACKEND}/include/opencl_backend.h
-        ${OPENCL_BACKEND}/cpp/opencl_backend.cpp
-        ${OPENCL_BACKEND}/cpp/opencl_backend_buffer.cpp
-        ${OPENCL_BACKEND}/cpp/opencl_backend_info.cpp
-        ${OPENCL_BACKEND}/cpp/opencl_backend_queue.cpp
-        ${OPENCL_BACKEND}/cpp/opencl_backend_kernel.cpp
-        ${OPENCL_BACKEND}/cpp/opencl_backend_program.cpp
+        ${OPENCL_BACKEND}/src/main/native/include/opencl_backend.h
+        ${OPENCL_BACKEND}/src/main/native/cpp/opencl_backend.cpp
+        ${OPENCL_BACKEND}/src/main/native/cpp/opencl_backend_buffer.cpp
+        ${OPENCL_BACKEND}/src/main/native/cpp/opencl_backend_info.cpp
+        ${OPENCL_BACKEND}/src/main/native/cpp/opencl_backend_queue.cpp
+        ${OPENCL_BACKEND}/src/main/native/cpp/opencl_backend_kernel.cpp
+        ${OPENCL_BACKEND}/src/main/native/cpp/opencl_backend_program.cpp
     )
 
     target_link_libraries(opencl_backend
+            shared_backend
         ${OPENCL_LIB}
     )
 
     add_executable(opencl_info
-            ${OPENCL_BACKEND}/include/opencl_backend.h
-            ${OPENCL_BACKEND}/cpp/info.cpp
+            ${OPENCL_BACKEND}/src/main/native/include/opencl_backend.h
+            ${OPENCL_BACKEND}/src/main/native/cpp/info.cpp
     )
     add_executable(opencl_squares
-            ${OPENCL_BACKEND}/include/opencl_backend.h
-            ${OPENCL_BACKEND}/cpp/squares.cpp
+            ${OPENCL_BACKEND}/src/main/native/include/opencl_backend.h
+            ${OPENCL_BACKEND}/src/main/native/cpp/squares.cpp
         )
 
     target_link_libraries(opencl_squares
         opencl_backend
-        ${OPENCL_LIB}
+
     )
     target_link_libraries(opencl_info
         opencl_backend
-        ${OPENCL_LIB}
+
     )
 
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/extractFile

@@ -21,6 +21,8 @@
  * questions.
  */
 
+import jdk.incubator.code.extern.DialectFactory;
+import jdk.incubator.code.dialect.java.JavaType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -30,10 +32,9 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.type.CoreTypeFactory;
-import jdk.incubator.code.writer.OpBuilder;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.extern.OpBuilder;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -121,9 +122,10 @@ public class TestCodeBuilder {
     }
 
     static void test(CoreOp.FuncOp fExpected) {
-        CoreOp.FuncOp fb = OpBuilder.createBuilderFunction(fExpected);
+        CoreOp.FuncOp fb = OpBuilder.createBuilderFunction(fExpected,
+                b -> b.parameter(JavaType.type(DialectFactory.class)));
         CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
-                fb, ExtendedOp.FACTORY, CoreTypeFactory.CORE_TYPE_FACTORY);
+                fb, JavaOp.JAVA_DIALECT_FACTORY);
         Assert.assertEquals(fActual.toText(), fExpected.toText());
     }
 

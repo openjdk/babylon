@@ -29,6 +29,7 @@
  */
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreType;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.function.ThrowingSupplier;
@@ -52,9 +53,9 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
@@ -270,7 +271,7 @@ public class CoreBinaryOpsTest {
             TypeElement retType = functionType.returnType().equals(functionType.parameterTypes().getFirst())
                     ? type
                     : functionType.returnType();
-            return CoreOp.func(original.funcName(), FunctionType.functionType(retType, type, type))
+            return CoreOp.func(original.funcName(), CoreType.functionType(retType, type, type))
                     .body(builder -> builder.transformBody(original.body(), builder.parameters(), OpTransformer.COPYING_TRANSFORMER)
                     );
         }

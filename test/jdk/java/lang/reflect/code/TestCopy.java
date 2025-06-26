@@ -33,8 +33,8 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExternalizableOp;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;
@@ -62,7 +62,7 @@ public class TestCopy {
         CoreOp.FuncOp f = getFuncOp("f");
 
         ExternalizableOp.ExternalizedOp odef = ExternalizableOp.ExternalizedOp.externalizeOp(CopyContext.create(), f);
-        Op copy = CoreOp.FACTORY.constructOp(odef);
+        Op copy = CoreOp.CORE_OP_FACTORY.constructOp(odef);
 
         Assert.assertEquals(f.toText(), copy.toText());
     }

@@ -31,7 +31,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,22 +43,22 @@ import java.util.function.Function;
 public class TestUsesDependsOn {
 
     static final String OP = """
-            func @"f" (%0 : int, %1 : int)int -> {
-                %2 : int = add %0 %1;
-                %3 : boolean = lt %0 %1;
-                %4 : void = cbranch %3 ^b1(%2, %2) ^b2(%0, %1);
+            func @"f" (%0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
+                %2 : java.type:"int" = add %0 %1;
+                %3 : java.type:"boolean" = lt %0 %1;
+                %4 : java.type:"void" = cbranch %3 ^b1(%2, %2) ^b2(%0, %1);
 
-              ^b1(%5 : int, %6 : int):
-                %7 : void = return %5;
+              ^b1(%5 : java.type:"int", %6 : java.type:"int"):
+                %7 : java.type:"void" = return %5;
 
-              ^b2(%8 : int, %9 : int):
-                %10 : void = return %8;
+              ^b2(%8 : java.type:"int", %9 : java.type:"int"):
+                %10 : java.type:"void" = return %8;
             };
             """;
 
     @Test
     public void testDependsOn() {
-        Op f = OpParser.fromStringOfFuncOp(OP);
+        Op f = OpParser.fromStringOfJavaCodeModel(OP);
 
         Map<String, List<String>> dependsUpon = computeValueMap(f, Value::dependsOn);
 
@@ -82,7 +82,7 @@ public class TestUsesDependsOn {
 
     @Test
     public void testUses() {
-        Op f = OpParser.fromStringOfFuncOp(OP);
+        Op f = OpParser.fromStringOfJavaCodeModel(OP);
         f.writeTo(System.out);
 
         Map<String, List<String>> uses = computeValueMap(f, Value::uses);

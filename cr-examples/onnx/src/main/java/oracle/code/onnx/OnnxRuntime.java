@@ -38,14 +38,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.FieldRef;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.FieldRef;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
@@ -85,6 +87,24 @@ public final class OnnxRuntime {
     public interface OnnxFunction<T> extends Supplier<T>, Quotable {
     }
 
+    // @@@ temporary set public for ongoing experiments
+    public static List<Object> getInitValues(MethodHandles.Lookup lookup, SequencedCollection<FieldRef> initializers, SequencedCollection<Object> possibleReceivers) {
+        return initializers.stream().map(i -> {
+            try {
+                Field initializerField = i.resolveToMember(lookup);
+                VarHandle handle = lookup.unreflectVarHandle(initializerField);
+                if (initializerField.accessFlags().contains(AccessFlag.STATIC)) {
+                    return handle.get();
+                } else {
+                    Class<?> initializerClass = initializerField.getDeclaringClass();
+                    return handle.get(possibleReceivers.stream().filter(initializerClass::isInstance).findFirst().orElseThrow());
+                }
+            } catch (ReflectiveOperationException ex) {
+                throw new RuntimeException(ex);
+            }
+        }).toList();
+    }
+
     static class CachedSessionClassValue extends ClassValue<Session> {
 
         private MethodHandles.Lookup l;
@@ -102,29 +122,12 @@ public final class OnnxRuntime {
             }
         }
 
-        static List<Tensor> getInitValues(MethodHandles.Lookup lookup, SequencedCollection<FieldRef> initializers, SequencedCollection<Object> possibleReceivers) {
-            return initializers.stream().map(i -> {
-                try {
-                    Field initializerField = i.resolveToMember(lookup);
-                    VarHandle handle = lookup.unreflectVarHandle(initializerField);
-                    if (initializerField.accessFlags().contains(AccessFlag.STATIC)) {
-                        return (Tensor)handle.get();
-                    } else {
-                        Class<?> initializerClass = initializerField.getDeclaringClass();
-                        return (Tensor)handle.get(possibleReceivers.stream().filter(initializerClass::isInstance).findFirst().orElseThrow());
-                    }
-                } catch (ReflectiveOperationException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }).toList();
-        }
-
         @Override
         protected Session computeValue(Class<?> type) {
             OnnxTransformer.ModuleAndInitializers mi = OnnxTransformer.transform(l, q);
 
             String domainName = type.getSimpleName().split("\\$")[0];
-            byte[] protobufModel = OnnxProtoBuilder.build(domainName, mi.module(), getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues()));
+            byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues()));
 
             if (DEBUG) {
                 System.out.println(mi.module().toText());
@@ -154,22 +157,32 @@ public final class OnnxRuntime {
     }
 
 
+    private static void expandArg(Object val, Consumer<Tensor> args) {
+        switch (val) {
+            case CoreOp.Var<?> v -> expandArg(v.value(), args);
+            case Tensor t -> args.accept(t);
+            case Record r -> {
+                for (var rc : r.getClass().getRecordComponents()) try {
+                    expandArg(rc.getAccessor().invoke(r), args);
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+            default -> {}
+        }
+    }
+
     public static <T> T execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<T> codeLambda) {
         var q = Op.ofQuotable(codeLambda).orElseThrow();
 
         var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
 
         List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
-                .map(val -> val instanceof CoreOp.Var<?> v ? v.value() : val)
-                .<Tensor>mapMulti((val, args) -> {
-                    if (val instanceof Tensor t) {
-                        args.accept(t);
-                    }
-                })
+                .mapMulti(OnnxRuntime::expandArg)
                 .toList();
         List<Tensor> ret = model.run(arena, arguments);
 
-        ClassType retType = ((ClassType)((CoreOp.LambdaOp)q.op()).invokableType().returnType()).rawType();
+        ClassType retType = ((ClassType)((JavaOp.LambdaOp)q.op()).invokableType().returnType()).rawType();
         if (retType.equals(TENSOR_RAW_TYPE)) {
             return (T)ret.getFirst();
         } else if(retType.equals(LIST_RAW_TYPE)) {
@@ -225,7 +238,7 @@ public final class OnnxRuntime {
 
     public List<Tensor> runOp(Arena arena, String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
         var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
-        var protoModel = OnnxProtoBuilder.build(
+        var protoModel = OnnxProtoBuilder.buildModel(
                 List.of(),
                 IntStream.range(0, inputValues.size()).mapToObj(i -> OnnxProtoBuilder.tensorInfo("i" + i, inputValues.get(i).elementType().id)).toList(),
                 List.of(OnnxProtoBuilder.node(
@@ -239,7 +252,7 @@ public final class OnnxRuntime {
     }
 
     public List<Tensor> run(Arena arena, Block block, List<Tensor> inputValues, int initializers) {
-        var protoModel = OnnxProtoBuilder.build(block, inputValues.subList(0, initializers));
+        var protoModel = OnnxProtoBuilder.buildModel(block, inputValues.subList(0, initializers));
         return createSession(arena, protoModel)
                 .run(arena, inputValues.subList(initializers, inputValues.size()));
     }
@@ -321,7 +334,7 @@ public final class OnnxRuntime {
                 runtimeAddress,
                 allocatorInfo,
                 flatData, flatData.byteSize(),
-                shape.length == 0 ? MemorySegment.NULL : autoShape(arena, shape, flatData.byteSize() / elementType.size()), (long)shape.length,
+                shape.length == 0 ? MemorySegment.NULL : autoShape(arena, shape, 8l * flatData.byteSize() / elementType.bitSize()), (long)shape.length,
                 elementType.id,
                 ret)).reinterpret(arena, value -> OrtApi.ReleaseValue(runtimeAddress, value));
     }
@@ -371,7 +384,7 @@ public final class OnnxRuntime {
     public MemorySegment tensorData(MemorySegment tensorAddr) {
         var infoAddr = retAddr(OrtApi.GetTensorTypeAndShape(runtimeAddress, tensorAddr, ret));
         long size = retLong(OrtApi.GetTensorShapeElementCount(runtimeAddress, infoAddr, ret))
-                * Tensor.ElementType.fromOnnxId(retInt(OrtApi.GetTensorElementType(runtimeAddress, infoAddr, ret))).size();
+                * Tensor.ElementType.fromOnnxId(retInt(OrtApi.GetTensorElementType(runtimeAddress, infoAddr, ret))).bitSize() / 8;
         return retAddr(OrtApi.GetTensorMutableData(runtimeAddress, tensorAddr, ret))
                 .reinterpret(size);
     }

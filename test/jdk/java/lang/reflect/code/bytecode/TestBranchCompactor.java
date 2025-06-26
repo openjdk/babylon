@@ -28,7 +28,7 @@ import jdk.internal.classfile.components.ClassPrinter;
 import static java.lang.classfile.Opcode.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
-import jdk.incubator.code.bytecode.BranchCompactor;
+import jdk.incubator.code.bytecode.impl.BranchCompactor;
 import java.util.List;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -37,6 +37,7 @@ import org.testng.annotations.Test;
  * @test
  * @modules jdk.incubator.code
  * @modules java.base/jdk.internal.classfile.components
+ * @modules jdk.incubator.code/jdk.incubator.code.bytecode.impl
  * @enablePreview
  * @run testng TestBranchCompactor
  */

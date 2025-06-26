@@ -95,11 +95,11 @@ public class OpSchemaParser {
             case JsonString s when c == Object.class -> (T) s.value();
 
             // Coerce to int when int is declared
-            case JsonNumber n when c == int.class -> (T) (Integer) n.value().intValue();
+            case JsonNumber n when c == int.class -> (T) (Integer) n.toNumber().intValue();
             // Coerce to int when Object is declared and when integral JSON number
-            case JsonNumber n when n.value() instanceof Long i && c == Object.class -> (T) (Integer) i.intValue();
+            case JsonNumber n when n.toNumber() instanceof Long i && c == Object.class -> (T) (Integer) i.intValue();
             // Coerce to float when Object is declared and when real JSON number
-            case JsonNumber n when n.value() instanceof Double d && c == Object.class -> (T) (Float) d.floatValue();
+            case JsonNumber n when n.toNumber() instanceof Double d && c == Object.class -> (T) (Float) d.floatValue();
 
             case JsonArray a when c == List.class -> switch (gt) {
                 case ParameterizedType pt when pt.getActualTypeArguments()[0] instanceof Class<?> tc ->
@@ -119,7 +119,7 @@ public class OpSchemaParser {
     }
 
     static <T> List<T> mapJsonObjectAsIfJsonArray(JsonObject o, Class<T> ct) {
-        return o.keys().values().stream().map(v -> mapJsonValue(v, ct, ct)).toList();
+        return o.members().values().stream().map(v -> mapJsonValue(v, ct, ct)).toList();
     }
 
     static <T> List<T> mapJsonArray(JsonArray a, Class<T> ct) {
@@ -129,7 +129,7 @@ public class OpSchemaParser {
     static <T extends Record> T mapJsonObject(JsonObject o, Class<T> r) {
         List<Object> rcInstances = new ArrayList<>();
         for (RecordComponent rc : r.getRecordComponents()) {
-            JsonValue jsonValue = o.keys().get(rc.getName());
+            JsonValue jsonValue = o.members().get(rc.getName());
             if (jsonValue == null) {
                 throw new IllegalStateException();
             }

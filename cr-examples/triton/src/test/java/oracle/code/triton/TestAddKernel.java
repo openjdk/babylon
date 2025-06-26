@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
@@ -36,25 +36,25 @@ import java.util.List;
 public class TestAddKernel {
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"add_kernel_ptr<float>_ptr<float>_ptr<float>_int_64_void" (%0 : ptr<float>, %1 : ptr<float>, %2 : ptr<float>, %3 : int)void -> {
-                    %4 : int = arith.constant @"64";
-                    %5 : int = tt.get_program_id @"0";
-                    %6 : int = arith.muli %5 %4;
-                    %7 : tensor<x64, int> = tt.make_range @start="0" @end="64";
-                    %8 : tensor<x64, int> = tt.splat %6;
-                    %9 : tensor<x64, int> = arith.addi %8 %7;
-                    %10 : tensor<x64, int> = tt.splat %3;
-                    %11 : tensor<x64, boolean> = arith.cmpi %9 %10 @"slt";
-                    %12 : tensor<x64, ptr<float>> = tt.splat %0;
-                    %13 : tensor<x64, ptr<float>> = tt.addptr %12 %9;
-                    %14 : tensor<x64, float> = tt.load %13 %11;
-                    %15 : tensor<x64, ptr<float>> = tt.splat %1;
-                    %16 : tensor<x64, ptr<float>> = tt.addptr %15 %9;
-                    %17 : tensor<x64, float> = tt.load %16 %11;
-                    %18 : tensor<x64, float> = arith.addf %14 %17;
-                    %19 : tensor<x64, ptr<float>> = tt.splat %2;
-                    %20 : tensor<x64, ptr<float>> = tt.addptr %19 %9;
+            module ()java.type:"void" -> {
+                tt.func @"add_kernel_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_int_64_void" (%0 : ptr<java.type:"float">, %1 : ptr<java.type:"float">, %2 : ptr<java.type:"float">, %3 : java.type:"int")java.type:"void" -> {
+                    %4 : java.type:"int" = arith.constant @64;
+                    %5 : java.type:"int" = tt.get_program_id @0;
+                    %6 : java.type:"int" = arith.muli %5 %4;
+                    %7 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
+                    %8 : tensor<x64, java.type:"int"> = tt.splat %6;
+                    %9 : tensor<x64, java.type:"int"> = arith.addi %8 %7;
+                    %10 : tensor<x64, java.type:"int"> = tt.splat %3;
+                    %11 : tensor<x64, java.type:"boolean"> = arith.cmpi %9 %10 @"slt";
+                    %12 : tensor<x64, ptr<java.type:"float">> = tt.splat %0;
+                    %13 : tensor<x64, ptr<java.type:"float">> = tt.addptr %12 %9;
+                    %14 : tensor<x64, java.type:"float"> = tt.load %13 %11;
+                    %15 : tensor<x64, ptr<java.type:"float">> = tt.splat %1;
+                    %16 : tensor<x64, ptr<java.type:"float">> = tt.addptr %15 %9;
+                    %17 : tensor<x64, java.type:"float"> = tt.load %16 %11;
+                    %18 : tensor<x64, java.type:"float"> = arith.addf %14 %17;
+                    %19 : tensor<x64, ptr<java.type:"float">> = tt.splat %2;
+                    %20 : tensor<x64, ptr<java.type:"float">> = tt.addptr %19 %9;
                     tt.store %20 %18 %11;
                     tt.return;
                 };
@@ -105,25 +105,25 @@ public class TestAddKernel {
 
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"add_kernel2_ptr<float>_ptr<float>_ptr<float>_int_64_void" (%0 : ptr<float>, %1 : ptr<float>, %2 : ptr<float>, %3 : int)void -> {
-                    %4 : int = arith.constant @"64";
-                    %5 : int = tt.get_program_id @"0";
-                    %6 : int = arith.muli %5 %4;
-                    %7 : tensor<x64, int> = tt.make_range @start="0" @end="64";
-                    %8 : tensor<x64, int> = tt.splat %6;
-                    %9 : tensor<x64, int> = arith.addi %8 %7;
-                    %10 : tensor<x64, int> = tt.splat %3;
-                    %11 : tensor<x64, boolean> = arith.cmpi %9 %10 @"slt";
-                    %12 : tensor<x64, ptr<float>> = tt.splat %0;
-                    %13 : tensor<x64, ptr<float>> = tt.addptr %12 %9;
-                    %14 : tensor<x64, float> = tt.load %13 %11;
-                    %15 : tensor<x64, ptr<float>> = tt.splat %1;
-                    %16 : tensor<x64, ptr<float>> = tt.addptr %15 %9;
-                    %17 : tensor<x64, float> = tt.load %16 %11;
-                    %18 : tensor<x64, float> = arith.addf %14 %17;
-                    %19 : tensor<x64, ptr<float>> = tt.splat %2;
-                    %20 : tensor<x64, ptr<float>> = tt.addptr %19 %9;
+            module ()java.type:"void" -> {
+                tt.func @"add_kernel2_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_ptr<java.type.primitive<float>>_int_64_void" (%0 : ptr<java.type:"float">, %1 : ptr<java.type:"float">, %2 : ptr<java.type:"float">, %3 : java.type:"int")java.type:"void" -> {
+                    %4 : java.type:"int" = arith.constant @64;
+                    %5 : java.type:"int" = tt.get_program_id @0;
+                    %6 : java.type:"int" = arith.muli %5 %4;
+                    %7 : tensor<x64, java.type:"int"> = tt.make_range @start=0 @end=64;
+                    %8 : tensor<x64, java.type:"int"> = tt.splat %6;
+                    %9 : tensor<x64, java.type:"int"> = arith.addi %8 %7;
+                    %10 : tensor<x64, java.type:"int"> = tt.splat %3;
+                    %11 : tensor<x64, java.type:"boolean"> = arith.cmpi %9 %10 @"slt";
+                    %12 : tensor<x64, ptr<java.type:"float">> = tt.splat %0;
+                    %13 : tensor<x64, ptr<java.type:"float">> = tt.addptr %12 %9;
+                    %14 : tensor<x64, java.type:"float"> = tt.load %13 %11;
+                    %15 : tensor<x64, ptr<java.type:"float">> = tt.splat %1;
+                    %16 : tensor<x64, ptr<java.type:"float">> = tt.addptr %15 %9;
+                    %17 : tensor<x64, java.type:"float"> = tt.load %16 %11;
+                    %18 : tensor<x64, java.type:"float"> = arith.addf %14 %17;
+                    %19 : tensor<x64, ptr<java.type:"float">> = tt.splat %2;
+                    %20 : tensor<x64, ptr<java.type:"float">> = tt.addptr %19 %9;
                     tt.store %20 %18 %11;
                     tt.return;
                 };

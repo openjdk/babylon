@@ -31,16 +31,17 @@ import hat.buffer.KernelContext;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
+
 import java.util.Optional;
 
-public class InvokeOpWrapper extends OpWrapper<CoreOp.InvokeOp> {
+public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
 
 
-    public InvokeOpWrapper( MethodHandles.Lookup lookup,CoreOp.InvokeOp op) {
+    public InvokeOpWrapper( MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
         super(lookup,op);
     }
 

@@ -25,18 +25,20 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.type.JavaType.DOUBLE;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.java.JavaType.DOUBLE;
 
 public final class ForwardDifferentiation {
     // The function to differentiate
@@ -121,23 +123,23 @@ public final class ForwardDifferentiation {
 
 
     static final JavaType J_L_MATH = JavaType.type(Math.class);
-    static final FunctionType D_D = FunctionType.functionType(DOUBLE, DOUBLE);
+    static final FunctionType D_D = CoreType.functionType(DOUBLE, DOUBLE);
     static final MethodRef J_L_MATH_SIN = MethodRef.method(J_L_MATH, "sin", D_D);
     static final MethodRef J_L_MATH_COS = MethodRef.method(J_L_MATH, "cos", D_D);
 
     Value diffOp(Block.Builder block, Op op) {
         // Switch on the op, using pattern matching
         return switch (op) {
-            case CoreOp.NegOp _ -> {
+            case JavaOp.NegOp _ -> {
                 // Copy input operation
                 block.op(op);
 
                 // -diff(expr)
                 Value a = op.operands().get(0);
                 Value da = diffValueMapping.getOrDefault(a, zero);
-                yield block.op(neg(da));
+                yield block.op(JavaOp.neg(da));
             }
-            case CoreOp.AddOp _ -> {
+            case JavaOp.AddOp _ -> {
                 // Copy input operation
                 block.op(op);
 
@@ -146,9 +148,9 @@ public final class ForwardDifferentiation {
                 Value rhs = op.operands().get(1);
                 Value dlhs = diffValueMapping.getOrDefault(lhs, zero);
                 Value drhs = diffValueMapping.getOrDefault(rhs, zero);
-                yield block.op(add(dlhs, drhs));
+                yield block.op(JavaOp.add(dlhs, drhs));
             }
-            case CoreOp.MulOp _ -> {
+            case JavaOp.MulOp _ -> {
                 // Copy input operation
                 block.op(op);
 
@@ -160,9 +162,9 @@ public final class ForwardDifferentiation {
                 Value drhs = diffValueMapping.getOrDefault(rhs, zero);
                 Value outputLhs = block.context().getValue(lhs);
                 Value outputRhs = block.context().getValue(rhs);
-                yield block.op(add(
-                        block.op(mul(dlhs, outputRhs)),
-                        block.op(mul(outputLhs, drhs))));
+                yield block.op(JavaOp.add(
+                        block.op(JavaOp.mul(dlhs, outputRhs)),
+                        block.op(JavaOp.mul(outputLhs, drhs))));
             }
             case CoreOp.ConstantOp _ -> {
                 // Copy input operation
@@ -170,7 +172,7 @@ public final class ForwardDifferentiation {
                 // Differential of constant is zero
                 yield zero;
             }
-            case CoreOp.InvokeOp c -> {
+            case JavaOp.InvokeOp c -> {
                 MethodRef md = c.invokeDescriptor();
                 String operationName = null;
                 if (md.refType().equals(J_L_MATH)) {
@@ -186,8 +188,8 @@ public final class ForwardDifferentiation {
                     Value a = op.operands().get(0);
                     Value da = diffValueMapping.getOrDefault(a, zero);
                     Value outputA = block.context().getValue(a);
-                    Op.Result cosx = block.op(invoke(J_L_MATH_COS, outputA));
-                    yield block.op(mul(cosx, da));
+                    Op.Result cosx = block.op(JavaOp.invoke(J_L_MATH_COS, outputA));
+                    yield block.op(JavaOp.mul(cosx, da));
                 } else {
                     throw new UnsupportedOperationException("Operation not supported: " + op.opName());
                 }

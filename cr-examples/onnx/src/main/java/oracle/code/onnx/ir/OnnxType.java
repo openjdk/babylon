@@ -25,14 +25,14 @@
 
 package oracle.code.onnx.ir;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.TypeElementFactory;
+import jdk.incubator.code.extern.ExternalizableTypeElement;
+import jdk.incubator.code.extern.TypeElementFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public abstract sealed class OnnxType implements TypeElement {
+public abstract sealed class OnnxType implements ExternalizableTypeElement {
 
     public static final TypeElementFactory FACTORY = new TypeElementFactory() {
         @Override

@@ -25,13 +25,13 @@
 package hat.optools;
 
 
-import jdk.incubator.code.op.ExtendedOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
-public class TernaryOpWrapper extends OpWrapper<ExtendedOp.JavaConditionalExpressionOp> {
-    public TernaryOpWrapper( MethodHandles.Lookup lookup,ExtendedOp.JavaConditionalExpressionOp op) {
+public class TernaryOpWrapper extends OpWrapper<JavaOp.JavaConditionalExpressionOp> {
+    public TernaryOpWrapper( MethodHandles.Lookup lookup,JavaOp.JavaConditionalExpressionOp op) {
         super(lookup,op);
     }
 

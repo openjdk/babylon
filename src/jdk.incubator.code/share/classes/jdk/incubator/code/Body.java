@@ -25,7 +25,8 @@
 
 package jdk.incubator.code;
 
-import jdk.incubator.code.type.FunctionType;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.FunctionType;
 import java.util.*;
 
 /**
@@ -69,6 +70,11 @@ public final class Body implements CodeElement<Body, Block> {
         this.ancestorBody = ancestorBody;
         this.yieldType = yieldType;
         this.blocks = new ArrayList<>();
+    }
+
+    @Override
+    public String toString() {
+        return "body@" + Integer.toHexString(hashCode());
     }
 
     /**
@@ -120,7 +126,7 @@ public final class Body implements CodeElement<Body, Block> {
      */
     public FunctionType bodyType() {
         Block entryBlock = entryBlock();
-        return FunctionType.functionType(yieldType, entryBlock.parameterTypes());
+        return CoreType.functionType(yieldType, entryBlock.parameterTypes());
     }
 
     /**
@@ -249,6 +255,138 @@ public final class Body implements CodeElement<Body, Block> {
             if (preds.size() > 1) {
                 for (Block p : preds) {
                     Block runner = p;
+                    while (runner != idoms.get(b)) {
+                        df.computeIfAbsent(runner, _ -> new LinkedHashSet<>()).add(b);
+                        runner = idoms.get(runner);
+                    }
+                }
+            }
+        }
+
+        return df;
+    }
+
+    /**
+     * A synthetic block representing the post dominator of all blocks
+     * when two or more blocks have no successors.
+     * <p>
+     * Computing the immediate post dominators requires a single exit point,
+     * one block that has no successors. When there are two or more blocks
+     * with no successors then this block represents the immediate post
+     * dominator of those blocks
+     */
+    public static final Block IPDOM_EXIT;
+    static {
+        IPDOM_EXIT = new Block(null);
+        IPDOM_EXIT.index = Integer.MAX_VALUE;
+    }
+
+    /**
+     * Returns a map of block to its immediate post dominator.
+     * <p>
+     * If there are two or more blocks with no successors then
+     * a single exit point is synthesized using the {@link #IPDOM_EXIT}
+     * block, which represents the immediate post dominator of those blocks.
+     *
+     * @return a map of block to its immediate post dominator, as an unmodifiable map
+     */
+    public Map<Block, Block> immediatePostDominators() {
+        Map<Block, Block> pdoms = new HashMap<>();
+
+        // If there are multiple exit blocks (those with zero successors)
+        // then use the block IPDOM_EXIT that is the synthetic successor of
+        // the exit blocks
+        boolean nSuccessors = blocks.stream().filter(b -> b.successors().isEmpty()).count() > 1;
+
+        if (nSuccessors) {
+            pdoms.put(IPDOM_EXIT, IPDOM_EXIT);
+        } else {
+            Block exit = blocks.getLast();
+            assert blocks.stream().filter(b -> b.successors().isEmpty()).findFirst().orElseThrow() == exit;
+            pdoms.put(exit, exit);
+        }
+
+        // Blocks are sorted in reverse postorder
+        boolean changed;
+        do {
+            changed = false;
+            // Iterate in reverse through blocks in reverse postorder, except for exit block
+            for (int i = blocks.size() - (nSuccessors ? 1 : 2); i >= 0; i--) {
+                Block b = blocks.get(i);
+
+                // Find first processed successor of b
+                Block newIpdom = null;
+                Collection<Block> targets = b.successorTargets();
+                for (Block s : nSuccessors && targets.isEmpty() ? List.of(IPDOM_EXIT) : targets) {
+                    if (pdoms.containsKey(s)) {
+                        newIpdom = s;
+                        break;
+                    }
+                }
+
+                if (newIpdom == null) {
+                    // newIpdom can be null if all successors reference
+                    // prior blocks (back branch) yet to be encountered
+                    // in the dominator treee
+                    continue;
+                }
+
+                // For all other successors, s, of b
+                for (Block s : b.successorTargets()) {
+                    if (s == newIpdom) {
+                        continue;
+                    }
+
+                    if (pdoms.containsKey(s)) {
+                        // If already calculated
+                        newIpdom = postIntersect(pdoms, s, newIpdom, blocks.size());
+                    }
+                }
+
+                if (pdoms.get(b) != newIpdom) {
+                    pdoms.put(b, newIpdom);
+                    changed = true;
+                }
+            }
+        } while (changed);
+
+        return Collections.unmodifiableMap(pdoms);
+    }
+
+    static Block postIntersect(Map<Block, Block> doms, Block b1, Block b2, int exitIndex) {
+        while (b1 != b2) {
+            while (b1.index() < b2.index()) {
+                b1 = doms.get(b1);
+            }
+
+            while (b2.index() < b1.index()) {
+                b2 = doms.get(b2);
+            }
+        }
+
+        return b1;
+    }
+
+    /**
+     * Returns the post dominance frontier of each block in the body.
+     * <p>
+     * The post dominance frontier of block, {@code B} say, is the set of all blocks, {@code C} say,
+     * such that {@code B} post dominates a successor of {@code C} but does not strictly post dominate
+     * {@code C}.
+     *
+     * @return the post dominance frontier of each block in the body, as a modifiable map
+     */
+    public Map<Block, Set<Block>> postDominanceFrontier() {
+        // @@@ cache result?
+        Map<Block, Block> idoms = immediatePostDominators();
+        Map<Block, Set<Block>> df = new HashMap<>();
+
+        for (Block b : blocks) {
+            Set<Block> succs = b.successorTargets();
+
+            if (succs.size() > 1) {
+                for (Block s : succs) {
+                    Block runner = s;
                     while (runner != idoms.get(b)) {
                         df.computeIfAbsent(runner, _ -> new LinkedHashSet<>()).add(b);
                         runner = idoms.get(runner);
@@ -505,7 +643,7 @@ public final class Body implements CodeElement<Body, Block> {
         public FunctionType bodyType() {
             TypeElement returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
-            return FunctionType.functionType(returnType, eb.parameterTypes());
+            return CoreType.functionType(returnType, eb.parameterTypes());
         }
 
         /**
@@ -582,7 +720,7 @@ public final class Body implements CodeElement<Body, Block> {
                 ? ancestorBlockBuilder.parentBody() : null;
         Builder body = Builder.of(ancestorBodyBuilder,
                 // Create function type with just the return type and add parameters afterward
-                FunctionType.functionType(yieldType),
+                CoreType.functionType(yieldType),
                 cc, ot);
 
         for (Block.Parameter p : entryBlock().parameters()) {

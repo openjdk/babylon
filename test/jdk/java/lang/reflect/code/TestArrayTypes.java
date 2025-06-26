@@ -22,10 +22,11 @@
  */
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.invoke.MethodHandles;
@@ -71,7 +72,7 @@ public class TestArrayTypes {
 
     @CodeReflection
     public static Class<?> f3() {
-        return CoreOp.ArrayLengthOp[][][][][][][].class;
+        return JavaOp.ArrayLengthOp[][][][][][][].class;
     }
 
     @Test

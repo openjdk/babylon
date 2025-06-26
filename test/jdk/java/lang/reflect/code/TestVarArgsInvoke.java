@@ -28,6 +28,7 @@
  */
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -35,8 +36,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -191,9 +192,9 @@ public class TestVarArgsInvoke {
         }
     }
 
-    static Stream<CoreOp.InvokeOp> invokes(CoreOp.FuncOp f) {
+    static Stream<JavaOp.InvokeOp> invokes(CoreOp.FuncOp f) {
         return f.elements().mapMulti((ce, c) -> {
-            if (ce instanceof CoreOp.InvokeOp iop &&
+            if (ce instanceof JavaOp.InvokeOp iop &&
                 iop.invokeDescriptor().refType().equals(JavaType.type(TestVarArgsInvoke.class))) {
                 c.accept(iop);
             }

@@ -61,11 +61,11 @@ import java.lang.foreign.StructLayout;
 import java.lang.invoke.MethodHandles;
 
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.PrimitiveType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements HATCodeBuilder.CodeBuilderInterface<T> {
     /*
@@ -88,40 +88,40 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public int precedenceOf(Op op) {
         return switch (op) {
             case CoreOp.YieldOp o -> 0;
-            case CoreOp.InvokeOp o -> 0;
+            case JavaOp.InvokeOp o -> 0;
             case CoreOp.FuncCallOp o -> 0;
             case CoreOp.VarOp o -> 13;
             case CoreOp.VarAccessOp.VarStoreOp o -> 13;
-            case CoreOp.FieldAccessOp o -> 0;
+            case JavaOp.FieldAccessOp o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
             case CoreOp.ConstantOp o -> 0;
-            case CoreOp.LambdaOp o -> 0;
+            case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;
-            case ExtendedOp.JavaWhileOp o -> 0;
-            case CoreOp.ConvOp o -> 1;
-            case CoreOp.NegOp  o-> 1;
-            case CoreOp.ModOp o -> 2;
-            case CoreOp.MulOp o -> 2;
-            case CoreOp.DivOp o -> 2;
-            case CoreOp.NotOp o -> 2;
-            case CoreOp.AddOp o -> 3;
-            case CoreOp.SubOp o -> 3;
-            case CoreOp.AshrOp o -> 4;
-            case CoreOp.LshlOp o -> 4;
-            case CoreOp.LshrOp o -> 4;
-            case CoreOp.LtOp o -> 5;
-            case CoreOp.GtOp o -> 5;
-            case CoreOp.LeOp o -> 5;
-            case CoreOp.GeOp o -> 5;
-            case CoreOp.EqOp o -> 6;
-            case CoreOp.NeqOp o -> 6;
+            case JavaOp.JavaWhileOp o -> 0;
+            case JavaOp.ConvOp o -> 1;
+            case JavaOp.NegOp  o-> 1;
+            case JavaOp.ModOp o -> 2;
+            case JavaOp.MulOp o -> 2;
+            case JavaOp.DivOp o -> 2;
+            case JavaOp.NotOp o -> 2;
+            case JavaOp.AddOp o -> 3;
+            case JavaOp.SubOp o -> 3;
+            case JavaOp.AshrOp o -> 4;
+            case JavaOp.LshlOp o -> 4;
+            case JavaOp.LshrOp o -> 4;
+            case JavaOp.LtOp o -> 5;
+            case JavaOp.GtOp o -> 5;
+            case JavaOp.LeOp o -> 5;
+            case JavaOp.GeOp o -> 5;
+            case JavaOp.EqOp o -> 6;
+            case JavaOp.NeqOp o -> 6;
 
-            case CoreOp.AndOp o -> 11;
-            case CoreOp.XorOp o -> 12;
-            case CoreOp.OrOp o -> 13;
-            case ExtendedOp.JavaConditionalAndOp o -> 14;
-            case ExtendedOp.JavaConditionalOrOp o -> 15;
-            case ExtendedOp.JavaConditionalExpressionOp o -> 18;
+            case JavaOp.AndOp o -> 11;
+            case JavaOp.XorOp o -> 12;
+            case JavaOp.OrOp o -> 13;
+            case JavaOp.JavaConditionalAndOp o -> 14;
+            case JavaOp.JavaConditionalOrOp o -> 15;
+            case JavaOp.JavaConditionalExpressionOp o -> 18;
             case CoreOp.ReturnOp o -> 19;
 
             default -> throw new IllegalStateException("precedence ");
@@ -153,10 +153,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-    public T varName(CoreOp.VarOp varOp) {
-        identifier(varOp.varName());
-        return self();
-    }
+
 
     @Override
     public T varLoad(CodeBuilderContext buildContext, VarLoadOpWrapper varAccessOpWrapper) {
@@ -213,27 +210,27 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     T symbol(Op op) {
         return switch (op) {
-            case CoreOp.ModOp o -> percent();
-            case CoreOp.MulOp o -> mul();
-            case CoreOp.DivOp o -> div();
-            case CoreOp.AddOp o -> plus();
-            case CoreOp.SubOp o -> minus();
-            case CoreOp.LtOp o -> lt();
-            case CoreOp.GtOp o -> gt();
-            case CoreOp.LeOp o -> lte();
-            case CoreOp.GeOp o -> gte();
-            case CoreOp.AshrOp o -> cchevron().cchevron();
-            case CoreOp.LshlOp o -> ochevron().ochevron();
-            case CoreOp.LshrOp o -> cchevron().cchevron();
-            case CoreOp.NeqOp o -> pling().equals();
-            case CoreOp.NegOp o -> minus();
-            case CoreOp.EqOp o -> equals().equals();
-            case CoreOp.NotOp o -> pling();
-            case CoreOp.AndOp o -> ampersand();
-            case CoreOp.OrOp o -> bar();
-            case CoreOp.XorOp o -> hat();
-            case ExtendedOp.JavaConditionalAndOp o -> condAnd();
-            case ExtendedOp.JavaConditionalOrOp o -> condOr();
+            case JavaOp.ModOp o -> percent();
+            case JavaOp.MulOp o -> mul();
+            case JavaOp.DivOp o -> div();
+            case JavaOp.AddOp o -> plus();
+            case JavaOp.SubOp o -> minus();
+            case JavaOp.LtOp o -> lt();
+            case JavaOp.GtOp o -> gt();
+            case JavaOp.LeOp o -> lte();
+            case JavaOp.GeOp o -> gte();
+            case JavaOp.AshrOp o -> cchevron().cchevron();
+            case JavaOp.LshlOp o -> ochevron().ochevron();
+            case JavaOp.LshrOp o -> cchevron().cchevron();
+            case JavaOp.NeqOp o -> pling().equals();
+            case JavaOp.NegOp o -> minus();
+            case JavaOp.EqOp o -> equals().equals();
+            case JavaOp.NotOp o -> pling();
+            case JavaOp.AndOp o -> ampersand();
+            case JavaOp.OrOp o -> bar();
+            case JavaOp.XorOp o -> hat();
+            case JavaOp.JavaConditionalAndOp o -> condAnd();
+            case JavaOp.JavaConditionalOrOp o -> condOr();
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
     }

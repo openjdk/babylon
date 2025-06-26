@@ -22,16 +22,17 @@
  */
 
 import jdk.incubator.code.Op;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.type.JavaType.parameterized;
-import static jdk.incubator.code.type.MethodRef.method;
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.JavaType.type;
+import static jdk.incubator.code.dialect.java.JavaType.parameterized;
+import static jdk.incubator.code.dialect.java.MethodRef.method;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
+import static jdk.incubator.code.dialect.java.JavaType.type;
 
 public interface Queryable<T> {
     JavaType TYPE = type(Queryable.class);
@@ -46,17 +47,17 @@ public interface Queryable<T> {
 
     @SuppressWarnings("unchecked")
     default Queryable<T> where(QuotablePredicate<T> f) {
-        LambdaOp l = (LambdaOp) Op.ofQuotable(f).get().op();
+        JavaOp.LambdaOp l = (JavaOp.LambdaOp) Op.ofQuotable(f).get().op();
         return (Queryable<T>) insertQuery(elementType(), "where", l);
     }
 
     @SuppressWarnings("unchecked")
     default <R> Queryable<R> select(QuotableFunction<T, R> f) {
-        LambdaOp l = (LambdaOp) Op.ofQuotable(f).get().op();
+        JavaOp.LambdaOp l = (JavaOp.LambdaOp) Op.ofQuotable(f).get().op();
         return (Queryable<R>) insertQuery((JavaType) l.invokableType().returnType(), "select", l);
     }
 
-    private Queryable<?> insertQuery(JavaType elementType, String methodName, LambdaOp lambdaOp) {
+    private Queryable<?> insertQuery(JavaType elementType, String methodName, JavaOp.LambdaOp lambdaOp) {
         // Copy function expression, replacing return operation
         FuncOp queryExpression = expression();
         JavaType queryableType = parameterized(Queryable.TYPE, elementType);
@@ -67,7 +68,7 @@ public interface Queryable<T> {
 
                     MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(Queryable.TYPE, ((ClassType) lambdaOp.functionalInterface()).rawType()));
-                    Op.Result queryable = block.op(invoke(queryableType, md, query, fi));
+                    Op.Result queryable = block.op(JavaOp.invoke(queryableType, md, query, fi));
 
                     block.op(_return(queryable));
                 }));
@@ -96,7 +97,7 @@ public interface Queryable<T> {
                 .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
                     MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(QueryResult.TYPE));
-                    Op.Result queryResult = block.op(invoke(queryResultType, md, query));
+                    Op.Result queryResult = block.op(JavaOp.invoke(queryResultType, md, query));
 
                     block.op(_return(queryResult));
                 }));

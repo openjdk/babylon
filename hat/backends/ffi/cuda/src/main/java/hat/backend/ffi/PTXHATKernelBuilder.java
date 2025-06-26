@@ -24,15 +24,16 @@
  */
 package hat.backend.ffi;
 
+import hat.ifacemapper.BoundSchema;
 import hat.optools.*;
 import hat.text.CodeBuilder;
 import hat.util.StreamCounter;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.JavaType;
+
+import jdk.incubator.code.*;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.foreign.MemoryLayout;
 import java.util.ArrayList;
@@ -163,6 +164,38 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         cbrace();
     }
 
+    public static class PTXPtrOp extends ExternalizableOp {
+        public String fieldName;
+        public static final String NAME = "ptxPtr";
+        final TypeElement resultType;
+        public BoundSchema<?> boundSchema;
+
+        PTXPtrOp(TypeElement resultType, String fieldName, List<Value> operands, BoundSchema<?> boundSchema) {
+            super(NAME, operands);
+            this.resultType = resultType;
+            this.fieldName = fieldName;
+            this.boundSchema = boundSchema;
+        }
+
+        PTXPtrOp(PTXPtrOp that, CopyContext cc) {
+            super(that, cc);
+            this.resultType = that.resultType;
+            this.fieldName = that.fieldName;
+            this.boundSchema = that.boundSchema;
+        }
+
+        @Override
+        public PTXPtrOp transform(CopyContext cc, OpTransformer ot) {
+            return new PTXPtrOp(this, cc);
+        }
+
+        @Override
+        public TypeElement resultType() {
+            return resultType;
+        }
+    }
+
+
     public PTXHATKernelBuilder convert(OpWrapper<?> wrappedOp) {
         switch (wrappedOp) {
             case FieldLoadOpWrapper op -> fieldLoad(op);
@@ -181,7 +214,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                 switch (wrappedOp.op()){
                     case CoreOp.BranchOp op -> branch(op);
                     case CoreOp.ConditionalBranchOp op -> condBranch(op);
-                    case CoreOp.NegOp op -> neg(op);
+                    case JavaOp.NegOp op -> neg(op);
                     case PTXPtrOp op -> ptxPtr(op);
                     default -> throw new IllegalStateException("op translation doesn't exist");
                 }
@@ -244,22 +277,22 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
 
     PTXHATKernelBuilder symbol(Op op) {
         return switch (op) {
-            case CoreOp.ModOp _ -> rem();
-            case CoreOp.MulOp _ -> mul();
-            case CoreOp.DivOp _ -> div();
-            case CoreOp.AddOp _ -> add();
-            case CoreOp.SubOp _ -> sub();
-            case CoreOp.LtOp _ -> lt();
-            case CoreOp.GtOp _ -> gt();
-            case CoreOp.LeOp _ -> le();
-            case CoreOp.GeOp _ -> ge();
-            case CoreOp.NeqOp _ -> ne();
-            case CoreOp.EqOp _ -> eq();
-            case CoreOp.OrOp _ -> or();
-            case CoreOp.AndOp _ -> and();
-            case CoreOp.XorOp _ -> xor();
-            case CoreOp.LshlOp _ -> shl();
-            case CoreOp.AshrOp _, CoreOp.LshrOp _ -> shr();
+            case JavaOp.ModOp _ -> rem();
+            case JavaOp.MulOp _ -> mul();
+            case JavaOp.DivOp _ -> div();
+            case JavaOp.AddOp _ -> add();
+            case JavaOp.SubOp _ -> sub();
+            case JavaOp.LtOp _ -> lt();
+            case JavaOp.GtOp _ -> gt();
+            case JavaOp.LeOp _ -> le();
+            case JavaOp.GeOp _ -> ge();
+            case JavaOp.NeqOp _ -> ne();
+            case JavaOp.EqOp _ -> eq();
+            case JavaOp.OrOp _ -> or();
+            case JavaOp.AndOp _ -> and();
+            case JavaOp.XorOp _ -> xor();
+            case JavaOp.LshlOp _ -> shl();
+            case JavaOp.AshrOp _, JavaOp.LshrOp _ -> shr();
             default -> throw new IllegalStateException("Unexpected value");
         };
     }
@@ -267,10 +300,10 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     public void binaryOperation(BinaryArithmeticOrLogicOperation op) {
         symbol(op.op());
         if (getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
-                && (op.op() instanceof CoreOp.DivOp || op.op() instanceof CoreOp.MulOp)) {
+                && (op.op() instanceof JavaOp.DivOp || op.op() instanceof JavaOp.MulOp)) {
             rn();
         } else if (!getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
-                && op.op() instanceof CoreOp.MulOp) {
+                && op.op() instanceof JavaOp.MulOp) {
             lo();
         }
         resultType(op.resultType(), true).space();
@@ -324,6 +357,90 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                     .resultReg(op, PTXRegister.Type.S32).commaSpace().reg(op.operandNAsValue(0));
         }
     }
+
+
+
+
+
+    public static class PTXRegister {
+        private String name;
+        private final Type type;
+
+        public enum Type {
+            S8 (8, BasicType.SIGNED, "s8", "%s"),
+            S16 (16, BasicType.SIGNED, "s16", "%s"),
+            S32 (32, BasicType.SIGNED, "s32", "%s"),
+            S64 (64, BasicType.SIGNED, "s64", "%sd"),
+            U8 (8, BasicType.UNSIGNED, "u8", "%r"),
+            U16 (16, BasicType.UNSIGNED, "u16", "%r"),
+            U32 (32, BasicType.UNSIGNED, "u32", "%r"),
+            U64 (64, BasicType.UNSIGNED, "u64", "%rd"),
+            F16 (16, BasicType.FLOATING, "f16", "%f"),
+            F16X2 (16, BasicType.FLOATING, "f16", "%f"),
+            F32 (32, BasicType.FLOATING, "f32", "%f"),
+            F64 (64, BasicType.FLOATING, "f64", "%fd"),
+            B8 (8, BasicType.BIT, "b8", "%b"),
+            B16 (16, BasicType.BIT, "b16", "%b"),
+            B32 (32, BasicType.BIT, "b32", "%b"),
+            B64 (64, BasicType.BIT, "b64", "%bd"),
+            B128 (128, BasicType.BIT, "b128", "%b"),
+            PREDICATE (1, BasicType.PREDICATE, "pred", "%p");
+
+            public enum BasicType {
+                SIGNED,
+                UNSIGNED,
+                FLOATING,
+                BIT,
+                PREDICATE
+            }
+
+            private final int size;
+            private final BasicType basicType;
+            private final String name;
+            private final String regPrefix;
+
+            Type(int size, BasicType type, String name, String regPrefix) {
+                this.size = size;
+                this.basicType = type;
+                this.name = name;
+                this.regPrefix = regPrefix;
+            }
+
+            public int getSize() {
+                return this.size;
+            }
+
+            public BasicType getBasicType() {
+                return this.basicType;
+            }
+
+            public String getName() {
+                return this.name;
+            }
+
+            public String getRegPrefix() {
+                return this.regPrefix;
+            }
+        }
+
+        public PTXRegister(int num, Type type) {
+            this.type = type;
+            this.name = type.regPrefix + num;
+        }
+
+        public String name() {
+            return this.name;
+        }
+
+        public void name(String name) {
+            this.name = name;
+        }
+
+        public Type type() {
+            return this.type;
+        }
+    }
+
 
     private boolean isIndex(ConvOpWrapper op) {
         for (Op.Result r : op.result().uses()) {
@@ -438,7 +555,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         bra().space().block(op.successors().getLast().targetBlock());
     }
 
-    public void neg(CoreOp.NegOp op) {
+    public void neg(JavaOp.NegOp op) {
         neg().resultType(op.resultType(), true).space().reg(op.result(), getResultType(op.resultType())).commaSpace().reg(op.operands().getFirst());
     }
 
@@ -507,7 +624,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public PTXRegister getReg(Value val) {
-        if (varToRegMap.get(val) == null && val instanceof Op.Result result && result.op() instanceof CoreOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        if (varToRegMap.get(val) == null && val instanceof Op.Result result && result.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
             return fieldToRegMap.get(getFieldObj(fieldLoadOp.fieldDescriptor().name()));
         }
         if (varToRegMap.containsKey(val)) {

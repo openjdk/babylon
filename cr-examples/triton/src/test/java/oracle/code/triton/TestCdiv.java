@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.CodeReflection;
 import java.util.List;
 
@@ -39,16 +39,16 @@ import static oracle.code.triton.TritonTest.consume;
 public class TestCdiv {
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"cdiv_int_int_int" (%0 : int, %1 : int)int -> {
-                    %2 : int = arith.addi %0 %1;
-                    %3 : int = arith.constant @"1";
-                    %4 : int = arith.subi %2 %3;
-                    %5 : int = arith.divsi %4 %1;
+            module ()java.type:"void" -> {
+                tt.func @"cdiv_int_int_int" (%0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
+                    %2 : java.type:"int" = arith.addi %0 %1;
+                    %3 : java.type:"int" = arith.constant @1;
+                    %4 : java.type:"int" = arith.subi %2 %3;
+                    %5 : java.type:"int" = arith.divsi %4 %1;
                     tt.return %5;
                 };
-                tt.func @"testScalar_int_int_void" (%6 : int, %7 : int)void -> {
-                    %8 : int = tt.call %6 %7 @"cdiv_int_int_int";
+                tt.func @"testScalar_int_int_void" (%6 : java.type:"int", %7 : java.type:"int")java.type:"void" -> {
+                    %8 : java.type:"int" = tt.call %6 %7 @"cdiv_int_int_int";
                     tt.consume %8;
                     tt.return;
                 };
@@ -72,17 +72,17 @@ public class TestCdiv {
 
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"cdiv_int_10_int" (%0 : int)int -> {
-                    %1 : int = arith.constant @"10";
-                    %2 : int = arith.addi %0 %1;
-                    %3 : int = arith.constant @"1";
-                    %4 : int = arith.subi %2 %3;
-                    %5 : int = arith.divsi %4 %1;
+            module ()java.type:"void" -> {
+                tt.func @"cdiv_int_10_int" (%0 : java.type:"int")java.type:"int" -> {
+                    %1 : java.type:"int" = arith.constant @10;
+                    %2 : java.type:"int" = arith.addi %0 %1;
+                    %3 : java.type:"int" = arith.constant @1;
+                    %4 : java.type:"int" = arith.subi %2 %3;
+                    %5 : java.type:"int" = arith.divsi %4 %1;
                     tt.return %5;
                 };
-                tt.func @"testConstant_int_10_void" (%6 : int)void -> {
-                    %7 : int = tt.call %6 @"cdiv_int_10_int";
+                tt.func @"testConstant_int_10_void" (%6 : java.type:"int")java.type:"void" -> {
+                    %7 : java.type:"int" = tt.call %6 @"cdiv_int_10_int";
                     tt.consume %7;
                     tt.return;
                 };
@@ -106,38 +106,38 @@ public class TestCdiv {
 
 
     @TritonCodeModel("""
-            module ()void -> {
-                tt.func @"cdiv_int_int_int" (%0 : int, %1 : int)int -> {
-                    %2 : int = arith.addi %0 %1;
-                    %3 : int = arith.constant @"1";
-                    %4 : int = arith.subi %2 %3;
-                    %5 : int = arith.divsi %4 %1;
+            module ()java.type:"void" -> {
+                tt.func @"cdiv_int_int_int" (%0 : java.type:"int", %1 : java.type:"int")java.type:"int" -> {
+                    %2 : java.type:"int" = arith.addi %0 %1;
+                    %3 : java.type:"int" = arith.constant @1;
+                    %4 : java.type:"int" = arith.subi %2 %3;
+                    %5 : java.type:"int" = arith.divsi %4 %1;
                     tt.return %5;
                 };
-                tt.func @"cdiv_int_10_int" (%6 : int)int -> {
-                    %7 : int = arith.constant @"10";
-                    %8 : int = arith.addi %6 %7;
-                    %9 : int = arith.constant @"1";
-                    %10 : int = arith.subi %8 %9;
-                    %11 : int = arith.divsi %10 %7;
+                tt.func @"cdiv_int_10_int" (%6 : java.type:"int")java.type:"int" -> {
+                    %7 : java.type:"int" = arith.constant @10;
+                    %8 : java.type:"int" = arith.addi %6 %7;
+                    %9 : java.type:"int" = arith.constant @1;
+                    %10 : java.type:"int" = arith.subi %8 %9;
+                    %11 : java.type:"int" = arith.divsi %10 %7;
                     tt.return %11;
                 };
-                tt.func @"cdiv_10_int_int" (%12 : int)int -> {
-                    %13 : int = arith.constant @"10";
-                    %14 : int = arith.addi %13 %12;
-                    %15 : int = arith.constant @"1";
-                    %16 : int = arith.subi %14 %15;
-                    %17 : int = arith.divsi %16 %12;
+                tt.func @"cdiv_10_int_int" (%12 : java.type:"int")java.type:"int" -> {
+                    %13 : java.type:"int" = arith.constant @10;
+                    %14 : java.type:"int" = arith.addi %13 %12;
+                    %15 : java.type:"int" = arith.constant @1;
+                    %16 : java.type:"int" = arith.subi %14 %15;
+                    %17 : java.type:"int" = arith.divsi %16 %12;
                     tt.return %17;
                 };
-                tt.func @"testCalls_int_int_10_void" (%18 : int, %19 : int)void -> {
-                    %20 : int = tt.call %18 %19 @"cdiv_int_int_int";
+                tt.func @"testCalls_int_int_10_void" (%18 : java.type:"int", %19 : java.type:"int")java.type:"void" -> {
+                    %20 : java.type:"int" = tt.call %18 %19 @"cdiv_int_int_int";
                     tt.consume %20;
-                    %21 : int = tt.call %19 %18 @"cdiv_int_int_int";
+                    %21 : java.type:"int" = tt.call %19 %18 @"cdiv_int_int_int";
                     tt.consume %21;
-                    %22 : int = tt.call %18 @"cdiv_int_10_int";
+                    %22 : java.type:"int" = tt.call %18 @"cdiv_int_10_int";
                     tt.consume %22;
-                    %23 : int = tt.call %18 @"cdiv_10_int_int";
+                    %23 : java.type:"int" = tt.call %18 @"cdiv_10_int_int";
                     tt.consume %23;
                     tt.return;
                 };

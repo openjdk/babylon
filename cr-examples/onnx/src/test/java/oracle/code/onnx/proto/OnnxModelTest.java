@@ -27,7 +27,8 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
-import java.nio.ByteOrder;
+import java.lang.reflect.AccessFlag;
+import java.lang.reflect.Field;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,21 +37,23 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SequencedSet;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExternalizableOp;
-import jdk.incubator.code.op.OpFactory;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.TupleType;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.TupleType;
+import jdk.incubator.code.extern.OpWriter;
 import oracle.code.onnx.CNNTest;
 import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.Tensor;
+import oracle.code.onnx.ir.ExplicitOnnxOps;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
@@ -84,8 +87,8 @@ public class OnnxModelTest {
         }
         var returnType = g.output().size() == 1
                 ? toOnnxType(g.output().getFirst().type())
-                : TupleType.tupleType(g.output().stream().map(OnnxModel.ValueInfoProto::type).map(OnnxModelTest::toOnnxType).toList());
-        return FunctionType.functionType(returnType, paramTypes);
+                : CoreType.tupleType(g.output().stream().map(OnnxModel.ValueInfoProto::type).map(OnnxModelTest::toOnnxType).toList());
+        return CoreType.functionType(returnType, paramTypes);
     }
 
     static OnnxType toKeyType(int kt) {
@@ -132,19 +135,41 @@ public class OnnxModelTest {
         };
     }
 
-    static final OpFactory ONNX_FACTORY = OpFactory.OP_FACTORY.get(OnnxOps.class);
+    static final OpFactory ONNX_OP_FACTORY = OpFactory.OP_FACTORY.get(ExplicitOnnxOps.class).andThen(OpFactory.OP_FACTORY.get(OnnxOps.class));
 
+    static final Map<String, OnnxOp.OnnxSchema> ONNX_SCHEMA_REGISTRY = collectSchemas(ExplicitOnnxOps.class, OnnxOps.class);
+
+    private static Map<String, OnnxOp.OnnxSchema> collectSchemas(Class<?>... cls) {
+        Map<String, OnnxOp.OnnxSchema> reg = new HashMap<>();
+        for (Class<?> c : cls) {
+            for (Class<?> nm : c.getNestMembers()) {
+                for (Field f : nm.getFields()) {
+                    if (f.accessFlags().contains(AccessFlag.STATIC) && OnnxOp.OnnxSchema.class.isAssignableFrom(f.getType())) try {
+                        OnnxOp.OnnxSchema sch = (OnnxOp.OnnxSchema)f.get(null);
+                        reg.put(sch.name(), sch);
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+        return reg;
+    }
 
     record OpWithNames<T extends Op> (T op, List<String> names) {
-        public String toText() {
+
+        private Function<CodeItem, String> namer() {
             var defNamer = OpWriter.CodeItemNamerOption.defaultValue().namer();
             var namer = new HashMap<Value, Integer>();
-            return OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(ci -> ci instanceof Value v ? names.get(namer.computeIfAbsent(v, _ -> namer.size())) : defNamer.apply(ci)));
+            return ci -> ci instanceof Value v ? names.get(namer.computeIfAbsent(v, _ -> namer.size())) : defNamer.apply(ci);
+        }
 
+        public String toText() {
+            return OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(namer()));
         }
     }
 
-    static OpWithNames toFuncOp(OnnxModel.GraphProto g) {
+    static OpWithNames<CoreOp.FuncOp> toFuncOp(OnnxModel.GraphProto g) {
         var valueMap = new LinkedHashMap<String, Value>();
         var func = CoreOp.FuncOp.func(g.name(), toFunctionType(g)).body(fb -> {
 
@@ -159,20 +184,105 @@ public class OnnxModelTest {
             }
 
             for (OnnxModel.NodeProto n : g.node()) {
+                String opType = n.opType();
+
+                 // @@@ an old alias ? could not find the spec
+                if (opType.equals("SimplifiedLayerNormalization")) {
+                    opType = "LayerNormalization";
+                }
+
+                if (n.domain() != null && !n.domain().isEmpty() && !n.domain().equals("ai.onnx")) {
+                    opType = n.domain() + "." + opType;
+                }
+
+                OnnxOp.OnnxSchema schema = ONNX_SCHEMA_REGISTRY.computeIfAbsent(opType, ot -> {throw new IllegalArgumentException("Unknown op type: " + ot);});
+                Map<String, Object> attributes = new LinkedHashMap<>();
+                if (n.attribute() != null) {
+                    for (OnnxModel.AttributeProto a : n.attribute()) {
+                        attributes.put(a.name(), toAttributeValue(a));
+                    }
+                }
+
+                // map inputs
+                List<Value> inputs = new ArrayList<>();
+                if (n.input() != null) {
+                    List<OnnxOp.OnnxParameter> optionalInputs = new ArrayList<>();
+                    for (int i = 0; i < n.input().size(); i++) {
+                        OnnxOp.OnnxParameter param = schema.inputs().get(i);
+                        Value v = valueMap.get(n.input().get(i));
+                        if (v != null) {
+                            switch (param.quantifier()) {
+                                case REQUIRED -> {
+                                    inputs.add(v);
+                                }
+                                case OPTIONAL -> {
+                                    optionalInputs.add(param);
+                                    inputs.add(v);
+                                }
+                                case VARIADIC -> {
+                                    inputs.add(v); // @@@ accumulate variadic inputs into
+                                }
+                            }
+                        }
+                    }
+                    if (!optionalInputs.isEmpty()) {
+                        attributes.put("optional_inputs", optionalInputs);
+                    }
+                }
+
+                // map outputs
+                List<OnnxOp.OnnxParameter> optionalOutputs = new ArrayList<>();
+                List<String> outputNames = new ArrayList<>();
+                if (n.output() != null) {
+                    for (int i = 0; i < n.output().size(); i++) {
+                        OnnxOp.OnnxParameter param = schema.outputs().get(i);
+                        if (!n.output().get(i).isEmpty()) {
+                            outputNames.add(n.output().get(i));
+                            if (param.quantifier() == OnnxOp.OnnxParameter.Quantifier.OPTIONAL) {
+                                optionalOutputs.add(param);
+                            }
+                        }
+                    }
+                    if (!optionalOutputs.isEmpty()) {
+                        attributes.put("optional_outputs", optionalOutputs);
+                    }
+                }
+
+                // inline Constant op tensor attribute as value
+                if (opType.equals("Constant") && attributes.remove(OnnxOps.Constant.Attribute.value.name()) instanceof Tensor t) {
+                    switch (t.shape().length) {
+                        case 0 -> { // scalar
+                            switch (t.elementType()) {
+                                case FLOAT -> attributes.put(OnnxOps.Constant.Attribute.value_float.name(), t.data().get(ValueLayout.JAVA_FLOAT, 0));
+                                case INT64 -> attributes.put(OnnxOps.Constant.Attribute.value_int.name(), t.data().get(ValueLayout.JAVA_LONG, 0));
+                                default -> throw new UnsupportedOperationException();
+                            }
+                        }
+                        case 1 -> { // 1d tensor
+                            switch (t.elementType()) {
+                                case FLOAT -> attributes.put(OnnxOps.Constant.Attribute.value_floats.name(), t.data().toArray(ValueLayout.JAVA_FLOAT));
+                                case INT64 -> attributes.put(OnnxOps.Constant.Attribute.value_ints.name(), t.data().toArray(ValueLayout.JAVA_LONG));
+                                default -> throw new UnsupportedOperationException();
+                            }
+                        }
+                        default -> throw new UnsupportedOperationException();
+                    }
+                }
+
                 // get the op
                 ExternalizableOp.ExternalizedOp extOp = new ExternalizableOp.ExternalizedOp(
-                        n.opType(),
-                        n.input() == null ? List.of() : n.input().stream().map(valueMap::get).toList(),
+                        opType,
+                        inputs,
                         List.of(),
                         new OnnxType.TensorType(null),
-                        n.attribute() == null ? Map.of() : n.attribute().stream().collect(Collectors.toMap(OnnxModel.AttributeProto::name, OnnxModelTest::toAttributeValue)),
+                        attributes,
                         List.of());
-                OnnxOp rawOp = (OnnxOp)ONNX_FACTORY.constructOpOrFail(extOp);
+                OnnxOp rawOp = (OnnxOp)ONNX_OP_FACTORY.constructOpOrFail(extOp);
 
                 // patch the op return type
                 TypeElement returnType = rawOp.onnxOutputs().size() == 1
                         ? inferTypeVariableType(rawOp.onnxOutputs().getFirst().type(), rawOp, n)
-                        : TupleType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
+                        : CoreType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
                 extOp = new ExternalizableOp.ExternalizedOp(
                         extOp.name(),
                         extOp.operands(),
@@ -180,15 +290,15 @@ public class OnnxModelTest {
                         returnType,
                         extOp.attributes(),
                         extOp.bodyDefinitions());
-                Op.Result res = fb.op((OnnxOp)ONNX_FACTORY.constructOpOrFail(extOp));
+                Op.Result res = fb.op((OnnxOp)ONNX_OP_FACTORY.constructOpOrFail(extOp));
 
                 // map outputs
-                if (rawOp.onnxOutputs().size() == 1) {
+                if (outputNames.size() == 1) {
                     valueMap.put(n.output().getFirst(), res);
                 } else {
                     valueMap.put(n.name(), res);
-                    for (int i = 0; i < n.output().size(); i++) {
-                        valueMap.put(n.output().get(i), fb.op(CoreOp.tupleLoad(res, i)));
+                    for (int i = 0; i < outputNames.size(); i++) {
+                        valueMap.put(outputNames.get(i), fb.op(CoreOp.tupleLoad(res, i)));
                     }
                 }
             }
@@ -202,7 +312,7 @@ public class OnnxModelTest {
             }
         });
 
-        return new OpWithNames(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)));
+        return new OpWithNames<>(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)));
     }
 
     static OnnxType inferTypeVariableType(OnnxType type, OnnxOp op, OnnxModel.NodeProto n) {
@@ -225,7 +335,7 @@ public class OnnxModelTest {
             return switch (op) {
                 case OnnxOps.Cast c ->
                     toTensorType((int)c.to());
-                case OnnxOps.ConstantOfShape cos -> // get tensor type from tensor attribute
+                case OnnxOps.ConstantOfShape _, OnnxOps.Constant _-> // get tensor type from tensor attribute
                     n.attribute() != null
                     && !n.attribute().isEmpty()
                     && n.attribute().getFirst().t() instanceof OnnxModel.TensorProto tp
@@ -330,9 +440,10 @@ public class OnnxModelTest {
         for (var fName : args) {
             try (var in = new RandomAccessFile(fName, "r")) {
                 OnnxModel.ModelProto model = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
-//                System.out.println(model.toText());
-                System.out.println(toFuncOp(model.graph()).toText());
-            }
+                System.out.println(model.toText());
+                var liftedModel = toFuncOp(model.graph());
+                System.out.println(liftedModel.toText());
+           }
         }
     }
 }

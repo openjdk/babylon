@@ -27,42 +27,33 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.buffer.Buffer;
-import hat.buffer.BufferTracker;
 import hat.callgraph.KernelCallGraph;
-import hat.ifacemapper.BufferState;
 
 public class OpenCLBackend extends C99FFIBackend {
-
-   // final Config config;
 
 
     public OpenCLBackend(String configSpec) {
         this(Config.of(configSpec));
     }
 
-    public OpenCLBackend(Config config) {
-        super("opencl_backend", config);
-
-    }
-
-
     public OpenCLBackend() {
         this(Config.of());
+    }
+
+    public OpenCLBackend(Config config) {
+        super("opencl_backend", config);
     }
 
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        // System.out.println("OpenCL backend received computeContext minimizing = "+ config.isMINIMIZE_COPIES());
-        injectBufferTracking(computeContext.computeCallGraph.entrypoint, config.isSHOW_COMPUTE_MODEL(), config.isMINIMIZE_COPIES());
+        injectBufferTracking(computeContext.computeCallGraph.entrypoint);
     }
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
-        //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args, config.isSHOW_KERNEL_MODEL());
+            String code = createC99(kernelCallGraph,  args);
             if (config.isSHOW_CODE()) {
                 System.out.println(code);
             }
@@ -76,6 +67,10 @@ public class OpenCLBackend extends C99FFIBackend {
         });
         compiledKernel.dispatch(ndRange, args);
 
+    }
+
+    String createC99(KernelCallGraph kernelCallGraph,  Object[] args){
+        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(), args);
     }
 
 }

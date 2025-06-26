@@ -56,7 +56,7 @@ import hat.text.CodeBuilder;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
@@ -137,7 +137,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return hash().keyword("endif").nl();
     }
 
-    T hashIfdef(String value) {
+    protected T hashIfdef(String value) {
         return hashIfdefKeyword().space().append(value).nl();
     }
 
@@ -145,7 +145,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return hashIfndefKeyword().space().append(value).nl();
     }
 
-    T hashIfdef(String value, Consumer<T> consumer) {
+    public T hashIfdef(String value, Consumer<T> consumer) {
         return hashIfdef(value).accept(consumer).hashEndif();
     }
 
@@ -158,9 +158,16 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
             r.run();
         });
     }*/
-
+  public T varName(CoreOp.VarOp varOp) {
+      identifier(varOp.varName());
+      return self();
+  }
     T pragmaKeyword() {
         return keyword("pragma");
+    }
+
+    T includeKeyword() {
+        return keyword("include");
     }
 
     public T hashDefine(String name, String... values) {
@@ -175,6 +182,18 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         hash().pragmaKeyword().space().identifier(name);
         for (String value : values) {
             space().append(value);
+        }
+        return nl();
+    }
+    public T includeSys(String... values) {
+        for (String value : values) {
+            hash().includeKeyword().space().lt().identifier(value).gt().nl();
+        }
+        return nl();
+    }
+    public T include(String... values) {
+        for (String value : values) {
+            hash().includeKeyword().space().dquote().identifier(value).dquote().nl();
         }
         return nl();
     }

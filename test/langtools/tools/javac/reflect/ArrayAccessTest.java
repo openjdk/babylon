@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,11 +35,11 @@ import jdk.incubator.code.CodeReflection;
 public class ArrayAccessTest {
     @CodeReflection
     @IR("""
-            func @"test1" (%0 : ArrayAccessTest, %1 : int[])int -> {
-                %2 : Var<int[]> = var %1 @"ia";
-                %3 : int[] = var.load %2;
-                %4 : int = constant @"0";
-                %5 : int = array.load %3 %4;
+            func @"test1" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"int" -> {
+                %2 : Var<java.type:"int[]"> = var %1 @"ia";
+                %3 : java.type:"int[]" = var.load %2;
+                %4 : java.type:"int" = constant @0;
+                %5 : java.type:"int" = array.load %3 %4;
                 return %5;
             };
             """)
@@ -49,14 +49,14 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test2" (%0 : ArrayAccessTest, %1 : int[], %2 : int)int -> {
-                %3 : Var<int[]> = var %1 @"ia";
-                %4 : Var<int> = var %2 @"i";
-                %5 : int[] = var.load %3;
-                %6 : int = var.load %4;
-                %7 : int = constant @"1";
-                %8 : int = add %6 %7;
-                %9 : int = array.load %5 %8;
+            func @"test2" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"int" -> {
+                %3 : Var<java.type:"int[]"> = var %1 @"ia";
+                %4 : Var<java.type:"int"> = var %2 @"i";
+                %5 : java.type:"int[]" = var.load %3;
+                %6 : java.type:"int" = var.load %4;
+                %7 : java.type:"int" = constant @1;
+                %8 : java.type:"int" = add %6 %7;
+                %9 : java.type:"int" = array.load %5 %8;
                 return %9;
             };
             """)
@@ -66,11 +66,11 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test3" (%0 : ArrayAccessTest, %1 : int[])void -> {
-                %2 : Var<int[]> = var %1 @"ia";
-                %3 : int[] = var.load %2;
-                %4 : int = constant @"0";
-                %5 : int = constant @"1";
+            func @"test3" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
+                %2 : Var<java.type:"int[]"> = var %1 @"ia";
+                %3 : java.type:"int[]" = var.load %2;
+                %4 : java.type:"int" = constant @0;
+                %5 : java.type:"int" = constant @1;
                 array.store %3 %4 %5;
                 return;
             };
@@ -81,14 +81,14 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test4" (%0 : ArrayAccessTest, %1 : int[], %2 : int)void -> {
-                %3 : Var<int[]> = var %1 @"ia";
-                %4 : Var<int> = var %2 @"i";
-                %5 : int[] = var.load %3;
-                %6 : int = var.load %4;
-                %7 : int = constant @"1";
-                %8 : int = add %6 %7;
-                %9 : int = constant @"1";
+            func @"test4" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
+                %3 : Var<java.type:"int[]"> = var %1 @"ia";
+                %4 : Var<java.type:"int"> = var %2 @"i";
+                %5 : java.type:"int[]" = var.load %3;
+                %6 : java.type:"int" = var.load %4;
+                %7 : java.type:"int" = constant @1;
+                %8 : java.type:"int" = add %6 %7;
+                %9 : java.type:"int" = constant @1;
                 array.store %5 %8 %9;
                 return;
             };
@@ -99,18 +99,18 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test5" (%0 : ArrayAccessTest, %1 : int[][], %2 : int)int -> {
-                %3 : Var<int[][]> = var %1 @"ia";
-                %4 : Var<int> = var %2 @"i";
-                %5 : int[][] = var.load %3;
-                %6 : int = var.load %4;
-                %7 : int = constant @"1";
-                %8 : int = add %6 %7;
-                %9 : int[] = array.load %5 %8;
-                %10 : int = var.load %4;
-                %11 : int = constant @"2";
-                %12 : int = add %10 %11;
-                %13 : int = array.load %9 %12;
+            func @"test5" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[][]", %2 : java.type:"int")java.type:"int" -> {
+                %3 : Var<java.type:"int[][]"> = var %1 @"ia";
+                %4 : Var<java.type:"int"> = var %2 @"i";
+                %5 : java.type:"int[][]" = var.load %3;
+                %6 : java.type:"int" = var.load %4;
+                %7 : java.type:"int" = constant @1;
+                %8 : java.type:"int" = add %6 %7;
+                %9 : java.type:"int[]" = array.load %5 %8;
+                %10 : java.type:"int" = var.load %4;
+                %11 : java.type:"int" = constant @2;
+                %12 : java.type:"int" = add %10 %11;
+                %13 : java.type:"int" = array.load %9 %12;
                 return %13;
             };
             """)
@@ -120,18 +120,18 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test6" (%0 : ArrayAccessTest, %1 : int[][], %2 : int)void -> {
-                %3 : Var<int[][]> = var %1 @"ia";
-                %4 : Var<int> = var %2 @"i";
-                %5 : int[][] = var.load %3;
-                %6 : int = var.load %4;
-                %7 : int = constant @"1";
-                %8 : int = add %6 %7;
-                %9 : int[] = array.load %5 %8;
-                %10 : int = var.load %4;
-                %11 : int = constant @"2";
-                %12 : int = add %10 %11;
-                %13 : int = constant @"1";
+            func @"test6" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[][]", %2 : java.type:"int")java.type:"void" -> {
+                %3 : Var<java.type:"int[][]"> = var %1 @"ia";
+                %4 : Var<java.type:"int"> = var %2 @"i";
+                %5 : java.type:"int[][]" = var.load %3;
+                %6 : java.type:"int" = var.load %4;
+                %7 : java.type:"int" = constant @1;
+                %8 : java.type:"int" = add %6 %7;
+                %9 : java.type:"int[]" = array.load %5 %8;
+                %10 : java.type:"int" = var.load %4;
+                %11 : java.type:"int" = constant @2;
+                %12 : java.type:"int" = add %10 %11;
+                %13 : java.type:"int" = constant @1;
                 array.store %9 %12 %13;
                 return;
             };
@@ -144,10 +144,10 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test7" (%0 : ArrayAccessTest)int -> {
-                %1 : int[] = field.load %0 @"ArrayAccessTest::ia()int[]";
-                %2 : int = constant @"0";
-                %3 : int = array.load %1 %2;
+            func @"test7" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
+                %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
+                %2 : java.type:"int" = constant @0;
+                %3 : java.type:"int" = array.load %1 %2;
                 return %3;
             };
             """)
@@ -157,10 +157,10 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test8" (%0 : ArrayAccessTest)int -> {
-                %1 : int[] = field.load %0 @"ArrayAccessTest::ia()int[]";
-                %2 : int = constant @"0";
-                %3 : int = array.load %1 %2;
+            func @"test8" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
+                %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
+                %2 : java.type:"int" = constant @0;
+                %3 : java.type:"int" = array.load %1 %2;
                 return %3;
             };
             """)
@@ -174,12 +174,12 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test9" (%0 : ArrayAccessTest, %1 : ArrayAccessTest$A[])int -> {
-                %2 : Var<ArrayAccessTest$A[]> = var %1 @"aa";
-                %3 : ArrayAccessTest$A[] = var.load %2;
-                %4 : int = constant @"0";
-                %5 : ArrayAccessTest$A = array.load %3 %4;
-                %6 : int = field.load %5 @"ArrayAccessTest$A::i()int";
+            func @"test9" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"int" -> {
+                %2 : Var<java.type:"ArrayAccessTest$A[]"> = var %1 @"aa";
+                %3 : java.type:"ArrayAccessTest$A[]" = var.load %2;
+                %4 : java.type:"int" = constant @0;
+                %5 : java.type:"ArrayAccessTest$A" = array.load %3 %4;
+                %6 : java.type:"int" = field.load %5 @java.ref:"ArrayAccessTest$A::i:int";
                 return %6;
             };
             """)
@@ -189,13 +189,13 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test10" (%0 : ArrayAccessTest, %1 : ArrayAccessTest$A[])void -> {
-                %2 : Var<ArrayAccessTest$A[]> = var %1 @"aa";
-                %3 : ArrayAccessTest$A[] = var.load %2;
-                %4 : int = constant @"0";
-                %5 : ArrayAccessTest$A = array.load %3 %4;
-                %6 : int = constant @"1";
-                field.store %5 %6 @"ArrayAccessTest$A::i()int";
+            func @"test10" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"void" -> {
+                %2 : Var<java.type:"ArrayAccessTest$A[]"> = var %1 @"aa";
+                %3 : java.type:"ArrayAccessTest$A[]" = var.load %2;
+                %4 : java.type:"int" = constant @0;
+                %5 : java.type:"ArrayAccessTest$A" = array.load %3 %4;
+                %6 : java.type:"int" = constant @1;
+                field.store %5 %6 @java.ref:"ArrayAccessTest$A::i:int";
                 return;
             };
             """)
@@ -205,13 +205,13 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test11" (%0 : ArrayAccessTest, %1 : int[])void -> {
-                %2 : Var<int[]> = var %1 @"ia";
-                %3 : int[] = var.load %2;
-                %4 : int = constant @"0";
-                %5 : int = array.load %3 %4;
-                %6 : int = constant @"1";
-                %7 : int = add %5 %6;
+            func @"test11" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
+                %2 : Var<java.type:"int[]"> = var %1 @"ia";
+                %3 : java.type:"int[]" = var.load %2;
+                %4 : java.type:"int" = constant @0;
+                %5 : java.type:"int" = array.load %3 %4;
+                %6 : java.type:"int" = constant @1;
+                %7 : java.type:"int" = add %5 %6;
                 array.store %3 %4 %7;
                 return;
             };
@@ -222,18 +222,18 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test12" (%0 : ArrayAccessTest, %1 : int[], %2 : int)void -> {
-                %3 : Var<int[]> = var %1 @"ia";
-                %4 : Var<int> = var %2 @"i";
-                %5 : int[] = var.load %3;
-                %6 : int = constant @"1";
-                %7 : int[] = var.load %3;
-                %8 : int = var.load %4;
-                %9 : int = constant @"2";
-                %10 : int = add %8 %9;
-                %11 : int = array.load %7 %10;
-                %12 : int = constant @"1";
-                %13 : int = add %11 %12;
+            func @"test12" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
+                %3 : Var<java.type:"int[]"> = var %1 @"ia";
+                %4 : Var<java.type:"int"> = var %2 @"i";
+                %5 : java.type:"int[]" = var.load %3;
+                %6 : java.type:"int" = constant @1;
+                %7 : java.type:"int[]" = var.load %3;
+                %8 : java.type:"int" = var.load %4;
+                %9 : java.type:"int" = constant @2;
+                %10 : java.type:"int" = add %8 %9;
+                %11 : java.type:"int" = array.load %7 %10;
+                %12 : java.type:"int" = constant @1;
+                %13 : java.type:"int" = add %11 %12;
                 array.store %7 %10 %13;
                 array.store %5 %6 %13;
                 return;
@@ -245,21 +245,21 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test13" (%0 : ArrayAccessTest, %1 : int[], %2 : int)void -> {
-                %3 : Var<int[]> = var %1 @"ia";
-                %4 : Var<int> = var %2 @"i";
-                %5 : int[] = var.load %3;
-                %6 : int = constant @"1";
-                %7 : int = array.load %5 %6;
-                %8 : int[] = var.load %3;
-                %9 : int = var.load %4;
-                %10 : int = constant @"2";
-                %11 : int = add %9 %10;
-                %12 : int = array.load %8 %11;
-                %13 : int = constant @"1";
-                %14 : int = add %12 %13;
+            func @"test13" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
+                %3 : Var<java.type:"int[]"> = var %1 @"ia";
+                %4 : Var<java.type:"int"> = var %2 @"i";
+                %5 : java.type:"int[]" = var.load %3;
+                %6 : java.type:"int" = constant @1;
+                %7 : java.type:"int" = array.load %5 %6;
+                %8 : java.type:"int[]" = var.load %3;
+                %9 : java.type:"int" = var.load %4;
+                %10 : java.type:"int" = constant @2;
+                %11 : java.type:"int" = add %9 %10;
+                %12 : java.type:"int" = array.load %8 %11;
+                %13 : java.type:"int" = constant @1;
+                %14 : java.type:"int" = add %12 %13;
                 array.store %8 %11 %14;
-                %15 : int = add %7 %14;
+                %15 : java.type:"int" = add %7 %14;
                 array.store %5 %6 %15;
                 return;
             };
@@ -271,22 +271,22 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test14" (%0 : ArrayAccessTest, %1 : int[])void -> {
-                %2 : Var<int[]> = var %1 @"ia";
-                %3 : int[] = var.load %2;
-                %4 : int = constant @"0";
-                %5 : int = array.load %3 %4;
-                %6 : int = constant @"1";
-                %7 : int = add %5 %6;
+            func @"test14" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
+                %2 : Var<java.type:"int[]"> = var %1 @"ia";
+                %3 : java.type:"int[]" = var.load %2;
+                %4 : java.type:"int" = constant @0;
+                %5 : java.type:"int" = array.load %3 %4;
+                %6 : java.type:"int" = constant @1;
+                %7 : java.type:"int" = add %5 %6;
                 array.store %3 %4 %7;
-                %8 : Var<int> = var %5 @"x";
-                %9 : int[] = var.load %2;
-                %10 : int = constant @"0";
-                %11 : int = array.load %9 %10;
-                %12 : int = constant @"1";
-                %13 : int = sub %11 %12;
+                %8 : Var<java.type:"int"> = var %5 @"x";
+                %9 : java.type:"int[]" = var.load %2;
+                %10 : java.type:"int" = constant @0;
+                %11 : java.type:"int" = array.load %9 %10;
+                %12 : java.type:"int" = constant @1;
+                %13 : java.type:"int" = sub %11 %12;
                 array.store %9 %10 %13;
-                %14 : Var<int> = var %11 @"y";
+                %14 : Var<java.type:"int"> = var %11 @"y";
                 return;
             };
             """)
@@ -297,22 +297,22 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test15" (%0 : ArrayAccessTest, %1 : int[])void -> {
-                %2 : Var<int[]> = var %1 @"ia";
-                %3 : int[] = var.load %2;
-                %4 : int = constant @"0";
-                %5 : int = array.load %3 %4;
-                %6 : int = constant @"1";
-                %7 : int = add %5 %6;
+            func @"test15" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
+                %2 : Var<java.type:"int[]"> = var %1 @"ia";
+                %3 : java.type:"int[]" = var.load %2;
+                %4 : java.type:"int" = constant @0;
+                %5 : java.type:"int" = array.load %3 %4;
+                %6 : java.type:"int" = constant @1;
+                %7 : java.type:"int" = add %5 %6;
                 array.store %3 %4 %7;
-                %8 : Var<int> = var %7 @"x";
-                %9 : int[] = var.load %2;
-                %10 : int = constant @"0";
-                %11 : int = array.load %9 %10;
-                %12 : int = constant @"1";
-                %13 : int = sub %11 %12;
+                %8 : Var<java.type:"int"> = var %7 @"x";
+                %9 : java.type:"int[]" = var.load %2;
+                %10 : java.type:"int" = constant @0;
+                %11 : java.type:"int" = array.load %9 %10;
+                %12 : java.type:"int" = constant @1;
+                %13 : java.type:"int" = sub %11 %12;
                 array.store %9 %10 %13;
-                %14 : Var<int> = var %13 @"y";
+                %14 : Var<java.type:"int"> = var %13 @"y";
                 return;
             };
             """)
@@ -323,13 +323,13 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test16" (%0 : ArrayAccessTest, %1 : int[])int -> {
-                %2 : Var<int[]> = var %1 @"ia";
-                %3 : int[] = var.load %2;
-                %4 : int = array.length %3;
-                %5 : int[] = var.load %2;
-                %6 : int = invoke %5 @"java.lang.Object::hashCode()int";
-                %7 : int = add %4 %6;
+            func @"test16" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"int" -> {
+                %2 : Var<java.type:"int[]"> = var %1 @"ia";
+                %3 : java.type:"int[]" = var.load %2;
+                %4 : java.type:"int" = array.length %3;
+                %5 : java.type:"int[]" = var.load %2;
+                %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Object::hashCode():int";
+                %7 : java.type:"int" = add %4 %6;
                 return %7;
             };
             """)
@@ -339,12 +339,12 @@ public class ArrayAccessTest {
 
     @CodeReflection
     @IR("""
-            func @"test17" (%0 : java.lang.Object[])java.lang.Object -> {
-                %1 : Var<java.lang.Object[]> = var %0 @"a";
-                %2 : java.lang.Object[] = var.load %1;
-                %3 : char = constant @"c";
-                %4 : int = conv %3;
-                %5 : java.lang.Object = array.load %2 %4;
+            func @"test17" (%0 : java.type:"java.lang.Object[]")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"java.lang.Object[]"> = var %0 @"a";
+                %2 : java.type:"java.lang.Object[]" = var.load %1;
+                %3 : java.type:"char" = constant @'c';
+                %4 : java.type:"int" = conv %3;
+                %5 : java.type:"java.lang.Object" = array.load %2 %4;
                 return %5;
             };
             """)

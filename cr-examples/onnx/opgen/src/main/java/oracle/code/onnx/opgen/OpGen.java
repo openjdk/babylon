@@ -93,7 +93,7 @@ public class OpGen {
         w.write("\n");
         w.write("""
                 import jdk.incubator.code.*;
-                import jdk.incubator.code.op.OpFactory;
+                import jdk.incubator.code.extern.OpFactory;
 
                 import java.util.*;
                 """);

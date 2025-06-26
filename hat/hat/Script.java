@@ -56,8 +56,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipFile;
 
-import static java.io.IO.print;
-import static java.io.IO.println;
+import static java.lang.IO.print;
+import static java.lang.IO.println;
 
 public class Script {
     public sealed interface PathHolder permits ClassPathEntry, DirPathHolder, FilePathHolder, SourcePathEntry {

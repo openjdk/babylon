@@ -25,6 +25,10 @@
 
 package oracle.code.json;
 
+import oracle.code.json.impl.JsonObjectImpl;
+import oracle.code.json.impl.Utils;
+
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -33,30 +37,74 @@ import java.util.Objects;
  * <p>
  * A {@code JsonObject} can be produced by a {@link Json#parse(String)}.
  * <p> Alternatively, {@link #of(Map)} can be used to obtain a {@code JsonObject}.
- * Since {@code JsonObject} is backed by {@link Map}, duplicate keys
- * may not be allowed. If duplicate keys appear during a {@link Json#parse(String)},
- * a {@code JsonParseException} is thrown.
+ * Implementations of {@code JsonObject} cannot be created from sources that
+ * contain duplicate member names. If duplicate names appear during
+ * a {@link Json#parse(String)}, a {@code JsonParseException} is thrown.
  *
+ * @since 99
  */
-public sealed interface JsonObject extends JsonValue permits JsonObjectImpl {
+public non-sealed interface JsonObject extends JsonValue {
 
     /**
-     * {@return the map of {@code String} to {@code JsonValue} members in this
-     * JSON object}
+     * {@return an unmodifiable map of the {@code String} to {@code JsonValue}
+     * members in this {@code JsonObject}}
      */
-    Map<String, JsonValue> keys();
+    Map<String, JsonValue> members();
 
     /**
      * {@return the {@code JsonObject} created from the given
      * map of {@code String} to {@code JsonValue}s}
      *
+     * The {@code JsonObject}'s members occur in the same order as the given
+     * map's entries.
+     * <p>
+     * If a key in the provided {@code map} contains escape characters, they are
+     * unescaped before being added to the resulting {@code JsonObject}. If multiple
+     * keys unescape to the same value, an {@code IllegalArgumentException} is thrown.
+     *
      * @param map the map of {@code JsonValue}s. Non-null.
-     * @throws IllegalArgumentException if the conversion of {@code map} to a
-     * {@code JsonObject} exceeds a nest limit.
+     * @throws IllegalArgumentException if {@code map} contains multiple keys
+     *      that unescape to the same value
+     * @throws NullPointerException if {@code map} is {@code null}, contains
+     *      any keys that are {@code null}, or contains any values that are {@code null}
      */
     static JsonObject of(Map<String, ? extends JsonValue> map) {
-        var jo = new JsonObjectImpl(Objects.requireNonNull(map));
-        JsonGenerator.checkDepth(jo, 1);
-        return jo;
+        Map<String, JsonValue> ret = new LinkedHashMap<>(map.size()); // implicit NPE on map
+        for (var e : map.entrySet()) {
+            var key = e.getKey();
+            // Implicit NPE on key
+            var unescapedKey = Utils.unescape(key.toCharArray(), 0, key.length());
+            var val = e.getValue();
+            if (ret.containsKey(unescapedKey)) {
+                throw new IllegalArgumentException(
+                        "Multiple keys unescape to the same value: '%s'".formatted(unescapedKey));
+            } else {
+                ret.put(unescapedKey, Objects.requireNonNull(val));
+            }
+        }
+        return new JsonObjectImpl(ret);
     }
+
+    /**
+     * {@return {@code true} if the given object is also a {@code JsonObject}
+     * and the two {@code JsonObject}s represent the same mappings} Two
+     * {@code JsonObject}s {@code jo1} and {@code jo2} represent the same
+     * mappings if {@code jo1.members().equals(jo2.members())}.
+     *
+     * @see #members()
+     */
+    @Override
+    boolean equals(Object obj);
+
+    /**
+     * {@return the hash code value for this {@code JsonObject}} The hash code value
+     * of a {@code JsonObject} is defined to be the hash code of {@code JsonObject}'s
+     * {@link #members()} value. Thus, for two {@code JsonObject}s {@code jo1} and {@code jo2},
+     * {@code jo1.equals(jo2)} implies that {@code jo1.hashCode() == jo2.hashCode()}
+     * as required by the general contract of {@link Object#hashCode}.
+     *
+     * @see #members()
+     */
+    @Override
+    int hashCode();
 }

@@ -37,10 +37,16 @@ import java.io.FileOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.lang.constant.ClassDesc;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.math.BigInteger;
+
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.vector.VectorSpecies;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.Vector;
@@ -52,11 +58,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.type.MethodRef;
-import jdk.incubator.code.type.ClassType;
-import jdk.incubator.code.type.JavaType;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVHeader;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVModule;
 import uk.ac.manchester.beehivespirvtoolkit.lib.SPIRVFunction;
@@ -275,8 +277,8 @@ public class SpirvModuleGenerator {
                         addResult(op.result(), new SpirvResult(lhsType, null, ans));
                     }
                     case SpirvOps.CallOp call -> {
-                        if (call.callDescriptor().equals(MethodRef.ofString("spirvdemo.IntArray::get(long)int")) ||
-                            call.callDescriptor().equals(MethodRef.ofString("spirvdemo.FloatArray::get(long)float"))) {
+                        if (call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc.of("spirvdemo.IntArray")), "get", JavaType.INT, JavaType.LONG)) ||
+                            call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc.of("spirvdemo.FloatArray")), "get", JavaType.FLOAT, JavaType.LONG))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -293,8 +295,8 @@ public class SpirvModuleGenerator {
                             spirvBlock.add(new SPIRVOpLoad(elementType, result, resultAddr, align(elementType.getName())));
                             addResult(call.result(), new SpirvResult(elementType, resultAddr, result));
                         }
-                        else if (call.callDescriptor().equals(MethodRef.ofString("spirvdemo.IntArray::set(long, int)void")) ||
-                                call.callDescriptor().equals(MethodRef.ofString("spirvdemo.FloatArray::set(long, float)void"))) {
+                        else if (call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc.of("spirvdemo.IntArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.INT)) ||
+                                call.callDescriptor().equals(MethodRef.method(JavaType.type(ClassDesc.of("spirvdemo.FloatArray")), "set", JavaType.VOID, JavaType.LONG, JavaType.FLOAT))) {
                             SPIRVId longType = getType("long");
                             String arrayTypeName = call.operands().get(0).type().toString();
                             SpirvResult arrayResult = getResult(call.operands().get(0));
@@ -531,7 +533,7 @@ public class SpirvModuleGenerator {
                         addResult(iacop.result(), new SpirvResult(type, result, null));
                     }
                     case SpirvOps.FieldLoadOp flo -> {
-                        if (flo.operands().size() > 0 && flo.operands().get(0).type().equals(JavaType.ofString("spirvdemo.GPU$Index"))) {
+                        if (flo.operands().size() > 0 && flo.operands().get(0).type().equals(JavaType.type(ClassDesc.of("spirvdemo.GPU$Index")))) {
                             SpirvResult result;
                             int group = -1;
                             int index = -1;

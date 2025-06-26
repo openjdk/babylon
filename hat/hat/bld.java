@@ -24,14 +24,16 @@
  * questions.
  */
 
+import static java.lang.IO.print;
+import static java.lang.IO.println;
 
 void main(String[] args) {
     var layout = """
        └──./
            ├──hat                                      //  All build scripts in each case 'foo' has java options for (and points to) 'foo.java'
-           │    ├──bld                                 //  --enable-preview --source 25 hat/bld.java
+           │    ├──bld                                 //  --enable-preview --source 26 hat/bld.java
            │    ├──bld.java
-           │    ├──run                                 //  --enable-preview --source 25 hat/run.java
+           │    ├──run                                 //  --enable-preview --source 26 hat/run.java
            │    ├──run.java
            │    └──Script                              //  Contains all the tools for building
            │

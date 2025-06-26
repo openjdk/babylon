@@ -26,7 +26,9 @@
 package jdk.incubator.code.analysis;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+
 import java.util.*;
 
 /**
@@ -75,10 +77,10 @@ public final class NormalizeBlocksTransformer implements OpTransformer {
             // successor's target block
             mergeBlock(b, bop);
             return b;
-        } else if (op instanceof CoreOp.ExceptionRegionEnter ere) {
+        } else if (op instanceof JavaOp.ExceptionRegionEnter ere) {
             // Cannot remove block parameters from exception handlers
             removeUnusedBlockParameters(b, ere.start());
-        } else if (op instanceof CoreOp.ExceptionRegionExit ere) {
+        } else if (op instanceof JavaOp.ExceptionRegionExit ere) {
             // Cannot remove block parameters from exception handlers
             removeUnusedBlockParameters(b, ere.end());
         } else if (op instanceof Op.BlockTerminating) {

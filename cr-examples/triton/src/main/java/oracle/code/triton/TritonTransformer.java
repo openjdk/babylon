@@ -25,29 +25,31 @@
 
 package oracle.code.triton;
 
+import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.VarType;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.core.VarType;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.type.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
+import static jdk.incubator.code.dialect.java.JavaOp.*;
 
 public final class TritonTransformer {
     private TritonTransformer() {}
 
     static final JavaType TYPE_Triton = JavaType.type(Triton.class);
 
-    static final JavaType TYPE_Triton_Test = JavaType.ofString("oracle.code.triton.TritonTest");
+    static final JavaType TYPE_Triton_Test = JavaType.type(ClassDesc.of("oracle.code.triton.TritonTest"));
 
     static final JavaType TYPE_Tensor = JavaType.type(Tensor.class);
 
@@ -188,7 +190,7 @@ public final class TritonTransformer {
                     TypeElement t = checkWithTypeInterpreter(op, iop.invokeDescriptor().name(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
-                case ExtendedOp.JavaForOp fop -> {
+                case JavaOp.JavaForOp fop -> {
                     SimpleCountedForLoopInfo li = new SimpleCountedForLoopInfo(fop);
                     opData.put(fop, li);
 
@@ -203,7 +205,7 @@ public final class TritonTransformer {
                 }
                 case TestOperation _ -> {
                 }
-                case ExtendedOp.JavaContinueOp _ -> {
+                case JavaOp.JavaContinueOp _ -> {
                 }
                 case YieldOp _ -> {
                 }
@@ -656,7 +658,7 @@ public final class TritonTransformer {
                     cc.mapValue(op.result(), result);
                 }
             }
-            case ExtendedOp.JavaForOp fop -> {
+            case JavaOp.JavaForOp fop -> {
                 transformToSCFFor(cc, kblock, fop, valueTypeMap, opData, fsymTable);
             }
             case ReturnOp rop -> {
@@ -672,7 +674,7 @@ public final class TritonTransformer {
         return kblock;
     }
 
-    static void transformToSCFFor(CopyContext cc, Block.Builder kblock, ExtendedOp.JavaForOp fop,
+    static void transformToSCFFor(CopyContext cc, Block.Builder kblock, JavaOp.JavaForOp fop,
                                   Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData,
                                   Map<String, TritonOps.FuncOp> fsymTable) {
         Body body = fop.loopBody();
@@ -743,7 +745,7 @@ public final class TritonTransformer {
                     // Transform the Java for body into the SCF for body
                     builder.transformBody(body, List.of(), (block, op) -> {
                         // Yield iter values
-                        if (op instanceof ExtendedOp.JavaContinueOp) {
+                        if (op instanceof JavaOp.JavaContinueOp) {
                             // Replace with yield of loaded vars
                             List<Value> yieldValues = new ArrayList<>();
                             for (Value value : capturedAndStoredVars) {
@@ -1052,7 +1054,7 @@ public final class TritonTransformer {
             a = block.context().getValue(a);
             b = block.context().getValue(b);
             // Computed result is tensor of floats, regardless of inputs
-            Object zero = 0.0;
+            Object zero = 0.0f;
             var c = block.op(ArithMathOps.constant(rType, zero));
             return block.op(TritonOps.dot(rType, a, b, c));
         }

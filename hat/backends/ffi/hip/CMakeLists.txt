@@ -2,14 +2,24 @@ cmake_minimum_required(VERSION 3.22.1)
 project(cuda_backend)
 
 set(CMAKE_CXX_STANDARD 14)
+if(UNIX)
+   if(NOT DEFINED ROCM_PATH)
+      set(ROCM_PATH "/opt/rocm" CACHE STRING "Default ROCM installation directory.")
+   endif()
+   list(APPEND CMAKE_PREFIX_PATH "${ROCM_PATH}")
+endif()
+find_package(HIP)
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
+if(HIP_FOUND)
+    set(CMAKE_CXX_COMPILER  ${HIP_HIPCC_EXECUTABLE})
+    set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
 
-find_package(hip)
-if(hip_FOUND)
-	message("HIP")
-
-	if ("${HIP_BACKEND}EMPTY" STREQUAL "EMPTY")
-		set (HIP_BACKEND "${CMAKE_SOURCE_DIR}")
-		message("HIP_BACKEND=${HIP_BACKEND}")
+    if ("${HIP_BACKEND}EMPTY" STREQUAL "EMPTY")
+      set (HIP_BACKEND "${CMAKE_SOURCE_DIR}")
+      message("HIP_BACKEND=${HIP_BACKEND}")
     endif()
 
     if ("${SHARED_BACKEND}EMPTY" STREQUAL "EMPTY")
@@ -18,31 +28,33 @@ if(hip_FOUND)
     endif()
 
     include_directories(
-            ${HIP_INCLUDE_DIR}
-            ${SHARED_BACKEND}/include
-            ${HIP_BACKEND}/include
+       hip::host
+       ${HIP_INCLUDE_DIR}
+       ${SHARED_BACKEND}/src/main/native/include
+       ${HIP_BACKEND}/src/main/native/include
     )
 
     link_directories(
-            ${CMAKE_BINARY_DIR}
-            ${HIP_LIBRARY_DIR}
+       ${CMAKE_BINARY_DIR}
+      # ${hip_LIB_INSTALL_DIR}
     )
 
     add_library(hip_backend SHARED
-	    ${SHARED_BACKEND}/cpp/shared.cpp
-	    ${HIP_BACKEND}/cpp/hip_backend.cpp
+       ${HIP_BACKEND}/src/main/native/cpp/hip_backend.cpp
     )
 
     target_link_libraries(hip_backend
-	    PRIVATE hip::host
+       PRIVATE hip::host
     )
 
     add_executable(hip_info
-	    ${HIP_BACKEND}/cpp/info.cpp
+       ${HIP_BACKEND}/src/main/native/cpp/info.cpp
     )
 
     target_link_libraries(hip_info
-            hip_backend
-            hip::host
+       hip_backend
+       hip::host
     )
+else()
+   messge("NO HIP for YOU!")
 endif()

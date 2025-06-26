@@ -26,8 +26,13 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.*;
-import jdk.incubator.code.type.*;
+import jdk.incubator.code.extern.*;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -108,7 +113,7 @@ public class TritonOps {
             super(NAME, JavaType.VOID,
                     List.of());
 
-            Body.Builder bodyC = Body.Builder.of(null, FunctionType.VOID);
+            Body.Builder bodyC = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
             Map<String, FuncOp> table = new HashMap<>();
             for (FuncOp f : functions) {
@@ -330,7 +335,6 @@ public class TritonOps {
         public static ReduceOp create(ExternalizedOp def) {
             int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
                     });
@@ -416,7 +420,6 @@ public class TritonOps {
         public static GetProgramIdOp create(ExternalizedOp def) {
             int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
                     });
@@ -470,13 +473,11 @@ public class TritonOps {
         public static MakeRangeOp create(ExternalizedOp def) {
             int start = def.extractAttributeValue(ATTRIBUTE_START, false,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
                     });
             int end = def.extractAttributeValue(ATTRIBUTE_END, false,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported end value:" + v);
                     });
@@ -532,7 +533,6 @@ public class TritonOps {
         public static ExpandOp create(ExternalizedOp def) {
             int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
                     v -> switch (v) {
-                        case String s -> Integer.valueOf(s);
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
                     });
@@ -829,11 +829,11 @@ public class TritonOps {
 
     // Operation and type factories
 
-    public static final OpFactory FACTORY = OpFactory.OP_FACTORY.get(TritonOps.class);
+    static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(TritonOps.class);
 
     static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
         @Override
-        public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
+        public TypeElement constructType(ExternalizableTypeElement.ExternalizedTypeElement tree) {
             return switch (tree.identifier()) {
                 case PtrType.NAME -> {
                     if (tree.arguments().size() != 1) {
@@ -857,7 +857,7 @@ public class TritonOps {
 
                     List<Integer> shape = new ArrayList<>();
                     for (int i = 0; i < tree.arguments().size() - 1; i++) {
-                        TypeElement.ExternalizedTypeElement a = tree.arguments().get(i);
+                        ExternalizableTypeElement.ExternalizedTypeElement a = tree.arguments().get(i);
                         if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
@@ -887,10 +887,16 @@ public class TritonOps {
 
     // Triton types then Java types
     static final TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
-            TRITON_TYPE_FACTORY.andThen(CoreTypeFactory.JAVA_TYPE_FACTORY);
+            TRITON_TYPE_FACTORY.andThen(JavaType.JAVA_ONLY_TYPE_FACTORY);
 
-    // Triton types then Java types, combined with code model types
-    public static final TypeElementFactory TYPE_FACTORY =
-            CoreTypeFactory.codeModelTypeFactory(TRITON_JAVA_TYPE_FACTORY);
+    // Triton types then Java types, combined with core types
+    static final TypeElementFactory TYPE_FACTORY =
+            CoreType.coreTypeFactory(TRITON_JAVA_TYPE_FACTORY);
 
+    public static final DialectFactory DIALECT_FACTORY = new DialectFactory(
+            OP_FACTORY.andThen(ArithMathOps.OP_FACTORY)
+                    .andThen(SCFOps.OP_FACTORY)
+                    .andThen(JavaOp.JAVA_OP_FACTORY),
+            TYPE_FACTORY
+    );
 }

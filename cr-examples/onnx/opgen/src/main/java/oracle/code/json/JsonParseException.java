@@ -31,6 +31,7 @@ import java.io.Serial;
  * Signals that an error has been detected while parsing the
  * JSON document.
  *
+ * @since 99
  */
 public class JsonParseException extends RuntimeException {
 
@@ -39,11 +40,13 @@ public class JsonParseException extends RuntimeException {
 
     /**
      * Position of the error row in the document
+     * @serial
      */
     private final int row;
 
     /**
      * Position of the error column in the document
+     * @serial
      */
     private final int col;
 

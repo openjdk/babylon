@@ -26,10 +26,12 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.op.*;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.JavaType;
-import jdk.incubator.code.type.TupleType;
+import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -136,7 +138,7 @@ public class SCFOps {
             if (values.size() == 1) {
                 return values.get(0).type();
             } else {
-                return TupleType.tupleTypeFromValues(values);
+                return CoreType.tupleTypeFromValues(values);
             }
         }
     }
@@ -146,12 +148,12 @@ public class SCFOps {
                                      List<Value> iterValues) {
         TypeElement yieldType = (iterValues.size() == 1)
                 ? iterValues.get(0).type()
-                : TupleType.tupleTypeFromValues(iterValues);
+                : CoreType.tupleTypeFromValues(iterValues);
 
         List<TypeElement> bodyParameterTypes = new ArrayList<>();
         bodyParameterTypes.add(start.type());
         bodyParameterTypes.addAll(iterValues.stream().map(Value::type).toList());
-        FunctionType bodyType = FunctionType.functionType(yieldType, bodyParameterTypes);
+        FunctionType bodyType = CoreType.functionType(yieldType, bodyParameterTypes);
 
         List<Value> operands = new ArrayList<>();
         operands.addAll(List.of(start, end, step));
@@ -160,7 +162,7 @@ public class SCFOps {
     }
 
 
-    public static final OpFactory FACTORY = OpFactory.OP_FACTORY.get(SCFOps.class);
+    public static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(SCFOps.class);
 
     static public YieldOp yield_(Value... values) {
         return yield_(List.of(values));

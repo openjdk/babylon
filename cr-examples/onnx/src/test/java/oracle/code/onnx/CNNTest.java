@@ -28,10 +28,11 @@ import java.lang.foreign.Arena;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.FunctionType;
-import jdk.incubator.code.type.TupleType;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.TupleType;
+import jdk.incubator.code.extern.OpWriter;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
 import org.junit.jupiter.api.Test;
@@ -153,7 +154,7 @@ public class CNNTest {
     static CoreOp.ModuleOp cnnModel() {
         // @@@ function type and result types with correct tensor element and shape
 
-        FunctionType functionType = FunctionType.functionType(
+        FunctionType functionType = CoreType.functionType(
                 OnnxType.TENSOR_FLOAT32, // return
                 OnnxType.TENSOR_FLOAT32, // conv1Weights
                 OnnxType.TENSOR_FLOAT32, // conv1Biases
@@ -215,7 +216,7 @@ public class CNNTest {
 
             // First pooling layer
             // @@@ multiple results?
-            var pool1Result = b.op(OnnxOps.MaxPool(TupleType.tupleType(relu1.type(), OnnxType.TENSOR_INT64),
+            var pool1Result = b.op(OnnxOps.MaxPool(CoreType.tupleType(relu1.type(), OnnxType.TENSOR_INT64),
                     Set.of(OnnxOps.MaxPool.OutputParameter.Indices),
                     relu1,
                     of(new long[4]),
@@ -243,7 +244,7 @@ public class CNNTest {
 
             // Second pooling layer
             // @@@ multiple results?
-            var pool2Result = b.op(OnnxOps.MaxPool(TupleType.tupleType(relu2.type(), OnnxType.TENSOR_INT64),
+            var pool2Result = b.op(OnnxOps.MaxPool(CoreType.tupleType(relu2.type(), OnnxType.TENSOR_INT64),
                     Set.of(OnnxOps.MaxPool.OutputParameter.Indices),
                     relu2,
                     of(new long[4]),

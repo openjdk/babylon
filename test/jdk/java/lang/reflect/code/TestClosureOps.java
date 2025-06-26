@@ -27,30 +27,31 @@
  * @run testng TestClosureOps
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.op.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 
-import static jdk.incubator.code.op.CoreOp._return;
-import static jdk.incubator.code.op.CoreOp.add;
-import static jdk.incubator.code.op.CoreOp.closure;
-import static jdk.incubator.code.op.CoreOp.closureCall;
-import static jdk.incubator.code.op.CoreOp.constant;
-import static jdk.incubator.code.op.CoreOp.func;
-import static jdk.incubator.code.op.CoreOp.quoted;
-import static jdk.incubator.code.type.FunctionType.functionType;
-import static jdk.incubator.code.type.JavaType.INT;
-import static jdk.incubator.code.type.JavaType.type;
+import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.java.JavaOp.add;
+import static jdk.incubator.code.dialect.core.CoreOp.closure;
+import static jdk.incubator.code.dialect.core.CoreOp.closureCall;
+import static jdk.incubator.code.dialect.core.CoreOp.constant;
+import static jdk.incubator.code.dialect.core.CoreOp.func;
+import static jdk.incubator.code.dialect.core.CoreOp.quoted;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
+import static jdk.incubator.code.dialect.java.JavaType.INT;
+import static jdk.incubator.code.dialect.java.JavaType.type;
 
 public class TestClosureOps {
 
@@ -93,7 +94,7 @@ public class TestClosureOps {
                     });
                     Op.Result cquoted = block.op(qop);
 
-                    Op.Result or = block.op(CoreOp.invoke(TestClosureOps.Builder.ACCEPT_METHOD, cquoted));
+                    Op.Result or = block.op(JavaOp.invoke(TestClosureOps.Builder.ACCEPT_METHOD, cquoted));
                     block.op(_return(or));
                 });
 

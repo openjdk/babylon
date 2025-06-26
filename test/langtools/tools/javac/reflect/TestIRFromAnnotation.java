@@ -37,10 +37,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.op.CoreOp.FuncOp;
-import jdk.incubator.code.op.ExtendedOp;
-import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.extern.OpParser;
+import jdk.incubator.code.extern.OpWriter;
 import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -179,7 +179,7 @@ public class TestIRFromAnnotation {
 
     // parses, and then serializes, dropping location information
     static String canonicalizeModel(String d) {
-        return serialize(OpParser.fromString(ExtendedOp.FACTORY, d).get(0));
+        return serialize(OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, d).get(0));
     }
 
     // serializes, dropping location information

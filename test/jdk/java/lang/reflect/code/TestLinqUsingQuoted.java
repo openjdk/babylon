@@ -21,22 +21,23 @@
  * questions.
  */
 
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.type.JavaType;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.type.MethodRef.method;
-import static jdk.incubator.code.op.CoreOp.*;
-import static jdk.incubator.code.type.FunctionType.functionType;
+import static jdk.incubator.code.dialect.java.MethodRef.method;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 
 /*
  * @test
@@ -84,7 +85,7 @@ public class TestLinqUsingQuoted {
 
                     MethodRef md = method(qp.queryableType(), name,
                             functionType(qp.queryableType(), QuotedOp.QUOTED_TYPE));
-                    Op.Result queryable = block.op(invoke(md, query, quotedLambda));
+                    Op.Result queryable = block.op(JavaOp.invoke(md, query, quotedLambda));
 
                     block.op(_return(queryable));
                 } else {
@@ -118,7 +119,7 @@ public class TestLinqUsingQuoted {
                     functionType(qp.queryResultType(), currentQueryExpression.invokableType().parameterTypes()))
                     .body(b -> b.inline(currentQueryExpression, b.parameters(), (block, query) -> {
                         MethodRef md = method(qp.queryableType(), name, functionType(qp.queryResultType()));
-                        Op.Result queryResult = block.op(invoke(md, query));
+                        Op.Result queryResult = block.op(JavaOp.invoke(md, query));
 
                         block.op(_return(queryResult));
                     }));
