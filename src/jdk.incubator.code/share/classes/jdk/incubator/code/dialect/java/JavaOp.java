@@ -168,12 +168,12 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
-        public static final String NAME = "lambda";
+        static final String NAME = "lambda";
 
         final TypeElement functionalInterface;
         final Body body;
 
-        public LambdaOp(ExternalizedOp def) {
+        LambdaOp(ExternalizedOp def) {
             this(def.resultType(), def.bodyDefinitions().get(0));
         }
 
@@ -373,9 +373,9 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(ThrowOp.NAME)
     public static final class ThrowOp extends JavaOp
             implements BodyTerminating, JavaStatement {
-        public static final String NAME = "throw";
+        static final String NAME = "throw";
 
-        public ThrowOp(ExternalizedOp def) {
+        ThrowOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -412,10 +412,10 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(AssertOp.NAME)
     public static final class AssertOp extends JavaOp
             implements Nested, JavaStatement {
-        public static final String NAME = "assert";
+        static final String NAME = "assert";
         public final List<Body> bodies;
 
-        public AssertOp(ExternalizedOp def) {
+        AssertOp(ExternalizedOp def) {
             this(def.bodyDefinitions());
         }
 
@@ -475,9 +475,9 @@ public sealed abstract class JavaOp extends Op {
          */
         @OpFactory.OpDeclaration(MonitorEnterOp.NAME)
         public static final class MonitorEnterOp extends MonitorOp {
-            public static final String NAME = "monitor.enter";
+            static final String NAME = "monitor.enter";
 
-            public MonitorEnterOp(ExternalizedOp def) {
+            MonitorEnterOp(ExternalizedOp def) {
                 if (def.operands().size() != 1) {
                     throw new IllegalArgumentException("Operation must have one operand " + def.name());
                 }
@@ -504,9 +504,9 @@ public sealed abstract class JavaOp extends Op {
          */
         @OpFactory.OpDeclaration(MonitorExitOp.NAME)
         public static final class MonitorExitOp extends MonitorOp {
-            public static final String NAME = "monitor.exit";
+            static final String NAME = "monitor.exit";
 
-            public MonitorExitOp(ExternalizedOp def) {
+            MonitorExitOp(ExternalizedOp def) {
                 if (def.operands().size() != 1) {
                     throw new IllegalArgumentException("Operation must have one operand " + def.name());
                 }
@@ -554,7 +554,7 @@ public sealed abstract class JavaOp extends Op {
             SUPER
         }
 
-        public static final String NAME = "invoke";
+        static final String NAME = "invoke";
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
         public static final String ATTRIBUTE_INVOKE_KIND = NAME + ".kind";
         public static final String ATTRIBUTE_INVOKE_VARARGS = NAME + ".varargs";
@@ -564,7 +564,7 @@ public sealed abstract class JavaOp extends Op {
         final MethodRef invokeDescriptor;
         final TypeElement resultType;
 
-        public static InvokeOp create(ExternalizedOp def) {
+        static InvokeOp create(ExternalizedOp def) {
             // Required attribute
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch (v) {
@@ -705,11 +705,11 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(ConvOp.NAME)
     public static final class ConvOp extends JavaOp
             implements Pure, JavaExpression {
-        public static final String NAME = "conv";
+        static final String NAME = "conv";
 
         final TypeElement resultType;
 
-        public ConvOp(ExternalizedOp def) {
+        ConvOp(ExternalizedOp def) {
             this(def.resultType(), def.operands().get(0));
         }
 
@@ -743,7 +743,7 @@ public sealed abstract class JavaOp extends Op {
     public static final class NewOp extends JavaOp
             implements ReflectiveOp, JavaExpression, JavaStatement {
 
-        public static final String NAME = "new";
+        static final String NAME = "new";
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
         public static final String ATTRIBUTE_NEW_VARARGS = NAME + ".varargs";
 
@@ -751,7 +751,7 @@ public sealed abstract class JavaOp extends Op {
         final ConstructorRef constructorDescriptor;
         final TypeElement resultType;
 
-        public static NewOp create(ExternalizedOp def) {
+        static NewOp create(ExternalizedOp def) {
             // Required attribute
             ConstructorRef constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,
                     true, v -> switch (v) {
@@ -868,11 +868,11 @@ public sealed abstract class JavaOp extends Op {
         @OpFactory.OpDeclaration(FieldLoadOp.NAME)
         public static final class FieldLoadOp extends FieldAccessOp
                 implements Pure, JavaExpression {
-            public static final String NAME = "field.load";
+            static final String NAME = "field.load";
 
             final TypeElement resultType;
 
-            public static FieldLoadOp create(ExternalizedOp def) {
+            static FieldLoadOp create(ExternalizedOp def) {
                 if (def.operands().size() > 1) {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
                 }
@@ -928,9 +928,9 @@ public sealed abstract class JavaOp extends Op {
         @OpFactory.OpDeclaration(FieldStoreOp.NAME)
         public static final class FieldStoreOp extends FieldAccessOp
                 implements JavaExpression, JavaStatement {
-            public static final String NAME = "field.store";
+            static final String NAME = "field.store";
 
-            public static FieldStoreOp create(ExternalizedOp def) {
+            static FieldStoreOp create(ExternalizedOp def) {
                 if (def.operands().isEmpty() || def.operands().size() > 2) {
                     throw new IllegalArgumentException("Operation must accept one or two operands");
                 }
@@ -981,9 +981,9 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(ArrayLengthOp.NAME)
     public static final class ArrayLengthOp extends JavaOp
             implements ReflectiveOp, JavaExpression {
-        public static final String NAME = "array.length";
+        static final String NAME = "array.length";
 
-        public ArrayLengthOp(ExternalizedOp def) {
+        ArrayLengthOp(ExternalizedOp def) {
             this(def.operands().get(0));
         }
 
@@ -1038,10 +1038,10 @@ public sealed abstract class JavaOp extends Op {
         @OpFactory.OpDeclaration(ArrayLoadOp.NAME)
         public static final class ArrayLoadOp extends ArrayAccessOp
                 implements Pure, JavaExpression {
-            public static final String NAME = "array.load";
+            static final String NAME = "array.load";
             final TypeElement componentType;
 
-            public ArrayLoadOp(ExternalizedOp def) {
+            ArrayLoadOp(ExternalizedOp def) {
                 if (def.operands().size() != 2) {
                     throw new IllegalArgumentException("Operation must have two operands");
                 }
@@ -1082,9 +1082,9 @@ public sealed abstract class JavaOp extends Op {
         @OpFactory.OpDeclaration(ArrayStoreOp.NAME)
         public static final class ArrayStoreOp extends ArrayAccessOp
                 implements JavaExpression, JavaStatement {
-            public static final String NAME = "array.store";
+            static final String NAME = "array.store";
 
-            public ArrayStoreOp(ExternalizedOp def) {
+            ArrayStoreOp(ExternalizedOp def) {
                 if (def.operands().size() != 3) {
                     throw new IllegalArgumentException("Operation must have two operands");
                 }
@@ -1119,12 +1119,12 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(InstanceOfOp.NAME)
     public static final class InstanceOfOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
-        public static final String NAME = "instanceof";
+        static final String NAME = "instanceof";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
         final TypeElement typeDescriptor;
 
-        public static InstanceOfOp create(ExternalizedOp def) {
+        static InstanceOfOp create(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1175,13 +1175,13 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(CastOp.NAME)
     public static final class CastOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
-        public static final String NAME = "cast";
+        static final String NAME = "cast";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
         final TypeElement resultType;
         final TypeElement typeDescriptor;
 
-        public static CastOp create(ExternalizedOp def) {
+        static CastOp create(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1234,7 +1234,7 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(ExceptionRegionEnter.NAME)
     public static final class ExceptionRegionEnter extends JavaOp
             implements BlockTerminating {
-        public static final String NAME = "exception.region.enter";
+        static final String NAME = "exception.region.enter";
 
         // First successor is the non-exceptional successor whose target indicates
         // the first block in the exception region.
@@ -1242,7 +1242,7 @@ public sealed abstract class JavaOp extends Op {
         // each of which have one block argument whose type is an exception type.
         final List<Block.Reference> s;
 
-        public ExceptionRegionEnter(ExternalizedOp def) {
+        ExceptionRegionEnter(ExternalizedOp def) {
             this(def.successors());
         }
 
@@ -1292,13 +1292,13 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(ExceptionRegionExit.NAME)
     public static final class ExceptionRegionExit extends JavaOp
             implements BlockTerminating {
-        public static final String NAME = "exception.region.exit";
+        static final String NAME = "exception.region.exit";
 
         // First successor is the non-exceptional successor whose target indicates
         // the first block following the exception region.
         final List<Block.Reference> s;
 
-        public ExceptionRegionExit(ExternalizedOp def) {
+        ExceptionRegionExit(ExternalizedOp def) {
             this(def.successors());
         }
 
@@ -1349,13 +1349,13 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(ConcatOp.NAME)
     public static final class ConcatOp extends JavaOp
             implements Pure, JavaExpression {
-        public static final String NAME = "concat";
+        static final String NAME = "concat";
 
         public ConcatOp(ConcatOp that, CopyContext cc) {
             super(that, cc);
         }
 
-        public ConcatOp(ExternalizedOp def) {
+        ConcatOp(ExternalizedOp def) {
             if (def.operands().size() != 2) {
                 throw new IllegalArgumentException("Concatenation Operation must have two operands.");
             }
@@ -1465,9 +1465,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(AddOp.NAME)
     public static final class AddOp extends BinaryOp {
-        public static final String NAME = "add";
+        static final String NAME = "add";
 
-        public AddOp(ExternalizedOp def) {
+        AddOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1490,9 +1490,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(SubOp.NAME)
     public static final class SubOp extends BinaryOp {
-        public static final String NAME = "sub";
+        static final String NAME = "sub";
 
-        public SubOp(ExternalizedOp def) {
+        SubOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1515,9 +1515,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(MulOp.NAME)
     public static final class MulOp extends BinaryOp {
-        public static final String NAME = "mul";
+        static final String NAME = "mul";
 
-        public MulOp(ExternalizedOp def) {
+        MulOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1540,9 +1540,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(DivOp.NAME)
     public static final class DivOp extends BinaryOp {
-        public static final String NAME = "div";
+        static final String NAME = "div";
 
-        public DivOp(ExternalizedOp def) {
+        DivOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1565,9 +1565,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(ModOp.NAME)
     public static final class ModOp extends BinaryOp {
-        public static final String NAME = "mod";
+        static final String NAME = "mod";
 
-        public ModOp(ExternalizedOp def) {
+        ModOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1591,9 +1591,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(OrOp.NAME)
     public static final class OrOp extends BinaryOp {
-        public static final String NAME = "or";
+        static final String NAME = "or";
 
-        public OrOp(ExternalizedOp def) {
+        OrOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1617,9 +1617,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(AndOp.NAME)
     public static final class AndOp extends BinaryOp {
-        public static final String NAME = "and";
+        static final String NAME = "and";
 
-        public AndOp(ExternalizedOp def) {
+        AndOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1643,9 +1643,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(XorOp.NAME)
     public static final class XorOp extends BinaryOp {
-        public static final String NAME = "xor";
+        static final String NAME = "xor";
 
-        public XorOp(ExternalizedOp def) {
+        XorOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1668,9 +1668,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(LshlOp.NAME)
     public static final class LshlOp extends BinaryOp {
-        public static final String NAME = "lshl";
+        static final String NAME = "lshl";
 
-        public LshlOp(ExternalizedOp def) {
+        LshlOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1693,9 +1693,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(AshrOp.NAME)
     public static final class AshrOp extends JavaOp.BinaryOp {
-        public static final String NAME = "ashr";
+        static final String NAME = "ashr";
 
-        public AshrOp(ExternalizedOp def) {
+        AshrOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1718,9 +1718,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(LshrOp.NAME)
     public static final class LshrOp extends JavaOp.BinaryOp {
-        public static final String NAME = "lshr";
+        static final String NAME = "lshr";
 
-        public LshrOp(ExternalizedOp def) {
+        LshrOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1743,9 +1743,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(NegOp.NAME)
     public static final class NegOp extends UnaryOp {
-        public static final String NAME = "neg";
+        static final String NAME = "neg";
 
-        public NegOp(ExternalizedOp def) {
+        NegOp(ExternalizedOp def) {
             this(def.operands().get(0));
         }
 
@@ -1768,9 +1768,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(ComplOp.NAME)
     public static final class ComplOp extends UnaryOp {
-        public static final String NAME = "compl";
+        static final String NAME = "compl";
 
-        public ComplOp(ExternalizedOp def) {
+        ComplOp(ExternalizedOp def) {
             this(def.operands().get(0));
         }
 
@@ -1793,9 +1793,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(NotOp.NAME)
     public static final class NotOp extends UnaryOp {
-        public static final String NAME = "not";
+        static final String NAME = "not";
 
-        public NotOp(ExternalizedOp def) {
+        NotOp(ExternalizedOp def) {
             this(def.operands().get(0));
         }
 
@@ -1819,9 +1819,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(EqOp.NAME)
     public static final class EqOp extends BinaryTestOp {
-        public static final String NAME = "eq";
+        static final String NAME = "eq";
 
-        public EqOp(ExternalizedOp def) {
+        EqOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1845,9 +1845,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(NeqOp.NAME)
     public static final class NeqOp extends BinaryTestOp {
-        public static final String NAME = "neq";
+        static final String NAME = "neq";
 
-        public NeqOp(ExternalizedOp def) {
+        NeqOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1870,9 +1870,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(GtOp.NAME)
     public static final class GtOp extends BinaryTestOp {
-        public static final String NAME = "gt";
+        static final String NAME = "gt";
 
-        public GtOp(ExternalizedOp def) {
+        GtOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1896,9 +1896,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(GeOp.NAME)
     public static final class GeOp extends BinaryTestOp {
-        public static final String NAME = "ge";
+        static final String NAME = "ge";
 
-        public GeOp(ExternalizedOp def) {
+        GeOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1922,9 +1922,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(LtOp.NAME)
     public static final class LtOp extends BinaryTestOp {
-        public static final String NAME = "lt";
+        static final String NAME = "lt";
 
-        public LtOp(ExternalizedOp def) {
+        LtOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -1948,9 +1948,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(LeOp.NAME)
     public static final class LeOp extends BinaryTestOp {
-        public static final String NAME = "le";
+        static final String NAME = "le";
 
-        public LeOp(ExternalizedOp def) {
+        LeOp(ExternalizedOp def) {
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -2057,9 +2057,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(JavaBreakOp.NAME)
     public static final class JavaBreakOp extends JavaLabelOp {
-        public static final String NAME = "java.break";
+        static final String NAME = "java.break";
 
-        public JavaBreakOp(ExternalizedOp def) {
+        JavaBreakOp(ExternalizedOp def) {
             this(def.operands().isEmpty() ? null : def.operands().get(0));
         }
 
@@ -2087,9 +2087,9 @@ public sealed abstract class JavaOp extends Op {
      */
     @OpFactory.OpDeclaration(JavaContinueOp.NAME)
     public static final class JavaContinueOp extends JavaLabelOp {
-        public static final String NAME = "java.continue";
+        static final String NAME = "java.continue";
 
-        public JavaContinueOp(ExternalizedOp def) {
+        JavaContinueOp(ExternalizedOp def) {
             this(def.operands().isEmpty() ? null : def.operands().get(0));
         }
 
@@ -2139,9 +2139,9 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(JavaYieldOp.NAME)
     public static final class JavaYieldOp extends JavaOp
             implements Op.BodyTerminating, JavaStatement, Op.Lowerable {
-        public static final String NAME = "java.yield";
+        static final String NAME = "java.yield";
 
-        public JavaYieldOp(ExternalizedOp def) {
+        JavaYieldOp(ExternalizedOp def) {
             if (def.operands().size() > 1) {
                 throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
             }
@@ -2217,11 +2217,11 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(JavaBlockOp.NAME)
     public static final class JavaBlockOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
-        public static final String NAME = "java.block";
+        static final String NAME = "java.block";
 
         final Body body;
 
-        public JavaBlockOp(ExternalizedOp def) {
+        JavaBlockOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Operation must have no operands");
             }
@@ -2296,12 +2296,12 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(JavaSynchronizedOp.NAME)
     public static final class JavaSynchronizedOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
-        public static final String NAME = "java.synchronized";
+        static final String NAME = "java.synchronized";
 
         final Body expr;
         final Body blockBody;
 
-        public JavaSynchronizedOp(ExternalizedOp def) {
+        JavaSynchronizedOp(ExternalizedOp def) {
             this(def.bodyDefinitions().get(0), def.bodyDefinitions().get(1));
         }
 
@@ -2464,11 +2464,11 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(JavaLabeledOp.NAME)
     public static final class JavaLabeledOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
-        public static final String NAME = "java.labeled";
+        static final String NAME = "java.labeled";
 
         final Body body;
 
-        public JavaLabeledOp(ExternalizedOp def) {
+        JavaLabeledOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Operation must have no operands");
             }
@@ -2637,11 +2637,11 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
-        public static final String NAME = "java.if";
+        static final String NAME = "java.if";
 
         final List<Body> bodies;
 
-        public JavaIfOp(ExternalizedOp def) {
+        JavaIfOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Operation must have no operands");
             }
@@ -2918,11 +2918,11 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(JavaSwitchExpressionOp.NAME)
     public static final class JavaSwitchExpressionOp extends JavaSwitchOp
             implements JavaExpression {
-        public static final String NAME = "java.switch.expression";
+        static final String NAME = "java.switch.expression";
 
         final TypeElement resultType;
 
-        public JavaSwitchExpressionOp(ExternalizedOp def) {
+        JavaSwitchExpressionOp(ExternalizedOp def) {
             this(def.resultType(), def.operands().get(0), def.bodyDefinitions());
         }
 
@@ -2955,9 +2955,9 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(JavaSwitchStatementOp.NAME)
     public static final class JavaSwitchStatementOp extends JavaSwitchOp
             implements JavaStatement {
-        public static final String NAME = "java.switch.statement";
+        static final String NAME = "java.switch.statement";
 
-        public JavaSwitchStatementOp(ExternalizedOp def) {
+        JavaSwitchStatementOp(ExternalizedOp def) {
             this(def.operands().get(0), def.bodyDefinitions());
         }
 
@@ -2987,9 +2987,9 @@ public sealed abstract class JavaOp extends Op {
     @OpFactory.OpDeclaration(JavaSwitchFallthroughOp.NAME)
     public static final class JavaSwitchFallthroughOp extends JavaOp
             implements Op.BodyTerminating, Op.Lowerable {
-        public static final String NAME = "java.switch.fallthrough";
+        static final String NAME = "java.switch.fallthrough";
 
-        public JavaSwitchFallthroughOp(ExternalizedOp def) {
+        JavaSwitchFallthroughOp(ExternalizedOp def) {
             this();
         }
 
@@ -3133,11 +3133,11 @@ public sealed abstract class JavaOp extends Op {
         final Body update;
         final Body body;
 
-        public static JavaForOp create(ExternalizedOp def) {
+        static JavaForOp create(ExternalizedOp def) {
             return new JavaForOp(def);
         }
 
-        public JavaForOp(ExternalizedOp def) {
+        JavaForOp(ExternalizedOp def) {
             this(def.bodyDefinitions().get(0),
                     def.bodyDefinitions().get(1),
                     def.bodyDefinitions().get(2),
@@ -3367,11 +3367,11 @@ public sealed abstract class JavaOp extends Op {
         final Body init;
         final Body body;
 
-        public static JavaEnhancedForOp create(ExternalizedOp def) {
+        static JavaEnhancedForOp create(ExternalizedOp def) {
             return new JavaEnhancedForOp(def);
         }
 
-        public JavaEnhancedForOp(ExternalizedOp def) {
+        JavaEnhancedForOp(ExternalizedOp def) {
             this(def.bodyDefinitions().get(0),
                     def.bodyDefinitions().get(1),
                     def.bodyDefinitions().get(2));
@@ -3587,7 +3587,7 @@ public sealed abstract class JavaOp extends Op {
 
         private final List<Body> bodies;
 
-        public JavaWhileOp(ExternalizedOp def) {
+        JavaWhileOp(ExternalizedOp def) {
             this(def.bodyDefinitions());
         }
 
@@ -3730,7 +3730,7 @@ public sealed abstract class JavaOp extends Op {
 
         private final List<Body> bodies;
 
-        public JavaDoWhileOp(ExternalizedOp def) {
+        JavaDoWhileOp(ExternalizedOp def) {
             this(def.bodyDefinitions());
         }
 
@@ -3959,9 +3959,9 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
-        public static final String NAME = "java.cand";
+        static final String NAME = "java.cand";
 
-        public JavaConditionalAndOp(ExternalizedOp def) {
+        JavaConditionalAndOp(ExternalizedOp def) {
             this(def.bodyDefinitions());
         }
 
@@ -4014,9 +4014,9 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
-        public static final String NAME = "java.cor";
+        static final String NAME = "java.cor";
 
-        public JavaConditionalOrOp(ExternalizedOp def) {
+        JavaConditionalOrOp(ExternalizedOp def) {
             this(def.bodyDefinitions());
         }
 
@@ -4046,13 +4046,13 @@ public sealed abstract class JavaOp extends Op {
     public static final class JavaConditionalExpressionOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaExpression {
 
-        public static final String NAME = "java.cexpression";
+        static final String NAME = "java.cexpression";
 
         final TypeElement resultType;
         // {cond, truepart, falsepart}
         final List<Body> bodies;
 
-        public JavaConditionalExpressionOp(ExternalizedOp def) {
+        JavaConditionalExpressionOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Operation must have no operands");
             }
@@ -4209,11 +4209,11 @@ public sealed abstract class JavaOp extends Op {
         final List<Body> catchers;
         final Body finalizer;
 
-        public static JavaTryOp create(ExternalizedOp def) {
+        static JavaTryOp create(ExternalizedOp def) {
             return new JavaTryOp(def);
         }
 
-        public JavaTryOp(ExternalizedOp def) {
+        JavaTryOp(ExternalizedOp def) {
             List<Body.Builder> bodies = def.bodyDefinitions();
             Body.Builder first = bodies.getFirst();
             Body.Builder resources;
@@ -4674,14 +4674,14 @@ public sealed abstract class JavaOp extends Op {
          */
         @OpFactory.OpDeclaration(TypePatternOp.NAME)
         public static final class TypePatternOp extends PatternOp {
-            public static final String NAME = "pattern.type";
+            static final String NAME = "pattern.type";
 
             public static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
             final TypeElement resultType;
             final String bindingName;
 
-            public TypePatternOp(ExternalizedOp def) {
+            TypePatternOp(ExternalizedOp def) {
                 super(NAME, List.of());
 
                 this.bindingName = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
@@ -4737,13 +4737,13 @@ public sealed abstract class JavaOp extends Op {
          */
         @OpFactory.OpDeclaration(RecordPatternOp.NAME)
         public static final class RecordPatternOp extends PatternOp {
-            public static final String NAME = "pattern.record";
+            static final String NAME = "pattern.record";
 
             public static final String ATTRIBUTE_RECORD_DESCRIPTOR = NAME + ".descriptor";
 
             final RecordTypeRef recordDescriptor;
 
-            public static RecordPatternOp create(ExternalizedOp def) {
+            static RecordPatternOp create(ExternalizedOp def) {
                 RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR, true,
                         v -> switch (v) {
                             case RecordTypeRef rtd -> rtd;
@@ -4798,9 +4798,9 @@ public sealed abstract class JavaOp extends Op {
             // @@@ we may need to add info about the type of the record component
             // this info can be used when lowering
 
-            public static final String NAME = "pattern.match.all";
+            static final String NAME = "pattern.match.all";
 
-            public MatchAllPatternOp(ExternalizedOp def) {
+            MatchAllPatternOp(ExternalizedOp def) {
                 this();
             }
 
@@ -4828,12 +4828,12 @@ public sealed abstract class JavaOp extends Op {
          */
         @OpFactory.OpDeclaration(MatchOp.NAME)
         public static final class MatchOp extends JavaOp implements Op.Isolated, Op.Lowerable {
-            public static final String NAME = "pattern.match";
+            static final String NAME = "pattern.match";
 
             final Body pattern;
             final Body match;
 
-            public MatchOp(ExternalizedOp def) {
+            MatchOp(ExternalizedOp def) {
                 this(def.operands().get(0),
                         def.bodyDefinitions().get(0), def.bodyDefinitions().get(1));
             }
@@ -5083,10 +5083,80 @@ public sealed abstract class JavaOp extends Op {
         }
     }
 
+    static Op createOp(ExternalizedOp def) {
+        Op op = switch (def.name()) {
+            case "add" -> new AddOp(def);
+            case "and" -> new AndOp(def);
+            case "array.length" -> new ArrayLengthOp(def);
+            case "array.load" -> new ArrayAccessOp.ArrayLoadOp(def);
+            case "array.store" -> new ArrayAccessOp.ArrayStoreOp(def);
+            case "ashr" -> new AshrOp(def);
+            case "assert" -> new AssertOp(def);
+            case "cast" -> CastOp.create(def);
+            case "compl" -> new ComplOp(def);
+            case "concat" -> new ConcatOp(def);
+            case "conv" -> new ConvOp(def);
+            case "div" -> new DivOp(def);
+            case "eq" -> new EqOp(def);
+            case "exception.region.enter" -> new ExceptionRegionEnter(def);
+            case "exception.region.exit" -> new ExceptionRegionExit(def);
+            case "field.load" -> FieldAccessOp.FieldLoadOp.create(def);
+            case "field.store" -> FieldAccessOp.FieldStoreOp.create(def);
+            case "ge" -> new GeOp(def);
+            case "gt" -> new GtOp(def);
+            case "instanceof" -> InstanceOfOp.create(def);
+            case "invoke" -> InvokeOp.create(def);
+            case "java.block" -> new JavaBlockOp(def);
+            case "java.break" -> new JavaBreakOp(def);
+            case "java.cand" -> new JavaConditionalAndOp(def);
+            case "java.cexpression" -> new JavaConditionalExpressionOp(def);
+            case "java.continue" -> new JavaContinueOp(def);
+            case "java.cor" -> new JavaConditionalOrOp(def);
+            case "java.do.while" -> new JavaDoWhileOp(def);
+            case "java.enhancedFor" -> JavaEnhancedForOp.create(def);
+            case "java.for" -> JavaForOp.create(def);
+            case "java.if" -> new JavaIfOp(def);
+            case "java.labeled" -> new JavaLabeledOp(def);
+            case "java.switch.expression" -> new JavaSwitchExpressionOp(def);
+            case "java.switch.fallthrough" -> new JavaSwitchFallthroughOp(def);
+            case "java.switch.statement" -> new JavaSwitchStatementOp(def);
+            case "java.synchronized" -> new JavaSynchronizedOp(def);
+            case "java.try" -> JavaTryOp.create(def);
+            case "java.while" -> new JavaWhileOp(def);
+            case "java.yield" -> new JavaYieldOp(def);
+            case "lambda" -> new LambdaOp(def);
+            case "le" -> new LeOp(def);
+            case "lshl" -> new LshlOp(def);
+            case "lshr" -> new LshrOp(def);
+            case "lt" -> new LtOp(def);
+            case "mod" -> new ModOp(def);
+            case "monitor.enter" -> new MonitorOp.MonitorEnterOp(def);
+            case "monitor.exit" -> new MonitorOp.MonitorExitOp(def);
+            case "mul" -> new MulOp(def);
+            case "neg" -> new NegOp(def);
+            case "neq" -> new NeqOp(def);
+            case "new" -> NewOp.create(def);
+            case "not" -> new NotOp(def);
+            case "or" -> new OrOp(def);
+            case "pattern.match" -> new PatternOps.MatchOp(def);
+            case "pattern.match.all" -> new PatternOps.MatchAllPatternOp(def);
+            case "pattern.record" -> PatternOps.RecordPatternOp.create(def);
+            case "pattern.type" -> new PatternOps.TypePatternOp(def);
+            case "sub" -> new SubOp(def);
+            case "throw" -> new ThrowOp(def);
+            case "xor" -> new XorOp(def);
+            default -> null;
+        };
+        if (op != null) {
+            op.setLocation(def.location());
+        }
+        return op;
+    }
+
     /**
      * An operation factory for core operations composed with Java operations.
      */
-    public static final OpFactory JAVA_OP_FACTORY = CoreOp.CORE_OP_FACTORY.andThen(OpFactory.OP_FACTORY.get(JavaOp.class));
+    public static final OpFactory JAVA_OP_FACTORY = CoreOp.CORE_OP_FACTORY.andThen(JavaOp::createOp);
 
     /**
      * A Java dialect factory, for constructing core and Java operations and constructing
