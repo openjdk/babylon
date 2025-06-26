@@ -23,12 +23,13 @@
  * questions.
  */
 
-package jdk.incubator.code.extern;
+package jdk.incubator.code.internal;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.extern.*;
 
 import java.util.*;
 import java.util.function.Function;

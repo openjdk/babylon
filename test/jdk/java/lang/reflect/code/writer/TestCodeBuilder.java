@@ -34,7 +34,7 @@ import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.extern.OpBuilder;
+import jdk.incubator.code.internal.OpBuilder;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @run testng TestCodeBuilder
  */
 
