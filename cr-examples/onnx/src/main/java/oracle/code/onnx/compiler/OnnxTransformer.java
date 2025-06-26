@@ -212,7 +212,7 @@ public final class OnnxTransformer {
             f = PartialEvaluator.evaluate(l,
                     op -> switch (op) {
                         case CoreOp.ConstantOp _ -> true;
-                        case JavaOp.FieldAccessOp.FieldLoadOp _ -> false;
+                        case JavaOp.FieldAccessOp.FieldLoadOp flo -> flo.resultType() instanceof PrimitiveType;
                         case JavaOp.InvokeOp _ -> false;
                         case CoreOp.ReturnOp _ -> false;
                         case JavaOp.NewOp _ -> false;
