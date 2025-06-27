@@ -169,12 +169,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * An operation characteristic indicating the operation is a root operation
-     */
-    public interface Root {
-    }
-
-    /**
      * A value that is the result of an operation.
      */
     public static final class Result extends Value {
