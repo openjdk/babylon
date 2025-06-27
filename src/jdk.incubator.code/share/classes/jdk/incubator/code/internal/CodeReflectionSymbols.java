@@ -49,6 +49,7 @@ public class CodeReflectionSymbols {
     public final Type codeReflectionType;
     public final MethodSymbol opInterpreterInvoke;
     public final MethodSymbol opParserFromString;
+    public final MethodSymbol methodHandlesLookup;
     public final Type opType;
 
     CodeReflectionSymbols(Context context) {
@@ -71,5 +72,12 @@ public class CodeReflectionSymbols {
                 new MethodType(List.of(syms.stringType), opType,
                         List.nil(), syms.methodClass),
                 opParserType.tsym);
+        methodHandlesLookup = new MethodSymbol(PUBLIC | STATIC,
+                names.fromString("lookup"),
+                new MethodType(List.nil(), syms.methodHandleLookupType,
+                        List.nil(), syms.methodClass),
+                syms.methodHandlesType.tsym);
+        syms.synthesizeEmptyInterfaceIfMissing(quotedType);
+        syms.synthesizeEmptyInterfaceIfMissing(quotableType);
     }
 }

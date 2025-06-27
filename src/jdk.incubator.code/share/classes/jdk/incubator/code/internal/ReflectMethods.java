@@ -235,7 +235,7 @@ public class ReflectMethods extends TreeTranslator {
                         ListBuffer<JCExpression> interpreterArgs = new ListBuffer<>();
                         // Obtain MethodHandles.lookup()
                         // @@@ Could probably use MethodHandles.publicLookup()
-                        JCMethodInvocation lookup = make.App(make.Ident(syms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
+                        JCMethodInvocation lookup = make.App(make.Ident(crSyms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
                         interpreterArgs.append(lookup);
                         // Get the func operation
                         JCMethodInvocation op = make.App(opMethodId);
