@@ -255,6 +255,9 @@ public class Symtab {
     /** The symbol representing the close method on TWR AutoCloseable type */
     public final MethodSymbol autoCloseableClose;
 
+    /** The symbol representing MethodHandles.lookup() */
+    public final MethodSymbol methodHandlesLookup;
+
     /** The predefined type that belongs to a tag.
      */
     public final Type[] typeOfTag = new Type[TypeTag.getTypeTagCount()];
@@ -616,6 +619,11 @@ public class Symtab {
                              new MethodType(List.nil(), voidType,
                                             List.of(exceptionType), methodClass),
                              autoCloseableType.tsym);
+        methodHandlesLookup = new MethodSymbol(PUBLIC | STATIC,
+                names.fromString("lookup"),
+                new MethodType(List.nil(), methodHandleLookupType,
+                        List.nil(), methodClass),
+                methodHandlesType.tsym);
         trustMeType = enterClass("java.lang.SafeVarargs");
         nativeHeaderType = enterClass("java.lang.annotation.Native");
         lambdaMetafactory = enterClass("java.lang.invoke.LambdaMetafactory");
