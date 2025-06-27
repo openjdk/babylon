@@ -62,7 +62,7 @@ public class TritonTestOps {
     }
 
 
-    public static final OpFactory FACTORY = OpFactory.OP_FACTORY.get(TritonTestOps.class);
+    public static final OpFactory FACTORY = OpFactoryHelper.OP_FACTORY.get(TritonTestOps.class);
 
     public static ConsumeOp consume(Value... operands) {
         return consume(List.of(operands));

@@ -135,7 +135,8 @@ public class OnnxModelTest {
         };
     }
 
-    static final OpFactory ONNX_OP_FACTORY = OpFactory.OP_FACTORY.get(ExplicitOnnxOps.class).andThen(OpFactory.OP_FACTORY.get(OnnxOps.class));
+    static final OpFactory ONNX_OP_FACTORY = OpFactoryHelper.OP_FACTORY.get(ExplicitOnnxOps.class)
+            .andThen(OpFactoryHelper.OP_FACTORY.get(OnnxOps.class));
 
     static final Map<String, OnnxOp.OnnxSchema> ONNX_SCHEMA_REGISTRY = collectSchemas(ExplicitOnnxOps.class, OnnxOps.class);
 
