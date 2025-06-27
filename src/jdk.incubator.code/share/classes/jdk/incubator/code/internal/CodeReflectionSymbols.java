@@ -39,6 +39,10 @@ import static com.sun.tools.javac.code.Flags.PUBLIC;
 import static com.sun.tools.javac.code.Flags.STATIC;
 import static com.sun.tools.javac.code.Flags.VARARGS;
 
+/**
+ * This class (lazily) initialized the symbols in the jdk.incubator.code module,
+ * whose symbol is not yet available when Symtab is first constructed.
+ */
 public class CodeReflectionSymbols {
     public final Type quotedType;
     public final Type quotableType;
