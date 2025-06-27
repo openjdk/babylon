@@ -1062,9 +1062,8 @@ public class ReflectMethods extends TreeTranslator {
 
         private Value loadVar(Symbol sym) {
             Value varOp = varOpValue(sym);
-            return varOp.type() instanceof VarType ?
-                    append(CoreOp.varLoad(varOp)) : // regular var
-                    varOp;                          // captured value
+            Assert.check(varOp.type() instanceof VarType);
+            return append(CoreOp.varLoad(varOp));
         }
 
         @Override
