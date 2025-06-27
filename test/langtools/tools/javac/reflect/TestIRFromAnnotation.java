@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code jdk.incubator.code.proc
  * @enablePreview
  * @library ../lib
  * @modules jdk.compiler/com.sun.tools.javac.api
@@ -41,6 +41,8 @@ import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.extern.OpWriter;
+import jdk.incubator.code.proc.CodeModelElements;
+
 import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -150,7 +152,7 @@ public class TestIRFromAnnotation {
                     if (ir == null) {
                         return null; // skip
                     }
-                    Optional<FuncOp> body = Op.ofElement(processingEnv, e);
+                    Optional<FuncOp> body = CodeModelElements.of(processingEnv).createCodeModel(e);
                     if (!body.isPresent()) {
                         throw new AssertionError(String.format("No body found in method %s annotated with @IR",
                                 toMethodString(e)));

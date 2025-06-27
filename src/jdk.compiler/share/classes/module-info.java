@@ -239,17 +239,19 @@ module jdk.compiler {
         jdk.javadoc,
         jdk.jshell,
         jdk.internal.md,
-        jdk.incubator.code;
+        jdk.incubator.code.proc;
     exports com.sun.tools.javac.resources to
         jdk.jshell;
     exports com.sun.tools.javac.code to
         jdk.javadoc,
         jdk.jshell,
-        jdk.incubator.code;
+        jdk.incubator.code,
+        jdk.incubator.code.proc;
     exports com.sun.tools.javac.comp to
         jdk.javadoc,
         jdk.jshell,
-        jdk.incubator.code;
+        jdk.incubator.code,
+        jdk.incubator.code.proc;
     exports com.sun.tools.javac.file to
         jdk.jdeps,
         jdk.javadoc;
@@ -262,7 +264,7 @@ module jdk.compiler {
         jdk.incubator.code;
     exports com.sun.tools.javac.model to
         jdk.javadoc,
-        jdk.incubator.code;
+        jdk.incubator.code.proc;
     exports com.sun.tools.javac.parser to
         jdk.jshell,
         jdk.internal.md;
@@ -273,15 +275,17 @@ module jdk.compiler {
         jdk.javadoc,
         jdk.jshell,
         jdk.internal.md,
-        jdk.incubator.code;
+        jdk.incubator.code,
+        jdk.incubator.code.proc;
     exports com.sun.tools.javac.util to
         jdk.jdeps,
         jdk.javadoc,
         jdk.jshell,
         jdk.internal.md,
-        jdk.incubator.code;
+        jdk.incubator.code,
+        jdk.incubator.code.proc;
     exports com.sun.tools.javac.processing to
-        jdk.incubator.code;
+        jdk.incubator.code.proc;
 
     uses javax.annotation.processing.Processor;
     uses com.sun.source.util.Plugin;

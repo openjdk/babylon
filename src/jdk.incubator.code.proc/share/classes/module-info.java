@@ -31,23 +31,12 @@
  * @moduleGraph
  */
 
-import jdk.incubator.code.internal.ReflectMethods;
 import jdk.internal.javac.ParticipatesInPreview;
 
 @ParticipatesInPreview
-module jdk.incubator.code {
-    requires jdk.compiler;
+module jdk.incubator.code.proc {
+    requires transitive jdk.compiler;
+    requires transitive jdk.incubator.code;
 
-    exports jdk.incubator.code;
-    exports jdk.incubator.code.extern;
-    exports jdk.incubator.code.dialect.core;
-    exports jdk.incubator.code.dialect.java;
-    exports jdk.incubator.code.analysis;
-    exports jdk.incubator.code.bytecode;
-    exports jdk.incubator.code.interpreter;
-
-    exports jdk.incubator.code.internal to jdk.incubator.code.proc;
-
-    provides com.sun.tools.javac.comp.CodeReflectionTransformer with
-            ReflectMethods.Provider;
+    exports jdk.incubator.code.proc;
 }
