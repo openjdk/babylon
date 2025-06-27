@@ -76,13 +76,13 @@ public sealed abstract class CoreOp extends Op {
             }
         }
 
-        public static final String NAME = "func";
+        static final String NAME = "func";
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
         final Body body;
 
-        public static FuncOp create(ExternalizedOp def) {
+        static FuncOp create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -170,13 +170,13 @@ public sealed abstract class CoreOp extends Op {
     // @@@ stack effects equivalent to the call operation as if the function were a Java method?
     @OpFactory.OpDeclaration(FuncCallOp.NAME)
     public static final class FuncCallOp extends CoreOp {
-        public static final String NAME = "func.call";
+        static final String NAME = "func.call";
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
         final TypeElement resultType;
 
-        public static FuncCallOp create(ExternalizedOp def) {
+        static FuncCallOp create(ExternalizedOp def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
@@ -228,12 +228,12 @@ public sealed abstract class CoreOp extends Op {
     public static final class ModuleOp extends CoreOp
             implements Op.Isolated, Op.Lowerable {
 
-        public static final String NAME = "module";
+        static final String NAME = "module";
 
         final SequencedMap<String, FuncOp> table;
         final Body body;
 
-        public static ModuleOp create(ExternalizedOp def) {
+        static ModuleOp create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -314,7 +314,7 @@ public sealed abstract class CoreOp extends Op {
     @OpFactory.OpDeclaration(QuotedOp.NAME)
     public static final class QuotedOp extends CoreOp
             implements Op.Nested, Op.Lowerable, Op.Pure {
-        public static final String NAME = "quoted";
+        static final String NAME = "quoted";
 
         public static final JavaType QUOTED_TYPE = JavaType.type(Quoted.class);
 
@@ -322,7 +322,7 @@ public sealed abstract class CoreOp extends Op {
 
         final Op quotedOp;
 
-        public QuotedOp(ExternalizedOp def) {
+        QuotedOp(ExternalizedOp def) {
             this(def.bodyDefinitions().get(0));
         }
 
@@ -406,11 +406,11 @@ public sealed abstract class CoreOp extends Op {
             }
         }
 
-        public static final String NAME = "closure";
+        static final String NAME = "closure";
 
         final Body body;
 
-        public ClosureOp(ExternalizedOp def) {
+        ClosureOp(ExternalizedOp def) {
             this(def.bodyDefinitions().get(0));
         }
 
@@ -472,9 +472,9 @@ public sealed abstract class CoreOp extends Op {
 //  that is the target of the closures lambda expression.
     @OpFactory.OpDeclaration(ClosureCallOp.NAME)
     public static final class ClosureCallOp extends CoreOp {
-        public static final String NAME = "closure.call";
+        static final String NAME = "closure.call";
 
-        public ClosureCallOp(ExternalizedOp def) {
+        ClosureCallOp(ExternalizedOp def) {
             this(def.operands());
         }
 
@@ -506,9 +506,9 @@ public sealed abstract class CoreOp extends Op {
     @OpFactory.OpDeclaration(ReturnOp.NAME)
     public static final class ReturnOp extends CoreOp
             implements Op.BodyTerminating, JavaOp.JavaStatement {
-        public static final String NAME = "return";
+        static final String NAME = "return";
 
-        public ReturnOp(ExternalizedOp def) {
+        ReturnOp(ExternalizedOp def) {
             if (def.operands().size() > 1) {
                 throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
             }
@@ -552,9 +552,9 @@ public sealed abstract class CoreOp extends Op {
     @OpFactory.OpDeclaration(UnreachableOp.NAME)
     public static final class UnreachableOp extends CoreOp
             implements Op.BodyTerminating {
-        public static final String NAME = "unreachable";
+        static final String NAME = "unreachable";
 
-        public UnreachableOp(ExternalizedOp def) {
+        UnreachableOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalArgumentException("Operation must zero operands " + def.name());
             }
@@ -590,9 +590,9 @@ public sealed abstract class CoreOp extends Op {
     @OpFactory.OpDeclaration(YieldOp.NAME)
     public static final class YieldOp extends CoreOp
             implements Op.BodyTerminating {
-        public static final String NAME = "yield";
+        static final String NAME = "yield";
 
-        public YieldOp(ExternalizedOp def) {
+        YieldOp(ExternalizedOp def) {
             if (def.operands().size() > 1) {
                 throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
             }
@@ -640,11 +640,11 @@ public sealed abstract class CoreOp extends Op {
     @OpFactory.OpDeclaration(BranchOp.NAME)
     public static final class BranchOp extends CoreOp
             implements Op.BlockTerminating {
-        public static final String NAME = "branch";
+        static final String NAME = "branch";
 
         final Block.Reference b;
 
-        public BranchOp(ExternalizedOp def) {
+        BranchOp(ExternalizedOp def) {
             if (!def.operands().isEmpty() || def.successors().size() != 1) {
                 throw new IllegalArgumentException("Operation must have zero arguments and one successor" + def.name());
             }
@@ -694,12 +694,12 @@ public sealed abstract class CoreOp extends Op {
     @OpFactory.OpDeclaration(ConditionalBranchOp.NAME)
     public static final class ConditionalBranchOp extends CoreOp
             implements Op.BlockTerminating {
-        public static final String NAME = "cbranch";
+        static final String NAME = "cbranch";
 
         final Block.Reference t;
         final Block.Reference f;
 
-        public ConditionalBranchOp(ExternalizedOp def) {
+        ConditionalBranchOp(ExternalizedOp def) {
             if (def.operands().size() != 1 || def.successors().size() != 2) {
                 throw new IllegalArgumentException("Operation must one operand and two successors" + def.name());
             }
@@ -755,14 +755,14 @@ public sealed abstract class CoreOp extends Op {
     @OpFactory.OpDeclaration(ConstantOp.NAME)
     public static final class ConstantOp extends CoreOp
             implements Op.Pure, JavaOp.JavaExpression {
-        public static final String NAME = "constant";
+        static final String NAME = "constant";
 
         public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
         final TypeElement type;
 
-        public static ConstantOp create(ExternalizedOp def) {
+        static ConstantOp create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
@@ -868,13 +868,13 @@ public sealed abstract class CoreOp extends Op {
     @OpFactory.OpDeclaration(VarOp.NAME)
     public static final class VarOp extends CoreOp
             implements JavaOp.JavaStatement {
-        public static final String NAME = "var";
+        static final String NAME = "var";
         public static final String ATTRIBUTE_NAME = NAME + ".name";
 
         final String varName;
         final VarType resultType;
 
-        public static VarOp create(ExternalizedOp def) {
+        static VarOp create(ExternalizedOp def) {
             if (def.operands().size() > 1) {
                 throw new IllegalStateException("Operation must have zero or one operand");
             }
@@ -999,7 +999,7 @@ public sealed abstract class CoreOp extends Op {
         @OpFactory.OpDeclaration(VarLoadOp.NAME)
         public static final class VarLoadOp extends VarAccessOp
                 implements JavaOp.JavaExpression {
-            public static final String NAME = "var.load";
+            static final String NAME = "var.load";
 
             public VarLoadOp(ExternalizedOp opdef) {
                 if (opdef.operands().size() != 1) {
@@ -1036,7 +1036,7 @@ public sealed abstract class CoreOp extends Op {
         @OpFactory.OpDeclaration(VarStoreOp.NAME)
         public static final class VarStoreOp extends VarAccessOp
                 implements JavaOp.JavaExpression, JavaOp.JavaStatement {
-            public static final String NAME = "var.store";
+            static final String NAME = "var.store";
 
             public VarStoreOp(ExternalizedOp opdef) {
                 if (opdef.operands().size() != 2) {
@@ -1084,9 +1084,9 @@ public sealed abstract class CoreOp extends Op {
      */
     @OpFactory.OpDeclaration(TupleOp.NAME)
     public static final class TupleOp extends CoreOp {
-        public static final String NAME = "tuple";
+        static final String NAME = "tuple";
 
-        public TupleOp(ExternalizedOp def) {
+        TupleOp(ExternalizedOp def) {
             this(def.operands());
         }
 
@@ -1114,12 +1114,12 @@ public sealed abstract class CoreOp extends Op {
      */
     @OpFactory.OpDeclaration(TupleLoadOp.NAME)
     public static final class TupleLoadOp extends CoreOp {
-        public static final String NAME = "tuple.load";
+        static final String NAME = "tuple.load";
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
 
-        public static TupleLoadOp create(ExternalizedOp def) {
+        static TupleLoadOp create(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalStateException("Operation must have one operand");
             }
@@ -1175,12 +1175,12 @@ public sealed abstract class CoreOp extends Op {
      */
     @OpFactory.OpDeclaration(TupleWithOp.NAME)
     public static final class TupleWithOp extends CoreOp {
-        public static final String NAME = "tuple.with";
+        static final String NAME = "tuple.with";
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
 
-        public static TupleWithOp create(ExternalizedOp def) {
+        static TupleWithOp create(ExternalizedOp def) {
             if (def.operands().size() != 2) {
                 throw new IllegalStateException("Operation must have two operands");
             }
@@ -1236,11 +1236,38 @@ public sealed abstract class CoreOp extends Op {
         }
     }
 
+    static Op createOp(ExternalizedOp def) {
+        Op op = switch (def.name()) {
+            case "branch" -> new BranchOp(def);
+            case "cbranch" -> new ConditionalBranchOp(def);
+            case "closure" -> new ClosureOp(def);
+            case "closure.call" -> new ClosureCallOp(def);
+            case "constant" -> ConstantOp.create(def);
+            case "func" -> FuncOp.create(def);
+            case "func.call" -> FuncCallOp.create(def);
+            case "module" -> ModuleOp.create(def);
+            case "quoted" -> new QuotedOp(def);
+            case "return" -> new ReturnOp(def);
+            case "tuple" -> new TupleOp(def);
+            case "tuple.load" -> TupleLoadOp.create(def);
+            case "tuple.with" -> TupleWithOp.create(def);
+            case "unreachable" -> new UnreachableOp(def);
+            case "var" -> VarOp.create(def);
+            case "var.load" -> new VarAccessOp.VarLoadOp(def);
+            case "var.store" -> new VarAccessOp.VarStoreOp(def);
+            case "yield" -> new YieldOp(def);
+            default -> null;
+        };
+        if (op != null) {
+            op.setLocation(def.location());
+        }
+        return op;
+    }
 
     /**
      * An operation factory for core operations.
      */
-    public static final OpFactory CORE_OP_FACTORY = OpFactory.OP_FACTORY.get(CoreOp.class);
+    public static final OpFactory CORE_OP_FACTORY = CoreOp::createOp;
 
     /**
      * Creates a function operation builder

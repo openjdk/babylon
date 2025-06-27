@@ -228,4 +228,81 @@ public interface OpFactory {
         }
         return Enclosed.OP_CONSTRUCTOR.get(opClass).apply(opDef);
     }
+
+//    // Uncomment the following and execute like as follows to generate a factory method
+//    // for enclosed concrete operations
+//    // java --add-modules jdk.incubator.code jdk.incubator.code.extern.OpFactory jdk.incubator.code.dialect.core.CoreOp
+//    static void main(String[] args) throws Throwable {
+//        Class<?> enclosingOpClass = Class.forName(args[0]);
+//        generateSwitchExpression(enclosingOpClass, System.out);
+//    }
+//
+//    static void generateSwitchExpression(Class<?> enclosingOpClass, java.io.PrintStream out) throws Throwable {
+//        java.util.Map<String, java.lang.reflect.Executable> opNameMap = new java.util.TreeMap<>();
+//        for (Class<?> opClass : enclosingOpClass.getNestMembers()) {
+//            if (!Op.class.isAssignableFrom(opClass)) {
+//                continue;
+//            }
+//            if (!Modifier.isFinal(opClass.getModifiers())) {
+//                continue;
+//            }
+//
+//            OpDeclaration opDecl = opClass.getAnnotation(OpDeclaration.class);
+//            String name = opDecl.value();
+//
+//            var e = getOpConstructorExecutable(opClass);
+//            opNameMap.put(name, e);
+//        }
+//
+//        out.println("static Op createOp(ExternalizedOp def) {");
+//        out.println("    Op op = switch (def.name()) {");
+//        opNameMap.forEach((name, e) -> {
+//            out.print("        case \"" + name + "\" -> ");
+//            switch (e) {
+//                case java.lang.reflect.Constructor<?> constructor -> {
+//                    out.println("new " + name(enclosingOpClass, constructor.getDeclaringClass()) + "(def);");
+//                }
+//                case java.lang.reflect.Method method -> {
+//                    out.println(name(enclosingOpClass, method.getDeclaringClass()) + "." + method.getName() + "(def);");
+//                }
+//            }
+//        });
+//        out.println("        default -> null;");
+//        out.println("    };");
+//        out.print(
+//                """
+//                    if (op != null) {
+//                        op.setLocation(def.location());
+//                    }
+//                    return op;
+//                """);
+//        out.println("}");
+//    }
+//
+//    private static java.lang.reflect.Executable getOpConstructorExecutable(Class<?> opClass) {
+//        java.lang.reflect.Executable e = null;
+//        try {
+//            e = opClass.getMethod("create", ExternalizedOp.class);
+//        } catch (NoSuchMethodException _) {
+//        }
+//
+//        if (e != null) {
+//            if (!Modifier.isStatic(e.getModifiers())) {
+//                throw new InternalError("Operation constructor is not a static method: " + e);
+//            }
+//            return e;
+//        }
+//
+//        try {
+//            e = opClass.getConstructor(ExternalizedOp.class);
+//        } catch (NoSuchMethodException _) {
+//            return null;
+//        }
+//
+//        return e;
+//    }
+//
+//    static String name(Class<?> enclosingOpClass, Class<?> declaringClass) {
+//        return declaringClass.getCanonicalName().substring(enclosingOpClass.getCanonicalName().length() + 1);
+//    }
 }
