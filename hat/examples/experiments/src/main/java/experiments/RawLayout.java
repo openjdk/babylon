@@ -35,14 +35,15 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.OpFactory;
 
 import java.util.*;
 import java.util.stream.Stream;
