@@ -5,3 +5,4 @@ repo/
 hattricks/
 target/
 stage/
+compile_flags.txt

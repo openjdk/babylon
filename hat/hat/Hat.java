@@ -34,6 +34,7 @@ public class Hat {
         var project = new Job.Project(userDir.getFileName().toString().equals("intellij") ? userDir.getParent() : userDir);
 
         var mac = new Job.Mac(project.id("mac-1.0"), Set.of());
+        var linux = new Job.Linux(project.id("linux-1.0"), Set.of());
         var opencl = new Job.OpenCL(project.id("opencl-1.0"),  Set.of());
         var opengl = new Job.OpenGL(project.id("opengl-1.0"),  Set.of());
         var cuda = new Job.Cuda(project.id("cuda-1.0"),  Set.of());
@@ -51,20 +52,27 @@ public class Hat {
         var example_squares = Job.RunnableJar.of(project.id("example-squares-1.0"), core);
         var example_heal = Job.RunnableJar.of(project.id("example-heal-1.0"), core);
         var example_violajones = Job.RunnableJar.of(project.id("example-violajones-1.0"), core);
-        var extractions_opengl = Job.JExtract.of(project.id("extraction-opengl-1.0"), Job.JExtract.Mac.of(opengl,"GLUT", "OpenGL"), mac, opengl, core);
-        var extractions_opencl = Job.JExtract.of(project.id("extraction-opencl-1.0"), Job.JExtract.Mac.of(opencl,"OpenCL"), mac, opencl, core);
-        var wraps_wrap = Job.Jar.of(project.id("wrap-wrap-1.0"));
-        var wraps_clwrap = Job.Jar.of(project.id("wrap-clwrap-1.0"), extractions_opencl, wraps_wrap);
+        if (mac.isAvailable()) {
 
-        var wraps_glwrap = Job.Jar.of(project.id("wrap-glwrap-1.0"),
-                Set.of(project.rootPath().resolve("wraps/glwrap/src/main/java/wrap/glwrap/GLCallbackEventHandler.java")), //exclude
-                extractions_opengl,
-                wraps_wrap);
-        var example_nbody = Job.RunnableJar.of(project.id("example-nbody-1.0"), Set.of(wraps_glwrap, wraps_clwrap, wraps_wrap, core, mac));
-        if (argArr.length == 0) {
-            project.start("run", "ffi-opencl", "nbody");
-        } else {
-            project.start(argArr);
+            var extractions_opengl = Job.JExtract.of(project.id("extraction-opengl-1.0"),
+                    mac.isAvailable() ? Job.JExtract.Mac.of(opengl, "GLUT", "OpenGL") : Job.JExtract.Linux.of(opengl, "GLUT", "OpenGL"),
+                    mac, opengl, core);
+            var extractions_opencl = Job.JExtract.of(project.id("extraction-opencl-1.0"),
+                    mac.isAvailable() ? Job.JExtract.Mac.of(opencl, "OpenCL") : Job.JExtract.Linux.of(opengl, "OpenCL"),
+                    mac, opencl, core);
+            var wraps_wrap = Job.Jar.of(project.id("wrap-wrap-1.0"));
+            var wraps_clwrap = Job.Jar.of(project.id("wrap-clwrap-1.0"), extractions_opencl, wraps_wrap);
+
+            var wraps_glwrap = Job.Jar.of(project.id("wrap-glwrap-1.0"),
+                    Set.of(project.rootPath().resolve("wraps/glwrap/src/main/java/wrap/glwrap/GLCallbackEventHandler.java")), //exclude
+                    extractions_opengl,
+                    wraps_wrap);
+            var example_nbody = Job.RunnableJar.of(project.id("example-nbody-1.0"), Set.of(wraps_glwrap, wraps_clwrap, wraps_wrap, core, mac));
         }
+        //if (argArr.length == 0) {
+          //  project.start("run", "ffi-opencl", "nbody");
+        //} else {
+            project.start(argArr);
+        //}
     }
 }
