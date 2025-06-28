@@ -1023,6 +1023,30 @@ public class Job {
                 }
             }
         }
+        record Linux(Path macSdkSysLibFrameWorks, Path macSysLibFrameWorks, Path header,
+                   List<Path> frameworks) implements ExtractSpec {
+            static Mac of(CMakeInfo cMakeInfo, String... frameworks) {
+                var value = (String) cMakeInfo.properties.get("");
+                Path macSdkSysLibFrameWorks = Path.of(value);
+                Path macSysLibFrameWorks = Path.of("/System/Library/Frameworks");
+                var firstName = frameworks[0];
+                return new Mac(
+                        macSdkSysLibFrameWorks,
+                        macSysLibFrameWorks,
+                        macSdkSysLibFrameWorks.resolve(firstName.toUpperCase() + ".framework/Headers/" + firstName + ".h"),
+                        Stream.of(frameworks).map(s -> macSysLibFrameWorks.resolve(s + ".framework/" + s)).collect(Collectors.toList())
+                );
+            }
+
+            void writeCompileFlags(Path outputDir) {
+                try {
+                    Path compileFLags = outputDir.resolve("compile_flags.txt");
+                    Files.writeString(compileFLags, "-F" + macSdkSysLibFrameWorks + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE);
+                } catch (IOException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        }
 
         @Override
         public boolean build() {
@@ -1031,7 +1055,7 @@ public class Job {
 
                 List<String> opts = new ArrayList<>(List.of());
                 opts.addAll(List.of(
-                        "/Users/grfrost/jextract-22/bin/jextract",
+                        "jextract",
                         "--target-package", id().name(),
                         "--output", javaSourcePath().toString()
                 ));
@@ -1200,23 +1224,27 @@ public class Job {
     }
 
     public static class Mac extends Job.AbstractArtifact<Mac> implements Job.Dependency.Optional{
+        final boolean available;
         Mac(Job.Project.Id id, Set<Job.Dependency> buildDependencies) {
             super(id,  buildDependencies);
+            available = System.getProperty("os.name").toLowerCase().contains("mac");
         }
 
         @Override
         public boolean isAvailable() {
-            return System.getProperty("os.name").toLowerCase().contains("mac");
+            return available;
         }
     }
     public static class Linux extends Job.AbstractArtifact<Linux> implements Job.Dependency.Optional{
+        final boolean available;
         Linux(Job.Project.Id id, Set<Job.Dependency> buildDependencies) {
             super(id,  buildDependencies);
+            available = System.getProperty("os.name").toLowerCase().contains("linux");
         }
 
         @Override
         public boolean isAvailable() {
-            return System.getProperty("os.name").toLowerCase().contains("linux");
+            return available;
         }
     }
     public static class OpenGL extends Job.CMakeInfo {
@@ -1228,6 +1256,10 @@ public class Job {
                     "OPENGL_GLU_FOUND",
                     "OPENGL_gl_LIBRARY",
                     "OPENGL_glu_LIBRARY",
+                    "OPENGL_INCLUDE_DIR",
+                    "OPENGL_LIBRARIES",
+                    "OPENGL_LIBRARY",
+                    "OpenGL_FOUND",
                     "CMAKE_HOST_SYSTEM_NAME",
                     "CMAKE_HOST_SYSTEM_PROCESSOR",
                     "CMAKE_C_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES"
@@ -1246,7 +1278,11 @@ public class Job {
                     "OPENCL_FOUND",
                     "CMAKE_HOST_SYSTEM_NAME",
                     "CMAKE_HOST_SYSTEM_PROCESSOR",
-                    "CMAKE_C_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES"
+                    "CMAKE_C_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES",
+                    "OpenCL_FOUND",
+                    "OpenCL_INCLUDE_DIRS",
+                    "OpenCL_LIBRARY",
+                    "OpenCL_VERSION_STRING"
             ), buildDependencies);
 
         }
@@ -1255,6 +1291,15 @@ public class Job {
         Cuda(Job.Project.Id id, Set<Job.Dependency> buildDependencies) {
             super(id,  "CUDAToolkit", "CUDATOOLKIT_FOUND",Set.of(
                     "CUDATOOLKIT_FOUND",
+                    "CUDA_OpenCL_LIBRARY",
+                    "CUDA_cuFile_LIBRARY",
+                    "CUDA_cuda_driver_LIBRARY",
+                    "CUDA_cudart_LIBRARY",
+                    "CUDAToolkit_BIN_DIR",
+                    "CUDAToolkit_INCLUDE_DIRS",
+                    "CUDAToolkit_NVCC_EXECUTABLE",
+                    "CUDAToolkit_LIBRARY_DIR",
+                    "CUDAToolkit_Version",
                     "CMAKE_HOST_SYSTEM_NAME",
                     "CMAKE_HOST_SYSTEM_PROCESSOR",
                     "CMAKE_C_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES"
