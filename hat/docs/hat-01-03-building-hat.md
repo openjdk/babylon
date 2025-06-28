@@ -123,7 +123,7 @@ To run a HAT example we can run from the artifacts in `build` dir
 ```bash
 ${JAVA_HOME}/bin/java \
    --add-modules jdk.incubator.code --enable-preview --enable-native-access=ALL-UNNAMED \
-   --class-path build/hat-core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar:build/hat-example-mandel-1.0.jar \
+   --class-path build/core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar:build/hat-example-mandel-1.0.jar \
    --add-exports=java.base/jdk.internal=ALL-UNNAMED \
    -Djava.library.path=build\
    mandel.Main

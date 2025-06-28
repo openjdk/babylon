@@ -30,68 +30,99 @@ import static java.lang.IO.println;
 void main(String[] args) {
     var layout = """
        └──./
-           ├──hat                                      //  All build scripts in each case 'foo' has java options for (and points to) 'foo.java'
-           │    ├──bld                                 //  --enable-preview --source 26 hat/bld.java
+           ├──hat                                  //  All build scripts in each case 'foo' has java options for (and points to) 'foo.java'
+           │    ├──bld                             //  --enable-preview --source 26 hat/bld.java
            │    ├──bld.java
-           │    ├──run                                 //  --enable-preview --source 26 hat/run.java
+           │    ├──run                             //  --enable-preview --source 26 hat/run.java
            │    ├──run.java
-           │    └──Script                              //  Contains all the tools for building
-           │
-           ├──build/                                   // All jars, native libs and executables
-           │    └──cmake-build-debug/                  // All intermediate cmake artifacts
-           │        ├── hat-*wrap-1.0.jar              // Wrapper jars around extracted * (clwrap, glwrap, cuwrap)
-           │        ├── hat-core-1.0.jar               // Base hat jar
-           │        ├── hat-example-*-1.0.jar          // Example jars (hat-example-nbody-1.0.jar, hat-example-life-1.0.jar)
-           │        ├── hat-jextracted-opencl-1.0.jar  // Raw jextracted jars (hat-jextracted-opencl-1.0.jar ....)
-           │        ├── lib*_backend.[dylib|so]        // ffi library backends
-           │        └── *(no suffix)                   // various generated executables (opencl_info, cuda_info, cuda_squares)
+           │    └──Script                          //  Contains all the tools for building
+           ├──build/                               // All jars, native libs and executables
+           │    ├── cmake-build-debug/             // All intermediate cmake artifacts
+           │    ├── hat-*wrap-1.0.jar              // Wrapper jars around extracted * (clwrap, glwrap, cuwrap)
+           │    ├── core-1.0.jar                   // Base hat jar
+           │    ├── hat-example-*-1.0.jar          // Example jars (hat-example-nbody-1.0.jar, hat-example-life-1.0.jar)
+           │    ├── hat-jextracted-opencl-1.0.jar  // Raw jextracted jars (hat-jextracted-opencl-1.0.jar ....)
+           │    ├── lib*_backend.[dylib|so]        // ffi library backends
+           │    └── *(no suffix)                   // various generated executables (opencl_info, cuda_info, cuda_squares)
            ├──extractions/
            │   ├──CMakeFiles.txt
-           │   ├── opencl/                             // Maven style layout
-           │   │   ├── CMakeFiles.txt
-           │   │   └── src/main/java/opencl            // created by cmake
-           │   ├── cuda/                               // Maven style layout
-           │   │   ├── CMakeFiles.txt
-           │   │   └── src/main/java/cuda              // created by cmake
-           │   └── opengl/                             // Maven style layout
-           │       ├── CMakeFiles.txt
-           │       └── src/main/java/opengl            // created by cmake
-           ├──wrap/
-           │    └──wrap/
-           │         ├──wrap/                          // Maven style layout
-           │         ├──clwrap/                        // Maven style layout
-           │         ├──glwrap/                        // Maven style layout
-           │         └──cuwrap/                        // Maven style layout
+           │   ├── opencl/
+           │   │   └──CMakeFiles.txt
+           │   ├── cuda/
+           │   │   └──CMakeFiles.txt
+           │   └── opengl/
+           │       └──CMakeFiles.txt
+           ├──wraps/
+           │   ├──wrap/
+           │   │   └──src/main/java
+           │   ├──cuwrap/
+           │   │   └──src/main/java
+           │   ├──clwrap/
+           │   │   └──src/main/java
+           │   ├──glwrap/
+           │   │   └──src/main/java
+           │   └──cuwrap/
            │
-           ├──hat-core                                 // Maven style layout
+           ├──core
            │    ├──src/main/java
-           │    │    └──hat/
-           │    │
            │    └──src/main/test
-           │         └──hat/
            │
            ├──backends
            │    ├──java
-           │    │    ├──mt                             // Maven style layout
-           │    │    └──seq                            // Maven style layout
+           │    │    ├──mt
+           │    │    └──seq
            │    ├──jextracted
-           │    │    └──opencl                         // Maven style layout
+           │    │    └──opencl
            │    └──ffi
-           │         ├──opencl                         // Maven style layout with cmake
-           │         ├──ptx                            // Maven style layout with cmake
-           │         ├──mock                           // Maven style layout with cmake
-           │         ├──spirv                          // Maven style layout with cmake
-           │         ├──cuda                           // Maven style layout with cmake
-           │         └──hip                            // Maven style layout with cmake
+           │         ├──CMakeFiles.txt
+           │         ├──opencl
+           │         │    ├──CMakeFiles.txt
+           │         │    ├──src/main/java
+           │         │    ├──src/main/native
+           │         │    └──src/main/resources
+           │         ├──cuda
+           │         │    ├──CMakeFiles.txt
+           │         │    ├──src/main/java
+           │         │    ├──src/main/native
+           │         │    └──src/main/resources
+           │         ├──mock
+           │         │    ├──CMakeFiles.txt
+           │         │    ├──src/main/java
+           │         │    ├──src/main/native
+           │         │    └──src/main/resources
+           │         ├──spirv
+           │         │    ├──CMakeFiles.txt
+           │         │    ├──src/main/java
+           │         │    ├──src/main/native
+           │         │    └──src/main/resources
+           │         └──hip
+           │              ├──CMakeFiles.txt
+           │              ├──src/main/java
+           │              ├──src/main/native
+           │              └──src/main/resources
            │
            └──examples
-                ├──mandel                              // Maven style layout
-                ├──squares                             // Maven style layout
-                ├──heal                                // Maven style layout
-                ├──life                                // Maven style layout
-                ├──nbody                               // Maven style layout
-                ├──experiments                         // Maven style layout
-                └──violajones                          // Maven style layout
+                ├──mandel
+                │    ├──src/main/java
+                │    └──src/main/resources
+                ├──squares
+                │    ├──src/main/java
+                │    └──src/main/resources
+                ├──heal
+                │    ├──src/main/java
+                │    └──src/main/resources
+                ├──life
+                │    ├──src/main/java
+                │    └──src/main/resources
+                ├──nbody
+                │    ├──src/main/java
+                │    └──src/main/resources
+                ├──experiments
+                │    ├──src/main/java
+                │    └──src/main/resources
+                └──violajones
+                     ├──src/main/java
+                     └──src/main/resources
        """;
     class Artifacts{
         static Script.MavenStyleProject javaSeqBackend;
@@ -117,8 +148,8 @@ void main(String[] args) {
     var buildDir = Script.BuildDir.of(dir.path("build")).create();
 
     Artifacts.hatCore = buildDir.mavenStyleBuild(
-            dir.existingDir("hat-core"),
-            "hat-core-1.0.jar"
+            dir.existingDir("core"),
+            "core-1.0.jar"
     );
 
 
@@ -165,7 +196,7 @@ void main(String[] args) {
     }
 
 
-    var wrapsDir = dir.existingDir("wrap");
+    var wrapsDir = dir.existingDir("wraps");
 
     Artifacts.wrap = buildDir.mavenStyleBuild(
             wrapsDir.existingDir("wrap"),
@@ -196,15 +227,17 @@ if (Artifacts.jextractedOpenGL != null
     }else if (!Artifacts.jextractedOpenGL.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$callback.class$")).isEmpty()) {
         exclude = "Func";
     }else {
-        println("We can't build glwrap because we need to exclude one of GLFuncEventHandler or GLCallbackEventHandler something");
+        println("We can't build glwrap unless exclude one of GLFuncEventHandler or GLCallbackEventHandler something");
     }
     if (exclude != null) {
-        final var excludeMeSigh = "^.*/wrap/glwrap/GL"+exclude+"EventHandler\\.java$";
+        final var excludeMeSigh = "^.*/GL"+exclude+"EventHandler\\.java$";
+        println("exclude ="+exclude+" "+excludeMeSigh);
         Artifacts.glWrap = Script.mavenStyleProject(buildDir,
                 wrapsDir.dir("glwrap"),
                 buildDir.jarFile("hat-glwrap-1.0.jar"),
                 Artifacts.wrap, Artifacts.hatCore, Artifacts.jextractedOpenGL
         ).buildExcluding(javaSrc -> javaSrc.matches(excludeMeSigh));
+
     }
 }
 

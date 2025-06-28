@@ -42,7 +42,7 @@ questions.
 
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat-core</artifactId>
+            <artifactId>core</artifactId>
             <version>1.0</version>
         </dependency>
         <dependency>
@@ -65,8 +65,8 @@ questions.
                  gl on ubuntu/jetson needs  us to exclude
                    wrap/glwrap/GLCallbackEventHandler.java 
           -->
-          <!-- uncomment for mac --> <!--<exclude>wrap/glwrap/GLCallbackEventHandler.java</exclude>-->
-          <!-- uncomment for ubuntu --> <exclude>wrap/glwrap/GLFuncEventHandler.java</exclude>
+          <!-- uncomment for mac --> <exclude>wrap/glwrap/GLCallbackEventHandler.java</exclude>
+          <!-- uncomment for ubuntu --><!-- <exclude>wrap/glwrap/GLFuncEventHandler.java</exclude> -->
         </excludes>
       </configuration>
     </plugin>

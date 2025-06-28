@@ -47,7 +47,7 @@ ${BABYLON_JDK}
      |    + bld.java + @bld
      |    + clean.java + @bld
      |
-     +--hat-core                      * Note maven style layout
+     +--core                      * Note maven style layout
      |    +--src/main/java
      |    |    +--hat/
      |    |

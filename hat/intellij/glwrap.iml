@@ -2,10 +2,10 @@
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$/../wrap/glwrap">
-      <sourceFolder url="file://$MODULE_DIR$/../wrap/glwrap/src/main/java" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../wrap/glwrap/src/main/resources" type="java-resource" />
-      <excludeFolder url="file://$MODULE_DIR$/../wrap/glwrap/src/main/java/wrap/glwrap" />
+    <content url="file://$MODULE_DIR$/../wraps/glwrap">
+      <sourceFolder url="file://$MODULE_DIR$/../wraps/glwrap/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../wraps/glwrap/src/main/resources" type="java-resource" />
+      <excludeFolder url="file://$MODULE_DIR$/../wraps/glwrap/src/main/java/wrap/glwrap" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
