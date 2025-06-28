@@ -453,7 +453,7 @@ record CMaker(boolean verbose, Path dir, Path hatBuildDir, Path cmakeBuildDir) {
 public static final Path userDir = Path.of(System.getProperty("user.dir"));
 public static final Path rootDir = userDir.getFileName().toString().equals("intellij") ? userDir.getParent() : userDir;
 public static final Path buildDir = rootDir.resolve("build");
-public static final Project hatCore = Project.of("hat-core", null, rootDir.resolve("hat-core"), "1.0", buildDir);
+public static final Project hatCore = Project.of("core", null, rootDir.resolve("core"), "1.0", buildDir);
 public static final Path backendsDir = rootDir.resolve("backends");
 public static final Path ffiBackendsDir = backendsDir.resolve("ffi");
 public static final Project ffiSharedBackend = Project.backend(ffiBackendsDir.resolve("shared"), buildDir, hatCore);

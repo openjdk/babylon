@@ -39,11 +39,11 @@ questions.
         <mac.lib.frameworks>/System/Library/Frameworks</mac.lib.frameworks>
     </properties>
     <modules>
-        <module>hat-core</module>
+        <module>core</module>
         <module>backends</module>
         <module>examples</module>
         <module>extractions</module>
-        <module>wrap</module>
+        <module>wraps</module>
     </modules>
     <build>
         <plugins>

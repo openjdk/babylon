@@ -8,6 +8,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="hat-core" />
+    <orderEntry type="module" module-name="core" />
   </component>
 </module>
