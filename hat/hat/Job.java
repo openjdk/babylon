@@ -780,7 +780,7 @@ public class Job {
             JavaProgress javaProgress = JavaProgress.adapt(id());
             List<String> opts = new ArrayList<>();
             opts.addAll(List.of(
-                    "/Users/grfrost/github/babylon-grfrost-fork/build/macosx-aarch64-server-release/jdk/bin/java",
+                    "java",
                     "--enable-preview",
                     "--enable-native-access=ALL-UNNAMED"));
             if (id().name().equals("nbody")) {
