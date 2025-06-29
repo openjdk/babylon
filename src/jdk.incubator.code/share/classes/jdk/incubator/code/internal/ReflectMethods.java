@@ -231,24 +231,19 @@ public class ReflectMethods extends TreeTranslator {
                     case QUOTED_STRUCTURAL -> {
                         // @@@ Consider replacing with invokedynamic to quoted bootstrap method
                         // Thereby we avoid certain dependencies and hide specific details
-                        JCIdent opMethodId = make.Ident(opMethod.sym);
-                        ListBuffer<JCExpression> interpreterArgs = new ListBuffer<>();
-                        // Obtain MethodHandles.lookup()
-                        // @@@ Could probably use MethodHandles.publicLookup()
-                        JCMethodInvocation lookup = make.App(make.Ident(crSyms.methodHandlesLookup), com.sun.tools.javac.util.List.nil());
-                        interpreterArgs.append(lookup);
+                        ListBuffer<JCExpression> args = new ListBuffer<>();
                         // Get the func operation
-                        JCMethodInvocation op = make.App(opMethodId);
-                        interpreterArgs.append(op);
+                        JCIdent opMethodId = make.Ident(opMethod.sym);
+                        JCExpression op = make.TypeCast(crSyms.funcOpType, make.App(opMethodId));
+                        args.add(op);
                         // Append captured vars
                         ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
-                        interpreterArgs.appendList(capturedArgs.toList());
-
-                        // Interpret the func operation to produce the quoted instance
-                        JCMethodInvocation interpreterInvoke = make.App(make.Ident(crSyms.opInterpreterInvoke), interpreterArgs.toList());
-                        interpreterInvoke.varargsElement = syms.objectType;
+                        args.appendList(capturedArgs.toList());
+                        // Get the quoted instance by calling Quoted::quotedOp
+                        JCMethodInvocation quotedInvoke = make.App(make.Ident(crSyms.quotedQuotedOp), args.toList());
+                        quotedInvoke.varargsElement = syms.objectType;
                         super.visitLambda(tree);
-                        result = interpreterInvoke;
+                        result = quotedInvoke;
                     }
                     case QUOTABLE -> {
                         // leave the lambda in place, but also leave a trail for LambdaToMethod
@@ -358,8 +353,10 @@ public class ReflectMethods extends TreeTranslator {
         return names.fromChars(sigCh, 0, sigCh.length);
     }
 
+    // @@@ Retain enum for when we might add another storage to test
+    // and compare
     private enum CodeModelStorageOption {
-        TEXT, CODE_BUILDER;
+        CODE_BUILDER;
 
         public static CodeModelStorageOption parse(String s) {
             if (s == null) {
@@ -377,24 +374,13 @@ public class ReflectMethods extends TreeTranslator {
         currentClassSym.members().enter(ms);
 
         // Create the method body
-        var body = switch (codeModelStorageOption) {
-            case TEXT -> {
-                // Code model is stored in textual form as a constant string
-                // and is constructed by parsing the string
-                var opFromStr = make.App(make.Ident(crSyms.opParserFromString),
-                        com.sun.tools.javac.util.List.of(make.Literal(op.toText())));
-                yield make.Return(opFromStr);
-            }
-            case CODE_BUILDER -> {
-                // Code model is stored as code that builds the code model
-                // using the builder API and public APIs
-                var opBuilder = OpBuilder.createBuilderFunction(op,
-                        b -> b.op(JavaOp.fieldLoad(
-                                FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-                var codeModelTranslator = new CodeModelTranslator();
-                yield codeModelTranslator.translateFuncOp(opBuilder, ms);
-            }
-        };
+        // Code model is stored as code that builds the code model
+        // using the builder API and public APIs
+        var opBuilder = OpBuilder.createBuilderFunction(op,
+                b -> b.op(JavaOp.fieldLoad(
+                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
+        var codeModelTranslator = new CodeModelTranslator();
+        var body = codeModelTranslator.translateFuncOp(opBuilder, ms);
 
         var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
         return md;
