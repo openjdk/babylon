@@ -355,7 +355,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the operation's result, or {@code null} if not assigned to a block.
      */
     public final Result result() {
-        return result;
+        return result == Result.ROOT ? null : result;
     }
 
 
