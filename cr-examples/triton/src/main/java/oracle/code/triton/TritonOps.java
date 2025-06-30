@@ -818,7 +818,7 @@ public class TritonOps {
 
     // Operation and type factories
 
-    static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(TritonOps.class);
+    static final OpFactory OP_FACTORY = OpFactoryHelper.OP_FACTORY.get(TritonOps.class);
 
     static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
         @Override
