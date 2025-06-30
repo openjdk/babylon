@@ -1,7 +1,7 @@
 package jdk.incubator.code.dialect.java.impl;
 
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizableTypeElement.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.impl.Lexer;
 import jdk.incubator.code.extern.impl.Scanner;

@@ -25,6 +25,10 @@
 
 package oracle.code.onnx;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.foreign.ValueLayout;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +36,13 @@ import jdk.incubator.code.Quotable;
 import oracle.code.onnx.ir.OnnxOps;
 
 class ExplicitOnnxOperators {
+
+    // @@@ need an analysis to count constant array size in record components
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.RECORD_COMPONENT)
+    public @interface ArrayLen {
+        int value();
+    }
 
     // Explicit constant operators
 

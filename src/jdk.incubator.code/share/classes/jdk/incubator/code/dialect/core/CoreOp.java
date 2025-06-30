@@ -25,10 +25,9 @@
 
 package jdk.incubator.code.dialect.core;
 
-import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.*;
-import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 
 import java.util.*;
@@ -42,7 +41,7 @@ import java.util.function.Function;
  * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
  * Java Language Specification
  */
-public sealed abstract class CoreOp extends ExternalizableOp {
+public sealed abstract class CoreOp extends Op {
 
     protected CoreOp(Op that, CopyContext cc) {
         super(that, cc);
@@ -50,10 +49,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
     protected CoreOp(String name, List<? extends Value> operands) {
         super(name, operands);
-    }
-
-    protected CoreOp(ExternalizedOp def) {
-        super(def);
     }
 
     /**
@@ -81,13 +76,13 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "func";
+        static final String NAME = "func";
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
         final Body body;
 
-        public static FuncOp create(ExternalizedOp def) {
+        static FuncOp create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -97,14 +92,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                         case String s -> s;
                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
-            return new FuncOp(def, funcName);
-        }
-
-        FuncOp(ExternalizedOp def, String funcName) {
-            super(def);
-
-            this.funcName = funcName;
-            this.body = def.bodyDefinitions().get(0).build(this);
+            return new FuncOp(funcName, def.bodyDefinitions().get(0));
         }
 
         FuncOp(FuncOp that, CopyContext cc, OpTransformer oa) {
@@ -132,8 +120,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         FuncOp(String funcName, Body.Builder bodyBuilder) {
-            super(NAME,
-                    List.of());
+            super(NAME, List.of());
 
             this.funcName = funcName;
             this.body = bodyBuilder.build(this);
@@ -145,10 +132,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", funcName);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of("", funcName);
         }
 
         @Override
@@ -185,27 +170,20 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     // @@@ stack effects equivalent to the call operation as if the function were a Java method?
     @OpFactory.OpDeclaration(FuncCallOp.NAME)
     public static final class FuncCallOp extends CoreOp {
-        public static final String NAME = "func.call";
+        static final String NAME = "func.call";
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
         final TypeElement resultType;
 
-        public static FuncCallOp create(ExternalizedOp def) {
+        static FuncCallOp create(ExternalizedOp def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
 
-            return new FuncCallOp(def, funcName);
-        }
-
-        FuncCallOp(ExternalizedOp def, String funcName) {
-            super(def);
-
-            this.funcName = funcName;
-            this.resultType = def.resultType();
+            return new FuncCallOp(funcName, def.resultType(), def.operands());
         }
 
         FuncCallOp(FuncCallOp that, CopyContext cc) {
@@ -228,10 +206,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", funcName);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of("", funcName);
         }
 
         public String funcName() {
@@ -252,24 +228,17 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     public static final class ModuleOp extends CoreOp
             implements Op.Isolated, Op.Lowerable {
 
-        public static final String NAME = "module";
+        static final String NAME = "module";
 
         final SequencedMap<String, FuncOp> table;
         final Body body;
 
-        public static ModuleOp create(ExternalizedOp def) {
+        static ModuleOp create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            return new ModuleOp(def);
-        }
-
-        ModuleOp(ExternalizedOp def) {
-            super(def);
-
-            this.body = def.bodyDefinitions().get(0).build(this);
-            this.table = createTable(body);
+            return new ModuleOp(def.bodyDefinitions().get(0));
         }
 
         ModuleOp(ModuleOp that, CopyContext cc, OpTransformer ot) {
@@ -300,20 +269,22 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new ModuleOp(this, CopyContext.create(), ot);
         }
 
-        ModuleOp(List<FuncOp> functions) {
-            super(NAME,
-                    List.of());
+        ModuleOp(Body.Builder bodyBuilder) {
+            super(NAME, List.of());
 
+            this.body = bodyBuilder.build(this);
+            this.table = createTable(body);
+        }
+
+        ModuleOp(List<FuncOp> functions) {
             Body.Builder bodyC = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
-            SequencedMap<String, FuncOp> table = new LinkedHashMap<>();
             for (FuncOp f : functions) {
                 entryBlock.op(f);
-                table.put(f.funcName(), f);
             }
             entryBlock.op(CoreOp.unreachable());
-            this.table = Collections.unmodifiableSequencedMap(table);
-            this.body = bodyC.build(this);
+
+            this(bodyC);
         }
 
         @Override
@@ -343,7 +314,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(QuotedOp.NAME)
     public static final class QuotedOp extends CoreOp
             implements Op.Nested, Op.Lowerable, Op.Pure {
-        public static final String NAME = "quoted";
+        static final String NAME = "quoted";
 
         public static final JavaType QUOTED_TYPE = JavaType.type(Quoted.class);
 
@@ -351,17 +322,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
         final Op quotedOp;
 
-        public QuotedOp(ExternalizedOp def) {
-            super(def);
-
-            this.quotedBody = def.bodyDefinitions().get(0).build(this);
-
-            if (quotedBody.entryBlock().terminatingOp() instanceof YieldOp brk &&
-                    brk.yieldValue() instanceof Result quotedOpResult) {
-                this.quotedOp = quotedOpResult.op();
-            } else {
-                throw new IllegalArgumentException();
-            }
+        QuotedOp(ExternalizedOp def) {
+            this(def.bodyDefinitions().get(0));
         }
 
         QuotedOp(QuotedOp that, CopyContext cc, OpTransformer ot) {
@@ -377,8 +339,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         QuotedOp(Body.Builder bodyC) {
-            super(NAME,
-                    List.of());
+            super(NAME, List.of());
 
             this.quotedBody = bodyC.build(this);
             if (quotedBody.blocks().size() > 1) {
@@ -445,14 +406,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "closure";
+        static final String NAME = "closure";
 
         final Body body;
 
-        public ClosureOp(ExternalizedOp def) {
-            super(def);
-
-            this.body = def.bodyDefinitions().get(0).build(this);
+        ClosureOp(ExternalizedOp def) {
+            this(def.bodyDefinitions().get(0));
         }
 
         ClosureOp(ClosureOp that, CopyContext cc, OpTransformer ot) {
@@ -513,10 +472,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 //  that is the target of the closures lambda expression.
     @OpFactory.OpDeclaration(ClosureCallOp.NAME)
     public static final class ClosureCallOp extends CoreOp {
-        public static final String NAME = "closure.call";
+        static final String NAME = "closure.call";
 
-        public ClosureCallOp(ExternalizedOp def) {
-            super(def);
+        ClosureCallOp(ExternalizedOp def) {
+            this(def.operands());
         }
 
         ClosureCallOp(ClosureCallOp that, CopyContext cc) {
@@ -547,14 +506,14 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(ReturnOp.NAME)
     public static final class ReturnOp extends CoreOp
             implements Op.BodyTerminating, JavaOp.JavaStatement {
-        public static final String NAME = "return";
+        static final String NAME = "return";
 
-        public ReturnOp(ExternalizedOp def) {
-            super(def);
-
+        ReturnOp(ExternalizedOp def) {
             if (def.operands().size() > 1) {
                 throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
             }
+
+            this(def.operands().isEmpty() ? null : def.operands().get(0));
         }
 
         ReturnOp(ReturnOp that, CopyContext cc) {
@@ -566,12 +525,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new ReturnOp(this, cc);
         }
 
-        ReturnOp() {
-            super(NAME, List.of());
-        }
-
         ReturnOp(Value operand) {
-            super(NAME, List.of(operand));
+            super(NAME, operand == null ? List.of() : List.of(operand));
         }
 
         public Value returnValue() {
@@ -597,14 +552,14 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(UnreachableOp.NAME)
     public static final class UnreachableOp extends CoreOp
             implements Op.BodyTerminating {
-        public static final String NAME = "unreachable";
+        static final String NAME = "unreachable";
 
-        public UnreachableOp(ExternalizedOp def) {
-            super(def);
-
+        UnreachableOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalArgumentException("Operation must zero operands " + def.name());
             }
+
+            this();
         }
 
         UnreachableOp(UnreachableOp that, CopyContext cc) {
@@ -635,14 +590,14 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(YieldOp.NAME)
     public static final class YieldOp extends CoreOp
             implements Op.BodyTerminating {
-        public static final String NAME = "yield";
+        static final String NAME = "yield";
 
-        public YieldOp(ExternalizedOp def) {
-            super(def);
-
+        YieldOp(ExternalizedOp def) {
             if (def.operands().size() > 1) {
                 throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
             }
+
+            this(def.operands());
         }
 
         YieldOp(YieldOp that, CopyContext cc) {
@@ -685,18 +640,16 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(BranchOp.NAME)
     public static final class BranchOp extends CoreOp
             implements Op.BlockTerminating {
-        public static final String NAME = "branch";
+        static final String NAME = "branch";
 
         final Block.Reference b;
 
-        public BranchOp(ExternalizedOp def) {
-            super(def);
-
+        BranchOp(ExternalizedOp def) {
             if (!def.operands().isEmpty() || def.successors().size() != 1) {
                 throw new IllegalArgumentException("Operation must have zero arguments and one successor" + def.name());
             }
 
-            this.b = def.successors().get(0);
+            this(def.successors().get(0));
         }
 
         BranchOp(BranchOp that, CopyContext cc) {
@@ -741,20 +694,17 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(ConditionalBranchOp.NAME)
     public static final class ConditionalBranchOp extends CoreOp
             implements Op.BlockTerminating {
-        public static final String NAME = "cbranch";
+        static final String NAME = "cbranch";
 
         final Block.Reference t;
         final Block.Reference f;
 
-        public ConditionalBranchOp(ExternalizedOp def) {
-            super(def);
-
+        ConditionalBranchOp(ExternalizedOp def) {
             if (def.operands().size() != 1 || def.successors().size() != 2) {
                 throw new IllegalArgumentException("Operation must one operand and two successors" + def.name());
             }
 
-            this.t = def.successors().get(0);
-            this.f = def.successors().get(1);
+            this(def.operands().getFirst(), def.successors().get(0), def.successors().get(1));
         }
 
         ConditionalBranchOp(ConditionalBranchOp that, CopyContext cc) {
@@ -805,21 +755,21 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(ConstantOp.NAME)
     public static final class ConstantOp extends CoreOp
             implements Op.Pure, JavaOp.JavaExpression {
-        public static final String NAME = "constant";
+        static final String NAME = "constant";
 
         public static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
         final TypeElement type;
 
-        public static ConstantOp create(ExternalizedOp def) {
+        static ConstantOp create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
 
             Object value = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE, true,
                     v -> processConstantValue(def.resultType(), v));
-            return new ConstantOp(def, value);
+            return new ConstantOp(def.resultType(), value);
         }
 
         static Object processConstantValue(TypeElement t, Object value) {
@@ -840,23 +790,16 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             } else if (t.equals(JavaType.DOUBLE) && value instanceof Number n) {
                 return n.doubleValue();
             } else if (t.equals(JavaType.J_L_STRING)) {
-                return value == NULL_ATTRIBUTE_VALUE ?
+                return value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ?
                         null : (String)value;
             } else if (t.equals(JavaType.J_L_CLASS)) {
-                return value == NULL_ATTRIBUTE_VALUE ?
+                return value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ?
                         null : (TypeElement)value;
-            } else if (value == NULL_ATTRIBUTE_VALUE) {
+            } else if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
 
             throw new UnsupportedOperationException("Unsupported constant type and value: " + t + " " + value);
-        }
-
-        ConstantOp(ExternalizedOp def, Object value) {
-            super(def);
-
-            this.type = def.resultType();
-            this.value = value;
         }
 
         ConstantOp(ConstantOp that, CopyContext cc) {
@@ -879,10 +822,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put("", value == null ? NULL_ATTRIBUTE_VALUE : value);
-            return attrs;
+        public Map<String, Object> externalize() {
+            return Map.of("", value == null ? ExternalizedOp.NULL_ATTRIBUTE_VALUE : value);
         }
 
         public Object value() {
@@ -927,13 +868,13 @@ public sealed abstract class CoreOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(VarOp.NAME)
     public static final class VarOp extends CoreOp
             implements JavaOp.JavaStatement {
-        public static final String NAME = "var";
+        static final String NAME = "var";
         public static final String ATTRIBUTE_NAME = NAME + ".name";
 
         final String varName;
         final VarType resultType;
 
-        public static VarOp create(ExternalizedOp def) {
+        static VarOp create(ExternalizedOp def) {
             if (def.operands().size() > 1) {
                 throw new IllegalStateException("Operation must have zero or one operand");
             }
@@ -944,11 +885,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                         case null -> "";
                         default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
                     });
+            // @@@ Cannot use canonical constructor because type is wrapped
             return new VarOp(def, name);
         }
 
         VarOp(ExternalizedOp def, String varName) {
-            super(def);
+            super(NAME, def.operands());
 
             this.varName = varName;
             this.resultType = (VarType) def.resultType();
@@ -971,35 +913,16 @@ public sealed abstract class CoreOp extends ExternalizableOp {
             return new VarOp(this, cc);
         }
 
-        VarOp(String varName, Value init) {
-            this(varName, init.type(), init);
-        }
-
         VarOp(String varName, TypeElement type, Value init) {
-            super(NAME, List.of(init));
-
-            this.varName =  varName == null ? "" : varName;
-            this.resultType = CoreType.varType(type);
-        }
-
-        // @@@ This and the above constructor can be merged when
-        // statements before super can be used in the jdk.compiler module
-        VarOp(String varName, TypeElement type) {
-            super(NAME, List.of());
+            super(NAME, init == null ? List.of() : List.of(init));
 
             this.varName =  varName == null ? "" : varName;
             this.resultType = CoreType.varType(type);
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            if (isUnnamedVariable()) {
-                return super.attributes();
-            }
-
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", varName);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return isUnnamedVariable() ? Map.of() : Map.of("", varName);
         }
 
         public Value initOperand() {
@@ -1037,10 +960,6 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     public sealed abstract static class VarAccessOp extends CoreOp
             implements JavaOp.AccessOp {
-        VarAccessOp(ExternalizedOp opdef) {
-            super(opdef);
-        }
-
         VarAccessOp(VarAccessOp that, CopyContext cc) {
             super(that, cc);
         }
@@ -1080,23 +999,19 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @OpFactory.OpDeclaration(VarLoadOp.NAME)
         public static final class VarLoadOp extends VarAccessOp
                 implements JavaOp.JavaExpression {
-            public static final String NAME = "var.load";
+            static final String NAME = "var.load";
 
             public VarLoadOp(ExternalizedOp opdef) {
-                super(opdef);
-
                 if (opdef.operands().size() != 1) {
                     throw new IllegalArgumentException("Operation must have one operand");
                 }
                 checkIsVarOp(opdef.operands().get(0));
+
+                this(opdef.operands().get(0));
             }
 
             VarLoadOp(VarLoadOp that, CopyContext cc) {
                 super(that, cc);
-            }
-
-            VarLoadOp(List<Value> varValue) {
-                super(NAME, varValue);
             }
 
             @Override
@@ -1121,15 +1036,15 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         @OpFactory.OpDeclaration(VarStoreOp.NAME)
         public static final class VarStoreOp extends VarAccessOp
                 implements JavaOp.JavaExpression, JavaOp.JavaStatement {
-            public static final String NAME = "var.store";
+            static final String NAME = "var.store";
 
             public VarStoreOp(ExternalizedOp opdef) {
-                super(opdef);
-
                 if (opdef.operands().size() != 2) {
                     throw new IllegalArgumentException("Operation must have two operands");
                 }
                 checkIsVarOp(opdef.operands().get(0));
+
+                this(opdef.operands().get(0), opdef.operands().get(1));
             }
 
             VarStoreOp(VarStoreOp that, CopyContext cc) {
@@ -1148,8 +1063,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
 
             // (Variable, VarType)void
             VarStoreOp(Value varValue, Value v) {
-                super(NAME,
-                        List.of(varValue, v));
+                super(NAME, List.of(varValue, v));
             }
 
             public Value storeOperand() {
@@ -1170,10 +1084,10 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(TupleOp.NAME)
     public static final class TupleOp extends CoreOp {
-        public static final String NAME = "tuple";
+        static final String NAME = "tuple";
 
-        public TupleOp(ExternalizedOp def) {
-            super(def);
+        TupleOp(ExternalizedOp def) {
+            this(def.operands());
         }
 
         TupleOp(TupleOp that, CopyContext cc) {
@@ -1200,12 +1114,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(TupleLoadOp.NAME)
     public static final class TupleLoadOp extends CoreOp {
-        public static final String NAME = "tuple.load";
+        static final String NAME = "tuple.load";
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
 
-        public static TupleLoadOp create(ExternalizedOp def) {
+        static TupleLoadOp create(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalStateException("Operation must have one operand");
             }
@@ -1215,14 +1129,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });
-            return new TupleLoadOp(def, index);
-        }
-
-        TupleLoadOp(ExternalizedOp def, int index) {
-            super(def);
-
-            // @@@ Validate tuple type and index
-            this.index = index;
+            return new TupleLoadOp(def.operands().get(0), index);
         }
 
         TupleLoadOp(TupleLoadOp that, CopyContext cc) {
@@ -1247,10 +1154,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", index);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of("", index);
         }
 
         public int index() {
@@ -1270,12 +1175,12 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(TupleWithOp.NAME)
     public static final class TupleWithOp extends CoreOp {
-        public static final String NAME = "tuple.with";
+        static final String NAME = "tuple.with";
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
 
         final int index;
 
-        public static TupleWithOp create(ExternalizedOp def) {
+        static TupleWithOp create(ExternalizedOp def) {
             if (def.operands().size() != 2) {
                 throw new IllegalStateException("Operation must have two operands");
             }
@@ -1285,14 +1190,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });
-            return new TupleWithOp(def, index);
-        }
-
-        TupleWithOp(ExternalizedOp def, int index) {
-            super(def);
-
-            // @@@ Validate tuple type and index
-            this.index = index;
+            return new TupleWithOp(def.operands().get(0), index, def.operands().get(1));
         }
 
         TupleWithOp(TupleWithOp that, CopyContext cc) {
@@ -1318,10 +1216,8 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", index);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of("", index);
         }
 
         public int index() {
@@ -1332,7 +1228,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         public TypeElement resultType() {
             Value tupleValue = operands().get(0);
             TupleType tupleType = (TupleType) tupleValue.type();
-            Value value = operands().get(2);
+            Value value = operands().get(1);
 
             List<TypeElement> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
             tupleComponentTypes.set(index, value.type());
@@ -1340,11 +1236,38 @@ public sealed abstract class CoreOp extends ExternalizableOp {
         }
     }
 
+    static Op createOp(ExternalizedOp def) {
+        Op op = switch (def.name()) {
+            case "branch" -> new BranchOp(def);
+            case "cbranch" -> new ConditionalBranchOp(def);
+            case "closure" -> new ClosureOp(def);
+            case "closure.call" -> new ClosureCallOp(def);
+            case "constant" -> ConstantOp.create(def);
+            case "func" -> FuncOp.create(def);
+            case "func.call" -> FuncCallOp.create(def);
+            case "module" -> ModuleOp.create(def);
+            case "quoted" -> new QuotedOp(def);
+            case "return" -> new ReturnOp(def);
+            case "tuple" -> new TupleOp(def);
+            case "tuple.load" -> TupleLoadOp.create(def);
+            case "tuple.with" -> TupleWithOp.create(def);
+            case "unreachable" -> new UnreachableOp(def);
+            case "var" -> VarOp.create(def);
+            case "var.load" -> new VarAccessOp.VarLoadOp(def);
+            case "var.store" -> new VarAccessOp.VarStoreOp(def);
+            case "yield" -> new YieldOp(def);
+            default -> null;
+        };
+        if (op != null) {
+            op.setLocation(def.location());
+        }
+        return op;
+    }
 
     /**
      * An operation factory for core operations.
      */
-    public static final OpFactory CORE_OP_FACTORY = OpFactory.OP_FACTORY.get(CoreOp.class);
+    public static final OpFactory CORE_OP_FACTORY = CoreOp::createOp;
 
     /**
      * Creates a function operation builder
@@ -1510,7 +1433,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * @return the return operation
      */
     public static ReturnOp _return() {
-        return new ReturnOp();
+        return _return(null);
     }
 
     /**
@@ -1606,7 +1529,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * @return the var operation
      */
     public static VarOp var(String name, TypeElement type) {
-        return new VarOp(name, type);
+        return var(name, type, null);
     }
 
     /**
@@ -1629,7 +1552,7 @@ public sealed abstract class CoreOp extends ExternalizableOp {
      * @return the var operation
      */
     public static VarOp var(String name, Value init) {
-        return new VarOp(name, init);
+        return var(name, init.type(), init);
     }
 
     /**

@@ -31,9 +31,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.*;
 
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
-import jdk.incubator.code.extern.ExternalizableTypeElement;
 import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
 import jdk.incubator.code.extern.TypeElementFactory;
 
@@ -56,7 +56,7 @@ import java.util.stream.Stream;
  * or be {@linkplain #resolve(Lookup) resolved} into reflective type mirrors.
  * @sealedGraph
  */
-public sealed interface JavaType extends ExternalizableTypeElement
+public sealed interface JavaType extends TypeElement
         permits ClassType, ArrayType, PrimitiveType, WildcardType, TypeVariableType {
 
     /** {@link JavaType} representing {@code void} */

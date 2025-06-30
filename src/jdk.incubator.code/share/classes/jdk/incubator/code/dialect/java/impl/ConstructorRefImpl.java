@@ -31,6 +31,7 @@ import jdk.incubator.code.dialect.java.ConstructorRef;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleInfo;

@@ -42,7 +42,7 @@ class Config{
      List<String> appargs = new ArrayList<>();
      Config(Script.BuildDir buildDir,  String[] args){
 
-        classpath.add(buildDir.jarFile("hat-core-1.0.jar"));
+        classpath.add(buildDir.jarFile("core-1.0.jar"));
         for (int arg=0;arg<args.length;arg++){
             if (args[arg].startsWith("ffi-")) {
                 backendName = args[arg];

@@ -34,6 +34,7 @@ import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.RecordComponent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -44,6 +45,7 @@ import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -168,7 +170,14 @@ public final class OnnxRuntime {
                     throw new IllegalStateException(e);
                 }
             }
-            default -> {}
+            // @@@ constant array last object must be consumed or the statically detected size and the actual size missmatch
+            case Object[] os -> {
+                for (var o : os) {
+                    expandArg(o, args);
+                }
+            }
+            default -> {
+            }
         }
     }
 
@@ -182,14 +191,18 @@ public final class OnnxRuntime {
                 .toList();
         List<Tensor> ret = model.run(arena, arguments);
 
-        ClassType retType = ((ClassType)((JavaOp.LambdaOp)q.op()).invokableType().returnType()).rawType();
+        TypeElement type = ((JavaOp.LambdaOp)q.op()).invokableType().returnType();
+        if (type instanceof ArrayType) {
+            return (T)ret.toArray(Tensor[]::new);
+        }
+        ClassType retType = ((ClassType)type).rawType();
         if (retType.equals(TENSOR_RAW_TYPE)) {
             return (T)ret.getFirst();
         } else if(retType.equals(LIST_RAW_TYPE)) {
             return (T)ret;
-        } else if(getRecordConstructor(l, retType) instanceof Constructor recordConstructor) {
+        } else if(getRecordClass(l, retType) instanceof Class cls) {
             try {
-                return (T)recordConstructor.newInstance(ret.toArray());
+                return (T)cls.getConstructors()[0].newInstance(unflat(ret, cls.getRecordComponents()));
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -198,11 +211,25 @@ public final class OnnxRuntime {
         }
     }
 
-    static Constructor getRecordConstructor(MethodHandles.Lookup l, ClassType ct) {
+    static Object[] unflat(List<Tensor> values, RecordComponent[] rcs) {
+        Object[] ret = new Object[rcs.length];
+        for (int i = 0, j = 0; i < rcs.length; i++) {
+            if (rcs[i].getType().isArray() && rcs[i].getAnnotation(ExplicitOnnxOperators.ArrayLen.class) instanceof ExplicitOnnxOperators.ArrayLen al) {
+                ret[i] = values.subList(j, j + al.value()).toArray(Tensor[]::new);
+                j += al.value();
+            } else {
+                ret[i] = values.get(j++);
+            }
+        }
+        return ret;
+    }
+
+
+    static Class getRecordClass(MethodHandles.Lookup l, ClassType ct) {
         try {
             var t = ct.resolve(l);
             while (t instanceof ParameterizedType pt) t = pt.getRawType();
-            if (t instanceof Class c && c.isRecord()) return c.getConstructors()[0];
+            if (t instanceof Class c && c.isRecord()) return c;
         } catch (ReflectiveOperationException _) {
         }
         return null;

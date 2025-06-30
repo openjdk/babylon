@@ -417,6 +417,18 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
+     * Externalizes the operation's state as a map of attributes.
+     *
+     * <p>A null attribute value is represented by the constant
+     * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
+     *
+     * @return the operation's externalized state, as an unmodifiable map
+     */
+    public Map<String, Object> externalize() {
+        return Map.of();
+    }
+
+    /**
      * Traverse the operands of this operation that are the results of prior operations, recursively.
      * <p>
      * Traversal is performed in pre-order, reporting the operation of each operand to the visitor.

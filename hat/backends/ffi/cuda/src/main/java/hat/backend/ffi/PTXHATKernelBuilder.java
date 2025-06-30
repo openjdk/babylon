@@ -30,7 +30,6 @@ import hat.text.CodeBuilder;
 import hat.util.StreamCounter;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.extern.ExternalizableOp;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -164,7 +163,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         cbrace();
     }
 
-    public static class PTXPtrOp extends ExternalizableOp {
+    public static class PTXPtrOp extends Op {
         public String fieldName;
         public static final String NAME = "ptxPtr";
         final TypeElement resultType;

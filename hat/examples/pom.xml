@@ -36,7 +36,7 @@ questions.
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat-core</artifactId>
+            <artifactId>core</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
@@ -47,7 +47,7 @@ questions.
         <module>violajones</module>
         <module>squares</module>
         <module>life</module>
-        <module>experiments</module>
+        <!--<module>experiments</module>-->
     </modules>
     <profiles>
         <profile>

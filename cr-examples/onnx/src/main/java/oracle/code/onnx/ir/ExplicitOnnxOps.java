@@ -28,7 +28,7 @@ package oracle.code.onnx.ir;
 import java.util.*;
 import jdk.incubator.code.*;
 import jdk.incubator.code.Op.Nested;
-import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 
 public sealed class ExplicitOnnxOps permits OnnxOps {
@@ -653,7 +653,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
                 List.of(OutputParameter.values())
         );
 
-        public If(ExternalizableOp.ExternalizedOp def) {
+        public If(ExternalizedOp def) {
             super(SCHEMA, def);
 
             this.thenBody = def.bodyDefinitions().get(0).build(this);
@@ -796,7 +796,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
                 List.of(OutputParameter.values())
         );
 
-        public Loop(ExternalizableOp.ExternalizedOp def) {
+        public Loop(ExternalizedOp def) {
             super(SCHEMA, def);
 
             this.body = def.bodyDefinitions().get(0).build(this);

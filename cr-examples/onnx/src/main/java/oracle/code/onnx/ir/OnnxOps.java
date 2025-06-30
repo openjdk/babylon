@@ -27,6 +27,7 @@
 package oracle.code.onnx.ir;
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 
 import java.util.*;

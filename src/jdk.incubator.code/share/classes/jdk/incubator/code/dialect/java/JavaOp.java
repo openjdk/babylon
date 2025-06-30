@@ -29,7 +29,7 @@ import java.lang.constant.ClassDesc;
 import jdk.incubator.code.*;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.dialect.core.*;
-import jdk.incubator.code.extern.ExternalizableOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 
 import java.util.*;
@@ -59,7 +59,7 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  * This transformation preserves programing meaning. The resulting lowered code model also represents the same Java
  * program.
  */
-public sealed abstract class JavaOp extends ExternalizableOp {
+public sealed abstract class JavaOp extends Op {
 
     protected JavaOp(Op that, CopyContext cc) {
         super(that, cc);
@@ -67,10 +67,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
     protected JavaOp(String name, List<? extends Value> operands) {
         super(name, operands);
-    }
-
-    protected JavaOp(ExternalizableOp.ExternalizedOp def) {
-        super(def);
     }
 
     /**
@@ -172,16 +168,13 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "lambda";
+        static final String NAME = "lambda";
 
         final TypeElement functionalInterface;
         final Body body;
 
-        public LambdaOp(ExternalizedOp def) {
-            super(def);
-
-            this.functionalInterface = def.resultType();
-            this.body = def.bodyDefinitions().get(0).build(this);
+        LambdaOp(ExternalizedOp def) {
+            this(def.resultType(), def.bodyDefinitions().get(0));
         }
 
         LambdaOp(LambdaOp that, CopyContext cc, OpTransformer ot) {
@@ -380,14 +373,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(ThrowOp.NAME)
     public static final class ThrowOp extends JavaOp
             implements BodyTerminating, JavaStatement {
-        public static final String NAME = "throw";
+        static final String NAME = "throw";
 
-        public ThrowOp(ExternalizedOp def) {
-            super(def);
-
+        ThrowOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
+
+            this(def.operands().get(0));
         }
 
         ThrowOp(ThrowOp that, CopyContext cc) {
@@ -419,32 +412,25 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(AssertOp.NAME)
     public static final class AssertOp extends JavaOp
             implements Nested, JavaStatement {
-        public static final String NAME = "assert";
+        static final String NAME = "assert";
         public final List<Body> bodies;
 
-        public AssertOp(ExternalizedOp def) {
-            super(def);
-            var bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
-            checkBodies(bodies);
-            this.bodies = bodies;
+        AssertOp(ExternalizedOp def) {
+            this(def.bodyDefinitions());
         }
 
         public AssertOp(List<Body.Builder> bodies) {
             super(NAME, List.of());
-            checkBodies(bodies);
+
+            if (bodies.size() != 1 && bodies.size() != 2) {
+                throw new IllegalArgumentException("Assert must have one or two bodies.");
+            }
             this.bodies = bodies.stream().map(b -> b.build(this)).toList();
         }
 
         AssertOp(AssertOp that, CopyContext cc, OpTransformer ot) {
-
             super(that, cc);
             this.bodies = that.bodies.stream().map(b -> b.transform(cc, ot).build(this)).toList();
-        }
-
-        private void checkBodies(List<?> bodies) {
-            if (bodies.size() != 1 && bodies.size() != 2) {
-                throw new IllegalArgumentException("Assert must have one or two bodies.");
-            }
         }
 
         @Override
@@ -467,14 +453,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * A monitor operation.
      */
     public sealed abstract static class MonitorOp extends JavaOp {
-        public MonitorOp(ExternalizedOp def) {
-            super(def);
-
-            if (def.operands().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one operand " + def.name());
-            }
-        }
-
         MonitorOp(MonitorOp that, CopyContext cc) {
             super(that, cc);
         }
@@ -497,10 +475,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
          */
         @OpFactory.OpDeclaration(MonitorEnterOp.NAME)
         public static final class MonitorEnterOp extends MonitorOp {
-            public static final String NAME = "monitor.enter";
+            static final String NAME = "monitor.enter";
 
-            public MonitorEnterOp(ExternalizedOp def) {
-                super(def);
+            MonitorEnterOp(ExternalizedOp def) {
+                if (def.operands().size() != 1) {
+                    throw new IllegalArgumentException("Operation must have one operand " + def.name());
+                }
+
+                this(def.operands().get(0));
             }
 
             MonitorEnterOp(MonitorEnterOp that, CopyContext cc) {
@@ -522,10 +504,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
          */
         @OpFactory.OpDeclaration(MonitorExitOp.NAME)
         public static final class MonitorExitOp extends MonitorOp {
-            public static final String NAME = "monitor.exit";
+            static final String NAME = "monitor.exit";
 
-            public MonitorExitOp(ExternalizedOp def) {
-                super(def);
+            MonitorExitOp(ExternalizedOp def) {
+                if (def.operands().size() != 1) {
+                    throw new IllegalArgumentException("Operation must have one operand " + def.name());
+                }
+
+                this(def.operands().get(0));
             }
 
             MonitorExitOp(MonitorExitOp that, CopyContext cc) {
@@ -568,7 +554,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             SUPER
         }
 
-        public static final String NAME = "invoke";
+        static final String NAME = "invoke";
         public static final String ATTRIBUTE_INVOKE_DESCRIPTOR = NAME + ".descriptor";
         public static final String ATTRIBUTE_INVOKE_KIND = NAME + ".kind";
         public static final String ATTRIBUTE_INVOKE_VARARGS = NAME + ".varargs";
@@ -578,7 +564,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         final MethodRef invokeDescriptor;
         final TypeElement resultType;
 
-        public static InvokeOp create(ExternalizedOp def) {
+        static InvokeOp create(ExternalizedOp def) {
             // Required attribute
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch (v) {
@@ -614,18 +600,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
                     });
 
 
-            return new InvokeOp(def, ik, isVarArgs, invokeDescriptor);
-        }
-
-        InvokeOp(ExternalizedOp def, InvokeKind invokeKind, boolean isVarArgs, MethodRef invokeDescriptor) {
-            super(def);
-
-            validateArgCount(invokeKind, isVarArgs, invokeDescriptor, def.operands());
-
-            this.invokeKind = invokeKind;
-            this.isVarArgs = isVarArgs;
-            this.invokeDescriptor = invokeDescriptor;
-            this.resultType = def.resultType();
+            return new InvokeOp(ik, isVarArgs, def.resultType(), invokeDescriptor, def.operands());
         }
 
         InvokeOp(InvokeOp that, CopyContext cc) {
@@ -663,8 +638,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
+        public Map<String, Object> externalize() {
+            HashMap<String, Object> m = new HashMap<>();
             m.put("", invokeDescriptor);
             if (isVarArgs) {
                 // If varargs then we need to declare the invoke.kind attribute
@@ -730,14 +705,12 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(ConvOp.NAME)
     public static final class ConvOp extends JavaOp
             implements Pure, JavaExpression {
-        public static final String NAME = "conv";
+        static final String NAME = "conv";
 
         final TypeElement resultType;
 
-        public ConvOp(ExternalizedOp def) {
-            super(def);
-
-            this.resultType = def.resultType();
+        ConvOp(ExternalizedOp def) {
+            this(def.resultType(), def.operands().get(0));
         }
 
         ConvOp(ConvOp that, CopyContext cc) {
@@ -770,7 +743,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     public static final class NewOp extends JavaOp
             implements ReflectiveOp, JavaExpression, JavaStatement {
 
-        public static final String NAME = "new";
+        static final String NAME = "new";
         public static final String ATTRIBUTE_NEW_DESCRIPTOR = NAME + ".descriptor";
         public static final String ATTRIBUTE_NEW_VARARGS = NAME + ".varargs";
 
@@ -778,7 +751,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         final ConstructorRef constructorDescriptor;
         final TypeElement resultType;
 
-        public static NewOp create(ExternalizedOp def) {
+        static NewOp create(ExternalizedOp def) {
             // Required attribute
             ConstructorRef constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,
                     true, v -> switch (v) {
@@ -794,17 +767,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
                         case null, default -> false;
                     });
 
-            return new NewOp(def, isVarArgs, constructorDescriptor);
-        }
-
-        NewOp(ExternalizedOp def, boolean isVarArgs, ConstructorRef constructorDescriptor) {
-            super(def);
-
-            validateArgCount(isVarArgs, constructorDescriptor, def.operands());
-
-            this.isVarArgs = isVarArgs;
-            this.constructorDescriptor = constructorDescriptor;
-            this.resultType = def.resultType();
+            return new NewOp(isVarArgs, def.resultType(), constructorDescriptor, def.operands());
         }
 
         NewOp(NewOp that, CopyContext cc) {
@@ -813,6 +776,21 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             this.isVarArgs = that.isVarArgs;
             this.constructorDescriptor = that.constructorDescriptor;
             this.resultType = that.resultType;
+        }
+
+        @Override
+        public NewOp transform(CopyContext cc, OpTransformer ot) {
+            return new NewOp(this, cc);
+        }
+
+        NewOp(boolean isVarargs, TypeElement resultType, ConstructorRef constructorDescriptor, List<Value> args) {
+            super(NAME, args);
+
+            validateArgCount(isVarargs, constructorDescriptor, args);
+
+            this.isVarArgs = isVarargs;
+            this.constructorDescriptor = constructorDescriptor;
+            this.resultType = resultType;
         }
 
         static void validateArgCount(boolean isVarArgs, ConstructorRef constructorDescriptor, List<Value> operands) {
@@ -825,21 +803,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         }
 
         @Override
-        public NewOp transform(CopyContext cc, OpTransformer ot) {
-            return new NewOp(this, cc);
-        }
-
-        NewOp(boolean isVarargs, TypeElement resultType, ConstructorRef constructorDescriptor, List<Value> args) {
-            super(NAME, args);
-
-            this.isVarArgs = isVarargs;
-            this.constructorDescriptor = constructorDescriptor;
-            this.resultType = resultType;
-        }
-
-        @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
+        public Map<String, Object> externalize() {
+            HashMap<String, Object> m = new HashMap<>();
             m.put("", constructorDescriptor);
             if (isVarArgs) {
                 m.put(ATTRIBUTE_NEW_VARARGS, isVarArgs);
@@ -874,12 +839,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
         final FieldRef fieldDescriptor;
 
-        FieldAccessOp(ExternalizedOp def, FieldRef fieldDescriptor) {
-            super(def);
-
-            this.fieldDescriptor = fieldDescriptor;
-        }
-
         FieldAccessOp(FieldAccessOp that, CopyContext cc) {
             super(that, cc);
 
@@ -894,10 +853,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", fieldDescriptor);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of("", fieldDescriptor);
         }
 
         public final FieldRef fieldDescriptor() {
@@ -911,11 +868,11 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         @OpFactory.OpDeclaration(FieldLoadOp.NAME)
         public static final class FieldLoadOp extends FieldAccessOp
                 implements Pure, JavaExpression {
-            public static final String NAME = "field.load";
+            static final String NAME = "field.load";
 
             final TypeElement resultType;
 
-            public static FieldLoadOp create(ExternalizedOp def) {
+            static FieldLoadOp create(ExternalizedOp def) {
                 if (def.operands().size() > 1) {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
                 }
@@ -926,13 +883,11 @@ public sealed abstract class JavaOp extends ExternalizableOp {
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
-                return new FieldLoadOp(def, fieldDescriptor);
-            }
-
-            FieldLoadOp(ExternalizedOp opdef, FieldRef fieldDescriptor) {
-                super(opdef, fieldDescriptor);
-
-                resultType = opdef.resultType();
+                if (def.operands().isEmpty()) {
+                    return new FieldLoadOp(def.resultType(), fieldDescriptor);
+                } else {
+                    return new FieldLoadOp(def.resultType(), fieldDescriptor, def.operands().get(0));
+                }
             }
 
             FieldLoadOp(FieldLoadOp that, CopyContext cc) {
@@ -973,10 +928,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         @OpFactory.OpDeclaration(FieldStoreOp.NAME)
         public static final class FieldStoreOp extends FieldAccessOp
                 implements JavaExpression, JavaStatement {
-            public static final String NAME = "field.store";
+            static final String NAME = "field.store";
 
-            public static FieldStoreOp create(ExternalizedOp def) {
-                if (def.operands().size() > 2) {
+            static FieldStoreOp create(ExternalizedOp def) {
+                if (def.operands().isEmpty() || def.operands().size() > 2) {
                     throw new IllegalArgumentException("Operation must accept one or two operands");
                 }
 
@@ -986,11 +941,11 @@ public sealed abstract class JavaOp extends ExternalizableOp {
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
-                return new FieldStoreOp(def, fieldDescriptor);
-            }
-
-            FieldStoreOp(ExternalizedOp opdef, FieldRef fieldDescriptor) {
-                super(opdef, fieldDescriptor);
+                if (def.operands().size() == 1) {
+                    return new FieldStoreOp(fieldDescriptor, def.operands().get(0));
+                } else {
+                    return new FieldStoreOp(fieldDescriptor, def.operands().get(0), def.operands().get(1));
+                }
             }
 
             FieldStoreOp(FieldStoreOp that, CopyContext cc) {
@@ -1004,14 +959,12 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
             // instance
             FieldStoreOp(FieldRef descriptor, Value receiver, Value v) {
-                super(NAME,
-                        List.of(receiver, v), descriptor);
+                super(NAME, List.of(receiver, v), descriptor);
             }
 
             // static
             FieldStoreOp(FieldRef descriptor, Value v) {
-                super(NAME,
-                        List.of(v), descriptor);
+                super(NAME, List.of(v), descriptor);
             }
 
             @Override
@@ -1028,10 +981,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(ArrayLengthOp.NAME)
     public static final class ArrayLengthOp extends JavaOp
             implements ReflectiveOp, JavaExpression {
-        public static final String NAME = "array.length";
+        static final String NAME = "array.length";
 
-        public ArrayLengthOp(ExternalizedOp def) {
-            super(def);
+        ArrayLengthOp(ExternalizedOp def) {
+            this(def.operands().get(0));
         }
 
         ArrayLengthOp(ArrayLengthOp that, CopyContext cc) {
@@ -1058,15 +1011,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     public sealed abstract static class ArrayAccessOp extends JavaOp
             implements AccessOp, ReflectiveOp {
-        ArrayAccessOp(ExternalizedOp def) {
-            super(def);
-
-            if (def.operands().size() != 2 && def.operands().size() != 3) {
-                throw new IllegalArgumentException("Operation must have 2 or 3 operands");
-            }
-
-            // @@@ validate first operand is an array
-        }
 
         ArrayAccessOp(ArrayAccessOp that, CopyContext cc) {
             this(that, cc.getValues(that.operands()));
@@ -1094,12 +1038,15 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         @OpFactory.OpDeclaration(ArrayLoadOp.NAME)
         public static final class ArrayLoadOp extends ArrayAccessOp
                 implements Pure, JavaExpression {
-            public static final String NAME = "array.load";
+            static final String NAME = "array.load";
             final TypeElement componentType;
 
-            public ArrayLoadOp(ExternalizedOp def) {
-                super(def);
-                this.componentType = def.resultType();
+            ArrayLoadOp(ExternalizedOp def) {
+                if (def.operands().size() != 2) {
+                    throw new IllegalArgumentException("Operation must have two operands");
+                }
+
+                this(def.operands().get(0), def.operands().get(1), def.resultType());
             }
 
             ArrayLoadOp(ArrayLoadOp that, CopyContext cc) {
@@ -1135,10 +1082,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         @OpFactory.OpDeclaration(ArrayStoreOp.NAME)
         public static final class ArrayStoreOp extends ArrayAccessOp
                 implements JavaExpression, JavaStatement {
-            public static final String NAME = "array.store";
+            static final String NAME = "array.store";
 
-            public ArrayStoreOp(ExternalizedOp def) {
-                super(def);
+            ArrayStoreOp(ExternalizedOp def) {
+                if (def.operands().size() != 3) {
+                    throw new IllegalArgumentException("Operation must have two operands");
+                }
+
+                this(def.operands().get(0), def.operands().get(1), def.operands().get(2));
             }
 
             ArrayStoreOp(ArrayStoreOp that, CopyContext cc) {
@@ -1168,12 +1119,12 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(InstanceOfOp.NAME)
     public static final class InstanceOfOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
-        public static final String NAME = "instanceof";
+        static final String NAME = "instanceof";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
         final TypeElement typeDescriptor;
 
-        public static InstanceOfOp create(ExternalizedOp def) {
+        static InstanceOfOp create(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1183,13 +1134,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
-            return new InstanceOfOp(def, typeDescriptor);
-        }
-
-        InstanceOfOp(ExternalizedOp def, TypeElement typeDescriptor) {
-            super(def);
-
-            this.typeDescriptor = typeDescriptor;
+            return new InstanceOfOp(typeDescriptor, def.operands().get(0));
         }
 
         InstanceOfOp(InstanceOfOp that, CopyContext cc) {
@@ -1204,17 +1149,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         }
 
         InstanceOfOp(TypeElement t, Value v) {
-            super(NAME,
-                    List.of(v));
+            super(NAME, List.of(v));
 
             this.typeDescriptor = t;
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", typeDescriptor);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of("", typeDescriptor);
         }
 
         public TypeElement type() {
@@ -1233,13 +1175,13 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(CastOp.NAME)
     public static final class CastOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
-        public static final String NAME = "cast";
+        static final String NAME = "cast";
         public static final String ATTRIBUTE_TYPE_DESCRIPTOR = NAME + ".descriptor";
 
         final TypeElement resultType;
         final TypeElement typeDescriptor;
 
-        public static CastOp create(ExternalizedOp def) {
+        static CastOp create(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1249,14 +1191,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
-            return new CastOp(def, type);
-        }
-
-        CastOp(ExternalizedOp def, TypeElement typeDescriptor) {
-            super(def);
-
-            this.resultType = def.resultType();
-            this.typeDescriptor = typeDescriptor;
+            return new CastOp(def.resultType(), type, def.operands().get(0));
         }
 
         CastOp(CastOp that, CopyContext cc) {
@@ -1279,10 +1214,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", typeDescriptor);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of("", typeDescriptor);
         }
 
         public TypeElement type() {
@@ -1301,7 +1234,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(ExceptionRegionEnter.NAME)
     public static final class ExceptionRegionEnter extends JavaOp
             implements BlockTerminating {
-        public static final String NAME = "exception.region.enter";
+        static final String NAME = "exception.region.enter";
 
         // First successor is the non-exceptional successor whose target indicates
         // the first block in the exception region.
@@ -1309,14 +1242,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         // each of which have one block argument whose type is an exception type.
         final List<Block.Reference> s;
 
-        public ExceptionRegionEnter(ExternalizedOp def) {
-            super(def);
-
-            if (def.successors().size() < 2) {
-                throw new IllegalArgumentException("Operation must have two or more successors" + def.name());
-            }
-
-            this.s = List.copyOf(def.successors());
+        ExceptionRegionEnter(ExternalizedOp def) {
+            this(def.successors());
         }
 
         ExceptionRegionEnter(ExceptionRegionEnter that, CopyContext cc) {
@@ -1365,20 +1292,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(ExceptionRegionExit.NAME)
     public static final class ExceptionRegionExit extends JavaOp
             implements BlockTerminating {
-        public static final String NAME = "exception.region.exit";
+        static final String NAME = "exception.region.exit";
 
         // First successor is the non-exceptional successor whose target indicates
         // the first block following the exception region.
         final List<Block.Reference> s;
 
-        public ExceptionRegionExit(ExternalizedOp def) {
-            super(def);
-
-            if (def.successors().size() < 2) {
-                throw new IllegalArgumentException("Operation must have two or more successors" + def.name());
-            }
-
-            this.s = List.copyOf(def.successors());
+        ExceptionRegionExit(ExternalizedOp def) {
+            this(def.successors());
         }
 
         ExceptionRegionExit(ExceptionRegionExit that, CopyContext cc) {
@@ -1428,17 +1349,18 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(ConcatOp.NAME)
     public static final class ConcatOp extends JavaOp
             implements Pure, JavaExpression {
-        public static final String NAME = "concat";
+        static final String NAME = "concat";
 
         public ConcatOp(ConcatOp that, CopyContext cc) {
             super(that, cc);
         }
 
-        public ConcatOp(ExternalizedOp def) {
-            super(def);
+        ConcatOp(ExternalizedOp def) {
             if (def.operands().size() != 2) {
                 throw new IllegalArgumentException("Concatenation Operation must have two operands.");
             }
+
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         public ConcatOp(Value lhs, Value rhs) {
@@ -1461,14 +1383,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     public sealed static abstract class ArithmeticOperation extends JavaOp
             implements Pure, JavaExpression {
-        protected ArithmeticOperation(ExternalizedOp def) {
-            super(def);
-
-            if (def.operands().isEmpty()) {
-                throw new IllegalArgumentException("Operation must have one or more operands");
-            }
-        }
-
         protected ArithmeticOperation(ArithmeticOperation that, CopyContext cc) {
             super(that, cc);
         }
@@ -1483,14 +1397,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     public sealed static abstract class TestOperation extends JavaOp
             implements Pure, JavaExpression {
-        protected TestOperation(ExternalizedOp def) {
-            super(def);
-
-            if (def.operands().isEmpty()) {
-                throw new IllegalArgumentException("Operation must have one or more operands");
-            }
-        }
-
         protected TestOperation(TestOperation that, CopyContext cc) {
             super(that, cc);
         }
@@ -1504,14 +1410,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * The binary arithmetic operation.
      */
     public sealed static abstract class BinaryOp extends ArithmeticOperation {
-        protected BinaryOp(ExternalizedOp def) {
-            super(def);
-
-            if (def.operands().size() != 2) {
-                throw new IllegalArgumentException("Number of operands must be 2: " + def.operands().size());
-            }
-        }
-
         protected BinaryOp(BinaryOp that, CopyContext cc) {
             super(that, cc);
         }
@@ -1530,14 +1428,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * The unary arithmetic operation.
      */
     public sealed static abstract class UnaryOp extends ArithmeticOperation {
-        protected UnaryOp(ExternalizedOp def) {
-            super(def);
-
-            if (def.operands().size() != 1) {
-                throw new IllegalArgumentException("Number of operands must be 1: " + def.operands().size());
-            }
-        }
-
         protected UnaryOp(UnaryOp that, CopyContext cc) {
             super(that, cc);
         }
@@ -1556,14 +1446,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * The binary test operation.
      */
     public sealed static abstract class BinaryTestOp extends TestOperation {
-        protected BinaryTestOp(ExternalizedOp def) {
-            super(def);
-
-            if (def.operands().size() != 2) {
-                throw new IllegalArgumentException("Number of operands must be 2: " + def.operands().size());
-            }
-        }
-
         protected BinaryTestOp(BinaryTestOp that, CopyContext cc) {
             super(that, cc);
         }
@@ -1583,10 +1465,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(AddOp.NAME)
     public static final class AddOp extends BinaryOp {
-        public static final String NAME = "add";
+        static final String NAME = "add";
 
-        public AddOp(ExternalizedOp def) {
-            super(def);
+        AddOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         AddOp(AddOp that, CopyContext cc) {
@@ -1608,10 +1490,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(SubOp.NAME)
     public static final class SubOp extends BinaryOp {
-        public static final String NAME = "sub";
+        static final String NAME = "sub";
 
-        public SubOp(ExternalizedOp opdef) {
-            super(opdef);
+        SubOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         SubOp(SubOp that, CopyContext cc) {
@@ -1633,10 +1515,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(MulOp.NAME)
     public static final class MulOp extends BinaryOp {
-        public static final String NAME = "mul";
+        static final String NAME = "mul";
 
-        public MulOp(ExternalizedOp opdef) {
-            super(opdef);
+        MulOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         MulOp(MulOp that, CopyContext cc) {
@@ -1658,10 +1540,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(DivOp.NAME)
     public static final class DivOp extends BinaryOp {
-        public static final String NAME = "div";
+        static final String NAME = "div";
 
-        public DivOp(ExternalizedOp opdef) {
-            super(opdef);
+        DivOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         DivOp(DivOp that, CopyContext cc) {
@@ -1683,10 +1565,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(ModOp.NAME)
     public static final class ModOp extends BinaryOp {
-        public static final String NAME = "mod";
+        static final String NAME = "mod";
 
-        public ModOp(ExternalizedOp opdef) {
-            super(opdef);
+        ModOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         ModOp(ModOp that, CopyContext cc) {
@@ -1709,10 +1591,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(OrOp.NAME)
     public static final class OrOp extends BinaryOp {
-        public static final String NAME = "or";
+        static final String NAME = "or";
 
-        public OrOp(ExternalizedOp opdef) {
-            super(opdef);
+        OrOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         OrOp(OrOp that, CopyContext cc) {
@@ -1735,10 +1617,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(AndOp.NAME)
     public static final class AndOp extends BinaryOp {
-        public static final String NAME = "and";
+        static final String NAME = "and";
 
-        public AndOp(ExternalizedOp opdef) {
-            super(opdef);
+        AndOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         AndOp(AndOp that, CopyContext cc) {
@@ -1761,10 +1643,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(XorOp.NAME)
     public static final class XorOp extends BinaryOp {
-        public static final String NAME = "xor";
+        static final String NAME = "xor";
 
-        public XorOp(ExternalizedOp opdef) {
-            super(opdef);
+        XorOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         XorOp(XorOp that, CopyContext cc) {
@@ -1786,10 +1668,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(LshlOp.NAME)
     public static final class LshlOp extends BinaryOp {
-        public static final String NAME = "lshl";
+        static final String NAME = "lshl";
 
-        public LshlOp(ExternalizedOp opdef) {
-            super(opdef);
+        LshlOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         LshlOp(LshlOp that, CopyContext cc) {
@@ -1811,10 +1693,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(AshrOp.NAME)
     public static final class AshrOp extends JavaOp.BinaryOp {
-        public static final String NAME = "ashr";
+        static final String NAME = "ashr";
 
-        public AshrOp(ExternalizedOp opdef) {
-            super(opdef);
+        AshrOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         AshrOp(AshrOp that, CopyContext cc) {
@@ -1836,10 +1718,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(LshrOp.NAME)
     public static final class LshrOp extends JavaOp.BinaryOp {
-        public static final String NAME = "lshr";
+        static final String NAME = "lshr";
 
-        public LshrOp(ExternalizedOp opdef) {
-            super(opdef);
+        LshrOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         LshrOp(LshrOp that, CopyContext cc) {
@@ -1861,10 +1743,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(NegOp.NAME)
     public static final class NegOp extends UnaryOp {
-        public static final String NAME = "neg";
+        static final String NAME = "neg";
 
-        public NegOp(ExternalizedOp opdef) {
-            super(opdef);
+        NegOp(ExternalizedOp def) {
+            this(def.operands().get(0));
         }
 
         NegOp(NegOp that, CopyContext cc) {
@@ -1886,10 +1768,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(ComplOp.NAME)
     public static final class ComplOp extends UnaryOp {
-        public static final String NAME = "compl";
+        static final String NAME = "compl";
 
-        public ComplOp(ExternalizedOp opdef) {
-            super(opdef);
+        ComplOp(ExternalizedOp def) {
+            this(def.operands().get(0));
         }
 
         ComplOp(ComplOp that, CopyContext cc) {
@@ -1911,10 +1793,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(NotOp.NAME)
     public static final class NotOp extends UnaryOp {
-        public static final String NAME = "not";
+        static final String NAME = "not";
 
-        public NotOp(ExternalizedOp opdef) {
-            super(opdef);
+        NotOp(ExternalizedOp def) {
+            this(def.operands().get(0));
         }
 
         NotOp(NotOp that, CopyContext cc) {
@@ -1937,10 +1819,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(EqOp.NAME)
     public static final class EqOp extends BinaryTestOp {
-        public static final String NAME = "eq";
+        static final String NAME = "eq";
 
-        public EqOp(ExternalizedOp opdef) {
-            super(opdef);
+        EqOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         EqOp(EqOp that, CopyContext cc) {
@@ -1963,10 +1845,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(NeqOp.NAME)
     public static final class NeqOp extends BinaryTestOp {
-        public static final String NAME = "neq";
+        static final String NAME = "neq";
 
-        public NeqOp(ExternalizedOp opdef) {
-            super(opdef);
+        NeqOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         NeqOp(NeqOp that, CopyContext cc) {
@@ -1988,10 +1870,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(GtOp.NAME)
     public static final class GtOp extends BinaryTestOp {
-        public static final String NAME = "gt";
+        static final String NAME = "gt";
 
-        public GtOp(ExternalizedOp opdef) {
-            super(opdef);
+        GtOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         GtOp(GtOp that, CopyContext cc) {
@@ -2014,10 +1896,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(GeOp.NAME)
     public static final class GeOp extends BinaryTestOp {
-        public static final String NAME = "ge";
+        static final String NAME = "ge";
 
-        public GeOp(ExternalizedOp opdef) {
-            super(opdef);
+        GeOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         GeOp(GeOp that, CopyContext cc) {
@@ -2040,10 +1922,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(LtOp.NAME)
     public static final class LtOp extends BinaryTestOp {
-        public static final String NAME = "lt";
+        static final String NAME = "lt";
 
-        public LtOp(ExternalizedOp opdef) {
-            super(opdef);
+        LtOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         LtOp(LtOp that, CopyContext cc) {
@@ -2066,10 +1948,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(LeOp.NAME)
     public static final class LeOp extends BinaryTestOp {
-        public static final String NAME = "le";
+        static final String NAME = "le";
 
-        public LeOp(ExternalizedOp opdef) {
-            super(opdef);
+        LeOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.operands().get(1));
         }
 
         LeOp(LeOp that, CopyContext cc) {
@@ -2091,14 +1973,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     public sealed static abstract class JavaLabelOp extends JavaOp
             implements Op.Lowerable, Op.BodyTerminating, JavaStatement {
-        JavaLabelOp(ExternalizedOp def) {
-            super(def);
-
-            if (def.operands().size() > 1) {
-                throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
-            }
-        }
-
         JavaLabelOp(JavaLabelOp that, CopyContext cc) {
             super(that, cc);
         }
@@ -2183,10 +2057,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(JavaBreakOp.NAME)
     public static final class JavaBreakOp extends JavaLabelOp {
-        public static final String NAME = "java.break";
+        static final String NAME = "java.break";
 
-        public JavaBreakOp(ExternalizedOp def) {
-            super(def);
+        JavaBreakOp(ExternalizedOp def) {
+            this(def.operands().isEmpty() ? null : def.operands().get(0));
         }
 
         JavaBreakOp(JavaBreakOp that, CopyContext cc) {
@@ -2213,10 +2087,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      */
     @OpFactory.OpDeclaration(JavaContinueOp.NAME)
     public static final class JavaContinueOp extends JavaLabelOp {
-        public static final String NAME = "java.continue";
+        static final String NAME = "java.continue";
 
-        public JavaContinueOp(ExternalizedOp def) {
-            super(def);
+        JavaContinueOp(ExternalizedOp def) {
+            this(def.operands().isEmpty() ? null : def.operands().get(0));
         }
 
         JavaContinueOp(JavaContinueOp that, CopyContext cc) {
@@ -2265,10 +2139,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(JavaYieldOp.NAME)
     public static final class JavaYieldOp extends JavaOp
             implements Op.BodyTerminating, JavaStatement, Op.Lowerable {
-        public static final String NAME = "java.yield";
+        static final String NAME = "java.yield";
 
-        public JavaYieldOp(ExternalizedOp def) {
-            super(def);
+        JavaYieldOp(ExternalizedOp def) {
+            if (def.operands().size() > 1) {
+                throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
+            }
+
+            this(def.operands().isEmpty() ? null : def.operands().get(0));
         }
 
         JavaYieldOp(JavaYieldOp that, CopyContext cc) {
@@ -2280,13 +2158,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             return new JavaYieldOp(this, cc);
         }
 
-        JavaYieldOp() {
-            super(NAME,
-                    List.of());
-        }
-
         JavaYieldOp(Value operand) {
-            super(NAME, List.of(operand));
+            super(NAME, operand == null ? List.of() : List.of(operand));
         }
 
         public Value yieldValue() {
@@ -2344,18 +2217,16 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(JavaBlockOp.NAME)
     public static final class JavaBlockOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
-        public static final String NAME = "java.block";
+        static final String NAME = "java.block";
 
         final Body body;
 
-        public JavaBlockOp(ExternalizedOp def) {
-            super(def);
-
+        JavaBlockOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Operation must have no operands");
             }
 
-            this.body = def.bodyDefinitions().get(0).build(this);
+            this(def.bodyDefinitions().get(0));
         }
 
         JavaBlockOp(JavaBlockOp that, CopyContext cc, OpTransformer ot) {
@@ -2425,16 +2296,13 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(JavaSynchronizedOp.NAME)
     public static final class JavaSynchronizedOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
-        public static final String NAME = "java.synchronized";
+        static final String NAME = "java.synchronized";
 
         final Body expr;
         final Body blockBody;
 
-        public JavaSynchronizedOp(ExternalizedOp def) {
-            super(def);
-
-            this.expr = def.bodyDefinitions().get(0).build(this);
-            this.blockBody = def.bodyDefinitions().get(1).build(this);
+        JavaSynchronizedOp(ExternalizedOp def) {
+            this(def.bodyDefinitions().get(0), def.bodyDefinitions().get(1));
         }
 
         JavaSynchronizedOp(JavaSynchronizedOp that, CopyContext cc, OpTransformer ot) {
@@ -2596,18 +2464,16 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(JavaLabeledOp.NAME)
     public static final class JavaLabeledOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
-        public static final String NAME = "java.labeled";
+        static final String NAME = "java.labeled";
 
         final Body body;
 
-        public JavaLabeledOp(ExternalizedOp def) {
-            super(def);
-
+        JavaLabeledOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Operation must have no operands");
             }
 
-            this.body = def.bodyDefinitions().get(0).build(this);
+            this(def.bodyDefinitions().get(0));
         }
 
         JavaLabeledOp(JavaLabeledOp that, CopyContext cc, OpTransformer ot) {
@@ -2771,20 +2637,16 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "java.if";
+        static final String NAME = "java.if";
 
         final List<Body> bodies;
 
-        public JavaIfOp(ExternalizedOp def) {
-            super(def);
-
+        JavaIfOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Operation must have no operands");
             }
 
-            // @@@ Validate
-
-            this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+            this(def.bodyDefinitions());
         }
 
         JavaIfOp(JavaIfOp that, CopyContext cc, OpTransformer ot) {
@@ -2912,17 +2774,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             permits JavaSwitchStatementOp, JavaSwitchExpressionOp {
 
         final List<Body> bodies;
-
-        public JavaSwitchOp(ExternalizedOp def) {
-            super(def);
-
-            if (def.operands().size() != 1) {
-                throw new IllegalStateException("Operation must have one operand");
-            }
-
-            // @@@ Validate
-            this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
-        }
 
         JavaSwitchOp(JavaSwitchOp that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
@@ -3067,14 +2918,12 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(JavaSwitchExpressionOp.NAME)
     public static final class JavaSwitchExpressionOp extends JavaSwitchOp
             implements JavaExpression {
-        public static final String NAME = "java.switch.expression";
+        static final String NAME = "java.switch.expression";
 
         final TypeElement resultType;
 
-        public JavaSwitchExpressionOp(ExternalizedOp def) {
-            super(def);
-
-            this.resultType = def.resultType();
+        JavaSwitchExpressionOp(ExternalizedOp def) {
+            this(def.resultType(), def.operands().get(0), def.bodyDefinitions());
         }
 
         JavaSwitchExpressionOp(JavaSwitchExpressionOp that, CopyContext cc, OpTransformer ot) {
@@ -3106,10 +2955,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(JavaSwitchStatementOp.NAME)
     public static final class JavaSwitchStatementOp extends JavaSwitchOp
             implements JavaStatement {
-        public static final String NAME = "java.switch.statement";
+        static final String NAME = "java.switch.statement";
 
-        public JavaSwitchStatementOp(ExternalizedOp def) {
-            super(def);
+        JavaSwitchStatementOp(ExternalizedOp def) {
+            this(def.operands().get(0), def.bodyDefinitions());
         }
 
         JavaSwitchStatementOp(JavaSwitchStatementOp that, CopyContext cc, OpTransformer ot) {
@@ -3138,10 +2987,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     @OpFactory.OpDeclaration(JavaSwitchFallthroughOp.NAME)
     public static final class JavaSwitchFallthroughOp extends JavaOp
             implements Op.BodyTerminating, Op.Lowerable {
-        public static final String NAME = "java.switch.fallthrough";
+        static final String NAME = "java.switch.fallthrough";
 
-        public JavaSwitchFallthroughOp(ExternalizedOp def) {
-            super(def);
+        JavaSwitchFallthroughOp(ExternalizedOp def) {
+            this();
         }
 
         JavaSwitchFallthroughOp(JavaSwitchFallthroughOp that, CopyContext cc) {
@@ -3284,17 +3133,15 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         final Body update;
         final Body body;
 
-        public static JavaForOp create(ExternalizedOp def) {
+        static JavaForOp create(ExternalizedOp def) {
             return new JavaForOp(def);
         }
 
-        public JavaForOp(ExternalizedOp def) {
-            super(def);
-
-            this.init = def.bodyDefinitions().get(0).build(this);
-            this.cond = def.bodyDefinitions().get(1).build(this);
-            this.update = def.bodyDefinitions().get(2).build(this);
-            this.body = def.bodyDefinitions().get(3).build(this);
+        JavaForOp(ExternalizedOp def) {
+            this(def.bodyDefinitions().get(0),
+                    def.bodyDefinitions().get(1),
+                    def.bodyDefinitions().get(2),
+                    def.bodyDefinitions().get(3));
         }
 
         JavaForOp(JavaForOp that, CopyContext cc, OpTransformer ot) {
@@ -3520,16 +3367,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         final Body init;
         final Body body;
 
-        public static JavaEnhancedForOp create(ExternalizedOp def) {
+        static JavaEnhancedForOp create(ExternalizedOp def) {
             return new JavaEnhancedForOp(def);
         }
 
-        public JavaEnhancedForOp(ExternalizedOp def) {
-            super(def);
-
-            this.expression = def.bodyDefinitions().get(0).build(this);
-            this.init = def.bodyDefinitions().get(1).build(this);
-            this.body = def.bodyDefinitions().get(2).build(this);
+        JavaEnhancedForOp(ExternalizedOp def) {
+            this(def.bodyDefinitions().get(0),
+                    def.bodyDefinitions().get(1),
+                    def.bodyDefinitions().get(2));
         }
 
         JavaEnhancedForOp(JavaEnhancedForOp that, CopyContext cc, OpTransformer ot) {
@@ -3742,11 +3587,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
         private final List<Body> bodies;
 
-        public JavaWhileOp(ExternalizedOp def) {
-            super(def);
-
-            // @@@ Validate
-            this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+        JavaWhileOp(ExternalizedOp def) {
+            this(def.bodyDefinitions());
         }
 
         JavaWhileOp(List<Body.Builder> bodyCs) {
@@ -3888,11 +3730,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
 
         private final List<Body> bodies;
 
-        public JavaDoWhileOp(ExternalizedOp def) {
-            super(def);
-
-            // @@@ Validate
-            this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
+        JavaDoWhileOp(ExternalizedOp def) {
+            this(def.bodyDefinitions());
         }
 
         JavaDoWhileOp(List<Body.Builder> bodyCs) {
@@ -3995,18 +3834,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     public sealed static abstract class JavaConditionalOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaExpression {
         final List<Body> bodies;
-
-        public JavaConditionalOp(ExternalizedOp def) {
-            super(def);
-
-            if (!def.operands().isEmpty()) {
-                throw new IllegalStateException("Operation must have no operands");
-            }
-
-            // @@@ Validate
-
-            this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
-        }
 
         JavaConditionalOp(JavaConditionalOp that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
@@ -4132,10 +3959,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "java.cand";
+        static final String NAME = "java.cand";
 
-        public JavaConditionalAndOp(ExternalizedOp def) {
-            super(def);
+        JavaConditionalAndOp(ExternalizedOp def) {
+            this(def.bodyDefinitions());
         }
 
         JavaConditionalAndOp(JavaConditionalAndOp that, CopyContext cc, OpTransformer ot) {
@@ -4187,10 +4014,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
         }
 
-        public static final String NAME = "java.cor";
+        static final String NAME = "java.cor";
 
-        public JavaConditionalOrOp(ExternalizedOp def) {
-            super(def);
+        JavaConditionalOrOp(ExternalizedOp def) {
+            this(def.bodyDefinitions());
         }
 
         JavaConditionalOrOp(JavaConditionalOrOp that, CopyContext cc, OpTransformer ot) {
@@ -4219,23 +4046,18 @@ public sealed abstract class JavaOp extends ExternalizableOp {
     public static final class JavaConditionalExpressionOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaExpression {
 
-        public static final String NAME = "java.cexpression";
+        static final String NAME = "java.cexpression";
 
         final TypeElement resultType;
         // {cond, truepart, falsepart}
         final List<Body> bodies;
 
-        public JavaConditionalExpressionOp(ExternalizedOp def) {
-            super(def);
-
+        JavaConditionalExpressionOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Operation must have no operands");
             }
 
-            // @@@ Validate
-
-            this.bodies = def.bodyDefinitions().stream().map(bd -> bd.build(this)).toList();
-            this.resultType = def.resultType();
+            this(def.resultType(), def.bodyDefinitions());
         }
 
         JavaConditionalExpressionOp(JavaConditionalExpressionOp that, CopyContext cc, OpTransformer ot) {
@@ -4387,32 +4209,35 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         final List<Body> catchers;
         final Body finalizer;
 
-        public static JavaTryOp create(ExternalizedOp def) {
+        static JavaTryOp create(ExternalizedOp def) {
             return new JavaTryOp(def);
         }
 
-        public JavaTryOp(ExternalizedOp def) {
-            super(def);
-
-            List<Body> bodies = def.bodyDefinitions().stream().map(b -> b.build(this)).toList();
-            Body first = bodies.get(0);
+        JavaTryOp(ExternalizedOp def) {
+            List<Body.Builder> bodies = def.bodyDefinitions();
+            Body.Builder first = bodies.getFirst();
+            Body.Builder resources;
+            Body.Builder body;
             if (first.bodyType().returnType().equals(VOID)) {
-                this.resources = null;
-                this.body = first;
+                resources = null;
+                body = first;
             } else {
-                this.resources = first;
-                this.body = bodies.get(1);
+                resources = first;
+                body = bodies.get(1);
             }
 
-            Body last = bodies.get(bodies.size() - 1);
+            Body.Builder last = bodies.getLast();
+            Body.Builder finalizer;
             if (last.bodyType().parameterTypes().isEmpty()) {
-                this.finalizer = last;
+                finalizer = last;
             } else {
-                this.finalizer = null;
+                finalizer = null;
             }
-            this.catchers = bodies.subList(
+            List<Body.Builder> catchers = bodies.subList(
                     resources == null ? 1 : 2,
                     bodies.size() - (finalizer == null ? 0 : 1));
+
+            this(resources, body, catchers, finalizer);
         }
 
         JavaTryOp(JavaTryOp that, CopyContext cc, OpTransformer ot) {
@@ -4835,10 +4660,6 @@ public sealed abstract class JavaOp extends ExternalizableOp {
          * The pattern operation.
          */
         public sealed static abstract class PatternOp extends JavaOp implements Op.Pure {
-            PatternOp(ExternalizedOp def) {
-                super(def);
-            }
-
             PatternOp(PatternOp that, CopyContext cc) {
                 super(that, cc);
             }
@@ -4853,27 +4674,23 @@ public sealed abstract class JavaOp extends ExternalizableOp {
          */
         @OpFactory.OpDeclaration(TypePatternOp.NAME)
         public static final class TypePatternOp extends PatternOp {
-            public static final String NAME = "pattern.type";
+            static final String NAME = "pattern.type";
 
             public static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
             final TypeElement resultType;
             final String bindingName;
 
-            public static TypePatternOp create(ExternalizedOp def) {
-                String name = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
+            TypePatternOp(ExternalizedOp def) {
+                super(NAME, List.of());
+
+                this.bindingName = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
                         v -> switch (v) {
                             case String s -> s;
                             case null -> null;
                             default -> throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
                         });
-                return new TypePatternOp(def, name);
-            }
-
-            TypePatternOp(ExternalizedOp def, String bindingName) {
-                super(def);
-
-                this.bindingName = bindingName;
+                // @@@ Cannot use canonical constructor because it wraps the given type
                 this.resultType = def.resultType();
             }
 
@@ -4897,12 +4714,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             @Override
-            public Map<String, Object> attributes() {
-                HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-                if (bindingName != null) {
-                    attrs.put("", bindingName);
-                }
-                return attrs;
+            public Map<String, Object> externalize() {
+                return bindingName == null ? Map.of() : Map.of("", bindingName);
             }
 
             public String bindingName() {
@@ -4924,13 +4737,13 @@ public sealed abstract class JavaOp extends ExternalizableOp {
          */
         @OpFactory.OpDeclaration(RecordPatternOp.NAME)
         public static final class RecordPatternOp extends PatternOp {
-            public static final String NAME = "pattern.record";
+            static final String NAME = "pattern.record";
 
             public static final String ATTRIBUTE_RECORD_DESCRIPTOR = NAME + ".descriptor";
 
             final RecordTypeRef recordDescriptor;
 
-            public static RecordPatternOp create(ExternalizedOp def) {
+            static RecordPatternOp create(ExternalizedOp def) {
                 RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR, true,
                         v -> switch (v) {
                             case RecordTypeRef rtd -> rtd;
@@ -4938,13 +4751,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
                                     throw new UnsupportedOperationException("Unsupported record type descriptor value:" + v);
                         });
 
-                return new RecordPatternOp(def, recordDescriptor);
-            }
-
-            RecordPatternOp(ExternalizedOp def, RecordTypeRef recordDescriptor) {
-                super(def);
-
-                this.recordDescriptor = recordDescriptor;
+                return new RecordPatternOp(recordDescriptor, def.operands());
             }
 
             RecordPatternOp(RecordPatternOp that, CopyContext cc) {
@@ -4967,10 +4774,8 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             }
 
             @Override
-            public Map<String, Object> attributes() {
-                HashMap<String, Object> m = new HashMap<>(super.attributes());
-                m.put("", recordDescriptor);
-                return Collections.unmodifiableMap(m);
+            public Map<String, Object> externalize() {
+                return Map.of("", recordDescriptor());
             }
 
             public RecordTypeRef recordDescriptor() {
@@ -4993,10 +4798,10 @@ public sealed abstract class JavaOp extends ExternalizableOp {
             // @@@ we may need to add info about the type of the record component
             // this info can be used when lowering
 
-            public static final String NAME = "pattern.match.all";
+            static final String NAME = "pattern.match.all";
 
-            public MatchAllPatternOp(ExternalizedOp def) {
-                super(def);
+            MatchAllPatternOp(ExternalizedOp def) {
+                this();
             }
 
             MatchAllPatternOp(MatchAllPatternOp that, CopyContext cc) {
@@ -5023,16 +4828,14 @@ public sealed abstract class JavaOp extends ExternalizableOp {
          */
         @OpFactory.OpDeclaration(MatchOp.NAME)
         public static final class MatchOp extends JavaOp implements Op.Isolated, Op.Lowerable {
-            public static final String NAME = "pattern.match";
+            static final String NAME = "pattern.match";
 
             final Body pattern;
             final Body match;
 
-            public MatchOp(ExternalizedOp def) {
-                super(def);
-
-                this.pattern = def.bodyDefinitions().get(0).build(this);
-                this.match = def.bodyDefinitions().get(1).build(this);
+            MatchOp(ExternalizedOp def) {
+                this(def.operands().get(0),
+                        def.bodyDefinitions().get(0), def.bodyDefinitions().get(1));
             }
 
             MatchOp(MatchOp that, CopyContext cc, OpTransformer ot) {
@@ -5280,10 +5083,80 @@ public sealed abstract class JavaOp extends ExternalizableOp {
         }
     }
 
+    static Op createOp(ExternalizedOp def) {
+        Op op = switch (def.name()) {
+            case "add" -> new AddOp(def);
+            case "and" -> new AndOp(def);
+            case "array.length" -> new ArrayLengthOp(def);
+            case "array.load" -> new ArrayAccessOp.ArrayLoadOp(def);
+            case "array.store" -> new ArrayAccessOp.ArrayStoreOp(def);
+            case "ashr" -> new AshrOp(def);
+            case "assert" -> new AssertOp(def);
+            case "cast" -> CastOp.create(def);
+            case "compl" -> new ComplOp(def);
+            case "concat" -> new ConcatOp(def);
+            case "conv" -> new ConvOp(def);
+            case "div" -> new DivOp(def);
+            case "eq" -> new EqOp(def);
+            case "exception.region.enter" -> new ExceptionRegionEnter(def);
+            case "exception.region.exit" -> new ExceptionRegionExit(def);
+            case "field.load" -> FieldAccessOp.FieldLoadOp.create(def);
+            case "field.store" -> FieldAccessOp.FieldStoreOp.create(def);
+            case "ge" -> new GeOp(def);
+            case "gt" -> new GtOp(def);
+            case "instanceof" -> InstanceOfOp.create(def);
+            case "invoke" -> InvokeOp.create(def);
+            case "java.block" -> new JavaBlockOp(def);
+            case "java.break" -> new JavaBreakOp(def);
+            case "java.cand" -> new JavaConditionalAndOp(def);
+            case "java.cexpression" -> new JavaConditionalExpressionOp(def);
+            case "java.continue" -> new JavaContinueOp(def);
+            case "java.cor" -> new JavaConditionalOrOp(def);
+            case "java.do.while" -> new JavaDoWhileOp(def);
+            case "java.enhancedFor" -> JavaEnhancedForOp.create(def);
+            case "java.for" -> JavaForOp.create(def);
+            case "java.if" -> new JavaIfOp(def);
+            case "java.labeled" -> new JavaLabeledOp(def);
+            case "java.switch.expression" -> new JavaSwitchExpressionOp(def);
+            case "java.switch.fallthrough" -> new JavaSwitchFallthroughOp(def);
+            case "java.switch.statement" -> new JavaSwitchStatementOp(def);
+            case "java.synchronized" -> new JavaSynchronizedOp(def);
+            case "java.try" -> JavaTryOp.create(def);
+            case "java.while" -> new JavaWhileOp(def);
+            case "java.yield" -> new JavaYieldOp(def);
+            case "lambda" -> new LambdaOp(def);
+            case "le" -> new LeOp(def);
+            case "lshl" -> new LshlOp(def);
+            case "lshr" -> new LshrOp(def);
+            case "lt" -> new LtOp(def);
+            case "mod" -> new ModOp(def);
+            case "monitor.enter" -> new MonitorOp.MonitorEnterOp(def);
+            case "monitor.exit" -> new MonitorOp.MonitorExitOp(def);
+            case "mul" -> new MulOp(def);
+            case "neg" -> new NegOp(def);
+            case "neq" -> new NeqOp(def);
+            case "new" -> NewOp.create(def);
+            case "not" -> new NotOp(def);
+            case "or" -> new OrOp(def);
+            case "pattern.match" -> new PatternOps.MatchOp(def);
+            case "pattern.match.all" -> new PatternOps.MatchAllPatternOp(def);
+            case "pattern.record" -> PatternOps.RecordPatternOp.create(def);
+            case "pattern.type" -> new PatternOps.TypePatternOp(def);
+            case "sub" -> new SubOp(def);
+            case "throw" -> new ThrowOp(def);
+            case "xor" -> new XorOp(def);
+            default -> null;
+        };
+        if (op != null) {
+            op.setLocation(def.location());
+        }
+        return op;
+    }
+
     /**
      * An operation factory for core operations composed with Java operations.
      */
-    public static final OpFactory JAVA_OP_FACTORY = CoreOp.CORE_OP_FACTORY.andThen(OpFactory.OP_FACTORY.get(JavaOp.class));
+    public static final OpFactory JAVA_OP_FACTORY = CoreOp.CORE_OP_FACTORY.andThen(JavaOp::createOp);
 
     /**
      * A Java dialect factory, for constructing core and Java operations and constructing
@@ -6002,7 +5875,7 @@ public sealed abstract class JavaOp extends ExternalizableOp {
      * @return the yield operation
      */
     public static JavaYieldOp java_yield() {
-        return new JavaYieldOp();
+        return java_yield(null);
     }
 
     /**

@@ -3,10 +3,12 @@ package oracle.code.onnx.compiler;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -146,8 +148,16 @@ public final class OnnxTransformer {
         var initializers = module.traverse(new LinkedHashMap<FieldRef, TI>(), (i, op) -> {
             if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flo
                     && (flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
-                     || isRecord(l, flo.resultType()))) {
-                i.putIfAbsent(flo.fieldDescriptor(), new TI(convertType(l, flo.resultType()), i.size()));
+                     || isRecord(l, flo.resultType())
+                     || flo.resultType() instanceof ArrayType at && at.componentType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
+                    )) {
+                var targetType = convertType(l, flo.result());
+                // computataion of the tuple size created out of the static array initializer field
+                i.compute(flo.fieldDescriptor(), (fd, ti) -> ti == null
+                        ? new TI(targetType, i.size())
+                        : targetType instanceof TupleType newTt && ti.type() instanceof TupleType oldTt && newTt.componentTypes().size() > oldTt.componentTypes().size()
+                                ? new TI(newTt, ti.index())
+                                : ti);
             }
             return i;
         });
@@ -190,10 +200,50 @@ public final class OnnxTransformer {
         try {
             var res = Op.ofMethod(io.invokeDescriptor().resolveToDirectMethod(l));
             if (res.isPresent()) {
-                return SSA.transform(res.get());
+                return SSA.transform(evaluate(l, res.get()));
             }
         } catch (ReflectiveOperationException | IllegalArgumentException _) {}
         return null;
+    }
+
+    public static CoreOp.FuncOp evaluate(MethodHandles.Lookup l, CoreOp.FuncOp f) {
+        try {
+            f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
+            f = PartialEvaluator.evaluate(l,
+                    op -> switch (op) {
+                        case CoreOp.ConstantOp _ -> true;
+                        case JavaOp.FieldAccessOp.FieldLoadOp flo -> flo.resultType() instanceof PrimitiveType;
+                        case JavaOp.InvokeOp _ -> false;
+                        case CoreOp.ReturnOp _ -> false;
+                        case JavaOp.NewOp _ -> false;
+                        default -> op.result() != null;
+                    },
+                    new HashSet<>(), f);
+            f = cleanUp(f);
+        } catch (PartialEvaluator.EvaluationException ee) {
+            if (!(ee.getCause() instanceof UnsupportedOperationException)) {
+                throw ee;
+            }
+        }
+        return f;
+    }
+
+    static CoreOp.FuncOp cleanUp(CoreOp.FuncOp f) {
+        return removeUnusedOps(NormalizeBlocksTransformer.transform(f));
+    }
+
+    static CoreOp.FuncOp removeUnusedOps(CoreOp.FuncOp f) {
+        Predicate<Op> unused = op -> (op instanceof Op.Pure || op instanceof CoreOp.VarOp) &&
+                op.result().uses().isEmpty();
+        while (f.elements().skip(1).anyMatch(ce -> ce instanceof Op op && unused.test(op))) {
+            f = f.transform((block, op) -> {
+                if (!unused.test(op)) {
+                    block.op(op);
+                }
+                return block;
+            });
+        }
+        return f;
     }
 
     static CoreOp.ModuleOp transformModule(MethodHandles.Lookup l, CoreOp.ModuleOp module, Map<Value, String> namesMap) {
@@ -258,10 +308,12 @@ public final class OnnxTransformer {
     }
 
     static CoreOp.FuncOp transformToOnnx(MethodHandles.Lookup l, CoreOp.FuncOp func, OnnxPartialEvaluator pe) {
-        FunctionType ft = convertType(l, func.invokableType());
-        return CoreOp.func(func.funcName(), ft).body(b -> {
+        FunctionType ft = convertType(l, func);
+        var func2 = CoreOp.func(func.funcName(), ft).body(b -> {
             b.transformBody(func.body(), b.parameters(), toOnnxOpTransformer(l, pe));
         });
+        // double transformation to fix return type by the returned tuple type
+        return CoreOp.func(func2.funcName(), convertType(l, func2)).body(b -> b.transformBody(func2.body(), b.parameters(), OpTransformer.COPYING_TRANSFORMER));
     }
 
     static CoreOp.FuncOp removeDropedFuncCallsArgs(CoreOp.FuncOp func, Map<String, BitSet> paramsToDropMap) {
@@ -301,7 +353,7 @@ public final class OnnxTransformer {
             bob.context().mapValues(usedParameters, bob.parameters());
             bob.transformBody(func.body(), List.of(), (b, op) -> {
                 // Drop any non-terminating operation whose result is not used
-                if (op instanceof Op.Terminating || !op.result().uses().isEmpty() || op instanceof CoreOp.FuncOp) {
+                if (op instanceof Op.Terminating || !op.result().uses().isEmpty() || op instanceof CoreOp.FuncOp || op instanceof CoreOp.VarAccessOp.VarStoreOp) {
                     b.op(op);
                 }
                 return b;
@@ -409,9 +461,23 @@ public final class OnnxTransformer {
                     Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                     bb.context().mapValue(io.result(), result);
                 }
+                // Transform constant array load access
+                case JavaOp.ArrayAccessOp.ArrayLoadOp alo -> {
+                    var tuple = bb.context().getValue(alo.operands().getFirst());
+                    int index = (Integer)((CoreOp.ConstantOp)((Op.Result)alo.operands().get(1)).op()).value();
+                    Op.Result result = bb.op(CoreOp.tupleLoad(tuple, index));
+                    bb.context().mapValue(alo.result(), result);
+                }
                 // Transform record construction
                 case JavaOp.NewOp no when isRecord(l, no.type()) -> {
-                    Op.Result result = bb.op(CoreOp.tuple(bb.context().getValues(no.operands())));
+                    Op.Result result = bb.op(CoreOp.tuple(no.operands().stream().map(v -> {
+                        Value mv = bb.context().getValueOrDefault(v, null);
+                        if (mv == null && bb.context().getProperty(skipVars(v)) instanceof List list) {
+                            mv = bb.op(CoreOp.tuple(bb.context().getValues((List<Value>) list)));
+                        }
+                        if (mv == null) System.out.println(no.toText());
+                        return mv;
+                    }).toList()));
                     bb.context().mapValue(no.result(), result);
                 }
                 // Transform access to the result of an operator that is a list access
@@ -431,18 +497,33 @@ public final class OnnxTransformer {
                     bb.context().mapValue(fco.result(), result);
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flo when flo.operands().isEmpty() -> {
-                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor())));
+                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.result()), flo.fieldDescriptor()));
                     bb.context().mapValue(flo.result(), result);
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flo -> {
-                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.resultType()), convertType(l, flo.fieldDescriptor()), bb.context().getValue(flo.operands().getFirst())));
+                    Op.Result result = bb.op(JavaOp.fieldLoad(convertType(l, flo.result()), flo.fieldDescriptor(), bb.context().getValue(flo.operands().getFirst())));
                     bb.context().mapValue(flo.result(), result);
                 }
+                case JavaOp.ArrayAccessOp.ArrayStoreOp aso when aso.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp cop -> {
+                    var list  = (List<Value>)bb.context().computePropertyIfAbsent(skipVars(aso.operands().getFirst()), _ -> new ArrayList<Value>());
+                    int index = (Integer)cop.value();
+                    while (index >= list.size()) list.add(null);
+                    list.set(index, aso.operands().get(2));
+                }
+                case CoreOp.ReturnOp ro when bb.context().getProperty(ro.operands().getFirst()) instanceof List list -> {
+                    bb.op(CoreOp._return(bb.op(CoreOp.tuple(bb.context().getValues(list)))));
+                }
                 // Copy remaining operations, which may be removed later transformations
-                default -> bb.op(op);
+                default -> {
+                    bb.op(op);
+                }
             }
             return bb;
         };
+    }
+
+    static Value skipVars(Value v) {
+        return v instanceof Op.Result or && or.op() instanceof CoreOp.VarAccessOp.VarLoadOp vlo ? vlo.varOp().initOperand() : v;
     }
 
     // @@@ Copy of Body::transform content to translate types
@@ -532,6 +613,12 @@ public final class OnnxTransformer {
                     }
                     tupleComponentTypes.add(convertType(l, e));
                 }
+                case GenericArrayType gat when rc.getAnnotation(OnnxOperators.ArrayLen.class) instanceof OnnxOperators.ArrayLen al-> {
+                    var cType = convertType(l, JavaType.type(gat.getGenericComponentType()));
+                    var tContent = new TypeElement[al.value()];
+                    Arrays.fill(tContent, cType);
+                    tupleComponentTypes.add(CoreType.tupleType(tContent));
+                }
                 default -> throw new IllegalStateException("Unexpected value: " + rc.getGenericType());
             }
         }
@@ -575,8 +662,37 @@ public final class OnnxTransformer {
         return CoreType.functionType(convertType(l, t.returnType()), t.parameterTypes().stream().map(pt -> convertType(l, pt)).toList());
     }
 
-    static FieldRef convertType(MethodHandles.Lookup l, FieldRef t) {
-        return FieldRef.field(convertType(l, t.refType()), t.name(), convertType(l, t.type()));
+    static FunctionType convertType(MethodHandles.Lookup l, CoreOp.FuncOp fo) {
+        return CoreType.functionType(convertType(l, fo.body().entryBlock().terminatingOp().operands().getFirst()), fo.parameters().stream().map(p -> convertType(l, p)).toList());
+    }
+
+    static TypeElement convertType(MethodHandles.Lookup l, Value value) {
+        // convert 1-dimensional constantly accessed constant arrays into tuples
+        if (value.type() instanceof ArrayType at && at.dimensions() == 1) {
+            int size = countConstantArraySize(value.uses());
+            if (size >= 0) {
+                var targs = new TypeElement[size];
+                Arrays.fill(targs, convertType(l, at.componentType()));
+                return CoreType.tupleType(targs);
+            }
+        }
+        return convertType(l, value.type());
+    }
+
+    static int countConstantArraySize(Set<Op.Result> uses) {
+        int size = 0;
+        for (var use : uses) {
+            int s = switch (use.op()) {
+                case JavaOp.ArrayAccessOp aao when aao.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co ->
+                    (Integer)co.value() + 1;
+                case CoreOp.VarOp _, CoreOp.VarAccessOp.VarLoadOp _ ->
+                    countConstantArraySize(use.op().result().uses());
+                default -> -1;
+            };
+            if (s < 0) return -1;
+            size = Integer.max(size, s);
+        }
+        return size;
     }
 
     // @@@ Map of Java tensor types to ONNX tensor types

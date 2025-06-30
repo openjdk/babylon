@@ -29,19 +29,11 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import jdk.incubator.code.Op;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 
 /**
  * An operation factory for constructing an {@link Op operation} from its
- * {@link ExternalizableOp.ExternalizedOp external content}.
+ * {@link ExternalizedOp external content}.
  */
 @FunctionalInterface
 public interface OpFactory {
@@ -64,32 +56,6 @@ public interface OpFactory {
     }
 
     /**
-     * A class value for lazily computing an operation factory for {@link Op operation} classes
-     * annotated with {@link OpDeclaration} and enclosed within a given class to compute over.
-     * <p>
-     * Each enclosed class annotated with {@code OpDeclaration} must declare a public static method named {@code create}
-     * with one parameter type of {@link ExternalizableOp.ExternalizedOp} and return type that is the concrete class type.
-     * Alternatively, the concrete class must declare public constructor with one parameter type of
-     * {@link ExternalizableOp.ExternalizedOp}.
-     */
-    ClassValue<OpFactory> OP_FACTORY = new ClassValue<>() {
-        @Override
-        protected OpFactory computeValue(Class<?> c) {
-            // @@@ See https://bugs.openjdk.org/browse/JDK-8321207
-            final Map<String, Class<? extends Op>> opMapping = createOpMapping(c);
-
-            return def -> {
-                var opClass = opMapping.get(def.name());
-                if (opClass == null) {
-                    return null;
-                }
-
-                return constructOp(opClass, def);
-            };
-        }
-    };
-
-    /**
      * Constructs an {@link Op operation} from its external content.
      * <p>
      * If there is no mapping from the operation's name to a concrete
@@ -98,7 +64,7 @@ public interface OpFactory {
      * @param def the operation's external content
      * @return the operation, otherwise null
      */
-    Op constructOp(ExternalizableOp.ExternalizedOp def);
+    Op constructOp(ExternalizedOp def);
 
     /**
      * Constructs an {@link Op operation} from its external content.
@@ -107,11 +73,11 @@ public interface OpFactory {
      * class of an {@code Op} then this method throws UnsupportedOperationException.
      *
      * @param def the operation's external content
-     * @return the operation, otherwise null
+     * @return the operation
      * @throws UnsupportedOperationException if there is no mapping from the operation's
      *                                       name to a concrete class of an {@code Op}
      */
-    default Op constructOpOrFail(ExternalizableOp.ExternalizedOp def) {
+    default Op constructOpOrFail(ExternalizedOp def) {
         Op op = constructOp(def);
         if (op == null) {
             throw new UnsupportedOperationException("Unsupported operation: " + def.name());
@@ -121,7 +87,7 @@ public interface OpFactory {
     }
 
     /**
-     * Compose this operation factory with another operation factory.
+     * Composes this operation factory with another operation factory.
      * <p>
      * If there is no mapping in this operation factory then the result
      * of the other operation factory is returned.
@@ -136,91 +102,80 @@ public interface OpFactory {
         };
     }
 
-    private static Map<String, Class<? extends Op>> createOpMapping(Class<?> opClasses) {
-        Map<String, Class<? extends Op>> mapping = new HashMap<>();
-        for (Class<?> opClass : opClasses.getNestMembers()) {
-            if (opClass.isAnnotationPresent(OpDeclaration.class)) {
-                if (!Modifier.isPublic(opClass.getModifiers())) {
-                    throw new InternalError("Operation class not public: " + opClass.getName());
-                }
-
-                if (!Op.class.isAssignableFrom(opClass)) {
-                    throw new InternalError("Operation class is not assignable to Op: " + opClass);
-                }
-
-                MethodHandle handle = getOpConstructorMethodHandle(opClass);
-                if (handle == null) {
-                    throw new InternalError("Operation constructor for operation class not found: " + opClass.getName());
-                }
-
-                if (!Op.class.isAssignableFrom(handle.type().returnType())) {
-                    throw new InternalError("Operation constructor does not return an Op: " + handle);
-                }
-
-                String opName = opClass.getAnnotation(OpDeclaration.class).value();
-                @SuppressWarnings("unchecked")
-                var opClassCast = (Class<Op>) opClass;
-                mapping.put(opName, opClassCast);
-            }
-        }
-        return mapping;
-    }
-
-    private static MethodHandle getOpConstructorMethodHandle(Class<?> opClass) {
-        Method method = null;
-        try {
-            method = opClass.getMethod("create", ExternalizableOp.ExternalizedOp.class);
-        } catch (NoSuchMethodException e) {
-        }
-
-        if (method != null) {
-            if (!Modifier.isStatic(method.getModifiers())) {
-                throw new InternalError("Operation constructor is not a static method: " + method);
-            }
-
-            try {
-                return MethodHandles.publicLookup().unreflect(method);
-            } catch (IllegalAccessException e) {
-                throw new InternalError("Inaccessible operation constructor for operation: " +
-                        method);
-            }
-        }
-
-        Constructor<?> constructor;
-        try {
-            constructor = opClass.getConstructor(ExternalizableOp.ExternalizedOp.class);
-        } catch (NoSuchMethodException e) {
-            return null;
-        }
-
-        try {
-            return MethodHandles.publicLookup().unreflectConstructor(constructor);
-        } catch (IllegalAccessException e) {
-            throw new InternalError("Inaccessible operation constructor for operation: " +
-                    constructor);
-        }
-    }
-
-    private static Op constructOp(Class<? extends Op> opClass, ExternalizableOp.ExternalizedOp opDef) {
-        class Enclosed {
-            private static final ClassValue<Function<ExternalizableOp.ExternalizedOp, Op>> OP_CONSTRUCTOR = new ClassValue<>() {
-                @Override
-                protected Function<ExternalizableOp.ExternalizedOp, Op> computeValue(Class<?> opClass) {
-                    final MethodHandle opConstructorMH = getOpConstructorMethodHandle(opClass);
-                    assert opConstructorMH != null;
-
-                    return operationDefinition -> {
-                        try {
-                            return (Op) opConstructorMH.invoke(operationDefinition);
-                        } catch (RuntimeException | Error e) {
-                            throw e;
-                        } catch (Throwable t) {
-                            throw new RuntimeException(t);
-                        }
-                    };
-                }
-            };
-        }
-        return Enclosed.OP_CONSTRUCTOR.get(opClass).apply(opDef);
-    }
+//    // Uncomment the following and execute like as follows to generate a factory method
+//    // for enclosed concrete operations
+//    // java --add-modules jdk.incubator.code jdk.incubator.code.extern.OpFactory jdk.incubator.code.dialect.core.CoreOp
+//    static void main(String[] args) throws Throwable {
+//        Class<?> enclosingOpClass = Class.forName(args[0]);
+//        generateSwitchExpression(enclosingOpClass, System.out);
+//    }
+//
+//    static void generateSwitchExpression(Class<?> enclosingOpClass, java.io.PrintStream out) throws Throwable {
+//        java.util.Map<String, java.lang.reflect.Executable> opNameMap = new java.util.TreeMap<>();
+//        for (Class<?> opClass : enclosingOpClass.getNestMembers()) {
+//            if (!Op.class.isAssignableFrom(opClass)) {
+//                continue;
+//            }
+//            if (!Modifier.isFinal(opClass.getModifiers())) {
+//                continue;
+//            }
+//
+//            OpDeclaration opDecl = opClass.getAnnotation(OpDeclaration.class);
+//            String name = opDecl.value();
+//
+//            var e = getOpConstructorExecutable(opClass);
+//            opNameMap.put(name, e);
+//        }
+//
+//        out.println("static Op createOp(ExternalizedOp def) {");
+//        out.println("    Op op = switch (def.name()) {");
+//        opNameMap.forEach((name, e) -> {
+//            out.print("        case \"" + name + "\" -> ");
+//            switch (e) {
+//                case java.lang.reflect.Constructor<?> constructor -> {
+//                    out.println("new " + name(enclosingOpClass, constructor.getDeclaringClass()) + "(def);");
+//                }
+//                case java.lang.reflect.Method method -> {
+//                    out.println(name(enclosingOpClass, method.getDeclaringClass()) + "." + method.getName() + "(def);");
+//                }
+//            }
+//        });
+//        out.println("        default -> null;");
+//        out.println("    };");
+//        out.print(
+//                """
+//                    if (op != null) {
+//                        op.setLocation(def.location());
+//                    }
+//                    return op;
+//                """);
+//        out.println("}");
+//    }
+//
+//    private static java.lang.reflect.Executable getOpConstructorExecutable(Class<?> opClass) {
+//        java.lang.reflect.Executable e = null;
+//        try {
+//            e = opClass.getMethod("create", ExternalizedOp.class);
+//        } catch (NoSuchMethodException _) {
+//        }
+//
+//        if (e != null) {
+//            if (!Modifier.isStatic(e.getModifiers())) {
+//                throw new InternalError("Operation constructor is not a static method: " + e);
+//            }
+//            return e;
+//        }
+//
+//        try {
+//            e = opClass.getConstructor(ExternalizedOp.class);
+//        } catch (NoSuchMethodException _) {
+//            return null;
+//        }
+//
+//        return e;
+//    }
+//
+//    static String name(Class<?> enclosingOpClass, Class<?> declaringClass) {
+//        return declaringClass.getCanonicalName().substring(enclosingOpClass.getCanonicalName().length() + 1);
+//    }
 }

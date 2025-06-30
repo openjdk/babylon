@@ -140,7 +140,7 @@ public abstract class OpCodeBuilder<T extends OpCodeBuilder<T>> extends CodeBuil
 
     T attributeValue(Object value) {
         //what is a null?
-        //  if (value == Op.NULL_ATTRIBUTE_VALUE) {
+        //  if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE) {
         //    return nullKeyword();
         // } else {
         return dquote(value.toString());
