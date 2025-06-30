@@ -31,6 +31,7 @@ import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.internal.OpDeclaration;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -146,7 +147,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The lambda operation, that can model a Java lambda expression.
      */
-    @OpFactory.OpDeclaration(LambdaOp.NAME)
+    @OpDeclaration(LambdaOp.NAME)
     public static final class LambdaOp extends JavaOp
             implements Invokable, Lowerable, JavaExpression {
 
@@ -370,7 +371,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The terminating throw operation, that can model the Java language throw statement.
      */
-    @OpFactory.OpDeclaration(ThrowOp.NAME)
+    @OpDeclaration(ThrowOp.NAME)
     public static final class ThrowOp extends JavaOp
             implements BodyTerminating, JavaStatement {
         static final String NAME = "throw";
@@ -409,7 +410,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The assertion operation. Supporting assertions in statement form.
      */
-    @OpFactory.OpDeclaration(AssertOp.NAME)
+    @OpDeclaration(AssertOp.NAME)
     public static final class AssertOp extends JavaOp
             implements Nested, JavaStatement {
         static final String NAME = "assert";
@@ -473,7 +474,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The monitor enter operation.
          */
-        @OpFactory.OpDeclaration(MonitorEnterOp.NAME)
+        @OpDeclaration(MonitorEnterOp.NAME)
         public static final class MonitorEnterOp extends MonitorOp {
             static final String NAME = "monitor.enter";
 
@@ -502,7 +503,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The monitor exit operation.
          */
-        @OpFactory.OpDeclaration(MonitorExitOp.NAME)
+        @OpDeclaration(MonitorExitOp.NAME)
         public static final class MonitorExitOp extends MonitorOp {
             static final String NAME = "monitor.exit";
 
@@ -532,7 +533,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The invoke operation, that can model Java language method invocation expressions.
      */
-    @OpFactory.OpDeclaration(InvokeOp.NAME)
+    @OpDeclaration(InvokeOp.NAME)
     public static final class InvokeOp extends JavaOp
             implements ReflectiveOp, JavaExpression, JavaStatement {
 
@@ -702,7 +703,7 @@ public sealed abstract class JavaOp extends Op {
      * The conversion operation, that can model Java language cast expressions
      * for numerical conversion, or such implicit conversion.
      */
-    @OpFactory.OpDeclaration(ConvOp.NAME)
+    @OpDeclaration(ConvOp.NAME)
     public static final class ConvOp extends JavaOp
             implements Pure, JavaExpression {
         static final String NAME = "conv";
@@ -739,7 +740,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The new operation, that can models Java language instance creation expressions.
      */
-    @OpFactory.OpDeclaration(NewOp.NAME)
+    @OpDeclaration(NewOp.NAME)
     public static final class NewOp extends JavaOp
             implements ReflectiveOp, JavaExpression, JavaStatement {
 
@@ -865,7 +866,7 @@ public sealed abstract class JavaOp extends Op {
          * The field load operation, that can model Java language field access expressions combined with load access to
          * field instance variables.
          */
-        @OpFactory.OpDeclaration(FieldLoadOp.NAME)
+        @OpDeclaration(FieldLoadOp.NAME)
         public static final class FieldLoadOp extends FieldAccessOp
                 implements Pure, JavaExpression {
             static final String NAME = "field.load";
@@ -925,7 +926,7 @@ public sealed abstract class JavaOp extends Op {
          * The field store operation, that can model Java language field access expressions combined with store access
          * to field instance variables.
          */
-        @OpFactory.OpDeclaration(FieldStoreOp.NAME)
+        @OpDeclaration(FieldStoreOp.NAME)
         public static final class FieldStoreOp extends FieldAccessOp
                 implements JavaExpression, JavaStatement {
             static final String NAME = "field.store";
@@ -978,7 +979,7 @@ public sealed abstract class JavaOp extends Op {
      * The array length operation, that can model Java language field access expressions to the length field of an
      * array.
      */
-    @OpFactory.OpDeclaration(ArrayLengthOp.NAME)
+    @OpDeclaration(ArrayLengthOp.NAME)
     public static final class ArrayLengthOp extends JavaOp
             implements ReflectiveOp, JavaExpression {
         static final String NAME = "array.length";
@@ -1035,7 +1036,7 @@ public sealed abstract class JavaOp extends Op {
          * The array load operation, that can model Java language array expressions combined with load access to the
          * components of an array.
          */
-        @OpFactory.OpDeclaration(ArrayLoadOp.NAME)
+        @OpDeclaration(ArrayLoadOp.NAME)
         public static final class ArrayLoadOp extends ArrayAccessOp
                 implements Pure, JavaExpression {
             static final String NAME = "array.load";
@@ -1079,7 +1080,7 @@ public sealed abstract class JavaOp extends Op {
          * The array store operation, that can model Java language array expressions combined with store access to the
          * components of an array.
          */
-        @OpFactory.OpDeclaration(ArrayStoreOp.NAME)
+        @OpDeclaration(ArrayStoreOp.NAME)
         public static final class ArrayStoreOp extends ArrayAccessOp
                 implements JavaExpression, JavaStatement {
             static final String NAME = "array.store";
@@ -1116,7 +1117,7 @@ public sealed abstract class JavaOp extends Op {
      * The instanceof operation, that can model Java language instanceof expressions when the instanceof keyword is a
      * type comparison operator.
      */
-    @OpFactory.OpDeclaration(InstanceOfOp.NAME)
+    @OpDeclaration(InstanceOfOp.NAME)
     public static final class InstanceOfOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
         static final String NAME = "instanceof";
@@ -1172,7 +1173,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The cast operation, that can model Java language cast expressions for reference types.
      */
-    @OpFactory.OpDeclaration(CastOp.NAME)
+    @OpDeclaration(CastOp.NAME)
     public static final class CastOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
         static final String NAME = "cast";
@@ -1231,7 +1232,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The exception region start operation.
      */
-    @OpFactory.OpDeclaration(ExceptionRegionEnter.NAME)
+    @OpDeclaration(ExceptionRegionEnter.NAME)
     public static final class ExceptionRegionEnter extends JavaOp
             implements BlockTerminating {
         static final String NAME = "exception.region.enter";
@@ -1289,7 +1290,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The exception region end operation.
      */
-    @OpFactory.OpDeclaration(ExceptionRegionExit.NAME)
+    @OpDeclaration(ExceptionRegionExit.NAME)
     public static final class ExceptionRegionExit extends JavaOp
             implements BlockTerminating {
         static final String NAME = "exception.region.exit";
@@ -1346,7 +1347,7 @@ public sealed abstract class JavaOp extends Op {
      * The String Concatenation Operation
      */
 
-    @OpFactory.OpDeclaration(ConcatOp.NAME)
+    @OpDeclaration(ConcatOp.NAME)
     public static final class ConcatOp extends JavaOp
             implements Pure, JavaExpression {
         static final String NAME = "concat";
@@ -1463,7 +1464,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The add operation, that can model the Java language binary {@code +} operator for numeric types
      */
-    @OpFactory.OpDeclaration(AddOp.NAME)
+    @OpDeclaration(AddOp.NAME)
     public static final class AddOp extends BinaryOp {
         static final String NAME = "add";
 
@@ -1488,7 +1489,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The sub operation, that can model the Java language binary {@code -} operator for numeric types
      */
-    @OpFactory.OpDeclaration(SubOp.NAME)
+    @OpDeclaration(SubOp.NAME)
     public static final class SubOp extends BinaryOp {
         static final String NAME = "sub";
 
@@ -1513,7 +1514,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The mul operation, that can model the Java language binary {@code *} operator for numeric types
      */
-    @OpFactory.OpDeclaration(MulOp.NAME)
+    @OpDeclaration(MulOp.NAME)
     public static final class MulOp extends BinaryOp {
         static final String NAME = "mul";
 
@@ -1538,7 +1539,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The div operation, that can model the Java language binary {@code /} operator for numeric types
      */
-    @OpFactory.OpDeclaration(DivOp.NAME)
+    @OpDeclaration(DivOp.NAME)
     public static final class DivOp extends BinaryOp {
         static final String NAME = "div";
 
@@ -1563,7 +1564,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The mod operation, that can model the Java language binary {@code %} operator for numeric types
      */
-    @OpFactory.OpDeclaration(ModOp.NAME)
+    @OpDeclaration(ModOp.NAME)
     public static final class ModOp extends BinaryOp {
         static final String NAME = "mod";
 
@@ -1589,7 +1590,7 @@ public sealed abstract class JavaOp extends Op {
      * The bitwise/logical or operation, that can model the Java language binary {@code |} operator for integral types
      * and booleans
      */
-    @OpFactory.OpDeclaration(OrOp.NAME)
+    @OpDeclaration(OrOp.NAME)
     public static final class OrOp extends BinaryOp {
         static final String NAME = "or";
 
@@ -1615,7 +1616,7 @@ public sealed abstract class JavaOp extends Op {
      * The bitwise/logical and operation, that can model the Java language binary {@code &} operator for integral types
      * and booleans
      */
-    @OpFactory.OpDeclaration(AndOp.NAME)
+    @OpDeclaration(AndOp.NAME)
     public static final class AndOp extends BinaryOp {
         static final String NAME = "and";
 
@@ -1641,7 +1642,7 @@ public sealed abstract class JavaOp extends Op {
      * The xor operation, that can model the Java language binary {@code ^} operator for integral types
      * and booleans
      */
-    @OpFactory.OpDeclaration(XorOp.NAME)
+    @OpDeclaration(XorOp.NAME)
     public static final class XorOp extends BinaryOp {
         static final String NAME = "xor";
 
@@ -1666,7 +1667,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The (logical) shift left operation, that can model the Java language binary {@code <<} operator for integral types
      */
-    @OpFactory.OpDeclaration(LshlOp.NAME)
+    @OpDeclaration(LshlOp.NAME)
     public static final class LshlOp extends BinaryOp {
         static final String NAME = "lshl";
 
@@ -1691,7 +1692,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The (arithmetic) shift right operation, that can model the Java language binary {@code >>} operator for integral types
      */
-    @OpFactory.OpDeclaration(AshrOp.NAME)
+    @OpDeclaration(AshrOp.NAME)
     public static final class AshrOp extends JavaOp.BinaryOp {
         static final String NAME = "ashr";
 
@@ -1716,7 +1717,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The unsigned (logical) shift right operation, that can model the Java language binary {@code >>>} operator for integral types
      */
-    @OpFactory.OpDeclaration(LshrOp.NAME)
+    @OpDeclaration(LshrOp.NAME)
     public static final class LshrOp extends JavaOp.BinaryOp {
         static final String NAME = "lshr";
 
@@ -1741,7 +1742,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The neg operation, that can model the Java language unary {@code -} operator for numeric types
      */
-    @OpFactory.OpDeclaration(NegOp.NAME)
+    @OpDeclaration(NegOp.NAME)
     public static final class NegOp extends UnaryOp {
         static final String NAME = "neg";
 
@@ -1766,7 +1767,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The bitwise complement operation, that can model the Java language unary {@code ~} operator for integral types
      */
-    @OpFactory.OpDeclaration(ComplOp.NAME)
+    @OpDeclaration(ComplOp.NAME)
     public static final class ComplOp extends UnaryOp {
         static final String NAME = "compl";
 
@@ -1791,7 +1792,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The not operation, that can model the Java language unary {@code !} operator for boolean types
      */
-    @OpFactory.OpDeclaration(NotOp.NAME)
+    @OpDeclaration(NotOp.NAME)
     public static final class NotOp extends UnaryOp {
         static final String NAME = "not";
 
@@ -1817,7 +1818,7 @@ public sealed abstract class JavaOp extends Op {
      * The equals operation, that can model the Java language equality {@code ==} operator for numeric, boolean
      * and reference types
      */
-    @OpFactory.OpDeclaration(EqOp.NAME)
+    @OpDeclaration(EqOp.NAME)
     public static final class EqOp extends BinaryTestOp {
         static final String NAME = "eq";
 
@@ -1843,7 +1844,7 @@ public sealed abstract class JavaOp extends Op {
      * The not equals operation, that can model the Java language equality {@code !=} operator for numeric, boolean
      * and reference types
      */
-    @OpFactory.OpDeclaration(NeqOp.NAME)
+    @OpDeclaration(NeqOp.NAME)
     public static final class NeqOp extends BinaryTestOp {
         static final String NAME = "neq";
 
@@ -1868,7 +1869,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The greater than operation, that can model the Java language relational {@code >} operator for numeric types
      */
-    @OpFactory.OpDeclaration(GtOp.NAME)
+    @OpDeclaration(GtOp.NAME)
     public static final class GtOp extends BinaryTestOp {
         static final String NAME = "gt";
 
@@ -1894,7 +1895,7 @@ public sealed abstract class JavaOp extends Op {
      * The greater than or equal to operation, that can model the Java language relational {@code >=} operator for
      * numeric types
      */
-    @OpFactory.OpDeclaration(GeOp.NAME)
+    @OpDeclaration(GeOp.NAME)
     public static final class GeOp extends BinaryTestOp {
         static final String NAME = "ge";
 
@@ -1920,7 +1921,7 @@ public sealed abstract class JavaOp extends Op {
      * The less than operation, that can model the Java language relational {@code <} operator for
      * numeric types
      */
-    @OpFactory.OpDeclaration(LtOp.NAME)
+    @OpDeclaration(LtOp.NAME)
     public static final class LtOp extends BinaryTestOp {
         static final String NAME = "lt";
 
@@ -1946,7 +1947,7 @@ public sealed abstract class JavaOp extends Op {
      * The less than or equal to operation, that can model the Java language relational {@code <=} operator for
      * numeric types
      */
-    @OpFactory.OpDeclaration(LeOp.NAME)
+    @OpDeclaration(LeOp.NAME)
     public static final class LeOp extends BinaryTestOp {
         static final String NAME = "le";
 
@@ -2055,7 +2056,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The break operation, that can model Java language break statements with label identifiers.
      */
-    @OpFactory.OpDeclaration(JavaBreakOp.NAME)
+    @OpDeclaration(JavaBreakOp.NAME)
     public static final class JavaBreakOp extends JavaLabelOp {
         static final String NAME = "java.break";
 
@@ -2085,7 +2086,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The continue operation, that can model Java language continue statements with label identifiers.
      */
-    @OpFactory.OpDeclaration(JavaContinueOp.NAME)
+    @OpDeclaration(JavaContinueOp.NAME)
     public static final class JavaContinueOp extends JavaLabelOp {
         static final String NAME = "java.continue";
 
@@ -2136,7 +2137,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The yield operation, that can model Java language yield statements.
      */
-    @OpFactory.OpDeclaration(JavaYieldOp.NAME)
+    @OpDeclaration(JavaYieldOp.NAME)
     public static final class JavaYieldOp extends JavaOp
             implements Op.BodyTerminating, JavaStatement, Op.Lowerable {
         static final String NAME = "java.yield";
@@ -2214,7 +2215,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The block operation, that can model Java language blocks.
      */
-    @OpFactory.OpDeclaration(JavaBlockOp.NAME)
+    @OpDeclaration(JavaBlockOp.NAME)
     public static final class JavaBlockOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
         static final String NAME = "java.block";
@@ -2293,7 +2294,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The synchronized operation, that can model Java synchronized statements.
      */
-    @OpFactory.OpDeclaration(JavaSynchronizedOp.NAME)
+    @OpDeclaration(JavaSynchronizedOp.NAME)
     public static final class JavaSynchronizedOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
         static final String NAME = "java.synchronized";
@@ -2461,7 +2462,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The labeled operation, that can model Java language labeled statements.
      */
-    @OpFactory.OpDeclaration(JavaLabeledOp.NAME)
+    @OpDeclaration(JavaLabeledOp.NAME)
     public static final class JavaLabeledOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
         static final String NAME = "java.labeled";
@@ -2551,7 +2552,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The if operation, that can model Java language if, if-then, and if-then-else statements.
      */
-    @OpFactory.OpDeclaration(JavaIfOp.NAME)
+    @OpDeclaration(JavaIfOp.NAME)
     public static final class JavaIfOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
@@ -2915,7 +2916,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The switch expression operation, that can model Java language switch expressions.
      */
-    @OpFactory.OpDeclaration(JavaSwitchExpressionOp.NAME)
+    @OpDeclaration(JavaSwitchExpressionOp.NAME)
     public static final class JavaSwitchExpressionOp extends JavaSwitchOp
             implements JavaExpression {
         static final String NAME = "java.switch.expression";
@@ -2952,7 +2953,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The switch statement operation, that can model Java language switch statement.
      */
-    @OpFactory.OpDeclaration(JavaSwitchStatementOp.NAME)
+    @OpDeclaration(JavaSwitchStatementOp.NAME)
     public static final class JavaSwitchStatementOp extends JavaSwitchOp
             implements JavaStatement {
         static final String NAME = "java.switch.statement";
@@ -2984,7 +2985,7 @@ public sealed abstract class JavaOp extends Op {
      * The switch fall-through operation, that can model fall-through to the next statement in the switch block after
      * the last statement of the current switch label.
      */
-    @OpFactory.OpDeclaration(JavaSwitchFallthroughOp.NAME)
+    @OpDeclaration(JavaSwitchFallthroughOp.NAME)
     public static final class JavaSwitchFallthroughOp extends JavaOp
             implements Op.BodyTerminating, Op.Lowerable {
         static final String NAME = "java.switch.fallthrough";
@@ -3030,7 +3031,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The for operation, that can model a Java language for statement.
      */
-    @OpFactory.OpDeclaration(JavaForOp.NAME)
+    @OpDeclaration(JavaForOp.NAME)
     public static final class JavaForOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
@@ -3288,7 +3289,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The enhanced for operation, that can model a Java language enhanced for statement.
      */
-    @OpFactory.OpDeclaration(JavaEnhancedForOp.NAME)
+    @OpDeclaration(JavaEnhancedForOp.NAME)
     public static final class JavaEnhancedForOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
@@ -3547,7 +3548,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The while operation, that can model a Java language while statement.
      */
-    @OpFactory.OpDeclaration(JavaWhileOp.NAME)
+    @OpDeclaration(JavaWhileOp.NAME)
     public static final class JavaWhileOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
@@ -3690,7 +3691,7 @@ public sealed abstract class JavaOp extends Op {
      * The do-while operation, that can model a Java language do statement.
      */
     // @@@ Unify JavaDoWhileOp and JavaWhileOp with common abstract superclass
-    @OpFactory.OpDeclaration(JavaDoWhileOp.NAME)
+    @OpDeclaration(JavaDoWhileOp.NAME)
     public static final class JavaDoWhileOp extends JavaOp
             implements Op.Loop, Op.Lowerable, JavaStatement {
 
@@ -3932,7 +3933,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The conditional-and operation, that can model Java language conditional-and expressions.
      */
-    @OpFactory.OpDeclaration(JavaConditionalAndOp.NAME)
+    @OpDeclaration(JavaConditionalAndOp.NAME)
     public static final class JavaConditionalAndOp extends JavaConditionalOp {
 
         public static class Builder {
@@ -3987,7 +3988,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The conditional-or operation, that can model Java language conditional-or expressions.
      */
-    @OpFactory.OpDeclaration(JavaConditionalOrOp.NAME)
+    @OpDeclaration(JavaConditionalOrOp.NAME)
     public static final class JavaConditionalOrOp extends JavaConditionalOp {
 
         public static class Builder {
@@ -4042,7 +4043,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The conditional operation, that can model Java language conditional operator {@code ?} expressions.
      */
-    @OpFactory.OpDeclaration(JavaConditionalExpressionOp.NAME)
+    @OpDeclaration(JavaConditionalExpressionOp.NAME)
     public static final class JavaConditionalExpressionOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaExpression {
 
@@ -4143,7 +4144,7 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The try operation, that can model Java language try statements.
      */
-    @OpFactory.OpDeclaration(JavaTryOp.NAME)
+    @OpDeclaration(JavaTryOp.NAME)
     public static final class JavaTryOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
@@ -4672,7 +4673,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The binding pattern operation, that can model Java language type patterns.
          */
-        @OpFactory.OpDeclaration(TypePatternOp.NAME)
+        @OpDeclaration(TypePatternOp.NAME)
         public static final class TypePatternOp extends PatternOp {
             static final String NAME = "pattern.type";
 
@@ -4735,7 +4736,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The record pattern operation, that can model Java language record patterns.
          */
-        @OpFactory.OpDeclaration(RecordPatternOp.NAME)
+        @OpDeclaration(RecordPatternOp.NAME)
         public static final class RecordPatternOp extends PatternOp {
             static final String NAME = "pattern.record";
 
@@ -4792,7 +4793,7 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
-        @OpFactory.OpDeclaration(MatchAllPatternOp.NAME)
+        @OpDeclaration(MatchAllPatternOp.NAME)
         public static final class MatchAllPatternOp extends PatternOp {
 
             // @@@ we may need to add info about the type of the record component
@@ -4826,7 +4827,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * The match operation, that can model Java language pattern matching.
          */
-        @OpFactory.OpDeclaration(MatchOp.NAME)
+        @OpDeclaration(MatchOp.NAME)
         public static final class MatchOp extends JavaOp implements Op.Isolated, Op.Lowerable {
             static final String NAME = "pattern.match";
 

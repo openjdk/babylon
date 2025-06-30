@@ -34,7 +34,7 @@ import jdk.incubator.code.extern.OpFactory;
 public sealed class ExplicitOnnxOps permits OnnxOps {
 
     // @@@ this should be generated from contrib operators
-    @OpFactory.OpDeclaration(GroupQueryAttention.NAME)
+    @OpFactoryHelper.OpDeclaration(GroupQueryAttention.NAME)
     public static final class GroupQueryAttention extends OnnxOp {
         public static final String NAME = "com.microsoft.GroupQueryAttention";
 
@@ -236,7 +236,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
     }
 
     // @@@ this should be generated from contrib operators
-    @OpFactory.OpDeclaration(MatMulNBits.NAME)
+    @OpFactoryHelper.OpDeclaration(MatMulNBits.NAME)
     public static final class MatMulNBits extends OnnxOp {
         public static final String NAME = "com.microsoft.MatMulNBits";
 
@@ -411,7 +411,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
     }
 
     // @@@ this should be generated from contrib operators
-    @OpFactory.OpDeclaration(SkipSimplifiedLayerNormalization.NAME)
+    @OpFactoryHelper.OpDeclaration(SkipSimplifiedLayerNormalization.NAME)
     public static final class SkipSimplifiedLayerNormalization extends OnnxOp {
         public static final String NAME = "com.microsoft.SkipSimplifiedLayerNormalization";
 
@@ -572,7 +572,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
 
 
 
-    @OpFactory.OpDeclaration(If.NAME)
+    @OpFactoryHelper.OpDeclaration(If.NAME)
     public static final class If extends OnnxOp implements Nested {
         public static final String NAME = "If";
 
@@ -711,7 +711,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         return new If(resultType, cond, thenBody, elseBody);
     }
 
-    @OpFactory.OpDeclaration(Loop.NAME)
+    @OpFactoryHelper.OpDeclaration(Loop.NAME)
     public static final class Loop extends OnnxOp implements Op.Loop {
         public static final String NAME = "Loop";
 
