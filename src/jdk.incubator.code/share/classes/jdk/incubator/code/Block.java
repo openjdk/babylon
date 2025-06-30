@@ -895,6 +895,7 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Op.Result op(Op op, OpTransformer transformer) {
             check();
+
             final Op.Result oprToTransform = op.result();
 
             Op transformedOp = op;
