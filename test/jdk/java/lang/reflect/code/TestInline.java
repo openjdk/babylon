@@ -84,7 +84,7 @@ public class TestInline {
                     });
                     Assert.assertEquals(fblock, cb);
 
-                    fblock.op(_return(fblock.op(varLoad(v))));
+                    fblock.op(return_(fblock.op(varLoad(v))));
                 });
 
         f.writeTo(System.out);
@@ -150,7 +150,7 @@ public class TestInline {
                     });
                     Assert.assertNotEquals(fblock, cb);
 
-                    cb.op(_return(cb.op(varLoad(v))));
+                    cb.op(return_(cb.op(varLoad(v))));
                 });
         f.writeTo(System.out);
 

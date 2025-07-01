@@ -48,7 +48,7 @@ public final class StringConcatTransformer implements OpTransformer {
         switch (op) {
             case JavaOp.ConcatOp cz when isRootConcat(cz) -> {
                 // Create a string builder and build by traversing tree of operands
-                Op.Result builder = block.apply(JavaOp._new(ConstructorRef.constructor(J_L_STRING_BUILDER)));
+                Op.Result builder = block.apply(JavaOp.new_(ConstructorRef.constructor(J_L_STRING_BUILDER)));
                 buildFromTree(block, builder, cz);
                 // Convert to string
                 Value s = block.op(JavaOp.invoke(SB_TO_STRING_REF, builder));
