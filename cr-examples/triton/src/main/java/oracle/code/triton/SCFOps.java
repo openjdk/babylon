@@ -38,7 +38,7 @@ import java.util.function.Consumer;
 
 public class SCFOps {
 
-    @OpFactory.OpDeclaration(ForOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ForOp.NAME)
     public static final class ForOp extends Op implements Op.Loop {
 
         public static class Builder {
@@ -108,7 +108,7 @@ public class SCFOps {
         }
     }
 
-    @OpFactory.OpDeclaration(YieldOp.NAME)
+    @OpFactoryHelper.OpDeclaration(YieldOp.NAME)
     public static class YieldOp extends Op implements Op.Terminating {
         public static final String NAME = "scf.yield";
 

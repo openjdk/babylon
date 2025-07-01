@@ -48,15 +48,11 @@ import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.extern.OpWriter;
 import oracle.code.onnx.CNNTest;
 import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.Tensor;
-import oracle.code.onnx.ir.ExplicitOnnxOps;
-import oracle.code.onnx.ir.OnnxOp;
-import oracle.code.onnx.ir.OnnxOps;
-import oracle.code.onnx.ir.OnnxType;
+import oracle.code.onnx.ir.*;
 import org.junit.jupiter.api.Test;
 
 

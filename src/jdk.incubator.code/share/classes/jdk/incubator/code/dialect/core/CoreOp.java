@@ -29,6 +29,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.internal.OpDeclaration;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -54,7 +55,7 @@ public sealed abstract class CoreOp extends Op {
     /**
      * The function operation, that can model a Java method declaration.
      */
-    @OpFactory.OpDeclaration(FuncOp.NAME)
+    @OpDeclaration(FuncOp.NAME)
     public static final class FuncOp extends CoreOp
             implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
@@ -168,7 +169,7 @@ public sealed abstract class CoreOp extends Op {
      * ancestor of this operation.
      */
     // @@@ stack effects equivalent to the call operation as if the function were a Java method?
-    @OpFactory.OpDeclaration(FuncCallOp.NAME)
+    @OpDeclaration(FuncCallOp.NAME)
     public static final class FuncCallOp extends CoreOp {
         static final String NAME = "func.call";
         public static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
@@ -224,7 +225,7 @@ public sealed abstract class CoreOp extends Op {
      * The module operation, modeling a collection of functions,
      * and creating a symbol table of function name to function
      */
-    @OpFactory.OpDeclaration(ModuleOp.NAME)
+    @OpDeclaration(ModuleOp.NAME)
     public static final class ModuleOp extends CoreOp
             implements Op.Isolated, Op.Lowerable {
 
@@ -311,7 +312,7 @@ public sealed abstract class CoreOp extends Op {
     /**
      * The quoted operation, that models the quoting of an operation.
      */
-    @OpFactory.OpDeclaration(QuotedOp.NAME)
+    @OpDeclaration(QuotedOp.NAME)
     public static final class QuotedOp extends CoreOp
             implements Op.Nested, Op.Lowerable, Op.Pure {
         static final String NAME = "quoted";
@@ -386,7 +387,7 @@ public sealed abstract class CoreOp extends Op {
      * The closure operation, that can model a structured Java lambda expression
      * that has no target type (a functional interface).
      */
-    @OpFactory.OpDeclaration(ClosureOp.NAME)
+    @OpDeclaration(ClosureOp.NAME)
     public static final class ClosureOp extends CoreOp
             implements Op.Invokable, Op.Lowerable, JavaOp.JavaExpression {
 
@@ -470,7 +471,7 @@ public sealed abstract class CoreOp extends Op {
      */
 //  @@@ stack effects equivalent to the invocation of an SAM of on an instance of an anonymous functional interface
 //  that is the target of the closures lambda expression.
-    @OpFactory.OpDeclaration(ClosureCallOp.NAME)
+    @OpDeclaration(ClosureCallOp.NAME)
     public static final class ClosureCallOp extends CoreOp {
         static final String NAME = "closure.call";
 
@@ -503,7 +504,7 @@ public sealed abstract class CoreOp extends Op {
      * <p>
      * This operation exits an isolated body.
      */
-    @OpFactory.OpDeclaration(ReturnOp.NAME)
+    @OpDeclaration(ReturnOp.NAME)
     public static final class ReturnOp extends CoreOp
             implements Op.BodyTerminating, JavaOp.JavaStatement {
         static final String NAME = "return";
@@ -549,7 +550,7 @@ public sealed abstract class CoreOp extends Op {
      * <p>
      * This operation models termination that is unreachable.
      */
-    @OpFactory.OpDeclaration(UnreachableOp.NAME)
+    @OpDeclaration(UnreachableOp.NAME)
     public static final class UnreachableOp extends CoreOp
             implements Op.BodyTerminating {
         static final String NAME = "unreachable";
@@ -587,7 +588,7 @@ public sealed abstract class CoreOp extends Op {
      * This operation models exits from its parent body, yielding at most one value (zero value for yielding unit
      * or void)
      */
-    @OpFactory.OpDeclaration(YieldOp.NAME)
+    @OpDeclaration(YieldOp.NAME)
     public static final class YieldOp extends CoreOp
             implements Op.BodyTerminating {
         static final String NAME = "yield";
@@ -637,7 +638,7 @@ public sealed abstract class CoreOp extends Op {
      * <p>
      * This operation accepts a successor to the next block to branch to.
      */
-    @OpFactory.OpDeclaration(BranchOp.NAME)
+    @OpDeclaration(BranchOp.NAME)
     public static final class BranchOp extends CoreOp
             implements Op.BlockTerminating {
         static final String NAME = "branch";
@@ -691,7 +692,7 @@ public sealed abstract class CoreOp extends Op {
      * When the operand is true the  true successor is selected, otherwise the false successor is selected.
      * The selected successor refers to the next block to branch to.
      */
-    @OpFactory.OpDeclaration(ConditionalBranchOp.NAME)
+    @OpDeclaration(ConditionalBranchOp.NAME)
     public static final class ConditionalBranchOp extends CoreOp
             implements Op.BlockTerminating {
         static final String NAME = "cbranch";
@@ -752,7 +753,7 @@ public sealed abstract class CoreOp extends Op {
     /**
      * The constant operation, that can model Java language literal and constant expressions.
      */
-    @OpFactory.OpDeclaration(ConstantOp.NAME)
+    @OpDeclaration(ConstantOp.NAME)
     public static final class ConstantOp extends CoreOp
             implements Op.Pure, JavaOp.JavaExpression {
         static final String NAME = "constant";
@@ -865,7 +866,7 @@ public sealed abstract class CoreOp extends Op {
      * The variable operation, that can model declarations of Java language local variables, method parameters, or
      * lambda parameters.
      */
-    @OpFactory.OpDeclaration(VarOp.NAME)
+    @OpDeclaration(VarOp.NAME)
     public static final class VarOp extends CoreOp
             implements JavaOp.JavaStatement {
         static final String NAME = "var";
@@ -996,7 +997,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * The variable load operation, that models a reading variable.
          */
-        @OpFactory.OpDeclaration(VarLoadOp.NAME)
+        @OpDeclaration(VarLoadOp.NAME)
         public static final class VarLoadOp extends VarAccessOp
                 implements JavaOp.JavaExpression {
             static final String NAME = "var.load";
@@ -1033,7 +1034,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * The variable store operation, that can model a variable assignment.
          */
-        @OpFactory.OpDeclaration(VarStoreOp.NAME)
+        @OpDeclaration(VarStoreOp.NAME)
         public static final class VarStoreOp extends VarAccessOp
                 implements JavaOp.JavaExpression, JavaOp.JavaStatement {
             static final String NAME = "var.store";
@@ -1082,7 +1083,7 @@ public sealed abstract class CoreOp extends Op {
     /**
      * The tuple operation. A tuple contain a fixed set of values accessible by their component index.
      */
-    @OpFactory.OpDeclaration(TupleOp.NAME)
+    @OpDeclaration(TupleOp.NAME)
     public static final class TupleOp extends CoreOp {
         static final String NAME = "tuple";
 
@@ -1112,7 +1113,7 @@ public sealed abstract class CoreOp extends Op {
     /**
      * The tuple component load operation, that access the component of a tuple at a given, constant, component index.
      */
-    @OpFactory.OpDeclaration(TupleLoadOp.NAME)
+    @OpDeclaration(TupleLoadOp.NAME)
     public static final class TupleLoadOp extends CoreOp {
         static final String NAME = "tuple.load";
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
@@ -1173,7 +1174,7 @@ public sealed abstract class CoreOp extends Op {
     /**
      * The tuple component set operation, that access the component of a tuple at a given, constant, component index.
      */
-    @OpFactory.OpDeclaration(TupleWithOp.NAME)
+    @OpDeclaration(TupleWithOp.NAME)
     public static final class TupleWithOp extends CoreOp {
         static final String NAME = "tuple.with";
         public static final String ATTRIBUTE_INDEX = NAME + ".index";
