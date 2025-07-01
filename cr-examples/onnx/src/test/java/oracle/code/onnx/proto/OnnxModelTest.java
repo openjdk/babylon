@@ -303,11 +303,11 @@ public class OnnxModelTest {
             }
 
             if (g.output().size() == 1) {
-                fb.op(CoreOp._return(valueMap.get(g.output().getFirst().name())));
+                fb.op(CoreOp.return_(valueMap.get(g.output().getFirst().name())));
             } else {
                 Op.Result ret = fb.op(CoreOp.tuple(g.output().stream().map(OnnxModel.ValueInfoProto::name).map(valueMap::get).toList()));
                 valueMap.put(g.name() + "_return", ret);
-                fb.op(CoreOp._return(ret));
+                fb.op(CoreOp.return_(ret));
             }
         });
 

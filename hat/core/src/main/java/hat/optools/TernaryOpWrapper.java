@@ -30,8 +30,8 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
-public class TernaryOpWrapper extends OpWrapper<JavaOp.JavaConditionalExpressionOp> {
-    public TernaryOpWrapper( MethodHandles.Lookup lookup,JavaOp.JavaConditionalExpressionOp op) {
+public class TernaryOpWrapper extends OpWrapper<JavaOp.ConditionalExpressionOp> {
+    public TernaryOpWrapper( MethodHandles.Lookup lookup,JavaOp.ConditionalExpressionOp op) {
         super(lookup,op);
     }
 

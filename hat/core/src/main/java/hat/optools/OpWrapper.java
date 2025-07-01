@@ -63,9 +63,9 @@ public class OpWrapper<T extends Op> {
         }
         return switch (op) {
             case CoreOp.ModuleOp $ -> (OW) new ModuleOpWrapper(lookup, $);
-            case JavaOp.JavaForOp $ -> (OW) new ForOpWrapper(lookup, $);
-            case JavaOp.JavaWhileOp $ -> (OW) new WhileOpWrapper(lookup, $);
-            case JavaOp.JavaIfOp $ -> (OW) new IfOpWrapper(lookup, $);
+            case JavaOp.ForOp $ -> (OW) new ForOpWrapper(lookup, $);
+            case JavaOp.WhileOp $ -> (OW) new WhileOpWrapper(lookup, $);
+            case JavaOp.IfOp $ -> (OW) new IfOpWrapper(lookup, $);
             case JavaOp.NotOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper(lookup, $);
             case JavaOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper(lookup, $);
             case JavaOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation(lookup, $);
@@ -85,10 +85,10 @@ public class OpWrapper<T extends Op> {
             case CoreOp.TupleOp $ -> (OW) new TupleOpWrapper(lookup, $);
             case JavaOp.LambdaOp $ -> (OW) new LambdaOpWrapper(lookup, $);
             case JavaOp.JavaConditionalOp $ -> (OW) new LogicalOpWrapper(lookup, $);
-            case JavaOp.JavaConditionalExpressionOp $ -> (OW) new TernaryOpWrapper(lookup, $);
-            case JavaOp.JavaLabeledOp $ -> (OW) new JavaLabeledOpWrapper(lookup, $);
-            case JavaOp.JavaBreakOp $ -> (OW) new JavaBreakOpWrapper(lookup, $);
-            case JavaOp.JavaContinueOp $ -> (OW) new JavaContinueOpWrapper(lookup, $);
+            case JavaOp.ConditionalExpressionOp $ -> (OW) new TernaryOpWrapper(lookup, $);
+            case JavaOp.LabeledOp $ -> (OW) new JavaLabeledOpWrapper(lookup, $);
+            case JavaOp.BreakOp $ -> (OW) new JavaBreakOpWrapper(lookup, $);
+            case JavaOp.ContinueOp $ -> (OW) new JavaContinueOpWrapper(lookup, $);
             default -> (OW) new OpWrapper<>(lookup,op);
         };
     }
