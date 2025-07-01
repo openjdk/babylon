@@ -1369,7 +1369,7 @@ public sealed abstract class CoreOp extends Op {
                                   Function<Block.Builder, Op> opFunc) {
         Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
         Block.Builder block = body.entryBlock();
-        block.op(_yield(
+        block.op(core_yield(
                 block.op(opFunc.apply(block))));
         return new QuotedOp(body);
     }
@@ -1433,8 +1433,8 @@ public sealed abstract class CoreOp extends Op {
      *
      * @return the return operation
      */
-    public static ReturnOp _return() {
-        return _return(null);
+    public static ReturnOp return_() {
+        return return_(null);
     }
 
     /**
@@ -1443,7 +1443,7 @@ public sealed abstract class CoreOp extends Op {
      * @param returnValue the return value
      * @return the return operation
      */
-    public static ReturnOp _return(Value returnValue) {
+    public static ReturnOp return_(Value returnValue) {
         return new ReturnOp(returnValue);
     }
 
@@ -1461,7 +1461,7 @@ public sealed abstract class CoreOp extends Op {
      *
      * @return the yield operation
      */
-    public static YieldOp _yield() {
+    public static YieldOp core_yield() {
         return new YieldOp();
     }
 
@@ -1471,7 +1471,7 @@ public sealed abstract class CoreOp extends Op {
      * @param yieldValue the yielded value
      * @return the yield operation
      */
-    public static YieldOp _yield(Value yieldValue) {
+    public static YieldOp core_yield(Value yieldValue) {
         return new YieldOp(List.of(yieldValue));
     }
 

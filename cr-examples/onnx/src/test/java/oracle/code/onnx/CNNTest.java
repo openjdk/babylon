@@ -298,7 +298,7 @@ public class CNNTest {
                     fc3,
                     of(1L)));
 
-            b.op(CoreOp._return(prediction));
+            b.op(CoreOp.return_(prediction));
         }));
     }
 

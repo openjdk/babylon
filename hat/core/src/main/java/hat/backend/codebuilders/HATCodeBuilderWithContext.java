@@ -97,7 +97,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;
-            case JavaOp.JavaWhileOp o -> 0;
+            case JavaOp.WhileOp o -> 0;
             case JavaOp.ConvOp o -> 1;
             case JavaOp.NegOp  o-> 1;
             case JavaOp.ModOp o -> 2;
@@ -119,9 +119,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             case JavaOp.AndOp o -> 11;
             case JavaOp.XorOp o -> 12;
             case JavaOp.OrOp o -> 13;
-            case JavaOp.JavaConditionalAndOp o -> 14;
-            case JavaOp.JavaConditionalOrOp o -> 15;
-            case JavaOp.JavaConditionalExpressionOp o -> 18;
+            case JavaOp.ConditionalAndOp o -> 14;
+            case JavaOp.ConditionalOrOp o -> 15;
+            case JavaOp.ConditionalExpressionOp o -> 18;
             case CoreOp.ReturnOp o -> 19;
 
             default -> throw new IllegalStateException("precedence ");
@@ -229,8 +229,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             case JavaOp.AndOp o -> ampersand();
             case JavaOp.OrOp o -> bar();
             case JavaOp.XorOp o -> hat();
-            case JavaOp.JavaConditionalAndOp o -> condAnd();
-            case JavaOp.JavaConditionalOrOp o -> condOr();
+            case JavaOp.ConditionalAndOp o -> condAnd();
+            case JavaOp.ConditionalOrOp o -> condOr();
             default -> throw new IllegalStateException("Unexpected value: " + op);
         };
     }

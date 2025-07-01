@@ -24,7 +24,8 @@
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.java.JavaOp.JavaEnhancedForOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaOp.EnhancedForOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.java.JavaOp._continue;
+import static jdk.incubator.code.dialect.java.JavaOp.continue_;
 import static jdk.incubator.code.dialect.java.JavaOp.enhancedFor;
 import static jdk.incubator.code.dialect.java.JavaType.parameterized;
 import static jdk.incubator.code.dialect.java.JavaType.type;
@@ -101,14 +102,14 @@ public final class StreamFuser {
             this.streamOps = new ArrayList<>();
         }
 
-        static JavaEnhancedForOp.BodyBuilder enhancedForLoop(Body.Builder ancestorBody, JavaType elementType,
-                                                             Value iterable) {
+        static EnhancedForOp.BodyBuilder enhancedForLoop(Body.Builder ancestorBody, JavaType elementType,
+                                                         Value iterable) {
             return enhancedFor(ancestorBody, iterable.type(), elementType)
                     .expression(b -> {
-                        b.op(_yield(iterable));
+                        b.op(core_yield(iterable));
                     })
                     .definition(b -> {
-                        b.op(_yield(b.parameters().get(0)));
+                        b.op(core_yield(b.parameters().get(0)));
                     });
         }
 
@@ -149,7 +150,7 @@ public final class StreamFuser {
                     Block.Builder _else = continueBlock;
                     if (continueBlock == null) {
                         _else = block.block();
-                        _else.op(_continue());
+                        _else.op(JavaOp.continue_());
                     }
 
                     block.op(conditionalBranch(p, _if.successor(), _else.successor()));
@@ -158,13 +159,13 @@ public final class StreamFuser {
                 });
             } else if (sop instanceof FlatMapStreamOp) {
                 body.inline(sop.op(), List.of(element), (block, iterable) -> {
-                    JavaEnhancedForOp forOp = enhancedFor(block.parentBody(),
+                    EnhancedForOp forOp = enhancedFor(block.parentBody(),
                             iterable.type(), ((ClassType) iterable.type()).typeArguments().get(0))
                             .expression(b -> {
-                                b.op(_yield(iterable));
+                                b.op(core_yield(iterable));
                             })
                             .definition(b -> {
-                                b.op(_yield(b.parameters().get(0)));
+                                b.op(core_yield(b.parameters().get(0)));
                             })
                             .body(b -> {
                                 fuseIntermediateOperation(i + 1,
@@ -174,7 +175,7 @@ public final class StreamFuser {
                             });
 
                     block.op(forOp);
-                    block.op(_continue());
+                    block.op(JavaOp.continue_());
                 });
             }
         }
@@ -194,12 +195,12 @@ public final class StreamFuser {
                                         terminalBlock.inline(consumer, List.of(resultValue),
                                                 (_, _) -> {
                                                 });
-                                        terminalBlock.op(_continue());
+                                        terminalBlock.op(JavaOp.continue_());
                                     });
 
                                 });
                         b.op(sourceLoop);
-                        b.op(_return());
+                        b.op(return_());
                     });
         }
 
@@ -224,11 +225,11 @@ public final class StreamFuser {
                                             terminalBlock.inline(accumulator, List.of(collect, resultValue),
                                                     (_, _) -> {
                                                     });
-                                            terminalBlock.op(_continue());
+                                            terminalBlock.op(JavaOp.continue_());
                                         });
                                     });
                             block.op(sourceLoop);
-                            block.op(_return(collect));
+                            block.op(return_(collect));
                         });
                     });
         }

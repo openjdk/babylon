@@ -70,7 +70,7 @@ public interface Queryable<T> {
                             functionType(Queryable.TYPE, ((ClassType) lambdaOp.functionalInterface()).rawType()));
                     Op.Result queryable = block.op(JavaOp.invoke(queryableType, md, query, fi));
 
-                    block.op(_return(queryable));
+                    block.op(return_(queryable));
                 }));
 
         return provider().createQuery(elementType, nextQueryExpression);
@@ -99,7 +99,7 @@ public interface Queryable<T> {
                             functionType(QueryResult.TYPE));
                     Op.Result queryResult = block.op(JavaOp.invoke(queryResultType, md, query));
 
-                    block.op(_return(queryResult));
+                    block.op(return_(queryResult));
                 }));
 
         return provider().createQueryResult(resultType, queryResultExpression);

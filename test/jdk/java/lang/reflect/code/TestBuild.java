@@ -144,7 +144,7 @@ public class TestBuild {
         // Access to set of users before constructed
         Assert.assertThrows(IllegalStateException.class, a::uses);
 
-        block.op(_return(result));
+        block.op(return_(result));
 
         var f = func("f", body);
 
@@ -171,7 +171,7 @@ public class TestBuild {
         a = anotherBlock.parameters().get(0);
         b = anotherBlock.parameters().get(1);
         var result = anotherBlock.op(JavaOp.add(a, b));
-        anotherBlock.op(_return(result));
+        anotherBlock.op(return_(result));
 
         var f = func("f", body);
 
@@ -217,7 +217,7 @@ public class TestBuild {
     public void testBuiltBodyBuilder() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(_return());
+        block.op(return_());
         func("f", body);
 
         // Body is built
@@ -228,7 +228,7 @@ public class TestBuild {
     public void testBodyBuilderWithBuiltAncestor() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(_return());
+        block.op(return_());
         func("f", body);
 
         // ancestor body is built
@@ -239,7 +239,7 @@ public class TestBuild {
     public void testBodyBuilderWithUnbuiltChildren() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(_return());
+        block.op(return_());
 
         Body.Builder.of(body, FUNCTION_TYPE_VOID);
 
@@ -256,7 +256,7 @@ public class TestBuild {
 
         var body2 = Body.Builder.of(anotherBody, FUNCTION_TYPE_VOID);
         var block2 = body2.entryBlock();
-        block2.op(_return());
+        block2.op(return_());
         var lambdaOp = JavaOp.lambda(type(Runnable.class), body2);
 
         // Op's grandparent body is not parent body of block1
@@ -267,10 +267,10 @@ public class TestBuild {
     public void testAppendAfterTerminatingOperation() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(_return());
+        block.op(return_());
 
         // Append operation after terminating operation
-        Assert.assertThrows(IllegalStateException.class, () -> block.op(_return()));
+        Assert.assertThrows(IllegalStateException.class, () -> block.op(return_()));
     }
 
     @Test
@@ -287,7 +287,7 @@ public class TestBuild {
     public void testUnreferencedBlocksRemoved() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(_return());
+        block.op(return_());
 
         // Create empty blocks
         block.block();

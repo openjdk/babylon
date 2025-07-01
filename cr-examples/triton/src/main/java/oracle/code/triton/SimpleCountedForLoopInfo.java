@@ -40,9 +40,9 @@ import static jdk.incubator.code.analysis.Patterns.*;
 // @@@ Very basic, limited, and partially correct
 public class SimpleCountedForLoopInfo {
 
-    final JavaOp.JavaForOp fop;
+    final JavaOp.ForOp fop;
 
-    SimpleCountedForLoopInfo(JavaOp.JavaForOp fop) {
+    SimpleCountedForLoopInfo(JavaOp.ForOp fop) {
         this.fop = fop;
 
         if (fop.init().yieldType().equals(JavaType.VOID)) {
