@@ -37,13 +37,6 @@ import oracle.code.onnx.ir.OnnxOps;
 
 class ExplicitOnnxOperators {
 
-    // @@@ need an analysis to count constant array size in record components
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.RECORD_COMPONENT)
-    public @interface ArrayLen {
-        int value();
-    }
-
     // Explicit constant operators
 
     public static Tensor<Long> Constant(
