@@ -91,7 +91,6 @@ public class TypeConvertor {
 
                             // explicit constant array construction
                             constantArraySizeMap.put(rc.toString(), (Integer)cop.value());
-                            System.out.println("joooooooo " + rc + " " + cop.value());
                         } else {
                             // search for the highest array access index
                             scanUse(arr, rc.toString());
@@ -170,8 +169,6 @@ public class TypeConvertor {
                 case GenericArrayType gat -> {
                     var cType = convertType(JavaType.type(gat.getGenericComponentType()));
                     Integer size = constantArraySizeMap.get(rc.toString());
-                    System.out.println("wat???? " + rc + " " + size);
-                    System.out.println(constantArraySizeMap);
                     var tContent = new TypeElement[size];
                     Arrays.fill(tContent, cType);
                     tupleComponentTypes.add(CoreType.tupleType(tContent));
