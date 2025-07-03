@@ -74,7 +74,7 @@ public class TestBlockIndexes {
 
     static void assertBlockIndexes(CoreOp.FuncOp f) {
         for (Block b : f.body().blocks()) {
-            Assert.assertEquals(b.index(), b.parentBody().blocks().indexOf(b));
+            Assert.assertEquals(b.index(), b.ancestorBody().blocks().indexOf(b));
         }
     }
 

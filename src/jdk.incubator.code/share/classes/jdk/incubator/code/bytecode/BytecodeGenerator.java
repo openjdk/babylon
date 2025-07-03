@@ -55,7 +55,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.impl.BranchCompactor;
 import jdk.incubator.code.bytecode.impl.LocalsCompactor;
 import jdk.incubator.code.dialect.core.CoreOp.*;
-import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -425,7 +424,7 @@ public final class BytecodeGenerator {
         };
         // Pass over deferred operations
         while (canDefer(nextOp)) {
-            nextOp = nextOp.parentBlock().nextOp(nextOp);
+            nextOp = nextOp.ancestorBlock().nextOp(nextOp);
         }
         return isFirstOperand(nextOp, opr);
     }
@@ -440,7 +439,7 @@ public final class BytecodeGenerator {
         }
         Op.Result use = uses.iterator().next();
 
-        if (use.declaringBlock() != op.parentBlock()) {
+        if (use.declaringBlock() != op.ancestorBlock()) {
             return false;
         }
 
@@ -1072,7 +1071,7 @@ public final class BytecodeGenerator {
             return null;
         }
 
-        if (p.declaringBlock() != op.parentBlock()) {
+        if (p.declaringBlock() != op.ancestorBlock()) {
             return null;
         }
 

@@ -143,7 +143,7 @@ public class Liveness {
             for (Op.Result useOpr : value.uses()) {
                 Op useOp = useOpr.op();
                 // Find the operation in the current block
-                useOp = block.findAncestorOpInBlock(useOp);
+                useOp = block.findChildAncestor(useOp);
                 // Update if after
                 if (useOp != null && isBeforeInBlock(endOp, useOp)) {
                     endOp = useOp;
@@ -201,7 +201,7 @@ public class Liveness {
 
     void Compute_LiveSets_SSA_ByVar(Body CFG, Value v) {
         for (Op.Result use : v.uses()) {
-            Block B = CFG.findAncestorBlockInBody(use.declaringBlock());
+            Block B = CFG.findChildAncestor(use.declaringBlock());
             Up_and_Mark_Stack(B, v);
         }
     }
@@ -287,7 +287,7 @@ public class Liveness {
      * @return true if a value is last used by an operation
      */
     public boolean isLastUse(Value value, Op op) {
-        Block block = op.parentBlock();
+        Block block = op.ancestorBlock();
         BlockInfo liveness = getLiveness(block);
 
         // Value is used by some successor
@@ -318,11 +318,11 @@ public class Liveness {
             throw new IllegalArgumentException("This or the given operation is not assigned to a block");
         }
 
-        if (thisOp.parentBlock() != thatOp.parentBlock()) {
+        if (thisOp.ancestorBlock() != thatOp.ancestorBlock()) {
             throw new IllegalArgumentException("This and that operation are not assigned to the same blocks");
         }
 
-        List<Op> ops = thisOp.parentBlock().ops();
+        List<Op> ops = thisOp.ancestorBlock().ops();
         return ops.indexOf(thisOp) < ops.indexOf(thatOp);
     }
 

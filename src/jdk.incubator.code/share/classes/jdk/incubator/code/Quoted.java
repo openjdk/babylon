@@ -187,10 +187,10 @@ public final class Quoted {
                 throw invalidQuotedModel(funcOp);
             } else if (v.uses().size() == 1
                     && !(v.uses().iterator().next().op() instanceof CoreOp.VarOp vop && vop.result().uses().size() >= 1
-                    && vop.result().uses().stream().noneMatch(u -> u.op().parentBlock() == fblock))
+                    && vop.result().uses().stream().noneMatch(u -> u.op().ancestorBlock() == fblock))
                     && !operandsAndCaptures.contains(v)) {
                 throw invalidQuotedModel(funcOp);
-            } else if (v.uses().size() > 1 && v.uses().stream().anyMatch(u -> u.op().parentBlock() == fblock)) {
+            } else if (v.uses().size() > 1 && v.uses().stream().anyMatch(u -> u.op().ancestorBlock() == fblock)) {
                 throw invalidQuotedModel(funcOp);
             }
         };
