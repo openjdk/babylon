@@ -305,15 +305,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     @Override
     public final Block parent() {
-        return parentBlock();
-    }
-
-    /**
-     * Returns this operation's parent block, otherwise {@code null} if the operation is not assigned to a block.
-     *
-     * @return operation's parent block, or {@code null} if the operation is not assigned to a block.
-     */
-    public final Block parentBlock() {
         if (result == null) {
             return null;
         }
@@ -345,25 +336,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public final Result result() {
         return result;
-    }
-
-
-    /**
-     * Returns this operation's nearest ancestor body (the parent body of this operation's parent block),
-     * otherwise {@code null} if the operation is not assigned to a block.
-     *
-     * @return operation's nearest ancestor body, or {@code null} if the operation is not assigned to a block.
-     */
-    public final Body ancestorBody() {
-        if (result == null) {
-            return null;
-        }
-
-        if (!result.block.isBound()) {
-            throw new IllegalStateException("Parent body is partially constructed");
-        }
-
-        return result.block.parentBody;
     }
 
     /**

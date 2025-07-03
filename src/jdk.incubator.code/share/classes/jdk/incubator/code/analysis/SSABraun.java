@@ -88,19 +88,19 @@ final class SSABraun implements OpTransformer {
         nestedOp.traverse(null, CodeElement.opVisitor((_, op) -> {
             switch (op) {
                 case CoreOp.VarAccessOp.VarLoadOp load -> {
-                    Val val = readVariable(load.varOp(), load.parentBlock());
+                    Val val = readVariable(load.varOp(), load.ancestorBlock());
                     registerLoad(load, val);
                 }
                 case CoreOp.VarAccessOp.VarStoreOp store ->
-                        writeVariable(store.varOp(), store.parentBlock(), new Holder(store.storeOperand()));
+                        writeVariable(store.varOp(), store.ancestorBlock(), new Holder(store.storeOperand()));
                 case CoreOp.VarOp initialStore -> {
                     Val val = initialStore.isUninitialized()
                             ? Uninitialized.VALUE
                             : new Holder(initialStore.initOperand());
-                    writeVariable(initialStore, initialStore.parentBlock(), val);
+                    writeVariable(initialStore, initialStore.ancestorBlock(), val);
                 }
                 case Op.Terminating _ -> {
-                    Block block = op.parentBlock();
+                    Block block = op.ancestorBlock();
                     // handle the sealing, i.e. only now make this block a predecessor of its successors
                     for (Block.Reference successor : block.successors()) {
                         Block successorBlock = successor.targetBlock();
@@ -149,7 +149,7 @@ final class SSABraun implements OpTransformer {
             value = phi;
             this.incompletePhis.computeIfAbsent(block, _ -> new HashMap<>()).put(variable, phi);
             this.additionalParameters.computeIfAbsent(block, _ -> new ArrayList<>()).add(phi);
-        } else if (block.isEntryBlock() && variable.ancestorBody() != block.parentBody()) {
+        } else if (block.isEntryBlock() && variable.ancestorBody() != block.ancestorBody()) {
             // we are in an entry block but didn't find a definition yet
             Block enclosingBlock = block.parent().parent().parent();
             assert enclosingBlock != null : "def not found in entry block, with no enclosing block";
@@ -225,7 +225,7 @@ final class SSABraun implements OpTransformer {
 
     @Override
     public Block.Builder apply(Block.Builder block, Op op) {
-        Block originalBlock = op.parentBlock();
+        Block originalBlock = op.ancestorBlock();
         CopyContext context = block.context();
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp load -> {

@@ -119,7 +119,7 @@ sealed abstract class SlotOp extends Op {
 
         @Override
         public String toString() {
-            return "block_" + parentBlock().index() + " " + parentBlock().ops().indexOf(this) + ": #" + slot + " LOAD " + typeKind();
+            return "block_" + ancestorBlock().index() + " " + ancestorBlock().ops().indexOf(this) + ": #" + slot + " LOAD " + typeKind();
         }
     }
 
@@ -162,7 +162,7 @@ sealed abstract class SlotOp extends Op {
 
         @Override
         public String toString() {
-            return "block_" + parentBlock().index() + " " + parentBlock().ops().indexOf(this) + ": #" + slot + " STORE " + typeKind();
+            return "block_" + ancestorBlock().index() + " " + ancestorBlock().ops().indexOf(this) + ": #" + slot + " STORE " + typeKind();
         }
     }
 

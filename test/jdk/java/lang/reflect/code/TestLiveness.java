@@ -282,7 +282,7 @@ public class TestLiveness {
 
         return op.traverse(new HashMap<>(),
                 CodeElement.blockVisitor((m, b) -> {
-                    if (b.parentBody().parentOp() == op) {
+                    if (b.ancestorBody().ancestorOp() == op) {
                         Liveness.BlockInfo lbi = l.getLiveness(b);
                         m.put(blockMap.get(b),
                                 List.of(
@@ -297,7 +297,7 @@ public class TestLiveness {
     static Map<Block, Integer> blockNameMapping(Op top) {
         AtomicInteger i = new AtomicInteger();
         return top.traverse(new HashMap<>(), CodeElement.blockVisitor((m, b) -> {
-            if (b.parentBody().parentOp() != top) {
+            if (b.ancestorBody().ancestorOp() != top) {
                 return m;
             }
 

@@ -167,16 +167,16 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
             }
         }
 
-        Body r1 = b1.parentBody();
-        Body r2 = b2.parentBody();
+        Body r1 = b1.ancestorBody();
+        Body r2 = b2.ancestorBody();
         if (r1 == r2) {
             // @@@ order should be defined by CFG and dominator relations
             List<Block> bs = r1.blocks();
             return Integer.compare(bs.indexOf(b1), bs.indexOf(b2));
         }
 
-        Op o1 = r1.parentOp();
-        Op o2 = r2.parentOp();
+        Op o1 = r1.ancestorOp();
+        Op o2 = r2.ancestorOp();
         if (o1 == o2) {
             List<Body> rs = o1.bodies();
             return Integer.compare(rs.indexOf(r1), rs.indexOf(r2));

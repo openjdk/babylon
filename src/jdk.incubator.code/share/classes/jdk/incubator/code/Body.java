@@ -87,15 +87,6 @@ public final class Body implements CodeElement<Body, Block> {
         return parentOp;
     }
 
-    /**
-     * Returns this body's parent operation.
-     *
-     * @return the body's parent operation.
-     */
-    public Op parentOp() {
-        return parentOp;
-    }
-
     @Override
     public List<Block> children() {
         return blocks();
@@ -127,23 +118,6 @@ public final class Body implements CodeElement<Body, Block> {
     public FunctionType bodyType() {
         Block entryBlock = entryBlock();
         return CoreType.functionType(yieldType, entryBlock.parameterTypes());
-    }
-
-    /**
-     * Finds the block in this body that is the ancestor of the given block.
-     *
-     * @param b the given block.
-     * @return the block in this body that is the ancestor of the given block,
-     * otherwise {@code null}
-     */
-    public Block findAncestorBlockInBody(Block b) {
-        Objects.requireNonNull(b);
-
-        while (b != null && b.parentBody() != this) {
-            b = b.parentBody().parentOp().parentBlock();
-        }
-
-        return b;
     }
 
     /**
@@ -417,12 +391,12 @@ public final class Body implements CodeElement<Body, Block> {
 
     static boolean isDominatedBy(Body r, Body dom) {
         while (r != dom) {
-            Block eb = r.parentOp().parentBlock();
+            Block eb = r.ancestorOp().ancestorBlock();
             if (eb == null) {
                 return false;
             }
 
-            r = eb.parentBody();
+            r = eb.ancestorBody();
         }
 
         return true;
@@ -454,14 +428,14 @@ public final class Body implements CodeElement<Body, Block> {
                 }
 
                 for (Value a : op.operands()) {
-                    if (!bodyStack.contains(a.declaringBlock().parentBody())) {
+                    if (!bodyStack.contains(a.declaringBlock().ancestorBody())) {
                         capturedValues.add(a);
                     }
                 }
 
                 for (Block.Reference s : op.successors()) {
                     for (Value a : s.arguments()) {
-                        if (!bodyStack.contains(a.declaringBlock().parentBody())) {
+                        if (!bodyStack.contains(a.declaringBlock().ancestorBody())) {
                             capturedValues.add(a);
                         }
                     }

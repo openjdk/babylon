@@ -343,7 +343,7 @@ final class SlotToVarTransformer {
             tk = slotOp.typeKind();
             map = excMap;
             fwd = forward;
-            b = slotOp.parentBlock();
+            b = slotOp.ancestorBlock();
             ops = fwd ? b.ops() : b.ops().reversed();
             i = ops.indexOf(slotOp) + 1;
         }

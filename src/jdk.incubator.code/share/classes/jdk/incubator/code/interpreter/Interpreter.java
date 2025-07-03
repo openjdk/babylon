@@ -305,7 +305,7 @@ public final class Interpreter {
         // is the current context block's parent body
         BlockContext yieldContext = oc.stack.peek();
         assert yieldContext == null ||
-                yieldContext.b().parentBody() == entry.parentBody().parentOp().ancestorBody();
+                yieldContext.b().ancestorBody() == entry.ancestorBody().ancestorOp().ancestorBody();
 
         // Note that first block cannot have any successors so the queue will have at least one entry
         oc.stack.push(new BlockContext(entry, valuesAndArguments));
@@ -425,7 +425,7 @@ public final class Interpreter {
             // Find top-level op
             Op top = fco;
             while (top.ancestorBody() != null) {
-                top = top.ancestorBody().parentOp();
+                top = top.ancestorBody().ancestorOp();
             }
 
             // Ensure top-level op is a module and function name

@@ -139,7 +139,7 @@ public class TestBuild {
         Assert.assertThrows(IllegalStateException.class, a::declaringBlock);
         Assert.assertThrows(IllegalStateException.class, result::declaringBlock);
         // Access to parent block/body of operation result before they are constructed
-        Assert.assertThrows(IllegalStateException.class, result.op()::parentBlock);
+        Assert.assertThrows(IllegalStateException.class, result.op()::ancestorBlock);
         Assert.assertThrows(IllegalStateException.class, result.op()::ancestorBody);
         // Access to set of users before constructed
         Assert.assertThrows(IllegalStateException.class, a::uses);
@@ -150,7 +150,7 @@ public class TestBuild {
 
         Assert.assertNotNull(a.declaringBlock());
         Assert.assertNotNull(result.declaringBlock());
-        Assert.assertNotNull(result.op().parentBlock());
+        Assert.assertNotNull(result.op().ancestorBlock());
         Assert.assertNotNull(result.op().ancestorBody());
         Assert.assertNotNull(a.uses());
     }

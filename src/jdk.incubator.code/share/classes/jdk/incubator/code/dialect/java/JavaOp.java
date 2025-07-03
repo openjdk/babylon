@@ -2004,7 +2004,7 @@ public sealed abstract class JavaOp extends Op {
             Body b;
             do {
                 b = op.ancestorBody();
-                op = b.parentOp();
+                op = b.ancestorOp();
                 if (op == null) {
                     throw new IllegalStateException("No enclosing loop");
                 }
@@ -2029,7 +2029,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             Value value = operands().get(0);
-            if (value instanceof Result r && r.op().ancestorBody().parentOp() instanceof LabeledOp lop) {
+            if (value instanceof Result r && r.op().ancestorBody().ancestorOp() instanceof LabeledOp lop) {
                 return lop.target();
             } else {
                 throw new IllegalStateException("Bad label value: " + value + " " + ((Result) value).op());
@@ -2203,7 +2203,7 @@ public sealed abstract class JavaOp extends Op {
             Body b;
             do {
                 b = op.ancestorBody();
-                op = b.parentOp();
+                op = b.ancestorOp();
                 if (op == null) {
                     throw new IllegalStateException("No enclosing switch");
                 }
@@ -2445,7 +2445,7 @@ public sealed abstract class JavaOp extends Op {
 
         static boolean ifAncestorOp(Op ancestor, Op op) {
             while (op.ancestorBody() != null) {
-                op = op.ancestorBody().parentOp();
+                op = op.ancestorBody().ancestorOp();
                 if (op == ancestor) {
                     return true;
                 }
@@ -3018,7 +3018,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
-            BranchTarget t = getBranchTarget(b.context(), parentBlock().parentBody());
+            BranchTarget t = getBranchTarget(b.context(), ancestorBlock().ancestorBody());
             if (t != null) {
                 b.op(branch(f.apply(t).successor()));
             } else {
@@ -4551,7 +4551,7 @@ public sealed abstract class JavaOp extends Op {
 
         static boolean ifAncestorOp(Op ancestor, Op op) {
             while (op.ancestorBody() != null) {
-                op = op.ancestorBody().parentOp();
+                op = op.ancestorBody().ancestorOp();
                 if (op == ancestor) {
                     return true;
                 }

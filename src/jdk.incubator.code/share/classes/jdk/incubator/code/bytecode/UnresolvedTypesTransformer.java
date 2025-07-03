@@ -273,7 +273,7 @@ final class UnresolvedTypesTransformer {
             public void apply(Block.Builder block, Block b) {
                 if (block.isEntryBlock()) {
                     CopyContext cc = block.context();
-                    List<Block> sourceBlocks = b.parentBody().blocks();
+                    List<Block> sourceBlocks = b.ancestorBody().blocks();
 
                     // Override blocks with changed parameter types
                     for (int i = 1; i < sourceBlocks.size(); i++) {
