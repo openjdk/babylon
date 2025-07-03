@@ -113,7 +113,7 @@ public final class Block implements CodeElement<Block, Op> {
      * When control is passed from a block to a successor block the values of the block reference's arguments are
      * assigned, in order, to the successor block's parameters.
      */
-    public static final class Reference {
+    public static final class Reference implements CodeItem {
         final Block target;
         final List<Value> arguments;
 
