@@ -361,7 +361,7 @@ public class SimpleTest {
         assertEquals(constantArrayReturn(val), execute(() -> constantArrayReturn(val)));
     }
 
-    public record ConstantArrayWrap(Tensor<Float> key, @ArrayLen(1) Tensor<Float>[] values) {}
+    public record ConstantArrayWrap(Tensor<Float> key, Tensor<Float>[] values) {}
 
     @CodeReflection
     public ConstantArrayWrap constantArrayInRecordReturn(Tensor<Float> key, Tensor<Float> value) {

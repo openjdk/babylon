@@ -222,7 +222,7 @@ public final class PartialEvaluator {
             for (int i = 0; i < nops - 1; i++) {
                 Op op = inBlock.ops().get(i);
 
-                if (isConstant(op)) {
+                if (isConstant(op) && !(op instanceof JavaOp.LambdaOp)) {
                     // Evaluate operation
                     // @@@ Handle exceptions
                     Object result = interpretOp(l, bc, op);
