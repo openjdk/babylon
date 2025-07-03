@@ -89,7 +89,7 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Op.Invokable invokableOperation() {
             if (declaringBlock().isEntryBlock() &&
-                    declaringBlock().ancestorBody().ancestorOp() instanceof Op.Invokable o) {
+                    declaringBlock().ancestorOp() instanceof Op.Invokable o) {
                 return o;
             } else {
                 return null;
@@ -453,7 +453,7 @@ public final class Block implements CodeElement<Block, Op> {
         while (domr != rb) {
             // @@@ What if body is isolated
 
-            b = rb.ancestorOp().ancestorBlock();
+            b = rb.ancestorBlock();
             // null when op is top-level (and its body is isolated), or not yet assigned to block
             if (b == null) {
                 return null;
@@ -720,7 +720,7 @@ public final class Block implements CodeElement<Block, Op> {
 
         private static Op getNearestInvokeableAncestorOp(Op op) {
             do {
-                op = op.ancestorBody().ancestorOp();
+                op = op.ancestorOp();
             } while (!(op instanceof Op.Invokable));
             return op;
         }

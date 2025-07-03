@@ -138,7 +138,7 @@ public class TestClosureOps {
     public void testQuotableModel() {
         Quoted quoted = () -> {};
         Op qop = quoted.op();
-        Op top = qop.ancestorBody().ancestorOp().ancestorBody().ancestorOp();
+        Op top = qop.ancestorOp().ancestorOp();
         Assert.assertTrue(top instanceof CoreOp.FuncOp);
 
         CoreOp.FuncOp fop = (CoreOp.FuncOp) top;

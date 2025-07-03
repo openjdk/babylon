@@ -161,7 +161,7 @@ public class TestLocalTransformationsAdaption {
 
     static Op getNearestInvokeableAncestorOp(Op op) {
         do {
-            op = op.ancestorBody().ancestorOp();
+            op = op.ancestorOp();
         } while (!(op instanceof Op.Invokable));
         return op;
     }

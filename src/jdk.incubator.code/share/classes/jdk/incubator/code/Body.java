@@ -391,12 +391,10 @@ public final class Body implements CodeElement<Body, Block> {
 
     static boolean isDominatedBy(Body r, Body dom) {
         while (r != dom) {
-            Block eb = r.ancestorOp().ancestorBlock();
-            if (eb == null) {
+            r = r.ancestorBody();
+            if (r == null) {
                 return false;
             }
-
-            r = eb.ancestorBody();
         }
 
         return true;

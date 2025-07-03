@@ -213,6 +213,22 @@ public sealed interface CodeElement<
     }
 
     /**
+     * Returns true if this element is the same as or an ancestor of the descendant element.
+     *
+     * @param descendant the descendant element.
+     * @return true if this element is the same as or an ancestor of the descendant element.
+     */
+    default boolean isAncestorOf(CodeElement<?, ?> descendant) {
+        Objects.requireNonNull(descendant);
+
+        CodeElement<?, ?> e = descendant;
+        while (e != null && e != this) {
+            e = e.parent();
+        }
+        return e != null;
+    }
+
+    /**
      * Finds the child element, of this element, both of which are ancestors of the given descendant element,
      * otherwise return {@code null} if this element is not an ancestor.
      *
