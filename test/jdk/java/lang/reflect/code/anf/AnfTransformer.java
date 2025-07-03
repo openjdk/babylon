@@ -232,12 +232,12 @@ public class AnfTransformer {
                 }
                 case CoreOp.ReturnOp ro -> {
                     var rval = b.context().getValue(ro.returnValue());
-                    b.op(CoreOp._yield(rval));
+                    b.op(CoreOp.core_yield(rval));
                     return b;
                 }
                 case CoreOp.YieldOp y ->  {
                     var rval = b.context().getValue(y.yieldValue());
-                    b.op(CoreOp._yield(rval));
+                    b.op(CoreOp.core_yield(rval));
                     return b;
                 }
                 default -> {

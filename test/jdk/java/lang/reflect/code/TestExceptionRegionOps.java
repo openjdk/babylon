@@ -42,8 +42,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-import static jdk.incubator.code.dialect.core.CoreOp._return;
-import static jdk.incubator.code.dialect.java.JavaOp._throw;
+import static jdk.incubator.code.dialect.core.CoreOp.return_;
+import static jdk.incubator.code.dialect.java.JavaOp.throw_;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
 import static jdk.incubator.code.dialect.java.JavaOp.exceptionRegionEnter;
@@ -112,7 +112,7 @@ public class TestExceptionRegionOps {
                     end.ops(b -> {
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
-                        b.op(_return());
+                        b.op(CoreOp.return_());
                     });
                 });
 
@@ -205,7 +205,7 @@ public class TestExceptionRegionOps {
                     end.ops(b -> {
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
-                        b.op(_return());
+                        b.op(CoreOp.return_());
                     });
                 });
 
@@ -319,7 +319,7 @@ public class TestExceptionRegionOps {
                     end.ops(b -> {
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 5))));
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
-                        b.op(_return());
+                        b.op(CoreOp.return_());
                     });
                 });
 
@@ -437,14 +437,14 @@ public class TestExceptionRegionOps {
                     catchAll.ops(b -> {
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 2))));
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
-                        b.op(_throw(catchAll.parameters().get(0)));
+                        b.op(throw_(catchAll.parameters().get(0)));
                     });
 
                     //
                     end.ops(b -> {
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, 3))));
                         b.op(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, b.op(constant(INT, -1))));
-                        b.op(_return());
+                        b.op(CoreOp.return_());
                     });
                 });
 

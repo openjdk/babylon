@@ -88,7 +88,7 @@ public class TestLambdaOps {
                                 .body(lblock -> {
                                     Block.Parameter li = lblock.parameters().get(0);
 
-                                    lblock.op(_return(
+                                    lblock.op(return_(
                                             // capture i from function's body
                                             lblock.op(JavaOp.add(i, li))
                                     ));
@@ -97,7 +97,7 @@ public class TestLambdaOps {
                     Op.Result lquoted = block.op(qop);
 
                     Op.Result or = block.op(JavaOp.invoke(Builder.ACCEPT_METHOD, lquoted));
-                    block.op(_return(or));
+                    block.op(return_(or));
                 });
 
         f.writeTo(System.out);
@@ -125,14 +125,14 @@ public class TestLambdaOps {
                             .body(lblock -> {
                                 Block.Parameter li = lblock.parameters().get(0);
 
-                                lblock.op(_return(
+                                lblock.op(return_(
                                         lblock.op(JavaOp.add(i, li))));
                             });
                     Op.Result fi = block.op(lambda);
 
                     Op.Result fortyTwo = block.op(constant(INT, 42));
                     Op.Result or = block.op(JavaOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
-                    block.op(_return(or));
+                    block.op(return_(or));
                 });
 
         f.writeTo(System.out);

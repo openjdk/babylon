@@ -514,7 +514,7 @@ public final class OnnxTransformer {
                     list.set(index, aso.operands().get(2));
                 }
                 case CoreOp.ReturnOp ro when bb.context().getProperty(ro.operands().getFirst()) instanceof List list -> {
-                    bb.op(CoreOp._return(bb.op(CoreOp.tuple(bb.context().getValues(list)))));
+                    bb.op(CoreOp.return_(bb.op(CoreOp.tuple(bb.context().getValues(list)))));
                 }
                 // Copy remaining operations, which may be removed later transformations
                 default -> {

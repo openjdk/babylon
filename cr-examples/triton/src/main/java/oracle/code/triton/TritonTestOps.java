@@ -34,7 +34,7 @@ import java.util.List;
 
 public class TritonTestOps {
 
-    @OpFactory.OpDeclaration(ConsumeOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ConsumeOp.NAME)
     public static class ConsumeOp extends Op {
         public static final String NAME = "tt.consume";
 

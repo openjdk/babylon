@@ -140,7 +140,7 @@ public final class Quoted {
                 // Return the op to be copied in the quoted operation
                 return op;
             }));
-            b.op(CoreOp._return(q));
+            b.op(CoreOp.return_(q));
         });
     }
 

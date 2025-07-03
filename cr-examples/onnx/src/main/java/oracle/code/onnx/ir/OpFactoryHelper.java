@@ -1,9 +1,13 @@
-package oracle.code.onnx.proto;
+package oracle.code.onnx.ir;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
@@ -16,15 +20,32 @@ import java.util.function.Function;
 public final class OpFactoryHelper {
 
     /**
+     * An operation declaration annotation.
+     * <p>
+     * This annotation may be declared on a concrete class implementing an {@link Op operation} whose name is a constant
+     * that can be declared as this attribute's value.
+     * <p>
+     * Tooling can process declarations of this annotation to build a factory for constructing operations from their name.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.TYPE)
+    public @interface OpDeclaration {
+        /**
+         * {@return the operation name}
+         */
+        String value();
+    }
+
+    /**
      * A class value for lazily computing an operation factory for {@link Op operation} classes
-     * annotated with {@link OpFactory.OpDeclaration} and enclosed within a given class to compute over.
+     * annotated with {@link OpFactoryHelper.OpDeclaration} and enclosed within a given class to compute over.
      * <p>
      * Each enclosed class annotated with {@code OpDeclaration} must declare a public static method named {@code create}
      * with one parameter type of {@link ExternalizedOp} and return type that is the concrete class type.
      * Alternatively, the concrete class must declare public constructor with one parameter type of
      * {@link ExternalizedOp}.
      */
-    static final ClassValue<OpFactory> OP_FACTORY = new ClassValue<>() {
+    public static final ClassValue<OpFactory> OP_FACTORY = new ClassValue<>() {
         @Override
         protected OpFactory computeValue(Class<?> c) {
             // @@@ See https://bugs.openjdk.org/browse/JDK-8321207
@@ -49,7 +70,7 @@ public final class OpFactoryHelper {
     private static Map<String, Class<? extends Op>> createOpMapping(Class<?> opClasses) {
         Map<String, Class<? extends Op>> mapping = new HashMap<>();
         for (Class<?> opClass : opClasses.getNestMembers()) {
-            if (opClass.isAnnotationPresent(OpFactory.OpDeclaration.class)) {
+            if (opClass.isAnnotationPresent(OpDeclaration.class)) {
                 if (!Modifier.isPublic(opClass.getModifiers())) {
                     throw new InternalError("Operation class not public: " + opClass.getName());
                 }
@@ -67,7 +88,7 @@ public final class OpFactoryHelper {
                     throw new InternalError("Operation constructor does not return an Op: " + handle);
                 }
 
-                String opName = opClass.getAnnotation(OpFactory.OpDeclaration.class).value();
+                String opName = opClass.getAnnotation(OpDeclaration.class).value();
                 @SuppressWarnings("unchecked")
                 var opClassCast = (Class<Op>) opClass;
                 mapping.put(opName, opClassCast);
