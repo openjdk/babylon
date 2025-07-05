@@ -437,7 +437,6 @@ public class LayoutExample {
         }
     }
 
-    @OpFactory.OpDeclaration(PtrToMember.NAME)
     public static final class PtrStoreValue extends Op {
         public static final String NAME = "ptr.store.value";
 

@@ -305,22 +305,22 @@ if (Artifacts.jextracted_opengl != null
             examplesDir.existingDir("shared"), "hat-example-shared-1.0.jar", Artifacts.core
     );
 
-    Stream.of(
-            "blackscholes",
-                    "squares"
-            )
+    Stream.of( "blackscholes", "squares")
             .parallel()
             .map(examplesDir::existingDir)
             .forEach(exampleDir->buildDir.mavenStyleBuild(
                 exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar", Artifacts.core
             ));
 
-    Stream.of(
-                    "heal",
-                    "life",
-                    "mandel",
-                    "violajones"
-            )
+    Stream.of( "experiments")   // this has hardcoded references to opencl backend
+            .parallel()
+            .map(examplesDir::existingDir)
+            .forEach(exampleDir->buildDir.mavenStyleBuild(
+                exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar",
+              Artifacts.core, Artifacts.backend_ffi_shared, Artifacts.backend_ffi_opencl
+            ));
+
+    Stream.of( "heal", "life", "mandel", "violajones")   // these require example_shared ui stuff
             .parallel()
             .map(examplesDir::existingDir)
             .forEach(exampleDir->buildDir.mavenStyleBuild(
