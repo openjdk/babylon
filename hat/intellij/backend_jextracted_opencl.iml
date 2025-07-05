@@ -15,6 +15,7 @@
       <library>
         <CLASSES>
           <root url="jar://$MODULE_DIR$/../build/hat-jextracted-opencl-1.0.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/extraction-opencl-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

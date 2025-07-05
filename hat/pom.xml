@@ -40,6 +40,7 @@ questions.
     </properties>
     <modules>
         <module>core</module>
+        <module>tools</module>
         <module>backends</module>
         <module>examples</module>
         <module>extractions</module>

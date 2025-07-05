@@ -41,6 +41,7 @@ questions.
         </dependency>
     </dependencies>
     <modules>
+        <module>shared</module>
         <module>blackscholes</module>
         <module>mandel</module>
         <module>heal</module>

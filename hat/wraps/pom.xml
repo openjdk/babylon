@@ -34,15 +34,19 @@ questions.
         <version>1.0</version>
     </parent>
     <modules>
-        <module>wrap</module>
+        <module>shared</module>
+        <module>opencl</module>
+        <module>opengl</module>
+        <!--<module>cuda</module>-->
     </modules>
+        <!--
   <profiles>
-  <!--      <profile>
+        <profile>
             <id>cuda</id>
             <modules>
                <module>cuwrap</module>
             </modules>
-        </profile> -->
+        </profile>
         <profile>
             <id>opencl</id>
             <modules>
@@ -56,6 +60,7 @@ questions.
             </modules>
         </profile>
     </profiles>
+         -->
 
    
 </project>
