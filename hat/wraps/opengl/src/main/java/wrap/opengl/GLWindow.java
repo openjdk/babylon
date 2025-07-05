@@ -192,8 +192,8 @@ public abstract class GLWindow implements ArenaHolder {
     }
     public GLWindow bindEvents(){
         return bindEvents(
-                "wrap.glwrap.GLCallbackEventHandler",
-                "wrap.glwrap.GLFuncEventHandler"
+                "wrap.opengl.GLCallbackEventHandler",
+                "wrap.opengl.GLFuncEventHandler"
         );
     }
 
@@ -219,6 +219,7 @@ public abstract class GLWindow implements ArenaHolder {
     }
 
     public void mainLoop() {
+       // glutDisplayFunc(null);
         glutMainLoop();
     }
 
