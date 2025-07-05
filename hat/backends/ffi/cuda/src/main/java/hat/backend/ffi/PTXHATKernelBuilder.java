@@ -26,7 +26,7 @@ package hat.backend.ffi;
 
 import hat.ifacemapper.BoundSchema;
 import hat.optools.*;
-import hat.text.CodeBuilder;
+import hat.codebuilders.CodeBuilder;
 import hat.util.StreamCounter;
 
 import jdk.incubator.code.*;

@@ -41,8 +41,8 @@ import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -297,7 +297,7 @@ public class OpsAndTypes {
     }
 
 
-    @OpFactory.OpDeclaration(HatPtrOp.NAME)
+    //@OpFactory.OpDeclaration(HatPtrOp.NAME)
     public static final class HatPtrOp<T extends MappableIface> extends Op {
         public static final String NAME = "ptr.to.member";
         public static final String ATTRIBUTE_OFFSET = "offset";
@@ -391,7 +391,7 @@ public class OpsAndTypes {
         }
     }
 
-    @OpFactory.OpDeclaration(HatPtrLoadValue.NAME)
+    //@OpFactory.OpDeclaration(HatPtrLoadValue.NAME)
     public static final class HatPtrLoadValue extends HatPtrAccessValue {
         public static final String NAME = "ptr.load.value";
 
@@ -412,7 +412,7 @@ public class OpsAndTypes {
         }
     }
 
-    @OpFactory.OpDeclaration(HatPtrStoreValue.NAME)
+    //@OpFactory.OpDeclaration(HatPtrStoreValue.NAME)
     public static final class HatPtrStoreValue extends HatPtrAccessValue {
         public static final String NAME = "ptr.store.value";
 

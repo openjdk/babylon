@@ -29,9 +29,9 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
-public class WhileOpWrapper extends LoopOpWrapper<JavaOp.JavaWhileOp> {
+public class WhileOpWrapper extends LoopOpWrapper<JavaOp.WhileOp> {
 
-    WhileOpWrapper( MethodHandles.Lookup lookup,JavaOp.JavaWhileOp op) {
+    WhileOpWrapper( MethodHandles.Lookup lookup,JavaOp.WhileOp op) {
         super(lookup,op);
     }
 

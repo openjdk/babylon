@@ -41,7 +41,7 @@ questions.
         </dependency>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat-backend-ffi-opencl</artifactId>
+            <artifactId>hat-example-shared</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>

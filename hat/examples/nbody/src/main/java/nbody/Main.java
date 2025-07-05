@@ -25,7 +25,7 @@
  */
 package nbody;
 import nbody.opencl.OpenCLNBodyGLWindow;
-import wrap.glwrap.GLTexture;
+import wrap.opengl.GLTexture;
 
 import java.lang.foreign.Arena;
 

@@ -267,7 +267,7 @@ public class LayoutExample {
         }
     }
 
-    @OpFactory.OpDeclaration(PtrToMember.NAME)
+
     public static final class PtrToMember extends Op {
         public static final String NAME = "ptr.to.member";
         public static final String ATTRIBUTE_OFFSET = "offset";
@@ -364,7 +364,6 @@ public class LayoutExample {
     }
 
 
-    @OpFactory.OpDeclaration(PtrToMember.NAME)
     public static final class PtrAddOffset extends Op {
         public static final String NAME = "ptr.add.offset";
 
@@ -402,7 +401,7 @@ public class LayoutExample {
         }
     }
 
-    @OpFactory.OpDeclaration(PtrToMember.NAME)
+
     public static final class PtrLoadValue extends Op {
         public static final String NAME = "ptr.load.value";
 
@@ -440,7 +439,6 @@ public class LayoutExample {
         }
     }
 
-    @OpFactory.OpDeclaration(PtrToMember.NAME)
     public static final class PtrStoreValue extends Op {
         public static final String NAME = "ptr.store.value";
 
