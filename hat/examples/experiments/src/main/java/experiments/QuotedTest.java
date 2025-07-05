@@ -24,7 +24,7 @@
  */
 package experiments;
 
-import hat.codebuilders.C99HATComputeBuilder;
+import hat.backend.codebuilders.C99HATComputeBuilder;
 import hat.optools.FuncOpWrapper;
 import hat.optools.OpWrapper;
 
@@ -34,6 +34,7 @@ import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
+
 import static jdk.incubator.code.dialect.core.CoreOp.return_;
 import static jdk.incubator.code.dialect.core.CoreOp.closureCall;
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
@@ -68,12 +69,12 @@ public class QuotedTest {
                     CoreOp.ClosureOp closure = CoreOp.closure(block.parentBody(), functionType(INT, INT))
                             .body(cblock -> {
                                 Block.Parameter ci = cblock.parameters().get(0);
-                                cblock.op(return_(cblock.op(add(i, ci))));
+                                cblock.op(_return(cblock.op(add(i, ci))));
                             });
                     Op.Result c = block.op(closure);
                     Op.Result fortyTwo = block.op(constant(INT, 42));
                     Op.Result or = block.op(closureCall(c, fortyTwo));
-                    block.op(return_(or));
+                    block.op(_return(or));
                 });
 
         f.writeTo(System.out);

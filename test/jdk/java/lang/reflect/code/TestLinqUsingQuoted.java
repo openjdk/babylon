@@ -87,7 +87,7 @@ public class TestLinqUsingQuoted {
                             functionType(qp.queryableType(), QuotedOp.QUOTED_TYPE));
                     Op.Result queryable = block.op(JavaOp.invoke(md, query, quotedLambda));
 
-                    block.op(_return(queryable));
+                    block.op(return_(queryable));
                 } else {
                     block.op(op);
                 }
@@ -121,7 +121,7 @@ public class TestLinqUsingQuoted {
                         MethodRef md = method(qp.queryableType(), name, functionType(qp.queryResultType()));
                         Op.Result queryResult = block.op(JavaOp.invoke(md, query));
 
-                        block.op(_return(queryResult));
+                        block.op(return_(queryResult));
                     }));
             return qp.createQueryResult(resultType, nextQueryExpression);
         }
@@ -163,7 +163,7 @@ public class TestLinqUsingQuoted {
             // Initial expression is an identity function
             var funType = functionType(provider().queryableType(), provider().queryableType());
             this.expression = func("query", funType)
-                    .body(b -> b.op(_return(b.parameters().get(0))));
+                    .body(b -> b.op(return_(b.parameters().get(0))));
         }
 
         TestQueryable(TypeElement elementType, TestQueryProvider provider, FuncOp expression) {

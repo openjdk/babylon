@@ -140,7 +140,7 @@ public final class Quoted {
                 // Return the op to be copied in the quoted operation
                 return op;
             }));
-            b.op(CoreOp._return(q));
+            b.op(CoreOp.return_(q));
         });
     }
 
@@ -149,7 +149,8 @@ public final class Quoted {
     }
 
     // Extract the quoted operation from funcOp and maps the operands and captured values to the runtime values
-    public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object[] args) {
+    // @@@ Add List<Object> accepting method, varargs array defers to it
+    public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object... args) {
 
         if (funcOp.body().blocks().size() != 1) {
             throw invalidQuotedModel(funcOp);

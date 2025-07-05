@@ -65,7 +65,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ModuleOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ModuleOp.NAME)
     public static final class ModuleOp extends TritonOp implements Op.Isolated {
         public static final String NAME = "module";
 
@@ -135,7 +135,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(FuncOp.NAME)
+    @OpFactoryHelper.OpDeclaration(FuncOp.NAME)
     public static final class FuncOp extends TritonOp implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
         public static class Builder {
@@ -247,7 +247,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(CallOp.NAME)
+    @OpFactoryHelper.OpDeclaration(CallOp.NAME)
     public static final class CallOp extends TritonOp {
         public static final String NAME = "tt.call";
         public static final String ATTRIBUTE_FUNC_NAME = "callee";
@@ -297,7 +297,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ReduceOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceOp.NAME)
     public static final class ReduceOp extends TritonOp {
         // @@@ SSA transformation does not work with nested ops
         // implements Op.Nested {
@@ -382,7 +382,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ReduceReturnOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceReturnOp.NAME)
     public static class ReduceReturnOp extends TritonOp implements Op.Terminating {
         public static final String NAME = "tt.reduce.return";
 
@@ -404,7 +404,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(GetProgramIdOp.NAME)
+    @OpFactoryHelper.OpDeclaration(GetProgramIdOp.NAME)
     public static class GetProgramIdOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.get_program_id";
         public static final String ATTRIBUTE_AXIS = "axis";
@@ -453,7 +453,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(MakeRangeOp.NAME)
+    @OpFactoryHelper.OpDeclaration(MakeRangeOp.NAME)
     public static class MakeRangeOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.make_range";
         public static final String ATTRIBUTE_START = "start";
@@ -514,7 +514,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ExpandOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ExpandOp.NAME)
     public static class ExpandOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.expand_dims";
         public static final String ATTRIBUTE_AXIS = "axis";
@@ -563,7 +563,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(SplatOp.NAME)
+    @OpFactoryHelper.OpDeclaration(SplatOp.NAME)
     public static class SplatOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.splat";
 
@@ -585,7 +585,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(BroadcastOp.NAME)
+    @OpFactoryHelper.OpDeclaration(BroadcastOp.NAME)
     public static class BroadcastOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.broadcast";
 
@@ -607,7 +607,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(AddPtrOp.NAME)
+    @OpFactoryHelper.OpDeclaration(AddPtrOp.NAME)
     public static class AddPtrOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.addptr";
 
@@ -629,7 +629,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(LoadOp.NAME)
+    @OpFactoryHelper.OpDeclaration(LoadOp.NAME)
     public static class LoadOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.load";
 
@@ -655,7 +655,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(StoreOp.NAME)
+    @OpFactoryHelper.OpDeclaration(StoreOp.NAME)
     public static class StoreOp extends TritonOp {
         public static final String NAME = "tt.store";
 
@@ -677,7 +677,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ReturnOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ReturnOp.NAME)
     public static class ReturnOp extends TritonOp implements Op.Terminating {
         public static final String NAME = "tt.return";
 
@@ -703,7 +703,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(DotOp.NAME)
+    @OpFactoryHelper.OpDeclaration(DotOp.NAME)
     public static class DotOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.dot";
 
@@ -818,7 +818,7 @@ public class TritonOps {
 
     // Operation and type factories
 
-    static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(TritonOps.class);
+    static final OpFactory OP_FACTORY = OpFactoryHelper.OP_FACTORY.get(TritonOps.class);
 
     static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
         @Override

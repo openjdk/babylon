@@ -25,7 +25,7 @@
 
 package oracle.code.onnx.opgen;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import oracle.code.onnx.OpSchema;
 import oracle.code.onnx.Tensor;
 
@@ -131,7 +131,7 @@ public class OperatorGen {
     }
 
     private void genMethod(IndentWriter w, OpSchema s) throws IOException {
-        Map<String, TypeElement.ExternalizedTypeElement> javaTypeConstraints = javaTypes(typeConstraintMap(s));
+        Map<String, ExternalizedTypeElement> javaTypeConstraints = javaTypes(typeConstraintMap(s));
         Set<String> javaTypeVariables = javaTypeVariables(javaTypeConstraints);
 
         boolean twoOrMoreResults = s.max_output() > 1 && s.outputs().size() > 1;
@@ -155,7 +155,7 @@ public class OperatorGen {
                     w.write(", ");
                 }
 
-                TypeElement.ExternalizedTypeElement outputType = javaTypeConstraints
+                ExternalizedTypeElement outputType = javaTypeConstraints
                         .computeIfAbsent(outParam.type_str(),
                                 ts -> javaType("?", parseTypeString(ts)));
 
@@ -185,7 +185,7 @@ public class OperatorGen {
         }
 
         // @@@ Multiple output parameters - need to return tuple/record
-        final TypeElement.ExternalizedTypeElement outputType;
+        final ExternalizedTypeElement outputType;
         if (s.min_output() == 1 && s.max_output() == 1) {
             OpSchema.FormalParameter outParam = s.outputs().getFirst();
 
@@ -199,14 +199,14 @@ public class OperatorGen {
             OpSchema.FormalParameter outParam = s.outputs().getFirst();
             assert outParam.option() == OpSchema.FormalParameterOption.Variadic;
 
-            outputType = new TypeElement.ExternalizedTypeElement("List",
+            outputType = new ExternalizedTypeElement("List",
                     List.of(javaTypeConstraints.computeIfAbsent(outParam.type_str(),
                             ts -> javaType("?", parseTypeString(ts)))));
             w.write(outputType.toString());
         } else {
             assert twoOrMoreResults;
 
-            outputType = new TypeElement.ExternalizedTypeElement(s.name() + "Result", List.of());
+            outputType = new ExternalizedTypeElement(s.name() + "Result", List.of());
             w.write(outputType.toString());
             if (!recordResultTypeVariables.isEmpty()) {
                 w.write(recordResultTypeVariables.stream().collect(Collectors.joining(", ", "<", ">")));
@@ -221,7 +221,7 @@ public class OperatorGen {
                 w.write(", ");
             }
 
-            final TypeElement.ExternalizedTypeElement inputType = javaTypeConstraints
+            final ExternalizedTypeElement inputType = javaTypeConstraints
                     .computeIfAbsent(inParam.type_str(),
                             ts -> javaType("?", parseTypeString(ts)));
             switch (inParam.option()) {
@@ -321,7 +321,7 @@ public class OperatorGen {
 
                 w.write("(");
                 //
-                final TypeElement.ExternalizedTypeElement t = javaTypeConstraints
+                final ExternalizedTypeElement t = javaTypeConstraints
                         .computeIfAbsent(s.outputs().get(i).type_str(),
                                 ts -> javaType("?", parseTypeString(ts)));
                 w.write(t.toString());
@@ -337,27 +337,27 @@ public class OperatorGen {
         w.write("}\n");
     }
 
-    static Map<String, TypeElement.ExternalizedTypeElement> javaTypes(Map<String, TypeElement.ExternalizedTypeElement> tcm) {
+    static Map<String, ExternalizedTypeElement> javaTypes(Map<String, ExternalizedTypeElement> tcm) {
         return tcm.entrySet().stream().collect(Collectors.toMap(
                 e -> e.getKey(),
                 e -> javaType(e.getKey(), e.getValue())));
     }
 
-    static Set<String> javaTypeVariables(Map<String, TypeElement.ExternalizedTypeElement> tcm) {
+    static Set<String> javaTypeVariables(Map<String, ExternalizedTypeElement> tcm) {
         return tcm.entrySet().stream()
                 .filter(e -> usesTypeVariable(e.getKey(), e.getValue()))
                 .map(e -> e.getKey())
                 .collect(Collectors.toSet());
     }
 
-    static boolean usesTypeVariable(String typeVariable, TypeElement.ExternalizedTypeElement ete) {
+    static boolean usesTypeVariable(String typeVariable, ExternalizedTypeElement ete) {
         if (ete.arguments().isEmpty()) {
             return typeVariable.equals(ete.identifier());
         }
         return ete.arguments().stream().anyMatch(a -> usesTypeVariable(typeVariable, a));
     }
 
-    static TypeElement.ExternalizedTypeElement javaType(String typeVariable, TypeElement.ExternalizedTypeElement ete) {
+    static ExternalizedTypeElement javaType(String typeVariable, ExternalizedTypeElement ete) {
         String javaIdentifier = switch (ete.identifier()) {
             case "seq" -> "List";
             case "sequence" -> "List";
@@ -379,38 +379,38 @@ public class OperatorGen {
 
         if (ete.identifier().equals("map") &&
                 ete.arguments().stream().allMatch(t -> t.identifier().equals("?"))) {
-            return new TypeElement.ExternalizedTypeElement(javaIdentifier,
+            return new ExternalizedTypeElement(javaIdentifier,
                     ete.arguments().stream().map(c -> javaType("?", c)).toList());
         }
 
-        return new TypeElement.ExternalizedTypeElement(javaIdentifier,
+        return new ExternalizedTypeElement(javaIdentifier,
                 ete.arguments().stream().map(c -> javaType(typeVariable, c)).toList());
     }
 
-    static Map<String, TypeElement.ExternalizedTypeElement> typeConstraintMap(OpSchema s) {
+    static Map<String, ExternalizedTypeElement> typeConstraintMap(OpSchema s) {
         return s.type_constraints().stream().collect(toMap(
                 tc -> tc.type_param_str(),
                 tc -> tc.allowed_type_strs().stream().map(OperatorGen::parseTypeString).reduce(OperatorGen::lub).orElseThrow()));
     }
 
-    static TypeElement.ExternalizedTypeElement lub(TypeElement.ExternalizedTypeElement a,
-                                                   TypeElement.ExternalizedTypeElement b) {
+    static ExternalizedTypeElement lub(ExternalizedTypeElement a,
+                                                   ExternalizedTypeElement b) {
         if (!a.identifier().equals(b.identifier())) {
-            return new TypeElement.ExternalizedTypeElement("?", List.of());
+            return new ExternalizedTypeElement("?", List.of());
         }
 
         assert a.arguments().size() == b.arguments().size();
 
-        List<TypeElement.ExternalizedTypeElement> children = new ArrayList<>();
+        List<ExternalizedTypeElement> children = new ArrayList<>();
         for (int i = 0; i < a.arguments().size(); i++) {
             children.add(lub(a.arguments().get(i), b.arguments().get(i)));
         }
 
-        return new TypeElement.ExternalizedTypeElement(a.identifier(), children);
+        return new ExternalizedTypeElement(a.identifier(), children);
     }
 
-    static TypeElement.ExternalizedTypeElement parseTypeString(String type_str) {
-        return TypeElement.ExternalizedTypeElement.ofString(
+    static ExternalizedTypeElement parseTypeString(String type_str) {
+        return ExternalizedTypeElement.ofString(
                 type_str.replace('(', '<').replace(')', '>'));
     }
 

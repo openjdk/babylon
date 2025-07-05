@@ -32,7 +32,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.core.CoreOp.return_;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
 
 /**
@@ -113,7 +113,7 @@ public final class Block implements CodeElement<Block, Op> {
      * When control is passed from a block to a successor block the values of the block reference's arguments are
      * assigned, in order, to the successor block's parameters.
      */
-    public static final class Reference {
+    public static final class Reference implements CodeItem {
         final Block target;
         final List<Value> arguments;
 
@@ -647,7 +647,7 @@ public final class Block implements CodeElement<Block, Op> {
          * An inline consumer that inserts a return operation with a value, if non-null.
          */
         public static final BiConsumer<Block.Builder, Value> INLINE_RETURN = (block, value) -> {
-            block.op(value != null ? _return(value) : _return());
+            block.op(value != null ? return_(value) : CoreOp.return_());
         };
 
         /**

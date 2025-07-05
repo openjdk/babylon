@@ -92,7 +92,7 @@ public class TestSlotOps {
             // Exit block
             {
                 Value loadValue = exitBlock.op(SlotOp.load(0, JavaType.J_L_STRING));
-                exitBlock.op(CoreOp._return(loadValue));
+                exitBlock.op(CoreOp.return_(loadValue));
             }
         });
     }
