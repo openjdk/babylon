@@ -163,11 +163,11 @@ void main(String[] args) {
     var buildDir = Script.BuildDir.of(dir.path("build")).create();
 
     Artifacts.core = buildDir.mavenStyleBuild(
-          dir.existingDir("core"), "core-1.0.jar"
+          dir.existingDir("core"), "hat-core-1.0.jar"
     );
 
     Artifacts.tools = buildDir.mavenStyleBuild(
-          dir.existingDir("tools"), "tools-1.0.jar", Artifacts.core
+          dir.existingDir("tools"), "hat-tools-1.0.jar", Artifacts.core
     );
 
 
@@ -210,7 +210,7 @@ void main(String[] args) {
     Artifacts.wrap_shared = buildDir.mavenStyleBuild( wrapsDir.existingDir("shared"), "hat-wrap-shared-1.0.jar");
 
     if (Artifacts.jextracted_opencl != null){
-    Artifacts.wrap_opencl = buildDir.mavenStyleBuild( wrapsDir.dir("opencl"), "hat-opencl-1.0.jar", Artifacts.wrap_shared, Artifacts.core, Artifacts.jextracted_opencl);
+    Artifacts.wrap_opencl = buildDir.mavenStyleBuild( wrapsDir.dir("opencl"), "hat-wrap-opencl-1.0.jar", Artifacts.wrap_shared, Artifacts.core, Artifacts.jextracted_opencl);
 }
 // on jetson
 // ls extractions/opengl/src/main/java/opengl/glutKeyboardFunc*
