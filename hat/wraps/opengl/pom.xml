@@ -42,7 +42,7 @@ questions.
 
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>hat-core</artifactId>
             <version>1.0</version>
         </dependency>
         <dependency>

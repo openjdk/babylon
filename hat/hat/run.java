@@ -31,7 +31,7 @@ class Config{
      boolean verbose = false;
      boolean startOnFirstThread = false;
      boolean justShowCommandline = false;
-     String backendName = null;
+     String backendName =null;
      Script.JarFile backendJar= null;
      String exampleName = null;
      String examplePackageName = null;
@@ -42,7 +42,7 @@ class Config{
      List<String> appargs = new ArrayList<>();
      Config(Script.BuildDir buildDir,  String[] args){
 
-        classpath.add(buildDir.jarFile("core-1.0.jar"));
+        classpath.add(buildDir.jarFile("hat-core-1.0.jar"));
         classpath.add(buildDir.jarFile("hat-example-shared-1.0.jar"));
         for (int arg=0;arg<args.length;arg++){
             if (args[arg].startsWith("ffi-")) {
@@ -146,6 +146,8 @@ void main(String[] argv) {
       }else{
           var jextracted_opencl_jar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
           var jextracted_opengl_jar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
+//           jextracted_opencl_jar = buildDir.jarFile("hat-extraction-opencl-1.0.jar");
+ //          jextracted_opengl_jar = buildDir.jarFile("hat-extraction-opengl-1.0.jar");
           var wrap_shared_jar = buildDir.jarFile("hat-wrap-shared-1.0.jar");
           var wrap_opencl_jar = buildDir.jarFile("hat-wrap-opencl-1.0.jar");
           var wrap_opengl_jar = buildDir.jarFile("hat-wrap-opengl-1.0.jar");
@@ -160,10 +162,13 @@ void main(String[] argv) {
                      config.startOnFirstThread = true;
                   }
                   config.classpath.addAll(List.of(
+                          jextracted_opengl_jar,
+                          jextracted_opencl_jar,
                           wrap_shared_jar,
-                          wrap_opengl_jar, jextracted_opengl_jar,
-                          wrap_opencl_jar, jextracted_opencl_jar)
+                          wrap_opengl_jar,
+                          wrap_opencl_jar)
                   );
+                  config.classpath.forEach(c->println(c));
               }
               default -> {}
           }
