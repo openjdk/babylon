@@ -41,7 +41,7 @@ void main(String[] args) {
            │    ├── hat-wrap-*-1.0.jar              // Wrapper jars around extracted * (opencl, glwrap, opencl)
            │    ├── core-1.0.jar                   // Base hat jar
            │    ├── hat-example-*-1.0.jar          // Example jars (hat-example-nbody-1.0.jar, hat-example-life-1.0.jar)
-           │    ├── hat-jextracted-opencl-1.0.jar  // Raw jextracted jars (hat-jextracted-opencl-1.0.jar ....)
+           │    ├── hat-extraction-opencl-1.0.jar  // Raw extraction jars (hat-extraction-opencl-1.0.jar ....)
            │    ├── lib*_backend.[dylib|so]        // ffi library backends
            │    └── *(no suffix)                   // various generated executables (opencl_info, cuda_info, cuda_squares)
            ├──extractions/
@@ -148,9 +148,9 @@ void main(String[] args) {
         static Script.MavenStyleProject backend_ffi_opencl;
         static Script.MavenStyleProject backend_java_seq;
         static Script.MavenStyleProject backend_java_mt;
-        static Script.MavenStyleProject jextracted_cuda;
-        static Script.MavenStyleProject jextracted_opengl;
-        static Script.MavenStyleProject jextracted_opencl;
+        static Script.MavenStyleProject extraction_cuda;
+        static Script.MavenStyleProject extraction_opengl;
+        static Script.MavenStyleProject extraction_opencl;
         static Script.MavenStyleProject backend_jextracted_cuda;
         static Script.MavenStyleProject backend_jextracted_opencl;
         static Script.MavenStyleProject backend_jextracted_shared;
@@ -179,28 +179,28 @@ void main(String[] args) {
     }
     Script.cmake($ -> $ .build(extractionsCmakeBuildDir) .target("extract"));
 
-    var jextracted_opencl_dir = extractionsDir.dir("opencl");
-    if (jextracted_opencl_dir.dir("src").exists()) {
-        Artifacts.jextracted_opencl = buildDir.mavenStyleBuild(
-             jextracted_opencl_dir, "hat-jextracted-opencl-1.0.jar"
+    var extraction_opencl_dir = extractionsDir.dir("opencl");
+    if (extraction_opencl_dir.dir("src").exists()) {
+        Artifacts.extraction_opencl = buildDir.mavenStyleBuild(
+             extraction_opencl_dir, "hat-extraction-opencl-1.0.jar"
         );
     }else{
-        print("no src for jextracted_opencl");
+        print("no src for extraction_opencl");
     }
 
-    var jextracted_opengl_dir = extractionsDir.dir("opengl");
-    if (jextracted_opengl_dir.dir("src").exists()) {
-        Artifacts.jextracted_opengl = buildDir.mavenStyleBuild(
-            jextracted_opengl_dir, "hat-jextracted-opengl-1.0.jar"
+    var extraction_opengl_dir = extractionsDir.dir("opengl");
+    if (extraction_opengl_dir.dir("src").exists()) {
+        Artifacts.extraction_opengl = buildDir.mavenStyleBuild(
+            extraction_opengl_dir, "hat-extraction-opengl-1.0.jar"
         );
     }else{
-        print("no src for jextracted_opengl");
+        print("no src for extraction_opengl");
     }
 
-    var jextracted_cuda_dir = extractionsDir.dir("cuda");
-    if (jextracted_cuda_dir.dir("src").exists()) {
-        Artifacts.jextracted_cuda = buildDir.mavenStyleBuild(
-            jextracted_cuda_dir, "hat-jextracted-cuda-1.0.jar"
+    var extraction_cuda_dir = extractionsDir.dir("cuda");
+    if (extraction_cuda_dir.dir("src").exists()) {
+        Artifacts.extraction_cuda = buildDir.mavenStyleBuild(
+            extraction_cuda_dir, "hat-extraction-cuda-1.0.jar"
         );
     }
 
@@ -209,8 +209,8 @@ void main(String[] args) {
 
     Artifacts.wrap_shared = buildDir.mavenStyleBuild( wrapsDir.existingDir("shared"), "hat-wrap-shared-1.0.jar");
 
-    if (Artifacts.jextracted_opencl != null){
-    Artifacts.wrap_opencl = buildDir.mavenStyleBuild( wrapsDir.dir("opencl"), "hat-wrap-opencl-1.0.jar", Artifacts.wrap_shared, Artifacts.core, Artifacts.jextracted_opencl);
+    if (Artifacts.extraction_opencl != null){
+    Artifacts.wrap_opencl = buildDir.mavenStyleBuild( wrapsDir.dir("opencl"), "hat-wrap-opencl-1.0.jar", Artifacts.wrap_shared, Artifacts.core, Artifacts.extraction_opencl);
 }
 // on jetson
 // ls extractions/opengl/src/main/java/opengl/glutKeyboardFunc*
@@ -222,12 +222,12 @@ void main(String[] args) {
 //  So we exclude  "^.*/wrap/opengl/GLCallbackEventHandler\\.java$"
 //
 
-if (Artifacts.jextracted_opengl != null
-        && Artifacts.jextracted_opengl.jarFile.exists()) {
+if (Artifacts.extraction_opengl != null
+        && Artifacts.extraction_opengl.jarFile.exists()) {
     String exclude = null;
-    if (!Artifacts.jextracted_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$func.class$")).isEmpty()) {
+    if (!Artifacts.extraction_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$func.class$")).isEmpty()) {
         exclude = "Callback";
-    }else if (!Artifacts.jextracted_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$callback.class$")).isEmpty()) {
+    }else if (!Artifacts.extraction_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$callback.class$")).isEmpty()) {
         exclude = "Func";
     }else {
         println("We can't build wrap_opengl unless exclude one of GLFuncEventHandler or GLCallbackEventHandler something");
@@ -236,14 +236,14 @@ if (Artifacts.jextracted_opengl != null
         final var excludeMeSigh = "^.*/GL"+exclude+"EventHandler\\.java$";
         println("exclude ="+exclude+" "+excludeMeSigh);
         Artifacts.wrap_opengl = Script.mavenStyleProject(
-              buildDir, wrapsDir.dir("opengl"), buildDir.jarFile("hat-wrap-opengl-1.0.jar"), Artifacts.wrap_shared, Artifacts.core, Artifacts.jextracted_opengl
+              buildDir, wrapsDir.dir("opengl"), buildDir.jarFile("hat-wrap-opengl-1.0.jar"), Artifacts.wrap_shared, Artifacts.core, Artifacts.extraction_opengl
         ).buildExcluding(javaSrc -> javaSrc.matches(excludeMeSigh));
     }
 }
 
-    if (false && Artifacts.jextracted_cuda != null ) {
+    if (false && Artifacts.extraction_cuda != null ) {
         Artifacts.wrap_cuda = buildDir.mavenStyleBuild(
-           wrapsDir.dir("cuda"), "hat-wrap-cuda-1.0.jar", Artifacts.jextracted_cuda
+           wrapsDir.dir("cuda"), "hat-wrap-cuda-1.0.jar", Artifacts.extraction_cuda
         );
     }
 
@@ -331,10 +331,10 @@ if (Artifacts.jextracted_opengl != null
             Artifacts.core,
             Artifacts.wrap_shared,
             Artifacts.wrap_opencl,
-            Artifacts.jextracted_opencl,
+            Artifacts.extraction_opencl,
             Artifacts.backend_ffi_opencl,
             Artifacts.wrap_opengl,
-            Artifacts.jextracted_opengl
+            Artifacts.extraction_opengl
     };
 
     boolean foundNull = false;
