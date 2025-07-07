@@ -22,10 +22,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.opcodebuilders;
+package hat.codebuilders;
 
-
-import hat.codebuilders.CodeBuilder;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;

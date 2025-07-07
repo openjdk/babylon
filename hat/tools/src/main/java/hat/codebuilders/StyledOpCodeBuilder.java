@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.opcodebuilders;
+package hat.codebuilders;
 
 
 import jdk.incubator.code.TypeElement;
