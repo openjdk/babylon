@@ -32,14 +32,13 @@ questions.
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <hat.root>${env.PWD}</hat.root>
         <hat.build>${hat.root}/build</hat.build>
-        <hat.stage>${hat.root}/stage</hat.stage>
-        <hat.stage.repo>${hat.stage}/repo</hat.stage.repo>
-        <hat.stage.jextract>${hat.stage}/jextract</hat.stage.jextract>
+        <hat.conf>${hat.root}/conf</hat.conf>
         <mac.app.frameworks>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks</mac.app.frameworks>
         <mac.lib.frameworks>/System/Library/Frameworks</mac.lib.frameworks>
     </properties>
     <modules>
         <module>core</module>
+        <module>tools</module>
         <module>backends</module>
         <module>examples</module>
         <module>extractions</module>
@@ -55,8 +54,6 @@ questions.
                     <compilerArgs>
                         <arg>--add-modules=jdk.incubator.code</arg>
                         <arg>--enable-preview</arg>
-                        <!-- <arg>- -add-exports=java.base/jdk.internal=ALL-UNNAMED</arg> -->
-                        <!-- <arg>- -add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg> -->
                     </compilerArgs>
                     <source>26</source>
                     <target>26</target>

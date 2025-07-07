@@ -24,12 +24,10 @@
  */
 package hat.backend.jextracted;
 
-import hat.backend.codebuilders.C99HATKernelBuilder;
+import hat.codebuilders.C99HATKernelBuilder;
 import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaType;
-
-import java.lang.invoke.MethodHandles;
 
 public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
     @Override

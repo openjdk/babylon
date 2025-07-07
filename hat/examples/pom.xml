@@ -36,18 +36,19 @@ questions.
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>hat-core</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
     <modules>
+        <module>shared</module>
         <module>blackscholes</module>
         <module>mandel</module>
         <module>heal</module>
         <module>violajones</module>
         <module>squares</module>
         <module>life</module>
-        <!--<module>experiments</module>-->
+        <module>experiments</module>
     </modules>
     <profiles>
         <profile>

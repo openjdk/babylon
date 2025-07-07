@@ -31,7 +31,7 @@ class Config{
      boolean verbose = false;
      boolean startOnFirstThread = false;
      boolean justShowCommandline = false;
-     String backendName = null;
+     String backendName =null;
      Script.JarFile backendJar= null;
      String exampleName = null;
      String examplePackageName = null;
@@ -42,7 +42,8 @@ class Config{
      List<String> appargs = new ArrayList<>();
      Config(Script.BuildDir buildDir,  String[] args){
 
-        classpath.add(buildDir.jarFile("core-1.0.jar"));
+        classpath.add(buildDir.jarFile("hat-core-1.0.jar"));
+        classpath.add(buildDir.jarFile("hat-example-shared-1.0.jar"));
         for (int arg=0;arg<args.length;arg++){
             if (args[arg].startsWith("ffi-")) {
                 backendName = args[arg];
@@ -143,14 +144,15 @@ void main(String[] argv) {
       }else if (!config.exampleJar.exists()){
           println("No example !");
       }else{
-          var jextractedOpenCLJar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
-          var jextractedOpenGLJar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
-          var wrapJar = buildDir.jarFile("hat-wrap-1.0.jar");
-          var clwrapJar = buildDir.jarFile("hat-clwrap-1.0.jar");
-          var glwrapJar = buildDir.jarFile("hat-glwrap-1.0.jar");
+          var extraction_opencl_jar = buildDir.jarFile("hat-extraction-opencl-1.0.jar");
+          var extraction_opengl_jar = buildDir.jarFile("hat-extraction-opengl-1.0.jar");
+          var wrap_shared_jar = buildDir.jarFile("hat-wrap-shared-1.0.jar");
+          var wrap_opencl_jar = buildDir.jarFile("hat-wrap-opencl-1.0.jar");
+          var wrap_opengl_jar = buildDir.jarFile("hat-wrap-opengl-1.0.jar");
           switch (config.backendName){
              default -> {}
           }
+          println("config.exampleName is "+config.exampleName);
           switch (config.exampleName){
               case "nbody" -> {
                   if (Script.os instanceof Script.OS.Mac){
@@ -158,11 +160,13 @@ void main(String[] argv) {
                      config.startOnFirstThread = true;
                   }
                   config.classpath.addAll(List.of(
-                          wrapJar,
-                          clwrapJar, jextractedOpenCLJar,
-                          glwrapJar, jextractedOpenGLJar,
-                          clwrapJar, jextractedOpenCLJar)
+                          extraction_opengl_jar,
+                          extraction_opencl_jar,
+                          wrap_shared_jar,
+                          wrap_opengl_jar,
+                          wrap_opencl_jar)
                   );
+                  config.classpath.forEach(c->println(c));
               }
               default -> {}
           }

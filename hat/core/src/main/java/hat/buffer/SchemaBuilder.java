@@ -24,7 +24,7 @@
  */
 package hat.buffer;
 
-import hat.text.CodeBuilder;
+import hat.codebuilders.CodeBuilder;
 import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;

@@ -24,7 +24,7 @@
  */
 package hat.backend.ffi;
 
-import hat.backend.codebuilders.C99HATKernelBuilder;
+import hat.codebuilders.C99HATKernelBuilder;
 import hat.optools.OpWrapper;
 
 import jdk.incubator.code.Op;
