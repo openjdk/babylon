@@ -327,10 +327,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T funcCall(CodeBuilderContext buildContext, FuncCallOpWrapper funcCallOpWrapper) {
-        var functionCallName = funcCallOpWrapper.funcName();
-
-
-        identifier(funcCallOpWrapper.funcName());
+          identifier(funcCallOpWrapper.funcName());
         paren(_ -> {
             commaSeparated(funcCallOpWrapper.operands(), (e) -> {
                 if (e instanceof Op.Result r) {

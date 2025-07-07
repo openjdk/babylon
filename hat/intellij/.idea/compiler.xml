@@ -15,8 +15,8 @@
       <module name="example_mandel" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
       <module name="example_nbody" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
       <module name="example_violajones" options="--add-modules=jdk.incubator.code,java.desktop,java.xml --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
-      <module name="glwrap" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
       <module name="hat" options="--add-modules=jdk.incubator.code,java.compiler,java.xml --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
+      <module name="tools" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
     </option>
   </component>
 </project>

@@ -5,7 +5,6 @@
     <content url="file://$MODULE_DIR$/../wraps/opengl">
       <sourceFolder url="file://$MODULE_DIR$/../wraps/opengl/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../wraps/opengl/src/main/resources" type="java-resource" />
-      <!--<excludeFolder url="file://$MODULE_DIR$/../wraps/opengl/src/main/java/wrap/glwrap" />-->
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -13,8 +12,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/hat-jextracted-opengl-1.0.jar!/" />
-          <root url="jar://$MODULE_DIR$/../build/extraction-opengl-1.0.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/hat-extraction-opengl-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

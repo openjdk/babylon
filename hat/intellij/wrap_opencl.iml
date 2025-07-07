@@ -9,16 +9,15 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="wrap_shared" />
-    <orderEntry type="module" module-name="core" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/hat-jextracted-opencl-1.0.jar!/" />
-          <root url="jar://$MODULE_DIR$/../build/extraction-opencl-1.0.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/hat-extraction-opencl-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="module" module-name="core" />
   </component>
 </module>
