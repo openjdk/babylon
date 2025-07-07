@@ -51,6 +51,6 @@ public class BlockWrapper extends CodeElementWrapper<Block> {
     }
 
     public BodyWrapper parentBody() {
-        return new BodyWrapper(block().parentBody());
+        return new BodyWrapper(block().ancestorBody());
     }
 }

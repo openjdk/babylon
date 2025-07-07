@@ -51,7 +51,7 @@ public class QuotedTest {
         Quoted quoted = () -> {
         }; //See TestClosureOps:132
         Op qop = quoted.op();
-        Op top = qop.ancestorBody().parentOp().ancestorBody().parentOp();
+        Op top = qop.ancestorOp().ancestorOp();
 
 
         CoreOp.FuncOp fop = (CoreOp.FuncOp) top;

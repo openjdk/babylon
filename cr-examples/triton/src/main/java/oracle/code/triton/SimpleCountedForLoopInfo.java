@@ -149,7 +149,7 @@ public class SimpleCountedForLoopInfo {
     // @@@ should be pure and independent of the loop variable
     static void traverseOperands(List<Op> ops, Op op) {
         for (Value operand : op.operands()) {
-            if (operand.declaringBlock().parentBody() == op.ancestorBody()) {
+            if (operand.declaringBlock().ancestorBody() == op.ancestorBody()) {
                 if (operand instanceof Op.Result r) {
                     traverseOperands(ops, r.op());
                 }
