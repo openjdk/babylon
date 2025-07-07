@@ -2439,7 +2439,8 @@ public sealed abstract class JavaOp extends Op {
         }
 
         boolean ifExitFromSynchronized(JavaLabelOp lop) {
-            return lop.target().isAncestorOf(this);
+            Op target = lop.target();
+            return target == this || target.isAncestorOf(this);
         }
 
         @Override
@@ -4534,7 +4535,8 @@ public sealed abstract class JavaOp extends Op {
         }
 
         boolean ifExitFromTry(JavaLabelOp lop) {
-            return lop.target().isAncestorOf(this);
+            Op target = lop.target();
+            return target == this || target.isAncestorOf(this);
         }
 
         Block.Builder inlineFinalizer(Block.Builder block1, List<Block.Reference> tryHandlers, OpTransformer opT) {

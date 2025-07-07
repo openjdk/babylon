@@ -213,15 +213,15 @@ public sealed interface CodeElement<
     }
 
     /**
-     * Returns true if this element is the same as or an ancestor of the descendant element.
+     * Returns true if this element is an ancestor of the descendant element.
      *
      * @param descendant the descendant element.
-     * @return true if this element is the same as or an ancestor of the descendant element.
+     * @return true if this element is an ancestor of the descendant element.
      */
     default boolean isAncestorOf(CodeElement<?, ?> descendant) {
         Objects.requireNonNull(descendant);
 
-        CodeElement<?, ?> e = descendant;
+        CodeElement<?, ?> e = descendant.parent();
         while (e != null && e != this) {
             e = e.parent();
         }
@@ -229,14 +229,14 @@ public sealed interface CodeElement<
     }
 
     /**
-     * Finds the child element, of this element, both of which are ancestors of the given descendant element,
-     * otherwise return {@code null} if this element is not an ancestor.
+     * Finds the child element of this element that is the same as or an ancestor of the given descendant element,
+     * otherwise returns {@code null} if there is no such child element.
      *
      * @param descendant the descendant element
-     * @return the child element that is an ancestor of the given descendant element
+     * @return the child element that is the same as or an ancestor of the given descendant element
      * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
      */
-    default C findChildAncestor(C descendant) {
+    default C findChildAncestor(CodeElement<?, ?> descendant) {
         Objects.requireNonNull(descendant);
 
         CodeElement<?, ?> e = descendant;
