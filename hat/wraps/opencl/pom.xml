@@ -45,12 +45,7 @@ questions.
         </dependency>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat-backend-ffi-opencl</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>oracle.code</groupId>
-            <artifactId>hat-jextracted-opencl</artifactId>
+            <artifactId>hat-extraction-opencl</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>

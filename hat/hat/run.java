@@ -144,10 +144,8 @@ void main(String[] argv) {
       }else if (!config.exampleJar.exists()){
           println("No example !");
       }else{
-          var jextracted_opencl_jar = buildDir.jarFile("hat-jextracted-opencl-1.0.jar");
-          var jextracted_opengl_jar = buildDir.jarFile("hat-jextracted-opengl-1.0.jar");
-//           jextracted_opencl_jar = buildDir.jarFile("hat-extraction-opencl-1.0.jar");
- //          jextracted_opengl_jar = buildDir.jarFile("hat-extraction-opengl-1.0.jar");
+          var extraction_opencl_jar = buildDir.jarFile("hat-extraction-opencl-1.0.jar");
+          var extraction_opengl_jar = buildDir.jarFile("hat-extraction-opengl-1.0.jar");
           var wrap_shared_jar = buildDir.jarFile("hat-wrap-shared-1.0.jar");
           var wrap_opencl_jar = buildDir.jarFile("hat-wrap-opencl-1.0.jar");
           var wrap_opengl_jar = buildDir.jarFile("hat-wrap-opengl-1.0.jar");
@@ -162,8 +160,8 @@ void main(String[] argv) {
                      config.startOnFirstThread = true;
                   }
                   config.classpath.addAll(List.of(
-                          jextracted_opengl_jar,
-                          jextracted_opencl_jar,
+                          extraction_opengl_jar,
+                          extraction_opencl_jar,
                           wrap_shared_jar,
                           wrap_opengl_jar,
                           wrap_opencl_jar)

@@ -47,7 +47,7 @@ questions.
         </dependency>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat-jextracted-opengl</artifactId>
+            <artifactId>hat-extraction-opengl</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
