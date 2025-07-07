@@ -38,9 +38,8 @@ import java.util.stream.Stream;
  * parent block. An unbound operation may also be considered a root operation if never bound. A code element and all its
  * ancestors can be traversed, up to and including the unbound or root operation.
  * <p>
- * A code element may have child code elements, and so on, to form a tree. An unbound or root operation and all its
- * descendants can be traversed, down to and including operations with no children. Bodies and blocks have at least one
- * child element.
+ * A code element may have child code elements, and so on. An unbound or root operation and all its descendants can be
+ * traversed, down to and including operations with no children. Bodies and blocks have at least one child element.
  *
  * @param <E> the code element type
  * @param <C> the child code element type.
@@ -229,11 +228,13 @@ public sealed interface CodeElement<
     }
 
     /**
-     * Finds the child element of this element that is the same as or an ancestor of the given descendant element,
-     * otherwise returns {@code null} if there is no such child element.
+     * Finds the child of this element that is an ancestor of the given descendant element,
+     * otherwise returns the descendant element if a child of this element, otherwise
+     * returns {@code null} if there is no such child.
      *
      * @param descendant the descendant element
-     * @return the child element that is the same as or an ancestor of the given descendant element
+     * @return the child that is an ancestor of the given descendant element, otherwise the descendant
+     * element if a child of this element, otherwise {@code null}.
      * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
      */
     default C findChildAncestor(CodeElement<?, ?> descendant) {
