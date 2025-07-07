@@ -82,7 +82,7 @@ public class DebugBackend extends BackendAdaptor {
                     }
                     computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
                 } catch (Throwable e) {
-                    computeContext.computeCallGraph.entrypoint.lowered.op().writeTo(System.out);
+                    System.out.println(computeContext.computeCallGraph.entrypoint.lowered.op().toText());
                     throw new RuntimeException(e);
                 }
                 break;

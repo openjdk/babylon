@@ -69,11 +69,11 @@ public class CodeReflectionTester {
 
     static CoreOp.FuncOp lower(CoreOp.FuncOp f, boolean ssa) {
         f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         if (ssa) {
             f = SSA.transform(f);
-            f.writeTo(System.out);
+            System.out.println(f.toText());
         }
 
         return f;

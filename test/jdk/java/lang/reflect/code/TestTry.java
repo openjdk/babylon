@@ -34,6 +34,7 @@ import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.CodeReflection;
@@ -68,11 +69,11 @@ public class TestTry {
     public void testCatching() {
         CoreOp.FuncOp f = getFuncOp("catching");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
@@ -125,11 +126,11 @@ public class TestTry {
     public void testCatchThrowable() {
         CoreOp.FuncOp f = getFuncOp("catchThrowable");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
@@ -185,11 +186,11 @@ public class TestTry {
     public void testCatchNested() {
         CoreOp.FuncOp f = getFuncOp("catchNested");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),

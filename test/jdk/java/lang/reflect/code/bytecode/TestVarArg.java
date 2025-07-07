@@ -28,10 +28,10 @@ public class TestVarArg {
     @Test
     void test() throws Throwable {
         var f = getFuncOp("f");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         var lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         var bytes = BytecodeGenerator.generateClassData(MethodHandles.lookup(), f);
         var classModel = ClassFile.of().parse(bytes);

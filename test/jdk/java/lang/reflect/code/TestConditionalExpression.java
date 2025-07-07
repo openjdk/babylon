@@ -50,11 +50,11 @@ public class TestConditionalExpression {
     public void testSimpleExpression() {
         CoreOp.FuncOp f = getFuncOp("simpleExpression");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, true, 1, 2), simpleExpression(true, 1, 2));
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, false, 1, 2), simpleExpression(false, 1, 2));

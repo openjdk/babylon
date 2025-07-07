@@ -35,6 +35,7 @@ import org.testng.annotations.Test;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
@@ -116,7 +117,7 @@ public class TestExceptionRegionOps {
                     });
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
@@ -209,7 +210,7 @@ public class TestExceptionRegionOps {
                     });
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
@@ -323,7 +324,7 @@ public class TestExceptionRegionOps {
                     });
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
@@ -448,7 +449,7 @@ public class TestExceptionRegionOps {
                     });
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), f, c),

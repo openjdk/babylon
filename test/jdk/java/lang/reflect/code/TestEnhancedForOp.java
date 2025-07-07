@@ -65,11 +65,11 @@ public class TestEnhancedForOp {
     public void testf() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f());
     }
@@ -88,11 +88,11 @@ public class TestEnhancedForOp {
     public void testArray() {
         CoreOp.FuncOp f = getFuncOp("array");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         int[] ia = new int[] {1, 2, 3, 4};
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, ia), array(ia));

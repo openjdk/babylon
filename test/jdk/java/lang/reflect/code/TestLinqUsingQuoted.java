@@ -30,6 +30,7 @@ import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
@@ -251,12 +252,14 @@ public class TestLinqUsingQuoted {
                 // c -> c.contactName
                 .select((Customer c) -> c.contactName).elements();
 
-        qr.expression().writeTo(System.out);
+        Op op1 = qr.expression();
+        System.out.println(op1.toText());
 
         QueryResult qr2 = (QueryResult) Interpreter.invoke(MethodHandles.lookup(),
                 qr.expression(), qp.newQuery(JavaType.type(Customer.class)));
 
-        qr2.expression().writeTo(System.out);
+        Op op = qr2.expression();
+        System.out.println(op.toText());
 
         Assert.assertEquals(qr.expression().toText(), qr2.expression().toText());
     }

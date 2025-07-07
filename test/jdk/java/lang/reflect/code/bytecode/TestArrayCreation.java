@@ -28,6 +28,7 @@ import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -99,10 +100,10 @@ public class TestArrayCreation {
     }
 
     static MethodHandle generate(CoreOp.FuncOp f) {
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }
