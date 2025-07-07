@@ -277,17 +277,17 @@ if (Artifacts.extraction_opengl != null
             jextractedBackendsDir.existingDir("shared"), "hat-backend-jextracted-shared-1.0.jar", Artifacts.core
     );
 
-    if (Artifacts.jextracted_opencl != null && jextractedBackendsDir.optionalDir("opencl") instanceof Script.DirEntry jextractedBackendDir) {
+    if (Artifacts.extraction_opencl != null && jextractedBackendsDir.optionalDir("opencl") instanceof Script.DirEntry jextractedBackendDir) {
         Artifacts.backend_jextracted_opencl = buildDir.mavenStyleBuild(
                 jextractedBackendDir, "hat-backend-jextracted-" + jextractedBackendDir.fileName() + "-1.0.jar",
-                Artifacts.core, Artifacts.jextracted_opencl, Artifacts.backend_jextracted_shared
+                Artifacts.core, Artifacts.extraction_opencl, Artifacts.backend_jextracted_shared
         );
     }
 
-    if (Artifacts.jextracted_cuda != null && jextractedBackendsDir.optionalDir("cuda") instanceof Script.DirEntry jextractedBackendDir) {
+    if (Artifacts.extraction_cuda != null && jextractedBackendsDir.optionalDir("cuda") instanceof Script.DirEntry jextractedBackendDir) {
         Artifacts.backend_jextracted_cuda = buildDir.mavenStyleBuild(
                 jextractedBackendDir, "hat-backend-jextracted-" + jextractedBackendDir.fileName() + "-1.0.jar",
-                Artifacts.core, Artifacts.jextracted_cuda, Artifacts.backend_jextracted_shared
+                Artifacts.core, Artifacts.extraction_cuda, Artifacts.backend_jextracted_shared
         );
     }
 
