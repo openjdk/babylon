@@ -122,20 +122,17 @@ public class TestAncestors {
                     continue;
                 }
 
-                CodeElement<?, ?> aChild = (i == j) ? null : path.get(i + 1);
                 CodeElement<?, ?> e = path.get(j);
-                testAncestors(a, aChild, e);
+                testAncestors(a, e);
             }
         }
     }
 
-    static void testAncestors(CodeElement<?, ?> a, CodeElement<?, ?> aChild, CodeElement<?, ?> e) {
+    static void testAncestors(CodeElement<?, ?> a, CodeElement<?, ?> e) {
         Assert.assertTrue(isSameOrAncestorUsingParent(e, a));
         if (a != e) {
             Assert.assertTrue(a.isAncestorOf(e));
         }
-
-        Assert.assertEquals(a.findChildAncestor(e), aChild);
 
         switch (a) {
             case Op op -> {

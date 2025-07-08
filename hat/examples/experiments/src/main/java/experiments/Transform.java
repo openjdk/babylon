@@ -143,7 +143,7 @@ public class Transform {
                 return builder;
             });
 
-            transformed.writeTo(System.out);
+            System.out.println(transformed.toText());
 
         }
 }

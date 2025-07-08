@@ -77,7 +77,7 @@ public class QuotedTest {
                     block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
         MethodHandles.Lookup lookup =  MethodHandles.lookup();
         C99HATComputeBuilder codeBuilder = new C99HATComputeBuilder();
         FuncOpWrapper wf = OpWrapper.wrap(lookup,f);

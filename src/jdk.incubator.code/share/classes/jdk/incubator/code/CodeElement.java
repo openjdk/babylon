@@ -227,29 +227,6 @@ public sealed interface CodeElement<
     }
 
     /**
-     * Finds the child of this element that is an ancestor of the given descendant element,
-     * otherwise returns the descendant element if a child of this element, otherwise
-     * returns {@code null} if there is no such child.
-     *
-     * @param descendant the descendant element
-     * @return the child that is an ancestor of the given descendant element, otherwise the descendant
-     * element if a child of this element, otherwise {@code null}.
-     * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
-     */
-    default C findChildAncestor(CodeElement<?, ?> descendant) {
-        Objects.requireNonNull(descendant);
-
-        CodeElement<?, ?> e = descendant;
-        while (e != null && e.parent() != this) {
-            e = e.parent();
-        }
-
-        @SuppressWarnings("unchecked")
-        C child = (C) e;
-        return child;
-    }
-
-    /**
      * Returns the child code elements, as an unmodifiable list.
      *
      * @return the child code elements
