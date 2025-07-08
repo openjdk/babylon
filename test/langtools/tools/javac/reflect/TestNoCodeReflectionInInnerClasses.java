@@ -16,7 +16,7 @@ class TestNoCodeReflectionInInnerClasses {
         }
 
         void test3() {
-            Quoted q = () -> null;
+            Quoted q = () -> { };
         }
 
         void test4() {
