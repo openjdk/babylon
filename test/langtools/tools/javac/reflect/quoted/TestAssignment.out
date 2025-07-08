@@ -12,4 +12,20 @@ TestAssignment.java:57:29: compiler.err.quoted.lambda.must.be.explicit
 TestAssignment.java:58:29: compiler.err.quoted.lambda.must.be.explicit
 TestAssignment.java:62:41: compiler.err.cant.infer.quoted.lambda.return.type: void,java.lang.String
 TestAssignment.java:63:37: compiler.err.cant.infer.quoted.lambda.return.type: java.lang.String,void
-14 errors
+TestAssignment.java:67:50: compiler.err.bad.quoted.lambda.null.return
+TestAssignment.java:68:41: compiler.err.bad.quoted.lambda.null.return
+TestAssignment.java:69:59: compiler.err.bad.quoted.lambda.null.return
+TestAssignment.java:70:50: compiler.err.bad.quoted.lambda.null.return
+TestAssignment.java:74:52: compiler.err.unexpected.lambda
+TestAssignment.java:75:43: compiler.err.unexpected.lambda
+TestAssignment.java:76:63: compiler.err.unexpected.lambda
+TestAssignment.java:76:74: compiler.err.unexpected.lambda
+TestAssignment.java:77:54: compiler.err.unexpected.lambda
+TestAssignment.java:77:65: compiler.err.unexpected.lambda
+TestAssignment.java:81:50: compiler.err.unexpected.mref
+TestAssignment.java:82:41: compiler.err.unexpected.mref
+TestAssignment.java:83:61: compiler.err.unexpected.mref
+TestAssignment.java:83:72: compiler.err.unexpected.mref
+TestAssignment.java:84:52: compiler.err.unexpected.mref
+TestAssignment.java:84:63: compiler.err.unexpected.mref
+30 errors

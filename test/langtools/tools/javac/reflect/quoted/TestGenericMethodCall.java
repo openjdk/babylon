@@ -63,5 +63,28 @@ public class TestGenericMethodCall {
         apply(Quoted.class, (int i) -> { if (cond) { return "2"; } }); // error - one return, but body completes normally
     }
 
+    void testBadNullReturn(boolean cond) {
+        apply(Quoted.class, (int i) -> { return null; }); // error - null return - statement
+        apply(Quoted.class, (int i) -> null); // error - null return - expression
+        apply(Quoted.class, (int i) -> { return cond ? null : null; }); // error - null conditional return - statement
+        apply(Quoted.class, (int i) -> cond ? null : null); // error - null conditional return - expression
+    }
+
+    void testBadLambdaReturn(boolean cond) {
+        apply(Quoted.class, (int i) -> { return () -> {}; }); // error - lambda return - statement
+        apply(Quoted.class, (int i) -> () -> {});; // error - lambda return - expression
+        apply(Quoted.class, (int i) -> { return cond ? () -> {} : () -> {}; }); // error - lambda conditional return - statement
+        apply(Quoted.class, (int i) -> cond ? () -> {} : () -> {}); // error - lambda conditional return - expression
+    }
+
+    void testBadMrefReturn(boolean cond) {
+        apply(Quoted.class, (int i) -> { return this::mr; }); // error - mref return - statement
+        apply(Quoted.class, (int i) -> this::mr); // error - mref return - expression
+        apply(Quoted.class, (int i) -> { return cond ? this::mr : this::mr; }); // error - mref conditional return - statement
+        apply(Quoted.class, (int i) -> cond ? this::mr : this::mr); // error - mref conditional return - expression
+    }
+
+    void mr() { }
+
     <Z> void apply(Class<Z> clazz, Z quoted) { }
 }

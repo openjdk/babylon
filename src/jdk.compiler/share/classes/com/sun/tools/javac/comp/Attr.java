@@ -3365,7 +3365,7 @@ public class Attr extends JCTree.Visitor {
             // type-check lambda body, and capture return types
             if (that.getBodyKind() == JCLambda.BodyKind.EXPRESSION) {
                 attribTree(that.getBody(), localEnv, bodyResultInfo);
-                restypes.add(that.getBody().type);
+                restypes.add(checkQuotedReturnExpr((JCExpression) that.getBody()));
             } else {
                 JCBlock body = (JCBlock)that.body;
                 if (body == breakTree &&
@@ -3379,7 +3379,7 @@ public class Attr extends JCTree.Visitor {
                         if (tree.expr != null) {
                             resPositions.add(tree);
                         }
-                        restypes.add(tree.expr == null ? syms.voidType : tree.expr.type);
+                        restypes.add(tree.expr == null ? syms.voidType : checkQuotedReturnExpr(tree.expr));
                     }
                 }.scan(body);
             }
@@ -3389,32 +3389,38 @@ public class Attr extends JCTree.Visitor {
             flow.analyzeLambda(localEnv, that, make, false);
 
             final Type restype;
+            boolean hasErroneousType = restypes.toList()
+                    .stream().anyMatch(Type::isErroneous);
             if (that.getBodyKind() == BodyKind.STATEMENT) {
                 if (that.canCompleteNormally) {
                     // a lambda that completes normally has an implicit void return
                     restypes.add(syms.voidType);
                 }
 
-                boolean hasNonVoidReturn = restypes.toList()
-                        .stream().anyMatch(t -> t != syms.voidType);
-                boolean hasVoidReturn = restypes.toList()
-                        .stream().anyMatch(t -> t == syms.voidType);
-
-                if (hasVoidReturn && hasNonVoidReturn) {
-                    // void vs. non-void mismatch
-                    log.error(that.body, Errors.CantInferQuotedLambdaReturnType(restypes.toList()));
+                if (hasErroneousType) {
                     restype = syms.errorType;
-                } else if (hasVoidReturn) {
-                    restype = syms.voidType;
                 } else {
-                    restype = condType(resPositions.toList(), restypes.toList());
+                    boolean hasNonVoidReturn = restypes.toList()
+                            .stream().anyMatch(t -> t != syms.voidType);
+                    boolean hasVoidReturn = restypes.toList()
+                            .stream().anyMatch(t -> t == syms.voidType);
+
+                    if (hasVoidReturn && hasNonVoidReturn) {
+                        // void vs. non-void mismatch
+                        log.error(that.body, Errors.CantInferQuotedLambdaReturnType(restypes.toList()));
+                        restype = syms.errorType;
+                    } else if (hasVoidReturn) {
+                        restype = syms.voidType;
+                    } else {
+                        restype = condType(resPositions.toList(), restypes.toList());
+                    }
                 }
             } else {
                 restype = restypes.first();
             }
 
             // infer lambda return type using lub
-            if (restype.hasTag(ERROR)) {
+            if (!hasErroneousType && restype.hasTag(ERROR)) {
                 // some other error occurred
                 log.error(that.body, Errors.CantInferQuotedLambdaReturnType(restypes.toList()));
             }
@@ -3430,6 +3436,14 @@ public class Attr extends JCTree.Visitor {
         }
     }
     //where
+        Type checkQuotedReturnExpr(JCExpression retExpr) {
+            if (retExpr.type.hasTag(BOT)) {
+                log.error(retExpr, Errors.BadQuotedLambdaNullReturn);
+            }
+            return retExpr.type;
+        }
+
+
         class TargetInfo {
             Type target;
             Type descriptor;

@@ -219,6 +219,7 @@ compiler.note.quoted.ir.dump                                  # code reflection
 compiler.err.quoted.method.inner.class                        # code reflection
 compiler.err.quoted.lambda.inner.class                        # code reflection
 compiler.err.quoted.mref.inner.class                          # code reflection
+compiler.err.bad.quoted.lambda.null.return                    # code reflection
 
 # this one needs a forged class file to be reproduced
 compiler.err.annotation.unrecognized.attribute.name
