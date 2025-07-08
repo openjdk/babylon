@@ -37,6 +37,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
@@ -98,7 +99,7 @@ public class TestClosureOps {
                     block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
         Assert.assertEquals(ir, 43);
@@ -128,7 +129,7 @@ public class TestClosureOps {
                     block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
         Assert.assertEquals(ir, 43);

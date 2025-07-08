@@ -56,19 +56,20 @@ public class TestCaptureQuoted {
         assertEquals(res, x + 1);
     }
 
+    static class Context {
+        final int x;
+
+        Context(int x) {
+            this.x = x;
+        }
+
+        Quoted quoted() {
+            return (int y) -> x + y;
+        }
+    }
+
     @Test(dataProvider = "ints")
     public void testCaptureIntField(int x) {
-        class Context {
-            final int x;
-
-            Context(int x) {
-                this.x = x;
-            }
-
-            Quoted quoted() {
-                return (int y) -> x + y;
-            }
-        }
         Context context = new Context(x);
         Quoted quoted = context.quoted();
         assertEquals(quoted.capturedValues().size(), 1);

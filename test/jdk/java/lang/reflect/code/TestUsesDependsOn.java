@@ -32,6 +32,7 @@ import org.testng.annotations.Test;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.extern.OpParser;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +84,7 @@ public class TestUsesDependsOn {
     @Test
     public void testUses() {
         Op f = OpParser.fromStringOfJavaCodeModel(OP);
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Map<String, List<String>> uses = computeValueMap(f, Value::uses);
 

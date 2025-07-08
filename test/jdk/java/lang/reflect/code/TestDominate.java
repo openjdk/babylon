@@ -31,6 +31,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -132,7 +133,7 @@ public class TestDominate {
             b1.op(CoreOp.return_());
         });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
         boolean[][] bvs = new boolean[][]{
                 {true, false, false, false, false, false},
                 {true, true, false, false, false, false},
@@ -213,7 +214,7 @@ public class TestDominate {
 
             b3.op(branch(b2.successor()));
         });
-        f.writeTo(System.out);
+        System.out.println(f.toText());
         Map<Block, Block> idoms = f.body().immediateDominators();
         System.out.println(idoms);
 
@@ -277,7 +278,7 @@ public class TestDominate {
             exit.op(CoreOp.return_());
         });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Map<Block, Block> idoms = f.body().immediateDominators();
         Node<String> domTree = buildDomTree(f.body().entryBlock(), idoms).transform(b -> Integer.toString(b.index()));

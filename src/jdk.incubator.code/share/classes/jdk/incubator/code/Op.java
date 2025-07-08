@@ -25,10 +25,6 @@
 
 package jdk.incubator.code;
 
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-
 import com.sun.tools.javac.api.JavacScope;
 import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
@@ -52,7 +48,6 @@ import javax.lang.model.element.Modifier;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiFunction;
 
@@ -434,24 +429,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         for (Body childBody : op.bodies()) {
             Body.capturedValues(capturedValues, bodyStack, childBody);
         }
-    }
-
-    /**
-     * Writes the textual form of this operation to the given output stream, using the UTF-8 character set.
-     *
-     * @param out the stream to write to.
-     */
-    public void writeTo(OutputStream out) {
-        writeTo(new OutputStreamWriter(out, StandardCharsets.UTF_8));
-    }
-
-    /**
-     * Writes the textual form of this operation to the given writer.
-     *
-     * @param w the writer to write to.
-     */
-    public void writeTo(Writer w) {
-        OpWriter.writeTo(w, this);
     }
 
     /**

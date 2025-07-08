@@ -5,7 +5,6 @@
     <content url="file://$MODULE_DIR$/../examples/nbody">
       <sourceFolder url="file://$MODULE_DIR$/../examples/nbody/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../examples/nbody/src/main/resources" type="java-resource" />
-      <!--<excludeFolder url="file://$MODULE_DIR$/../examples/nbody/src/main/java/nbody" />-->
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -17,8 +16,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/hat-jextracted-opencl-1.0.jar!/" />
-          <root url="jar://$MODULE_DIR$/../build/extraction-opencl-1.0.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/hat-extraction-opencl-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -27,8 +25,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/hat-jextracted-opengl-1.0.jar!/" />
-          <root url="jar://$MODULE_DIR$/../build/extraction-opengl-1.0.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/hat-extraction-opengl-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

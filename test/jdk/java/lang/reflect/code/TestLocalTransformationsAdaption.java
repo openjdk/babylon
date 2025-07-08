@@ -93,10 +93,10 @@ public class TestLocalTransformationsAdaption {
     @Test
     public void testInvocation() {
         CoreOp.FuncOp f = getFuncOp("f");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), f, 2);
         Assert.assertEquals(x, f(2));
@@ -112,7 +112,7 @@ public class TestLocalTransformationsAdaption {
     @Test
     public void testFuncEntryExit() {
         CoreOp.FuncOp f = getFuncOp("f");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         AtomicBoolean first = new AtomicBoolean(true);
         CoreOp.FuncOp fc = f.transform((block, op) -> {
@@ -137,10 +137,10 @@ public class TestLocalTransformationsAdaption {
 
             return block;
         });
-        fc.writeTo(System.out);
+        System.out.println(fc.toText());
 
         fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
-        fc.writeTo(System.out);
+        System.out.println(fc.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
         Assert.assertEquals(x, f(2));
@@ -170,7 +170,7 @@ public class TestLocalTransformationsAdaption {
     @Test
     public void testReplaceCall() {
         CoreOp.FuncOp f = getFuncOp("f");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp fc = f.transform((block, op) -> {
             switch (op) {
@@ -189,10 +189,10 @@ public class TestLocalTransformationsAdaption {
             }
             return block;
         });
-        fc.writeTo(System.out);
+        System.out.println(fc.toText());
 
         fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
-        fc.writeTo(System.out);
+        System.out.println(fc.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
         Assert.assertEquals(x, f(2));
@@ -202,7 +202,7 @@ public class TestLocalTransformationsAdaption {
     @Test
     public void testCallEntryExit() {
         CoreOp.FuncOp f = getFuncOp("f");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp fc = f.transform((block, op) -> {
             switch (op) {
@@ -216,10 +216,10 @@ public class TestLocalTransformationsAdaption {
             }
             return block;
         });
-        fc.writeTo(System.out);
+        System.out.println(fc.toText());
 
         fc = fc.transform(OpTransformer.LOWERING_TRANSFORMER);
-        fc.writeTo(System.out);
+        System.out.println(fc.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
         Assert.assertEquals(x, f(2));
