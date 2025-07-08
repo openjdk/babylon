@@ -64,11 +64,11 @@ public class TestBreakContinue {
     public void testForLoopBreakContinue() {
         CoreOp.FuncOp f = getFuncOp("forLoopBreakContinue");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         IntUnaryOperator o = i -> {
             if (i <= 3) return -1;
@@ -108,11 +108,11 @@ public class TestBreakContinue {
     public void testNestedForLoopBreakContinue() {
         CoreOp.FuncOp f = getFuncOp("nestedForLoopBreakContinue");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         for (int r = -1; r < 4; r++) {
             int fr = r;
@@ -156,11 +156,11 @@ public class TestBreakContinue {
     public void testForLoopLabeledBreakContinue() {
         CoreOp.FuncOp f = getFuncOp("forLoopLabeledBreakContinue");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         for (int r = -1; r < 6; r++) {
             int fr = r;
@@ -206,11 +206,11 @@ public class TestBreakContinue {
     public void testBlockBreak() {
         CoreOp.FuncOp f = getFuncOp("blockBreak");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         for (int i = 0; i < 7; i++) {
             int fi = i;

@@ -74,7 +74,7 @@ public class TestUninitializedVariable {
     @Test(dataProvider = "methods")
     public void testInterpret(String method) {
         CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(OpTransformer.LOWERING_TRANSFORMER));
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertThrows(Interpreter.InterpreterException.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, 1));
     }
@@ -82,7 +82,7 @@ public class TestUninitializedVariable {
     @Test(dataProvider = "methods")
     public void testSSA(String method) {
         CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(OpTransformer.LOWERING_TRANSFORMER));
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertThrows(IllegalStateException.class, () -> SSA.transform(f));
     }

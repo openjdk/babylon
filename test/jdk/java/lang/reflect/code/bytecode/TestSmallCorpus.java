@@ -21,7 +21,6 @@
  * questions.
  */
 
-import java.io.StringWriter;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Instruction;
 import java.lang.classfile.Label;
@@ -175,11 +174,7 @@ public class TestSmallCorpus {
     }
 
     private static void printInColumns(CoreOp.FuncOp first, CoreOp.FuncOp second) {
-        StringWriter fw = new StringWriter();
-        first.writeTo(fw);
-        StringWriter sw = new StringWriter();
-        second.writeTo(sw);
-        printInColumns(fw.toString().lines().toList(), sw.toString().lines().toList());
+        printInColumns(first.toText().lines().toList(), second.toText().lines().toList());
     }
 
     private static void printInColumns(List<String> first, List<String> second) {

@@ -646,7 +646,7 @@ public class TestBytecode {
                     .methods().stream().filter(m -> m.methodName().equalsString(d.testMethod().getName())).findAny().get(),
                     ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
             System.out.println("Lift failed, compiled model:");
-            Op.ofMethod(d.testMethod).ifPresent(f -> f.writeTo(System.out));
+            Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
             throw e;
         }
         try {
@@ -662,9 +662,9 @@ public class TestBytecode {
                 Assert.assertEquals(invokeAndConvert(flift, receiver1, args), d.testMethod.invoke(receiver2, args)));
         } catch (Throwable e) {
             System.out.println("Compiled model:");
-            Op.ofMethod(d.testMethod).ifPresent(f -> f.writeTo(System.out));
+            Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
             System.out.println("Lifted model:");
-            flift.writeTo(System.out);
+            System.out.println(flift.toText());
             throw e;
         }
     }
@@ -717,8 +717,8 @@ public class TestBytecode {
                     Assert.assertEquals(mh.invokeWithArguments(argl), d.testMethod.invoke(receiver2, args));
             });
         } catch (Throwable e) {
-            func.writeTo(System.out);
-            lfunc.writeTo(System.out);
+            System.out.println(func.toText());
+            System.out.println(lfunc.toText());
             String methodName = d.testMethod().getName();
             for (var mm : CLASS_MODEL.methods()) {
                 if (mm.methodName().equalsString(methodName)

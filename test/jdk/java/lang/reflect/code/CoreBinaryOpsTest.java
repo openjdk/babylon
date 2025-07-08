@@ -264,7 +264,7 @@ public class CoreBinaryOpsTest {
                 return original; // already expected type
             }
             if (functionType.parameterTypes().stream().distinct().count() != 1) {
-                original.writeTo(System.err);
+                System.err.println(original.toText());
                 throw new IllegalArgumentException("Only FuncOps with exactly one distinct parameter type are supported");
             }
             // if the return type does not match the input types, we keep it

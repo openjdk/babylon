@@ -27,6 +27,7 @@ import org.testng.annotations.Test;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.bytecode.BytecodeLift;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -67,7 +68,7 @@ public class TestLiftExample {
         URL resource = TestLiftExample.class.getClassLoader().getResource(TestLiftExample.class.getName().replace('.', '/') + ".class");
         byte[] classdata = resource.openStream().readAllBytes();
         CoreOp.FuncOp flift = BytecodeLift.lift(classdata, "proxy");
-        flift.writeTo(System.out);
+        System.out.println(flift.toText());
 
         Function<Integer, Integer> f = i -> i;
         @SuppressWarnings("unchecked")

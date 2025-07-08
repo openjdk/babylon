@@ -36,18 +36,19 @@ public class TestRemoveFinalVars {
     @Test
     void test() {
         FuncOp f = getFuncOp(this.getClass(),"f");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
         FuncOp lf = lower(f);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         FuncOp f2 = f.transform(TestRemoveFinalVars::rmFinalVars);
-        f2.writeTo(System.out);
+        System.out.println(f2.toText());
         FuncOp lf2 = lower(f2);
-        lf2.writeTo(System.out);
+        System.out.println(lf2.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), Interpreter.invoke(MethodHandles.lookup(), lf2));
 
-        SSA.transform(lower(f)).writeTo(System.out);
+        Op op = SSA.transform(lower(f));
+        System.out.println(op.toText());
     }
 
     static FuncOp lower(FuncOp funcOp) {

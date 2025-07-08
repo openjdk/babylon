@@ -38,6 +38,7 @@ import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.java.JavaOp.LambdaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.CodeReflection;
@@ -100,7 +101,7 @@ public class TestLambdaOps {
                     block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
         Assert.assertEquals(ir, 43);
@@ -135,7 +136,7 @@ public class TestLambdaOps {
                     block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
         Assert.assertEquals(ir, 43);
@@ -175,14 +176,14 @@ public class TestLambdaOps {
     @Test
     public void testQuote() {
         FuncOp g = getFuncOp("quote");
-        g.writeTo(System.out);
+        System.out.println(g.toText());
 
         {
             QuotableIntSupplier op = (QuotableIntSupplier) Interpreter.invoke(MethodHandles.lookup(), g, 42);
             Assert.assertEquals(op.getAsInt(), 42);
 
             Quoted q = Op.ofQuotable(op).get();
-            q.op().writeTo(System.out);
+            System.out.println(q.op().toText());
             Assert.assertEquals(q.capturedValues().size(), 1);
             Assert.assertEquals(((Var<?>)q.capturedValues().values().iterator().next()).value(), 42);
 
@@ -200,7 +201,7 @@ public class TestLambdaOps {
             Assert.assertEquals(op.getAsInt(), 42);
 
             Quoted q = Op.ofQuotable(op).get();
-            q.op().writeTo(System.out);
+            System.out.println(q.op().toText());
             System.out.print(q.capturedValues().values());
             Assert.assertEquals(q.capturedValues().size(), 1);
             Assert.assertEquals(((Var<?>)q.capturedValues().values().iterator().next()).value(), 42);
