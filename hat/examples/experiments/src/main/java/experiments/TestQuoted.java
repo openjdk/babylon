@@ -44,7 +44,7 @@ import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 
 public class TestQuoted {
-    public class TestLambdaMethodRef {
+    public static class TestLambdaMethodRef {
 
         interface QuotableIntUnaryOperator extends IntUnaryOperator, Quotable {
         }

@@ -76,7 +76,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                 }
                 computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
             } catch (Throwable e) {
-                computeContext.computeCallGraph.entrypoint.lowered.op().writeTo(System.out);
+                System.out.println(computeContext.computeCallGraph.entrypoint.lowered.op().toText());
                 throw new RuntimeException(e);
             }
         }
@@ -94,7 +94,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         boolean transform = true;
         if (transform) {
             System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
-            returnFOW.op().writeTo(System.out);
+            System.out.println(returnFOW.op().toText());
             returnFOW = prevFOW.transformInvokes((bldr, invokeOW) -> {
                 CopyContext bldrCntxt = bldr.context();
                 //Map compute method's first param (computeContext) value to transformed model
@@ -127,7 +127,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                 return bldr;
             });
             System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
-            returnFOW.op().writeTo(System.out);
+            System.out.println(returnFOW.op().toText());
         }
         computeMethod.funcOpWrapper(returnFOW);
         return returnFOW;

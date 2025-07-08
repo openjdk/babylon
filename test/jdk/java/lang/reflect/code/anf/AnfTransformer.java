@@ -52,7 +52,7 @@ public class AnfTransformer {
 
         var builderEntry = outerBodyBuilder.entryBlock();
 
-        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.parentOp()).invokableType());
+        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.ancestorOp()).invokableType());
         funMap.put(entry, selfRefP);
 
         for (Block.Parameter p : entry.parameters()) {

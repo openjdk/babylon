@@ -808,7 +808,7 @@ public final class TritonTransformer {
 
                 if (op instanceof VarAccessOp) {
                     Value v = op.operands().get(0);
-                    if (!bodyStack.contains(v.declaringBlock().parentBody())) {
+                    if (!bodyStack.contains(v.declaringBlock().ancestorBody())) {
                         if (op instanceof VarAccessOp.VarStoreOp) {
                             capturedVars.get(true).add(v);
                             capturedVars.get(false).remove(v);

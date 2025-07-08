@@ -26,15 +26,21 @@
 package jdk.incubator.code;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.stream.Gatherer;
 import java.util.stream.Stream;
 
 /**
  * A code element, one of {@link Body body}, {@link Block block}, or {@link Op operation}.
  * <p>
- * A code element may have child code elements, and so on, to form a tree. A (root) code element and all its descendants
- * can be traversed.
+ * A code may have a parent code element. An unbound code element is an operation, an unbound operation, that has no
+ * parent block. An unbound operation may also be considered a root operation if never bound. A code element and all its
+ * ancestors can be traversed, up to and including the unbound or root operation.
+ * <p>
+ * A code element may have child code elements, and so on. An unbound or root operation and all its descendants can be
+ * traversed, down to and including operations with no children. Bodies and blocks have at least one child element.
  *
  * @param <E> the code element type
  * @param <C> the child code element type.
@@ -50,14 +56,12 @@ public sealed interface CodeElement<
     /**
      * {@return a stream of code elements sorted topologically in pre-order traversal.}
      */
-    // Code copied into the compiler cannot depend on new gatherer API
     default Stream<CodeElement<?, ?>> elements() {
-        return Stream.of(Void.class).gather(() -> (_, _, downstream) -> traversePreOrder(downstream::push));
+        return Stream.of(Void.class).gather(() -> (_, _, downstream) -> traversePreOrder(downstream));
     }
 
-//    private boolean traversePreOrder(Gatherer.Downstream<? super CodeElement<?, ?>> v) {
-    private boolean traversePreOrder(Predicate<? super CodeElement<?, ?>> v) {
-        if (!v.test(this)) {
+    private boolean traversePreOrder(Gatherer.Downstream<? super CodeElement<?, ?>> v) {
+        if (!v.push(this)) {
             return false;
         }
         for (C c : children()) {
@@ -127,14 +131,100 @@ public sealed interface CodeElement<
     }
 
     /**
-     * Returns the parent code element.
-     * <p>
-     * If this element is an instance of {@code Op} then the parent may be {@code null}
-     * if operation is not assigned to a block.
+     * Returns the parent element, otherwise {@code null}
+     * if there is no parent.
      *
-     * @return the parent code element
+     * @return the parent code element.
+     * @throws IllegalStateException if this element is an operation whose parent block is unbuilt.
      */
     CodeElement<?, E> parent();
+
+    // Nearest ancestors
+
+    /**
+     * Finds the nearest ancestor operation, otherwise {@code null}
+     * if there is no nearest ancestor.
+     *
+     * @return the nearest ancestor operation.
+     * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
+     */
+    default Op ancestorOp() {
+        return switch (this) {
+            // block -> body -> op~
+            case Block block -> block.parent().parent();
+            // body -> op~
+            case Body body -> body.parent();
+            // op -> block? -> body -> op~
+            case Op op -> {
+                // Throws ISE if op is not bound
+                Block parent = op.parent();
+                yield parent == null ? null : parent.parent().parent();
+            }
+        };
+    }
+
+    /**
+     * Finds the nearest ancestor body, otherwise {@code null}
+     * if there is no nearest ancestor.
+     *
+     * @return the nearest ancestor body.
+     * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
+     */
+    default Body ancestorBody() {
+        return switch (this) {
+            // block -> body
+            case Block block -> block.parent();
+            // body -> op~ -> block? -> body
+            case Body body -> {
+                // Throws ISE if block is partially constructed
+                Block ancestor = body.parent().parent();
+                yield ancestor == null ? null : ancestor.parent();
+            }
+            // op~ -> block? -> body
+            case Op op -> {
+                // Throws ISE if op is not bound
+                Block parent = op.parent();
+                yield parent == null ? null : parent.parent();
+            }
+        };
+    }
+
+    /**
+     * Finds the nearest ancestor block, otherwise {@code null}
+     * if there is no nearest ancestor.
+     *
+     * @return the nearest ancestor block.
+     * @throws IllegalStateException if an operation with unbuilt parent block is encountered.
+     */
+    default Block ancestorBlock() {
+        return switch (this) {
+            // block -> body -> op~ -> block?
+            // Throws ISE if op is not bound
+            case Block block -> block.parent().parent().parent();
+            // body -> op~ -> block?
+            // Throws ISE if op is not bound
+            case Body body -> body.parent().parent();
+            // op~ -> block?
+            // Throws ISE if op is not bound
+            case Op op -> op.parent();
+        };
+    }
+
+    /**
+     * Returns true if this element is an ancestor of the descendant element.
+     *
+     * @param descendant the descendant element.
+     * @return true if this element is an ancestor of the descendant element.
+     */
+    default boolean isAncestorOf(CodeElement<?, ?> descendant) {
+        Objects.requireNonNull(descendant);
+
+        CodeElement<?, ?> e = descendant.parent();
+        while (e != null && e != this) {
+            e = e.parent();
+        }
+        return e != null;
+    }
 
     /**
      * Returns the child code elements, as an unmodifiable list.
@@ -142,4 +232,9 @@ public sealed interface CodeElement<
      * @return the child code elements
      */
     List<C> children();
+
+    // Siblings
+    // Left, right
+
+    // Des
 }

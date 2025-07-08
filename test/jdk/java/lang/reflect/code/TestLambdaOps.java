@@ -156,7 +156,7 @@ public class TestLambdaOps {
     public void testQuotableModel() {
         Quotable quotable = (Runnable & Quotable) () -> {};
         Op qop = Op.ofQuotable(quotable).get().op();
-        Op top = qop.ancestorBody().parentOp().ancestorBody().parentOp();
+        Op top = qop.ancestorOp().ancestorOp();
         Assert.assertTrue(top instanceof CoreOp.FuncOp);
 
         CoreOp.FuncOp fop = (CoreOp.FuncOp) top;

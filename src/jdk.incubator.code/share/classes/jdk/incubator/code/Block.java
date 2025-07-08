@@ -89,7 +89,7 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Op.Invokable invokableOperation() {
             if (declaringBlock().isEntryBlock() &&
-                    declaringBlock().parentBody().parentOp() instanceof Op.Invokable o) {
+                    declaringBlock().ancestorOp() instanceof Op.Invokable o) {
                 return o;
             } else {
                 return null;
@@ -198,15 +198,6 @@ public final class Block implements CodeElement<Block, Op> {
         return parentBody;
     }
 
-    /**
-     * Returns this block's parent body.
-     *
-     * @return this block's parent body.
-     */
-    public Body parentBody() {
-        return parentBody;
-    }
-
     @Override
     public List<Op> children() {
         return ops();
@@ -255,28 +246,6 @@ public final class Block implements CodeElement<Block, Op> {
      */
     public List<TypeElement> parameterTypes() {
         return parameters.stream().map(Value::type).toList();
-    }
-
-    /**
-     * Finds the operation in this block that is the ancestor of the given operation.
-     *
-     * @param op the given operation.
-     * @return the operation in this block that is the ancestor of the given operation,
-     * otherwise {@code null}
-     */
-    public Op findAncestorOpInBlock(Op op) {
-        Objects.requireNonNull(op);
-
-        while (op != null && op.parentBlock() != this) {
-            Body encBody = op.ancestorBody();
-            if (encBody == null) {
-                return null;
-            }
-
-            op = encBody.parentOp();
-        }
-
-        return op;
     }
 
     /**
@@ -409,7 +378,7 @@ public final class Block implements CodeElement<Block, Op> {
      */
     // @@@ Should this be reversed and named dominates(Block b)
     public boolean isDominatedBy(Block dom) {
-        Block b = findBlockForDomBody(this, dom.parentBody());
+        Block b = findBlockForDomBody(this, dom.ancestorBody());
         if (b == null) {
             return false;
         }
@@ -420,13 +389,13 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         // The entry block in b's body dominates all other blocks in the body
-        Block entry = b.parentBody().entryBlock();
+        Block entry = b.ancestorBody().entryBlock();
         if (dom == entry) {
             return true;
         }
 
         // Traverse the immediate dominators until dom is reached or the entry block
-        Map<Block, Block> idoms = b.parentBody().immediateDominators();
+        Map<Block, Block> idoms = b.ancestorBody().immediateDominators();
         Block idom = idoms.get(b);
         while (idom != entry) {
             if (idom == dom) {
@@ -449,11 +418,11 @@ public final class Block implements CodeElement<Block, Op> {
      * @return the immediate dominator of this block, otherwise {@code null} if this block is the entry block.
      */
     public Block immediateDominator() {
-        if (this == parentBody().entryBlock()) {
+        if (this == ancestorBody().entryBlock()) {
             return null;
         }
 
-        Map<Block, Block> idoms = parentBody().immediateDominators();
+        Map<Block, Block> idoms = ancestorBody().immediateDominators();
         return idoms.get(this);
     }
 
@@ -468,11 +437,11 @@ public final class Block implements CodeElement<Block, Op> {
      * @return the immediate dominator of this block, otherwise {@code null} if this block is the entry block.
      */
     public Block immediatePostDominator() {
-        if (this == parentBody().entryBlock()) {
+        if (this == ancestorBody().entryBlock()) {
             return null;
         }
 
-        Map<Block, Block> ipdoms = parentBody().immediatePostDominators();
+        Map<Block, Block> ipdoms = ancestorBody().immediatePostDominators();
         Block ipdom = ipdoms.get(this);
         return ipdom == this ? Body.IPDOM_EXIT : ipdom;
     }
@@ -480,16 +449,16 @@ public final class Block implements CodeElement<Block, Op> {
     // @@@ isPostDominatedBy and immediatePostDominator
 
     private static Block findBlockForDomBody(Block b, final Body domr) {
-        Body rb = b.parentBody();
+        Body rb = b.ancestorBody();
         while (domr != rb) {
             // @@@ What if body is isolated
 
-            b = rb.parentOp().parentBlock();
+            b = rb.ancestorBlock();
             // null when op is top-level (and its body is isolated), or not yet assigned to block
             if (b == null) {
                 return null;
             }
-            rb = b.parentBody();
+            rb = b.ancestorBody();
         }
         return b;
     }
@@ -751,7 +720,7 @@ public final class Block implements CodeElement<Block, Op> {
 
         private static Op getNearestInvokeableAncestorOp(Op op) {
             do {
-                op = op.ancestorBody().parentOp();
+                op = op.ancestorOp();
             } while (!(op instanceof Op.Invokable));
             return op;
         }

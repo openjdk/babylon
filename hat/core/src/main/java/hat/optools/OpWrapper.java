@@ -151,10 +151,11 @@ public MethodHandles.Lookup lookup;
     }
 
     public BlockWrapper parentBlock() {
-        return new BlockWrapper(op.parentBlock());
+        return new BlockWrapper(op.ancestorBlock());
     }
 
     public BodyWrapper parentBodyOfParentBlock() {
+//        return new BodyWrapper(op.ancestorBody());
         return parentBlock().parentBody();
     }
 

@@ -59,7 +59,7 @@ public final class OpWriter {
         }
 
         private String name(Block b) {
-            Block p = b.parentBody().parentOp().parentBlock();
+            Block p = b.ancestorBlock();
             return (p == null ? "block_" : name(p) + "_") + b.index();
         }
 

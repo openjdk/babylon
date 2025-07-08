@@ -51,7 +51,7 @@ public class QuotedTest {
         Quoted quoted = () -> {
         }; //See TestClosureOps:132
         Op qop = quoted.op();
-        Op top = qop.ancestorBody().parentOp().ancestorBody().parentOp();
+        Op top = qop.ancestorOp().ancestorOp();
 
 
         CoreOp.FuncOp fop = (CoreOp.FuncOp) top;
@@ -77,7 +77,7 @@ public class QuotedTest {
                     block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
         MethodHandles.Lookup lookup =  MethodHandles.lookup();
         C99HATComputeBuilder codeBuilder = new C99HATComputeBuilder();
         FuncOpWrapper wf = OpWrapper.wrap(lookup,f);
