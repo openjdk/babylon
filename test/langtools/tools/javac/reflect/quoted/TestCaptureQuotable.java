@@ -137,19 +137,20 @@ public class TestCaptureQuotable {
         }
     }
 
+    static class Context {
+        final int x;
+
+        Context(int x) {
+            this.x = x;
+        }
+
+        Quotable quotable() {
+            return (Quotable & IntUnaryOperator) y -> x + y;
+        }
+    }
+
     @Test(dataProvider = "ints")
     public void testCaptureIntField(int x) {
-        class Context {
-            final int x;
-
-            Context(int x) {
-                this.x = x;
-            }
-
-            Quotable quotable() {
-                return (Quotable & IntUnaryOperator) y -> x + y;
-            }
-        }
         Context context = new Context(x);
         Quotable quotable = context.quotable();
         Quoted quoted = Op.ofQuotable(quotable).get();

@@ -103,10 +103,12 @@ import static com.sun.tools.javac.code.Kinds.Kind.MTH;
 import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
 import static com.sun.tools.javac.code.TypeTag.BOT;
+import static com.sun.tools.javac.code.TypeTag.CLASS;
 import static com.sun.tools.javac.code.TypeTag.METHOD;
 import static com.sun.tools.javac.code.TypeTag.NONE;
 import static com.sun.tools.javac.main.Option.G_CUSTOM;
 
+import static com.sun.tools.javac.resources.CompilerProperties.Errors.*;
 import static com.sun.tools.javac.resources.CompilerProperties.Notes.*;
 
 /**
@@ -167,9 +169,12 @@ public class ReflectMethods extends TreeTranslator {
     @Override
     public void visitMethodDef(JCMethodDecl tree) {
         if (tree.sym.attribute(crSyms.codeReflectionType.tsym) != null) {
-            // if the method is annotated, scan it
-            BodyScanner bodyScanner = new BodyScanner(tree);
-            try {
+            if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
+                // Reflectable methods in inner classes are not supported
+                log.error(tree, QuotedMethodInnerClass(currentClassSym.enclClass()));
+            } else {
+                // if the method is annotated, scan it
+                BodyScanner bodyScanner = new BodyScanner(tree);
                 CoreOp.FuncOp funcOp = bodyScanner.scanMethod();
                 if (dumpIR) {
                     // dump the method IR if requested
@@ -177,9 +182,6 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 // create a static method that returns the op
                 classOps.add(opMethodDecl(methodName(symbolToMethodRef(tree.sym)), funcOp, codeModelStorageOption));
-            } catch (UnsupportedASTException ex) {
-                // whoops, some AST node inside the method body were not supported. Log it and move on.
-                log.note(ex.tree, MethodIrSkip(tree.sym.enclClass(), tree.sym, ex.tree.getTag().toString()));
             }
         }
         super.visitMethodDef(tree);
@@ -215,46 +217,47 @@ public class ReflectMethods extends TreeTranslator {
     public void visitLambda(JCLambda tree) {
         FunctionalExpressionKind kind = functionalKind(tree);
         if (kind.isQuoted) {
+            if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
+                // Quotable lambdas in inner classes are not supported
+                log.error(tree, QuotedLambdaInnerClass(currentClassSym.enclClass()));
+                result = tree;
+                return;
+            }
+
             // quoted lambda - scan it
             BodyScanner bodyScanner = new BodyScanner(tree, kind);
-            try {
-                CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
-                if (dumpIR) {
-                    // dump the method IR if requested
-                    log.note(QuotedIrDump(funcOp.toText()));
-                }
-                // create a static method that returns the FuncOp representing the lambda
-                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
-                classOps.add(opMethod);
+            CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
+            if (dumpIR) {
+                // dump the method IR if requested
+                log.note(QuotedIrDump(funcOp.toText()));
+            }
+            // create a static method that returns the FuncOp representing the lambda
+            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
+            classOps.add(opMethod);
 
-                switch (kind) {
-                    case QUOTED_STRUCTURAL -> {
-                        // @@@ Consider replacing with invokedynamic to quoted bootstrap method
-                        // Thereby we avoid certain dependencies and hide specific details
-                        ListBuffer<JCExpression> args = new ListBuffer<>();
-                        // Get the func operation
-                        JCIdent opMethodId = make.Ident(opMethod.sym);
-                        JCExpression op = make.TypeCast(crSyms.funcOpType, make.App(opMethodId));
-                        args.add(op);
-                        // Append captured vars
-                        ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
-                        args.appendList(capturedArgs.toList());
-                        // Get the quoted instance by calling Quoted::quotedOp
-                        JCMethodInvocation quotedInvoke = make.App(make.Ident(crSyms.quotedQuotedOp), args.toList());
-                        quotedInvoke.varargsElement = syms.objectType;
-                        super.visitLambda(tree);
-                        result = quotedInvoke;
-                    }
-                    case QUOTABLE -> {
-                        // leave the lambda in place, but also leave a trail for LambdaToMethod
-                        tree.codeModel = opMethod.sym;
-                        super.visitLambda(tree);
-                    }
+            switch (kind) {
+                case QUOTED_STRUCTURAL -> {
+                    // @@@ Consider replacing with invokedynamic to quoted bootstrap method
+                    // Thereby we avoid certain dependencies and hide specific details
+                    ListBuffer<JCExpression> args = new ListBuffer<>();
+                    // Get the func operation
+                    JCIdent opMethodId = make.Ident(opMethod.sym);
+                    JCExpression op = make.TypeCast(crSyms.funcOpType, make.App(opMethodId));
+                    args.add(op);
+                    // Append captured vars
+                    ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
+                    args.appendList(capturedArgs.toList());
+                    // Get the quoted instance by calling Quoted::quotedOp
+                    JCMethodInvocation quotedInvoke = make.App(make.Ident(crSyms.quotedQuotedOp), args.toList());
+                    quotedInvoke.varargsElement = syms.objectType;
+                    super.visitLambda(tree);
+                    result = quotedInvoke;
                 }
-            } catch (UnsupportedASTException ex) {
-                // whoops, some AST node inside the quoted lambda body were not supported. Log it and move on.
-                log.note(ex.tree, QuotedIrSkip(ex.tree.getTag().toString()));
-                result = tree;
+                case QUOTABLE -> {
+                    // leave the lambda in place, but also leave a trail for LambdaToMethod
+                    tree.codeModel = opMethod.sym;
+                    super.visitLambda(tree);
+                }
             }
         } else {
             super.visitLambda(tree);
@@ -271,26 +274,27 @@ public class ReflectMethods extends TreeTranslator {
         JCLambda lambdaTree = memberReferenceToLambda.lambda();
 
         if (kind.isQuoted) {
+            if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
+                // Quotable lambdas in inner classes are not supported
+                log.error(tree, QuotedMrefInnerClass(currentClassSym.enclClass()));
+                result = tree;
+                return;
+            }
+
             // quoted lambda - scan it
             BodyScanner bodyScanner = new BodyScanner(lambdaTree, kind);
-            try {
-                CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
-                if (dumpIR) {
-                    // dump the method IR if requested
-                    log.note(QuotedIrDump(funcOp.toText()));
-                }
-                // create a method that returns the FuncOp representing the lambda
-                JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
-                classOps.add(opMethod);
-                tree.codeModel = opMethod.sym;
-                super.visitReference(tree);
-                if (recvDecl != null) {
-                    result = copyReferenceWithReceiverVar(tree, recvDecl);
-                }
-            } catch (UnsupportedASTException ex) {
-                // whoops, some AST node inside the quoted lambda body were not supported. Log it and move on.
-                log.note(ex.tree, QuotedIrSkip(ex.tree.getTag().toString()));
-                result = tree;
+            CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
+            if (dumpIR) {
+                // dump the method IR if requested
+                log.note(QuotedIrDump(funcOp.toText()));
+            }
+            // create a method that returns the FuncOp representing the lambda
+            JCMethodDecl opMethod = opMethodDecl(lambdaName(), funcOp, codeModelStorageOption);
+            classOps.add(opMethod);
+            tree.codeModel = opMethod.sym;
+            super.visitReference(tree);
+            if (recvDecl != null) {
+                result = copyReferenceWithReceiverVar(tree, recvDecl);
             }
         } else {
             super.visitReference(tree);
