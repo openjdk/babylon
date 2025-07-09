@@ -471,7 +471,7 @@ public final class Block implements CodeElement<Block, Op> {
      * is operated on to append a block parameter, append an operation, or add a block, then
      * an {@code IllegalStateException} is thrown.
      */
-    public final class Builder implements Function<Op, Op.Result> {
+    public final class Builder {
         final Body.Builder parentBody;
         final CopyContext cc;
         final OpTransformer ot;
@@ -704,13 +704,13 @@ public final class Block implements CodeElement<Block, Op> {
                         List<Value> arg = rop.returnValue() != null
                                 ? List.of(block.context().getValue(rop.returnValue()))
                                 : List.of();
-                        block.apply(branch(returnBlock.successor(arg)));
+                        block.op(branch(returnBlock.successor(arg)));
                     }
 
                     return block;
                 }
 
-                block.apply(op);
+                block.op(op);
                 return block;
             });
 
@@ -798,19 +798,6 @@ public final class Block implements CodeElement<Block, Op> {
             for (Block blockToTransform : blocksToTransform) {
                 ot.apply(cc.getBlock(blockToTransform), blockToTransform);
             }
-        }
-
-        /**
-         * Appends an operation to this block, with no operation result name, and this builder's transformer.
-         *
-         * @param op the operation to append
-         * @return the operation result of the appended operation
-         * @throws IllegalStateException if the operation is structurally invalid
-         * @see #op(Op)
-         */
-        @Override
-        public Op.Result apply(Op op) {
-            return op(op);
         }
 
         /**

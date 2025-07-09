@@ -453,12 +453,12 @@ public class CudaBackend extends C99FFIBackend {
                 } else if (invokeOpWrapper.op().invokeDescriptor().refType().toString().equals("java.lang.Math")
                         && mathFns.containsKey(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString())){
                     usedMathFns.add(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString());
-                    block.apply(op);
+                    block.op(op);
                 } else {
-                    block.apply(op);
+                    block.op(op);
                 }
             } else {
-                block.apply(op);
+                block.op(op);
             }
             return block;
         }));

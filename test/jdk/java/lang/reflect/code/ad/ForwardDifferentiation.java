@@ -91,7 +91,7 @@ public final class ForwardDifferentiation {
                         // so that it can be used when differentiating subsequent operations
                         diffValueMapping.put(op.result(), dor);
                     } else {
-                        block.apply(op);
+                        block.op(op);
                     }
                     return block;
                 });

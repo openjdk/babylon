@@ -3877,7 +3877,7 @@ public sealed abstract class JavaOp extends Op {
                             block = lop.lower(block, opT);
                         } else {
                             // Copy
-                            block.apply(op);
+                            block.op(op);
                         }
                         return block;
                     };
@@ -3896,7 +3896,7 @@ public sealed abstract class JavaOp extends Op {
                             block = lop.lower(block, opT);
                         } else {
                             // Copy
-                            block.apply(op);
+                            block.op(op);
                         }
                         return block;
                     };

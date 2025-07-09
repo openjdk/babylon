@@ -118,9 +118,9 @@ final class SSACytron {
                     }
                 }
 
-                block.apply(op);
+                block.op(op);
             } else {
-                block.apply(op);
+                block.op(op);
             }
 
             return block;
