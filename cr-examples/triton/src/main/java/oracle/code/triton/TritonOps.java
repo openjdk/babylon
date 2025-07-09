@@ -242,7 +242,7 @@ public class TritonOps {
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
-            b.op(this, OpTransformer.COPYING_TRANSFORMER);
+            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
     }

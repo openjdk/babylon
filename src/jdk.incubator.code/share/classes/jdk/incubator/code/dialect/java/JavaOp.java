@@ -225,7 +225,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
+            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
 
