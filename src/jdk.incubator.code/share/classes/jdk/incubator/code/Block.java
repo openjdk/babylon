@@ -801,17 +801,6 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Appends operations into the block builder in the scope of the builder as an argument
-         * to the given consumer.
-         *
-         * @param c the consumer.
-         */
-        // @@@ Is this needed?
-        public void ops(Consumer<Builder> c) {
-            c.accept(this);
-        }
-
-        /**
          * Appends an operation to this block, with no operation result name, and this builder's transformer.
          *
          * @param op the operation to append
