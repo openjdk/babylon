@@ -81,6 +81,7 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
      *
      * @return the values this value directly depends on, as an unmodifiable set.
      */
+    // @@@ Consider an additional method that returns a lazy stream of all dependent values, in order.
     public abstract Set<Value> dependsOn();
 
     /**
@@ -90,6 +91,7 @@ public sealed abstract class Value implements Comparable<Value>, CodeItem
      * @return the uses of this value, as an unmodifiable set.
      * @throws IllegalStateException if the declaring block is partially built
      */
+    // @@@ Consider an additional method that returns a lazy stream of all uses, in order.
     public Set<Op.Result> uses() {
         if (!isBound()) {
             throw new IllegalStateException("Users are partially constructed");

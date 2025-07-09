@@ -385,30 +385,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Traverse the operands of this operation that are the results of prior operations, recursively.
-     * <p>
-     * Traversal is performed in pre-order, reporting the operation of each operand to the visitor.
-     *
-     * @param t   the traversing accumulator
-     * @param v   the visitor
-     * @param <T> accumulator type
-     * @return the traversing accumulator
-     * @apiNote A visitor that implements the abstract method of {@code OpVisitor} and does not override any
-     * other default method will only visit operations. As such a lambda expression or method reference
-     * may be used to visit operations.
-     */
-    public final <T> T traverseOperands(T t, BiFunction<T, Op, T> v) {
-        for (Value arg : operands()) {
-            if (arg instanceof Result or) {
-                t = v.apply(t, or.op);
-                t = or.op.traverseOperands(t, v);
-            }
-        }
-
-        return t;
-    }
-
-    /**
      * Computes values captured by this operation. A captured value is a value that dominates
      * this operation and is used by a descendant operation.
      * <p>
