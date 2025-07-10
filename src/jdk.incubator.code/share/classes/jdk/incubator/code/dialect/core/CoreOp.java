@@ -154,7 +154,7 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
+            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
 
@@ -304,7 +304,7 @@ public sealed abstract class CoreOp extends Op {
 
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
-            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
+            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
     }
@@ -373,7 +373,7 @@ public sealed abstract class CoreOp extends Op {
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
-            b.op(this, OpTransformer.COPYING_TRANSFORMER);
+            b.rebind(b.context(), OpTransformer.COPYING_TRANSFORMER).op(this);
             return b;
         }
 
@@ -456,7 +456,7 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
+            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
 

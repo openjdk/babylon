@@ -225,7 +225,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.op(this, OpTransformer.LOWERING_TRANSFORMER);
+            b.rebind(b.context(), OpTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
 
@@ -3877,7 +3877,7 @@ public sealed abstract class JavaOp extends Op {
                             block = lop.lower(block, opT);
                         } else {
                             // Copy
-                            block.apply(op);
+                            block.op(op);
                         }
                         return block;
                     };
@@ -3896,7 +3896,7 @@ public sealed abstract class JavaOp extends Op {
                             block = lop.lower(block, opT);
                         } else {
                             // Copy
-                            block.apply(op);
+                            block.op(op);
                         }
                         return block;
                     };

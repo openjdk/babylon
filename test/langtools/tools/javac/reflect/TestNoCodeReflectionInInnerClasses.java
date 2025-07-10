@@ -1,7 +1,7 @@
 /*
  * @test /nodynamiccopyright/
  * @modules jdk.incubator.code
- * @compile/fail/ref=TestNoCodeReflectionInInnerClasses.out -XDrawDiagnostics TestNoCodeReflectionInInnerClasses.java
+ * @compile/fail/ref=TestNoCodeReflectionInInnerClasses.out -Xlint:-incubating -XDrawDiagnostics TestNoCodeReflectionInInnerClasses.java
  */
 
 import jdk.incubator.code.*;

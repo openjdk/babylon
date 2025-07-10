@@ -667,7 +667,7 @@ public class ReflectMethods extends TreeTranslator {
         private Op.Result append(Op op, Location l, BodyStack stack) {
             lastOp = op;
             op.setLocation(l);
-            return stack.block.apply(op);
+            return stack.block.op(op);
         }
 
         Location generateLocation(JCTree node, boolean includeSourceReference) {

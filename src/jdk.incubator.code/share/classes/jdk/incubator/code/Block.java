@@ -336,13 +336,14 @@ public final class Block implements CodeElement<Block, Op> {
      * {@snippet lang = java:
      * successors().stream()
      *     .map(Block.Reference::targetBlock)
-     *     .toList();
+     *     .collect(Collectors.toCollection(LinkedHashSet::new));
      *}
      *
-     * @return the list of target blocks, as an unmodifiable set.
+     * @return the set of target blocks, as an unmodifiable set.
      */
     public SequencedSet<Block> successorTargets() {
-        return successors().stream().map(Block.Reference::targetBlock).collect(Collectors.toCollection(LinkedHashSet::new));
+        return successors().stream().map(Block.Reference::targetBlock)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
@@ -470,7 +471,7 @@ public final class Block implements CodeElement<Block, Op> {
      * is operated on to append a block parameter, append an operation, or add a block, then
      * an {@code IllegalStateException} is thrown.
      */
-    public final class Builder implements Function<Op, Op.Result> {
+    public final class Builder {
         final Body.Builder parentBody;
         final CopyContext cc;
         final OpTransformer ot;
@@ -703,13 +704,13 @@ public final class Block implements CodeElement<Block, Op> {
                         List<Value> arg = rop.returnValue() != null
                                 ? List.of(block.context().getValue(rop.returnValue()))
                                 : List.of();
-                        block.apply(branch(returnBlock.successor(arg)));
+                        block.op(branch(returnBlock.successor(arg)));
                     }
 
                     return block;
                 }
 
-                block.apply(op);
+                block.op(op);
                 return block;
             });
 
@@ -800,47 +801,11 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Appends operations into the block builder in the scope of the builder as an argument
-         * to the given consumer.
-         *
-         * @param c the consumer.
-         */
-        // @@@ Is this needed?
-        public void ops(Consumer<Builder> c) {
-            c.accept(this);
-        }
-
-        /**
-         * Appends an operation to this block, with no operation result name, and this builder's transformer.
-         *
-         * @param op the operation to append
-         * @return the operation result of the appended operation
-         * @throws IllegalStateException if the operation is structurally invalid
-         * @see #op(Op, OpTransformer)
-         */
-        @Override
-        public Op.Result apply(Op op) {
-            return op(op, ot);
-        }
-
-        /**
-         * Appends an operation to this block, with no operation result name, and this builder's transformer.
-         *
-         * @param op the operation to append
-         * @return the operation result of the appended operation
-         * @throws IllegalStateException if the operation is structurally invalid
-         * @see #op(Op, OpTransformer)
-         */
-        public Op.Result op(Op op) {
-            return op(op, ot);
-        }
-
-        /**
          * Appends an operation to this block.
          * <p>
          * If the operation is not bound to a block, then the operation is appended and bound to this block.
          * Otherwise, if the operation is bound, the operation is first
-         * {@link Op#transform(CopyContext, OpTransformer) transformed} with this builder's context and the given
+         * {@link Op#transform(CopyContext, OpTransformer) transformed} with this builder's context and
          * operation transformer, the unbound transformed operation is appended, and the operation's result is mapped
          * to the transformed operation's result (using the builder's context).
          * <p>
@@ -858,18 +823,17 @@ public final class Block implements CodeElement<Block, Op> {
          * dominance check that may be performed when the parent body is built.)
          *
          * @param op the operation to append
-         * @param transformer the transformer to use when appending a bound operation
          * @return the operation result of the appended operation
          * @throws IllegalStateException if the operation is structurally invalid
          */
-        public Op.Result op(Op op, OpTransformer transformer) {
+        public Op.Result op(Op op) {
             check();
             final Op.Result oprToTransform = op.result();
 
             Op transformedOp = op;
             if (oprToTransform != null) {
                 // If operation is assigned to block, then copy it and transform its contents
-                transformedOp = op.transform(cc, transformer);
+                transformedOp = op.transform(cc, ot);
                 assert transformedOp.result == null;
             }
 
