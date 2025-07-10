@@ -507,6 +507,32 @@ public class TestSwitchStatementOp {
         return r;
     }
 
+    @Test
+    void testTryAndSwitch() {
+        CoreOp.FuncOp lmodel = lower("tryAndSwitch");
+        String[] args = {"A", "B"};
+        for (String arg : args) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), tryAndSwitch(arg));
+        }
+    }
+
+    @CodeReflection
+    private static List<String> tryAndSwitch(String s) {
+        List<String> r = new ArrayList<>();
+        try {
+            switch (s) {
+                case "A":
+                    r.add("A");
+                    return r;
+                default:
+                    r.add("B");
+            }
+        } finally {
+            r.add("finally");
+        }
+        return r;
+    }
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }
