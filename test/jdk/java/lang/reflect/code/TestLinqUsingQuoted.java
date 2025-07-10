@@ -21,6 +21,7 @@
  * questions.
  */
 
+import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -118,7 +119,7 @@ public class TestLinqUsingQuoted {
             FuncOp currentQueryExpression = expression();
             FuncOp nextQueryExpression = func("queryresult",
                     functionType(qp.queryResultType(), currentQueryExpression.invokableType().parameterTypes()))
-                    .body(b -> b.inline(currentQueryExpression, b.parameters(), (block, query) -> {
+                    .body(b -> Inliner.inline(b, currentQueryExpression, b.parameters(), (block, query) -> {
                         MethodRef md = method(qp.queryableType(), name, functionType(qp.queryResultType()));
                         Op.Result queryResult = block.op(JavaOp.invoke(md, query));
 

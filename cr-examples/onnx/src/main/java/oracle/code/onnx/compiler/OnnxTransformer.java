@@ -9,6 +9,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
+import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -135,7 +136,7 @@ public final class OnnxTransformer {
                 if (doNotInline.contains(fo)) {
                     bb.context().mapValue(op.result(), bb.op(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
                 } else {
-                    bb.inline(mapOrInline(fo, funcs, doNotInline), bb.context().getValues(io.operands()), (_, v) -> bb.context().mapValue(io.result(), v));
+                    Inliner.inline(bb, mapOrInline(fo, funcs, doNotInline), bb.context().getValues(io.operands()), (_, v) -> bb.context().mapValue(io.result(), v));
                 }
             } else {
                 bb.op(op);
