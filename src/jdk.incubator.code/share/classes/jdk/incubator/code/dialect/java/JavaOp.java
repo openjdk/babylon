@@ -2791,7 +2791,6 @@ public sealed abstract class JavaOp extends Op {
 
         @Override
         public Block.Builder lower(Block.Builder b, OpTransformer opT) {
-
             Value selectorExpression = b.context().getValue(operands().get(0));
 
             // @@@ we can add this during model generation
@@ -2846,7 +2845,7 @@ public sealed abstract class JavaOp extends Op {
                     Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
                     curr.transformBody(bodies().get(i), List.of(selectorExpression), opT.andThen((block, op) -> {
                         switch (op) {
-                            case CoreOp.YieldOp yop when isLastLabel && this instanceof SwitchExpressionOp -> {
+                            case CoreOp.YieldOp _ when isLastLabel && this instanceof SwitchExpressionOp -> {
                                 block.op(branch(statement.successor()));
                             }
                             case CoreOp.YieldOp yop -> block.op(conditionalBranch(
@@ -2854,7 +2853,7 @@ public sealed abstract class JavaOp extends Op {
                                     statement.successor(),
                                     isLastLabel ? exit.successor() : nextLabel.successor()
                             ));
-                            case Lowerable lop -> block = lop.lower(block);
+                            case Lowerable lop -> block = lop.lower(block, opT);
                             default -> block.op(op);
                         }
                         return block;
@@ -2862,9 +2861,9 @@ public sealed abstract class JavaOp extends Op {
                 } else { // statement body
                     curr.transformBody(bodies().get(i), blocks.get(i).parameters(), opT.andThen((block, op) -> {
                         switch (op) {
-                            case CoreOp.YieldOp yop when this instanceof SwitchStatementOp -> block.op(branch(exit.successor()));
+                            case CoreOp.YieldOp _ when this instanceof SwitchStatementOp -> block.op(branch(exit.successor()));
                             case CoreOp.YieldOp yop when this instanceof SwitchExpressionOp -> block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
-                            case Lowerable lop -> block = lop.lower(block);
+                            case Lowerable lop -> block = lop.lower(block, opT);
                             default -> block.op(op);
                         }
                         return block;
