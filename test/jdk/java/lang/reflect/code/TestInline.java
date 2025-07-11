@@ -21,6 +21,7 @@
  * questions.
  */
 
+import jdk.incubator.code.analysis.Inliner;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -56,7 +57,7 @@ public class TestInline {
 
                     Op.Result fortyTwo = fblock.op(constant(INT, 42));
 
-                    var cb = fblock.inline(cop, List.of(i, fortyTwo), Block.Builder.INLINE_RETURN);
+                    var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
                     Assert.assertEquals(fblock, cb);
                 });
 
@@ -80,7 +81,7 @@ public class TestInline {
 
                     Op.Result v = fblock.op(var(fblock.op(constant(INT, 0))));
 
-                    var cb = fblock.inline(cop, List.of(i, fortyTwo), (b, value) -> {
+                    var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), (b, value) -> {
                         b.op(varStore(v, value));
                     });
                     Assert.assertEquals(fblock, cb);
@@ -115,7 +116,7 @@ public class TestInline {
 
                     Op.Result fortyTwo = fblock.op(constant(INT, 42));
 
-                    var cb = fblock.inline(lcop, List.of(i, fortyTwo), Block.Builder.INLINE_RETURN);
+                    var cb = Inliner.inline(fblock, lcop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
                     Assert.assertNotEquals(fblock, cb);
                 });
         System.out.println(f.toText());
@@ -146,7 +147,7 @@ public class TestInline {
 
                     Op.Result v = fblock.op(var(fblock.op(constant(INT, 0))));
 
-                    var cb = fblock.inline(lcop, List.of(i, fortyTwo), (b, value) -> {
+                    var cb = Inliner.inline(fblock, lcop, List.of(i, fortyTwo), (b, value) -> {
                         b.op(varStore(v, value));
                     });
                     Assert.assertNotEquals(fblock, cb);
@@ -176,7 +177,7 @@ public class TestInline {
 
                     Op.Result fortyTwo = fblock.op(constant(INT, 42));
 
-                    var cb = fblock.inline(cop, List.of(i, fortyTwo), Block.Builder.INLINE_RETURN);
+                    var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
                     Assert.assertEquals(fblock, cb);
                 });
         System.out.println(f.toText());
@@ -201,7 +202,7 @@ public class TestInline {
                 .body(fblock -> {
                     Block.Parameter a = fblock.parameters().get(0);
 
-                    var cb = fblock.inline(cop, List.of(a), Block.Builder.INLINE_RETURN);
+                    var cb = Inliner.inline(fblock, cop, List.of(a), Inliner.INLINE_RETURN);
                     Assert.assertEquals(fblock, cb);
                 });
 
