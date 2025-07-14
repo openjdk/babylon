@@ -572,7 +572,7 @@ public final class TritonTransformer {
                     }
 
                     // Transform kernel body
-                    fblock.transformBody(kernel.body(), args, (kblock, op) -> {
+                    fblock.body(kernel.body(), args, (kblock, op) -> {
                         return transformToTritonOperation(kblock, op, valueTypeMap, opData, fsymTable);
                     });
                 });
@@ -743,7 +743,7 @@ public final class TritonTransformer {
                     }
 
                     // Transform the Java for body into the SCF for body
-                    builder.transformBody(body, List.of(), (block, op) -> {
+                    builder.body(body, List.of(), (block, op) -> {
                         // Yield iter values
                         if (op instanceof JavaOp.ContinueOp) {
                             // Replace with yield of loaded vars

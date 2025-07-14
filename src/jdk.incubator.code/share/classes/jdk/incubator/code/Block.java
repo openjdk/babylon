@@ -606,11 +606,14 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Transforms a body starting from this block builder, using a given operation transformer.
+         * Transforms a body starting from this block builder, using an operation transformer.
          * <p>
          * This method first rebinds this builder with a child context created from
-         * this builder's context and the given operation transformer, and then using the rebound
-         * builder {@link #body(Body, List) transforms} the body with the given values.
+         * this builder's context and the given operation transformer, and then
+         * transforms the body using the operation transformer by
+         * {@link OpTransformer#acceptBody(Builder, Body, List) accepting}
+         * the rebound builder, the body, and the values.
+         *
          * @apiNote
          * Creation of a child context ensures block and value mappings produced by
          * the transformation do not affect this builder's context.
@@ -618,19 +621,24 @@ public final class Block implements CodeElement<Block, Op> {
          * @param body the body to transform
          * @param values the output values to map to the input parameters of the body's entry block
          * @param ot the operation transformer
-         * @see #body(Body, List)
+         * @see OpTransformer#acceptBody(Builder, Body, List)
          */
         public void body(Body body, List<? extends Value> values,
                          OpTransformer ot) {
-            rebind(CopyContext.create(cc), ot).body(body, values);
+            check();
+
+            ot.acceptBody(rebind(CopyContext.create(cc), ot), body, values);
         }
 
         /**
          * Transforms a body starting from this block builder, using a given operation transformer.
          * <p>
          * This method first rebinds this builder with the given context
-         * and the given operation transformer, and then using the rebound
-         * builder {@link #body(Body, List) transforms} the body with the given values.
+         * and the given operation transformer, and then
+         * transforms the body using the operation transformer by
+         * {@link OpTransformer#acceptBody(Builder, Body, List) accepting}
+         * the rebound builder, the body, and the values.
+         *
          * @apiNote
          * The passing of a context can ensure block and value mappings produced by
          * the transformation do not affect this builder's context.
@@ -639,27 +647,13 @@ public final class Block implements CodeElement<Block, Op> {
          * @param values the output values to map to the input parameters of the body's entry block
          * @param cc the copy context
          * @param ot the operation transformer
-         * @see #body(Body, List)
+         * @see OpTransformer#acceptBody(Builder, Body, List)
          */
         public void body(Body body, List<? extends Value> values,
                          CopyContext cc, OpTransformer ot) {
-            rebind(cc, ot).body(body, values);
-        }
-
-        /**
-         * Transforms a body starting from this builder.
-         * <p>
-         * This builder's operation transformer transforms the body by
-         * {@link OpTransformer#acceptBody(Builder, Body, List)} accepting
-         * this builder, the body, and the values.
-         *
-         * @param body the body to transform
-         * @param values the output values to map to the input parameters of the body's entry block
-         */
-        public void body(Body body, List<? extends Value> values) {
             check();
 
-            ot.acceptBody(this, body, values);
+            ot.acceptBody(rebind(cc, ot), body, values);
         }
 
         /**

@@ -692,9 +692,12 @@ public final class Body implements CodeElement<Body, Block> {
                 ? ancestorBlockBuilder.parentBody() : null;
         Builder bodyBuilder = Builder.of(ancestorBodyBuilder,
                 bodyType(),
-                cc, ot);
+                // Create child context for mapped code items contained in this body
+                // thereby not polluting the given context
+                CopyContext.create(cc), ot);
 
-        bodyBuilder.entryBlock.body(this, bodyBuilder.entryBlock.parameters(), ot);
+        // Transform body starting from the entry block builder
+        ot.acceptBody(bodyBuilder.entryBlock, this, bodyBuilder.entryBlock.parameters());
         return bodyBuilder;
     }
 
