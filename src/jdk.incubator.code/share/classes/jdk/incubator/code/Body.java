@@ -677,9 +677,9 @@ public final class Body implements CodeElement<Body, Block> {
      * Transforms this body.
      * <p>
      * A new body builder is created with the same function type as this body.
-     * Then, this body is {@link Block.Builder#transformBody(Body, java.util.List, CopyContext, OpTransformer) transformed}
-     * into the body builder's entry block builder with the given copy context, operation transformer, and values
-     * that are the entry block's parameters.
+     * Then, this body is {@link Block.Builder#body(Body, java.util.List, CopyContext, OpTransformer) transformed}
+     * into the body builder's entry block builder with the given copy context, operation transformer, and arguments
+     * that are the entry block builder's parameters.
      *
      * @param cc the copy context
      * @param ot the operation transformer
@@ -690,17 +690,12 @@ public final class Body implements CodeElement<Body, Block> {
                 ? cc.getBlock(ancestorBody.entryBlock()) : null;
         Builder ancestorBodyBuilder = ancestorBlockBuilder != null
                 ? ancestorBlockBuilder.parentBody() : null;
-        Builder body = Builder.of(ancestorBodyBuilder,
-                // Create function type with just the return type and add parameters afterward
-                CoreType.functionType(yieldType),
+        Builder bodyBuilder = Builder.of(ancestorBodyBuilder,
+                bodyType(),
                 cc, ot);
 
-        for (Block.Parameter p : entryBlock().parameters()) {
-            body.entryBlock.parameter(p.type());
-        }
-
-        body.entryBlock.transformBody(this, body.entryBlock.parameters(), cc, ot);
-        return body;
+        bodyBuilder.entryBlock.body(this, bodyBuilder.entryBlock.parameters(), ot);
+        return bodyBuilder;
     }
 
     // Sort blocks in reverse post order
