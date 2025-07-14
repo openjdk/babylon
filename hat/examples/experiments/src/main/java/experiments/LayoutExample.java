@@ -134,7 +134,7 @@ public class LayoutExample {
         var builder= CoreOp.func(f.funcName(), functionType);
 
         var funcOp = builder.body(funcBlock -> {
-            funcBlock.transformBody(f.body(), funcBlock.parameters(), (b, op) -> {
+            funcBlock.body(f.body(), funcBlock.parameters(), (b, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp
                         && invokeOp.hasReceiver()
                         && invokeOp.operands().getFirst() instanceof Value receiver) {

@@ -112,7 +112,7 @@ public class OpsAndTypes {
     public static <T extends MappableIface> CoreOp.FuncOp transformInvokesToPtrs(MethodHandles.Lookup lookup,
                                                                                  CoreOp.FuncOp ssaForm, FunctionType functionType) {
         return CoreOp.func(ssaForm.funcName(), functionType).body(funcBlock -> {
-            funcBlock.transformBody(ssaForm.body(), funcBlock.parameters(), (builder, op) -> {
+            funcBlock.body(ssaForm.body(), funcBlock.parameters(), (builder, op) -> {
                 /*
                    We are looking for
                       interface Iface extends Buffer // or Buffer.StructChild

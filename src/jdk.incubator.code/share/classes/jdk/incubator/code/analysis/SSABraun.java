@@ -224,7 +224,7 @@ final class SSABraun implements OpTransformer {
     }
 
     @Override
-    public Block.Builder apply(Block.Builder block, Op op) {
+    public Block.Builder acceptOp(Block.Builder block, Op op) {
         Block originalBlock = op.ancestorBlock();
         CopyContext context = block.context();
         switch (op) {
@@ -256,7 +256,7 @@ final class SSABraun implements OpTransformer {
     }
 
     @Override
-    public void apply(Block.Builder block, Block b) {
+    public void acceptBlock(Block.Builder block, Block b) {
         // add the required additional parameters to this block
         boolean isEntry = b.isEntryBlock();
         for (Phi phi : this.additionalParameters.getOrDefault(b, List.of())) {
@@ -272,7 +272,7 @@ final class SSABraun implements OpTransformer {
         }
 
         // actually visit ops in this block
-        OpTransformer.super.apply(block, b);
+        OpTransformer.super.acceptBlock(block, b);
     }
 
     sealed interface Val {
