@@ -148,7 +148,6 @@ public interface OpTransformer {
      * @param op    the operation to transform.
      * @return      the block builder to append to for subsequent operations.
      */
-    // @@@ Change to acceptOp
     Block.Builder acceptOp(Block.Builder block, Op op);
 
     default OpTransformer compose(OpTransformer before) {
