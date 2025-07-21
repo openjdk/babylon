@@ -96,7 +96,8 @@ questions.
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.1</version>
                 <configuration>
-                    <commandlineArgs>--add-modules jdk.incubator.code ${exec.args}</commandlineArgs>
+                    <classpathScope>test</classpathScope>
+                    <commandlineArgs>--add-modules jdk.incubator.code -classpath %classpath ${exec.mainClass}</commandlineArgs>
                 </configuration>
             </plugin>
         </plugins>
