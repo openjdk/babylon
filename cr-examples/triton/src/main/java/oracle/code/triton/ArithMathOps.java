@@ -26,8 +26,8 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.extern.ExternalizedOp;
+import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.HashMap;
@@ -36,11 +36,11 @@ import java.util.Map;
 
 public class ArithMathOps {
 
-    static abstract class ArithMathOp extends ExternalizableOp {
+    static abstract class ArithMathOp extends Op {
         final TypeElement resultType;
 
         public ArithMathOp(ExternalizedOp def) {
-            super(def);
+            super(def.name(), def.operands());;
 
             this.resultType = def.resultType();
         }
@@ -63,7 +63,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ConstantOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ConstantOp.NAME)
     public static class ConstantOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.constant";
         public static final String ATTRIBUTE_CONSTANT_VALUE = "value";
@@ -131,10 +131,8 @@ public class ArithMathOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put(ATTRIBUTE_CONSTANT_VALUE, value);
-            return attrs;
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_CONSTANT_VALUE, value);
         }
 
         public Object value() {
@@ -142,7 +140,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(AddOp.NAME)
+    @OpFactoryHelper.OpDeclaration(AddOp.NAME)
     public static class AddOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.add";
 
@@ -164,7 +162,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(SubOp.NAME)
+    @OpFactoryHelper.OpDeclaration(SubOp.NAME)
     public static class SubOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.sub";
 
@@ -186,7 +184,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(MulOp.NAME)
+    @OpFactoryHelper.OpDeclaration(MulOp.NAME)
     public static class MulOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.mul";
 
@@ -208,7 +206,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(DivOp.NAME)
+    @OpFactoryHelper.OpDeclaration(DivOp.NAME)
     public static class DivOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.div";
 
@@ -230,7 +228,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(RemOp.NAME)
+    @OpFactoryHelper.OpDeclaration(RemOp.NAME)
     public static class RemOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.rem";
 
@@ -252,7 +250,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(AndOp.NAME)
+    @OpFactoryHelper.OpDeclaration(AndOp.NAME)
     public static class AndOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.andi";
 
@@ -274,7 +272,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(MaxOp.NAME)
+    @OpFactoryHelper.OpDeclaration(MaxOp.NAME)
     public static class MaxOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.max";
 
@@ -297,7 +295,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(MinOp.NAME)
+    @OpFactoryHelper.OpDeclaration(MinOp.NAME)
     public static class MinOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.min";
 
@@ -320,7 +318,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ExpOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ExpOp.NAME)
     public static class TruncOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.trunc";
 
@@ -343,7 +341,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ExpOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ExpOp.NAME)
     public static class ExpOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "math.exp";
 
@@ -365,7 +363,7 @@ public class ArithMathOps {
         }
     }
 
-    @OpFactory.OpDeclaration(CompareOp.NAME)
+    @OpFactoryHelper.OpDeclaration(CompareOp.NAME)
     public static class CompareOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.cmp";
         public static final String ATTRIBUTE_PREDICATE = "predicate";
@@ -429,10 +427,8 @@ public class ArithMathOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> attrs = new HashMap<>(super.attributes());
-            attrs.put(ATTRIBUTE_PREDICATE, Long.valueOf(ck.ordinal()));
-            return attrs;
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_PREDICATE, Long.valueOf(ck.ordinal()));
         }
 
         public CompareKind kind() {

@@ -25,10 +25,9 @@
 package nbody;
 
 import wrap.Wrap;
-import wrap.glwrap.GLTexture;
-import wrap.glwrap.GLWindow;
+import wrap.opengl.GLTexture;
+import wrap.opengl.GLWindow;
 
-import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.util.stream.IntStream;
 

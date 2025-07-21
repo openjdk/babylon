@@ -72,11 +72,11 @@ public class TestIfOp {
     public void testf() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         for (int i = 0; i < 6; i++) {
             Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, i), f(i));

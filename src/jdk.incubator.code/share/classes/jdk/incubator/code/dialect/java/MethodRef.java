@@ -28,6 +28,7 @@ package jdk.incubator.code.dialect.java;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.impl.MethodRefImpl;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -38,7 +39,7 @@ import jdk.incubator.code.dialect.core.FunctionType;
 
 import java.util.List;
 
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 
 /**
  * The symbolic reference to a Java method.
@@ -103,7 +104,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     // @@@ Where else to place them?
 
     static FunctionType ofNominalDescriptor(MethodTypeDesc d) {
-        return FunctionType.functionType(
+        return CoreType.functionType(
                 JavaType.type(d.returnType()),
                 d.parameterList().stream().map(JavaType::type).toList());
     }

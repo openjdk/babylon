@@ -42,7 +42,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
@@ -67,12 +67,27 @@ public final class OnnxProtoBuilder {
         }
 
         void setName(Value val, String name) {
-            remap.put(baseName(val), name);
-            if (val instanceof Op.Result or && or.op() instanceof CoreOp.TupleLoadOp tlo) {
-                Value tr = tlo.operands().getFirst();
-                remap.put(baseName(tr, tlo.index()), name);
-                if (tr instanceof Op.Result tor && tor.op() instanceof CoreOp.TupleOp to) {
-                    setName(to.operands().get(tlo.index()), name);
+            switch (val) {
+                case Op.Result or when or.op() instanceof CoreOp.TupleOp to -> {
+                    remap.put(baseName(val), name);
+                    for (int i = 0; i < to.operands().size(); i++) {
+                        setName(to.operands().get(i), name + "." + i);
+                    }
+                }
+                case Block.Parameter bp when val.type() instanceof TupleType tt -> {
+                    for (int i = 0; i < tt.componentTypes().size(); i++) {
+                        remap.put(baseName(val, i), name +"." + i);
+                    }
+                }
+                default -> {
+                    remap.put(baseName(val), name);
+                    if (val instanceof Op.Result or && or.op() instanceof CoreOp.TupleLoadOp tlo) {
+                        Value tr = tlo.operands().getFirst();
+                        remap.put(baseName(tr, tlo.index()), name);
+                        if (tr instanceof Op.Result tor && tor.op() instanceof CoreOp.TupleOp to) {
+                            setName(to.operands().get(tlo.index()), name);
+                        }
+                    }
                 }
             }
         }
@@ -152,7 +167,7 @@ public final class OnnxProtoBuilder {
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
     static byte[] buildModel(Block block, List<oracle.code.onnx.Tensor> initializers) {
-        var indexer = new Indexer(block.parentBody().parentOp(), Map.of());
+        var indexer = new Indexer(block.ancestorOp(), Map.of());
         var model = buildModel(graph(null, null, indexer, block, initializers, 0), List.of(), List.of());
 //        System.out.println(OnnxModel.readFrom(model).toText());
         return model;
@@ -215,6 +230,10 @@ public final class OnnxProtoBuilder {
                             tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer), rci), (Tensor)(rcs[rci].getAccessor().invoke(val)), tensorDataExternalizer));
                         } catch (ReflectiveOperationException e) {
                             throw new IllegalArgumentException(e);
+                        }
+                    } else if (val instanceof Tensor[] tarr) {
+                        for (int tai = 0; tai < tarr.length; tai++) {
+                            tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer), tai), tarr[tai], tensorDataExternalizer));
                         }
                     } else {
                         tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer)), (Tensor)val, tensorDataExternalizer));

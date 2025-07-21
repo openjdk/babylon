@@ -55,11 +55,11 @@ public class TestWhileOp {
     public void testWhileLoop() {
         CoreOp.FuncOp f = getFuncOp("whileLoop");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), whileLoop());
     }
@@ -77,11 +77,11 @@ public class TestWhileOp {
     public void testDpWhileLoop() {
         CoreOp.FuncOp f = getFuncOp("doWhileLoop");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), doWhileLoop());
     }

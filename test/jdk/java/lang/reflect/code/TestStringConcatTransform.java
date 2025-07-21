@@ -101,8 +101,8 @@ public class TestStringConcatTransform {
         CoreOp.FuncOp f_transformed = model.transform(new StringConcatTransformer());
         Object[] args = prepArgs(method);
 
-        model.writeTo(System.out);
-        f_transformed.writeTo(System.out);
+        System.out.println(model.toText());
+        System.out.println(f_transformed.toText());
 
         var interpreted = Interpreter.invoke(MethodHandles.lookup(), model, args);
         var transformed_interpreted = Interpreter.invoke(MethodHandles.lookup(), f_transformed, args);
@@ -181,7 +181,7 @@ public class TestStringConcatTransform {
     static CoreOp.FuncOp generateSSA(CoreOp.FuncOp f) {
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
         lf = SSA.transform(lf);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
         return lf;
     }
 

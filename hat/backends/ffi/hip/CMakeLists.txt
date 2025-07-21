@@ -30,8 +30,8 @@ if(HIP_FOUND)
     include_directories(
        hip::host
        ${HIP_INCLUDE_DIR}
-       ${SHARED_BACKEND}/include
-       ${HIP_BACKEND}/include
+       ${SHARED_BACKEND}/src/main/native/include
+       ${HIP_BACKEND}/src/main/native/include
     )
 
     link_directories(
@@ -40,8 +40,7 @@ if(HIP_FOUND)
     )
 
     add_library(hip_backend SHARED
-       ${SHARED_BACKEND}/cpp/shared.cpp
-       ${HIP_BACKEND}/cpp/hip_backend.cpp
+       ${HIP_BACKEND}/src/main/native/cpp/hip_backend.cpp
     )
 
     target_link_libraries(hip_backend
@@ -49,7 +48,7 @@ if(HIP_FOUND)
     )
 
     add_executable(hip_info
-       ${HIP_BACKEND}/cpp/info.cpp
+       ${HIP_BACKEND}/src/main/native/cpp/info.cpp
     )
 
     target_link_libraries(hip_info

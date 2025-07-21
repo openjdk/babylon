@@ -38,7 +38,7 @@ import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaType.INT;
 
 public class TestBlockParameters {
@@ -47,13 +47,13 @@ public class TestBlockParameters {
                 .body(fe -> {
                     JavaOp.LambdaOp lop = JavaOp.lambda(fe.parentBody(), functionType(INT, INT), JavaType.type(FunctionType.class))
                             .body(le -> {
-                                le.op(_return(le.parameters().get(0)));
+                                le.op(return_(le.parameters().get(0)));
                             });
                     fe.op(lop);
                     Block.Builder b = fe.block(INT, INT);
                     fe.op(branch(b.successor(fe.parameters())));
 
-                    b.op(_return(b.parameters().get(0)));
+                    b.op(return_(b.parameters().get(0)));
                 });
     }
 

@@ -27,7 +27,8 @@
 package oracle.code.onnx.ir;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.extern.ExternalizedOp;
+import jdk.incubator.code.extern.OpFactory;
 
 import java.util.*;
 import oracle.code.onnx.Tensor;
@@ -37,7 +38,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
 
     private OnnxOps() {}
 
-    @OpFactory.OpDeclaration(Abs.NAME)
+    @OpFactoryHelper.OpDeclaration(Abs.NAME)
     public static final class Abs extends OnnxOp {
         public static final String NAME = "Abs";
 
@@ -151,7 +152,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Abs(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Acos.NAME)
+    @OpFactoryHelper.OpDeclaration(Acos.NAME)
     public static final class Acos extends OnnxOp {
         public static final String NAME = "Acos";
 
@@ -265,7 +266,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Acos(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Acosh.NAME)
+    @OpFactoryHelper.OpDeclaration(Acosh.NAME)
     public static final class Acosh extends OnnxOp {
         public static final String NAME = "Acosh";
 
@@ -379,7 +380,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Acosh(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Adagrad.NAME)
+    @OpFactoryHelper.OpDeclaration(Adagrad.NAME)
     public static final class Adagrad extends OnnxOp {
         public static final String NAME = "Adagrad";
 
@@ -548,7 +549,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Adagrad(resultType, R, T, inputs, epsilon, decay_factor, norm_coefficient);
     }
 
-    @OpFactory.OpDeclaration(Adam.NAME)
+    @OpFactoryHelper.OpDeclaration(Adam.NAME)
     public static final class Adam extends OnnxOp {
         public static final String NAME = "Adam";
 
@@ -729,7 +730,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Adam(resultType, R, T, inputs, epsilon, norm_coefficient_post, norm_coefficient, alpha, beta);
     }
 
-    @OpFactory.OpDeclaration(Add.NAME)
+    @OpFactoryHelper.OpDeclaration(Add.NAME)
     public static final class Add extends OnnxOp {
         public static final String NAME = "Add";
 
@@ -848,7 +849,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Add(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(AffineGrid.NAME)
+    @OpFactoryHelper.OpDeclaration(AffineGrid.NAME)
     public static final class AffineGrid extends OnnxOp {
         public static final String NAME = "AffineGrid";
 
@@ -999,7 +1000,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new AffineGrid(resultType, theta, size, align_corners);
     }
 
-    @OpFactory.OpDeclaration(And.NAME)
+    @OpFactoryHelper.OpDeclaration(And.NAME)
     public static final class And extends OnnxOp {
         public static final String NAME = "And";
 
@@ -1119,7 +1120,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new And(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(ArgMax.NAME)
+    @OpFactoryHelper.OpDeclaration(ArgMax.NAME)
     public static final class ArgMax extends OnnxOp {
         public static final String NAME = "ArgMax";
 
@@ -1276,7 +1277,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ArgMax(resultType, data, keepdims, select_last_index, axis);
     }
 
-    @OpFactory.OpDeclaration(ArgMin.NAME)
+    @OpFactoryHelper.OpDeclaration(ArgMin.NAME)
     public static final class ArgMin extends OnnxOp {
         public static final String NAME = "ArgMin";
 
@@ -1433,7 +1434,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ArgMin(resultType, data, keepdims, select_last_index, axis);
     }
 
-    @OpFactory.OpDeclaration(ArrayFeatureExtractor.NAME)
+    @OpFactoryHelper.OpDeclaration(ArrayFeatureExtractor.NAME)
     public static final class ArrayFeatureExtractor extends OnnxOp {
         public static final String NAME = "ArrayFeatureExtractor";
 
@@ -1552,7 +1553,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ArrayFeatureExtractor(resultType, X, Y);
     }
 
-    @OpFactory.OpDeclaration(Asin.NAME)
+    @OpFactoryHelper.OpDeclaration(Asin.NAME)
     public static final class Asin extends OnnxOp {
         public static final String NAME = "Asin";
 
@@ -1666,7 +1667,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Asin(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Asinh.NAME)
+    @OpFactoryHelper.OpDeclaration(Asinh.NAME)
     public static final class Asinh extends OnnxOp {
         public static final String NAME = "Asinh";
 
@@ -1780,7 +1781,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Asinh(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Atan.NAME)
+    @OpFactoryHelper.OpDeclaration(Atan.NAME)
     public static final class Atan extends OnnxOp {
         public static final String NAME = "Atan";
 
@@ -1894,7 +1895,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Atan(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Atanh.NAME)
+    @OpFactoryHelper.OpDeclaration(Atanh.NAME)
     public static final class Atanh extends OnnxOp {
         public static final String NAME = "Atanh";
 
@@ -2008,7 +2009,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Atanh(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(AveragePool.NAME)
+    @OpFactoryHelper.OpDeclaration(AveragePool.NAME)
     public static final class AveragePool extends OnnxOp {
         public static final String NAME = "AveragePool";
 
@@ -2189,7 +2190,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new AveragePool(resultType, X, pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape);
     }
 
-    @OpFactory.OpDeclaration(BatchNormalization.NAME)
+    @OpFactoryHelper.OpDeclaration(BatchNormalization.NAME)
     public static final class BatchNormalization extends OnnxOp {
         public static final String NAME = "BatchNormalization";
 
@@ -2370,7 +2371,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new BatchNormalization(resultType, optionalOutputs, X, scale, B, input_mean, input_var, epsilon, training_mode, momentum);
     }
 
-    @OpFactory.OpDeclaration(Bernoulli.NAME)
+    @OpFactoryHelper.OpDeclaration(Bernoulli.NAME)
     public static final class Bernoulli extends OnnxOp {
         public static final String NAME = "Bernoulli";
 
@@ -2522,7 +2523,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Bernoulli(resultType, input, seed, dtype);
     }
 
-    @OpFactory.OpDeclaration(Binarizer.NAME)
+    @OpFactoryHelper.OpDeclaration(Binarizer.NAME)
     public static final class Binarizer extends OnnxOp {
         public static final String NAME = "Binarizer";
 
@@ -2667,7 +2668,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Binarizer(resultType, X, threshold);
     }
 
-    @OpFactory.OpDeclaration(BitShift.NAME)
+    @OpFactoryHelper.OpDeclaration(BitShift.NAME)
     public static final class BitShift extends OnnxOp {
         public static final String NAME = "BitShift";
 
@@ -2817,7 +2818,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new BitShift(resultType, X, Y, direction);
     }
 
-    @OpFactory.OpDeclaration(BitwiseAnd.NAME)
+    @OpFactoryHelper.OpDeclaration(BitwiseAnd.NAME)
     public static final class BitwiseAnd extends OnnxOp {
         public static final String NAME = "BitwiseAnd";
 
@@ -2936,7 +2937,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new BitwiseAnd(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(BitwiseNot.NAME)
+    @OpFactoryHelper.OpDeclaration(BitwiseNot.NAME)
     public static final class BitwiseNot extends OnnxOp {
         public static final String NAME = "BitwiseNot";
 
@@ -3050,7 +3051,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new BitwiseNot(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(BitwiseOr.NAME)
+    @OpFactoryHelper.OpDeclaration(BitwiseOr.NAME)
     public static final class BitwiseOr extends OnnxOp {
         public static final String NAME = "BitwiseOr";
 
@@ -3169,7 +3170,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new BitwiseOr(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(BitwiseXor.NAME)
+    @OpFactoryHelper.OpDeclaration(BitwiseXor.NAME)
     public static final class BitwiseXor extends OnnxOp {
         public static final String NAME = "BitwiseXor";
 
@@ -3288,7 +3289,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new BitwiseXor(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(BlackmanWindow.NAME)
+    @OpFactoryHelper.OpDeclaration(BlackmanWindow.NAME)
     public static final class BlackmanWindow extends OnnxOp {
         public static final String NAME = "BlackmanWindow";
 
@@ -3440,7 +3441,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new BlackmanWindow(resultType, size, periodic, output_datatype);
     }
 
-    @OpFactory.OpDeclaration(Cast.NAME)
+    @OpFactoryHelper.OpDeclaration(Cast.NAME)
     public static final class Cast extends OnnxOp {
         public static final String NAME = "Cast";
 
@@ -3592,7 +3593,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Cast(resultType, input, saturate, to);
     }
 
-    @OpFactory.OpDeclaration(CastLike.NAME)
+    @OpFactoryHelper.OpDeclaration(CastLike.NAME)
     public static final class CastLike extends OnnxOp {
         public static final String NAME = "CastLike";
 
@@ -3743,7 +3744,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new CastLike(resultType, input, target_type, saturate);
     }
 
-    @OpFactory.OpDeclaration(CastMap.NAME)
+    @OpFactoryHelper.OpDeclaration(CastMap.NAME)
     public static final class CastMap extends OnnxOp {
         public static final String NAME = "CastMap";
 
@@ -3901,7 +3902,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new CastMap(resultType, X, map_form, cast_to, max_map);
     }
 
-    @OpFactory.OpDeclaration(CategoryMapper.NAME)
+    @OpFactoryHelper.OpDeclaration(CategoryMapper.NAME)
     public static final class CategoryMapper extends OnnxOp {
         public static final String NAME = "CategoryMapper";
 
@@ -4065,7 +4066,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new CategoryMapper(resultType, X, cats_int64s, cats_strings, default_int64, default_string);
     }
 
-    @OpFactory.OpDeclaration(Ceil.NAME)
+    @OpFactoryHelper.OpDeclaration(Ceil.NAME)
     public static final class Ceil extends OnnxOp {
         public static final String NAME = "Ceil";
 
@@ -4179,7 +4180,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Ceil(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Celu.NAME)
+    @OpFactoryHelper.OpDeclaration(Celu.NAME)
     public static final class Celu extends OnnxOp {
         public static final String NAME = "Celu";
 
@@ -4324,7 +4325,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Celu(resultType, X, alpha);
     }
 
-    @OpFactory.OpDeclaration(CenterCropPad.NAME)
+    @OpFactoryHelper.OpDeclaration(CenterCropPad.NAME)
     public static final class CenterCropPad extends OnnxOp {
         public static final String NAME = "CenterCropPad";
 
@@ -4475,7 +4476,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new CenterCropPad(resultType, input_data, shape, axes);
     }
 
-    @OpFactory.OpDeclaration(Clip.NAME)
+    @OpFactoryHelper.OpDeclaration(Clip.NAME)
     public static final class Clip extends OnnxOp {
         public static final String NAME = "Clip";
 
@@ -4601,7 +4602,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Clip(resultType, input, min, max);
     }
 
-    @OpFactory.OpDeclaration(Col2Im.NAME)
+    @OpFactoryHelper.OpDeclaration(Col2Im.NAME)
     public static final class Col2Im extends OnnxOp {
         public static final String NAME = "Col2Im";
 
@@ -4768,7 +4769,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Col2Im(resultType, input, image_shape, block_shape, pads, dilations, strides);
     }
 
-    @OpFactory.OpDeclaration(Compress.NAME)
+    @OpFactoryHelper.OpDeclaration(Compress.NAME)
     public static final class Compress extends OnnxOp {
         public static final String NAME = "Compress";
 
@@ -4919,7 +4920,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Compress(resultType, input, condition, axis);
     }
 
-    @OpFactory.OpDeclaration(Concat.NAME)
+    @OpFactoryHelper.OpDeclaration(Concat.NAME)
     public static final class Concat extends OnnxOp {
         public static final String NAME = "Concat";
 
@@ -5064,7 +5065,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Concat(resultType, inputs, axis);
     }
 
-    @OpFactory.OpDeclaration(ConcatFromSequence.NAME)
+    @OpFactoryHelper.OpDeclaration(ConcatFromSequence.NAME)
     public static final class ConcatFromSequence extends OnnxOp {
         public static final String NAME = "ConcatFromSequence";
 
@@ -5216,7 +5217,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ConcatFromSequence(resultType, input_sequence, axis, new_axis);
     }
 
-    @OpFactory.OpDeclaration(Constant.NAME)
+    @OpFactoryHelper.OpDeclaration(Constant.NAME)
     public static final class Constant extends OnnxOp {
         public static final String NAME = "Constant";
 
@@ -5378,7 +5379,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Constant(resultType, value_int, value_floats, value_strings, value_float, value_string, value_ints, sparse_value, value);
     }
 
-    @OpFactory.OpDeclaration(ConstantOfShape.NAME)
+    @OpFactoryHelper.OpDeclaration(ConstantOfShape.NAME)
     public static final class ConstantOfShape extends OnnxOp {
         public static final String NAME = "ConstantOfShape";
 
@@ -5524,7 +5525,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ConstantOfShape(resultType, input, value);
     }
 
-    @OpFactory.OpDeclaration(Conv.NAME)
+    @OpFactoryHelper.OpDeclaration(Conv.NAME)
     public static final class Conv extends OnnxOp {
         public static final String NAME = "Conv";
 
@@ -5710,7 +5711,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Conv(resultType, X, W, B, pads, dilations, auto_pad, strides, group, kernel_shape);
     }
 
-    @OpFactory.OpDeclaration(ConvInteger.NAME)
+    @OpFactoryHelper.OpDeclaration(ConvInteger.NAME)
     public static final class ConvInteger extends OnnxOp {
         public static final String NAME = "ConvInteger";
 
@@ -5904,7 +5905,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ConvInteger(resultType, x, w, x_zero_point, w_zero_point, pads, dilations, auto_pad, strides, group, kernel_shape);
     }
 
-    @OpFactory.OpDeclaration(ConvTranspose.NAME)
+    @OpFactoryHelper.OpDeclaration(ConvTranspose.NAME)
     public static final class ConvTranspose extends OnnxOp {
         public static final String NAME = "ConvTranspose";
 
@@ -6102,7 +6103,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ConvTranspose(resultType, X, W, B, output_shape, pads, dilations, auto_pad, strides, group, kernel_shape, output_padding);
     }
 
-    @OpFactory.OpDeclaration(Cos.NAME)
+    @OpFactoryHelper.OpDeclaration(Cos.NAME)
     public static final class Cos extends OnnxOp {
         public static final String NAME = "Cos";
 
@@ -6216,7 +6217,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Cos(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Cosh.NAME)
+    @OpFactoryHelper.OpDeclaration(Cosh.NAME)
     public static final class Cosh extends OnnxOp {
         public static final String NAME = "Cosh";
 
@@ -6330,7 +6331,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Cosh(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(CumSum.NAME)
+    @OpFactoryHelper.OpDeclaration(CumSum.NAME)
     public static final class CumSum extends OnnxOp {
         public static final String NAME = "CumSum";
 
@@ -6487,7 +6488,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new CumSum(resultType, x, axis, exclusive, reverse);
     }
 
-    @OpFactory.OpDeclaration(DFT.NAME)
+    @OpFactoryHelper.OpDeclaration(DFT.NAME)
     public static final class DFT extends OnnxOp {
         public static final String NAME = "DFT";
 
@@ -6651,7 +6652,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new DFT(resultType, input, dft_length, axis, inverse, onesided);
     }
 
-    @OpFactory.OpDeclaration(DeformConv.NAME)
+    @OpFactoryHelper.OpDeclaration(DeformConv.NAME)
     public static final class DeformConv extends OnnxOp {
         public static final String NAME = "DeformConv";
 
@@ -6848,7 +6849,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new DeformConv(resultType, X, W, offset, B, mask, pads, dilations, strides, offset_group, group, kernel_shape);
     }
 
-    @OpFactory.OpDeclaration(DepthToSpace.NAME)
+    @OpFactoryHelper.OpDeclaration(DepthToSpace.NAME)
     public static final class DepthToSpace extends OnnxOp {
         public static final String NAME = "DepthToSpace";
 
@@ -6999,7 +7000,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new DepthToSpace(resultType, input, mode, blocksize);
     }
 
-    @OpFactory.OpDeclaration(DequantizeLinear.NAME)
+    @OpFactoryHelper.OpDeclaration(DequantizeLinear.NAME)
     public static final class DequantizeLinear extends OnnxOp {
         public static final String NAME = "DequantizeLinear";
 
@@ -7162,7 +7163,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new DequantizeLinear(resultType, x, x_scale, x_zero_point, axis, block_size);
     }
 
-    @OpFactory.OpDeclaration(Det.NAME)
+    @OpFactoryHelper.OpDeclaration(Det.NAME)
     public static final class Det extends OnnxOp {
         public static final String NAME = "Det";
 
@@ -7276,7 +7277,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Det(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(DictVectorizer.NAME)
+    @OpFactoryHelper.OpDeclaration(DictVectorizer.NAME)
     public static final class DictVectorizer extends OnnxOp {
         public static final String NAME = "DictVectorizer";
 
@@ -7428,7 +7429,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new DictVectorizer(resultType, X, string_vocabulary, int64_vocabulary);
     }
 
-    @OpFactory.OpDeclaration(Div.NAME)
+    @OpFactoryHelper.OpDeclaration(Div.NAME)
     public static final class Div extends OnnxOp {
         public static final String NAME = "Div";
 
@@ -7547,7 +7548,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Div(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(Dropout.NAME)
+    @OpFactoryHelper.OpDeclaration(Dropout.NAME)
     public static final class Dropout extends OnnxOp {
         public static final String NAME = "Dropout";
 
@@ -7707,7 +7708,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Dropout(resultType, optionalOutputs, data, ratio, training_mode, seed);
     }
 
-    @OpFactory.OpDeclaration(DynamicQuantizeLinear.NAME)
+    @OpFactoryHelper.OpDeclaration(DynamicQuantizeLinear.NAME)
     public static final class DynamicQuantizeLinear extends OnnxOp {
         public static final String NAME = "DynamicQuantizeLinear";
 
@@ -7824,7 +7825,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new DynamicQuantizeLinear(resultType, x);
     }
 
-    @OpFactory.OpDeclaration(Einsum.NAME)
+    @OpFactoryHelper.OpDeclaration(Einsum.NAME)
     public static final class Einsum extends OnnxOp {
         public static final String NAME = "Einsum";
 
@@ -7969,7 +7970,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Einsum(resultType, Inputs, equation);
     }
 
-    @OpFactory.OpDeclaration(Elu.NAME)
+    @OpFactoryHelper.OpDeclaration(Elu.NAME)
     public static final class Elu extends OnnxOp {
         public static final String NAME = "Elu";
 
@@ -8114,7 +8115,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Elu(resultType, X, alpha);
     }
 
-    @OpFactory.OpDeclaration(Equal.NAME)
+    @OpFactoryHelper.OpDeclaration(Equal.NAME)
     public static final class Equal extends OnnxOp {
         public static final String NAME = "Equal";
 
@@ -8234,7 +8235,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Equal(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(Erf.NAME)
+    @OpFactoryHelper.OpDeclaration(Erf.NAME)
     public static final class Erf extends OnnxOp {
         public static final String NAME = "Erf";
 
@@ -8348,7 +8349,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Erf(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Exp.NAME)
+    @OpFactoryHelper.OpDeclaration(Exp.NAME)
     public static final class Exp extends OnnxOp {
         public static final String NAME = "Exp";
 
@@ -8462,7 +8463,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Exp(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Expand.NAME)
+    @OpFactoryHelper.OpDeclaration(Expand.NAME)
     public static final class Expand extends OnnxOp {
         public static final String NAME = "Expand";
 
@@ -8581,7 +8582,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Expand(resultType, input, shape);
     }
 
-    @OpFactory.OpDeclaration(EyeLike.NAME)
+    @OpFactoryHelper.OpDeclaration(EyeLike.NAME)
     public static final class EyeLike extends OnnxOp {
         public static final String NAME = "EyeLike";
 
@@ -8733,7 +8734,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new EyeLike(resultType, input, dtype, k);
     }
 
-    @OpFactory.OpDeclaration(FeatureVectorizer.NAME)
+    @OpFactoryHelper.OpDeclaration(FeatureVectorizer.NAME)
     public static final class FeatureVectorizer extends OnnxOp {
         public static final String NAME = "FeatureVectorizer";
 
@@ -8878,7 +8879,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new FeatureVectorizer(resultType, X, inputdimensions);
     }
 
-    @OpFactory.OpDeclaration(Flatten.NAME)
+    @OpFactoryHelper.OpDeclaration(Flatten.NAME)
     public static final class Flatten extends OnnxOp {
         public static final String NAME = "Flatten";
 
@@ -9023,7 +9024,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Flatten(resultType, input, axis);
     }
 
-    @OpFactory.OpDeclaration(Floor.NAME)
+    @OpFactoryHelper.OpDeclaration(Floor.NAME)
     public static final class Floor extends OnnxOp {
         public static final String NAME = "Floor";
 
@@ -9137,7 +9138,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Floor(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(GRU.NAME)
+    @OpFactoryHelper.OpDeclaration(GRU.NAME)
     public static final class GRU extends OnnxOp {
         public static final String NAME = "GRU";
 
@@ -9354,7 +9355,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new GRU(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, linear_before_reset, clip, direction);
     }
 
-    @OpFactory.OpDeclaration(Gather.NAME)
+    @OpFactoryHelper.OpDeclaration(Gather.NAME)
     public static final class Gather extends OnnxOp {
         public static final String NAME = "Gather";
 
@@ -9505,7 +9506,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Gather(resultType, data, indices, axis);
     }
 
-    @OpFactory.OpDeclaration(GatherElements.NAME)
+    @OpFactoryHelper.OpDeclaration(GatherElements.NAME)
     public static final class GatherElements extends OnnxOp {
         public static final String NAME = "GatherElements";
 
@@ -9656,7 +9657,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new GatherElements(resultType, data, indices, axis);
     }
 
-    @OpFactory.OpDeclaration(GatherND.NAME)
+    @OpFactoryHelper.OpDeclaration(GatherND.NAME)
     public static final class GatherND extends OnnxOp {
         public static final String NAME = "GatherND";
 
@@ -9806,7 +9807,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new GatherND(resultType, data, indices, batch_dims);
     }
 
-    @OpFactory.OpDeclaration(Gelu.NAME)
+    @OpFactoryHelper.OpDeclaration(Gelu.NAME)
     public static final class Gelu extends OnnxOp {
         public static final String NAME = "Gelu";
 
@@ -9951,7 +9952,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Gelu(resultType, X, approximate);
     }
 
-    @OpFactory.OpDeclaration(Gemm.NAME)
+    @OpFactoryHelper.OpDeclaration(Gemm.NAME)
     public static final class Gemm extends OnnxOp {
         public static final String NAME = "Gemm";
 
@@ -10125,7 +10126,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Gemm(resultType, A, B, C, alpha, transB, beta, transA);
     }
 
-    @OpFactory.OpDeclaration(GlobalAveragePool.NAME)
+    @OpFactoryHelper.OpDeclaration(GlobalAveragePool.NAME)
     public static final class GlobalAveragePool extends OnnxOp {
         public static final String NAME = "GlobalAveragePool";
 
@@ -10239,7 +10240,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new GlobalAveragePool(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(GlobalLpPool.NAME)
+    @OpFactoryHelper.OpDeclaration(GlobalLpPool.NAME)
     public static final class GlobalLpPool extends OnnxOp {
         public static final String NAME = "GlobalLpPool";
 
@@ -10384,7 +10385,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new GlobalLpPool(resultType, X, p);
     }
 
-    @OpFactory.OpDeclaration(GlobalMaxPool.NAME)
+    @OpFactoryHelper.OpDeclaration(GlobalMaxPool.NAME)
     public static final class GlobalMaxPool extends OnnxOp {
         public static final String NAME = "GlobalMaxPool";
 
@@ -10498,7 +10499,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new GlobalMaxPool(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Gradient.NAME)
+    @OpFactoryHelper.OpDeclaration(Gradient.NAME)
     public static final class Gradient extends OnnxOp {
         public static final String NAME = "Gradient";
 
@@ -10656,7 +10657,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Gradient(resultType, Inputs, y, zs, xs);
     }
 
-    @OpFactory.OpDeclaration(Greater.NAME)
+    @OpFactoryHelper.OpDeclaration(Greater.NAME)
     public static final class Greater extends OnnxOp {
         public static final String NAME = "Greater";
 
@@ -10776,7 +10777,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Greater(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(GreaterOrEqual.NAME)
+    @OpFactoryHelper.OpDeclaration(GreaterOrEqual.NAME)
     public static final class GreaterOrEqual extends OnnxOp {
         public static final String NAME = "GreaterOrEqual";
 
@@ -10896,7 +10897,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new GreaterOrEqual(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(GridSample.NAME)
+    @OpFactoryHelper.OpDeclaration(GridSample.NAME)
     public static final class GridSample extends OnnxOp {
         public static final String NAME = "GridSample";
 
@@ -11059,7 +11060,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new GridSample(resultType, X, grid, mode, align_corners, padding_mode);
     }
 
-    @OpFactory.OpDeclaration(GroupNormalization.NAME)
+    @OpFactoryHelper.OpDeclaration(GroupNormalization.NAME)
     public static final class GroupNormalization extends OnnxOp {
         public static final String NAME = "GroupNormalization";
 
@@ -11226,7 +11227,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new GroupNormalization(resultType, X, scale, bias, epsilon, stash_type, num_groups);
     }
 
-    @OpFactory.OpDeclaration(HammingWindow.NAME)
+    @OpFactoryHelper.OpDeclaration(HammingWindow.NAME)
     public static final class HammingWindow extends OnnxOp {
         public static final String NAME = "HammingWindow";
 
@@ -11378,7 +11379,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new HammingWindow(resultType, size, periodic, output_datatype);
     }
 
-    @OpFactory.OpDeclaration(HannWindow.NAME)
+    @OpFactoryHelper.OpDeclaration(HannWindow.NAME)
     public static final class HannWindow extends OnnxOp {
         public static final String NAME = "HannWindow";
 
@@ -11530,7 +11531,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new HannWindow(resultType, size, periodic, output_datatype);
     }
 
-    @OpFactory.OpDeclaration(HardSigmoid.NAME)
+    @OpFactoryHelper.OpDeclaration(HardSigmoid.NAME)
     public static final class HardSigmoid extends OnnxOp {
         public static final String NAME = "HardSigmoid";
 
@@ -11681,7 +11682,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new HardSigmoid(resultType, X, alpha, beta);
     }
 
-    @OpFactory.OpDeclaration(HardSwish.NAME)
+    @OpFactoryHelper.OpDeclaration(HardSwish.NAME)
     public static final class HardSwish extends OnnxOp {
         public static final String NAME = "HardSwish";
 
@@ -11795,7 +11796,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new HardSwish(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Hardmax.NAME)
+    @OpFactoryHelper.OpDeclaration(Hardmax.NAME)
     public static final class Hardmax extends OnnxOp {
         public static final String NAME = "Hardmax";
 
@@ -11940,7 +11941,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Hardmax(resultType, input, axis);
     }
 
-    @OpFactory.OpDeclaration(Identity.NAME)
+    @OpFactoryHelper.OpDeclaration(Identity.NAME)
     public static final class Identity extends OnnxOp {
         public static final String NAME = "Identity";
 
@@ -12054,7 +12055,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Identity(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(ImageDecoder.NAME)
+    @OpFactoryHelper.OpDeclaration(ImageDecoder.NAME)
     public static final class ImageDecoder extends OnnxOp {
         public static final String NAME = "ImageDecoder";
 
@@ -12200,7 +12201,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ImageDecoder(resultType, encoded_stream, pixel_format);
     }
 
-    @OpFactory.OpDeclaration(Imputer.NAME)
+    @OpFactoryHelper.OpDeclaration(Imputer.NAME)
     public static final class Imputer extends OnnxOp {
         public static final String NAME = "Imputer";
 
@@ -12363,7 +12364,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Imputer(resultType, X, replaced_value_int64, replaced_value_float, imputed_value_int64s, imputed_value_floats);
     }
 
-    @OpFactory.OpDeclaration(InstanceNormalization.NAME)
+    @OpFactoryHelper.OpDeclaration(InstanceNormalization.NAME)
     public static final class InstanceNormalization extends OnnxOp {
         public static final String NAME = "InstanceNormalization";
 
@@ -12518,7 +12519,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new InstanceNormalization(resultType, input, scale, B, epsilon);
     }
 
-    @OpFactory.OpDeclaration(IsInf.NAME)
+    @OpFactoryHelper.OpDeclaration(IsInf.NAME)
     public static final class IsInf extends OnnxOp {
         public static final String NAME = "IsInf";
 
@@ -12670,7 +12671,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new IsInf(resultType, X, detect_negative, detect_positive);
     }
 
-    @OpFactory.OpDeclaration(IsNaN.NAME)
+    @OpFactoryHelper.OpDeclaration(IsNaN.NAME)
     public static final class IsNaN extends OnnxOp {
         public static final String NAME = "IsNaN";
 
@@ -12785,7 +12786,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new IsNaN(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(LRN.NAME)
+    @OpFactoryHelper.OpDeclaration(LRN.NAME)
     public static final class LRN extends OnnxOp {
         public static final String NAME = "LRN";
 
@@ -12948,7 +12949,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LRN(resultType, X, size, alpha, bias, beta);
     }
 
-    @OpFactory.OpDeclaration(LSTM.NAME)
+    @OpFactoryHelper.OpDeclaration(LSTM.NAME)
     public static final class LSTM extends OnnxOp {
         public static final String NAME = "LSTM";
 
@@ -13178,7 +13179,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LSTM(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, initial_c, P, layout, input_forget, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
     }
 
-    @OpFactory.OpDeclaration(LabelEncoder.NAME)
+    @OpFactoryHelper.OpDeclaration(LabelEncoder.NAME)
     public static final class LabelEncoder extends OnnxOp {
         public static final String NAME = "LabelEncoder";
 
@@ -13390,7 +13391,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LabelEncoder(resultType, X, values_strings, keys_int64s, keys_tensor, keys_strings, default_float, keys_floats, default_tensor, default_int64, values_tensor, values_int64s, default_string, values_floats);
     }
 
-    @OpFactory.OpDeclaration(LayerNormalization.NAME)
+    @OpFactoryHelper.OpDeclaration(LayerNormalization.NAME)
     public static final class LayerNormalization extends OnnxOp {
         public static final String NAME = "LayerNormalization";
 
@@ -13561,7 +13562,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LayerNormalization(resultType, optionalOutputs, X, Scale, B, epsilon, stash_type, axis);
     }
 
-    @OpFactory.OpDeclaration(LeakyRelu.NAME)
+    @OpFactoryHelper.OpDeclaration(LeakyRelu.NAME)
     public static final class LeakyRelu extends OnnxOp {
         public static final String NAME = "LeakyRelu";
 
@@ -13706,7 +13707,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LeakyRelu(resultType, X, alpha);
     }
 
-    @OpFactory.OpDeclaration(Less.NAME)
+    @OpFactoryHelper.OpDeclaration(Less.NAME)
     public static final class Less extends OnnxOp {
         public static final String NAME = "Less";
 
@@ -13826,7 +13827,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Less(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(LessOrEqual.NAME)
+    @OpFactoryHelper.OpDeclaration(LessOrEqual.NAME)
     public static final class LessOrEqual extends OnnxOp {
         public static final String NAME = "LessOrEqual";
 
@@ -13946,7 +13947,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LessOrEqual(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(LinearClassifier.NAME)
+    @OpFactoryHelper.OpDeclaration(LinearClassifier.NAME)
     public static final class LinearClassifier extends OnnxOp {
         public static final String NAME = "LinearClassifier";
 
@@ -14123,7 +14124,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LinearClassifier(resultType, X, classlabels_ints, post_transform, coefficients, multi_class, intercepts, classlabels_strings);
     }
 
-    @OpFactory.OpDeclaration(LinearRegressor.NAME)
+    @OpFactoryHelper.OpDeclaration(LinearRegressor.NAME)
     public static final class LinearRegressor extends OnnxOp {
         public static final String NAME = "LinearRegressor";
 
@@ -14286,7 +14287,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LinearRegressor(resultType, X, post_transform, coefficients, targets, intercepts);
     }
 
-    @OpFactory.OpDeclaration(Log.NAME)
+    @OpFactoryHelper.OpDeclaration(Log.NAME)
     public static final class Log extends OnnxOp {
         public static final String NAME = "Log";
 
@@ -14400,7 +14401,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Log(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(LogSoftmax.NAME)
+    @OpFactoryHelper.OpDeclaration(LogSoftmax.NAME)
     public static final class LogSoftmax extends OnnxOp {
         public static final String NAME = "LogSoftmax";
 
@@ -14545,7 +14546,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LogSoftmax(resultType, input, axis);
     }
 
-    @OpFactory.OpDeclaration(LpNormalization.NAME)
+    @OpFactoryHelper.OpDeclaration(LpNormalization.NAME)
     public static final class LpNormalization extends OnnxOp {
         public static final String NAME = "LpNormalization";
 
@@ -14696,7 +14697,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LpNormalization(resultType, input, p, axis);
     }
 
-    @OpFactory.OpDeclaration(LpPool.NAME)
+    @OpFactoryHelper.OpDeclaration(LpPool.NAME)
     public static final class LpPool extends OnnxOp {
         public static final String NAME = "LpPool";
 
@@ -14877,7 +14878,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new LpPool(resultType, X, p, pads, dilations, auto_pad, ceil_mode, strides, kernel_shape);
     }
 
-    @OpFactory.OpDeclaration(MatMul.NAME)
+    @OpFactoryHelper.OpDeclaration(MatMul.NAME)
     public static final class MatMul extends OnnxOp {
         public static final String NAME = "MatMul";
 
@@ -14996,7 +14997,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new MatMul(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(MatMulInteger.NAME)
+    @OpFactoryHelper.OpDeclaration(MatMulInteger.NAME)
     public static final class MatMulInteger extends OnnxOp {
         public static final String NAME = "MatMulInteger";
 
@@ -15129,7 +15130,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new MatMulInteger(resultType, A, B, a_zero_point, b_zero_point);
     }
 
-    @OpFactory.OpDeclaration(Max.NAME)
+    @OpFactoryHelper.OpDeclaration(Max.NAME)
     public static final class Max extends OnnxOp {
         public static final String NAME = "Max";
 
@@ -15243,7 +15244,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Max(resultType, data_0);
     }
 
-    @OpFactory.OpDeclaration(MaxPool.NAME)
+    @OpFactoryHelper.OpDeclaration(MaxPool.NAME)
     public static final class MaxPool extends OnnxOp {
         public static final String NAME = "MaxPool";
 
@@ -15426,7 +15427,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new MaxPool(resultType, optionalOutputs, X, pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape);
     }
 
-    @OpFactory.OpDeclaration(MaxRoiPool.NAME)
+    @OpFactoryHelper.OpDeclaration(MaxRoiPool.NAME)
     public static final class MaxRoiPool extends OnnxOp {
         public static final String NAME = "MaxRoiPool";
 
@@ -15582,7 +15583,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new MaxRoiPool(resultType, X, rois, spatial_scale, pooled_shape);
     }
 
-    @OpFactory.OpDeclaration(MaxUnpool.NAME)
+    @OpFactoryHelper.OpDeclaration(MaxUnpool.NAME)
     public static final class MaxUnpool extends OnnxOp {
         public static final String NAME = "MaxUnpool";
 
@@ -15751,7 +15752,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new MaxUnpool(resultType, X, I, output_shape, pads, strides, kernel_shape);
     }
 
-    @OpFactory.OpDeclaration(Mean.NAME)
+    @OpFactoryHelper.OpDeclaration(Mean.NAME)
     public static final class Mean extends OnnxOp {
         public static final String NAME = "Mean";
 
@@ -15865,7 +15866,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Mean(resultType, data_0);
     }
 
-    @OpFactory.OpDeclaration(MeanVarianceNormalization.NAME)
+    @OpFactoryHelper.OpDeclaration(MeanVarianceNormalization.NAME)
     public static final class MeanVarianceNormalization extends OnnxOp {
         public static final String NAME = "MeanVarianceNormalization";
 
@@ -16010,7 +16011,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new MeanVarianceNormalization(resultType, X, axes);
     }
 
-    @OpFactory.OpDeclaration(MelWeightMatrix.NAME)
+    @OpFactoryHelper.OpDeclaration(MelWeightMatrix.NAME)
     public static final class MelWeightMatrix extends OnnxOp {
         public static final String NAME = "MelWeightMatrix";
 
@@ -16177,7 +16178,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new MelWeightMatrix(resultType, num_mel_bins, dft_length, sample_rate, lower_edge_hertz, upper_edge_hertz, output_datatype);
     }
 
-    @OpFactory.OpDeclaration(Min.NAME)
+    @OpFactoryHelper.OpDeclaration(Min.NAME)
     public static final class Min extends OnnxOp {
         public static final String NAME = "Min";
 
@@ -16291,7 +16292,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Min(resultType, data_0);
     }
 
-    @OpFactory.OpDeclaration(Mish.NAME)
+    @OpFactoryHelper.OpDeclaration(Mish.NAME)
     public static final class Mish extends OnnxOp {
         public static final String NAME = "Mish";
 
@@ -16405,7 +16406,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Mish(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Mod.NAME)
+    @OpFactoryHelper.OpDeclaration(Mod.NAME)
     public static final class Mod extends OnnxOp {
         public static final String NAME = "Mod";
 
@@ -16555,7 +16556,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Mod(resultType, A, B, fmod);
     }
 
-    @OpFactory.OpDeclaration(Momentum.NAME)
+    @OpFactoryHelper.OpDeclaration(Momentum.NAME)
     public static final class Momentum extends OnnxOp {
         public static final String NAME = "Momentum";
 
@@ -16730,7 +16731,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Momentum(resultType, R, T, inputs, mode, norm_coefficient, alpha, beta);
     }
 
-    @OpFactory.OpDeclaration(Mul.NAME)
+    @OpFactoryHelper.OpDeclaration(Mul.NAME)
     public static final class Mul extends OnnxOp {
         public static final String NAME = "Mul";
 
@@ -16849,7 +16850,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Mul(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(Multinomial.NAME)
+    @OpFactoryHelper.OpDeclaration(Multinomial.NAME)
     public static final class Multinomial extends OnnxOp {
         public static final String NAME = "Multinomial";
 
@@ -17007,7 +17008,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Multinomial(resultType, input, seed, sample_size, dtype);
     }
 
-    @OpFactory.OpDeclaration(Neg.NAME)
+    @OpFactoryHelper.OpDeclaration(Neg.NAME)
     public static final class Neg extends OnnxOp {
         public static final String NAME = "Neg";
 
@@ -17121,7 +17122,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Neg(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(NegativeLogLikelihoodLoss.NAME)
+    @OpFactoryHelper.OpDeclaration(NegativeLogLikelihoodLoss.NAME)
     public static final class NegativeLogLikelihoodLoss extends OnnxOp {
         public static final String NAME = "NegativeLogLikelihoodLoss";
 
@@ -17284,7 +17285,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new NegativeLogLikelihoodLoss(resultType, input, target, weight, ignore_index, reduction);
     }
 
-    @OpFactory.OpDeclaration(NonMaxSuppression.NAME)
+    @OpFactoryHelper.OpDeclaration(NonMaxSuppression.NAME)
     public static final class NonMaxSuppression extends OnnxOp {
         public static final String NAME = "NonMaxSuppression";
 
@@ -17437,7 +17438,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new NonMaxSuppression(resultType, boxes, scores, max_output_boxes_per_class, iou_threshold, score_threshold, center_point_box);
     }
 
-    @OpFactory.OpDeclaration(NonZero.NAME)
+    @OpFactoryHelper.OpDeclaration(NonZero.NAME)
     public static final class NonZero extends OnnxOp {
         public static final String NAME = "NonZero";
 
@@ -17551,7 +17552,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new NonZero(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Normalizer.NAME)
+    @OpFactoryHelper.OpDeclaration(Normalizer.NAME)
     public static final class Normalizer extends OnnxOp {
         public static final String NAME = "Normalizer";
 
@@ -17696,7 +17697,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Normalizer(resultType, X, norm);
     }
 
-    @OpFactory.OpDeclaration(Not.NAME)
+    @OpFactoryHelper.OpDeclaration(Not.NAME)
     public static final class Not extends OnnxOp {
         public static final String NAME = "Not";
 
@@ -17810,7 +17811,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Not(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(OneHot.NAME)
+    @OpFactoryHelper.OpDeclaration(OneHot.NAME)
     public static final class OneHot extends OnnxOp {
         public static final String NAME = "OneHot";
 
@@ -17967,7 +17968,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new OneHot(resultType, indices, depth, values, axis);
     }
 
-    @OpFactory.OpDeclaration(OneHotEncoder.NAME)
+    @OpFactoryHelper.OpDeclaration(OneHotEncoder.NAME)
     public static final class OneHotEncoder extends OnnxOp {
         public static final String NAME = "OneHotEncoder";
 
@@ -18124,7 +18125,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new OneHotEncoder(resultType, X, cats_strings, cats_int64s, zeros);
     }
 
-    @OpFactory.OpDeclaration(Optional.NAME)
+    @OpFactoryHelper.OpDeclaration(Optional.NAME)
     public static final class Optional extends OnnxOp {
         public static final String NAME = "Optional";
 
@@ -18271,7 +18272,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Optional(resultType, input, type);
     }
 
-    @OpFactory.OpDeclaration(OptionalGetElement.NAME)
+    @OpFactoryHelper.OpDeclaration(OptionalGetElement.NAME)
     public static final class OptionalGetElement extends OnnxOp {
         public static final String NAME = "OptionalGetElement";
 
@@ -18386,7 +18387,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new OptionalGetElement(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(OptionalHasElement.NAME)
+    @OpFactoryHelper.OpDeclaration(OptionalHasElement.NAME)
     public static final class OptionalHasElement extends OnnxOp {
         public static final String NAME = "OptionalHasElement";
 
@@ -18502,7 +18503,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new OptionalHasElement(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Or.NAME)
+    @OpFactoryHelper.OpDeclaration(Or.NAME)
     public static final class Or extends OnnxOp {
         public static final String NAME = "Or";
 
@@ -18622,7 +18623,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Or(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(PRelu.NAME)
+    @OpFactoryHelper.OpDeclaration(PRelu.NAME)
     public static final class PRelu extends OnnxOp {
         public static final String NAME = "PRelu";
 
@@ -18741,7 +18742,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new PRelu(resultType, X, slope);
     }
 
-    @OpFactory.OpDeclaration(Pad.NAME)
+    @OpFactoryHelper.OpDeclaration(Pad.NAME)
     public static final class Pad extends OnnxOp {
         public static final String NAME = "Pad";
 
@@ -18904,7 +18905,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Pad(resultType, data, pads, constant_value, axes, mode);
     }
 
-    @OpFactory.OpDeclaration(Pow.NAME)
+    @OpFactoryHelper.OpDeclaration(Pow.NAME)
     public static final class Pow extends OnnxOp {
         public static final String NAME = "Pow";
 
@@ -19024,7 +19025,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Pow(resultType, X, Y);
     }
 
-    @OpFactory.OpDeclaration(QLinearConv.NAME)
+    @OpFactoryHelper.OpDeclaration(QLinearConv.NAME)
     public static final class QLinearConv extends OnnxOp {
         public static final String NAME = "QLinearConv";
 
@@ -19243,7 +19244,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new QLinearConv(resultType, x, x_scale, x_zero_point, w, w_scale, w_zero_point, y_scale, y_zero_point, B, pads, dilations, auto_pad, strides, group, kernel_shape);
     }
 
-    @OpFactory.OpDeclaration(QLinearMatMul.NAME)
+    @OpFactoryHelper.OpDeclaration(QLinearMatMul.NAME)
     public static final class QLinearMatMul extends OnnxOp {
         public static final String NAME = "QLinearMatMul";
 
@@ -19395,7 +19396,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new QLinearMatMul(resultType, a, a_scale, a_zero_point, b, b_scale, b_zero_point, y_scale, y_zero_point);
     }
 
-    @OpFactory.OpDeclaration(QuantizeLinear.NAME)
+    @OpFactoryHelper.OpDeclaration(QuantizeLinear.NAME)
     public static final class QuantizeLinear extends OnnxOp {
         public static final String NAME = "QuantizeLinear";
 
@@ -19570,7 +19571,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new QuantizeLinear(resultType, x, y_scale, y_zero_point, output_dtype, saturate, axis, block_size);
     }
 
-    @OpFactory.OpDeclaration(RNN.NAME)
+    @OpFactoryHelper.OpDeclaration(RNN.NAME)
     public static final class RNN extends OnnxOp {
         public static final String NAME = "RNN";
 
@@ -19781,7 +19782,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new RNN(resultType, optionalOutputs, X, W, R, B, sequence_lens, initial_h, layout, activation_alpha, hidden_size, activation_beta, activations, clip, direction);
     }
 
-    @OpFactory.OpDeclaration(RandomNormal.NAME)
+    @OpFactoryHelper.OpDeclaration(RandomNormal.NAME)
     public static final class RandomNormal extends OnnxOp {
         public static final String NAME = "RandomNormal";
 
@@ -19925,7 +19926,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new RandomNormal(resultType, shape, seed, mean, scale, dtype);
     }
 
-    @OpFactory.OpDeclaration(RandomNormalLike.NAME)
+    @OpFactoryHelper.OpDeclaration(RandomNormalLike.NAME)
     public static final class RandomNormalLike extends OnnxOp {
         public static final String NAME = "RandomNormalLike";
 
@@ -20089,7 +20090,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new RandomNormalLike(resultType, input, seed, mean, scale, dtype);
     }
 
-    @OpFactory.OpDeclaration(RandomUniform.NAME)
+    @OpFactoryHelper.OpDeclaration(RandomUniform.NAME)
     public static final class RandomUniform extends OnnxOp {
         public static final String NAME = "RandomUniform";
 
@@ -20233,7 +20234,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new RandomUniform(resultType, high, shape, seed, low, dtype);
     }
 
-    @OpFactory.OpDeclaration(RandomUniformLike.NAME)
+    @OpFactoryHelper.OpDeclaration(RandomUniformLike.NAME)
     public static final class RandomUniformLike extends OnnxOp {
         public static final String NAME = "RandomUniformLike";
 
@@ -20397,7 +20398,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new RandomUniformLike(resultType, input, high, seed, low, dtype);
     }
 
-    @OpFactory.OpDeclaration(Range.NAME)
+    @OpFactoryHelper.OpDeclaration(Range.NAME)
     public static final class Range extends OnnxOp {
         public static final String NAME = "Range";
 
@@ -20521,7 +20522,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Range(resultType, start, limit, delta);
     }
 
-    @OpFactory.OpDeclaration(Reciprocal.NAME)
+    @OpFactoryHelper.OpDeclaration(Reciprocal.NAME)
     public static final class Reciprocal extends OnnxOp {
         public static final String NAME = "Reciprocal";
 
@@ -20635,7 +20636,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Reciprocal(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(ReduceL1.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceL1.NAME)
     public static final class ReduceL1 extends OnnxOp {
         public static final String NAME = "ReduceL1";
 
@@ -20792,7 +20793,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceL1(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(ReduceL2.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceL2.NAME)
     public static final class ReduceL2 extends OnnxOp {
         public static final String NAME = "ReduceL2";
 
@@ -20949,7 +20950,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceL2(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(ReduceLogSum.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceLogSum.NAME)
     public static final class ReduceLogSum extends OnnxOp {
         public static final String NAME = "ReduceLogSum";
 
@@ -21106,7 +21107,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceLogSum(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(ReduceLogSumExp.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceLogSumExp.NAME)
     public static final class ReduceLogSumExp extends OnnxOp {
         public static final String NAME = "ReduceLogSumExp";
 
@@ -21263,7 +21264,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceLogSumExp(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(ReduceMax.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceMax.NAME)
     public static final class ReduceMax extends OnnxOp {
         public static final String NAME = "ReduceMax";
 
@@ -21420,7 +21421,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceMax(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(ReduceMean.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceMean.NAME)
     public static final class ReduceMean extends OnnxOp {
         public static final String NAME = "ReduceMean";
 
@@ -21577,7 +21578,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceMean(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(ReduceMin.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceMin.NAME)
     public static final class ReduceMin extends OnnxOp {
         public static final String NAME = "ReduceMin";
 
@@ -21734,7 +21735,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceMin(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(ReduceProd.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceProd.NAME)
     public static final class ReduceProd extends OnnxOp {
         public static final String NAME = "ReduceProd";
 
@@ -21891,7 +21892,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceProd(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(ReduceSum.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceSum.NAME)
     public static final class ReduceSum extends OnnxOp {
         public static final String NAME = "ReduceSum";
 
@@ -22048,7 +22049,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceSum(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(ReduceSumSquare.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceSumSquare.NAME)
     public static final class ReduceSumSquare extends OnnxOp {
         public static final String NAME = "ReduceSumSquare";
 
@@ -22205,7 +22206,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReduceSumSquare(resultType, data, axes, noop_with_empty_axes, keepdims);
     }
 
-    @OpFactory.OpDeclaration(RegexFullMatch.NAME)
+    @OpFactoryHelper.OpDeclaration(RegexFullMatch.NAME)
     public static final class RegexFullMatch extends OnnxOp {
         public static final String NAME = "RegexFullMatch";
 
@@ -22351,7 +22352,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new RegexFullMatch(resultType, X, pattern);
     }
 
-    @OpFactory.OpDeclaration(Relu.NAME)
+    @OpFactoryHelper.OpDeclaration(Relu.NAME)
     public static final class Relu extends OnnxOp {
         public static final String NAME = "Relu";
 
@@ -22465,7 +22466,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Relu(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Reshape.NAME)
+    @OpFactoryHelper.OpDeclaration(Reshape.NAME)
     public static final class Reshape extends OnnxOp {
         public static final String NAME = "Reshape";
 
@@ -22615,7 +22616,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Reshape(resultType, data, shape, allowzero);
     }
 
-    @OpFactory.OpDeclaration(Resize.NAME)
+    @OpFactoryHelper.OpDeclaration(Resize.NAME)
     public static final class Resize extends OnnxOp {
         public static final String NAME = "Resize";
 
@@ -22827,7 +22828,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Resize(resultType, X, roi, scales, sizes, mode, extrapolation_value, nearest_mode, antialias, cubic_coeff_a, axes, coordinate_transformation_mode, keep_aspect_ratio_policy, exclude_outside);
     }
 
-    @OpFactory.OpDeclaration(ReverseSequence.NAME)
+    @OpFactoryHelper.OpDeclaration(ReverseSequence.NAME)
     public static final class ReverseSequence extends OnnxOp {
         public static final String NAME = "ReverseSequence";
 
@@ -22983,7 +22984,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ReverseSequence(resultType, input, sequence_lens, time_axis, batch_axis);
     }
 
-    @OpFactory.OpDeclaration(RoiAlign.NAME)
+    @OpFactoryHelper.OpDeclaration(RoiAlign.NAME)
     public static final class RoiAlign extends OnnxOp {
         public static final String NAME = "RoiAlign";
 
@@ -23169,7 +23170,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new RoiAlign(resultType, X, rois, batch_indices, mode, output_width, spatial_scale, coordinate_transformation_mode, sampling_ratio, output_height);
     }
 
-    @OpFactory.OpDeclaration(Round.NAME)
+    @OpFactoryHelper.OpDeclaration(Round.NAME)
     public static final class Round extends OnnxOp {
         public static final String NAME = "Round";
 
@@ -23283,7 +23284,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Round(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(STFT.NAME)
+    @OpFactoryHelper.OpDeclaration(STFT.NAME)
     public static final class STFT extends OnnxOp {
         public static final String NAME = "STFT";
 
@@ -23446,7 +23447,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new STFT(resultType, signal, frame_step, window, frame_length, onesided);
     }
 
-    @OpFactory.OpDeclaration(SVMClassifier.NAME)
+    @OpFactoryHelper.OpDeclaration(SVMClassifier.NAME)
     public static final class SVMClassifier extends OnnxOp {
         public static final String NAME = "SVMClassifier";
 
@@ -23653,7 +23654,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SVMClassifier(resultType, X, prob_b, kernel_params, kernel_type, classlabels_ints, post_transform, rho, coefficients, support_vectors, vectors_per_class, prob_a, classlabels_strings);
     }
 
-    @OpFactory.OpDeclaration(SVMRegressor.NAME)
+    @OpFactoryHelper.OpDeclaration(SVMRegressor.NAME)
     public static final class SVMRegressor extends OnnxOp {
         public static final String NAME = "SVMRegressor";
 
@@ -23840,7 +23841,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SVMRegressor(resultType, X, kernel_type, kernel_params, n_supports, rho, post_transform, coefficients, support_vectors, one_class);
     }
 
-    @OpFactory.OpDeclaration(Scaler.NAME)
+    @OpFactoryHelper.OpDeclaration(Scaler.NAME)
     public static final class Scaler extends OnnxOp {
         public static final String NAME = "Scaler";
 
@@ -23991,7 +23992,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Scaler(resultType, X, offset, scale);
     }
 
-    @OpFactory.OpDeclaration(Scatter.NAME)
+    @OpFactoryHelper.OpDeclaration(Scatter.NAME)
     public static final class Scatter extends OnnxOp {
         public static final String NAME = "Scatter";
 
@@ -24147,7 +24148,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Scatter(resultType, data, indices, updates, axis);
     }
 
-    @OpFactory.OpDeclaration(ScatterElements.NAME)
+    @OpFactoryHelper.OpDeclaration(ScatterElements.NAME)
     public static final class ScatterElements extends OnnxOp {
         public static final String NAME = "ScatterElements";
 
@@ -24309,7 +24310,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ScatterElements(resultType, data, indices, updates, reduction, axis);
     }
 
-    @OpFactory.OpDeclaration(ScatterND.NAME)
+    @OpFactoryHelper.OpDeclaration(ScatterND.NAME)
     public static final class ScatterND extends OnnxOp {
         public static final String NAME = "ScatterND";
 
@@ -24464,7 +24465,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ScatterND(resultType, data, indices, updates, reduction);
     }
 
-    @OpFactory.OpDeclaration(Selu.NAME)
+    @OpFactoryHelper.OpDeclaration(Selu.NAME)
     public static final class Selu extends OnnxOp {
         public static final String NAME = "Selu";
 
@@ -24615,7 +24616,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Selu(resultType, X, alpha, gamma);
     }
 
-    @OpFactory.OpDeclaration(SequenceAt.NAME)
+    @OpFactoryHelper.OpDeclaration(SequenceAt.NAME)
     public static final class SequenceAt extends OnnxOp {
         public static final String NAME = "SequenceAt";
 
@@ -24736,7 +24737,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SequenceAt(resultType, input_sequence, position);
     }
 
-    @OpFactory.OpDeclaration(SequenceConstruct.NAME)
+    @OpFactoryHelper.OpDeclaration(SequenceConstruct.NAME)
     public static final class SequenceConstruct extends OnnxOp {
         public static final String NAME = "SequenceConstruct";
 
@@ -24851,7 +24852,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SequenceConstruct(resultType, inputs);
     }
 
-    @OpFactory.OpDeclaration(SequenceEmpty.NAME)
+    @OpFactoryHelper.OpDeclaration(SequenceEmpty.NAME)
     public static final class SequenceEmpty extends OnnxOp {
         public static final String NAME = "SequenceEmpty";
 
@@ -24971,7 +24972,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SequenceEmpty(resultType, dtype);
     }
 
-    @OpFactory.OpDeclaration(SequenceErase.NAME)
+    @OpFactoryHelper.OpDeclaration(SequenceErase.NAME)
     public static final class SequenceErase extends OnnxOp {
         public static final String NAME = "SequenceErase";
 
@@ -25092,7 +25093,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SequenceErase(resultType, input_sequence, position);
     }
 
-    @OpFactory.OpDeclaration(SequenceInsert.NAME)
+    @OpFactoryHelper.OpDeclaration(SequenceInsert.NAME)
     public static final class SequenceInsert extends OnnxOp {
         public static final String NAME = "SequenceInsert";
 
@@ -25219,7 +25220,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SequenceInsert(resultType, input_sequence, tensor, position);
     }
 
-    @OpFactory.OpDeclaration(SequenceLength.NAME)
+    @OpFactoryHelper.OpDeclaration(SequenceLength.NAME)
     public static final class SequenceLength extends OnnxOp {
         public static final String NAME = "SequenceLength";
 
@@ -25334,7 +25335,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SequenceLength(resultType, input_sequence);
     }
 
-    @OpFactory.OpDeclaration(Shape.NAME)
+    @OpFactoryHelper.OpDeclaration(Shape.NAME)
     public static final class Shape extends OnnxOp {
         public static final String NAME = "Shape";
 
@@ -25486,7 +25487,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Shape(resultType, data, start, end);
     }
 
-    @OpFactory.OpDeclaration(Shrink.NAME)
+    @OpFactoryHelper.OpDeclaration(Shrink.NAME)
     public static final class Shrink extends OnnxOp {
         public static final String NAME = "Shrink";
 
@@ -25637,7 +25638,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Shrink(resultType, input, lambd, bias);
     }
 
-    @OpFactory.OpDeclaration(Sigmoid.NAME)
+    @OpFactoryHelper.OpDeclaration(Sigmoid.NAME)
     public static final class Sigmoid extends OnnxOp {
         public static final String NAME = "Sigmoid";
 
@@ -25751,7 +25752,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Sigmoid(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Sign.NAME)
+    @OpFactoryHelper.OpDeclaration(Sign.NAME)
     public static final class Sign extends OnnxOp {
         public static final String NAME = "Sign";
 
@@ -25865,7 +25866,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Sign(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Sin.NAME)
+    @OpFactoryHelper.OpDeclaration(Sin.NAME)
     public static final class Sin extends OnnxOp {
         public static final String NAME = "Sin";
 
@@ -25979,7 +25980,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Sin(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Sinh.NAME)
+    @OpFactoryHelper.OpDeclaration(Sinh.NAME)
     public static final class Sinh extends OnnxOp {
         public static final String NAME = "Sinh";
 
@@ -26093,7 +26094,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Sinh(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Size.NAME)
+    @OpFactoryHelper.OpDeclaration(Size.NAME)
     public static final class Size extends OnnxOp {
         public static final String NAME = "Size";
 
@@ -26208,7 +26209,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Size(resultType, data);
     }
 
-    @OpFactory.OpDeclaration(Slice.NAME)
+    @OpFactoryHelper.OpDeclaration(Slice.NAME)
     public static final class Slice extends OnnxOp {
         public static final String NAME = "Slice";
 
@@ -26345,7 +26346,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Slice(resultType, data, starts, ends, axes, steps);
     }
 
-    @OpFactory.OpDeclaration(Softmax.NAME)
+    @OpFactoryHelper.OpDeclaration(Softmax.NAME)
     public static final class Softmax extends OnnxOp {
         public static final String NAME = "Softmax";
 
@@ -26490,7 +26491,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Softmax(resultType, input, axis);
     }
 
-    @OpFactory.OpDeclaration(SoftmaxCrossEntropyLoss.NAME)
+    @OpFactoryHelper.OpDeclaration(SoftmaxCrossEntropyLoss.NAME)
     public static final class SoftmaxCrossEntropyLoss extends OnnxOp {
         public static final String NAME = "SoftmaxCrossEntropyLoss";
 
@@ -26654,7 +26655,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SoftmaxCrossEntropyLoss(resultType, optionalOutputs, scores, labels, weights, ignore_index, reduction);
     }
 
-    @OpFactory.OpDeclaration(Softplus.NAME)
+    @OpFactoryHelper.OpDeclaration(Softplus.NAME)
     public static final class Softplus extends OnnxOp {
         public static final String NAME = "Softplus";
 
@@ -26768,7 +26769,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Softplus(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Softsign.NAME)
+    @OpFactoryHelper.OpDeclaration(Softsign.NAME)
     public static final class Softsign extends OnnxOp {
         public static final String NAME = "Softsign";
 
@@ -26882,7 +26883,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Softsign(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(SpaceToDepth.NAME)
+    @OpFactoryHelper.OpDeclaration(SpaceToDepth.NAME)
     public static final class SpaceToDepth extends OnnxOp {
         public static final String NAME = "SpaceToDepth";
 
@@ -27027,7 +27028,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SpaceToDepth(resultType, input, blocksize);
     }
 
-    @OpFactory.OpDeclaration(Split.NAME)
+    @OpFactoryHelper.OpDeclaration(Split.NAME)
     public static final class Split extends OnnxOp {
         public static final String NAME = "Split";
 
@@ -27184,7 +27185,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Split(resultType, input, split, num_outputs, axis);
     }
 
-    @OpFactory.OpDeclaration(SplitToSequence.NAME)
+    @OpFactoryHelper.OpDeclaration(SplitToSequence.NAME)
     public static final class SplitToSequence extends OnnxOp {
         public static final String NAME = "SplitToSequence";
 
@@ -27343,7 +27344,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new SplitToSequence(resultType, input, split, keepdims, axis);
     }
 
-    @OpFactory.OpDeclaration(Sqrt.NAME)
+    @OpFactoryHelper.OpDeclaration(Sqrt.NAME)
     public static final class Sqrt extends OnnxOp {
         public static final String NAME = "Sqrt";
 
@@ -27457,7 +27458,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Sqrt(resultType, X);
     }
 
-    @OpFactory.OpDeclaration(Squeeze.NAME)
+    @OpFactoryHelper.OpDeclaration(Squeeze.NAME)
     public static final class Squeeze extends OnnxOp {
         public static final String NAME = "Squeeze";
 
@@ -27577,7 +27578,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Squeeze(resultType, data, axes);
     }
 
-    @OpFactory.OpDeclaration(StringConcat.NAME)
+    @OpFactoryHelper.OpDeclaration(StringConcat.NAME)
     public static final class StringConcat extends OnnxOp {
         public static final String NAME = "StringConcat";
 
@@ -27696,7 +27697,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new StringConcat(resultType, X, Y);
     }
 
-    @OpFactory.OpDeclaration(StringNormalizer.NAME)
+    @OpFactoryHelper.OpDeclaration(StringNormalizer.NAME)
     public static final class StringNormalizer extends OnnxOp {
         public static final String NAME = "StringNormalizer";
 
@@ -27844,7 +27845,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new StringNormalizer(resultType, X, is_case_sensitive, locale, stopwords, case_change_action);
     }
 
-    @OpFactory.OpDeclaration(StringSplit.NAME)
+    @OpFactoryHelper.OpDeclaration(StringSplit.NAME)
     public static final class StringSplit extends OnnxOp {
         public static final String NAME = "StringSplit";
 
@@ -27998,7 +27999,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new StringSplit(resultType, X, delimiter, maxsplit);
     }
 
-    @OpFactory.OpDeclaration(Sub.NAME)
+    @OpFactoryHelper.OpDeclaration(Sub.NAME)
     public static final class Sub extends OnnxOp {
         public static final String NAME = "Sub";
 
@@ -28117,7 +28118,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Sub(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(Sum.NAME)
+    @OpFactoryHelper.OpDeclaration(Sum.NAME)
     public static final class Sum extends OnnxOp {
         public static final String NAME = "Sum";
 
@@ -28231,7 +28232,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Sum(resultType, data_0);
     }
 
-    @OpFactory.OpDeclaration(Tan.NAME)
+    @OpFactoryHelper.OpDeclaration(Tan.NAME)
     public static final class Tan extends OnnxOp {
         public static final String NAME = "Tan";
 
@@ -28345,7 +28346,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Tan(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(Tanh.NAME)
+    @OpFactoryHelper.OpDeclaration(Tanh.NAME)
     public static final class Tanh extends OnnxOp {
         public static final String NAME = "Tanh";
 
@@ -28459,7 +28460,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Tanh(resultType, input);
     }
 
-    @OpFactory.OpDeclaration(TfIdfVectorizer.NAME)
+    @OpFactoryHelper.OpDeclaration(TfIdfVectorizer.NAME)
     public static final class TfIdfVectorizer extends OnnxOp {
         public static final String NAME = "TfIdfVectorizer";
 
@@ -28653,7 +28654,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new TfIdfVectorizer(resultType, X, ngram_counts, min_gram_length, pool_strings, mode, max_gram_length, max_skip_count, pool_int64s, weights, ngram_indexes);
     }
 
-    @OpFactory.OpDeclaration(ThresholdedRelu.NAME)
+    @OpFactoryHelper.OpDeclaration(ThresholdedRelu.NAME)
     public static final class ThresholdedRelu extends OnnxOp {
         public static final String NAME = "ThresholdedRelu";
 
@@ -28798,7 +28799,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new ThresholdedRelu(resultType, X, alpha);
     }
 
-    @OpFactory.OpDeclaration(Tile.NAME)
+    @OpFactoryHelper.OpDeclaration(Tile.NAME)
     public static final class Tile extends OnnxOp {
         public static final String NAME = "Tile";
 
@@ -28918,7 +28919,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Tile(resultType, input, repeats);
     }
 
-    @OpFactory.OpDeclaration(TopK.NAME)
+    @OpFactoryHelper.OpDeclaration(TopK.NAME)
     public static final class TopK extends OnnxOp {
         public static final String NAME = "TopK";
 
@@ -29082,7 +29083,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new TopK(resultType, X, K, largest, sorted, axis);
     }
 
-    @OpFactory.OpDeclaration(Transpose.NAME)
+    @OpFactoryHelper.OpDeclaration(Transpose.NAME)
     public static final class Transpose extends OnnxOp {
         public static final String NAME = "Transpose";
 
@@ -29227,7 +29228,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Transpose(resultType, data, perm);
     }
 
-    @OpFactory.OpDeclaration(TreeEnsemble.NAME)
+    @OpFactoryHelper.OpDeclaration(TreeEnsemble.NAME)
     public static final class TreeEnsemble extends OnnxOp {
         public static final String NAME = "TreeEnsemble";
 
@@ -29462,7 +29463,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new TreeEnsemble(resultType, X, aggregate_function, nodes_hitrates, nodes_featureids, nodes_falseleafs, post_transform, nodes_trueleafs, nodes_modes, nodes_falsenodeids, nodes_truenodeids, leaf_weights, leaf_targetids, tree_roots, n_targets, nodes_missing_value_tracks_true, membership_values, nodes_splits);
     }
 
-    @OpFactory.OpDeclaration(TreeEnsembleClassifier.NAME)
+    @OpFactoryHelper.OpDeclaration(TreeEnsembleClassifier.NAME)
     public static final class TreeEnsembleClassifier extends OnnxOp {
         public static final String NAME = "TreeEnsembleClassifier";
 
@@ -29729,7 +29730,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new TreeEnsembleClassifier(resultType, X, classlabels_int64s, class_ids, nodes_hitrates, nodes_featureids, nodes_treeids, class_weights_as_tensor, post_transform, nodes_modes, nodes_falsenodeids, classlabels_strings, nodes_truenodeids, nodes_nodeids, nodes_hitrates_as_tensor, class_weights, base_values_as_tensor, nodes_missing_value_tracks_true, class_nodeids, class_treeids, base_values, nodes_values, nodes_values_as_tensor);
     }
 
-    @OpFactory.OpDeclaration(TreeEnsembleRegressor.NAME)
+    @OpFactoryHelper.OpDeclaration(TreeEnsembleRegressor.NAME)
     public static final class TreeEnsembleRegressor extends OnnxOp {
         public static final String NAME = "TreeEnsembleRegressor";
 
@@ -29994,7 +29995,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new TreeEnsembleRegressor(resultType, X, aggregate_function, nodes_hitrates, target_weights_as_tensor, nodes_featureids, target_treeids, nodes_treeids, post_transform, nodes_modes, target_weights, nodes_falsenodeids, target_ids, nodes_truenodeids, target_nodeids, nodes_nodeids, nodes_hitrates_as_tensor, base_values_as_tensor, n_targets, nodes_missing_value_tracks_true, base_values, nodes_values, nodes_values_as_tensor);
     }
 
-    @OpFactory.OpDeclaration(Trilu.NAME)
+    @OpFactoryHelper.OpDeclaration(Trilu.NAME)
     public static final class Trilu extends OnnxOp {
         public static final String NAME = "Trilu";
 
@@ -30145,7 +30146,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Trilu(resultType, input, k, upper);
     }
 
-    @OpFactory.OpDeclaration(Unique.NAME)
+    @OpFactoryHelper.OpDeclaration(Unique.NAME)
     public static final class Unique extends OnnxOp {
         public static final String NAME = "Unique";
 
@@ -30299,7 +30300,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Unique(resultType, optionalOutputs, X, sorted, axis);
     }
 
-    @OpFactory.OpDeclaration(Unsqueeze.NAME)
+    @OpFactoryHelper.OpDeclaration(Unsqueeze.NAME)
     public static final class Unsqueeze extends OnnxOp {
         public static final String NAME = "Unsqueeze";
 
@@ -30418,7 +30419,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Unsqueeze(resultType, data, axes);
     }
 
-    @OpFactory.OpDeclaration(Upsample.NAME)
+    @OpFactoryHelper.OpDeclaration(Upsample.NAME)
     public static final class Upsample extends OnnxOp {
         public static final String NAME = "Upsample";
 
@@ -30568,7 +30569,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Upsample(resultType, X, scales, mode);
     }
 
-    @OpFactory.OpDeclaration(Where.NAME)
+    @OpFactoryHelper.OpDeclaration(Where.NAME)
     public static final class Where extends OnnxOp {
         public static final String NAME = "Where";
 
@@ -30693,7 +30694,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Where(resultType, condition, X, Y);
     }
 
-    @OpFactory.OpDeclaration(Xor.NAME)
+    @OpFactoryHelper.OpDeclaration(Xor.NAME)
     public static final class Xor extends OnnxOp {
         public static final String NAME = "Xor";
 
@@ -30813,7 +30814,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         return new Xor(resultType, A, B);
     }
 
-    @OpFactory.OpDeclaration(ZipMap.NAME)
+    @OpFactoryHelper.OpDeclaration(ZipMap.NAME)
     public static final class ZipMap extends OnnxOp {
         public static final String NAME = "ZipMap";
 

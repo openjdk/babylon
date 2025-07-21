@@ -96,7 +96,11 @@ public final class Patterns {
         return op.result() != null && op.result().uses().isEmpty() && testPure.test(op);
     }
 
-    // @@@ this could be made generic with a method traversing backwards
+    // @@@ this could be made generic with a method traversing up the model tree,
+    // the challenge is controlling when to keep traversing or not, and it may make
+    // it more complex that just writing it like below for specific cases
+    // A better option may be to provide a lazy stream of the values that can be filtered
+    // similar to CodeElement::elements
     static void matchDependentDeadOps(Op op, Set<Op> deadOps, Predicate<Op> testPure) {
         for (Value arg : op.operands()) {
             if (arg instanceof Op.Result or) {

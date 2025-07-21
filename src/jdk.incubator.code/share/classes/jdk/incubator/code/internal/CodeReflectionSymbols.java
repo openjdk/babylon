@@ -39,14 +39,17 @@ import static com.sun.tools.javac.code.Flags.PUBLIC;
 import static com.sun.tools.javac.code.Flags.STATIC;
 import static com.sun.tools.javac.code.Flags.VARARGS;
 
+/**
+ * This class (lazily) initialized the symbols in the jdk.incubator.code module,
+ * whose symbol is not yet available when Symtab is first constructed.
+ */
 public class CodeReflectionSymbols {
     public final Type quotedType;
     public final Type quotableType;
     public final Type codeReflectionType;
-    public final MethodSymbol opInterpreterInvoke;
-    public final MethodSymbol opParserFromString;
-    public final MethodSymbol methodHandlesLookup;
     public final Type opType;
+    public final Type funcOpType;
+    public final MethodSymbol quotedQuotedOp;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -55,24 +58,13 @@ public class CodeReflectionSymbols {
         codeReflectionType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.CodeReflection");
         quotedType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quoted");
         quotableType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quotable");
-        Type opInterpreterType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.interpreter.Interpreter");
         opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
-        opInterpreterInvoke = new MethodSymbol(PUBLIC | STATIC | VARARGS,
-                names.fromString("invoke"),
-                new MethodType(List.of(syms.methodHandleLookupType, opType, new ArrayType(syms.objectType, syms.arrayClass)), syms.objectType,
+        funcOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.core.CoreOp$FuncOp");
+        quotedQuotedOp = new MethodSymbol(PUBLIC | STATIC | VARARGS,
+                names.fromString("quotedOp"),
+                new MethodType(List.of(funcOpType, new ArrayType(syms.objectType, syms.arrayClass)), quotedType,
                         List.nil(), syms.methodClass),
-                opInterpreterType.tsym);
-        Type opParserType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.parser.OpParser");
-        opParserFromString = new MethodSymbol(PUBLIC | STATIC,
-                names.fromString("fromStringOfJavaCodeModel"),
-                new MethodType(List.of(syms.stringType), opType,
-                        List.nil(), syms.methodClass),
-                opParserType.tsym);
-        methodHandlesLookup = new MethodSymbol(PUBLIC | STATIC,
-                names.fromString("lookup"),
-                new MethodType(List.nil(), syms.methodHandleLookupType,
-                        List.nil(), syms.methodClass),
-                syms.methodHandlesType.tsym);
+                quotedType.tsym);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
         syms.synthesizeEmptyInterfaceIfMissing(quotableType);
     }

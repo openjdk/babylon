@@ -1,5 +1,0 @@
---add-modules jdk.incubator.code
---enable-preview
--cp build/hat-core-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar
---enable-native-access=ALL-UNNAMED
--Djava.library.path=build

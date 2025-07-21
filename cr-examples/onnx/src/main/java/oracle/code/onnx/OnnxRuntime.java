@@ -33,7 +33,9 @@ import java.lang.invoke.VarHandle;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.RecordComponent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -44,6 +46,8 @@ import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.TupleType;
+import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -105,12 +109,14 @@ public final class OnnxRuntime {
         }).toList();
     }
 
-    static class CachedSessionClassValue extends ClassValue<Session> {
+    record SessionWithReturnType(Session session, TypeElement returnType) {}
+
+    static class CachedSessionClassValue extends ClassValue<SessionWithReturnType> {
 
         private MethodHandles.Lookup l;
         private Quoted q;
 
-        Session computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
+        SessionWithReturnType computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
             try {
                 this.l = l;
                 this.q = q;
@@ -123,7 +129,7 @@ public final class OnnxRuntime {
         }
 
         @Override
-        protected Session computeValue(Class<?> type) {
+        protected SessionWithReturnType computeValue(Class<?> type) {
             OnnxTransformer.ModuleAndInitializers mi = OnnxTransformer.transform(l, q);
 
             String domainName = type.getSimpleName().split("\\$")[0];
@@ -139,9 +145,11 @@ public final class OnnxRuntime {
                 } catch (IOException _) {}
             }
 
-            return getInstance().createSession(
-                    Arena.ofAuto(), // cached session must be created under its own auto arena
-                    protobufModel);
+            return new SessionWithReturnType(
+                    getInstance().createSession(
+                            Arena.ofAuto(), // cached session must be created under its own auto arena
+                            protobufModel),
+                    mi.module().functionTable().lastEntry().getValue().invokableType().returnType());
 
         }
     }
@@ -168,7 +176,14 @@ public final class OnnxRuntime {
                     throw new IllegalStateException(e);
                 }
             }
-            default -> {}
+            // @@@ constant array last object must be consumed or the statically detected size and the actual size missmatch
+            case Object[] os -> {
+                for (var o : os) {
+                    expandArg(o, args);
+                }
+            }
+            default -> {
+            }
         }
     }
 
@@ -180,17 +195,22 @@ public final class OnnxRuntime {
         List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
                 .mapMulti(OnnxRuntime::expandArg)
                 .toList();
-        List<Tensor> ret = model.run(arena, arguments);
+        List<Tensor> ret = model.session().run(arena, arguments);
 
-        ClassType retType = ((ClassType)((JavaOp.LambdaOp)q.op()).invokableType().returnType()).rawType();
+        var lambdaOp = ((JavaOp.LambdaOp)q.op());
+        TypeElement type = lambdaOp.invokableType().returnType();
+        if (type instanceof ArrayType) {
+            return (T)ret.toArray(Tensor[]::new);
+        }
+        ClassType retType = ((ClassType)type).rawType();
         if (retType.equals(TENSOR_RAW_TYPE)) {
             return (T)ret.getFirst();
         } else if(retType.equals(LIST_RAW_TYPE)) {
             return (T)ret;
-        } else if(getRecordConstructor(l, retType) instanceof Constructor recordConstructor) {
+        } else if(getRecordClass(l, retType) instanceof Class cls) {
             try {
-                return (T)recordConstructor.newInstance(ret.toArray());
-            } catch (Exception e) {
+                return (T)cls.getConstructors()[0].newInstance(unflat(ret, (TupleType)model.returnType()));
+            } catch (ReflectiveOperationException e) {
                 throw new IllegalStateException(e);
             }
         } else {
@@ -198,11 +218,21 @@ public final class OnnxRuntime {
         }
     }
 
-    static Constructor getRecordConstructor(MethodHandles.Lookup l, ClassType ct) {
+    static Object[] unflat(List<Tensor> values, TupleType returnTupleType) {
+        var returnTypes = returnTupleType.componentTypes();
+        Object[] ret = new Object[returnTypes.size()];
+        for (int i = 0, j = 0; i < ret.length; i++) {
+            ret[i] = returnTypes.get(i) instanceof TupleType tt ? values.subList(j, j += tt.componentTypes().size()).toArray(Tensor[]::new) : values.get(j++);
+        }
+        return ret;
+    }
+
+
+    static Class getRecordClass(MethodHandles.Lookup l, ClassType ct) {
         try {
             var t = ct.resolve(l);
             while (t instanceof ParameterizedType pt) t = pt.getRawType();
-            if (t instanceof Class c && c.isRecord()) return c.getConstructors()[0];
+            if (t instanceof Class c && c.isRecord()) return c;
         } catch (ReflectiveOperationException _) {
         }
         return null;

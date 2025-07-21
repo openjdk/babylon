@@ -41,6 +41,7 @@ questions.
         </dependency>
     </dependencies>
     <modules>
+        <module>shared</module>
         <module>blackscholes</module>
         <module>mandel</module>
         <module>heal</module>
@@ -48,6 +49,7 @@ questions.
         <module>squares</module>
         <module>matmul</module>
         <module>life</module>
+        <module>experiments</module>
     </modules>
     <profiles>
         <profile>

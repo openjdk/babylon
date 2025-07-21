@@ -26,10 +26,10 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+import jdk.incubator.code.extern.ExternalizedOp;
+import jdk.incubator.code.extern.OpFactory;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.ArrayList;
@@ -38,8 +38,8 @@ import java.util.function.Consumer;
 
 public class SCFOps {
 
-    @OpFactory.OpDeclaration(ForOp.NAME)
-    public static final class ForOp extends ExternalizableOp implements Op.Loop {
+    @OpFactoryHelper.OpDeclaration(ForOp.NAME)
+    public static final class ForOp extends Op implements Op.Loop {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -70,7 +70,7 @@ public class SCFOps {
         final Body body;
 
         public ForOp(ExternalizedOp def) {
-            super(def);
+            super(def.name(), def.operands());;
 
             this.body = def.bodyDefinitions().get(0).build(this);
         }
@@ -108,12 +108,12 @@ public class SCFOps {
         }
     }
 
-    @OpFactory.OpDeclaration(YieldOp.NAME)
-    public static class YieldOp extends ExternalizableOp implements Op.Terminating {
+    @OpFactoryHelper.OpDeclaration(YieldOp.NAME)
+    public static class YieldOp extends Op implements Op.Terminating {
         public static final String NAME = "scf.yield";
 
         public YieldOp(ExternalizedOp def) {
-            super(def);
+            super(def.name(), def.operands());
         }
 
         YieldOp(YieldOp that, CopyContext cc) {
@@ -138,7 +138,7 @@ public class SCFOps {
             if (values.size() == 1) {
                 return values.get(0).type();
             } else {
-                return TupleType.tupleTypeFromValues(values);
+                return CoreType.tupleTypeFromValues(values);
             }
         }
     }
@@ -148,12 +148,12 @@ public class SCFOps {
                                      List<Value> iterValues) {
         TypeElement yieldType = (iterValues.size() == 1)
                 ? iterValues.get(0).type()
-                : TupleType.tupleTypeFromValues(iterValues);
+                : CoreType.tupleTypeFromValues(iterValues);
 
         List<TypeElement> bodyParameterTypes = new ArrayList<>();
         bodyParameterTypes.add(start.type());
         bodyParameterTypes.addAll(iterValues.stream().map(Value::type).toList());
-        FunctionType bodyType = FunctionType.functionType(yieldType, bodyParameterTypes);
+        FunctionType bodyType = CoreType.functionType(yieldType, bodyParameterTypes);
 
         List<Value> operands = new ArrayList<>();
         operands.addAll(List.of(start, end, step));
@@ -162,7 +162,7 @@ public class SCFOps {
     }
 
 
-    public static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(SCFOps.class);
+    public static final OpFactory OP_FACTORY = OpFactoryHelper.OP_FACTORY.get(SCFOps.class);
 
     static public YieldOp yield_(Value... values) {
         return yield_(List.of(values));

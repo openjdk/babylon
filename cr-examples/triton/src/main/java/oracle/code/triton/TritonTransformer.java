@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
 
 public final class TritonTransformer {
@@ -190,7 +190,7 @@ public final class TritonTransformer {
                     TypeElement t = checkWithTypeInterpreter(op, iop.invokeDescriptor().name(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
-                case JavaOp.JavaForOp fop -> {
+                case JavaOp.ForOp fop -> {
                     SimpleCountedForLoopInfo li = new SimpleCountedForLoopInfo(fop);
                     opData.put(fop, li);
 
@@ -205,9 +205,9 @@ public final class TritonTransformer {
                 }
                 case TestOperation _ -> {
                 }
-                case JavaOp.JavaContinueOp _ -> {
+                case JavaOp.ContinueOp _ -> {
                 }
-                case YieldOp _ -> {
+                case CoreOp.YieldOp _ -> {
                 }
                 case ReturnOp _ -> {
                 }
@@ -658,7 +658,7 @@ public final class TritonTransformer {
                     cc.mapValue(op.result(), result);
                 }
             }
-            case JavaOp.JavaForOp fop -> {
+            case JavaOp.ForOp fop -> {
                 transformToSCFFor(cc, kblock, fop, valueTypeMap, opData, fsymTable);
             }
             case ReturnOp rop -> {
@@ -674,7 +674,7 @@ public final class TritonTransformer {
         return kblock;
     }
 
-    static void transformToSCFFor(CopyContext cc, Block.Builder kblock, JavaOp.JavaForOp fop,
+    static void transformToSCFFor(CopyContext cc, Block.Builder kblock, JavaOp.ForOp fop,
                                   Map<Value, TypeElement> valueTypeMap, Map<Op, Object> opData,
                                   Map<String, TritonOps.FuncOp> fsymTable) {
         Body body = fop.loopBody();
@@ -745,7 +745,7 @@ public final class TritonTransformer {
                     // Transform the Java for body into the SCF for body
                     builder.transformBody(body, List.of(), (block, op) -> {
                         // Yield iter values
-                        if (op instanceof JavaOp.JavaContinueOp) {
+                        if (op instanceof JavaOp.ContinueOp) {
                             // Replace with yield of loaded vars
                             List<Value> yieldValues = new ArrayList<>();
                             for (Value value : capturedAndStoredVars) {
@@ -808,7 +808,7 @@ public final class TritonTransformer {
 
                 if (op instanceof VarAccessOp) {
                     Value v = op.operands().get(0);
-                    if (!bodyStack.contains(v.declaringBlock().parentBody())) {
+                    if (!bodyStack.contains(v.declaringBlock().ancestorBody())) {
                         if (op instanceof VarAccessOp.VarStoreOp) {
                             capturedVars.get(true).add(v);
                             capturedVars.get(false).remove(v);

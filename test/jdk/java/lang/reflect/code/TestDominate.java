@@ -22,15 +22,16 @@
  */
 
 import jdk.incubator.code.Body;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.extern.OpParser;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -38,7 +39,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.core.CoreOp.return_;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
 import static jdk.incubator.code.dialect.core.CoreOp.conditionalBranch;
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
@@ -54,7 +55,7 @@ public class TestDominate {
 
     @Test
     public void testUnmodifiableIdoms() {
-        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", CoreType.FUNCTION_TYPE_VOID).body(entry -> {
             Block.Builder ifBlock = entry.block();
             Block.Builder elseBlock = entry.block();
             Block.Builder end = entry.block();
@@ -66,7 +67,7 @@ public class TestDominate {
 
             elseBlock.op(branch(end.successor()));
 
-            end.op(_return());
+            end.op(CoreOp.return_());
         });
 
         Map<Block, Block> idoms = f.body().immediateDominators();
@@ -84,7 +85,7 @@ public class TestDominate {
 
     @Test
     public void testIfElse() {
-        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", CoreType.FUNCTION_TYPE_VOID).body(entry -> {
             Block.Builder ifBlock = entry.block();
             Block.Builder elseBlock = entry.block();
             Block.Builder end = entry.block();
@@ -96,7 +97,7 @@ public class TestDominate {
 
             elseBlock.op(branch(end.successor()));
 
-            end.op(_return());
+            end.op(CoreOp.return_());
         });
 
         boolean[][] bvs = new boolean[][]{
@@ -111,7 +112,7 @@ public class TestDominate {
 
     @Test
     public void testForwardSuccessors() {
-        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", CoreType.FUNCTION_TYPE_VOID).body(entry -> {
             Block.Builder b1 = entry.block();
             Block.Builder b2 = entry.block();
             Block.Builder b3 = entry.block();
@@ -125,14 +126,14 @@ public class TestDominate {
 
             b2.op(conditionalBranch(p, b5.successor(), b1.successor()));
 
-            b5.op(_return());
+            b5.op(CoreOp.return_());
 
             b3.op(branch(b1.successor()));
 
-            b1.op(_return());
+            b1.op(CoreOp.return_());
         });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
         boolean[][] bvs = new boolean[][]{
                 {true, false, false, false, false, false},
                 {true, true, false, false, false, false},
@@ -147,7 +148,7 @@ public class TestDominate {
 
     @Test
     public void testBackbranch() {
-        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", CoreType.FUNCTION_TYPE_VOID).body(entry -> {
             Block.Builder cond = entry.block();
             Block.Builder body = entry.block();
             Block.Builder update = entry.block();
@@ -162,7 +163,7 @@ public class TestDominate {
 
             update.op(branch(cond.successor()));
 
-            end.op(_return());
+            end.op(CoreOp.return_());
 
         });
 
@@ -190,7 +191,7 @@ public class TestDominate {
 
     @Test
     public void testImmediateDominators() {
-        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", CoreType.FUNCTION_TYPE_VOID).body(entry -> {
             Block.Builder b6 = entry.block();
             Block.Builder b5 = entry.block();
             Block.Builder b4 = entry.block();
@@ -213,7 +214,7 @@ public class TestDominate {
 
             b3.op(branch(b2.successor()));
         });
-        f.writeTo(System.out);
+        System.out.println(f.toText());
         Map<Block, Block> idoms = f.body().immediateDominators();
         System.out.println(idoms);
 
@@ -231,7 +232,7 @@ public class TestDominate {
 
     @Test
     public void testCytronExample() {
-        CoreOp.FuncOp f = func("f", FunctionType.VOID).body(entry -> {
+        CoreOp.FuncOp f = func("f", CoreType.FUNCTION_TYPE_VOID).body(entry -> {
             Block.Builder exit = entry.block();
             Block.Builder b12 = entry.block();
             Block.Builder b11 = entry.block();
@@ -274,10 +275,10 @@ public class TestDominate {
 
             b12.op(conditionalBranch(p, exit.successor(), b2.successor()));
 
-            exit.op(_return());
+            exit.op(CoreOp.return_());
         });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Map<Block, Block> idoms = f.body().immediateDominators();
         Node<String> domTree = buildDomTree(f.body().entryBlock(), idoms).transform(b -> Integer.toString(b.index()));

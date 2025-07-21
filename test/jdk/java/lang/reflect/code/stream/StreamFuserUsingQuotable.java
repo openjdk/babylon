@@ -22,17 +22,18 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.Inliner;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaOp.JavaEnhancedForOp;
+import jdk.incubator.code.dialect.java.JavaOp.EnhancedForOp;
 import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.*;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.java.JavaOp._continue;
+import static jdk.incubator.code.dialect.java.JavaOp.continue_;
 import static jdk.incubator.code.dialect.java.JavaOp.enhancedFor;
 import static jdk.incubator.code.dialect.java.JavaType.parameterized;
 import static jdk.incubator.code.dialect.java.JavaType.type;
@@ -117,14 +118,14 @@ public final class StreamFuserUsingQuotable {
             this.streamOps = new ArrayList<>();
         }
 
-        static JavaEnhancedForOp.BodyBuilder enhancedForLoop(Body.Builder ancestorBody, JavaType elementType,
-                                                             Value iterable) {
+        static EnhancedForOp.BodyBuilder enhancedForLoop(Body.Builder ancestorBody, JavaType elementType,
+                                                         Value iterable) {
             return enhancedFor(ancestorBody, iterable.type(), elementType)
                     .expression(b -> {
-                        b.op(_yield(iterable));
+                        b.op(core_yield(iterable));
                     })
                     .definition(b -> {
-                        b.op(_yield(b.parameters().get(0)));
+                        b.op(core_yield(b.parameters().get(0)));
                     });
         }
 
@@ -158,16 +159,16 @@ public final class StreamFuserUsingQuotable {
 
             StreamOp sop = streamOps.get(i);
             if (sop instanceof MapStreamOp) {
-                body.inline(sop.op(), List.of(element), (block, value) -> {
+                Inliner.inline(body, sop.op(), List.of(element), (block, value) -> {
                     fuseIntermediateOperation(i + 1, block, value, continueBlock, terminalConsumer);
                 });
             } else if (sop instanceof FilterStreamOp) {
-                body.inline(sop.op(), List.of(element), (block, p) -> {
+                Inliner.inline(body, sop.op(), List.of(element), (block, p) -> {
                     Block.Builder _if = block.block();
                     Block.Builder _else = continueBlock;
                     if (continueBlock == null) {
                         _else = block.block();
-                        _else.op(_continue());
+                        _else.op(JavaOp.continue_());
                     }
 
                     block.op(conditionalBranch(p, _if.successor(), _else.successor()));
@@ -175,14 +176,14 @@ public final class StreamFuserUsingQuotable {
                     fuseIntermediateOperation(i + 1, _if, element, _else, terminalConsumer);
                 });
             } else if (sop instanceof FlatMapStreamOp) {
-                body.inline(sop.op(), List.of(element), (block, iterable) -> {
-                    JavaEnhancedForOp forOp = enhancedFor(block.parentBody(),
+                Inliner.inline(body, sop.op(), List.of(element), (block, iterable) -> {
+                    EnhancedForOp forOp = enhancedFor(block.parentBody(),
                             iterable.type(), ((ClassType) iterable.type()).typeArguments().get(0))
                             .expression(b -> {
-                                b.op(_yield(iterable));
+                                b.op(core_yield(iterable));
                             })
                             .definition(b -> {
-                                b.op(_yield(b.parameters().get(0)));
+                                b.op(core_yield(b.parameters().get(0)));
                             })
                             .body(b -> {
                                 fuseIntermediateOperation(i + 1,
@@ -192,7 +193,7 @@ public final class StreamFuserUsingQuotable {
                             });
 
                     block.op(forOp);
-                    block.op(_continue());
+                    block.op(JavaOp.continue_());
                 });
             }
         }
@@ -205,22 +206,22 @@ public final class StreamFuserUsingQuotable {
                 throw new IllegalArgumentException("Quotable consumer captures values");
             }
 
-            return func("fused.forEach", FunctionType.functionType(JavaType.VOID, sourceType))
+            return func("fused.forEach", CoreType.functionType(JavaType.VOID, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);
 
                         Op sourceLoop = loopSupplier.apply(b.parentBody(), source)
                                 .apply(loopBlock -> {
                                     fuseIntermediateOperations(loopBlock, (terminalBlock, resultValue) -> {
-                                        terminalBlock.inline(consumer, List.of(resultValue),
+                                        Inliner.inline(terminalBlock, consumer, List.of(resultValue),
                                                 (_, _) -> {
                                                 });
-                                        terminalBlock.op(_continue());
+                                        terminalBlock.op(JavaOp.continue_());
                                     });
 
                                 });
                         b.op(sourceLoop);
-                        b.op(_return());
+                        b.op(return_());
                     });
         }
 
@@ -239,22 +240,22 @@ public final class StreamFuserUsingQuotable {
             }
 
             JavaType collectType = (JavaType) supplier.invokableType().returnType();
-            return func("fused.collect", FunctionType.functionType(collectType, sourceType))
+            return func("fused.collect", CoreType.functionType(collectType, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);
 
-                        b.inline(supplier, List.of(), (block, collect) -> {
+                        Inliner.inline(b, supplier, List.of(), (block, collect) -> {
                             Op sourceLoop = loopSupplier.apply(block.parentBody(), source)
                                     .apply(loopBlock -> {
                                         fuseIntermediateOperations(loopBlock, (terminalBlock, resultValue) -> {
-                                            terminalBlock.inline(accumulator, List.of(collect, resultValue),
+                                            Inliner.inline(terminalBlock, accumulator, List.of(collect, resultValue),
                                                     (_, _) -> {
                                                     });
-                                            terminalBlock.op(_continue());
+                                            terminalBlock.op(JavaOp.continue_());
                                         });
                                     });
                             block.op(sourceLoop);
-                            block.op(_return(collect));
+                            block.op(return_(collect));
                         });
                     });
         }

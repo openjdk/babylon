@@ -26,7 +26,7 @@ questions.
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
     <groupId>oracle.code</groupId>
-    <artifactId>hat-jextracted-opencl</artifactId>
+    <artifactId>hat-extraction-opencl</artifactId>
     <version>1.0</version>
     <parent>
         <groupId>oracle.code</groupId>
@@ -35,44 +35,6 @@ questions.
     </parent>
     <build>
         <plugins>
-           <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>exec-maven-plugin</artifactId>
-              <version>3.1.0</version>
-              <executions>
-                 <execution>
-                   <id>cmake-B</id>
-                   <phase>generate-sources</phase>
-                   <goals>
-                      <goal>exec</goal>
-                   </goals>
-                   <configuration>
-                     <executable>cmake</executable>
-                     <arguments>
-                        <argument>-DHAT_TARGET=${hat.build}</argument>
-                        <argument>-B</argument>
-                        <argument>${hat.build}/extract-opencl-cmake-build-debug</argument>
-                     </arguments>
-                   </configuration>
-                </execution>
-                <execution>
-                   <id>cmake--build</id>
-                   <phase>generate-sources</phase>
-                   <goals>
-                      <goal>exec</goal>
-                   </goals>
-                   <configuration>
-                      <executable>cmake</executable>
-                      <arguments>
-                         <argument>--build</argument>
-                         <argument>${hat.build}/extract-opencl-cmake-build-debug</argument>
-                         <argument>--target</argument>
-                         <argument>extract_opencl</argument>
-                      </arguments>
-                   </configuration>
-                </execution>
-             </executions>
-          </plugin>
           <plugin>
              <groupId>org.apache.maven.plugins</groupId>
              <artifactId>maven-antrun-plugin</artifactId>
@@ -86,7 +48,7 @@ questions.
                    </goals>
                    <configuration>
                        <target>
-                          <copy file="target/${project.artifactId}-${project.version}.jar" toDir="${hat.build}"/>
+                          <copy file="target/${project.artifactId}-${project.version}.jar" toFile="${hat.build}/${project.artifactId}-${project.version}.jar"/>
                        </target>
                     </configuration>
                 </execution>

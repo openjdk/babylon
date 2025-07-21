@@ -25,20 +25,17 @@
 package jdk.incubator.code.bytecode;
 
 import java.lang.classfile.TypeKind;
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
+
+import jdk.incubator.code.*;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-import java.util.Collections;
-import java.util.HashMap;
+import jdk.incubator.code.internal.OpDeclaration;
+
 import java.util.List;
 import java.util.Map;
 
-sealed abstract class SlotOp extends ExternalizableOp {
+sealed abstract class SlotOp extends Op {
     public static final String ATTRIBUTE_SLOT = "slot";
 
     public static SlotLoadOp load(int slot, TypeKind tk) {
@@ -68,17 +65,6 @@ sealed abstract class SlotOp extends ExternalizableOp {
         this.slot = slot;
     }
 
-    protected SlotOp(ExternalizedOp def) {
-        super(def);
-
-        this.slot = def.extractAttributeValue(ATTRIBUTE_SLOT, true,
-                v -> switch (v) {
-                    case String s -> Integer.parseInt(s);
-                    case Integer i -> i;
-                    default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
-                });
-    }
-
     public int slot() {
         return slot;
     }
@@ -86,26 +72,24 @@ sealed abstract class SlotOp extends ExternalizableOp {
     public abstract TypeKind typeKind();
 
     @Override
-    public Map<String, Object> attributes() {
-        HashMap<String, Object> m = new HashMap<>(super.attributes());
-        m.put("", slot);
-        return Collections.unmodifiableMap(m);
+    public Map<String, Object> externalize() {
+        return Map.of("", slot);
     }
 
-    @OpFactory.OpDeclaration(SlotLoadOp.NAME)
+    @OpDeclaration(SlotLoadOp.NAME)
     public static final class SlotLoadOp extends SlotOp {
         public static final String NAME = "slot.load";
 
         final TypeElement resultType;
 
-        public SlotLoadOp(ExternalizedOp opdef) {
-            super(opdef);
-
-            if (opdef.operands().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one operand");
-            }
-
-            this.resultType = opdef.resultType();
+        public SlotLoadOp(ExternalizedOp def) {
+            int slot = def.extractAttributeValue(ATTRIBUTE_SLOT, true,
+                    v -> switch (v) {
+                        case String s -> Integer.parseInt(s);
+                        case Integer i -> i;
+                        default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
+                    });
+            this(slot, def.resultType());
         }
 
         SlotLoadOp(SlotLoadOp that, CopyContext cc) {
@@ -135,20 +119,22 @@ sealed abstract class SlotOp extends ExternalizableOp {
 
         @Override
         public String toString() {
-            return "block_" + parentBlock().index() + " " + parentBlock().ops().indexOf(this) + ": #" + slot + " LOAD " + typeKind();
+            return "block_" + ancestorBlock().index() + " " + ancestorBlock().ops().indexOf(this) + ": #" + slot + " LOAD " + typeKind();
         }
     }
 
-    @OpFactory.OpDeclaration(SlotStoreOp.NAME)
+    @OpDeclaration(SlotStoreOp.NAME)
     public static final class SlotStoreOp extends SlotOp {
         public static final String NAME = "slot.store";
 
-        public SlotStoreOp(ExternalizedOp opdef) {
-            super(opdef);
-
-            if (opdef.operands().size() != 2) {
-                throw new IllegalArgumentException("Operation must have two operands");
-            }
+        public SlotStoreOp(ExternalizedOp def) {
+            int slot = def.extractAttributeValue(ATTRIBUTE_SLOT, true,
+                    v -> switch (v) {
+                        case String s -> Integer.parseInt(s);
+                        case Integer i -> i;
+                        default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
+                    });
+            this(slot, def.operands().getFirst());
         }
 
         SlotStoreOp(SlotStoreOp that, CopyContext cc) {
@@ -176,7 +162,7 @@ sealed abstract class SlotOp extends ExternalizableOp {
 
         @Override
         public String toString() {
-            return "block_" + parentBlock().index() + " " + parentBlock().ops().indexOf(this) + ": #" + slot + " STORE " + typeKind();
+            return "block_" + ancestorBlock().index() + " " + ancestorBlock().ops().indexOf(this) + ": #" + slot + " STORE " + typeKind();
         }
     }
 

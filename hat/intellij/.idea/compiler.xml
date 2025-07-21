@@ -3,20 +3,20 @@
   <component name="CompilerConfiguration">
     <option name="USE_RELEASE_OPTION" value="false" />
     <excludeFromCompile>
-      <file url="file://$PROJECT_DIR$/../wrap/glwrap/src/main/java/wrap/glwrap/GLCallbackEventHandler.java" />
+      <file url="file://$PROJECT_DIR$/../wraps/opengl/src/main/java/wrap/opengl/GLCallbackEventHandler.java" />
     </excludeFromCompile>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_STRING" value="--add-modules=jdk.incubator.code --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="glwrap" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
+      <module name="core" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
+      <module name="example_heal" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
+      <module name="example_life" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
+      <module name="example_mandel" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
+      <module name="example_nbody" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
+      <module name="example_violajones" options="--add-modules=jdk.incubator.code,java.desktop,java.xml --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
       <module name="hat" options="--add-modules=jdk.incubator.code,java.compiler,java.xml --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
-      <module name="hat-core" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
-      <module name="heal" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
-      <module name="life" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
-      <module name="mandel" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
-      <module name="nbody" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
-      <module name="violajones" options="--add-modules=jdk.incubator.code,java.desktop,java.xml --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
+      <module name="tools" options="--add-modules=jdk.incubator.code,java.desktop --add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports=java.base/jdk.internal=ALL-UNNAMED" />
     </option>
   </component>
 </project>

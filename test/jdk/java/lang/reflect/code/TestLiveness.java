@@ -36,9 +36,8 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.Liveness;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +56,7 @@ public class TestLiveness {
 
     @Test
     public void testF() {
-        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, F).getFirst();
+        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, F).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -89,7 +88,7 @@ public class TestLiveness {
 
     @Test
     public void testIfElse() {
-        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, IF_ELSE).getFirst();
+        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, IF_ELSE).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -127,7 +126,7 @@ public class TestLiveness {
 
     @Test
     public void testLoop() {
-        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, LOOP).getFirst();
+        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, LOOP).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -196,7 +195,7 @@ public class TestLiveness {
 
     @Test
     public void testIfElseNested() {
-        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, IF_ELSE_NESTED).getFirst();
+        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, IF_ELSE_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -257,7 +256,7 @@ public class TestLiveness {
 
     @Test
     public void testLoopNested() {
-        Op op = OpParser.fromString(JavaOp.DIALECT_FACTORY, LOOP_NESTED).getFirst();
+        Op op = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, LOOP_NESTED).getFirst();
 
         var actual = liveness(op);
         var expected = Map.of(
@@ -283,7 +282,7 @@ public class TestLiveness {
 
         return op.traverse(new HashMap<>(),
                 CodeElement.blockVisitor((m, b) -> {
-                    if (b.parentBody().parentOp() == op) {
+                    if (b.ancestorOp() == op) {
                         Liveness.BlockInfo lbi = l.getLiveness(b);
                         m.put(blockMap.get(b),
                                 List.of(
@@ -298,7 +297,7 @@ public class TestLiveness {
     static Map<Block, Integer> blockNameMapping(Op top) {
         AtomicInteger i = new AtomicInteger();
         return top.traverse(new HashMap<>(), CodeElement.blockVisitor((m, b) -> {
-            if (b.parentBody().parentOp() != top) {
+            if (b.ancestorOp() != top) {
                 return m;
             }
 

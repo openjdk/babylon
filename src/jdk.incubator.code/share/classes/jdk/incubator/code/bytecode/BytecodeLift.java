@@ -26,6 +26,7 @@
 package jdk.incubator.code.bytecode;
 
 import jdk.incubator.code.bytecode.impl.BytecodeHelpers;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
@@ -289,15 +290,15 @@ public final class BytecodeLift {
                     liftSwitch(si.defaultTarget(), si.cases());
                 }
                 case ReturnInstruction inst when inst.typeKind() == TypeKind.VOID -> {
-                    op(CoreOp._return());
+                    op(CoreOp.return_());
                     endOfFlow();
                 }
                 case ReturnInstruction _ -> {
-                    op(CoreOp._return(stack.pop()));
+                    op(CoreOp.return_(stack.pop()));
                     endOfFlow();
                 }
                 case ThrowInstruction _ -> {
-                    op(JavaOp._throw(stack.pop()));
+                    op(JavaOp.throw_(stack.pop()));
                     endOfFlow();
                 }
                 case LoadInstruction inst -> {
@@ -432,7 +433,7 @@ public final class BytecodeLift {
                         case INVOKESPECIAL -> {
                             if (inst.owner().asSymbol().equals(newStack.peek()) && inst.name().equalsString(ConstantDescs.INIT_NAME)) {
                                 newStack.pop();
-                                yield op(JavaOp._new(
+                                yield op(JavaOp.new_(
                                         ConstructorRef.constructor(
                                                 mDesc.refType(),
                                                 mType.parameterTypes()),
@@ -468,7 +469,7 @@ public final class BytecodeLift {
                         if (capturedValues.length > 0) {
                             mt = mt.dropParameterTypes(0, capturedValues.length);
                         }
-                        FunctionType lambdaFunc = FunctionType.functionType(JavaType.type(mt.returnType()),
+                        FunctionType lambdaFunc = CoreType.functionType(JavaType.type(mt.returnType()),
                                                                             mt.parameterList().stream().map(JavaType::type).toList());
                         JavaOp.LambdaOp.Builder lambda = JavaOp.lambda(currentBlock.parentBody(),
                                                                        lambdaFunc,
@@ -489,7 +490,7 @@ public final class BytecodeLift {
                                                          lambdaFunc.returnType(),
                                                          lambdaFunc.parameterTypes()),
                                         Stream.concat(Arrays.stream(capturedValues), eb.parameters().stream()).toArray(Value[]::new)));
-                                eb.op(ret.type().equals(JavaType.VOID) ? CoreOp._return() : CoreOp._return(ret));
+                                eb.op(ret.type().equals(JavaType.VOID) ? CoreOp.return_() : CoreOp.return_(ret));
                             })));
                         }
                     } else if (bsmOwner.equals(CD_StringConcatFactory)) {
@@ -585,7 +586,7 @@ public final class BytecodeLift {
                             stack.pop())));
                 }
                 case NewMultiArrayInstruction inst -> {
-                    stack.push(op(JavaOp._new(
+                    stack.push(op(JavaOp.new_(
                             ConstructorRef.constructor(
                                     JavaType.type(inst.arrayType().asSymbol()),
                                     Collections.nCopies(inst.dimensions(), JavaType.INT)),

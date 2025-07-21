@@ -26,7 +26,7 @@
 package hat.backend.jextracted;
 
 import hat.NDRange;
-import hat.backend.codebuilders.C99HATKernelBuilder;
+import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
 import hat.buffer.KernelContext;

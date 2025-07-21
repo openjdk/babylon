@@ -27,6 +27,7 @@
  * @run testng TestCopy
  */
 
+import jdk.incubator.code.extern.ExternalizedOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -34,7 +35,6 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;
@@ -61,8 +61,8 @@ public class TestCopy {
     public void testCopyWithDefinition() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        ExternalizableOp.ExternalizedOp odef = ExternalizableOp.ExternalizedOp.externalizeOp(CopyContext.create(), f);
-        Op copy = CoreOp.OP_FACTORY.constructOp(odef);
+        ExternalizedOp odef = ExternalizedOp.externalizeOp(CopyContext.create(), f);
+        Op copy = CoreOp.CORE_OP_FACTORY.constructOp(odef);
 
         Assert.assertEquals(f.toText(), copy.toText());
     }

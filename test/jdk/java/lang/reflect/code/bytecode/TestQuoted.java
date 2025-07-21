@@ -30,6 +30,7 @@ import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 
@@ -55,11 +56,11 @@ public class TestQuoted {
     }
 
     static <O extends Op & Op.Invokable> MethodHandle generate(O f) {
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         @SuppressWarnings("unchecked")
         O lf = (O) f.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), lf);
     }

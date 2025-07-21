@@ -33,6 +33,8 @@
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.CodeReflection;
 
+import java.util.List;
+
 public class QuotedTest {
     @IR("""
             func @"f" ()java.type:"void" -> {
@@ -185,5 +187,38 @@ public class QuotedTest {
             """)
     void captureField() {
         Quoted op = (int z) -> x + y + z;
+    }
+
+    @CodeReflection
+    @IR("""
+            func @"upwardNonDenotableReturn" (%0 : java.type:"QuotedTest")java.type:"void" -> {
+                %1 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+                    %2 : func<java.type:"java.util.List<? extends java.io.Serializable>", java.type:"boolean", java.type:"java.util.List<java.lang.String>", java.type:"java.util.List<java.lang.Integer>"> = closure (%3 : java.type:"boolean", %4 : java.type:"java.util.List<java.lang.String>", %5 : java.type:"java.util.List<java.lang.Integer>")java.type:"java.util.List<? extends java.io.Serializable>" -> {
+                        %6 : Var<java.type:"boolean"> = var %3 @"cond";
+                        %7 : Var<java.type:"java.util.List<java.lang.String>"> = var %4 @"ls";
+                        %8 : Var<java.type:"java.util.List<java.lang.Integer>"> = var %5 @"li";
+                        %9 : java.type:"java.util.List<? extends java.io.Serializable>" = java.cexpression
+                            ()java.type:"boolean" -> {
+                                %10 : java.type:"boolean" = var.load %6;
+                                yield %10;
+                            }
+                            ()java.type:"java.util.List<? extends java.io.Serializable>" -> {
+                                %11 : java.type:"java.util.List<java.lang.String>" = var.load %7;
+                                yield %11;
+                            }
+                            ()java.type:"java.util.List<? extends java.io.Serializable>" -> {
+                                %12 : java.type:"java.util.List<java.lang.Integer>" = var.load %8;
+                                yield %12;
+                            };
+                        return %9;
+                    };
+                    yield %2;
+                };
+                %13 : Var<java.type:"jdk.incubator.code.Quoted"> = var %1 @"op";
+                return;
+            };
+            """)
+    void upwardNonDenotableReturn() {
+        Quoted op = (boolean cond, List<String> ls, List<Integer> li) -> cond ? ls : li;
     }
 }

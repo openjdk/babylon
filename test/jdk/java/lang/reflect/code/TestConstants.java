@@ -162,7 +162,7 @@ public class TestConstants {
         for (Method m : ms) {
             CoreOp.FuncOp f = Op.ofMethod(m).get();
 
-            f.writeTo(System.out);
+            System.out.println(f.toText());
 
             Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), m.invoke(null));
         }
@@ -181,11 +181,11 @@ public class TestConstants {
     public void testCompareNull() {
         CoreOp.FuncOp f = getFuncOp("compareNull");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, (Object) null), compareNull(null));
     }

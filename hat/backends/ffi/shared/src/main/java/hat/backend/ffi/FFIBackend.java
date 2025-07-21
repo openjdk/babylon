@@ -83,7 +83,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
             } catch (Throwable e) {
-                computeContext.computeCallGraph.entrypoint.lowered.op().writeTo(System.out);
+                System.out.println(computeContext.computeCallGraph.entrypoint.lowered.op().toText());
                 throw new RuntimeException(e);
             }
         }
@@ -159,7 +159,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
         if (config.isSHOW_COMPUTE_MODEL()) {
             if (config.isSHOW_COMPUTE_MODEL()) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
-                returnFOW.op().writeTo(System.out);
+                System.out.println(returnFOW.op().toText());
             }
             returnFOW = prevFOW.transformInvokes((bldr, invokeOW) -> {
                 CopyContext bldrCntxt = bldr.context();
@@ -229,12 +229,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
             });
             if (config.isSHOW_COMPUTE_MODEL()) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
-                returnFOW.op().writeTo(System.out);
+                System.out.println(returnFOW.op().toText());
             }
         }else{
             if (config.isSHOW_COMPUTE_MODEL()) {
                 System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
-                returnFOW.op().writeTo(System.out);
+                System.out.println(returnFOW.op().toText());
             }
         }
         computeMethod.funcOpWrapper(returnFOW);

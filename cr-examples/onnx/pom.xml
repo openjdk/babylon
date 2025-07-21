@@ -91,6 +91,14 @@ questions.
                     <showDeprecation>true</showDeprecation>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <commandlineArgs>--add-modules jdk.incubator.code ${exec.args}</commandlineArgs>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

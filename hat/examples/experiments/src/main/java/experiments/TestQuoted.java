@@ -29,8 +29,10 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.MethodRef;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.MethodRef;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +44,7 @@ import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 
 public class TestQuoted {
-    public class TestLambdaMethodRef {
+    public static class TestLambdaMethodRef {
 
         interface QuotableIntUnaryOperator extends IntUnaryOperator, Quotable {
         }
@@ -132,11 +134,11 @@ public class TestQuoted {
 
         static void isMethodRef(Quotable q) {
             Quoted quoted = Op.ofQuotable(q).orElseThrow();;
-            CoreOp.LambdaOp op = (CoreOp.LambdaOp) quoted.op();
+            JavaOp.LambdaOp op = (JavaOp.LambdaOp) quoted.op();
             System.out.println(isMethodRef(op));
         }
 
-        static boolean isMethodRef(CoreOp.LambdaOp lambdaOp) {
+        static boolean isMethodRef(JavaOp.LambdaOp lambdaOp) {
             // Single block
             if (lambdaOp.body().blocks().size() > 1) {
                 return false;
@@ -149,7 +151,7 @@ public class TestQuoted {
             }
 
             Map<Value, Value> valueMapping = new HashMap<>();
-            CoreOp.InvokeOp methodRefInvokeOp = extractMethodInvoke(valueMapping, lambdaOp.body().entryBlock().ops());
+            JavaOp.InvokeOp methodRefInvokeOp = extractMethodInvoke(valueMapping, lambdaOp.body().entryBlock().ops());
             if (methodRefInvokeOp == null) {
                 return false;
             }
@@ -164,8 +166,8 @@ public class TestQuoted {
             return lambdaParameters.equals(methodRefOperands);
         }
 
-        static CoreOp.InvokeOp extractMethodInvoke(Map<Value, Value> valueMapping, List<Op> ops) {
-            CoreOp.InvokeOp methodRefInvokeOp = null;
+        static JavaOp.InvokeOp extractMethodInvoke(Map<Value, Value> valueMapping, List<Op> ops) {
+            JavaOp.InvokeOp methodRefInvokeOp = null;
             for (Op op : ops) {
                 switch (op) {
                     case CoreOp.VarOp varOp -> {
@@ -177,11 +179,11 @@ public class TestQuoted {
                         Value v = varLoadOp.varOp().operands().getFirst();
                         valueMapping.put(varLoadOp.result(), valueMapping.getOrDefault(v, v));
                     }
-                    case CoreOp.InvokeOp iop when isBoxOrUnboxInvocation(iop) -> {
+                    case JavaOp.InvokeOp iop when isBoxOrUnboxInvocation(iop) -> {
                         Value v = iop.operands().getFirst();
                         valueMapping.put(iop.result(), valueMapping.getOrDefault(v, v));
                     }
-                    case CoreOp.InvokeOp iop -> {
+                    case JavaOp.InvokeOp iop -> {
                         if (methodRefInvokeOp != null) {
                             return null;
                         }
@@ -225,7 +227,7 @@ public class TestQuoted {
 
         //    static final Collection<TypeElement> BOX_TYPES = JavaType.primitiveToWrapper.values();
 
-        private static boolean isBoxOrUnboxInvocation(CoreOp.InvokeOp iop) {
+        private static boolean isBoxOrUnboxInvocation(JavaOp.InvokeOp iop) {
             MethodRef mr = iop.invokeDescriptor();
             return false;// BOX_TYPES.contains(mr.refType()) && (UNBOX_NAMES.contains(mr.name()) || mr.name().equals("valueOf"));
         }

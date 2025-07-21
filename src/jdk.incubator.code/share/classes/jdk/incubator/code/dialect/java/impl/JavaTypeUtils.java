@@ -1,11 +1,11 @@
 package jdk.incubator.code.dialect.java.impl;
 
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.TypeElement.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.dialect.java.*;
-import jdk.incubator.code.parser.impl.Lexer;
-import jdk.incubator.code.parser.impl.Scanner;
-import jdk.incubator.code.parser.impl.Tokens;
+import jdk.incubator.code.extern.impl.Lexer;
+import jdk.incubator.code.extern.impl.Scanner;
+import jdk.incubator.code.extern.impl.Tokens;
 import jdk.incubator.code.dialect.java.RecordTypeRef.ComponentRef;
 import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
 

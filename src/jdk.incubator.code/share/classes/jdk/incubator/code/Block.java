@@ -25,15 +25,8 @@
 
 package jdk.incubator.code;
 
-import jdk.incubator.code.dialect.core.CoreOp;
 import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static jdk.incubator.code.dialect.core.CoreOp._return;
-import static jdk.incubator.code.dialect.core.CoreOp.branch;
 
 /**
  * A (basic) block containing an ordered sequence of operations, where the last operation is
@@ -89,7 +82,7 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Op.Invokable invokableOperation() {
             if (declaringBlock().isEntryBlock() &&
-                    declaringBlock().parentBody().parentOp() instanceof Op.Invokable o) {
+                    declaringBlock().ancestorOp() instanceof Op.Invokable o) {
                 return o;
             } else {
                 return null;
@@ -113,7 +106,7 @@ public final class Block implements CodeElement<Block, Op> {
      * When control is passed from a block to a successor block the values of the block reference's arguments are
      * assigned, in order, to the successor block's parameters.
      */
-    public static final class Reference {
+    public static final class Reference implements CodeItem {
         final Block target;
         final List<Value> arguments;
 
@@ -198,15 +191,6 @@ public final class Block implements CodeElement<Block, Op> {
         return parentBody;
     }
 
-    /**
-     * Returns this block's parent body.
-     *
-     * @return this block's parent body.
-     */
-    public Body parentBody() {
-        return parentBody;
-    }
-
     @Override
     public List<Op> children() {
         return ops();
@@ -255,28 +239,6 @@ public final class Block implements CodeElement<Block, Op> {
      */
     public List<TypeElement> parameterTypes() {
         return parameters.stream().map(Value::type).toList();
-    }
-
-    /**
-     * Finds the operation in this block that is the ancestor of the given operation.
-     *
-     * @param op the given operation.
-     * @return the operation in this block that is the ancestor of the given operation,
-     * otherwise {@code null}
-     */
-    public Op findAncestorOpInBlock(Op op) {
-        Objects.requireNonNull(op);
-
-        while (op != null && op.parentBlock() != this) {
-            Body encBody = op.ancestorBody();
-            if (encBody == null) {
-                return null;
-            }
-
-            op = encBody.parentOp();
-        }
-
-        return op;
     }
 
     /**
@@ -341,7 +303,7 @@ public final class Block implements CodeElement<Block, Op> {
      * @apiNote A predecessor block may reference it successor block one or more times.
      */
     public List<Block.Reference> predecessorReferences() {
-        return predecessors.stream().flatMap(p -> successors().stream())
+        return predecessors.stream().flatMap(p -> p.successors().stream())
                 .filter(r -> r.targetBlock() == this)
                 .toList();
     }
@@ -356,8 +318,7 @@ public final class Block implements CodeElement<Block, Op> {
      * state that B is a successor block of A and A is a predecessor block of B.
      */
     public List<Reference> successors() {
-        Op lopr = ops.get(ops.size() - 1);
-        return lopr.successors();
+        return ops.getLast().successors();
     }
 
     /**
@@ -367,13 +328,14 @@ public final class Block implements CodeElement<Block, Op> {
      * {@snippet lang = java:
      * successors().stream()
      *     .map(Block.Reference::targetBlock)
-     *     .toList();
+     *     .collect(Collectors.toCollection(LinkedHashSet::new));
      *}
      *
-     * @return the list of target blocks, as an unmodifiable set.
+     * @return the set of target blocks, as an unmodifiable set.
      */
     public SequencedSet<Block> successorTargets() {
-        return successors().stream().map(Block.Reference::targetBlock).collect(Collectors.toCollection(LinkedHashSet::new));
+        return successors().stream().map(Block.Reference::targetBlock)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
@@ -409,7 +371,7 @@ public final class Block implements CodeElement<Block, Op> {
      */
     // @@@ Should this be reversed and named dominates(Block b)
     public boolean isDominatedBy(Block dom) {
-        Block b = findBlockForDomBody(this, dom.parentBody());
+        Block b = findBlockForDomBody(this, dom.ancestorBody());
         if (b == null) {
             return false;
         }
@@ -420,13 +382,13 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         // The entry block in b's body dominates all other blocks in the body
-        Block entry = b.parentBody().entryBlock();
+        Block entry = b.ancestorBody().entryBlock();
         if (dom == entry) {
             return true;
         }
 
         // Traverse the immediate dominators until dom is reached or the entry block
-        Map<Block, Block> idoms = b.parentBody().immediateDominators();
+        Map<Block, Block> idoms = b.ancestorBody().immediateDominators();
         Block idom = idoms.get(b);
         while (idom != entry) {
             if (idom == dom) {
@@ -449,11 +411,11 @@ public final class Block implements CodeElement<Block, Op> {
      * @return the immediate dominator of this block, otherwise {@code null} if this block is the entry block.
      */
     public Block immediateDominator() {
-        if (this == parentBody().entryBlock()) {
+        if (this == ancestorBody().entryBlock()) {
             return null;
         }
 
-        Map<Block, Block> idoms = parentBody().immediateDominators();
+        Map<Block, Block> idoms = ancestorBody().immediateDominators();
         return idoms.get(this);
     }
 
@@ -468,11 +430,11 @@ public final class Block implements CodeElement<Block, Op> {
      * @return the immediate dominator of this block, otherwise {@code null} if this block is the entry block.
      */
     public Block immediatePostDominator() {
-        if (this == parentBody().entryBlock()) {
+        if (this == ancestorBody().entryBlock()) {
             return null;
         }
 
-        Map<Block, Block> ipdoms = parentBody().immediatePostDominators();
+        Map<Block, Block> ipdoms = ancestorBody().immediatePostDominators();
         Block ipdom = ipdoms.get(this);
         return ipdom == this ? Body.IPDOM_EXIT : ipdom;
     }
@@ -480,16 +442,16 @@ public final class Block implements CodeElement<Block, Op> {
     // @@@ isPostDominatedBy and immediatePostDominator
 
     private static Block findBlockForDomBody(Block b, final Body domr) {
-        Body rb = b.parentBody();
+        Body rb = b.ancestorBody();
         while (domr != rb) {
             // @@@ What if body is isolated
 
-            b = rb.parentOp().parentBlock();
+            b = rb.ancestorBlock();
             // null when op is top-level (and its body is isolated), or not yet assigned to block
             if (b == null) {
                 return null;
             }
-            rb = b.parentBody();
+            rb = b.ancestorBody();
         }
         return b;
     }
@@ -501,7 +463,7 @@ public final class Block implements CodeElement<Block, Op> {
      * is operated on to append a block parameter, append an operation, or add a block, then
      * an {@code IllegalStateException} is thrown.
      */
-    public final class Builder implements Function<Op, Op.Result> {
+    public final class Builder {
         final Body.Builder parentBody;
         final CopyContext cc;
         final OpTransformer ot;
@@ -644,119 +606,6 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * An inline consumer that inserts a return operation with a value, if non-null.
-         */
-        public static final BiConsumer<Block.Builder, Value> INLINE_RETURN = (block, value) -> {
-            block.op(value != null ? _return(value) : _return());
-        };
-
-        /**
-         * Inlines the invokable operation into this block and returns the block builder from which to
-         * continue building.
-         * <p>
-         * This method {@link #transformBody(Body, List, CopyContext, OpTransformer) transforms} the body of the
-         * invokable operation with the given arguments, a new context, and an operation transformer that
-         * replaces return operations by applying the given consumer to a block builder and a return value.
-         * <p>
-         * The operation transformer copies all operations except return operations whose nearest invokable operation
-         * ancestor is the given the invokable operation. When such a return operation is encountered, then on
-         * first encounter of its grandparent body a return block builder is computed and used for this return operation
-         * and encounters of subsequent return operations with the same grandparent body.
-         * <p>
-         * If the grandparent body has only one block then operation transformer's block builder is the return
-         * block builder. Otherwise, if the grandparent body has one or more blocks then the return block builder is
-         * created from the operation transformer's block builder. The created return block builder will have a block
-         * parameter whose type corresponds to the return type, or will have no parameter for void return.
-         * The computation finishes by applying the return block builder and a return value to the inlining consumer.
-         * If the grandparent body has only one block then the return value is the value mapped from the return
-         * operation's operand, or is null for void return. Otherwise, if the grandparent body has one or more blocks
-         * then the value is the block parameter of the created return block builder, or is null for void return.
-         * <p>
-         * For every encounter of a return operation the associated return block builder is compared against the
-         * operation transformer's block builder. If they are not equal then a branch operation is added to the
-         * operation transformer's block builder whose successor is the return block builder with a block argument
-         * that is the value mapped from the return operation's operand, or with no block argument for void return.
-         * @apiNote
-         * It is easier to inline an invokable op if its body is in lowered form (there are no operations in the blocks
-         * of the body that are lowerable). This ensures a single exit point can be created (paired with the single
-         * entry point). If there are one or more nested return operations, then there is unlikely to be a single exit.
-         * Transforming the model to create a single exit point while preserving nested structure is in general
-         * non-trivial and outside the scope of this method. In such cases the invokable operation can be transformed
-         * with a lowering transformation after which it can then be inlined.
-         *
-         * @param invokableOp the invokable operation
-         * @param args the arguments to map to the invokable operation's parameters
-         * @param inlineConsumer the consumer applied to process the return from the invokable operation.
-         *                       This is called once for each grandparent body of a return operation, with a block to
-         *                       build replacement operations and the return value, or null for void return.
-         * @return the block builder to continue building from
-         * @param <O> The invokable type
-         */
-        public <O extends Op & Op.Invokable> Block.Builder inline(O invokableOp, List<? extends Value> args,
-                                                                  BiConsumer<Block.Builder, Value> inlineConsumer) {
-            Map<Body, Block.Builder> returnBlocks = new HashMap<>();
-            // Create new context, ensuring inlining is isolated
-            transformBody(invokableOp.body(), args, CopyContext.create(), (block, op) -> {
-                // If the return operation is associated with the invokable operation
-                if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
-                    // Compute the return block
-                    Block.Builder returnBlock = returnBlocks.computeIfAbsent(rop.ancestorBody(), _body -> {
-                        Block.Builder rb;
-                        // If the body has one block we know there is just one return op declared, otherwise there may
-                        // one or more. If so, create a new block that joins all the returns.
-                        // Note: we could count all return op in a body to avoid creating a new block for a body
-                        // with two or more blocks with only one returnOp is declared.
-                        Value r;
-                        if (rop.ancestorBody().blocks().size() != 1) {
-                            List<TypeElement> param = rop.returnValue() != null
-                                    ? List.of(invokableOp.invokableType().returnType())
-                                    : List.of();
-                            rb = block.block(param);
-                            r = !param.isEmpty()
-                                    ? rb.parameters().get(0)
-                                    : null;
-                        } else {
-                            r = rop.returnValue() != null
-                                    ? block.context().getValue(rop.returnValue())
-                                    : null;
-                            rb = block;
-                        }
-
-                        // Inline the return
-                        inlineConsumer.accept(rb, r);
-
-                        return rb;
-                    });
-
-                    // Replace the return op with a branch to the return block, if needed
-                    if (!returnBlock.equals(block)) {
-                        // Replace return op with branch to return block, with given return value
-                        List<Value> arg = rop.returnValue() != null
-                                ? List.of(block.context().getValue(rop.returnValue()))
-                                : List.of();
-                        block.apply(branch(returnBlock.successor(arg)));
-                    }
-
-                    return block;
-                }
-
-                block.apply(op);
-                return block;
-            });
-
-
-            Builder builder = returnBlocks.get(invokableOp.body());
-            return builder != null ? builder : this;
-        }
-
-        private static Op getNearestInvokeableAncestorOp(Op op) {
-            do {
-                op = op.ancestorBody().parentOp();
-            } while (!(op instanceof Op.Invokable));
-            return op;
-        }
-
-        /**
          * Transforms a body into this block, with this block builder's context.
          *
          * @param bodyToTransform the body to transform
@@ -831,47 +680,11 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Appends operations into the block builder in the scope of the builder as an argument
-         * to the given consumer.
-         *
-         * @param c the consumer.
-         */
-        // @@@ Is this needed?
-        public void ops(Consumer<Builder> c) {
-            c.accept(this);
-        }
-
-        /**
-         * Appends an operation to this block, with no operation result name, and this builder's transformer.
-         *
-         * @param op the operation to append
-         * @return the operation result of the appended operation
-         * @throws IllegalStateException if the operation is structurally invalid
-         * @see #op(Op, OpTransformer)
-         */
-        @Override
-        public Op.Result apply(Op op) {
-            return op(op, ot);
-        }
-
-        /**
-         * Appends an operation to this block, with no operation result name, and this builder's transformer.
-         *
-         * @param op the operation to append
-         * @return the operation result of the appended operation
-         * @throws IllegalStateException if the operation is structurally invalid
-         * @see #op(Op, OpTransformer)
-         */
-        public Op.Result op(Op op) {
-            return op(op, ot);
-        }
-
-        /**
          * Appends an operation to this block.
          * <p>
          * If the operation is not bound to a block, then the operation is appended and bound to this block.
          * Otherwise, if the operation is bound, the operation is first
-         * {@link Op#transform(CopyContext, OpTransformer) transformed} with this builder's context and the given
+         * {@link Op#transform(CopyContext, OpTransformer) transformed} with this builder's context and
          * operation transformer, the unbound transformed operation is appended, and the operation's result is mapped
          * to the transformed operation's result (using the builder's context).
          * <p>
@@ -889,18 +702,17 @@ public final class Block implements CodeElement<Block, Op> {
          * dominance check that may be performed when the parent body is built.)
          *
          * @param op the operation to append
-         * @param transformer the transformer to use when appending a bound operation
          * @return the operation result of the appended operation
          * @throws IllegalStateException if the operation is structurally invalid
          */
-        public Op.Result op(Op op, OpTransformer transformer) {
+        public Op.Result op(Op op) {
             check();
             final Op.Result oprToTransform = op.result();
 
             Op transformedOp = op;
             if (oprToTransform != null) {
                 // If operation is assigned to block, then copy it and transform its contents
-                transformedOp = op.transform(cc, transformer);
+                transformedOp = op.transform(cc, ot);
                 assert transformedOp.result == null;
             }
 

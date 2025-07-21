@@ -23,7 +23,7 @@
 
 package oracle.code.triton;
 
-import jdk.incubator.code.dialect.DialectFactory;
+import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -44,7 +44,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.parser.OpParser;
+import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;

@@ -29,8 +29,8 @@ import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpParser;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.CodeReflection;
 
 public class CodeReflectionTester {
@@ -69,11 +69,11 @@ public class CodeReflectionTester {
 
     static CoreOp.FuncOp lower(CoreOp.FuncOp f, boolean ssa) {
         f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         if (ssa) {
             f = SSA.transform(f);
-            f.writeTo(System.out);
+            System.out.println(f.toText());
         }
 
         return f;
@@ -88,7 +88,7 @@ public class CodeReflectionTester {
     static String canonicalizeModel(Member m, String d) {
         Op o;
         try {
-            o = OpParser.fromString(JavaOp.DIALECT_FACTORY, d).get(0);
+            o = OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, d).get(0);
         } catch (Exception e) {
             throw new IllegalStateException(m.toString(), e);
         }

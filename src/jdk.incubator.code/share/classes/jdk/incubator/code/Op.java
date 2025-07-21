@@ -25,10 +25,6 @@
 
 package jdk.incubator.code;
 
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-
 import com.sun.tools.javac.api.JavacScope;
 import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
@@ -38,11 +34,12 @@ import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.internal.access.SharedSecrets;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -51,7 +48,6 @@ import javax.lang.model.element.Modifier;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiFunction;
 
@@ -304,15 +300,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     @Override
     public final Block parent() {
-        return parentBlock();
-    }
-
-    /**
-     * Returns this operation's parent block, otherwise {@code null} if the operation is not assigned to a block.
-     *
-     * @return operation's parent block, or {@code null} if the operation is not assigned to a block.
-     */
-    public final Block parentBlock() {
         if (result == null) {
             return null;
         }
@@ -344,25 +331,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public final Result result() {
         return result;
-    }
-
-
-    /**
-     * Returns this operation's nearest ancestor body (the parent body of this operation's parent block),
-     * otherwise {@code null} if the operation is not assigned to a block.
-     *
-     * @return operation's nearest ancestor body, or {@code null} if the operation is not assigned to a block.
-     */
-    public final Body ancestorBody() {
-        if (result == null) {
-            return null;
-        }
-
-        if (!result.block.isBound()) {
-            throw new IllegalStateException("Parent body is partially constructed");
-        }
-
-        return result.block.parentBody;
     }
 
     /**
@@ -401,31 +369,19 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public FunctionType opType() {
         List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
-        return FunctionType.functionType(resultType(), operandTypes);
+        return CoreType.functionType(resultType(), operandTypes);
     }
 
     /**
-     * Traverse the operands of this operation that are the results of prior operations, recursively.
-     * <p>
-     * Traversal is performed in pre-order, reporting the operation of each operand to the visitor.
+     * Externalizes the operation's state as a map of attributes.
      *
-     * @param t   the traversing accumulator
-     * @param v   the visitor
-     * @param <T> accumulator type
-     * @return the traversing accumulator
-     * @apiNote A visitor that implements the abstract method of {@code OpVisitor} and does not override any
-     * other default method will only visit operations. As such a lambda expression or method reference
-     * may be used to visit operations.
+     * <p>A null attribute value is represented by the constant
+     * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
+     *
+     * @return the operation's externalized state, as an unmodifiable map
      */
-    public final <T> T traverseOperands(T t, BiFunction<T, Op, T> v) {
-        for (Value arg : operands()) {
-            if (arg instanceof Result or) {
-                t = v.apply(t, or.op);
-                t = or.op.traverseOperands(t, v);
-            }
-        }
-
-        return t;
+    public Map<String, Object> externalize() {
+        return Map.of();
     }
 
     /**
@@ -449,24 +405,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         for (Body childBody : op.bodies()) {
             Body.capturedValues(capturedValues, bodyStack, childBody);
         }
-    }
-
-    /**
-     * Writes the textual form of this operation to the given output stream, using the UTF-8 character set.
-     *
-     * @param out the stream to write to.
-     */
-    public void writeTo(OutputStream out) {
-        writeTo(new OutputStreamWriter(out, StandardCharsets.UTF_8));
-    }
-
-    /**
-     * Writes the textual form of this operation to the given writer.
-     *
-     * @param w the writer to write to.
-     */
-    public void writeTo(Writer w) {
-        OpWriter.writeTo(w, this);
     }
 
     /**

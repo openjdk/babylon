@@ -241,7 +241,7 @@ module jdk.compiler {
         jdk.internal.md,
         jdk.incubator.code;
     exports com.sun.tools.javac.resources to
-        jdk.jshell;
+        jdk.jshell, jdk.incubator.code;
     exports com.sun.tools.javac.code to
         jdk.javadoc,
         jdk.jshell,

@@ -23,7 +23,8 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.CoreType;
+
 import java.util.*;
 import java.util.function.Function;
 
@@ -37,7 +38,7 @@ public class AnfTransformer {
 
     public AnfTransformer(CoreOp.FuncOp funcOp) {
         sourceOp = funcOp;
-        outerBodyBuilder = Body.Builder.of(null, FunctionType.functionType(funcOp.body().yieldType()));
+        outerBodyBuilder = Body.Builder.of(null, CoreType.functionType(funcOp.body().yieldType()));
         idomMap = new ImmediateDominatorMap(funcOp.body());
     }
 
@@ -51,7 +52,7 @@ public class AnfTransformer {
 
         var builderEntry = outerBodyBuilder.entryBlock();
 
-        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.parentOp()).invokableType());
+        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.ancestorOp()).invokableType());
         funMap.put(entry, selfRefP);
 
         for (Block.Parameter p : entry.parameters()) {
@@ -59,7 +60,7 @@ public class AnfTransformer {
             builderEntry.context().mapValue(p,newP);
         }
 
-        var outerLetRecBody = Body.Builder.of(outerBodyBuilder, FunctionType.functionType(b.yieldType(), List.of()), CopyContext.create(builderEntry.context()));
+        var outerLetRecBody = Body.Builder.of(outerBodyBuilder, CoreType.functionType(b.yieldType(), List.of()), CopyContext.create(builderEntry.context()));
 
         List<Block> dominatedBlocks = idomMap.idominates(entry);
         List<AnfDialect.AnfFuncOp> funs = dominatedBlocks.stream().map(block -> transformBlock(block, outerLetRecBody)).toList();
@@ -79,12 +80,12 @@ public class AnfTransformer {
     //"Leaf" in this case is a leaf of the dominator tree
     public AnfDialect.AnfFuncOp transformLeafBlock(Block b, Body.Builder ancestorBodyBuilder) {
         var blockReturnType = getBlockReturnType(b);
-        var blockFType = FunctionType.functionType(blockReturnType);
+        var blockFType = CoreType.functionType(blockReturnType);
 
         List<TypeElement> synthParamTypes = new ArrayList<>();
         synthParamTypes.add(blockFType);
 
-        var blockFTypeSynth = FunctionType.functionType(blockReturnType, synthParamTypes);
+        var blockFTypeSynth = CoreType.functionType(blockReturnType, synthParamTypes);
 
         Body.Builder newBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFTypeSynth, CopyContext.create(ancestorBodyBuilder.entryBlock().context()));
 
@@ -96,7 +97,7 @@ public class AnfTransformer {
             newBodyBuilder.entryBlock().context().mapValue(param, p);
         }
 
-        var letBody = Body.Builder.of(newBodyBuilder, FunctionType.functionType(blockReturnType, List.of()), CopyContext.create(newBodyBuilder.entryBlock().context()));
+        var letBody = Body.Builder.of(newBodyBuilder, CoreType.functionType(blockReturnType, List.of()), CopyContext.create(newBodyBuilder.entryBlock().context()));
 
         AnfDialect.AnfLetOp let = transformOps(b, letBody);
         newBodyBuilder.entryBlock().op(let);
@@ -106,12 +107,12 @@ public class AnfTransformer {
     //Non leaf nodes of the dominator tree
     public AnfDialect.AnfFuncOp transformDomBlock(Block b, Body.Builder ancestorBodyBuilder) {
         var blockReturnType = getBlockReturnType(b);
-        var blockFType = FunctionType.functionType(blockReturnType);
+        var blockFType = CoreType.functionType(blockReturnType);
 
         List<TypeElement> synthParamTypes = new ArrayList<>();
         synthParamTypes.add(blockFType);
 
-        var blockFTypeSynth = FunctionType.functionType(blockReturnType, synthParamTypes);
+        var blockFTypeSynth = CoreType.functionType(blockReturnType, synthParamTypes);
 
         //Function body contains letrec and its bodies
         Body.Builder funcBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFTypeSynth, CopyContext.create(ancestorBodyBuilder.entryBlock().context()));
@@ -126,7 +127,7 @@ public class AnfTransformer {
         }
 
         //letrec inner body
-        Body.Builder letrecBody = Body.Builder.of(funcBodyBuilder, FunctionType.functionType(blockReturnType, List.of()), CopyContext.create(funcBodyBuilder.entryBlock().context()));
+        Body.Builder letrecBody = Body.Builder.of(funcBodyBuilder, CoreType.functionType(blockReturnType, List.of()), CopyContext.create(funcBodyBuilder.entryBlock().context()));
 
         List<Block> dominates = idomMap.idominates(b);
         for (Block dblock : dominates) {
@@ -231,12 +232,12 @@ public class AnfTransformer {
                 }
                 case CoreOp.ReturnOp ro -> {
                     var rval = b.context().getValue(ro.returnValue());
-                    b.op(CoreOp._yield(rval));
+                    b.op(CoreOp.core_yield(rval));
                     return b;
                 }
                 case CoreOp.YieldOp y ->  {
                     var rval = b.context().getValue(y.yieldValue());
-                    b.op(CoreOp._yield(rval));
+                    b.op(CoreOp.core_yield(rval));
                     return b;
                 }
                 default -> {

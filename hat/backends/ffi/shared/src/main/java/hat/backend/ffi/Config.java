@@ -23,7 +23,9 @@
  * questions.
  */
 
- package hat.backend.ffi;
+package hat.backend.ffi;
+
+import hat.codebuilders.HATCodeBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,12 +75,12 @@ public record Config(int bits) {
     };
 
     public static Config of() {
-        if (System.getenv("HAT") instanceof String opts){
-            System.out.println("From env "+opts);
+        if (System.getenv("HAT") instanceof String opts) {
+            System.out.println("From env " + opts);
             return of(opts);
         }
         if (System.getProperty("HAT") instanceof String opts) {
-            System.out.println("From prop "+opts);
+            System.out.println("From prop " + opts);
             return of(opts);
         }
         return of("");
@@ -109,7 +111,7 @@ public record Config(int bits) {
     }
 
     public static Config of(String name) {
-        if (name == null || name.equals("")){
+        if (name == null || name.equals("")) {
             return Config.of(0);
         }
         for (int i = 0; i < bitNames.length; i++) {
@@ -123,18 +125,18 @@ public record Config(int bits) {
                     configs.add(of(opt))
             );
             return of(configs);
-        }else if (name.contains(":")){
-            var tokens=name.split(":");
+        } else if (name.contains(":")) {
+            var tokens = name.split(":");
             if (tokens.length == 2) {
                 var token = tokens[0];
                 if (token.equals("PLATFORM") || token.equals("DEVICE")) {
                     int value = Integer.parseInt(tokens[1]);
-                    return new Config(value<<(token.equals("DEVICE")?4:0));
-                }else{
+                    return new Config(value << (token.equals("DEVICE") ? 4 : 0));
+                } else {
                     System.out.println("Unexpected opt '" + name + "'");
                     return Config.of(0);
                 }
-            }else{
+            } else {
                 System.out.println("Unexpected opt '" + name + "'");
                 return Config.of(0);
             }
@@ -144,6 +146,7 @@ public record Config(int bits) {
             return Config.of(0);
         }
     }
+
     public static Config PTX() {
         return new Config(PTX_BIT);
     }
@@ -151,6 +154,7 @@ public record Config(int bits) {
     public boolean isINTERPRET() {
         return (bits & INTERPRET_BIT) == INTERPRET_BIT;
     }
+
     public static Config INTERPRET() {
         return new Config(INTERPRET_BIT);
     }
@@ -158,6 +162,7 @@ public record Config(int bits) {
     public boolean isPTX() {
         return (bits & PTX_BIT) == PTX_BIT;
     }
+
     public static Config SHOW_STATE() {
         return new Config(SHOW_STATE_BIT);
     }
@@ -165,6 +170,7 @@ public record Config(int bits) {
     public boolean isSHOW_STATE() {
         return (bits & SHOW_STATE_BIT) == SHOW_STATE_BIT;
     }
+
     public static Config SHOW_WHY() {
         return new Config(SHOW_WHY_BIT);
     }
@@ -276,5 +282,128 @@ public record Config(int bits) {
             }
         }
         return builder.toString();
+    }
+
+    public static class Main {
+        public static class ConfigBuilder extends HATCodeBuilder<ConfigBuilder> {
+
+            ConfigBuilder staticConstInt(String name, int padWidth, int value) {
+                staticKeyword().space().constexprKeyword().space().intType().space().identifier(name, padWidth).space().equals().space().intHexValue(value).semicolon().nl();
+                return this;
+            }
+
+            ConfigBuilder staticConstIntShiftedOne(String name, int padWidth, int shift) {
+                staticKeyword().space().constexprKeyword().space().intType().space().identifier(name, padWidth).space().equals().space().intValue(1).leftShift().intHexValue(shift).semicolon().nl();
+                return this;
+            }
+
+            ConfigBuilder className() {
+                return identifier("BasicConfig");
+            }
+
+            ConfigBuilder bitNamesVar() {
+                return identifier("bitNames");
+            }
+
+            ConfigBuilder configBitsVar() {
+                return identifier("configBits");
+            }
+
+            ConfigBuilder configBitsAnd() {
+                return configBitsVar().space().ampersand().space();
+            }
+
+            ConfigBuilder configBitsAndBitName(String bitName) {
+                return configBitsAnd().identifier(bitName + "_BIT");
+            }
+
+            static String toCamelExceptFirst(String s) {
+                String[] parts = s.split("_");
+                StringBuilder camelCaseString = new StringBuilder("");
+                for (String part : parts) {
+                    camelCaseString.append(camelCaseString.isEmpty()
+                            ? part.toLowerCase()
+                            : part.substring(0, 1).toUpperCase() + part.substring(1).toLowerCase());
+                }
+                return camelCaseString.toString();
+            }
+
+            ConfigBuilder camelExceptFirst(String s) {
+                return identifier(toCamelExceptFirst(s));
+            }
+
+            ConfigBuilder std(String s) {
+                return identifier("std").colon().colon().identifier(s);
+            }
+
+            ConfigBuilder stdEndl() {
+                return std("endl");
+            }
+
+            ConfigBuilder stdCout(String s) {
+                return std("cout").space().leftShift().space().dquote().emitText(s).dquote();
+            }
+        }
+
+        public static void main(String[] args) {
+            Config c = Config.of("INFO,PTX");
+            ConfigBuilder cb = new ConfigBuilder();
+
+            cb.lineComment("Auto generated from  " + Config.class.getName());
+            cb.pragma("once").nl();
+            cb.includeSys("iostream").nl();
+            final int START_BIT_INDEX = 0x10;
+
+            cb.structKeyword().space().className().braceNlIndented((_) -> {
+                cb.staticConstInt("START_BIT_IDX", 32, START_BIT_INDEX);
+                int i = START_BIT_INDEX;
+                for (var bitname : Config.bitNames) {
+                    cb.staticConstIntShiftedOne(bitname + "_BIT", 32, i++);
+                }
+                cb.staticConstInt("END_BIT_IDX", 32, i);
+                cb.constKeyword().space().staticKeyword().space().charType().space().asterisk().bitNamesVar().osbrace().csbrace().semicolon().space().lineComment("See below for initialization");
+                cb.intType().space().identifier("configBits").semicolon().nl();
+
+                for (var bitName : Config.bitNames) {
+                    cb.identifier("bool").space().camelExceptFirst(bitName).semicolon().nl();
+                }
+
+                cb.intType().space().identifier("platform").semicolon().nl();
+                cb.intType().space().identifier("device").semicolon().nl();
+                cb.identifier("bool").space().identifier("alwaysCopy").semicolon().nl();
+//Constructor
+                cb.explicitKeyword().space().className().paren((_) -> cb.intType().space().configBitsVar()).colon().nl().indent((_) -> {
+                    cb.configBitsVar().paren((_) -> cb.configBitsVar()).comma().nl();
+                    for (var bitName : Config.bitNames) {
+                        cb.camelExceptFirst(bitName).paren((_) -> cb.paren((_) -> cb.configBitsAndBitName(bitName)).eq().identifier(bitName + "_BIT")).comma().nl();
+
+                    }
+                    cb.identifier("platform").paren((_) -> cb.configBitsAnd().intHexValue(0xf)).comma().nl();
+                    cb.identifier("alwaysCopy").paren(_->cb.pling().camelExceptFirst("MINIMIZE_COPIES")).comma().nl();
+                    cb.identifier("device").paren(_ ->
+                            cb.paren(_ -> cb.configBitsAnd().intHexValue(0xf0)).space().rightShift().space().intValue(4)).braceNlIndented(_ ->
+                            cb.ifKeyword().paren(_ -> cb.identifier("info")).braceNlIndented(_ -> {
+                                for (var bitName : Config.bitNames) {
+                                    cb.stdCout("native " + ConfigBuilder.toCamelExceptFirst(bitName) + " ").space().leftShift().space().camelExceptFirst(bitName).space().leftShift().space().stdEndl().semicolon().nl();
+                                }
+                            })
+                    );
+                }).nl().nl();
+
+                cb.virtualKeyword().space().tilde().className().paren((_) -> {
+                }).equals().space().defaultKeyword().semicolon();
+            }).semicolon().nl().nl();
+
+
+            cb.hashIfdef("shared_cpp", (_) -> {
+                cb.constKeyword().space().charType().space().asterisk().className().colon().colon().bitNamesVar().sbrace(_ -> {}).equals().brace((_) -> {
+                    cb.nl();
+                    for (var bitName : Config.bitNames) {
+                        cb.dquote().identifier(bitName + "_BIT").dquote().comma().nl();
+                    }
+                }).semicolon().nl();
+            });
+            System.out.println(cb);
+        }
     }
 }

@@ -60,17 +60,17 @@ public class TestExpressionElimination {
     }
 
     static <T extends Op & Op.Invokable> T generateF(T f) {
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         @SuppressWarnings("unchecked")
         T lf = (T) f.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         lf = SSA.transform(lf);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         lf = ExpressionElimination.eliminate(lf);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
         return lf;
     }
 }

@@ -29,6 +29,7 @@
 void main(String[] args) {
  var here = Script.DirEntry.current();
  here.buildDir("build").remove();
+ here.buildDir("conf").remove();
  here.buildDir("extractions/opencl/src").remove();
  here.buildDir("extractions/opengl/src").remove();
  here.buildDir("extractions/cuda/src").remove();

@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaOp.match;
 import static jdk.incubator.code.dialect.java.JavaOp.typePattern;
-import static jdk.incubator.code.dialect.core.FunctionType.functionType;
+import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.PrimitiveType.*;
 
 /*
@@ -144,10 +144,10 @@ public class TestPrimitiveTypePatterns {
     void testNarrowingPrimitiveAndWideningPrimitiveThatNeedCheck(JavaType sourceType, JavaType targetType, Object[] values) throws Throwable {
 
         var model = buildTypePatternModel(sourceType, targetType);
-        model.writeTo(System.out);
+        System.out.println(model.toText());
 
         var lmodel = model.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lmodel.writeTo(System.out);
+        System.out.println(lmodel.toText());
 
 
         var expectedConvMethod = conversionMethodRef(sourceType, targetType);
@@ -175,10 +175,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testIdentityPrimitive() {
         FuncOp f = getFuncOp("identityPrimitive");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Short.MAX_VALUE), true);
     }
@@ -191,10 +191,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testWideningNarrowingPrimitive() {
         FuncOp f = getFuncOp("wideningNarrowingPrimitive");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Byte.MAX_VALUE), true);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Byte.MIN_VALUE), false);
@@ -208,10 +208,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testBoxing() {
         FuncOp f = getFuncOp("boxing");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
@@ -225,10 +225,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testBoxingWideningReference() {
         FuncOp f = getFuncOp("boxingWideningReference");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
@@ -242,10 +242,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testNarrowingReferenceUnboxing() {
         FuncOp f = getFuncOp("narrowingReferenceUnboxing");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, 1), true);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, (short) 1), false);
@@ -259,10 +259,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testUnboxing() {
         FuncOp f = getFuncOp("unboxing");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
@@ -276,10 +276,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testUnboxingWideningPrimitive() {
         FuncOp f = getFuncOp("unboxingWideningPrimitive");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
@@ -293,10 +293,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testWideningReference() {
         FuncOp f = getFuncOp("wideningReference");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, (Object) null), false);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, "str"), true);
@@ -310,10 +310,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testIdentityReference() {
         FuncOp f = getFuncOp("identityReference");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Float.MAX_VALUE), true);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Float.MIN_VALUE), true);
@@ -329,10 +329,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testNarrowingReference() {
         FuncOp f = getFuncOp("narrowingReference");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Float.MAX_VALUE), false);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), false);
@@ -348,10 +348,10 @@ public class TestPrimitiveTypePatterns {
     @Test
     void testWideningPrimitive() {
         FuncOp f = getFuncOp("wideningPrimitive");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE), true);
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE), true);
@@ -376,18 +376,18 @@ public class TestPrimitiveTypePatterns {
             var patternVar = fblock.op(var(fblock.op(constant(targetType, defaultValue(targetType)))));
 
             var pattern = Body.Builder.of(fblock.parentBody(), functionType(JavaOp.Pattern.bindingType(targetType)));
-            pattern.entryBlock().op(_yield(
+            pattern.entryBlock().op(core_yield(
                     pattern.entryBlock().op(typePattern(targetType, null))
             ));
 
             var match = Body.Builder.of(fblock.parentBody(), functionType(JavaType.VOID, targetType));
             var binding = match.entryBlock().parameters().get(0);
             match.entryBlock().op(varStore(patternVar, binding));
-            match.entryBlock().op(_yield());
+            match.entryBlock().op(core_yield());
 
             var result = fblock.op(match(paramVal, pattern, match));
 
-            fblock.op(_return(result));
+            fblock.op(return_(result));
         });
     }
 

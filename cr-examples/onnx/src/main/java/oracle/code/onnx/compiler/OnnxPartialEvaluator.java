@@ -38,12 +38,14 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
 
 final class OnnxPartialEvaluator {
 
     static final JavaType ONNX_OPERATORS_CLASS = JavaType.type(OnnxOperators.class);
     static final JavaType LIST_CLASS = JavaType.type(List.class);
+    static final JavaType TENSOR_ARRAY_TYPE = JavaType.type(Tensor[].class);
 
     // Map from ONNX operator invocation to evaluated attributes
     final Map<JavaOp.InvokeOp, List<Object>> evaluatedAttributes;
@@ -229,10 +231,10 @@ final class OnnxPartialEvaluator {
 
             // Execute the terminating operation
             Op to = bc.b.terminatingOp();
-            if (!to.operands().stream().allMatch(oc::isValueDefined)) {
+//            if (!to.operands().stream().allMatch(oc::isValueDefined)) {
                 // Ignore operation if any value is undefined, meaning it is not part of the attribute value space
                 unevaluatedOperations.add(to);
-            }
+//            }
 
             if (to instanceof CoreOp.ConditionalBranchOp cb) {
                 boolean p;

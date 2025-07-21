@@ -326,6 +326,76 @@ public class SimpleTest {
         assertEquals(recordArgAdd(arg), execute(() -> recordArgAdd(arg)));
     }
 
+    @CodeReflection
+    public Tensor<Float> constantArrayArg(Tensor<Float>[] arg) {
+        return Identity(arg[1]);
+    }
+
+    @Test
+    public void testConstantArrayArg() throws Exception {
+        Tensor<Float>[] arg = new Tensor[]{Tensor.ofFlat(2f), Tensor.ofFlat(3f)};
+        assertEquals(constantArrayArg(arg), execute(() -> constantArrayArg(arg)));
+    }
+
+    static final Tensor<Float>[] INIT_1_2 = new Tensor[]{Tensor.ofFlat(1f), Tensor.ofFlat(2f)};
+
+
+    @CodeReflection
+    public Tensor<Float> constantArrayInit() {
+        return Identity(INIT_1_2[1]);
+    }
+
+    @Test
+    public void testConstantArrayInit() throws Exception {
+        assertEquals(constantArrayInit(), execute(() -> constantArrayInit()));
+    }
+
+    @CodeReflection
+    public Tensor<Float>[] constantArrayReturn(Tensor<Float> value) {
+        return new Tensor[]{Identity(value)};
+    }
+
+    @Test
+    public void testConstantArrayReturn() throws Exception {
+        Tensor<Float> val = Tensor.ofFlat(3f);
+        assertEquals(constantArrayReturn(val), execute(() -> constantArrayReturn(val)));
+    }
+
+    public record ConstantArrayWrap(Tensor<Float> key, Tensor<Float>[] values) {}
+
+    @CodeReflection
+    public ConstantArrayWrap constantArrayInRecordReturn(Tensor<Float> key, Tensor<Float> value) {
+        return new ConstantArrayWrap(Identity(key), new Tensor[]{Identity(value)});
+    }
+
+    @Test
+    public void testConstantArrayInRecordReturn() throws Exception {
+        Tensor<Float> key = Tensor.ofFlat(1f);
+        Tensor<Float> val = Tensor.ofFlat(3f);
+        assertEquals(constantArrayInRecordReturn(key, val).values(), execute(() -> constantArrayInRecordReturn(key, val)).values());
+    }
+
+    @CodeReflection
+    public Tensor<Long>[] unrollingConstantArrayReturn() {
+        Tensor<Long>[] ret = new Tensor[5];
+        for (int i = 0; i < 5; i++) {
+            ret[i] = Constant((long)i);
+        }
+        return ret;
+    }
+
+    @Test
+    public void testUnrollingConstantArrayReturn() throws Exception {
+        assertEquals(unrollingConstantArrayReturn(), execute(() -> unrollingConstantArrayReturn()));
+    }
+
+    static void assertEquals(Tensor[] expected, Tensor[] actual) {
+        Assertions.assertEquals(expected.length, actual.length);
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals(expected[i], actual[i]);
+        }
+    }
+
     static void assertEquals(Tensor expected, Tensor actual) {
 
         var expectedType = expected.elementType();

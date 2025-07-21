@@ -30,6 +30,6 @@ package jdk.incubator.code;
  * @sealedGraph
  */
 public sealed interface CodeItem
-        permits CodeElement, Value, TypeElement {
+        permits CodeElement, Value, TypeElement, Block.Reference {
     // @@@ Common functionality between elements and values?
 }

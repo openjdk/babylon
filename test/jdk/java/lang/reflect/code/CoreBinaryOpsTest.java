@@ -29,6 +29,7 @@
  */
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreType;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.function.ThrowingSupplier;
@@ -263,14 +264,14 @@ public class CoreBinaryOpsTest {
                 return original; // already expected type
             }
             if (functionType.parameterTypes().stream().distinct().count() != 1) {
-                original.writeTo(System.err);
+                System.err.println(original.toText());
                 throw new IllegalArgumentException("Only FuncOps with exactly one distinct parameter type are supported");
             }
             // if the return type does not match the input types, we keep it
             TypeElement retType = functionType.returnType().equals(functionType.parameterTypes().getFirst())
                     ? type
                     : functionType.returnType();
-            return CoreOp.func(original.funcName(), FunctionType.functionType(retType, type, type))
+            return CoreOp.func(original.funcName(), CoreType.functionType(retType, type, type))
                     .body(builder -> builder.transformBody(original.body(), builder.parameters(), OpTransformer.COPYING_TRANSFORMER)
                     );
         }

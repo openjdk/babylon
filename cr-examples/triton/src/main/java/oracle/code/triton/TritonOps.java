@@ -26,11 +26,9 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.DialectFactory;
-import jdk.incubator.code.dialect.ExternalizableOp;
-import jdk.incubator.code.dialect.OpFactory;
-import jdk.incubator.code.dialect.TypeElementFactory;
+import jdk.incubator.code.extern.*;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -40,11 +38,11 @@ import java.util.function.Consumer;
 
 public class TritonOps {
 
-    static abstract class TritonOp extends ExternalizableOp {
+    static abstract class TritonOp extends Op {
         final TypeElement resultType;
 
         public TritonOp(ExternalizedOp def) {
-            super(def);
+            super(def.name(), def.operands());
 
             this.resultType = def.resultType();
         }
@@ -67,7 +65,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ModuleOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ModuleOp.NAME)
     public static final class ModuleOp extends TritonOp implements Op.Isolated {
         public static final String NAME = "module";
 
@@ -115,7 +113,7 @@ public class TritonOps {
             super(NAME, JavaType.VOID,
                     List.of());
 
-            Body.Builder bodyC = Body.Builder.of(null, FunctionType.VOID);
+            Body.Builder bodyC = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
             Map<String, FuncOp> table = new HashMap<>();
             for (FuncOp f : functions) {
@@ -137,7 +135,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(FuncOp.NAME)
+    @OpFactoryHelper.OpDeclaration(FuncOp.NAME)
     public static final class FuncOp extends TritonOp implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
         public static class Builder {
@@ -222,10 +220,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_FUNC_NAME, funcName);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_FUNC_NAME, funcName);
         }
 
         @Override
@@ -246,12 +242,12 @@ public class TritonOps {
         public Block.Builder lower(Block.Builder b, OpTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
-            b.op(this, OpTransformer.COPYING_TRANSFORMER);
+            b.rebind(b.context(), OpTransformer.COPYING_TRANSFORMER).op(this);
             return b;
         }
     }
 
-    @OpFactory.OpDeclaration(CallOp.NAME)
+    @OpFactoryHelper.OpDeclaration(CallOp.NAME)
     public static final class CallOp extends TritonOp {
         public static final String NAME = "tt.call";
         public static final String ATTRIBUTE_FUNC_NAME = "callee";
@@ -292,10 +288,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_FUNC_NAME, funcName);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_FUNC_NAME, funcName);
         }
 
         public String funcName() {
@@ -303,7 +297,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ReduceOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceOp.NAME)
     public static final class ReduceOp extends TritonOp {
         // @@@ SSA transformation does not work with nested ops
         // implements Op.Nested {
@@ -375,10 +369,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_AXIS, axis);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_AXIS, axis);
         }
 
         public int axis() {
@@ -390,7 +382,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ReduceReturnOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ReduceReturnOp.NAME)
     public static class ReduceReturnOp extends TritonOp implements Op.Terminating {
         public static final String NAME = "tt.reduce.return";
 
@@ -412,7 +404,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(GetProgramIdOp.NAME)
+    @OpFactoryHelper.OpDeclaration(GetProgramIdOp.NAME)
     public static class GetProgramIdOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.get_program_id";
         public static final String ATTRIBUTE_AXIS = "axis";
@@ -452,10 +444,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_AXIS, axis);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_AXIS, axis);
         }
 
         public int axis() {
@@ -463,7 +453,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(MakeRangeOp.NAME)
+    @OpFactoryHelper.OpDeclaration(MakeRangeOp.NAME)
     public static class MakeRangeOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.make_range";
         public static final String ATTRIBUTE_START = "start";
@@ -517,15 +507,14 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_START, start);
-            m.put(ATTRIBUTE_END, end);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(
+                    ATTRIBUTE_START, start,
+                    ATTRIBUTE_END, end);
         }
     }
 
-    @OpFactory.OpDeclaration(ExpandOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ExpandOp.NAME)
     public static class ExpandOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.expand_dims";
         public static final String ATTRIBUTE_AXIS = "axis";
@@ -565,10 +554,8 @@ public class TritonOps {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put(ATTRIBUTE_AXIS, axis);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of(ATTRIBUTE_AXIS, axis);
         }
 
         public int axis() {
@@ -576,7 +563,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(SplatOp.NAME)
+    @OpFactoryHelper.OpDeclaration(SplatOp.NAME)
     public static class SplatOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.splat";
 
@@ -598,7 +585,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(BroadcastOp.NAME)
+    @OpFactoryHelper.OpDeclaration(BroadcastOp.NAME)
     public static class BroadcastOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.broadcast";
 
@@ -620,7 +607,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(AddPtrOp.NAME)
+    @OpFactoryHelper.OpDeclaration(AddPtrOp.NAME)
     public static class AddPtrOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.addptr";
 
@@ -642,7 +629,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(LoadOp.NAME)
+    @OpFactoryHelper.OpDeclaration(LoadOp.NAME)
     public static class LoadOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.load";
 
@@ -668,7 +655,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(StoreOp.NAME)
+    @OpFactoryHelper.OpDeclaration(StoreOp.NAME)
     public static class StoreOp extends TritonOp {
         public static final String NAME = "tt.store";
 
@@ -690,7 +677,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(ReturnOp.NAME)
+    @OpFactoryHelper.OpDeclaration(ReturnOp.NAME)
     public static class ReturnOp extends TritonOp implements Op.Terminating {
         public static final String NAME = "tt.return";
 
@@ -716,7 +703,7 @@ public class TritonOps {
         }
     }
 
-    @OpFactory.OpDeclaration(DotOp.NAME)
+    @OpFactoryHelper.OpDeclaration(DotOp.NAME)
     public static class DotOp extends TritonOp implements Op.Pure {
         public static final String NAME = "tt.dot";
 
@@ -831,11 +818,11 @@ public class TritonOps {
 
     // Operation and type factories
 
-    static final OpFactory OP_FACTORY = OpFactory.OP_FACTORY.get(TritonOps.class);
+    static final OpFactory OP_FACTORY = OpFactoryHelper.OP_FACTORY.get(TritonOps.class);
 
     static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
         @Override
-        public TypeElement constructType(TypeElement.ExternalizedTypeElement tree) {
+        public TypeElement constructType(ExternalizedTypeElement tree) {
             return switch (tree.identifier()) {
                 case PtrType.NAME -> {
                     if (tree.arguments().size() != 1) {
@@ -859,7 +846,7 @@ public class TritonOps {
 
                     List<Integer> shape = new ArrayList<>();
                     for (int i = 0; i < tree.arguments().size() - 1; i++) {
-                        TypeElement.ExternalizedTypeElement a = tree.arguments().get(i);
+                        ExternalizedTypeElement a = tree.arguments().get(i);
                         if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
@@ -889,16 +876,16 @@ public class TritonOps {
 
     // Triton types then Java types
     static final TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
-            TRITON_TYPE_FACTORY.andThen(JavaOp.JAVA_TYPE_FACTORY);
+            TRITON_TYPE_FACTORY.andThen(JavaType.JAVA_ONLY_TYPE_FACTORY);
 
     // Triton types then Java types, combined with core types
     static final TypeElementFactory TYPE_FACTORY =
-            CoreOp.coreTypeFactory(TRITON_JAVA_TYPE_FACTORY);
+            CoreType.coreTypeFactory(TRITON_JAVA_TYPE_FACTORY);
 
     public static final DialectFactory DIALECT_FACTORY = new DialectFactory(
             OP_FACTORY.andThen(ArithMathOps.OP_FACTORY)
                     .andThen(SCFOps.OP_FACTORY)
-                    .andThen(JavaOp.OP_FACTORY),
+                    .andThen(JavaOp.JAVA_OP_FACTORY),
             TYPE_FACTORY
     );
 }

@@ -9,7 +9,7 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
@@ -503,6 +503,32 @@ public class TestSwitchStatementOp {
             default -> r += "else";
             case "M" -> r += "Mow";
             case "A" -> r += "Aow";
+        }
+        return r;
+    }
+
+    @Test
+    void testTryAndSwitch() {
+        CoreOp.FuncOp lmodel = lower("tryAndSwitch");
+        String[] args = {"A", "B"};
+        for (String arg : args) {
+            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), tryAndSwitch(arg));
+        }
+    }
+
+    @CodeReflection
+    private static List<String> tryAndSwitch(String s) {
+        List<String> r = new ArrayList<>();
+        try {
+            switch (s) {
+                case "A":
+                    r.add("A");
+                    return r;
+                default:
+                    r.add("B");
+            }
+        } finally {
+            r.add("finally");
         }
         return r;
     }

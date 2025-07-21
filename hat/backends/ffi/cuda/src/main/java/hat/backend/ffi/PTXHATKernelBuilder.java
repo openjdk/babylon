@@ -26,11 +26,10 @@ package hat.backend.ffi;
 
 import hat.ifacemapper.BoundSchema;
 import hat.optools.*;
-import hat.text.CodeBuilder;
+import hat.codebuilders.CodeBuilder;
 import hat.util.StreamCounter;
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.ExternalizableOp;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -164,7 +163,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         cbrace();
     }
 
-    public static class PTXPtrOp extends ExternalizableOp {
+    public static class PTXPtrOp extends Op {
         public String fieldName;
         public static final String NAME = "ptxPtr";
         final TypeElement resultType;

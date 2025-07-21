@@ -37,8 +37,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.parser.OpParser;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpParser;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -91,7 +91,7 @@ public class TestLocation {
         StringWriter w = new StringWriter();
         OpWriter.writeTo(w, f, OpWriter.LocationOption.DROP_LOCATION);
         String tfText = w.toString();
-        CoreOp.FuncOp tf = (CoreOp.FuncOp) OpParser.fromString(JavaOp.DIALECT_FACTORY, tfText).getFirst();
+        CoreOp.FuncOp tf = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, tfText).getFirst();
         testNoLocations(tf);
     }
 

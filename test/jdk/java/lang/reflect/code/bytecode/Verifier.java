@@ -27,7 +27,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.writer.OpWriter;
+import jdk.incubator.code.extern.OpWriter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -121,7 +121,7 @@ public final class Verifier {
             // Verify operands declaration dominannce
             for (var v : op.operands()) {
                 if (!op.result().isDominatedBy(v)) {
-                    error("%s %s operand %s is not dominated by its declaration in %s", op.parentBlock(), op, v, v.declaringBlock());
+                    error("%s %s operand %s is not dominated by its declaration in %s", op.ancestorBlock(), op, v, v.declaringBlock());
                 }
             }
 
@@ -154,7 +154,7 @@ public final class Verifier {
                 Block tb = r.targetBlock();
                 for (int i = 0; i < args.size(); i++) {
                     if (!isAssignable(params.get(i).type(), args.get(i), tb, b)) {
-                        error("%s %s %s is not assignable from %s", op.parentBlock(), op, params.get(i).type(), args.get(i).type());
+                        error("%s %s %s is not assignable from %s", op.ancestorBlock(), op, params.get(i).type(), args.get(i).type());
                     }
                 }
             }
@@ -201,9 +201,9 @@ public final class Verifier {
             var mt = MethodRef.toNominalDescriptor(op.opType()).resolveConstantDesc(lookup).erase();
             CLASS_INVOKABLE_LEAF_OPS.getDeclaredMethod(opName, mt.parameterArray());
         } catch (NoSuchMethodException nsme) {
-            error("%s %s of type %s is not supported", op.parentBlock(), op, op.opType());
+            error("%s %s of type %s is not supported", op.ancestorBlock(), op, op.opType());
         } catch (ReflectiveOperationException roe) {
-            error("%s %s %s",  op.parentBlock(), op, roe.getMessage());
+            error("%s %s %s",  op.ancestorBlock(), op, roe.getMessage());
         }
     }
 

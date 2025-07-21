@@ -26,6 +26,7 @@
 package oracle.code.triton;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import java.util.List;
 import java.util.Objects;
 
@@ -56,7 +57,7 @@ public final class PtrType extends TritonType {
 
     @Override
     public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, List.of(rType.externalize()));
+        return ExternalizedTypeElement.of(NAME, List.of(rType.externalize()));
     }
 
     @Override

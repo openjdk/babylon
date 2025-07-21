@@ -23,20 +23,20 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.ExternalizableOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.extern.ExternalizedOp;
+import jdk.incubator.code.extern.OpFactory;
+
 import java.util.*;
 import java.util.function.Consumer;
-
-import static jdk.incubator.code.dialect.OpFactory.*;
 
 public final class AnfDialect {
 
     private AnfDialect() {
     }
 
-    @OpDeclaration(AnfLetOp.NAME)
-    public static final class AnfLetOp extends ExternalizableOp implements Op.Terminating, Op.Nested {
+    public static final class AnfLetOp extends Op implements Op.Terminating, Op.Nested {
         public static final String NAME = "anf.let";
 
         public static class Builder {
@@ -49,7 +49,7 @@ public final class AnfDialect {
             }
 
             public AnfLetOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(yieldType));
+                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(yieldType));
                 c.accept(body.entryBlock());
                 return new AnfLetOp(body);
             }
@@ -61,9 +61,7 @@ public final class AnfDialect {
         final Body bindings;
 
         public AnfLetOp(ExternalizedOp def) {
-            super(def);
-
-            this.bindings = def.bodyDefinitions().get(0).build(this);
+            this(def.bodyDefinitions().get(0));
         }
 
         public AnfLetOp(AnfLetOp that, CopyContext cc, OpTransformer ot) {
@@ -95,8 +93,7 @@ public final class AnfDialect {
     }
 
 
-    @OpDeclaration(AnfLetRecOp.NAME)
-    public static final class AnfLetRecOp extends ExternalizableOp implements Op.Terminating, Op.Nested {
+    public static final class AnfLetRecOp extends Op implements Op.Terminating, Op.Nested {
         public static final String NAME = "anf.letrec";
 
         public static class Builder {
@@ -109,7 +106,7 @@ public final class AnfDialect {
             }
 
             public AnfLetRecOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, FunctionType.functionType(yieldType));
+                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(yieldType));
                 c.accept(body.entryBlock());
                 return new AnfLetRecOp(body);
             }
@@ -121,9 +118,7 @@ public final class AnfDialect {
         final Body bindings;
 
         public AnfLetRecOp(ExternalizedOp def) {
-            super(def);
-
-            this.bindings = def.bodyDefinitions().get(0).build(this);
+            this(def.bodyDefinitions().get(0));
         }
 
         public AnfLetRecOp(AnfLetRecOp that, CopyContext cc, OpTransformer ot) {
@@ -164,8 +159,7 @@ public final class AnfDialect {
         }
     }
 
-    @OpDeclaration(AnfIfOp.NAME)
-    public static final class AnfIfOp extends ExternalizableOp implements Op.Terminating, Op.Nested {
+    public static final class AnfIfOp extends Op implements Op.Terminating, Op.Nested {
         public static final String NAME = "anf.if";
 
         public static class ThenBuilder {
@@ -181,7 +175,7 @@ public final class AnfDialect {
 
             public ElseBuilder if_(Consumer<Block.Builder> c) {
                 Body.Builder then_ = Body.Builder.of(ancestorBody,
-                        FunctionType.functionType(yieldType));
+                        CoreType.functionType(yieldType));
                 c.accept(then_.entryBlock());
 
                 return new ElseBuilder(this, then_);
@@ -199,7 +193,7 @@ public final class AnfDialect {
 
             public AnfIfOp else_(Consumer<Block.Builder> c) {
                 Body.Builder else_ = Body.Builder.of(thenBuilder.ancestorBody,
-                        FunctionType.functionType(thenBuilder.yieldType));
+                        CoreType.functionType(thenBuilder.yieldType));
                 c.accept(else_.entryBlock());
 
                 return new AnfIfOp(thenBuilder.test, then_, else_);
@@ -208,11 +202,10 @@ public final class AnfDialect {
 
         final Body then_, else_;
 
-        public AnfIfOp(ExternalizableOp.ExternalizedOp def) {
-            super(def);
-
-            this.then_ = def.bodyDefinitions().get(0).build(this);
-            this.else_ = def.bodyDefinitions().get(1).build(this);
+        public AnfIfOp(ExternalizedOp def) {
+            this(def.operands().getFirst(),
+                    def.bodyDefinitions().get(0),
+                    def.bodyDefinitions().get(1));
         }
 
         public AnfIfOp(AnfIfOp that, CopyContext cc, OpTransformer ot) {
@@ -257,8 +250,7 @@ public final class AnfDialect {
         }
     }
 
-    @OpDeclaration(AnfFuncOp.NAME)
-    public static final class AnfFuncOp extends ExternalizableOp implements Op.Nested {
+    public static final class AnfFuncOp extends Op implements Op.Nested {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -294,14 +286,7 @@ public final class AnfDialect {
                         case String s -> s;
                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
-            return new AnfFuncOp(def, funcName);
-        }
-
-        AnfFuncOp(ExternalizedOp def, String funcName) {
-            super(def);
-
-            this.funcName = funcName;
-            this.body = def.bodyDefinitions().get(0).build(this);
+            return new AnfFuncOp(funcName, def.bodyDefinitions().get(0));
         }
 
         AnfFuncOp(AnfFuncOp that, CopyContext cc, OpTransformer oa) {
@@ -334,10 +319,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", funcName);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of("", funcName);
         }
 
         public FunctionType invokableType() {
@@ -358,12 +341,11 @@ public final class AnfDialect {
         }
     }
 
-    @OpDeclaration(AnfApply.NAME)
-    public static final class AnfApply extends ExternalizableOp implements Op.Terminating {
+    public static final class AnfApply extends Op implements Op.Terminating {
         public static final String NAME = "anf.apply";
 
         public AnfApply(ExternalizedOp def) {
-            super(def);
+            this(def.operands());
         }
 
         public AnfApply(AnfApply that, CopyContext cc) {
@@ -394,8 +376,7 @@ public final class AnfDialect {
         }
     }
 
-    @OpDeclaration(AnfApplyStub.NAME)
-    public static final class AnfApplyStub extends ExternalizableOp implements Op.Terminating {
+    public static final class AnfApplyStub extends Op implements Op.Terminating {
         public static final String NAME = "anf.apply.stub";
         public static final String ATTRIBUTE_RESULT_TYPE = ".resultType";
         public static final String ATTRIBUTE_CALLSITE_NAME = ".callsiteName";
@@ -413,13 +394,7 @@ public final class AnfDialect {
                         case String s -> s;
                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
-            return new AnfApplyStub(def,callsiteName,def.resultType());
-        }
-
-        public AnfApplyStub(ExternalizedOp def, String name, TypeElement resultType) {
-            super(def);
-            this.resultType = resultType;
-            this.callSiteName = name;
+            return new AnfApplyStub(callsiteName, def.operands(), def.resultType());
         }
 
         public AnfApplyStub(AnfApplyStub that, CopyContext cc) {
@@ -429,10 +404,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public Map<String, Object> attributes() {
-            HashMap<String, Object> m = new HashMap<>(super.attributes());
-            m.put("", callSiteName);
-            return Collections.unmodifiableMap(m);
+        public Map<String, Object> externalize() {
+            return Map.of("", callSiteName);
         }
 
         @Override
@@ -458,6 +431,24 @@ public final class AnfDialect {
             return operands().subList(1, this.operands().size());
         }
     }
+
+    static Op createOp(ExternalizedOp def) {
+        Op op = switch (def.name()) {
+            case "anf.apply" -> new AnfApply(def);
+            case "anf.apply.stub" -> AnfApplyStub.create(def);
+            case "anf.func" -> AnfFuncOp.create(def);
+            case "anf.if" -> new AnfIfOp(def);
+            case "anf.let" -> new AnfLetOp(def);
+            case "anf.letrec" -> new AnfLetRecOp(def);
+            default -> null;
+        };
+        if (op != null) {
+            op.setLocation(def.location());
+        }
+        return op;
+    }
+
+    static final OpFactory FACTORY = AnfDialect::createOp;
 
     public static AnfLetRecOp.Builder letrec(Body.Builder ancestorBody, TypeElement yieldType) {
         return new AnfLetRecOp.Builder(ancestorBody, yieldType);
@@ -487,7 +478,7 @@ public final class AnfDialect {
         List<TypeElement> params = new ArrayList<>();
         params.add(funcType.returnType());
         params.addAll(funcType.parameterTypes());
-        return new AnfFuncOp.Builder(ancestorBody, funcName, FunctionType.functionType(funcType.returnType(), params));
+        return new AnfFuncOp.Builder(ancestorBody, funcName, CoreType.functionType(funcType.returnType(), params));
     }
 
     public static AnfFuncOp func(String funcName, Body.Builder body) {

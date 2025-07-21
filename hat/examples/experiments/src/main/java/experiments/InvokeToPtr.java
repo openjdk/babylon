@@ -34,8 +34,6 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.op.CoreOp;
-import jdk.incubator.code.type.FunctionType;
 import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -45,6 +43,8 @@ import hat.buffer.Buffer;
 import hat.buffer.BufferAllocator;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
 
 public class InvokeToPtr {
 
