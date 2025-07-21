@@ -134,6 +134,9 @@ void main(String[] args) {
                 │    ├──src/main/java
                 │    └──src/main/resources
                 └──violajones
+                │    ├──src/main/java
+                │    └──src/main/resources
+                └──matmul
                      ├──src/main/java
                      └──src/main/resources
        """;
@@ -163,11 +166,11 @@ void main(String[] args) {
     var buildDir = Script.BuildDir.of(dir.path("build")).create();
 
     Artifacts.core = buildDir.mavenStyleBuild(
-          dir.existingDir("core"), "hat-core-1.0.jar"
+            dir.existingDir("core"), "hat-core-1.0.jar"
     );
 
     Artifacts.tools = buildDir.mavenStyleBuild(
-          dir.existingDir("tools"), "hat-tools-1.0.jar", Artifacts.core
+            dir.existingDir("tools"), "hat-tools-1.0.jar", Artifacts.core
     );
 
 
@@ -182,7 +185,7 @@ void main(String[] args) {
     var extraction_opencl_dir = extractionsDir.dir("opencl");
     if (extraction_opencl_dir.dir("src").exists()) {
         Artifacts.extraction_opencl = buildDir.mavenStyleBuild(
-             extraction_opencl_dir, "hat-extraction-opencl-1.0.jar"
+                extraction_opencl_dir, "hat-extraction-opencl-1.0.jar"
         );
     }else{
         print("no src for extraction_opencl");
@@ -191,7 +194,7 @@ void main(String[] args) {
     var extraction_opengl_dir = extractionsDir.dir("opengl");
     if (extraction_opengl_dir.dir("src").exists()) {
         Artifacts.extraction_opengl = buildDir.mavenStyleBuild(
-            extraction_opengl_dir, "hat-extraction-opengl-1.0.jar"
+                extraction_opengl_dir, "hat-extraction-opengl-1.0.jar"
         );
     }else{
         print("no src for extraction_opengl");
@@ -200,7 +203,7 @@ void main(String[] args) {
     var extraction_cuda_dir = extractionsDir.dir("cuda");
     if (extraction_cuda_dir.dir("src").exists()) {
         Artifacts.extraction_cuda = buildDir.mavenStyleBuild(
-            extraction_cuda_dir, "hat-extraction-cuda-1.0.jar"
+                extraction_cuda_dir, "hat-extraction-cuda-1.0.jar"
         );
     }
 
@@ -210,8 +213,8 @@ void main(String[] args) {
     Artifacts.wrap_shared = buildDir.mavenStyleBuild( wrapsDir.existingDir("shared"), "hat-wrap-shared-1.0.jar");
 
     if (Artifacts.extraction_opencl != null){
-    Artifacts.wrap_opencl = buildDir.mavenStyleBuild( wrapsDir.dir("opencl"), "hat-wrap-opencl-1.0.jar", Artifacts.wrap_shared, Artifacts.core, Artifacts.extraction_opencl);
-}
+        Artifacts.wrap_opencl = buildDir.mavenStyleBuild( wrapsDir.dir("opencl"), "hat-wrap-opencl-1.0.jar", Artifacts.wrap_shared, Artifacts.core, Artifacts.extraction_opencl);
+    }
 // on jetson
 // ls extractions/opengl/src/main/java/opengl/glutKeyboardFunc*
 //  -> extractions/opengl/src/main/java/opengl/glutKeyboardFunc$callback.java
@@ -222,28 +225,28 @@ void main(String[] args) {
 //  So we exclude  "^.*/wrap/opengl/GLCallbackEventHandler\\.java$"
 //
 
-if (Artifacts.extraction_opengl != null
-        && Artifacts.extraction_opengl.jarFile.exists()) {
-    String exclude = null;
-    if (!Artifacts.extraction_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$func.class$")).isEmpty()) {
-        exclude = "Callback";
-    }else if (!Artifacts.extraction_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$callback.class$")).isEmpty()) {
-        exclude = "Func";
-    }else {
-        println("We can't build wrap_opengl unless exclude one of GLFuncEventHandler or GLCallbackEventHandler something");
+    if (Artifacts.extraction_opengl != null
+            && Artifacts.extraction_opengl.jarFile.exists()) {
+        String exclude = null;
+        if (!Artifacts.extraction_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$func.class$")).isEmpty()) {
+            exclude = "Callback";
+        }else if (!Artifacts.extraction_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$callback.class$")).isEmpty()) {
+            exclude = "Func";
+        }else {
+            println("We can't build wrap_opengl unless exclude one of GLFuncEventHandler or GLCallbackEventHandler something");
+        }
+        if (exclude != null) {
+            final var excludeMeSigh = "^.*/GL"+exclude+"EventHandler\\.java$";
+            println("exclude ="+exclude+" "+excludeMeSigh);
+            Artifacts.wrap_opengl = Script.mavenStyleProject(
+                    buildDir, wrapsDir.dir("opengl"), buildDir.jarFile("hat-wrap-opengl-1.0.jar"), Artifacts.wrap_shared, Artifacts.core, Artifacts.extraction_opengl
+            ).buildExcluding(javaSrc -> javaSrc.matches(excludeMeSigh));
+        }
     }
-    if (exclude != null) {
-        final var excludeMeSigh = "^.*/GL"+exclude+"EventHandler\\.java$";
-        println("exclude ="+exclude+" "+excludeMeSigh);
-        Artifacts.wrap_opengl = Script.mavenStyleProject(
-              buildDir, wrapsDir.dir("opengl"), buildDir.jarFile("hat-wrap-opengl-1.0.jar"), Artifacts.wrap_shared, Artifacts.core, Artifacts.extraction_opengl
-        ).buildExcluding(javaSrc -> javaSrc.matches(excludeMeSigh));
-    }
-}
 
     if (false && Artifacts.extraction_cuda != null ) {
         Artifacts.wrap_cuda = buildDir.mavenStyleBuild(
-           wrapsDir.dir("cuda"), "hat-wrap-cuda-1.0.jar", Artifacts.extraction_cuda
+                wrapsDir.dir("cuda"), "hat-wrap-cuda-1.0.jar", Artifacts.extraction_cuda
         );
     }
 
@@ -251,7 +254,7 @@ if (Artifacts.extraction_opengl != null
 
     var ffiBackendsDir = backendsDir.existingDir("ffi");
     Artifacts.backend_ffi_shared = buildDir.mavenStyleBuild(
-        ffiBackendsDir.existingDir("shared"), "hat-backend-ffi-shared-1.0.jar", Artifacts.core
+            ffiBackendsDir.existingDir("shared"), "hat-backend-ffi-shared-1.0.jar", Artifacts.core
     );
 
     if (ffiBackendsDir.optionalDir("opencl") instanceof Script.DirEntry ffiBackendDir ) {
@@ -305,26 +308,26 @@ if (Artifacts.extraction_opengl != null
             examplesDir.existingDir("shared"), "hat-example-shared-1.0.jar", Artifacts.core
     );
 
-    Stream.of( "blackscholes", "squares")
+    Stream.of( "blackscholes", "squares", "matmul")
             .parallel()
             .map(examplesDir::existingDir)
             .forEach(exampleDir->buildDir.mavenStyleBuild(
-                exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar", Artifacts.core
+                    exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar", Artifacts.core
             ));
 
     Stream.of( "experiments")   // this has hardcoded references to opencl backend
             .parallel()
             .map(examplesDir::existingDir)
             .forEach(exampleDir->buildDir.mavenStyleBuild(
-                exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar",
-              Artifacts.core, Artifacts.backend_ffi_shared, Artifacts.backend_ffi_opencl
+                    exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar",
+                    Artifacts.core, Artifacts.backend_ffi_shared, Artifacts.backend_ffi_opencl
             ));
 
     Stream.of( "heal", "life", "mandel", "violajones")   // these require example_shared ui stuff
             .parallel()
             .map(examplesDir::existingDir)
             .forEach(exampleDir->buildDir.mavenStyleBuild(
-                 exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar", Artifacts.core, Artifacts.example_shared
+                    exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar", Artifacts.core, Artifacts.example_shared
             ));
 
     var nbodyDependencies = new Script.MavenStyleProject[]{
@@ -340,15 +343,15 @@ if (Artifacts.extraction_opengl != null
     boolean foundNull = false;
 
     for (var o:nbodyDependencies){
-       if (o == null){
-          foundNull = true;
-       }
+        if (o == null){
+            foundNull = true;
+        }
     }
     if (foundNull){
         print("incomplete nbody dependencies ");
     }else {
         Artifacts.example_nbody = buildDir.mavenStyleBuild(
-            examplesDir.existingDir("nbody"), "hat-example-nbody-1.0.jar", nbodyDependencies
+                examplesDir.existingDir("nbody"), "hat-example-nbody-1.0.jar", nbodyDependencies
         );
     }
 
