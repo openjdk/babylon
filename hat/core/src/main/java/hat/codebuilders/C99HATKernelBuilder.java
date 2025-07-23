@@ -25,6 +25,7 @@
 package hat.codebuilders;
 
 
+import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
@@ -40,8 +41,11 @@ import java.lang.foreign.GroupLayout;
 import java.util.function.Consumer;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends HATCodeBuilderWithContext<T> {
-    public C99HATKernelBuilder() {
 
+    protected final NDRange ndRange;
+
+    public C99HATKernelBuilder(NDRange ndRange) {
+        this.ndRange = ndRange;
     }
 
     public T types() {
@@ -56,29 +60,57 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .longTypeDefs("s64_t")
                 .unsignedLongTypeDefs("u64_t")
                 .typedefStructOrUnion(true, "KernelContext", _ -> {
-                    intDeclaration("x").semicolonNl();
-                    intDeclaration("maxX").semicolon();
-                });
 
+                    // The context is customized depending on the NDRange of the application:
+                    // 1D, 2D or 3D.
+                    // An alternative is to always generate the 3D range for OpenCL.
+
+                    // Kernels are, at least, 1D
+                    intDeclaration("x").semicolonNl();
+                    intDeclaration("maxX").semicolonNl();
+
+                    if (ndRange.kid.getDimensions() > 1) {
+                        // The code builder needs the NDRange
+                        intDeclaration("y").semicolonNl();
+                        intDeclaration("maxY").semicolon().nl();
+                    }
+
+                    if (ndRange.kid.getDimensions() > 2) {
+                        // The code builder needs the NDRange
+                        intDeclaration("z").semicolonNl();
+                        intDeclaration("maxZ").semicolon().nl();
+                    }
+
+                    // It could be an alternative solution for doing this:
+                    // NDRAnge is an iFACE with some restrictions
+                });
     }
 
     T typedefStructOrUnion(boolean isStruct, String name, Consumer<T> consumer) {
-        return
-                typedefKeyword().space().structOrUnion(isStruct).space()
-                        .either(isStruct, _ -> suffix_s(name), _ -> suffix_u(name)).braceNlIndented(consumer)
-                        .suffix_t(name).semicolon().nl();
-
+        return typedefKeyword()
+                .space()
+                .structOrUnion(isStruct)
+                .space()
+                .either(isStruct, _ -> suffix_s(name), _ -> suffix_u(name))
+                .braceNlIndented(consumer)
+                .suffix_t(name).semicolon().nl();
     }
 
 
     public final T scope() {
-
         identifier("KernelContext_t").space().identifier("mine").semicolon().nl();
         identifier("KernelContext_t").asterisk().space().identifier("kc").equals().ampersand().identifier("mine").semicolon().nl();
-        identifier("kc").rarrow().identifier("x").equals().globalId().semicolon().nl();
+        identifier("kc").rarrow().identifier("x").equals().globalId(0).semicolon().nl();
         identifier("kc").rarrow().identifier("maxX").equals().identifier("global_kc").rarrow().identifier("maxX").semicolon().nl();
+        if (ndRange.kid.getDimensions() > 1) {
+            identifier("kc").rarrow().identifier("y").equals().globalId(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("maxY").equals().identifier("global_kc").rarrow().identifier("maxY").semicolon().nl();
+        }
+        if (ndRange.kid.getDimensions() > 2) {
+            identifier("kc").rarrow().identifier("z").equals().globalId(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("maxZ").equals().identifier("global_kc").rarrow().identifier("maxZ").semicolon().nl();
+        }
         return self();
-
     }
 
     public abstract T globalPtrPrefix();
@@ -166,8 +198,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T functionDeclaration(CodeBuilderContext codeBuilderContext,JavaType javaType, String name);
 
-    public abstract T globalId();
+    public abstract T globalId(int id);
 
-    public abstract T globalSize();
+    public abstract T globalSize(int id);
 
 }

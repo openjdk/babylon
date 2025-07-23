@@ -36,7 +36,7 @@ import java.lang.invoke.MethodHandle;
 
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public class OpenCLBackend extends C99JExtractedBackend{
+public class OpenCLBackend extends C99JExtractedBackend {
 
     final MethodHandle getBackend_MH;
     public long getBackend(int mode, int platform, int device) {
@@ -66,7 +66,7 @@ public class OpenCLBackend extends C99JExtractedBackend{
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
+            String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(ndRange), args);
             System.out.println(code);
             long programHandle = compileProgram(code);
             if (programOK(programHandle)) {

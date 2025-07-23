@@ -60,7 +60,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator, 0, 0);
+            this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator, 0, 0, 0, 0, 0, 0);
             ndRangeAndArgs[0] = this.kernelContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
@@ -68,6 +68,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         public void dispatch(NDRange ndRange, Object[] args) {
           //  long ns = System.nanoTime();
             kernelContext.maxX(ndRange.kid.maxX);
+            kernelContext.maxY(ndRange.kid.maxY);
+            kernelContext.maxZ(ndRange.kid.maxZ);
+            kernelContext.dimensions(ndRange.kid.getDimensions());
             args[0] = this.kernelContext;
             ArgArray.update(argArray,kernelCallGraph, args);
             //System.out.println("argupdate  "+((System.nanoTime()-ns)/1000)+" us");

@@ -34,12 +34,64 @@ import jdk.incubator.code.CodeReflection;
 
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.*;
+import static hat.ifacemapper.MappableIface.RO;
+import static hat.ifacemapper.MappableIface.RW;
 
+/**
+ * Canonical example for Matrix Multiply.
+ *
+ * <p>How to run?</p>
+ *
+ * <p>For 2D Configuration:
+ * <code>
+ *     java @hat/run ffi-opencl matmul 2D
+ * </code>
+ * </p>
+ *
+ * <p> For 1D Configuration
+ *     <code>
+ *         java @hat/run ffi-opencl matmul 1D
+ *     </code>
+ * </p>
+ */
 public class Main {
 
+    private static final boolean CHECK_RESULT = true;
+
+    /**
+     * Naive Matrix Multiplication implemented in 2D.
+     *
+     * @param kc
+     * @param matrixA
+     * @param matrixB
+     * @param matrixC
+     * @param size
+     */
     @CodeReflection
-    public static void matrixMultiplyKernel(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+        if (kc.x < kc.maxX) {
+            if (kc.y < kc.maxY) {
+                float acc = 0;
+                for (int k = 0; k < size; k++) {
+                    acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + kc.y));
+                }
+                matrixC.array(kc.x * size + kc.y, acc);
+            }
+        }
+    }
+
+
+    /**
+     * Naive Matrix Multiplication implemented in 1D.
+     *
+     * @param kc
+     * @param matrixA
+     * @param matrixB
+     * @param matrixC
+     * @param size
+     */
+    @CodeReflection
+    public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.x < kc.maxX) {
             for (int j = 0; j < size; j++) {
                 float acc = 0;
@@ -52,9 +104,16 @@ public class Main {
     }
 
     @CodeReflection
-    public static void matrixMultiply(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
+    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
         cc.dispatchKernel(size,
-                kc -> matrixMultiplyKernel(kc, matrixA, matrixB, matrixC, size)
+                kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, size)
+        );
+    }
+
+    @CodeReflection
+    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
+        cc.dispatchKernel(size, size,
+                kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
@@ -72,8 +131,32 @@ public class Main {
         }
     }
 
+    /**
+     * Configuration to use in this example to represent a
+     * 1D range or 2D range.
+     */
+    private enum NDRangeConfiguration {
+        _1D, //
+        _2D;
+    }
+
+    /**
+     * Run a 2D version by default.
+     * @param args
+     *      args: <"1D"|"2D"> for 1D dispatch
+     *
+     */
     public static void main(String[] args) {
-        System.out.println("Running Matrix Multiplication!");
+        System.out.println("[INFO] Running Matrix Multiplication: ");
+
+        NDRangeConfiguration configuration = NDRangeConfiguration._2D;
+        if (args.length > 0) {
+            if (args[0].equals("1D")) {
+                configuration = NDRangeConfiguration._1D;
+            }
+        }
+
+        System.out.println("[INFO] NDRangeConfiguration: " + configuration);
 
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
@@ -90,39 +173,47 @@ public class Main {
         // Initialize matrices (A and B have the same size)
         Random r = new Random(19);
 
+        for (int j = 0; j < matrixA.length(); j++) {
+            matrixA.array(j, r.nextFloat());
+            matrixB.array(j, r.nextFloat());
+        }
+
+        // Run Seq for reference
+        runSequential(matrixA, matrixB, resultSeq, size);
+
         for (int it = 0; it < 10; it++) {
 
-            for (int j = 0; j < matrixA.length(); j++) {
-                matrixA.array(j, r.nextFloat());
-                matrixB.array(j, r.nextFloat());
+            long start = System.nanoTime();
+            switch (configuration) {
+                case _1D -> accelerator.compute(cc ->
+                        Main.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
+                case _2D -> accelerator.compute(cc ->
+                        Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
             }
 
-            long start = System.nanoTime();
-            accelerator.compute(cc ->
-                    Main.matrixMultiply(cc, matrixA, matrixB, matrixC, size)
-            );
             long end = System.nanoTime();
             System.out.println("Elapsed Time: " + (end - start) + " ns");
 
-            // Check result
-            runSequential(matrixA, matrixB, resultSeq, size);
-            boolean isCorrect = true;
-            for (int i = 0; i < size; i++) {
-                for (int j = 0; j < size; j++) {
-                    if (Math.abs(matrixC.array(i * size + j) - matrixC.array(i * size + j)) > 0.01f) {
-                        isCorrect = false;
+            if (it == 0 || it == 9 && CHECK_RESULT) {
+                // Check result for the first iteration
+                boolean isCorrect = true;
+                for (int i = 0; i < size; i++) {
+                    for (int j = 0; j < size; j++) {
+                        if (Math.abs(resultSeq.array(i * size + j) - matrixC.array(i * size + j)) > 0.01f) {
+                            isCorrect = false;
+                            break;
+                        }
+                    }
+                    if (!isCorrect) {
                         break;
                     }
                 }
-                if (!isCorrect) {
-                    break;
-                }
-            }
 
-            if (isCorrect) {
-                System.out.println("Result is correct!");
-            } else {
-                System.out.println("Result is wrong!");
+                if (isCorrect) {
+                    System.out.println("Result is correct!");
+                } else {
+                    System.out.println("Result is wrong!");
+                }
             }
         }
     }

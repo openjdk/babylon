@@ -101,12 +101,12 @@ PlatformInfo::PlatformInfo(OpenCLBackend *openclBackend):
     name(strInfo(openclBackend->platform_id, CL_PLATFORM_NAME)),
     deviceInfo(openclBackend){
 }
+
 PlatformInfo::~PlatformInfo(){
     delete [] versionName;
     delete [] vendorName;
     delete [] name;
 }
-
 
 void OpenCLBackend::info() {
     const PlatformInfo platformInfo(this);

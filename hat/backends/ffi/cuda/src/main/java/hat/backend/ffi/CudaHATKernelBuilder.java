@@ -24,6 +24,7 @@
  */
 package hat.backend.ffi;
 
+import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.optools.OpWrapper;
 
@@ -31,6 +32,10 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaType;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
+
+    public CudaHATKernelBuilder(NDRange ndRange) {
+        super(ndRange);
+    }
 
     @Override
     public CudaHATKernelBuilder defines() {
@@ -44,19 +49,40 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    public CudaHATKernelBuilder globalId() {
-        return identifier("blockIdx").dot().identifier("x")
+    @Override
+    public CudaHATKernelBuilder globalId(int id) {
+        String threadDimId;
+        if (id == 0) {
+            threadDimId = "x";
+        } else if (id == 1) {
+            threadDimId = "y";
+        } else if (id == 2) {
+            threadDimId = "z";
+        } else {
+            throw new RuntimeException("Thread Dimension not supported");
+        }
+        return identifier("blockIdx").dot().identifier(threadDimId)
                 .asterisk()
-                .identifier("blockDim").dot().identifier("x")
+                .identifier("blockDim").dot().identifier(threadDimId)
                 .plus()
-                .identifier("threadIdx").dot().identifier("x");
+                .identifier("threadIdx").dot().identifier(threadDimId);
     }
 
     @Override
-    public CudaHATKernelBuilder globalSize() {
-        return identifier("gridDim").dot().identifier("x")
+    public CudaHATKernelBuilder globalSize(int id) {
+        String threadDimId;
+        if (id == 0) {
+            threadDimId = "x";
+        } else if (id == 1) {
+            threadDimId = "y";
+        } else if (id == 2) {
+            threadDimId = "z";
+        } else {
+            throw new RuntimeException("Thread Dimension not supported");
+        }
+        return identifier("gridDim").dot().identifier(threadDimId)
                 .asterisk()
-                .identifier("blockDim").dot().identifier("x");
+                .identifier("blockDim").dot().identifier(threadDimId);
     }
 
 
