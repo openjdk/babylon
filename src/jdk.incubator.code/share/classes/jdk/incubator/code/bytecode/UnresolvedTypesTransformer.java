@@ -270,7 +270,7 @@ final class UnresolvedTypesTransformer {
     private OpTransformer blockParamTypesTransformer() {
         return new OpTransformer() {
             @Override
-            public void apply(Block.Builder block, Block b) {
+            public void acceptBlock(Block.Builder block, Block b) {
                 if (block.isEntryBlock()) {
                     CopyContext cc = block.context();
                     List<Block> sourceBlocks = b.ancestorBody().blocks();
@@ -289,11 +289,11 @@ final class UnresolvedTypesTransformer {
                     }
 
                 }
-                OpTransformer.super.apply(block, b);
+                OpTransformer.super.acceptBlock(block, b);
             }
 
             @Override
-            public Block.Builder apply(Block.Builder block, Op op) {
+            public Block.Builder acceptOp(Block.Builder block, Op op) {
                 block.op(op);
                 return block;
             }

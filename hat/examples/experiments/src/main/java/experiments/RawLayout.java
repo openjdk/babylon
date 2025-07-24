@@ -155,7 +155,7 @@ public class RawLayout {
                 transformStructClassToPtr(l, f.invokableType().returnType()),
                 pTypes);
         return CoreOp.func(f.funcName(), functionType).body(funcBlock -> {
-            funcBlock.transformBody(f.body(), funcBlock.parameters(), (b, op) -> {
+            funcBlock.body(f.body(), funcBlock.parameters(), (b, op) -> {
                 if (op instanceof JavaOp.InvokeOp iop && iop.hasReceiver()) {
                     Value receiver = iop.operands().getFirst();
                     if (structClass(l, receiver.type()) instanceof Class<?> _) {
