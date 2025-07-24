@@ -144,11 +144,12 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         try {
             Object[] args = lambdaOpWrapper.getQuotableCapturedValues(quoted, kernelCallGraph.entrypoint.method);
-            NDRange ndRange = null;
+            NDRange ndRange;
             switch (dimNumber) {
                 case 1 -> ndRange = accelerator.range(rangeX);
                 case 2 -> ndRange = accelerator.range(rangeX, rangeY);
                 case 3 -> ndRange = accelerator.range(rangeX, rangeY, rangeZ);
+                default -> throw new RuntimeException("[Error] Unexpected dimension value: " + dimNumber + ". Allowed dimensions <1, 2, 3>");
             }
             args[0] = ndRange;
             accelerator.backend.dispatchKernel(kernelCallGraph, ndRange, args);
