@@ -68,7 +68,7 @@ public interface KernelContext extends Buffer {
         kernelContext.maxX(maxX);
         kernelContext.maxY(maxY);
         kernelContext.maxZ(maxZ);
-        kernelContext.dimensions(2);   // FIXME
+        kernelContext.dimensions(3);
         return kernelContext;
     }
 
