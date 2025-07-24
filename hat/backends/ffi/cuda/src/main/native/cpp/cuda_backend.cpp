@@ -27,6 +27,8 @@
 #include <chrono>
 #include "cuda_backend.h"
 
+#include <iostream>
+
 
 PtxSource::PtxSource()
     : Text(0L) {

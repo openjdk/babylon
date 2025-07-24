@@ -200,7 +200,8 @@ void OpenCLBackend::OpenCLQueue::wait(){
     }
     eventc++;
  }
- void OpenCLBackend::OpenCLQueue::inc(const int bits, const char *arg){
+
+void OpenCLBackend::OpenCLQueue::inc(const int bits, const char *arg){
      if (eventc+1 >= eventMax){
         std::cerr << "OpenCLBackend::OpenCLQueue event list overflowed!!" << std::endl;
      }else{
@@ -208,8 +209,7 @@ void OpenCLBackend::OpenCLQueue::wait(){
          eventInfoConstCharPtrArgs[eventc]=arg;
      }
      eventc++;
-  }
-
+ }
 
  void OpenCLBackend::OpenCLQueue::markAsEndComputeAndInc(){
      inc(EndComputeBits);
@@ -243,34 +243,38 @@ void OpenCLBackend::OpenCLQueue::wait(){
  }
 
 void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel){
-    size_t dims = 1;
+    //std::cout << "OpenCLBackend::OpenCLQueue::dispatch with dimensions " << kernelContext->dimensions << std::endl;
+    //std::cout << "Global Work Size: " << kernelContext->maxX << "," << kernelContext->maxY << "," << kernelContext->maxZ << "]" << std::endl;
+    size_t numDimensions = kernelContext->dimensions;
+
     size_t global_work_size[]{
-       static_cast<size_t>(kernelContext->maxX),
-       static_cast<size_t>(0),// Todo: kernelContext->maxY
-       static_cast<size_t>(0),// Todo: kernelContext->maxZ
+        static_cast<size_t>(kernelContext->maxX),
+        static_cast<size_t>(kernelContext->maxY),
+        static_cast<size_t>(kernelContext->maxZ)
     };
+
     cl_int status = clEnqueueNDRangeKernel(
-            command_queue,
-            dynamic_cast<OpenCLProgram::OpenCLKernel*>(kernel)->kernel,
-            dims,
-            nullptr,
-            global_work_size,
-            nullptr,
-            eventc,
-            eventListPtr(),
-            nextEventPtr());
+        command_queue,
+        dynamic_cast<OpenCLProgram::OpenCLKernel *>(kernel)->kernel,
+        numDimensions,
+        nullptr,
+        global_work_size,
+        nullptr, // TODO: Select a local work group instead of the default one
+        eventc,
+        eventListPtr(),
+        nextEventPtr());
+
     inc(NDRangeBits);
-   // markAsNDRangeAndInc();
+    // markAsNDRangeAndInc();
+
     if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        std::cerr << errorMsg(status) << std::endl;
         exit(1);
     }
-    if (backend->config->trace | backend->config->traceEnqueues){
-        std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->maxX << std::endl;
+    if (backend->config->trace | backend->config->traceEnqueues) {
+        std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << kernelContext->maxX << std::endl;
     }
-
 }
-
 
 void OpenCLBackend::OpenCLQueue::copyToDevice(Backend::Buffer *buffer) {
 

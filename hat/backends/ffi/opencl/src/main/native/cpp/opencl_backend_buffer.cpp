@@ -37,15 +37,12 @@ OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, BufferState *bufferS
         &status);
 
     if (status != CL_SUCCESS) {
-        std::cerr << OpenCLBackend::errorMsg(status) << std::endl;
+        std::cerr << errorMsg(status) << std::endl;
         exit(1);
     }
     bufferState->vendorPtr =  static_cast<void *>(this);
 }
 
-
 OpenCLBackend::OpenCLBuffer::~OpenCLBuffer() {
     clReleaseMemObject(clMem);
 }
-
-

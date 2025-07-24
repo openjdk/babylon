@@ -73,7 +73,7 @@ public class WorkStealer {
                         //  System.out.println("Thread #"+Thread.currentThread()+" started");
 
                         int myChunk;
-                        ndRange.kid = new KernelContext(ndRange, range, 0);
+                        ndRange.kid = new KernelContext(ndRange, range);
 
                         while ((myChunk = taskCount.getAndIncrement()) < (range / chunkSize) + 1) {
 

@@ -281,7 +281,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
     auto *profilableQueue = dynamic_cast<ProfilableQueue *>(compilationUnit->backend->queue);
     if (profilableQueue != nullptr) {
-        profilableQueue->marker(Backend::ProfilableQueue::EnterKernelDispatchBits, name);
+        profilableQueue->marker(ProfilableQueue::EnterKernelDispatchBits, name);
     }
     if (compilationUnit->backend->config->trace) {
         Sled::show(std::cout, argArray);

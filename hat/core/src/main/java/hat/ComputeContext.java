@@ -126,13 +126,31 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
      */
 
     public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+        dispatchKernel(range, 0, 0, 1, quotableKernelContextConsumer);
+    }
+
+    public void dispatchKernel(int rangeX, int rangeY, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+        dispatchKernel(rangeX, rangeY, 0, 2, quotableKernelContextConsumer);
+    }
+
+    public void dispatchKernel(int rangeX, int rangeY, int rangeZ, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+        dispatchKernel(rangeX, rangeY, rangeZ, 3, quotableKernelContextConsumer);
+    }
+
+    private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap(computeCallGraph.computeContext.accelerator.lookup,(JavaOp.LambdaOp) quoted.op());
         MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         try {
             Object[] args = lambdaOpWrapper.getQuotableCapturedValues(quoted, kernelCallGraph.entrypoint.method);
-            NDRange ndRange = accelerator.range(range);
+            NDRange ndRange;
+            switch (dimNumber) {
+                case 1 -> ndRange = accelerator.range(rangeX);
+                case 2 -> ndRange = accelerator.range(rangeX, rangeY);
+                case 3 -> ndRange = accelerator.range(rangeX, rangeY, rangeZ);
+                default -> throw new RuntimeException("[Error] Unexpected dimension value: " + dimNumber + ". Allowed dimensions <1, 2, 3>");
+            }
             args[0] = ndRange;
             accelerator.backend.dispatchKernel(kernelCallGraph, ndRange, args);
         } catch (Throwable t) {

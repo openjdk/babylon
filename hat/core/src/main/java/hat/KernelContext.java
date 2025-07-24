@@ -39,14 +39,63 @@ package hat;
  * @author Gary Frost
  */
 public class KernelContext {
-    public final NDRange ndRange;
-    public int x;
-    final public int maxX;
 
-    public KernelContext(NDRange ndRange, int maxX, int x) {
+    public final NDRange ndRange;
+
+    public int x;
+    public int y;
+    public int z;
+
+    final public int maxX;
+    final public int maxY;
+    final public int maxZ;
+
+    final int dimensions;
+
+    /**
+     * 1D Kernel
+     * @param ndRange {@link NDRange}
+     * @param maxX Global number of threads for the first dimension (1D)
+     */
+    public KernelContext(NDRange ndRange, int maxX) {
         this.ndRange = ndRange;
         this.maxX = maxX;
-        this.x = x;
+        this.maxY = 0;
+        this.maxZ = 0;
+        this.dimensions = 1;
+    }
+
+    /**
+     * 1D Kernel
+     * @param ndRange {@link NDRange}
+     * @param maxX Global number of threads for the first dimension (1D)
+     * @param maxY Global number of threads for the second dimension (2D)
+     */
+    public KernelContext(NDRange ndRange, int maxX, int maxY) {
+        this.ndRange = ndRange;
+        this.maxX = maxX;
+        this.maxY = maxY;
+        this.maxZ = 0;
+        this.dimensions = 2;
+    }
+
+    /**
+     * 1D Kernel
+     * @param ndRange {@link NDRange}
+     * @param maxX Global number of threads for the first dimension (1D)
+     * @param maxY Global number of threads for the second dimension (2D)
+     * @param maxZ Global number of threads for the second dimension (3D)
+     */
+    public KernelContext(NDRange ndRange, int maxX, int maxY, int maxZ) {
+        this.ndRange = ndRange;
+        this.maxX = maxX;
+        this.maxY = maxY;
+        this.maxZ = maxZ;
+        this.dimensions = 3;
+    }
+
+    public int getDimensions() {
+        return this.dimensions;
     }
 
 }
