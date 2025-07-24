@@ -32,6 +32,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -133,6 +134,37 @@ import static oracle.code.onnx.foreign.OrtGenApi.*;
  * }
  */
 public class OnnxGenRuntimeSession implements AutoCloseable {
+
+    /**
+     * Loads {@code onnxruntime-genai} native library from the given folder.
+     * This method unpacks required {@code onnxruntime} library from dependencies, if missing.
+     *
+     * @param libRoot folder with the library
+     */
+    public static void loadGenAILib(Path libRoot) {
+        Path runtime = libRoot.resolve(System.mapLibraryName("onnxruntime"));
+        if (!Files.isRegularFile(runtime)) {
+            // onnxruntime-genai requires onnxruntime in the same directory
+            String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";
+            String os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+            String libResource;
+            if (os.contains("mac") || os.contains("darwin")) {
+                libResource = "/ai/onnxruntime/native/osx-" + arch + "/libonnxruntime.dylib";
+            } else if (os.contains("win")) {
+                libResource = "/ai/onnxruntime/native/win-" + arch + "/libonnxruntime.dll";
+            } else if (os.contains("nux")) {
+                libResource = "/ai/onnxruntime/native/linux-" + arch + "/libonnxruntime.so";
+            } else {
+                throw new IllegalStateException("Unsupported os:" + os);
+            }
+            try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
+                Files.copy(libStream, runtime);
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+        }
+        System.load(libRoot.resolve(System.mapLibraryName("onnxruntime-genai")).toAbsolutePath().toString());
+    }
 
     /**
      * Builds Onnx model from the provided Java model instance and loads it into a constructs the Onnx Generate API session.
