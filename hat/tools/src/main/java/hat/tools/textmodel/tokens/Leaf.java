@@ -22,64 +22,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package hat.tools.textmodel.tokens;
 
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
-
-public abstract class StyledOpCodeBuilder<T extends StyledOpCodeBuilder<T>> extends OpCodeBuilder<T> {
-
-
-    public T defaultStyle(Runnable r) {
-        r.run();
-        return self();
-    }
-
-    public T valueStyle(Runnable r) {
-        return defaultStyle(r);
-    }
-
-    public T opNameStyle(Runnable r) {
-        return defaultStyle(r);
-    }
-
-    public T dquoteStyle(Runnable r) {
-        return defaultStyle(r);
-    }
-
-    public T typeNameStyle(Runnable r) {
-        return defaultStyle(r);
-    }
-
-    public T atStyle(Runnable r) {
-        return defaultStyle(r);
-    }
-
+public interface Leaf extends Token {
     @Override
-    public T value(Value v) {
-        return valueStyle(() -> super.value(v));
+    default void visit(Consumer<Token> visitor) {
+        visitor.accept(this);
     }
 
-    @Override
-    public T opName(String name) {
-        return opNameStyle(() -> super.opName(name));
+    default boolean isOneOf(Set<String> strings) {
+        return strings.contains(this.asString());
     }
 
-    @Override
-    public T dquote(String name) {
-        return dquoteStyle(() -> super.dquote(name));
+    default boolean isOneOf(String... strings) {
+        return isOneOf(Set.of(strings));
     }
 
-    @Override
-    public T typeName(TypeElement typeDesc) {
-        return typeNameStyle(() -> super.typeName(typeDesc));
+    default Matcher matcher(Pattern regex) {
+        Matcher matcher = regex.matcher(asString());
+        if (matcher.matches()) {
+            return matcher;
+        } else {
+            return null;
+        }
     }
 
-    @Override
-    public T at() {
-        return atStyle(() -> super.at());
+    default boolean matches(Pattern regex) {
+        return matcher(regex) != null;
     }
 }
-
-

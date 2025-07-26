@@ -2,31 +2,30 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/hat.iml" filepath="$PROJECT_DIR$/hat.iml" />
-      <module fileurl="file://$PROJECT_DIR$/core.iml" filepath="$PROJECT_DIR$/core.iml" />
-      <module fileurl="file://$PROJECT_DIR$/tools.iml" filepath="$PROJECT_DIR$/core.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_cuda.iml" filepath="$PROJECT_DIR$/backend_ffi_cuda.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_mock.iml" filepath="$PROJECT_DIR$/backend_ffi_mock.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_opencl.iml" filepath="$PROJECT_DIR$/backend_ffi_opencl.iml" />
-      <module fileurl="file://$PROJECT_DIR$/backend_ffi_spirv.iml" filepath="$PROJECT_DIR$/backend_ffi_spirv.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_shared.iml" filepath="$PROJECT_DIR$/backend_ffi_shared.iml" />
+      <module fileurl="file://$PROJECT_DIR$/backend_ffi_spirv.iml" filepath="$PROJECT_DIR$/backend_ffi_spirv.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_java_mt.iml" filepath="$PROJECT_DIR$/backend_java_mt.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_java_seq.iml" filepath="$PROJECT_DIR$/backend_java_seq.iml" />
-      <module fileurl="file://$PROJECT_DIR$/example_shared.iml" filepath="$PROJECT_DIR$/example_shared.iml" />
-      <module fileurl="file://$PROJECT_DIR$/example_mandel.iml" filepath="$PROJECT_DIR$/example_mandel.iml" />
-      <module fileurl="file://$PROJECT_DIR$/example_heal.iml" filepath="$PROJECT_DIR$/example_heal.iml" />
-      <module fileurl="file://$PROJECT_DIR$/example_blackscholes.iml" filepath="$PROJECT_DIR$/example_blackscholes.iml" />
-      <module fileurl="file://$PROJECT_DIR$/example_life.iml" filepath="$PROJECT_DIR$/example_life.iml" />
-      <module fileurl="file://$PROJECT_DIR$/example_squares.iml" filepath="$PROJECT_DIR$/example_squares.iml" />
-      <module fileurl="file://$PROJECT_DIR$/example_experiments.iml" filepath="$PROJECT_DIR$/example_experiments.iml" />
-      <module fileurl="file://$PROJECT_DIR$/example_violajones.iml" filepath="$PROJECT_DIR$/example_violajones.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_jextracted_opencl.iml" filepath="$PROJECT_DIR$/backend_jextracted_opencl.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_jextracted_shared.iml" filepath="$PROJECT_DIR$/backend_jextracted_shared.iml" />
-      <module fileurl="file://$PROJECT_DIR$/wrap_shared.iml" filepath="$PROJECT_DIR$/wrap_shared.iml" />
-      <module fileurl="file://$PROJECT_DIR$/wrap_opengl.iml" filepath="$PROJECT_DIR$/wrap_opengl.iml" />
-      <module fileurl="file://$PROJECT_DIR$/wrap_opencl.iml" filepath="$PROJECT_DIR$/wrap_opencl.iml" />
-      <module fileurl="file://$PROJECT_DIR$/wrap_cuda.iml" filepath="$PROJECT_DIR$/wrap_cuda.iml" />
+      <module fileurl="file://$PROJECT_DIR$/core.iml" filepath="$PROJECT_DIR$/core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/example_blackscholes.iml" filepath="$PROJECT_DIR$/example_blackscholes.iml" />
+      <module fileurl="file://$PROJECT_DIR$/example_experiments.iml" filepath="$PROJECT_DIR$/example_experiments.iml" />
+      <module fileurl="file://$PROJECT_DIR$/example_heal.iml" filepath="$PROJECT_DIR$/example_heal.iml" />
+      <module fileurl="file://$PROJECT_DIR$/example_life.iml" filepath="$PROJECT_DIR$/example_life.iml" />
+      <module fileurl="file://$PROJECT_DIR$/example_mandel.iml" filepath="$PROJECT_DIR$/example_mandel.iml" />
       <module fileurl="file://$PROJECT_DIR$/example_nbody.iml" filepath="$PROJECT_DIR$/example_nbody.iml" />
+      <module fileurl="file://$PROJECT_DIR$/example_shared.iml" filepath="$PROJECT_DIR$/example_shared.iml" />
+      <module fileurl="file://$PROJECT_DIR$/example_squares.iml" filepath="$PROJECT_DIR$/example_squares.iml" />
+      <module fileurl="file://$PROJECT_DIR$/example_violajones.iml" filepath="$PROJECT_DIR$/example_violajones.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tools.iml" filepath="$PROJECT_DIR$/tools.iml" />
+      <module fileurl="file://$PROJECT_DIR$/wrap_cuda.iml" filepath="$PROJECT_DIR$/wrap_cuda.iml" />
+      <module fileurl="file://$PROJECT_DIR$/wrap_opencl.iml" filepath="$PROJECT_DIR$/wrap_opencl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/wrap_opengl.iml" filepath="$PROJECT_DIR$/wrap_opengl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/wrap_shared.iml" filepath="$PROJECT_DIR$/wrap_shared.iml" />
     </modules>
   </component>
 </project>
