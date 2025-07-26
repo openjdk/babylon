@@ -3,6 +3,7 @@ conf/
 build/
 repo/
 hattricks/
+tools/target/
 backends/cuda/target/
 backends/mock/target/
 backends/opencl/target/
@@ -14,5 +15,12 @@ examples/life/target/
 examples/mandel/target/
 examples/squares/target/
 examples/violajones/target/
+wraps/opencl/target/
+wraps/opengl/target/
+wraps/shared/target/
+wraps/cuda/target/
+extractions/cuda/target
+extractions/opencl/target
+extractions/opengl/target
 stage/
 compile_flags.txt
