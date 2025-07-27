@@ -24,18 +24,13 @@
  */
 package hat.tools.textmodel.ui;
 
-import hat.KernelContext;
-import hat.buffer.S32Array;
-import hat.buffer.S32Array2D;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
 import hat.tools.textmodel.BabylonTextModel;
 import hat.tools.textmodel.TextModel;
+import jdk.incubator.code.dialect.core.CoreOp;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.JSplitPane;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.text.Element;
@@ -46,7 +41,6 @@ import java.awt.Graphics2D;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -67,7 +61,7 @@ public class FuncOpViewer extends JPanel {
             public void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2d = (Graphics2D) g;
-// So we can overlay with arrows for
+                // So we can overlay with arrows for
                 // Draw Text
                 //  g2d.drawString("This is my custom Panel!",10,20);
             }
@@ -153,15 +147,16 @@ public class FuncOpViewer extends JPanel {
     }
 
     public FuncOpViewer(BabylonTextModel cr) {
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setResizeWeight(0.5);
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-        var font = new Font("Monospaced", Font.PLAIN, 16);
+        var font = new Font("Monospaced", Font.PLAIN, 14);
+
         var funcOpTextModelViewer = new FuncOpTextModelViewer(cr, font, false);
         var javaTextModelViewer = new JavaTextModelViewer(cr.javaTextModel, font, false);
-        splitPane.add(funcOpTextModelViewer.scrollPane);
-        splitPane.add(javaTextModelViewer.scrollPane);
+
+        var gutter = new TextGutter(  funcOpTextModelViewer,javaTextModelViewer);
+        add(funcOpTextModelViewer.scrollPane);
+        add(gutter);
+        add(javaTextModelViewer.scrollPane);
         // tell each about the other
         funcOpTextModelViewer.javaTextModelViewer = javaTextModelViewer;
         javaTextModelViewer.funcOpTextModelViewer = funcOpTextModelViewer;
@@ -191,19 +186,18 @@ public class FuncOpViewer extends JPanel {
         });
 
         javaTextModelViewer.highLightLines(cr.babylonLocationAttributes.getFirst(), cr.babylonLocationAttributes.getLast());
-        add(splitPane);
     }
 
     public static void launch(BabylonTextModel crDoc) {
-        SwingUtilities.invokeLater(() -> {
-            var viewer = new FuncOpViewer(crDoc);
-            var frame = new JFrame();
-            frame.setLayout(new BorderLayout());
-            frame.getContentPane().add(viewer);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.pack();
-            frame.setVisible(true);
-        });
+            SwingUtilities.invokeLater(() -> {
+                var viewer = new FuncOpViewer(crDoc);
+                var frame = new JFrame();
+                frame.setLayout(new BorderLayout());
+                frame.getContentPane().add(viewer);
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.pack();
+                frame.setVisible(true);
+            });
 
     }
 
