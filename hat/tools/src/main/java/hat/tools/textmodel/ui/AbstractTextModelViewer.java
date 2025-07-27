@@ -144,7 +144,6 @@ public class AbstractTextModelViewer extends TextViewer {
                         case BabylonTextModel.BabylonLocationAttribute _ -> babylonLocationAttribute;
                         case BabylonTextModel.BabylonNamedAttribute _ -> babylonNamedAttribute;
                         case JavaTextModel.JavaType _, BabylonTextModel.BabylonTypeAttribute _ -> type;
-                        //      case BabylonTextModel.BabylonRefAttribute _ -> babylonRefAttribute;
                         case BabylonTextModel.BabylonSSADef _ -> babylonSSADef;
                         case BabylonTextModel.BabylonSSARef _ -> babylonSSARef;
                         case BabylonTextModel.BabylonOp _ -> babylonOp;
