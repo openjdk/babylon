@@ -58,6 +58,8 @@ public class Main {
 
     private static final boolean CHECK_RESULT = true;
 
+    private static final int NUM_ITERATIONS = 10;
+
     /**
      * Naive Matrix Multiplication implemented in 2D.
      *
@@ -80,6 +82,27 @@ public class Main {
         }
     }
 
+    /**
+     * Naive Matrix Multiplication implemented in 2D.
+     *
+     * @param kc
+     * @param matrixA
+     * @param matrixB
+     * @param matrixC
+     * @param size
+     */
+    @CodeReflection
+    public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+        if (kc.x < kc.maxX) {
+            if (kc.y < kc.maxY) {
+                float acc = 0;
+                for (int k = 0; k < size; k++) {
+                    acc += (matrixA.array(kc.y * size + k) * matrixB.array(k * size + kc.x));
+                }
+                matrixC.array(kc.y * size + kc.x, acc);
+            }
+        }
+    }
 
     /**
      * Naive Matrix Multiplication implemented in 1D.
@@ -117,6 +140,13 @@ public class Main {
         );
     }
 
+    @CodeReflection
+    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
+        cc.dispatchKernel(size, size,
+                kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, size)
+        );
+    }
+
     private static void runSequential(F32Array matrixA, F32Array matrixB, F32Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
@@ -135,9 +165,10 @@ public class Main {
      * Configuration to use in this example to represent a
      * 1D range or 2D range.
      */
-    private enum NDRangeConfiguration {
+    private enum Configuration {
         _1D, //
-        _2D;
+        _2D, //
+        _2DLI
     }
 
     /**
@@ -149,10 +180,13 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("[INFO] Running Matrix Multiplication: ");
 
-        NDRangeConfiguration configuration = NDRangeConfiguration._2D;
+        Configuration configuration = Configuration._2D;
         if (args.length > 0) {
             if (args[0].equals("1D")) {
-                configuration = NDRangeConfiguration._1D;
+                configuration = Configuration._1D;
+            }
+            if (args[0].equals("2DLI")) {
+                configuration = Configuration._2DLI;
             }
         }
 
@@ -181,7 +215,7 @@ public class Main {
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
 
-        for (int it = 0; it < 10; it++) {
+        for (int it = 0; it < NUM_ITERATIONS; it++) {
 
             long start = System.nanoTime();
             switch (configuration) {
@@ -189,12 +223,15 @@ public class Main {
                         Main.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
                 case _2D -> accelerator.compute(cc ->
                         Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
+                case _2DLI -> accelerator.compute(cc ->
+                        Main.matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
             }
 
             long end = System.nanoTime();
             System.out.println("Elapsed Time: " + (end - start) + " ns");
 
-            if (it == 0 || it == 9 && CHECK_RESULT) {
+            // If check result is ON, then check first and lat iterations
+            if (it == 0 || it == (NUM_ITERATIONS - 1) && CHECK_RESULT) {
                 // Check result for the first iteration
                 boolean isCorrect = true;
                 for (int i = 0; i < size; i++) {
