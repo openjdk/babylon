@@ -243,8 +243,6 @@ void OpenCLBackend::OpenCLQueue::inc(const int bits, const char *arg){
  }
 
 void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel){
-    //std::cout << "OpenCLBackend::OpenCLQueue::dispatch with dimensions " << kernelContext->dimensions << std::endl;
-    //std::cout << "Global Work Size: " << kernelContext->maxX << "," << kernelContext->maxY << "," << kernelContext->maxZ << "]" << std::endl;
     size_t numDimensions = kernelContext->dimensions;
 
     size_t global_work_size[]{
