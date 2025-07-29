@@ -42,7 +42,6 @@ import java.util.List;
 
 public abstract class TextViewer {
     public final JTextPane jtextPane;
-    //final protected TextLineNumber textLineNumber;
     final public JScrollPane scrollPane;
     protected Highlighter.HighlightPainter highlightPainter;
     private String text;
@@ -52,8 +51,6 @@ public abstract class TextViewer {
     public TextViewer(JTextPane jtextPane) {
         this.jtextPane = jtextPane;
         this.scrollPane = new JScrollPane(  this.jtextPane);
-      //  this.textLineNumber = new TextLineNumber(  this.jtextPane);
-        //this.scrollPane.setRowHeaderView(textLineNumber);
 
         this.jtextPane.getStyledDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -63,7 +60,7 @@ public abstract class TextViewer {
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                SwingUtilities.invokeLater(() -> applyHighlighting());
+      //          SwingUtilities.invokeLater(() -> applyHighlighting());
             }
 
             @Override
