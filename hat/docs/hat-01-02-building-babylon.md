@@ -69,11 +69,11 @@ mkdir -p ${HOME}/java
 
 ### Clone Babylon from github
 
-[https://github.com/opendjk/babylon.git](https://github.com/opendjk/babylon.git)
+[https://github.com/openjdk/babylon.git](https://github.com/openjdk/babylon.git)
 
 ```bash
 cd ${GITHUB}
-git clone https://github.com/opendjk/babylon.git
+git clone https://github.com/openjdk/babylon.git
 ```
 ### Get and build jtreg
 
