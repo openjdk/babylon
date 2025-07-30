@@ -28,38 +28,80 @@ import hat.tools.textmodel.BabylonTextModel;
 import hat.tools.textmodel.TextModel;
 
 import javax.swing.JTextPane;
-import javax.swing.JViewport;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Shape;
+import java.awt.Polygon;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
-import java.util.ArrayList;
+import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class FuncOpTextModelViewer extends AbstractTextModelViewer {
-    JavaTextModelViewer javaTextModelViewer;
-    Map<ElementSpan, List<ElementSpan>> ssaIdFromToMap = new HashMap<>();
-    Map<ElementSpan, List<ElementSpan>> ssaIdToFromMap = new HashMap<>();
-    Map<Integer, ElementSpan> ssaIdToElement = new HashMap<>();
-    Map<ElementSpan, List<ElementSpan>> opToJava = new HashMap<>();
 
+    JavaTextModelViewer javaTextModelViewer;
+    Map<ElementSpan, List<ElementSpan>> opToJava = new HashMap<>();
+    int lineNumber=122;
     static class FuncOpTextPane extends JTextPane {
-       private  FuncOpTextModelViewer viewer;
-        List<Shape> shapes = new ArrayList<>();
+        private FuncOpTextModelViewer viewer;
+
+        static private final Polygon arrowHead = new Polygon();
+
+        static {
+            arrowHead.addPoint(3, 0);
+            arrowHead.addPoint(-3, -3);
+            arrowHead.addPoint(-3, 3);
+        }
+
+        void arrow(Graphics2D g2d, Element from, Element to) {
+            try {
+                var fromPoint1 = viewer.jtextPane.modelToView2D(from.getStartOffset());
+                var fromPoint2 = viewer.jtextPane.modelToView2D(from.getEndOffset());
+                var fromRect = new Rectangle2D.Double(fromPoint1.getBounds().getMinX(), fromPoint1.getMinY()
+                        , fromPoint2.getBounds().getWidth(), fromPoint2.getBounds().getHeight());
+                var toPoint1 = viewer.jtextPane.modelToView2D(to.getStartOffset() + 3);
+                var toPoint2 = viewer.jtextPane.modelToView2D(to.getEndOffset());
+                var toRect = new Rectangle2D.Double(toPoint1.getBounds().getMinX(), toPoint1.getMinY()
+                        , toPoint2.getBounds().getWidth(), toPoint2.getBounds().getHeight());
+                g2d.setColor(Color.GRAY);
+                var x0 = fromRect.getBounds().getMinX();
+                var y0 = fromRect.getBounds().getCenterY();
+                var x1 = toRect.getBounds().getMinX();
+                var y1 = toRect.getBounds().getCenterY();
+                final AffineTransform tx = AffineTransform.getTranslateInstance(x1, y1);
+                tx.rotate(Math.atan2(y1 - y0, x1 - x0));
+                g2d.fill(tx.createTransformedShape(arrowHead));
+                var line = new Line2D.Double(x0, y0, x1, y1);
+                g2d.setStroke(new BasicStroke(2));
+                g2d.draw(line);
+            } catch (BadLocationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setColor(Color.BLACK);
-                shapes.forEach(g2d::fill);
+            Graphics2D g2d = (Graphics2D) g;
+            ((BabylonTextModel) viewer.textModel).ssaEdgeList.stream().forEach(edge -> {
+                var ssaRef = edge.ssaRef();
+                var ssaDef = edge.ssaDef();
+                if (ssaRef.pos().line() == viewer.lineNumber || ssaDef.pos().line() == viewer.lineNumber) {
+                    var ssaDefElement = viewer.getElement(ssaDef.startOffset());
+                    var ssaRefElement = viewer.getElement(ssaRef.startOffset());
+                    arrow(g2d, ssaRefElement, ssaDefElement);
+                }
+            });
         }
 
         FuncOpTextPane(Font font) {
@@ -69,40 +111,12 @@ public class FuncOpTextModelViewer extends AbstractTextModelViewer {
 
         void setViewer(FuncOpTextModelViewer viewer) {
             this.viewer = viewer;
-            viewer.ssaIdFromToMap.forEach((from, toList) -> {
-                var fromElement = from.element();
-                try {
-                    var fromPoint = from.textViewer().jtextPane.modelToView2D(fromElement.getStartOffset());
-
-                    if (fromPoint != null) {
-                        Line2D line = new Line2D.Float(
-                                fromPoint.getBounds().x, fromPoint.getBounds().y + 100, 0, 0);
-
-                        shapes.add(line);
-                        toList.forEach(to -> {
-                            var toElement = to.element();
-                            try {
-                                var toPoint = to.textViewer().jtextPane.modelToView2D(toElement.getStartOffset());
-                                Line2D line2D = new Line2D.Float(
-                                        fromPoint.getBounds().x, fromPoint.getBounds().y + 100, toPoint.getBounds().x, toPoint.getBounds().y);
-                                shapes.add(line2D);
-                            } catch (BadLocationException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-                    }
-                    } catch(BadLocationException e){
-                        throw new RuntimeException(e);
-                    }
-
-
-            });
-
         }
     }
+
     FuncOpTextModelViewer(TextModel textModel, Font font, boolean dark) {
         super(textModel, new FuncOpTextPane(font), font, dark);
-
+        ((FuncOpTextPane) this.jtextPane).setViewer(this);
 
         jtextPane.addMouseListener(new MouseAdapter() {
             @Override
@@ -111,6 +125,12 @@ public class FuncOpTextModelViewer extends AbstractTextModelViewer {
                 removeHighlights();
                 javaTextModelViewer.removeHighlights();
                 if (clicked != null) {
+                    var optionalElementSpan = opToJava.keySet().stream()
+                            .filter(fromElementSpan -> fromElementSpan.includes(clicked.getStartOffset())).findFirst();
+                    if (optionalElementSpan.isPresent()) {
+                        ElementSpan elementSpan = optionalElementSpan.get();
+                        lineNumber = getLine(elementSpan.element().getStartOffset())+1;
+                    }
                     if (opToJava.keySet().stream()
                             .anyMatch(fromElementSpan -> fromElementSpan.includes(clicked.getStartOffset()))) {
                         opToJava.keySet().stream().
@@ -119,6 +139,7 @@ public class FuncOpTextModelViewer extends AbstractTextModelViewer {
                                     fromElementSpan.textViewer().highLight(fromElementSpan.element());
                                     opToJava.get(fromElementSpan).forEach(targetElementSpan -> {
                                         Element targetElement = targetElementSpan.element();
+
                                         targetElementSpan.textViewer().highLight(targetElement);
                                         targetElementSpan.textViewer().scrollTo(targetElement);
                                     });
@@ -131,22 +152,6 @@ public class FuncOpTextModelViewer extends AbstractTextModelViewer {
                 }
             }
         });
-        textModel.find(true, t -> t instanceof BabylonTextModel.BabylonSSARef, t -> {
-            var ssaRef = (BabylonTextModel.BabylonSSARef) t;
-            ElementSpan babylonSSARefElement = new ElementSpan.Impl(ssaRef, this, this.getElement(ssaRef.startOffset()));
-            this.ssaIdToElement.put(ssaRef.id, babylonSSARefElement);
-            this.ssaIdToFromMap.computeIfAbsent(babylonSSARefElement, _ -> new ArrayList<>());
-            this.ssaIdFromToMap.computeIfAbsent(babylonSSARefElement, _ -> new ArrayList<>());
-        });
-
-        ((BabylonTextModel) textModel).ssaEdgeList.stream().forEach(edge -> {
-            var ssaRef = edge.ssaRef();
-            var ssaDef = edge.ssaDef();
-            var ssaDefElement = this.getElement(ssaDef.startOffset());
-            var ssaRefElement = this.getElement(ssaRef.endOffset());
-
-        });
-        ((FuncOpTextPane) this.jtextPane).setViewer(this);
 
     }
 }

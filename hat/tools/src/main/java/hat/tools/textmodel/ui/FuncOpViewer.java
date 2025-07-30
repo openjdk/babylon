@@ -45,22 +45,18 @@ public class FuncOpViewer extends JPanel {
     public FuncOpViewer(BabylonTextModel cr) {
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         var font = new Font("Monospaced", Font.PLAIN, 14);
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-
 
         var funcOpTextModelViewer = new FuncOpTextModelViewer(cr, font, false);
         var javaTextModelViewer = new JavaTextModelViewer(cr.javaTextModel, font, false);
-
         var gutter = new TextGutter(  funcOpTextModelViewer,javaTextModelViewer);
-       // add(funcOpTextModelViewer.scrollPane);
-        //add(gutter);
-        //add(javaTextModelViewer.scrollPane);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setLeftComponent(funcOpTextModelViewer.scrollPane);
-        JSplitPane splitPane2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane2.setLeftComponent(gutter);
-        splitPane2.setRightComponent(javaTextModelViewer.scrollPane);
-        splitPane.setRightComponent(splitPane2);
+        JSplitPane rightSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        rightSplitPane.setLeftComponent(gutter);
+        rightSplitPane.setRightComponent(javaTextModelViewer.scrollPane);
+        splitPane.setRightComponent(rightSplitPane);
         add(splitPane);
+
         // tell each about the other
         funcOpTextModelViewer.javaTextModelViewer = javaTextModelViewer;
         javaTextModelViewer.funcOpTextModelViewer = funcOpTextModelViewer;
