@@ -150,11 +150,7 @@ void CudaBackend::info() {
             ((totalGlobalMem > static_cast<unsigned long long>(4) * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
 }
 
-
-
-
 PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
-  //std::cout << "inside nvcc" << std::endl;
     const uint64_t time = timeSinceEpochMillisec();
     const std::string ptxPath = tmpFileName(time, ".ptx");
     const std::string cudaPath = tmpFileName(time, ".cu");
@@ -194,16 +190,12 @@ CudaBackend::CudaModule *CudaBackend::compile(const PtxSource &ptxSource) {
 CudaBackend::CudaModule *CudaBackend::compile(const  PtxSource *ptx) {
 
     CUmodule module;
-     // std::cout << "inside compile" << std::endl;
-    // std::cout << "cuda " << cudaSource->text << std::endl;
     if (ptx->text != nullptr) {
-       // std::cout << "ptx " << ptx->text << std::endl;
         const Log *infLog = new Log(8192);
         const Log *errLog = new Log(8192);
         constexpr unsigned int optc = 5;
         const auto jitOptions = new CUjit_option[optc];
         auto jitOptVals = new void *[optc];
-
 
         jitOptions[0] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
         jitOptVals[0] = reinterpret_cast<void *>(infLog->len);
