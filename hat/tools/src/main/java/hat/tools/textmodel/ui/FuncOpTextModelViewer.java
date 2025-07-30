@@ -51,7 +51,7 @@ public class FuncOpTextModelViewer extends AbstractTextModelViewer {
 
     JavaTextModelViewer javaTextModelViewer;
     Map<ElementSpan, List<ElementSpan>> opToJava = new HashMap<>();
-    int lineNumber=122;
+    int lineNumber =0;
     static class FuncOpTextPane extends JTextPane {
         private FuncOpTextModelViewer viewer;
 
