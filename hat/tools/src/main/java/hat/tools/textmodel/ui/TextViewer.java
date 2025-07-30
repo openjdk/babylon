@@ -68,11 +68,7 @@ public abstract class TextViewer {
                 // Plain text attributes changed, not relevant for this highlighter
             }
         });
-
-
     }
-
-
 
     public Element getElement(int offset) {
        return jtextPane.getStyledDocument().getCharacterElement(offset);
@@ -90,7 +86,6 @@ public abstract class TextViewer {
         }
     }
 
-
     public void highLightLines(LineCol first, LineCol last) {
         var highlighter = jtextPane.getHighlighter();
         try {
@@ -103,14 +98,7 @@ public abstract class TextViewer {
     public int getOffset(MouseEvent e) {
         return jtextPane.viewToModel2D(e.getPoint());
     }
-    public void highLight(int from, int to) {
-        var highlighter =  jtextPane.getHighlighter();
-        try {
-            highlighter.addHighlight(from,to, highlightPainter);
-        } catch (BadLocationException e) {
-            throw new IllegalStateException();
-        }
-    }
+
     public void highLight(Element element) {
         var highlighter =  jtextPane.getHighlighter();
         try {
@@ -118,6 +106,15 @@ public abstract class TextViewer {
         } catch (BadLocationException e) {
             throw new IllegalStateException();
         }
+    }
+
+    public int getLine(int offset) {
+       for (int l= 0; l < lines.size(); l++) {
+            if (lines.get(l).includes(offset)) {
+               return l+1;
+            }
+        }
+       return 0;
     }
 
     String setText(String text) {
