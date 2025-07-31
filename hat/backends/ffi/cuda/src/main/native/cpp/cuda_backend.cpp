@@ -115,14 +115,6 @@ CudaBackend::~CudaBackend() {
     }.report();
 }
 
-#define CUDA_CHECK(err, functionName) { \
-    WHERE{.f =__FILE__, \
-          .l=__LINE__, \
-          .e = err, \
-          .t = functionName \
-      }.report(); \
-}
-
 void CudaBackend::info() {
     char name[100];
     CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");

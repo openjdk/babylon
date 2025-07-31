@@ -62,10 +62,8 @@ struct WHERE{
     int l;
     cudaError_enum e;
     const char* t;
-    void report() const{
-        if (e == CUDA_SUCCESS){
-           // std::cout << t << "  OK at " << f << " line " << l << std::endl;
-        }else {
+    void report() const {
+        if (e != CUDA_SUCCESS){
             const char *buf;
             cuGetErrorName(e, &buf);
             std::cerr << t << " CUDA error = " << e << " " << buf <<std::endl<< "      " << f << " line " << l << std::endl;
@@ -73,6 +71,14 @@ struct WHERE{
         }
     }
 };
+
+#define CUDA_CHECK(err, functionName) { \
+    WHERE{.f =__FILE__, \
+          .l=__LINE__, \
+          .e = err, \
+          .t = functionName \
+         }.report(); \
+}
 
 class PtxSource final : public Text  {
 public:
