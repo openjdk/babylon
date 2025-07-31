@@ -38,11 +38,8 @@ CudaBackend::CudaBuffer::CudaBuffer(Backend *backend,  BufferState *bufferState)
     if (cudaBackend->config->traceCalls) {
         std::cout << "CudaBuffer()" << std::endl;
     }
+    CUDA_CHECK(cuMemAlloc(&devicePtr, static_cast<size_t>(bufferState->length)), "cuMemAlloc");
 
-    WHERE{.f=__FILE__, .l=__LINE__,
-          .e=cuMemAlloc(&devicePtr, static_cast<size_t>(bufferState->length)),
-          .t="cuMemAlloc"
-    }.report();
     if (cudaBackend->config->traceCalls) {
         std::cout << "devptr=" << std::hex<<  static_cast<long>(devicePtr) << "stream=" <<dynamic_cast<CudaQueue *>(backend->queue)->cuStream <<std::dec <<std::endl;
     }
@@ -54,15 +51,11 @@ CudaBackend::CudaBuffer::~CudaBuffer() {
     const auto cudaBackend = dynamic_cast<CudaBackend*>(backend);
     if (cudaBackend->config->traceCalls) {
         const std::thread::id thread_id = std::this_thread::get_id();
-
         std::cout << "~CudaBuffer()"<< "devptr =" << std::hex << (long) devicePtr << std::dec
                 << " thread=" <<thread_id
         <<std::endl;
     }
-    WHERE{.f=__FILE__, .l=__LINE__,
-            .e=cuMemFree(devicePtr),
-            .t="cuMemFree"
-    }.report();
+    CUDA_CHECK(cuMemFree(devicePtr), "cuMemFree");
     bufferState->vendorPtr= nullptr;
 }
 

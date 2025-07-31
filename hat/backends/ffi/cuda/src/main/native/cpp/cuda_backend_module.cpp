@@ -46,12 +46,8 @@ CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(char
 }
 CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(int nameLen, char *name) {
     CUfunction function;
-    WHERE{.f=__FILE__, .l=__LINE__,
-          .e=cuModuleGetFunction(&function, module, name),
-          .t="cuModuleGetFunction"
-    }.report();
+    CUDA_CHECK(cuModuleGetFunction(&function, module, name), "cuModuleGetFunction");
     return new CudaKernel(this,name, function);
-
 }
 
 bool CudaBackend::CudaModule::programOK() {

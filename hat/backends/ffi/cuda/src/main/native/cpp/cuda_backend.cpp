@@ -79,40 +79,20 @@ CudaBackend::CudaBackend(int configBits)
     int deviceCount = 0;
 
     if (initStatus == CUDA_SUCCESS) {
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = cuDeviceGetCount(&deviceCount),
-            .t = "cuDeviceGetCount"
-        }.report();
+        CUDA_CHECK(cuDeviceGetCount(&deviceCount), "cuDeviceGetCount");
         std::cout << "CudaBackend device count = " << deviceCount << std::endl;
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = cuDeviceGet(&device, 0),
-            .t = "cuDeviceGet"
-        }.report();
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = cuCtxCreate(&context, 0, device),
-            .t = "cuCtxCreate"
-        }.report();
+        CUDA_CHECK(cuDeviceGet(&device, 0), "cuDeviceGet");
+        CUDA_CHECK(cuCtxCreate(&context, 0, device), "cuCtxCreate");
         std::cout << "CudaBackend context created ok (id=" << context << ")" << std::endl;
         dynamic_cast<CudaQueue *>(queue)->init();
     } else {
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = initStatus,
-            "cuInit() failed we seem to have the runtime library but no device"
-        }.report();
+        CUDA_CHECK(initStatus, "cuInit() failed we seem to have the runtime library but no device");
     }
 }
 
 CudaBackend::~CudaBackend() {
     std::cout << "freeing context" << std::endl;
-    WHERE{
-        .f = __FILE__, .l = __LINE__,
-        .e = cuCtxDestroy(context),
-        .t = "cuCtxDestroy"
-    }.report();
+    CUDA_CHECK(cuCtxDestroy(context), "cuCtxDestroy");
 }
 
 void CudaBackend::info() {
@@ -211,11 +191,8 @@ CudaBackend::CudaModule *CudaBackend::compile(const  PtxSource *ptx) {
         jitOptions[4] = CU_JIT_GENERATE_LINE_INFO;
         jitOptVals[4] = reinterpret_cast<void *>(1);
 
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = cuModuleLoadDataEx(&module, ptx->text, optc, jitOptions, (void **) jitOptVals),
-            .t = "cuModuleLoadDataEx"
-        }.report();
+        CUDA_CHECK(cuModuleLoadDataEx(&module, ptx->text, optc, jitOptions, (void **) jitOptVals), "cuModuleLoadDataEx");
+
         if (*infLog->text!='\0'){
            std::cout << "> PTX JIT inflog:" << std::endl << infLog->text << std::endl;
         }
