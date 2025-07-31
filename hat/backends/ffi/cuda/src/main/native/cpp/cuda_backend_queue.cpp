@@ -64,14 +64,9 @@ void CudaBackend::CudaQueue::computeStart(){
     release(); // also ;
 }
 
-
-
 void CudaBackend::CudaQueue::computeEnd(){
 
 }
-
-
-
 
 void CudaBackend::CudaQueue::release(){
 
@@ -107,7 +102,6 @@ void CudaBackend::CudaQueue::copyToDevice(Buffer *buffer) {
                     dynamic_cast<CudaQueue*>(backend->queue)->cuStream),
             .t="cuMemcpyHtoDAsync"
     }.report();
-
 }
 
 void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
@@ -126,7 +120,6 @@ void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
                   << std::endl;
     }
 
-
     WHERE{.f=__FILE__, .l=__LINE__,
             .e=cuMemcpyDtoHAsync(
                     cudaBuffer->bufferState->ptr,
@@ -138,32 +131,60 @@ void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
 
 }
 
+// TODO: Improve heuristics to decide a better block size, if possible.
+// The following is just a rough number to fit into a modern NVIDIA GPU.
+int CudaBackend::CudaQueue::estimateThreadsPerBlock(int dimensions) {
+    switch (dimensions) {
+        case 1: return 256;
+        case 2: return 16;
+        case 3: return 16;
+        default: return 1;
+    }
+}
+
 void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
     const auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
 
-    const int range = kernelContext->maxX;
-    int rangediv1024 = range / 1024;
-    int rangemod1024 = range % 1024;
-    if (rangemod1024 > 0) {
-        rangediv1024++;
-    }
-// std::cout << "Running the kernel..." << std::endl;
-// std::cout << "   Requested range   = " << range << std::endl;
-// std::cout << "   Range mod 1024    = " << rangemod1024 << std::endl;
-// std::cout << "   Actual range 1024 = " << (rangediv1024 * 1024) << std::endl;
-//  auto status= static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
+    const int threadsPerBlock = estimateThreadsPerBlock(kernelContext->dimensions);
 
-//  cudaBackend->cudaQueue.wait();
+    int blocksPerGridX = (kernelContext->maxX + threadsPerBlock - 1) / threadsPerBlock;
+    int blocksPerGridY = 1;
+    int blocksPerGridZ = 1;
+    int threadsPerBlockX = threadsPerBlock;
+    int threadsPerBlockY = 1;
+    int threadsPerBlockZ = 1;
+
+    if (kernelContext->dimensions > 1) {
+        blocksPerGridY = (kernelContext->maxY + threadsPerBlock - 1) / threadsPerBlock;
+        threadsPerBlockY = threadsPerBlock;
+    }
+    if (kernelContext->dimensions > 2) {
+        blocksPerGridZ = (kernelContext->maxZ + threadsPerBlock - 1) / threadsPerBlock;
+        threadsPerBlockZ = threadsPerBlock;
+    }
+
+    // Enable debug information with trace. Use HAT=TRACE
+    if (backend->config->trace) {
+        std::cout << "Dispatching the CUDA kernel" << std::endl;
+        std::cout << "   \\_ BlocksPerGrid  = [" << blocksPerGridX << "," << blocksPerGridY << "," << blocksPerGridZ << "]" << std::endl;
+        std::cout << "   \\_ ThreadsPerBlock  [" << threadsPerBlockX << "," << threadsPerBlockY << "," << threadsPerBlockZ << "]" << std::endl;
+    }
+
+    //  auto status= static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
+    //  cudaBackend->cudaQueue.wait();
+
     const std::thread::id thread_id = std::this_thread::get_id();
     if (thread_id != streamCreationThread){
         std::cout << "dispatch()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
     }
 
-    const auto status = cuLaunchKernel(cudaKernel->function,
-                                 rangediv1024, 1, 1,
-                                 1024, 1, 1,
-                                 0, cuStream,
-                                 cudaKernel->argslist, nullptr);
+    const auto status = cuLaunchKernel(cudaKernel->function, //
+                                 blocksPerGridX, blocksPerGridY, blocksPerGridZ, //
+                                 threadsPerBlockX, threadsPerBlockY, threadsPerBlockZ, //
+                                 0, //
+                                 cuStream, //
+                                 cudaKernel->argslist, //
+                                 nullptr);
 
     WHERE{.f=__FILE__, .l=__LINE__, .e=status, .t="cuLaunchKernel"}.report();
 }
