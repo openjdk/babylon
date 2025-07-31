@@ -26,9 +26,7 @@
 #include <sys/wait.h>
 #include <chrono>
 #include "cuda_backend.h"
-
 #include <iostream>
-
 
 PtxSource::PtxSource()
     : Text(0L) {
@@ -76,75 +74,53 @@ std::string tmpFileName(uint64_t time, const std::string &suffix) {
     return timestamp.str();
 }
 
-
-
 CudaBackend::CudaBackend(int configBits)
     : Backend(new Config(configBits), new CudaQueue(this)), initStatus(cuInit(0)), device(), context() {
     int deviceCount = 0;
 
     if (initStatus == CUDA_SUCCESS) {
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = cuDeviceGetCount(&deviceCount),
-            .t = "cuDeviceGetCount"
-        }.report();
+        CUDA_CHECK(cuDeviceGetCount(&deviceCount), "cuDeviceGetCount");
         std::cout << "CudaBackend device count = " << deviceCount << std::endl;
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = cuDeviceGet(&device, 0),
-            .t = "cuDeviceGet"
-        }.report();
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = cuCtxCreate(&context, 0, device),
-            .t = "cuCtxCreate"
-        }.report();
+        CUDA_CHECK(cuDeviceGet(&device, 0), "cuDeviceGet");
+        CUDA_CHECK(cuCtxCreate(&context, 0, device), "cuCtxCreate");
         std::cout << "CudaBackend context created ok (id=" << context << ")" << std::endl;
         dynamic_cast<CudaQueue *>(queue)->init();
     } else {
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = initStatus,
-            "cuInit() failed we seem to have the runtime library but no device"
-        }.report();
+        CUDA_CHECK(initStatus, "cuInit() failed we seem to have the runtime library but no device");
     }
 }
 
-
 CudaBackend::~CudaBackend() {
     std::cout << "freeing context" << std::endl;
-    WHERE{
-        .f = __FILE__, .l = __LINE__,
-        .e = cuCtxDestroy(context),
-        .t = "cuCtxDestroy"
-    }.report();
+    CUDA_CHECK(cuCtxDestroy(context), "cuCtxDestroy");
 }
 
 void CudaBackend::info() {
     char name[100];
-    cuDeviceGetName(name, sizeof(name), device);
+    CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");
+
     std::cout << "> Using device 0: " << name << std::endl;
 
-    // get compute capabilities and the devicename
+    // get compute capabilities and the device name
     int major = 0, minor = 0;
-    cuDeviceGetAttribute(&major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device);
-    cuDeviceGetAttribute(&minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device);
+    CUDA_CHECK(cuDeviceGetAttribute(&major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device), "cuDeviceGetAttribute");
+    CUDA_CHECK(cuDeviceGetAttribute(&minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device), "cuDeviceGetAttribute");
     std::cout << "> GPU Device has major=" << major << " minor=" << minor << " compute capability" << std::endl;
 
     int warpSize;
-    cuDeviceGetAttribute(&warpSize, CU_DEVICE_ATTRIBUTE_WARP_SIZE, device);
+    CUDA_CHECK(cuDeviceGetAttribute(&warpSize, CU_DEVICE_ATTRIBUTE_WARP_SIZE, device), "cuDeviceGetAttribute");
     std::cout << "> GPU Device has warpSize " << warpSize << std::endl;
 
     int threadsPerBlock;
-    cuDeviceGetAttribute(&threadsPerBlock, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, device);
+    CUDA_CHECK(cuDeviceGetAttribute(&threadsPerBlock, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, device), "cuDeviceGetAttribute");
     std::cout << "> GPU Device has threadsPerBlock " << threadsPerBlock << std::endl;
 
     int cores;
-    cuDeviceGetAttribute(&cores, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device);
+    CUDA_CHECK(cuDeviceGetAttribute(&cores, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device), "cuDeviceGetAttribute");
     std::cout << "> GPU Cores " << cores << std::endl;
 
     size_t totalGlobalMem;
-    cuDeviceTotalMem(&totalGlobalMem, device);
+    CUDA_CHECK(cuDeviceTotalMem(&totalGlobalMem, device), "cuDeviceTotalMem");
     std::cout << "  Total amount of global memory:   " << (unsigned long long) totalGlobalMem << std::endl;
     std::cout << "  64-bit Memory Address:           " <<
             ((totalGlobalMem > static_cast<unsigned long long>(4) * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
@@ -158,7 +134,15 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
     cudaSource->write(cudaPath);
     if ((pid = fork()) == 0) { //child
         const auto path = "/usr/local/cuda/bin/nvcc";
-        const char *argv[]{  "/usr/local/cuda/bin/nvcc", "-ptx", "-Wno-deprecated-gpu-targets", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
+        const char *argv[] {
+            "/usr/local/cuda/bin/nvcc",
+            "-ptx",
+            "-Wno-deprecated-gpu-targets",
+            cudaPath.c_str(),
+            "-o",
+            ptxPath.c_str(),
+            nullptr
+        };
         const int stat = execvp(path, (char *const *) argv);
         std::cerr << " nvcc stat = " << stat << " errno=" << errno << " '" << std::strerror(errno) << "'" << std::endl;
         std::exit(errno);
@@ -188,7 +172,6 @@ CudaBackend::CudaModule *CudaBackend::compile(const PtxSource &ptxSource) {
 }
 
 CudaBackend::CudaModule *CudaBackend::compile(const  PtxSource *ptx) {
-
     CUmodule module;
     if (ptx->text != nullptr) {
         const Log *infLog = new Log(8192);
@@ -208,11 +191,8 @@ CudaBackend::CudaModule *CudaBackend::compile(const  PtxSource *ptx) {
         jitOptions[4] = CU_JIT_GENERATE_LINE_INFO;
         jitOptVals[4] = reinterpret_cast<void *>(1);
 
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = cuModuleLoadDataEx(&module, ptx->text, optc, jitOptions, (void **) jitOptVals),
-            .t = "cuModuleLoadDataEx"
-        }.report();
+        CUDA_CHECK(cuModuleLoadDataEx(&module, ptx->text, optc, jitOptions, (void **) jitOptVals), "cuModuleLoadDataEx");
+
         if (*infLog->text!='\0'){
            std::cout << "> PTX JIT inflog:" << std::endl << infLog->text << std::endl;
         }
@@ -310,7 +290,6 @@ extern "C" long getBackend(int mode) {
 void clCallback(void *) {
     std::cerr << "start of compute" << std::endl;
 }
-
 
 void CudaBackend::computeEnd() {
     queue->computeEnd();

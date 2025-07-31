@@ -52,31 +52,25 @@ void CudaBackend::CudaQueue::init(){
     }
 
 void CudaBackend::CudaQueue::wait(){
-    WHERE{.f=__FILE__, .l=__LINE__,
-          .e=cuStreamSynchronize(cuStream),
-          .t= "cuStreamSynchronize"
-    }.report();
+    CUDA_CHECK(cuStreamSynchronize(cuStream), "cuStreamSynchronize");
 }
 
 
-void CudaBackend::CudaQueue::computeStart(){
+void CudaBackend::CudaQueue::computeStart() {
     wait(); // should be no-op
     release(); // also ;
 }
 
-void CudaBackend::CudaQueue::computeEnd(){
+void CudaBackend::CudaQueue::computeEnd() {
 
 }
 
-void CudaBackend::CudaQueue::release(){
+void CudaBackend::CudaQueue::release() {
 
 }
 
-CudaBackend::CudaQueue::~CudaQueue(){
-    WHERE{.f=__FILE__, .l=__LINE__,
-            .e=cuStreamDestroy(cuStream),
-            .t= "cuStreamDestroy"
-    }.report();
+CudaBackend::CudaQueue::~CudaQueue() {
+    CUDA_CHECK(cuStreamDestroy(cuStream), "cuStreamDestroy");
 }
 
 void CudaBackend::CudaQueue::copyToDevice(Buffer *buffer) {
@@ -94,14 +88,11 @@ void CudaBackend::CudaQueue::copyToDevice(Buffer *buffer) {
                 << " thread=" <<thread_id
                   << std::endl;
     }
-    WHERE{.f=__FILE__, .l=__LINE__,
-            .e=cuMemcpyHtoDAsync(
-                    cudaBuffer->devicePtr,
+
+    CUDA_CHECK(cuMemcpyHtoDAsync(cudaBuffer->devicePtr,
                     cudaBuffer->bufferState->ptr,
                     cudaBuffer->bufferState->length,
-                    dynamic_cast<CudaQueue*>(backend->queue)->cuStream),
-            .t="cuMemcpyHtoDAsync"
-    }.report();
+                    dynamic_cast<CudaQueue*>(backend->queue)->cuStream), "cuMemcpyHtoDAsync");
 }
 
 void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
@@ -120,14 +111,11 @@ void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
                   << std::endl;
     }
 
-    WHERE{.f=__FILE__, .l=__LINE__,
-            .e=cuMemcpyDtoHAsync(
-                    cudaBuffer->bufferState->ptr,
-                    cudaBuffer->devicePtr,
-                    cudaBuffer->bufferState->length,
-                                 dynamic_cast<CudaQueue*>(backend->queue)->cuStream),
-            .t="cuMemcpyDtoHAsync"
-    }.report();
+    CUDA_CHECK(cuMemcpyDtoHAsync(cudaBuffer->bufferState->ptr,
+                                cudaBuffer->devicePtr,
+                                cudaBuffer->bufferState->length,
+                                dynamic_cast<CudaQueue*>(backend->queue)->cuStream),
+                                "cuMemcpyDtoHAsync");
 
 }
 
@@ -186,5 +174,5 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
                                  cudaKernel->argslist, //
                                  nullptr);
 
-    WHERE{.f=__FILE__, .l=__LINE__, .e=status, .t="cuLaunchKernel"}.report();
+    CUDA_CHECK(status, "cuLaunchKernel");
 }
