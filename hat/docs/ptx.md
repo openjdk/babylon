@@ -1,4 +1,7 @@
-Here is the Java source code for a kernel
+## Notes about the PTX backend
+
+Here is the Java source code for a kernel:
+
 ```Java
 public static void mandel(KernelContext kc, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
         if (kc.x < kc.maxX) {
@@ -23,7 +26,7 @@ public static void mandel(KernelContext kc, S32Array2D s32Array2D, S32Array pall
 
 ```
 
-And here is the babylon code model
+And here is the corresponding Babylon code model:
 
 ```
 func @"mandel" @loc="39:5:file:/Users/grfrost/orahub/hat/examples/mandel/src/java/mandel/MandelCompute.java"
