@@ -119,10 +119,11 @@ class CudaQueue final : public Backend::Queue {
 
          void copyFromDevice(Buffer *buffer) override;
 
+        int estimateThreadsPerBlock(int dimensions);
+
         void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
 
         ~CudaQueue() override;
-
 };
 
     class CudaBuffer final : public Buffer {
