@@ -26,9 +26,7 @@
 #include <sys/wait.h>
 #include <chrono>
 #include "cuda_backend.h"
-
 #include <iostream>
-
 
 PtxSource::PtxSource()
     : Text(0L) {
@@ -76,8 +74,6 @@ std::string tmpFileName(uint64_t time, const std::string &suffix) {
     return timestamp.str();
 }
 
-
-
 CudaBackend::CudaBackend(int configBits)
     : Backend(new Config(configBits), new CudaQueue(this)), initStatus(cuInit(0)), device(), context() {
     int deviceCount = 0;
@@ -110,7 +106,6 @@ CudaBackend::CudaBackend(int configBits)
     }
 }
 
-
 CudaBackend::~CudaBackend() {
     std::cout << "freeing context" << std::endl;
     WHERE{
@@ -120,41 +115,46 @@ CudaBackend::~CudaBackend() {
     }.report();
 }
 
+#define CUDA_CHECK(err, functionName) { \
+    WHERE{.f =__FILE__, \
+          .l=__LINE__, \
+          .e = err, \
+          .t = functionName \
+      }.report(); \
+}
+
 void CudaBackend::info() {
     char name[100];
-    cuDeviceGetName(name, sizeof(name), device);
+    CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");
+
     std::cout << "> Using device 0: " << name << std::endl;
 
-    // get compute capabilities and the devicename
+    // get compute capabilities and the device name
     int major = 0, minor = 0;
-    cuDeviceGetAttribute(&major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device);
-    cuDeviceGetAttribute(&minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device);
+    CUDA_CHECK(cuDeviceGetAttribute(&major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device), "cuDeviceGetAttribute");
+    CUDA_CHECK(cuDeviceGetAttribute(&minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device), "cuDeviceGetAttribute");
     std::cout << "> GPU Device has major=" << major << " minor=" << minor << " compute capability" << std::endl;
 
     int warpSize;
-    cuDeviceGetAttribute(&warpSize, CU_DEVICE_ATTRIBUTE_WARP_SIZE, device);
+    CUDA_CHECK(cuDeviceGetAttribute(&warpSize, CU_DEVICE_ATTRIBUTE_WARP_SIZE, device), "cuDeviceGetAttribute");
     std::cout << "> GPU Device has warpSize " << warpSize << std::endl;
 
     int threadsPerBlock;
-    cuDeviceGetAttribute(&threadsPerBlock, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, device);
+    CUDA_CHECK(cuDeviceGetAttribute(&threadsPerBlock, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, device), "cuDeviceGetAttribute");
     std::cout << "> GPU Device has threadsPerBlock " << threadsPerBlock << std::endl;
 
     int cores;
-    cuDeviceGetAttribute(&cores, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device);
+    CUDA_CHECK(cuDeviceGetAttribute(&cores, CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device), "cuDeviceGetAttribute");
     std::cout << "> GPU Cores " << cores << std::endl;
 
     size_t totalGlobalMem;
-    cuDeviceTotalMem(&totalGlobalMem, device);
+    CUDA_CHECK(cuDeviceTotalMem(&totalGlobalMem, device), "cuDeviceTotalMem");
     std::cout << "  Total amount of global memory:   " << (unsigned long long) totalGlobalMem << std::endl;
     std::cout << "  64-bit Memory Address:           " <<
             ((totalGlobalMem > static_cast<unsigned long long>(4) * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
 }
 
-
-
-
 PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
-  //std::cout << "inside nvcc" << std::endl;
     const uint64_t time = timeSinceEpochMillisec();
     const std::string ptxPath = tmpFileName(time, ".ptx");
     const std::string cudaPath = tmpFileName(time, ".cu");
@@ -162,7 +162,15 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
     cudaSource->write(cudaPath);
     if ((pid = fork()) == 0) { //child
         const auto path = "/usr/local/cuda/bin/nvcc";
-        const char *argv[]{  "/usr/local/cuda/bin/nvcc", "-ptx", "-Wno-deprecated-gpu-targets", cudaPath.c_str(), "-o", ptxPath.c_str(), nullptr};
+        const char *argv[] {
+            "/usr/local/cuda/bin/nvcc",
+            "-ptx",
+            "-Wno-deprecated-gpu-targets",
+            cudaPath.c_str(),
+            "-o",
+            ptxPath.c_str(),
+            nullptr
+        };
         const int stat = execvp(path, (char *const *) argv);
         std::cerr << " nvcc stat = " << stat << " errno=" << errno << " '" << std::strerror(errno) << "'" << std::endl;
         std::exit(errno);
@@ -192,18 +200,13 @@ CudaBackend::CudaModule *CudaBackend::compile(const PtxSource &ptxSource) {
 }
 
 CudaBackend::CudaModule *CudaBackend::compile(const  PtxSource *ptx) {
-
     CUmodule module;
-     // std::cout << "inside compile" << std::endl;
-    // std::cout << "cuda " << cudaSource->text << std::endl;
     if (ptx->text != nullptr) {
-       // std::cout << "ptx " << ptx->text << std::endl;
         const Log *infLog = new Log(8192);
         const Log *errLog = new Log(8192);
         constexpr unsigned int optc = 5;
         const auto jitOptions = new CUjit_option[optc];
         auto jitOptVals = new void *[optc];
-
 
         jitOptions[0] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
         jitOptVals[0] = reinterpret_cast<void *>(infLog->len);
@@ -318,7 +321,6 @@ extern "C" long getBackend(int mode) {
 void clCallback(void *) {
     std::cerr << "start of compute" << std::endl;
 }
-
 
 void CudaBackend::computeEnd() {
     queue->computeEnd();
