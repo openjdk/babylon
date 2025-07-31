@@ -40,6 +40,7 @@ import jdk.incubator.code.TypeElement;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -72,6 +73,19 @@ public final class Interpreter {
         return invoke(l, op, Arrays.asList(args));
     }
 
+    private static Class<?> getBoxedClass(Class<?> clazz) {
+        if (clazz == int.class) return Integer.class;
+        if (clazz == long.class) return Long.class;
+        if (clazz == double.class) return Double.class;
+        if (clazz == float.class) return Float.class;
+        if (clazz == boolean.class) return Boolean.class;
+        if (clazz == char.class) return Character.class;
+        if (clazz == byte.class) return Byte.class;
+        if (clazz == short.class) return Short.class;
+        if (clazz == void.class) return Void.class;
+        throw new IllegalArgumentException("Unknown primitive type: " + clazz);
+    }
+
     /**
      * Invokes an invokable operation by interpreting the code elements within
      * the operations body.
@@ -100,7 +114,23 @@ public final class Interpreter {
                     String.format("Actual #arguments (%d) differs from #parameters (%d) plus #captured arguments (%d)",
                             args.size(), parameters.size(), capturedValues.size())));
         }
-
+        // validate runtime args types
+        List<Value> symbolicValues = Stream.concat(parameters.stream(), capturedValues.stream()).toList();
+        for (int i = 0; i < symbolicValues.size(); i++) {
+            try {
+                Class<?> svc = ((JavaType) symbolicValues.get(i).type()).toNominalDescriptor().resolveConstantDesc(l);
+                Class<?> c = svc;
+                if (c.isPrimitive()) {
+                    c = getBoxedClass(c);
+                }
+                if (!c.isInstance(args.get(i))) {
+                    throw interpreterException(new IllegalArgumentException(("Runtime argument position %d has type %s" +
+                            "but symbolic value has type %s").formatted(i, args.get(i).getClass(), svc)));
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
+        }
         // Map symbolic parameters to runtime arguments
         Map<Value, Object> valuesAndArguments = new HashMap<>();
         for (int i = 0; i < parameters.size(); i++) {
