@@ -124,8 +124,8 @@ public final class Interpreter {
                     c = getBoxedClass(c);
                 }
                 if (!c.isInstance(args.get(i))) {
-                    throw interpreterException(new IllegalArgumentException(("Runtime argument position %d has type %s" +
-                            "but symbolic value has type %s").formatted(i, args.get(i).getClass(), svc)));
+                    throw interpreterException(new IllegalArgumentException(("Runtime argument at position %d has type %s " +
+                            "but the corresponding symbolic value has type %s").formatted(i, args.get(i).getClass(), svc)));
                 }
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
