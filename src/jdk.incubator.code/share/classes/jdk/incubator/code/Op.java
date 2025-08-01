@@ -167,7 +167,18 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * A value that is the result of an operation.
      */
     public static final class Result extends Value {
+
+        /**
+         * If assigned to an operation result, it indicates the operation is frozen
+        */
+        private static final Result ROOT = new Result();
+
         final Op op;
+
+        private Result() {
+            super(null, null);
+            this.op = null;
+        }
 
         Result(Block block, Op op) {
             super(block, op.resultType());
@@ -300,7 +311,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     @Override
     public final Block parent() {
-        if (result == null) {
+        if (isFrozen() || result == null) {
             return null;
         }
 
@@ -330,7 +341,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the operation's result, or {@code null} if not assigned to a block.
      */
     public final Result result() {
-        return result;
+        return result == Result.ROOT ? null : result;
     }
 
     /**
@@ -531,5 +542,16 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             ex.printStackTrace();
             return Optional.empty();
         }
+    }
+
+    public void freeze() {
+        if (result != null && result != Result.ROOT) {
+            throw new IllegalStateException("Can't freeze a bound operation");
+        }
+        result = Result.ROOT;
+    }
+
+    public boolean isFrozen() {
+        return result == Result.ROOT;
     }
 }
