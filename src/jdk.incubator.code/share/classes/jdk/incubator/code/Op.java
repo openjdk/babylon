@@ -325,7 +325,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return operation's parent block, or {@code null} if the operation is not assigned to a block.
      */
     public final Block parentBlock() {
-        if (result == null) {
+        if (isFrozen() || result == null) {
             return null;
         }
 
