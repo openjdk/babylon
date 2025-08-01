@@ -625,4 +625,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
         result = Result.ROOT;
     }
+
+    public boolean isFrozen() {
+        return result == Result.ROOT;
+    }
 }

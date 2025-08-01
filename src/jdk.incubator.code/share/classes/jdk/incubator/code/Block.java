@@ -899,7 +899,7 @@ public final class Block implements CodeElement<Block, Op> {
             final Op.Result oprToTransform = op.result();
 
             Op transformedOp = op;
-            if (oprToTransform != null) {
+            if (op.isFrozen() || oprToTransform != null) {
                 // If operation is assigned to block, then copy it and transform its contents
                 transformedOp = op.transform(cc, transformer);
                 assert transformedOp.result == null;
