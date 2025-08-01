@@ -67,6 +67,13 @@ public class TestFreezeOp {
         assertOpIsCopiedWhenAddedToBlock(funcOp);
     }
 
+    @Test
+    void test5() { // freezing an already bound op should throw
+        Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
+        Op.Result r = body.entryBlock().op(CoreOp.constant(JavaType.DOUBLE, 1d));
+        Assert.assertThrows(() -> r.op().freeze());
+    }
+
     void assertOpIsCopiedWhenAddedToBlock(Op op) {
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
         body.entryBlock().op(op);
