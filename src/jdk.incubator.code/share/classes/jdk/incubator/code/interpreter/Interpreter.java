@@ -73,19 +73,6 @@ public final class Interpreter {
         return invoke(l, op, Arrays.asList(args));
     }
 
-    private static Class<?> getBoxedClass(Class<?> clazz) {
-        if (clazz == int.class) return Integer.class;
-        if (clazz == long.class) return Long.class;
-        if (clazz == double.class) return Double.class;
-        if (clazz == float.class) return Float.class;
-        if (clazz == boolean.class) return Boolean.class;
-        if (clazz == char.class) return Character.class;
-        if (clazz == byte.class) return Byte.class;
-        if (clazz == short.class) return Short.class;
-        if (clazz == void.class) return Void.class;
-        throw new IllegalArgumentException("Unknown primitive type: " + clazz);
-    }
-
     /**
      * Invokes an invokable operation by interpreting the code elements within
      * the operations body.
@@ -117,15 +104,18 @@ public final class Interpreter {
         // validate runtime args types
         List<Value> symbolicValues = Stream.concat(parameters.stream(), capturedValues.stream()).toList();
         for (int i = 0; i < symbolicValues.size(); i++) {
+            Value sv = symbolicValues.get(i);
+            Object rv = args.get(i);
             try {
-                Class<?> svc = ((JavaType) symbolicValues.get(i).type()).toNominalDescriptor().resolveConstantDesc(l);
+                Class<?> svc = ((JavaType) sv.type()).toNominalDescriptor().resolveConstantDesc(l);
                 Class<?> c = svc;
-                if (c.isPrimitive()) {
-                    c = getBoxedClass(c);
+                if (sv.type() instanceof PrimitiveType pt) {
+                    ClassType box = pt.box().orElseThrow();
+                    c = box.toNominalDescriptor().resolveConstantDesc(l);
                 }
-                if (!c.isInstance(args.get(i))) {
+                if (!c.isInstance(rv)) {
                     throw interpreterException(new IllegalArgumentException(("Runtime argument at position %d has type %s " +
-                            "but the corresponding symbolic value has type %s").formatted(i, args.get(i).getClass(), svc)));
+                            "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), svc)));
                 }
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
