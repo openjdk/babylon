@@ -574,7 +574,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         opMethod.setAccessible(true);
         try {
             FuncOp funcOp = (FuncOp) opMethod.invoke(null);
-            funcOp.freeze();
             return Optional.of(funcOp);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);

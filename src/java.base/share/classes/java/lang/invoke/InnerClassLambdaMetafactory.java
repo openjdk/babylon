@@ -431,8 +431,6 @@ import sun.invoke.util.Wrapper;
                     }
                     cob.invokevirtual(CD_MethodHandle, "invokeExact", mtype.describeConstable().get());
                     cob.checkcast(funcOpClassDesc);
-                    cob.dup();
-                    cob.invokevirtual(CodeReflectionSupport.OP_CLASS.describeConstable().get(), "freeze", MTD_void);
                     cob.putstatic(lambdaClassEntry.asSymbol(), COMPILER_GENERATED_MODEL_FIELD_NAME, funcOpClassDesc);
                 }
                 cob.return_();
@@ -503,7 +501,6 @@ import sun.invoke.util.Wrapper;
         static final Class<?> QUOTABLE_CLASS;
         static final MethodHandle QUOTED_OP_MH;
         static final Class<?> FUNC_OP_CLASS;
-        static final Class<?> OP_CLASS;
 
         static {
             try {
@@ -514,7 +511,6 @@ import sun.invoke.util.Wrapper;
                 FUNC_OP_CLASS = cl.loadClass("jdk.incubator.code.dialect.core.CoreOp$FuncOp");
                 QUOTED_OP_MH = Lookup.IMPL_LOOKUP.findStatic(QUOTED_CLASS, "quotedOp",
                         MethodType.methodType(QUOTED_CLASS, FUNC_OP_CLASS, Object[].class));
-                OP_CLASS = cl.loadClass("jdk.incubator.code.Op");
             } catch (Throwable ex) {
                 throw new ExceptionInInitializerError(ex);
             }

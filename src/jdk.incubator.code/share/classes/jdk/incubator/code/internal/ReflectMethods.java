@@ -2725,6 +2725,7 @@ public class ReflectMethods extends TreeTranslator {
                 Op.Result.class, Op.class);
         private static final MethodRef M_BLOCK_BUILDER_PARAM = MethodRef.method(Block.Builder.class, "parameter",
                 Block.Parameter.class, TypeElement.class);
+        private static final MethodRef M_OP_FREEZE = MethodRef.method(Op.class, "freeze", void.class);
 
         private final Map<Value, JCTree> valueToTree = new HashMap<>();
         private int localVarCount = 0; // used to name variables we introduce in the AST
@@ -2774,7 +2775,8 @@ public class ReflectMethods extends TreeTranslator {
             java.util.List<Value> rootValues = funcOp.traverse(new ArrayList<>(), (l, ce) -> {
                 boolean isRoot = switch (ce) {
                     case JavaOp.InvokeOp invokeOp when invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_OP)
-                            || invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_PARAM) -> true;
+                            || invokeOp.invokeDescriptor().equals(M_BLOCK_BUILDER_PARAM)
+                            || invokeOp.invokeDescriptor().equals(M_OP_FREEZE) -> true;
                     case CoreOp.ReturnOp _, JavaOp.ArrayAccessOp.ArrayStoreOp _ -> true;
                     case Op op when op.result() != null && op.result().uses().size() > 1 -> true;
                     default -> false;
