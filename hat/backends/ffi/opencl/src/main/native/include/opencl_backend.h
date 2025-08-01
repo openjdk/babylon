@@ -26,7 +26,7 @@
 // The following looks like it is not used (at least to CLION) but it is. ;) don't remove
 #define CL_TARGET_OPENCL_VERSION 120
 #ifdef __APPLE__
-   #include <opencl/opencl.h>
+#include <opencl/opencl.h>
 #else
 #include <CL/cl.h>
 #include <malloc.h>
@@ -47,9 +47,9 @@ public:
     ~OpenCLSource() override = default;
 };
 
-extern void __checkOpenclErrors(cl_int status, const char *file, const int line);
+extern void __checkOpenclErrors(cl_int status, const char *functionName, const char *file, const int line);
 
-#define checkOpenCLErrors(err)  __checkOpenclErrors (err, __FILE__, __LINE__)
+#define OPENCL_CHECK(err, functionName) __checkOpenclErrors (err, functionName, __FILE__, __LINE__)
 
 class OpenCLBackend final : public Backend {
 public:

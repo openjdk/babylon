@@ -36,10 +36,7 @@ OpenCLBackend::OpenCLBuffer::OpenCLBuffer(Backend *backend, BufferState *bufferS
         bufferState->ptr,
         &status);
 
-    if (status != CL_SUCCESS) {
-        std::cerr << errorMsg(status) << std::endl;
-        exit(1);
-    }
+    OPENCL_CHECK(status, "clCreateBuffer");
     bufferState->vendorPtr =  static_cast<void *>(this);
 }
 

@@ -121,10 +121,10 @@ int main(int argc, char **argv) {
             {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(kernelContextWithBufferState), .sizeInBytes = sizeof(KernelContextWithBufferState), .access = RO_BYTE}}},
             {.idx = 1, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(s32Array1024WithBufferState), .sizeInBytes = sizeof(S32Array1024WithBufferState), .access = RW_BYTE}}}
     }};
+
     const auto kernel = program->getOpenCLKernel((char*)"squareKernel");
-    kernel->ndrange( reinterpret_cast<ArgArray_s *>(&args2Array));
+    kernel->ndrange(&args2Array);
     for (int i=0; i < s32Array1024WithBufferState->length; i++){
         std::cout << i << " array[" << i << "]=" << s32Array1024WithBufferState->array[i] << std::endl;
     }
 }
-
