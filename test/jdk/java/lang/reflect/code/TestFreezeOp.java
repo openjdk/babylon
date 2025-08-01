@@ -56,6 +56,17 @@ public class TestFreezeOp {
         funcOp.freeze();
     }
 
+    @Test
+    void test4() {
+        Quoted q = (int a, int b) -> {
+            return a + b;
+        };
+        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) q.op().ancestorBody().parentOp();
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().parentOp();
+        Assert.assertTrue(funcOp.isFrozen());
+        assertOpIsCopiedWhenAddedToBlock(funcOp);
+    }
+
     void assertOpIsCopiedWhenAddedToBlock(Op op) {
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
         body.entryBlock().op(op);
