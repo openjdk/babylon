@@ -107,13 +107,14 @@ public final class Interpreter {
             Value sv = symbolicValues.get(i);
             Object rv = args.get(i);
             try {
-                Class<?> svc = ((JavaType) sv.type()).toNominalDescriptor().resolveConstantDesc(l);
-                Class<?> c = svc;
-                if (sv.type() instanceof PrimitiveType pt) {
-                    ClassType box = pt.box().orElseThrow();
-                    c = box.toNominalDescriptor().resolveConstantDesc(l);
-                }
+                JavaType typeToResolve = switch (sv.type()) {
+                    case PrimitiveType pt -> pt.box().orElseThrow();
+                    case JavaType jt -> jt;
+                    default -> throw new IllegalStateException("Unexpected value: " + sv.type());
+                };
+                Class<?> c = typeToResolve.toNominalDescriptor().resolveConstantDesc(l);
                 if (!c.isInstance(rv)) {
+                    Class<?> svc = ((JavaType) sv.type()).toNominalDescriptor().resolveConstantDesc(l);
                     throw interpreterException(new IllegalArgumentException(("Runtime argument at position %d has type %s " +
                             "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), svc)));
                 }
