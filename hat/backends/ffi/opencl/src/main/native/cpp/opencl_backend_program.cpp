@@ -30,16 +30,14 @@ OpenCLBackend::OpenCLProgram::OpenCLProgram(Backend *backend,  char *src, char *
 }
 
 OpenCLBackend::OpenCLProgram::~OpenCLProgram() {
-    clReleaseProgram(program);
+    OPENCL_CHECK(clReleaseProgram(program), "clReleaseProgram");
 }
 
  Backend::CompilationUnit::Kernel *OpenCLBackend::OpenCLProgram::getKernel(int nameLen, char *name) {
     cl_int status;
     cl_kernel kernel = clCreateKernel(program, name, &status);
-    if (status != CL_SUCCESS){
-       std::cerr << "Failed to get kernel "<<name<<" "<<errorMsg(status)<<std::endl;
-    }
-    return new OpenCLKernel(this,name, kernel);
+    OPENCL_CHECK(status, "clCreateKernel");
+    return new OpenCLKernel(this, name, kernel);
 }
 OpenCLBackend::OpenCLProgram::OpenCLKernel *OpenCLBackend::OpenCLProgram::getOpenCLKernel(int len, char *name) {
    return dynamic_cast<OpenCLKernel *>(getKernel(len, name));
@@ -48,5 +46,3 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel *OpenCLBackend::OpenCLProgram::getOpe
 OpenCLBackend::OpenCLProgram::OpenCLKernel *OpenCLBackend::OpenCLProgram::getOpenCLKernel(char *name) {
    return getOpenCLKernel(strlen(name), name);
 }
-
-

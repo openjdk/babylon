@@ -29,22 +29,27 @@ template<typename T>
 static T info(cl_device_id device_id, cl_device_info device_info){
     T v;
     cl_int status = clGetDeviceInfo(device_id, device_info, sizeof(T), &v, nullptr);
+    OPENCL_CHECK(status, "clGetDeviceInfo");
     return v;
 }
 
 static char *strInfo(cl_device_id device_id, cl_device_info device_info){
     size_t sz;
     cl_int  status = clGetDeviceInfo(device_id, device_info, 0, nullptr,  &sz);
+    OPENCL_CHECK(status, "clGetDeviceInfo");
     auto ptr = new char[sz+1];
     status = clGetDeviceInfo(device_id, device_info, sz, ptr,nullptr);
+    OPENCL_CHECK(status, "clGetDeviceInfo");
     return ptr;
 }
 
 static char *strInfo(cl_platform_id platform_id, cl_platform_info platform_info){
     size_t sz;
     cl_int  status = clGetPlatformInfo(platform_id, platform_info, 0, nullptr,  &sz);
+    OPENCL_CHECK(status, "clGetPlatformInfo");
     char *ptr = new char[sz+1];
     status = clGetPlatformInfo(platform_id, platform_info, sz, ptr,nullptr);
+    OPENCL_CHECK(status, "clGetPlatformInfo");
     return ptr;
 }
 
@@ -110,28 +115,27 @@ PlatformInfo::~PlatformInfo(){
 
 void OpenCLBackend::info() {
     const PlatformInfo platformInfo(this);
-    std::cerr << "platform{" <<std::endl;
-    std::cerr << "   CL_PLATFORM_VENDOR..\"" << platformInfo.vendorName <<"\""<<std::endl;
-    std::cerr << "   CL_PLATFORM_VERSION.\"" << platformInfo.versionName <<"\""<<std::endl;
-    std::cerr << "   CL_PLATFORM_NAME....\"" << platformInfo.name <<"\""<<std::endl;
-    std::cerr << "         CL_DEVICE_TYPE..................... " <<  platformInfo.deviceInfo.deviceTypeStr << " "<<  platformInfo.deviceInfo.deviceType<<std::endl;
-    std::cerr << "         CL_DEVICE_MAX_COMPUTE_UNITS........ " <<  platformInfo.deviceInfo.maxComputeUnits<<std::endl;
+    std::cerr << "platform{" << std::endl;
+    std::cerr << "   CL_PLATFORM_VENDOR..\"" << platformInfo.vendorName <<"\""<< std::endl;
+    std::cerr << "   CL_PLATFORM_VERSION.\"" << platformInfo.versionName <<"\"" <<std::endl;
+    std::cerr << "   CL_PLATFORM_NAME....\"" << platformInfo.name <<"\""<< std::endl;
+    std::cerr << "         CL_DEVICE_TYPE..................... " <<  platformInfo.deviceInfo.deviceTypeStr << " "<<  platformInfo.deviceInfo.deviceType << std::endl;
+    std::cerr << "         CL_DEVICE_MAX_COMPUTE_UNITS........ " <<  platformInfo.deviceInfo.maxComputeUnits << std::endl;
     std::cerr << "         CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. " <<  platformInfo.deviceInfo.maxWorkItemDimensions << " {";
     for (unsigned dimIdx = 0; dimIdx <  platformInfo.deviceInfo.maxWorkItemDimensions; dimIdx++) {
         std::cerr<<  platformInfo.deviceInfo.maxWorkItemSizes[dimIdx] << " ";
     }
-    std::cerr<< "}"<<std::endl;
-    std::cerr <<  "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... "<<  platformInfo.deviceInfo.maxWorkGroupSize<<std::endl;
-    std::cerr <<  "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... "<<  platformInfo.deviceInfo.maxMemAllocSize<<std::endl;
-    std::cerr <<  "         CL_DEVICE_GLOBAL_MEM_SIZE.......... "<<  platformInfo.deviceInfo.globalMemSize<<std::endl;
-    std::cerr <<  "         CL_DEVICE_LOCAL_MEM_SIZE........... "<<  platformInfo.deviceInfo.localMemSize<<std::endl;
-    std::cerr <<  "         CL_DEVICE_PROFILE.................. "<<  platformInfo.deviceInfo.profile<<std::endl;
-    std::cerr <<  "         CL_DEVICE_VERSION.................. "<<  platformInfo.deviceInfo.deviceVersion<<std::endl;
-    std::cerr <<  "         CL_DRIVER_VERSION.................. "<<  platformInfo.deviceInfo.driverVersion<<std::endl;
-    std::cerr <<  "         CL_DEVICE_OPENCL_C_VERSION......... "<<  platformInfo.deviceInfo.cVersion<<std::endl;
-    std::cerr <<  "         CL_DEVICE_NAME..................... "<<  platformInfo.deviceInfo.name<<std::endl;
-    std::cerr <<  "         CL_DEVICE_EXTENSIONS............... "<<  platformInfo.deviceInfo.extensions<<std::endl;
-    std::cerr <<  "         CL_DEVICE_BUILT_IN_KERNELS......... "<<  platformInfo.deviceInfo.builtInKernels<<std::endl;
-    std::cerr <<  "}"<<std::endl;
+    std::cerr<< "}" << std::endl;
+    std::cerr <<  "         CL_DEVICE_MAX_WORK_GROUP_SIZE...... "<<  platformInfo.deviceInfo.maxWorkGroupSize << std::endl;
+    std::cerr <<  "         CL_DEVICE_MAX_MEM_ALLOC_SIZE....... "<<  platformInfo.deviceInfo.maxMemAllocSize << std::endl;
+    std::cerr <<  "         CL_DEVICE_GLOBAL_MEM_SIZE.......... "<<  platformInfo.deviceInfo.globalMemSize << std::endl;
+    std::cerr <<  "         CL_DEVICE_LOCAL_MEM_SIZE........... "<<  platformInfo.deviceInfo.localMemSize << std::endl;
+    std::cerr <<  "         CL_DEVICE_PROFILE.................. "<<  platformInfo.deviceInfo.profile << std::endl;
+    std::cerr <<  "         CL_DEVICE_VERSION.................. "<<  platformInfo.deviceInfo.deviceVersion << std::endl;
+    std::cerr <<  "         CL_DRIVER_VERSION.................. "<<  platformInfo.deviceInfo.driverVersion <<std::endl;
+    std::cerr <<  "         CL_DEVICE_OPENCL_C_VERSION......... "<<  platformInfo.deviceInfo.cVersion << std::endl;
+    std::cerr <<  "         CL_DEVICE_NAME..................... "<<  platformInfo.deviceInfo.name << std::endl;
+    std::cerr <<  "         CL_DEVICE_EXTENSIONS............... "<<  platformInfo.deviceInfo.extensions << std::endl;
+    std::cerr <<  "         CL_DEVICE_BUILT_IN_KERNELS......... "<<  platformInfo.deviceInfo.builtInKernels << std::endl;
+    std::cerr <<  "}" << std::endl;
 }
-
