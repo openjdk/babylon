@@ -8,8 +8,6 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
 /*
@@ -35,8 +33,8 @@ public class TestFreezeOp {
     void test1() {
         Quotable q = (IntUnaryOperator & Quotable) i -> i / 2;
         Quoted quoted = Op.ofQuotable(q).get();
-        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().parentOp();
-        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().parentOp();
+        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) quoted.op().ancestorBody().ancestorOp();
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
         assertOpIsCopiedWhenAddedToBlock(funcOp);
     }
 
@@ -50,7 +48,7 @@ public class TestFreezeOp {
     @Test
     void test3() {
         CoreOp.FuncOp funcOp = CoreOp.func("f", FunctionType.FUNCTION_TYPE_VOID).body(b -> {
-            b.op(CoreOp._return());
+            b.op(CoreOp.return_());
         });
         funcOp.freeze();
         funcOp.freeze();
@@ -61,8 +59,8 @@ public class TestFreezeOp {
         Quoted q = (int a, int b) -> {
             return a + b;
         };
-        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) q.op().ancestorBody().parentOp();
-        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().parentOp();
+        CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) q.op().ancestorBody().ancestorOp();
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
         Assert.assertTrue(funcOp.isFrozen());
         assertOpIsCopiedWhenAddedToBlock(funcOp);
     }
@@ -77,7 +75,7 @@ public class TestFreezeOp {
     void assertOpIsCopiedWhenAddedToBlock(Op op) {
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
         body.entryBlock().op(op);
-        body.entryBlock().op(CoreOp._return());
+        body.entryBlock().op(CoreOp.return_());
         CoreOp.FuncOp funcOp = CoreOp.func("t", body);
         boolean b = funcOp.body().entryBlock().ops().stream().allMatch(o -> o != op);
         Assert.assertTrue(b);
