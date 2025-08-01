@@ -25,15 +25,14 @@
 
 package jdk.incubator.code.extern;
 
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.UncheckedIOException;
-import java.io.Writer;
+import java.io.*;
+
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 
 import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -60,7 +59,7 @@ public final class OpWriter {
         }
 
         private String name(Block b) {
-            Block p = b.parentBody().parentOp().parentBlock();
+            Block p = b.ancestorBlock();
             return (p == null ? "block_" : name(p) + "_") + b.index();
         }
 
@@ -230,21 +229,13 @@ public final class OpWriter {
     }
 
     /**
-     * Writes a code model (an operation) to the character stream.
-     * <p>
-     * The character stream will be flushed after the model is writen.
+     * Writes a code model (an operation) to the output stream, using the UTF-8 character set.
      *
-     * @param w the character stream
+     * @param out the output stream
      * @param op the code model
      */
-    public static void writeTo(Writer w, Op op) {
-        OpWriter ow = new OpWriter(w);
-        ow.writeOp(op);
-        try {
-            w.flush();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    public static void writeTo(OutputStream out, Op op, Option... options) {
+        writeTo(new OutputStreamWriter(out, StandardCharsets.UTF_8), op, options);
     }
 
     /**
@@ -265,17 +256,6 @@ public final class OpWriter {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    /**
-     * Writes a code model (an operation) to a string.
-     *
-     * @param op the code model
-     */
-    public static String toText(Op op) {
-        StringWriter w = new StringWriter();
-        writeTo(w, op);
-        return w.toString();
     }
 
     /**

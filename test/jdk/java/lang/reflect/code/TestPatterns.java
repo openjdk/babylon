@@ -34,6 +34,7 @@ import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.CodeReflection;
@@ -72,11 +73,11 @@ public class TestPatterns {
     public void testRecordPatterns() {
         CoreOp.FuncOp f = getFuncOp("recordPatterns");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         {
             Rectangle r = new Rectangle(
@@ -116,10 +117,10 @@ public class TestPatterns {
     void testRecordPattern2() {
 
         CoreOp.FuncOp f = getFuncOp("recordPatterns2");
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Object[] objects = {new R(1), "str", null};
         for (Object o : objects) {

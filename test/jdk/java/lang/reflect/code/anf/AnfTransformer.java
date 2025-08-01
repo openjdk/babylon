@@ -52,7 +52,7 @@ public class AnfTransformer {
 
         var builderEntry = outerBodyBuilder.entryBlock();
 
-        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.parentOp()).invokableType());
+        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.ancestorOp()).invokableType());
         funMap.put(entry, selfRefP);
 
         for (Block.Parameter p : entry.parameters()) {
@@ -232,12 +232,12 @@ public class AnfTransformer {
                 }
                 case CoreOp.ReturnOp ro -> {
                     var rval = b.context().getValue(ro.returnValue());
-                    b.op(CoreOp._yield(rval));
+                    b.op(CoreOp.core_yield(rval));
                     return b;
                 }
                 case CoreOp.YieldOp y ->  {
                     var rval = b.context().getValue(y.yieldValue());
-                    b.op(CoreOp._yield(rval));
+                    b.op(CoreOp.core_yield(rval));
                     return b;
                 }
                 default -> {

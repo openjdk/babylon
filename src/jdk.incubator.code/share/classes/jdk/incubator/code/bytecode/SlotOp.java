@@ -28,9 +28,10 @@ import java.lang.classfile.TypeKind;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.extern.ExternalizedOp;
-import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import jdk.incubator.code.internal.OpDeclaration;
+
 import java.util.List;
 import java.util.Map;
 
@@ -75,7 +76,7 @@ sealed abstract class SlotOp extends Op {
         return Map.of("", slot);
     }
 
-    @OpFactory.OpDeclaration(SlotLoadOp.NAME)
+    @OpDeclaration(SlotLoadOp.NAME)
     public static final class SlotLoadOp extends SlotOp {
         public static final String NAME = "slot.load";
 
@@ -118,11 +119,11 @@ sealed abstract class SlotOp extends Op {
 
         @Override
         public String toString() {
-            return "block_" + parentBlock().index() + " " + parentBlock().ops().indexOf(this) + ": #" + slot + " LOAD " + typeKind();
+            return "block_" + ancestorBlock().index() + " " + ancestorBlock().ops().indexOf(this) + ": #" + slot + " LOAD " + typeKind();
         }
     }
 
-    @OpFactory.OpDeclaration(SlotStoreOp.NAME)
+    @OpDeclaration(SlotStoreOp.NAME)
     public static final class SlotStoreOp extends SlotOp {
         public static final String NAME = "slot.store";
 
@@ -161,7 +162,7 @@ sealed abstract class SlotOp extends Op {
 
         @Override
         public String toString() {
-            return "block_" + parentBlock().index() + " " + parentBlock().ops().indexOf(this) + ": #" + slot + " STORE " + typeKind();
+            return "block_" + ancestorBlock().index() + " " + ancestorBlock().ops().indexOf(this) + ": #" + slot + " STORE " + typeKind();
         }
     }
 

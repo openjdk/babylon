@@ -24,7 +24,7 @@
  */
 #include "opencl_backend.h"
 
-int main(){
+int main() {
     OpenCLBackend backend(0);
     backend.info();
 }

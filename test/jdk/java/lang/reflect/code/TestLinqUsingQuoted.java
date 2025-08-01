@@ -21,6 +21,7 @@
  * questions.
  */
 
+import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -30,6 +31,7 @@ import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.TypeElement;
@@ -87,7 +89,7 @@ public class TestLinqUsingQuoted {
                             functionType(qp.queryableType(), QuotedOp.QUOTED_TYPE));
                     Op.Result queryable = block.op(JavaOp.invoke(md, query, quotedLambda));
 
-                    block.op(_return(queryable));
+                    block.op(return_(queryable));
                 } else {
                     block.op(op);
                 }
@@ -117,11 +119,11 @@ public class TestLinqUsingQuoted {
             FuncOp currentQueryExpression = expression();
             FuncOp nextQueryExpression = func("queryresult",
                     functionType(qp.queryResultType(), currentQueryExpression.invokableType().parameterTypes()))
-                    .body(b -> b.inline(currentQueryExpression, b.parameters(), (block, query) -> {
+                    .body(b -> Inliner.inline(b, currentQueryExpression, b.parameters(), (block, query) -> {
                         MethodRef md = method(qp.queryableType(), name, functionType(qp.queryResultType()));
                         Op.Result queryResult = block.op(JavaOp.invoke(md, query));
 
-                        block.op(_return(queryResult));
+                        block.op(return_(queryResult));
                     }));
             return qp.createQueryResult(resultType, nextQueryExpression);
         }
@@ -163,7 +165,7 @@ public class TestLinqUsingQuoted {
             // Initial expression is an identity function
             var funType = functionType(provider().queryableType(), provider().queryableType());
             this.expression = func("query", funType)
-                    .body(b -> b.op(_return(b.parameters().get(0))));
+                    .body(b -> b.op(return_(b.parameters().get(0))));
         }
 
         TestQueryable(TypeElement elementType, TestQueryProvider provider, FuncOp expression) {
@@ -251,12 +253,14 @@ public class TestLinqUsingQuoted {
                 // c -> c.contactName
                 .select((Customer c) -> c.contactName).elements();
 
-        qr.expression().writeTo(System.out);
+        Op op1 = qr.expression();
+        System.out.println(op1.toText());
 
         QueryResult qr2 = (QueryResult) Interpreter.invoke(MethodHandles.lookup(),
                 qr.expression(), qp.newQuery(JavaType.type(Customer.class)));
 
-        qr2.expression().writeTo(System.out);
+        Op op = qr2.expression();
+        System.out.println(op.toText());
 
         Assert.assertEquals(qr.expression().toText(), qr2.expression().toText());
     }

@@ -25,10 +25,6 @@
 
 package jdk.incubator.code;
 
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-
 import com.sun.tools.javac.api.JavacScope;
 import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
@@ -52,7 +48,6 @@ import javax.lang.model.element.Modifier;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiFunction;
 
@@ -316,15 +311,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     @Override
     public final Block parent() {
-        return parentBlock();
-    }
-
-    /**
-     * Returns this operation's parent block, otherwise {@code null} if the operation is not assigned to a block.
-     *
-     * @return operation's parent block, or {@code null} if the operation is not assigned to a block.
-     */
-    public final Block parentBlock() {
         if (isFrozen() || result == null) {
             return null;
         }
@@ -356,25 +342,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public final Result result() {
         return result == Result.ROOT ? null : result;
-    }
-
-
-    /**
-     * Returns this operation's nearest ancestor body (the parent body of this operation's parent block),
-     * otherwise {@code null} if the operation is not assigned to a block.
-     *
-     * @return operation's nearest ancestor body, or {@code null} if the operation is not assigned to a block.
-     */
-    public final Body ancestorBody() {
-        if (result == null) {
-            return null;
-        }
-
-        if (!result.block.isBound()) {
-            throw new IllegalStateException("Parent body is partially constructed");
-        }
-
-        return result.block.parentBody;
     }
 
     /**
@@ -429,30 +396,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Traverse the operands of this operation that are the results of prior operations, recursively.
-     * <p>
-     * Traversal is performed in pre-order, reporting the operation of each operand to the visitor.
-     *
-     * @param t   the traversing accumulator
-     * @param v   the visitor
-     * @param <T> accumulator type
-     * @return the traversing accumulator
-     * @apiNote A visitor that implements the abstract method of {@code OpVisitor} and does not override any
-     * other default method will only visit operations. As such a lambda expression or method reference
-     * may be used to visit operations.
-     */
-    public final <T> T traverseOperands(T t, BiFunction<T, Op, T> v) {
-        for (Value arg : operands()) {
-            if (arg instanceof Result or) {
-                t = v.apply(t, or.op);
-                t = or.op.traverseOperands(t, v);
-            }
-        }
-
-        return t;
-    }
-
-    /**
      * Computes values captured by this operation. A captured value is a value that dominates
      * this operation and is used by a descendant operation.
      * <p>
@@ -473,24 +416,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         for (Body childBody : op.bodies()) {
             Body.capturedValues(capturedValues, bodyStack, childBody);
         }
-    }
-
-    /**
-     * Writes the textual form of this operation to the given output stream, using the UTF-8 character set.
-     *
-     * @param out the stream to write to.
-     */
-    public void writeTo(OutputStream out) {
-        writeTo(new OutputStreamWriter(out, StandardCharsets.UTF_8));
-    }
-
-    /**
-     * Writes the textual form of this operation to the given writer.
-     *
-     * @param w the writer to write to.
-     */
-    public void writeTo(Writer w) {
-        OpWriter.writeTo(w, this);
     }
 
     /**

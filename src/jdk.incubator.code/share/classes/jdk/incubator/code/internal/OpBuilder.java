@@ -177,7 +177,7 @@ public class OpBuilder {
         Value result = buildOp(ancestorBody, op);
         // freeze op
         builder.op(invoke(MethodRef.method(Op.class, "freeze", void.class), result));
-        builder.op(_return(result));
+        builder.op(return_(result));
 
         return func("builder." + op.opName(), builder.parentBody());
     }
@@ -244,7 +244,7 @@ public class OpBuilder {
                 buildType(resultType),
                 buildAttributeMap(inputOp, attributes),
                 buildList(type(Body.Builder.class), bodies));
-        return builder.op(_new(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
+        return builder.op(new_(ConstructorRef.constructor(EXTERNALIZED_OP_F_TYPE), args));
     }
 
     Value buildLocation(Location l) {

@@ -24,26 +24,51 @@
  */
 package hat.buffer;
 
-
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
-
-import java.lang.invoke.MethodHandles;
-
 
 public interface KernelContext extends Buffer {
     int x();
     void x(int x);
 
+    int y();
+    void y(int y);
+
+    int z();
+    void z(int z);
+
     int maxX();
     void maxX(int maxX);
 
-    Schema<KernelContext> schema = Schema.of(KernelContext.class, s->s.fields("x","maxX"));
+    int maxY();
+    void maxY(int maxY);
+
+    int maxZ();
+    void maxZ(int maxZ);
+
+    int dimensions();
+    void dimensions(int numDimensions);
+
+    // Important part here! do not forget the new fields.
+    Schema<KernelContext> schema = Schema.of(KernelContext.class, s->s.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"));
 
     static KernelContext create(Accelerator accelerator, int x, int maxX) {
         KernelContext kernelContext =  schema.allocate(accelerator);
         kernelContext.x(x);
         kernelContext.maxX(maxX);
+        kernelContext.dimensions(1);
+        return kernelContext;
+    }
+
+    static KernelContext create(Accelerator accelerator, int x, int y, int z, int maxX, int maxY, int maxZ) {
+        KernelContext kernelContext =  schema.allocate(accelerator);
+        kernelContext.x(x);
+        kernelContext.y(y);
+        kernelContext.z(z);
+        kernelContext.maxX(maxX);
+        kernelContext.maxY(maxY);
+        kernelContext.maxZ(maxZ);
+        kernelContext.dimensions(3);
         return kernelContext;
     }
 

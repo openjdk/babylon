@@ -1,21 +1,21 @@
-
 # Minimizing Buffer Transfers
 
 ----
 
 * [Contents](hat-00.md)
 * House Keeping
-    * [Project Layout](hat-01-01-project-layout.md)
-    * [Building Babylon](hat-01-02-building-babylon.md)
-    * [Building HAT](hat-01-03-building-hat.md)
+  * [Project Layout](hat-01-01-project-layout.md)
+  * [Building Babylon](hat-01-02-building-babylon.md)
+  * [Building HAT](hat-01-03-building-hat.md)
+    * [Enabling the CUDA Backend](hat-01-05-building-hat-for-cuda.md)
 * Programming Model
-    * [Programming Model](hat-03-programming-model.md)
+  * [Programming Model](hat-03-programming-model.md)
 * Interface Mapping
-    * [Interface Mapping Overview](hat-04-01-interface-mapping.md)
-    * [Cascade Interface Mapping](hat-04-02-cascade-interface-mapping.md)
+  * [Interface Mapping Overview](hat-04-01-interface-mapping.md)
+  * [Cascade Interface Mapping](hat-04-02-cascade-interface-mapping.md)
 * Implementation Detail
-    * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
-    * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
+  * [Walkthrough Of Accelerator.compute()](hat-accelerator-compute.md)
+  * [How we minimize buffer transfers](hat-minimizing-buffer-transfers.md)
 
 ----
 
@@ -78,10 +78,9 @@ gc
 }
 ```
 
-First lets assume there were no automatic transfers, assume we had to define them. we had to explicitly control transfers so we will insert codegc
+First, let's assume there were no automatic transfers, assume we had to define them. We had to explicitly control transfers so we will insert code.
 
-What would our code look likegc
-
+What would our code look like?
 
 ```java
  @CodeReflection
@@ -137,7 +136,7 @@ gc
 }
 ```
 
-Alternatively what if the buffers themselves could hold the deviceDirty flags javaDirty?
+Alternatively, what if the buffers themselves could hold the deviceDirty flags javaDirty?
 
 
 ```java
@@ -195,10 +194,10 @@ gc
 }
 ```
 
-Essentially we defer to the kernel dispatch to determine whether buffers are
+Essentially, we defer to the kernel dispatch to determine whether buffers are
 copied to the device and to mark buffers accordingly if the dispatch mutated the buffer.gc
 
-Psuedo code for dispatch is essentiallygc
+Pseudo-code for dispatch is essentially
 ```java
 
 void dispatchKernel(Kernel kernel, KernelContext kc, Arg ... args) {
@@ -233,7 +232,6 @@ static public void compute(final @RO ComputeContext cc,
 We also rely on babylon to inject calls before each buffer access from java in the compute code.
 
 So the injected code would look like this.gc
-
 
 ```java
 

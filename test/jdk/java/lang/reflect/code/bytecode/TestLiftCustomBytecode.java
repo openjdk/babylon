@@ -141,7 +141,7 @@ public class TestLiftCustomBytecode {
 
     static CoreOp.FuncOp getFuncOp(byte[] classdata, String method) {
         CoreOp.FuncOp flift = BytecodeLift.lift(classdata, method);
-        flift.writeTo(System.out);
+        System.out.println(flift.toText());
         return flift;
     }
 }

@@ -1,4 +1,3 @@
-
 # Hat
 
 ----
@@ -8,6 +7,7 @@
     * [Project Layout](hat-01-01-project-layout.md)
     * [Building Babylon](hat-01-02-building-babylon.md)
     * [Building HAT](hat-01-03-building-hat.md)
+      * [Enabling the CUDA Backend](hat-01-05-building-hat-for-cuda.md)
 * Programming Model
     * [Programming Model](hat-03-programming-model.md)
 * Interface Mapping

@@ -38,6 +38,7 @@ import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.java.JavaOp.LambdaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.CodeReflection;
@@ -88,7 +89,7 @@ public class TestLambdaOps {
                                 .body(lblock -> {
                                     Block.Parameter li = lblock.parameters().get(0);
 
-                                    lblock.op(_return(
+                                    lblock.op(return_(
                                             // capture i from function's body
                                             lblock.op(JavaOp.add(i, li))
                                     ));
@@ -97,10 +98,10 @@ public class TestLambdaOps {
                     Op.Result lquoted = block.op(qop);
 
                     Op.Result or = block.op(JavaOp.invoke(Builder.ACCEPT_METHOD, lquoted));
-                    block.op(_return(or));
+                    block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
         Assert.assertEquals(ir, 43);
@@ -125,17 +126,17 @@ public class TestLambdaOps {
                             .body(lblock -> {
                                 Block.Parameter li = lblock.parameters().get(0);
 
-                                lblock.op(_return(
+                                lblock.op(return_(
                                         lblock.op(JavaOp.add(i, li))));
                             });
                     Op.Result fi = block.op(lambda);
 
                     Op.Result fortyTwo = block.op(constant(INT, 42));
                     Op.Result or = block.op(JavaOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
-                    block.op(_return(or));
+                    block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
         Assert.assertEquals(ir, 43);
@@ -155,7 +156,7 @@ public class TestLambdaOps {
     public void testQuotableModel() {
         Quotable quotable = (Runnable & Quotable) () -> {};
         Op qop = Op.ofQuotable(quotable).get().op();
-        Op top = qop.ancestorBody().parentOp().ancestorBody().parentOp();
+        Op top = qop.ancestorOp().ancestorOp();
         Assert.assertTrue(top instanceof CoreOp.FuncOp);
 
         CoreOp.FuncOp fop = (CoreOp.FuncOp) top;
@@ -175,14 +176,14 @@ public class TestLambdaOps {
     @Test
     public void testQuote() {
         FuncOp g = getFuncOp("quote");
-        g.writeTo(System.out);
+        System.out.println(g.toText());
 
         {
             QuotableIntSupplier op = (QuotableIntSupplier) Interpreter.invoke(MethodHandles.lookup(), g, 42);
             Assert.assertEquals(op.getAsInt(), 42);
 
             Quoted q = Op.ofQuotable(op).get();
-            q.op().writeTo(System.out);
+            System.out.println(q.op().toText());
             Assert.assertEquals(q.capturedValues().size(), 1);
             Assert.assertEquals(((Var<?>)q.capturedValues().values().iterator().next()).value(), 42);
 
@@ -200,7 +201,7 @@ public class TestLambdaOps {
             Assert.assertEquals(op.getAsInt(), 42);
 
             Quoted q = Op.ofQuotable(op).get();
-            q.op().writeTo(System.out);
+            System.out.println(q.op().toText());
             System.out.print(q.capturedValues().values());
             Assert.assertEquals(q.capturedValues().size(), 1);
             Assert.assertEquals(((Var<?>)q.capturedValues().values().iterator().next()).value(), 42);

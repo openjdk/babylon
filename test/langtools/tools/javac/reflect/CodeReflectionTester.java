@@ -27,12 +27,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import jdk.incubator.code.*;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.CodeReflection;
 
-import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.core.CoreOp.return_;
 import static jdk.incubator.code.dialect.core.CoreOp.func;
 import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 
@@ -160,7 +161,7 @@ public class CodeReflectionTester {
             cc.mapBlock(qOp.ancestorBody().entryBlock(), fblock);
             fblock.op(qOp);
 
-            fblock.op(_return());
+            fblock.op(CoreOp.return_());
         });
     }
 }

@@ -51,7 +51,7 @@ public class TestBinops {
     public void testNot() {
         CoreOp.FuncOp f = getFuncOp("not");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, true), not(true));
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, false), not(false));
@@ -66,7 +66,7 @@ public class TestBinops {
     public void testNeg() {
         CoreOp.FuncOp f = getFuncOp("neg");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 42), neg(42));
     }
@@ -80,7 +80,7 @@ public class TestBinops {
     public void testCompl() {
         CoreOp.FuncOp f = getFuncOp("compl");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 42), compl(42));
     }
@@ -94,7 +94,7 @@ public class TestBinops {
     public void testMod() {
         CoreOp.FuncOp f = getFuncOp("mod");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 10, 3), mod(10, 3));
     }
@@ -108,7 +108,7 @@ public class TestBinops {
     public void testBitand() {
         CoreOp.FuncOp f = getFuncOp("bitand");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 10, 3), bitand(10, 3));
     }
@@ -122,7 +122,7 @@ public class TestBinops {
     public void testBitor() {
         CoreOp.FuncOp f = getFuncOp("bitor");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 10, 3), bitor(10, 3));
     }
@@ -136,7 +136,7 @@ public class TestBinops {
     public void testBitxor() {
         CoreOp.FuncOp f = getFuncOp("bitxor");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 10, 3), bitxor(10, 3));
     }
@@ -150,7 +150,7 @@ public class TestBinops {
     public void testBooland() {
         CoreOp.FuncOp f = getFuncOp("booland");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, true, false), booland(true, false));
     }
@@ -164,7 +164,7 @@ public class TestBinops {
     public void testBoolor() {
         CoreOp.FuncOp f = getFuncOp("boolor");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, false, true), boolor(false, true));
     }
@@ -178,7 +178,7 @@ public class TestBinops {
     public void testBoolxor() {
         CoreOp.FuncOp f = getFuncOp("boolxor");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, true, true), boolxor(true, true));
     }
@@ -192,7 +192,7 @@ public class TestBinops {
     public void testDoublemod() {
         CoreOp.FuncOp f = getFuncOp("doublemod");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 15.6, 2.1), doublemod(15.6, 2.1));
     }

@@ -86,8 +86,8 @@ public class TestQuoteOp {
         // access FuncOp created by javac
         Quoted quoted = Op.ofQuotable(q).orElseThrow();
         Op op = quoted.op();
-        CoreOp.QuotedOp qop = ((CoreOp.QuotedOp) op.ancestorBody().parentOp());
-        CoreOp.FuncOp fop = ((CoreOp.FuncOp) qop.ancestorBody().parentOp());
+        CoreOp.QuotedOp qop = ((CoreOp.QuotedOp) op.ancestorOp());
+        CoreOp.FuncOp fop = ((CoreOp.FuncOp) qop.ancestorOp());
 
         Object[] args = {this, 111};
         Quoted quoted2 = Quoted.quotedOp(fop, args);

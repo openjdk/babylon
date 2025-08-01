@@ -25,13 +25,11 @@
 
 package hat.backend.ffi;
 
-import hat.backend.codebuilders.HATCodeBuilder;
+import hat.codebuilders.HATCodeBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 
 public record Config(int bits) {
     record Bit(int index, String name) {

@@ -62,4 +62,27 @@ class TestAssignment {
         Quoted fi_RetVRetS = (int i) -> { if (cond) return; else return ""; }; // error - only one branch returns
         Quoted fi_RetS = (int i) -> { if (cond) { return "2"; } }; // error - one return, but body completes normally
     }
+
+    void testBadNullReturn(boolean cond) {
+        Quoted fi_RetNullS = (int i) -> { return null; }; // error - null return - statement
+        Quoted fi_RetNullE = (int i) -> null; // error - null return - expression
+        Quoted fi_RetNullCondS = (int i) -> { return cond ? null : null; }; // error - null conditional return - statement
+        Quoted fi_RetNullCondE = (int i) -> cond ? null : null; // error - null conditional return - expression
+    }
+
+    void testBadLambdaReturn(boolean cond) {
+        Quoted fi_RetLambdaS = (int i) -> { return () -> {}; }; // error - lambda return - statement
+        Quoted fi_RetLambdaE = (int i) -> () -> {};; // error - lambda return - expression
+        Quoted fi_RetLambdaCondS = (int i) -> { return cond ? () -> {} : () -> {}; }; // error - lambda conditional return - statement
+        Quoted fi_RetLambdaCondE = (int i) -> cond ? () -> {} : () -> {}; // error - lambda conditional return - expression
+    }
+
+    void testBadMrefReturn(boolean cond) {
+        Quoted fi_RetMrefS = (int i) -> { return this::mr; }; // error - mref return - statement
+        Quoted fi_RetMrefE = (int i) -> this::mr;; // error - mref return - expression
+        Quoted fi_RetMrefCondS = (int i) -> { return cond ? this::mr : this::mr; }; // error - mref conditional return - statement
+        Quoted fi_RetMrefCondE = (int i) -> cond ? this::mr : this::mr; // error - mref conditional return - expression
+    }
+
+    void mr() { }
 }

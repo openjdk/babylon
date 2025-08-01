@@ -35,14 +35,24 @@ questions.
     <parent>
         <groupId>oracle.code</groupId>
         <version>1.0</version>
-        <artifactId>hat.examples</artifactId>
+        <artifactId>hat-examples</artifactId>
     </parent>
 
     <dependencies>
         <dependency>
             <groupId>oracle.code</groupId>
             <version>1.0</version>
-            <artifactId>core</artifactId>
+            <artifactId>hat-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <version>1.0</version>
+            <artifactId>hat-backend-ffi-shared</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <version>1.0</version>
+            <artifactId>hat-backend-ffi-opencl</artifactId>
         </dependency>
     </dependencies>
 

@@ -364,6 +364,11 @@ class KernelContext {
 public:
     int x;
     int maxX;
+    int y;
+    int maxY;
+    int z;
+    int maxZ;
+    int dimensions;
 };
 
 

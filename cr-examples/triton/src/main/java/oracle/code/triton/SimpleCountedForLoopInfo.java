@@ -40,9 +40,9 @@ import static jdk.incubator.code.analysis.Patterns.*;
 // @@@ Very basic, limited, and partially correct
 public class SimpleCountedForLoopInfo {
 
-    final JavaOp.JavaForOp fop;
+    final JavaOp.ForOp fop;
 
-    SimpleCountedForLoopInfo(JavaOp.JavaForOp fop) {
+    SimpleCountedForLoopInfo(JavaOp.ForOp fop) {
         this.fop = fop;
 
         if (fop.init().yieldType().equals(JavaType.VOID)) {
@@ -149,7 +149,7 @@ public class SimpleCountedForLoopInfo {
     // @@@ should be pure and independent of the loop variable
     static void traverseOperands(List<Op> ops, Op op) {
         for (Value operand : op.operands()) {
-            if (operand.declaringBlock().parentBody() == op.ancestorBody()) {
+            if (operand.declaringBlock().ancestorBody() == op.ancestorBody()) {
                 if (operand instanceof Op.Result r) {
                     traverseOperands(ops, r.op());
                 }

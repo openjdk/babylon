@@ -33,9 +33,9 @@ import jdk.incubator.code.CodeReflection;
 import nbody.Mode;
 import nbody.NBodyGLWindow;
 import nbody.Universe;
-import wrap.clwrap.CLPlatform;
-import wrap.clwrap.CLWrapComputeContext;
-import wrap.glwrap.GLTexture;
+import wrap.opencl.CLPlatform;
+import wrap.opencl.CLWrapComputeContext;
+import wrap.opengl.GLTexture;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;

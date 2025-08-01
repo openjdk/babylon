@@ -22,6 +22,7 @@
  */
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -63,14 +64,14 @@ public interface Queryable<T> {
         JavaType queryableType = parameterized(Queryable.TYPE, elementType);
         FuncOp nextQueryExpression = func("query",
                 functionType(queryableType, queryExpression.invokableType().parameterTypes()))
-                .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
+                .body(b -> Inliner.inline(b, queryExpression, b.parameters(), (block, query) -> {
                     Op.Result fi = block.op(lambdaOp);
 
                     MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(Queryable.TYPE, ((ClassType) lambdaOp.functionalInterface()).rawType()));
                     Op.Result queryable = block.op(JavaOp.invoke(queryableType, md, query, fi));
 
-                    block.op(_return(queryable));
+                    block.op(return_(queryable));
                 }));
 
         return provider().createQuery(elementType, nextQueryExpression);
@@ -94,12 +95,12 @@ public interface Queryable<T> {
         JavaType queryResultType = parameterized(QueryResult.TYPE, resultType);
         FuncOp queryResultExpression = func("queryResult",
                 functionType(queryResultType, queryExpression.invokableType().parameterTypes()))
-                .body(b -> b.inline(queryExpression, b.parameters(), (block, query) -> {
+                .body(b -> Inliner.inline(b, queryExpression, b.parameters(), (block, query) -> {
                     MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(QueryResult.TYPE));
                     Op.Result queryResult = block.op(JavaOp.invoke(queryResultType, md, query));
 
-                    block.op(_return(queryResult));
+                    block.op(return_(queryResult));
                 }));
 
         return provider().createQueryResult(resultType, queryResultExpression);

@@ -28,6 +28,7 @@ import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.CodeReflection;
@@ -79,11 +80,11 @@ public class TestConditionalOp {
     public void testf() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         for (int i = 0; i < 8; i++) {
             boolean a = (i & 1) != 0;

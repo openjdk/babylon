@@ -63,7 +63,7 @@ public class TestBlockIndexes {
                 // Create some blocks without predecessors
                 for (int i = 0; i < 5; i++) {
                     Block.Builder redundant = block.block();
-                    redundant.op(CoreOp._return());
+                    redundant.op(CoreOp.return_());
                 }
             }
             block.op(op);
@@ -74,7 +74,7 @@ public class TestBlockIndexes {
 
     static void assertBlockIndexes(CoreOp.FuncOp f) {
         for (Block b : f.body().blocks()) {
-            Assert.assertEquals(b.index(), b.parentBody().blocks().indexOf(b));
+            Assert.assertEquals(b.index(), b.ancestorBody().blocks().indexOf(b));
         }
     }
 

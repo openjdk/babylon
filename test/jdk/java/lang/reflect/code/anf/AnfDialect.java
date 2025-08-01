@@ -26,18 +26,16 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.extern.ExternalizedOp;
+import jdk.incubator.code.extern.OpFactory;
 
 import java.util.*;
 import java.util.function.Consumer;
-
-import static jdk.incubator.code.extern.OpFactory.*;
 
 public final class AnfDialect {
 
     private AnfDialect() {
     }
 
-    @OpDeclaration(AnfLetOp.NAME)
     public static final class AnfLetOp extends Op implements Op.Terminating, Op.Nested {
         public static final String NAME = "anf.let";
 
@@ -95,7 +93,6 @@ public final class AnfDialect {
     }
 
 
-    @OpDeclaration(AnfLetRecOp.NAME)
     public static final class AnfLetRecOp extends Op implements Op.Terminating, Op.Nested {
         public static final String NAME = "anf.letrec";
 
@@ -162,7 +159,6 @@ public final class AnfDialect {
         }
     }
 
-    @OpDeclaration(AnfIfOp.NAME)
     public static final class AnfIfOp extends Op implements Op.Terminating, Op.Nested {
         public static final String NAME = "anf.if";
 
@@ -254,7 +250,6 @@ public final class AnfDialect {
         }
     }
 
-    @OpDeclaration(AnfFuncOp.NAME)
     public static final class AnfFuncOp extends Op implements Op.Nested {
 
         public static class Builder {
@@ -346,7 +341,6 @@ public final class AnfDialect {
         }
     }
 
-    @OpDeclaration(AnfApply.NAME)
     public static final class AnfApply extends Op implements Op.Terminating {
         public static final String NAME = "anf.apply";
 
@@ -382,7 +376,6 @@ public final class AnfDialect {
         }
     }
 
-    @OpDeclaration(AnfApplyStub.NAME)
     public static final class AnfApplyStub extends Op implements Op.Terminating {
         public static final String NAME = "anf.apply.stub";
         public static final String ATTRIBUTE_RESULT_TYPE = ".resultType";
@@ -438,6 +431,24 @@ public final class AnfDialect {
             return operands().subList(1, this.operands().size());
         }
     }
+
+    static Op createOp(ExternalizedOp def) {
+        Op op = switch (def.name()) {
+            case "anf.apply" -> new AnfApply(def);
+            case "anf.apply.stub" -> AnfApplyStub.create(def);
+            case "anf.func" -> AnfFuncOp.create(def);
+            case "anf.if" -> new AnfIfOp(def);
+            case "anf.let" -> new AnfLetOp(def);
+            case "anf.letrec" -> new AnfLetRecOp(def);
+            default -> null;
+        };
+        if (op != null) {
+            op.setLocation(def.location());
+        }
+        return op;
+    }
+
+    static final OpFactory FACTORY = AnfDialect::createOp;
 
     public static AnfLetRecOp.Builder letrec(Body.Builder ancestorBody, TypeElement yieldType) {
         return new AnfLetRecOp.Builder(ancestorBody, yieldType);

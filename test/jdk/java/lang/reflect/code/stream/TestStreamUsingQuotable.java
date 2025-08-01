@@ -51,11 +51,11 @@ public class TestStreamUsingQuotable {
                 // Cannot use method reference since it captures the result of the expression "System.out"
                 .forEach(s -> System.out.println(s));
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Interpreter.invoke(MethodHandles.lookup(), lf,
                 List.of(List.of(1, 2, 3, 4, 5, 100_000_000, 10_000, 100_000, 20)));
@@ -71,11 +71,11 @@ public class TestStreamUsingQuotable {
                 .filter(s -> s.length() < 10)
                 .collect(ArrayList::new, ArrayList::add);
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         List<Integer> source = List.of(1, 2, 3, 4, 5, 100_000_000, 10_000, 20);
 

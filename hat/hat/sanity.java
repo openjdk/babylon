@@ -29,7 +29,7 @@ import static java.lang.IO.println;
 void main(String[] args){
   Script.DirEntry.current()
     .subDirs()
-    .filter(dir -> dir.matches("^.*(hat|wrap|examples|backends|docs|bldr|core|extractions)$"))
+    .filter(dir -> dir.matches("^.*(hat|tools|wraps|examples|backends|docs|core|extractions)$"))
     .forEach(dir->dir
        .findFiles()
           .filter((path)->Pattern.matches("^.*/.*\\.(java|cpp|h|hpp|md)$", path.toString()))

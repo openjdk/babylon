@@ -55,11 +55,11 @@ public class TestForOp {
     public void testf() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f());
     }
@@ -78,11 +78,11 @@ public class TestForOp {
     public void testf2() {
         CoreOp.FuncOp f = getFuncOp("f2");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f2());
     }
@@ -103,11 +103,11 @@ public class TestForOp {
     public void testf3() {
         CoreOp.FuncOp f = getFuncOp("f3");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f3());
     }

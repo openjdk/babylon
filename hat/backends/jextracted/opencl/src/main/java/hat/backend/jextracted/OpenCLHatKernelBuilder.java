@@ -24,14 +24,18 @@
  */
 package hat.backend.jextracted;
 
-import hat.backend.codebuilders.C99HATKernelBuilder;
+import hat.NDRange;
+import hat.codebuilders.C99HATKernelBuilder;
 import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaType;
 
-import java.lang.invoke.MethodHandles;
-
 public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
+
+    public OpenCLHatKernelBuilder(NDRange ndRange) {
+        super(ndRange);
+    }
+
     @Override
     public OpenCLHatKernelBuilder defines() {
         hashDefine("NDRANGE_OPENCL");
@@ -49,13 +53,13 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder globalId() {
-        return identifier("get_global_id").oparen().literal(0).cparen();
+    public OpenCLHatKernelBuilder globalId(int id) {
+        return identifier("get_global_id").oparen().literal(id).cparen();
     }
 
     @Override
-    public OpenCLHatKernelBuilder globalSize() {
-        return identifier("get_global_size").oparen().literal(0).cparen();
+    public OpenCLHatKernelBuilder globalSize(int id) {
+        return identifier("get_global_size").oparen().literal(id).cparen();
     }
 
     @Override

@@ -34,6 +34,7 @@ import org.testng.annotations.Test;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.CodeReflection;
@@ -86,11 +87,11 @@ public class TestTryNested {
     public void testCatchFinally() {
         CoreOp.FuncOp f = getFuncOp("tryCatchFinally");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         for (int ra = -1; ra < 6; ra++) {
             int fra = ra;
@@ -145,11 +146,11 @@ public class TestTryNested {
     public void testCatchBreak() {
         CoreOp.FuncOp f = getFuncOp("tryCatchBreak");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         for (int ra = -1; ra < 4; ra++) {
             int fra = ra;
@@ -213,11 +214,11 @@ public class TestTryNested {
     public void testCatchFinallyBreak() {
         CoreOp.FuncOp f = getFuncOp("tryCatchFinallyBreak");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         for (int ra = -1; ra < 6; ra++) {
             int fra = ra;
@@ -264,11 +265,11 @@ public class TestTryNested {
     public void testTryForLoop() {
         CoreOp.FuncOp f = getFuncOp("tryForLoop");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
@@ -310,11 +311,11 @@ public class TestTryNested {
     public void testTryForLoopFinally() {
         CoreOp.FuncOp f = getFuncOp("tryForLoopFinally");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
@@ -362,11 +363,11 @@ public class TestTryNested {
     public void testTryLabeledForLoop() {
         CoreOp.FuncOp f = getFuncOp("tryLabeledForLoop");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
                 c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
@@ -401,11 +402,11 @@ public class TestTryNested {
     public void testTryLambda() {
         CoreOp.FuncOp f = getFuncOp("tryLambda");
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         CoreOp.FuncOp lf = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
-        lf.writeTo(System.out);
+        System.out.println(lf.toText());
 
         for (int ra = 0; ra < 2; ra++) {
             final int fra = ra;

@@ -24,15 +24,15 @@
  */
 #include "opencl_backend.h"
 
-OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(Backend::CompilationUnit *compilationUnit, char* name, cl_kernel kernel)
-    : Kernel(compilationUnit, name), kernel(kernel){
+OpenCLBackend::OpenCLProgram::OpenCLKernel::OpenCLKernel(CompilationUnit *compilationUnit, char* name, cl_kernel kernel)
+    : Kernel(compilationUnit, name), kernel(kernel) {
 }
 
 OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
-    clReleaseKernel(kernel);
+    OPENCL_CHECK(clReleaseKernel(kernel), "clReleaseKernel");
 }
 
-bool OpenCLBackend::OpenCLProgram::OpenCLKernel::setArg(KernelArg *arg, Buffer *buffer){
+bool OpenCLBackend::OpenCLProgram::OpenCLKernel::setArg(KernelArg *arg, Buffer *buffer) {
     const auto * openCLBuffer = dynamic_cast<OpenCLBuffer *>(buffer);
     const cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openCLBuffer->clMem);
     if (status != CL_SUCCESS) {
@@ -43,7 +43,7 @@ bool OpenCLBackend::OpenCLProgram::OpenCLKernel::setArg(KernelArg *arg, Buffer *
 }
 
 bool OpenCLBackend::OpenCLProgram::OpenCLKernel::setArg(KernelArg *arg) {
-    const cl_int status = clSetKernelArg(kernel, arg->idx, arg->size(), (void *) &arg->value);
+    const cl_int status = clSetKernelArg(kernel, arg->idx, arg->size(), &arg->value);
     if (status != CL_SUCCESS) {
         std::cerr << errorMsg(status) << std::endl;
         return false;

@@ -37,12 +37,13 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+
 import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 
-import static jdk.incubator.code.dialect.core.CoreOp._return;
+import static jdk.incubator.code.dialect.core.CoreOp.return_;
 import static jdk.incubator.code.dialect.java.JavaOp.add;
 import static jdk.incubator.code.dialect.core.CoreOp.closure;
 import static jdk.incubator.code.dialect.core.CoreOp.closureCall;
@@ -86,7 +87,7 @@ public class TestClosureOps {
                                 .body(cblock -> {
                                     Block.Parameter ci = cblock.parameters().get(0);
 
-                                    cblock.op(_return(
+                                    cblock.op(return_(
                                             // capture i from function's body
                                             cblock.op(add(i, ci))
                                     ));
@@ -95,10 +96,10 @@ public class TestClosureOps {
                     Op.Result cquoted = block.op(qop);
 
                     Op.Result or = block.op(JavaOp.invoke(TestClosureOps.Builder.ACCEPT_METHOD, cquoted));
-                    block.op(_return(or));
+                    block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
         Assert.assertEquals(ir, 43);
@@ -118,17 +119,17 @@ public class TestClosureOps {
                             .body(cblock -> {
                                 Block.Parameter ci = cblock.parameters().get(0);
 
-                                cblock.op(_return(
+                                cblock.op(return_(
                                         cblock.op(add(i, ci))));
                             });
                     Op.Result c = block.op(closure);
 
                     Op.Result fortyTwo = block.op(constant(INT, 42));
                     Op.Result or = block.op(closureCall(c, fortyTwo));
-                    block.op(_return(or));
+                    block.op(return_(or));
                 });
 
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
         Assert.assertEquals(ir, 43);
@@ -138,7 +139,7 @@ public class TestClosureOps {
     public void testQuotableModel() {
         Quoted quoted = () -> {};
         Op qop = quoted.op();
-        Op top = qop.ancestorBody().parentOp().ancestorBody().parentOp();
+        Op top = qop.ancestorOp().ancestorOp();
         Assert.assertTrue(top instanceof CoreOp.FuncOp);
 
         CoreOp.FuncOp fop = (CoreOp.FuncOp) top;

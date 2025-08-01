@@ -31,10 +31,8 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.AccessFlag;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.RecordComponent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -45,6 +43,7 @@ import java.util.stream.IntStream;
 import jdk.incubator.code.*;
 
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.FieldRef;
@@ -53,7 +52,6 @@ import jdk.incubator.code.dialect.java.JavaType;
 import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
-import oracle.code.onnx.proto.OnnxModel;
 
 import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
@@ -107,12 +105,14 @@ public final class OnnxRuntime {
         }).toList();
     }
 
-    static class CachedSessionClassValue extends ClassValue<Session> {
+    record SessionWithReturnType(Session session, TypeElement returnType) {}
+
+    static class CachedSessionClassValue extends ClassValue<SessionWithReturnType> {
 
         private MethodHandles.Lookup l;
         private Quoted q;
 
-        Session computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
+        SessionWithReturnType computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
             try {
                 this.l = l;
                 this.q = q;
@@ -125,7 +125,7 @@ public final class OnnxRuntime {
         }
 
         @Override
-        protected Session computeValue(Class<?> type) {
+        protected SessionWithReturnType computeValue(Class<?> type) {
             OnnxTransformer.ModuleAndInitializers mi = OnnxTransformer.transform(l, q);
 
             String domainName = type.getSimpleName().split("\\$")[0];
@@ -141,9 +141,11 @@ public final class OnnxRuntime {
                 } catch (IOException _) {}
             }
 
-            return getInstance().createSession(
-                    Arena.ofAuto(), // cached session must be created under its own auto arena
-                    protobufModel);
+            return new SessionWithReturnType(
+                    getInstance().createSession(
+                            Arena.ofAuto(), // cached session must be created under its own auto arena
+                            protobufModel),
+                    mi.module().functionTable().lastEntry().getValue().invokableType().returnType());
 
         }
     }
@@ -189,9 +191,10 @@ public final class OnnxRuntime {
         List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
                 .mapMulti(OnnxRuntime::expandArg)
                 .toList();
-        List<Tensor> ret = model.run(arena, arguments);
+        List<Tensor> ret = model.session().run(arena, arguments);
 
-        TypeElement type = ((JavaOp.LambdaOp)q.op()).invokableType().returnType();
+        var lambdaOp = ((JavaOp.LambdaOp)q.op());
+        TypeElement type = lambdaOp.invokableType().returnType();
         if (type instanceof ArrayType) {
             return (T)ret.toArray(Tensor[]::new);
         }
@@ -202,8 +205,8 @@ public final class OnnxRuntime {
             return (T)ret;
         } else if(getRecordClass(l, retType) instanceof Class cls) {
             try {
-                return (T)cls.getConstructors()[0].newInstance(unflat(ret, cls.getRecordComponents()));
-            } catch (Exception e) {
+                return (T)cls.getConstructors()[0].newInstance(unflat(ret, (TupleType)model.returnType()));
+            } catch (ReflectiveOperationException e) {
                 throw new IllegalStateException(e);
             }
         } else {
@@ -211,15 +214,11 @@ public final class OnnxRuntime {
         }
     }
 
-    static Object[] unflat(List<Tensor> values, RecordComponent[] rcs) {
-        Object[] ret = new Object[rcs.length];
-        for (int i = 0, j = 0; i < rcs.length; i++) {
-            if (rcs[i].getType().isArray() && rcs[i].getAnnotation(ExplicitOnnxOperators.ArrayLen.class) instanceof ExplicitOnnxOperators.ArrayLen al) {
-                ret[i] = values.subList(j, j + al.value()).toArray(Tensor[]::new);
-                j += al.value();
-            } else {
-                ret[i] = values.get(j++);
-            }
+    static Object[] unflat(List<Tensor> values, TupleType returnTupleType) {
+        var returnTypes = returnTupleType.componentTypes();
+        Object[] ret = new Object[returnTypes.size()];
+        for (int i = 0, j = 0; i < ret.length; i++) {
+            ret[i] = returnTypes.get(i) instanceof TupleType tt ? values.subList(j, j += tt.componentTypes().size()).toArray(Tensor[]::new) : values.get(j++);
         }
         return ret;
     }

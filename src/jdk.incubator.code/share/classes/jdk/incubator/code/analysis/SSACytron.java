@@ -118,9 +118,9 @@ final class SSACytron {
                     }
                 }
 
-                block.apply(op);
+                block.op(op);
             } else {
-                block.apply(op);
+                block.op(op);
             }
 
             return block;
@@ -309,7 +309,7 @@ final class SSACytron {
                 for (Block y : df.getOrDefault(x, Set.of())) {
                     if (hasAlready[y.index()] < iterCount) {
                         // Only add to the join points if y is dominated by the var's block
-                        if (y.isDominatedBy(v.parentBlock())) {
+                        if (y.isDominatedBy(v.ancestorBlock())) {
                             joinPoints.computeIfAbsent(y, _k -> new LinkedHashSet<>()).add(v);
                         }
                         hasAlready[y.index()] = iterCount;
@@ -334,7 +334,7 @@ final class SSACytron {
                     throw new IllegalStateException("Descendant variable store operation");
                 }
                 if (storeOp.varOp().ancestorBody() == r) {
-                    stores.computeIfAbsent(storeOp.varOp(), _v -> new LinkedHashSet<>()).add(storeOp.parentBlock());
+                    stores.computeIfAbsent(storeOp.varOp(), _v -> new LinkedHashSet<>()).add(storeOp.ancestorBlock());
                 }
             }
             return stores;

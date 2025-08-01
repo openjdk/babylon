@@ -75,51 +75,43 @@ OpenCLBackend::OpenCLBackend(int configBits)
     : Backend(new Config(configBits), new OpenCLQueue(this)) {
     cl_int status;
     cl_uint platformc = 0;
-    if ((status = clGetPlatformIDs(0, NULL, &platformc)) != CL_SUCCESS) {
-        std::cerr << "clGetPlatformIDs (to get count) failed " << errorMsg(status) << std::endl;
-        std::exit(1);
-    }
+    OPENCL_CHECK(clGetPlatformIDs(0, nullptr, &platformc), "clGetPlatformIDs");
 
     if (config->platform >= platformc) {
         std::cerr << "We only have " << platformc << " platform" << ((platformc > 1) ? "s" : "") <<
                 " (platform[0]-platform[" << (platformc - 1) << "] inclusive) you requested platform[" << config->
                 platform << "]" << std::endl;
         std::exit(1);
-        return;
     }
     auto *platforms = new cl_platform_id[platformc];
-    if ((status = clGetPlatformIDs(platformc, platforms, nullptr)) != CL_SUCCESS) {
-        std::cerr << "clGetPlatformIDs failed " << errorMsg(status) << std::endl;
-        std::exit(1);
-        return;
-    }
-    cl_uint devicec = 0;
+    OPENCL_CHECK(clGetPlatformIDs(platformc, platforms, nullptr), "clGetPlatformIDs");
+
+    cl_uint numDevices = 0;
     platform_id = platforms[config->platform];
-    if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 0, nullptr, &devicec)) != CL_SUCCESS) {
+    if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices)) != CL_SUCCESS) {
         if (status != CL_SUCCESS) {
             std::cerr << "clGetDeviceIDs (to get count) failed " << errorMsg(status) << std::endl;
         }
         delete[] platforms;
         return;
     }
-    if (config->device >= devicec) {
-        std::cerr << "Platform[" << config->platform << "] only has " << devicec << " device" << (
-                    (devicec > 1) ? "s" : "") << " (device[0]-device[" << (devicec - 1) <<
+    if (config->device >= numDevices) {
+        std::cerr << "Platform[" << config->platform << "] only has " << numDevices << " device" << (
+                    (numDevices > 1) ? "s" : "") << " (device[0]-device[" << (numDevices - 1) <<
                 "] inclusive) and you requested device[" << config->device << "]" << std::endl;
         std::cerr << "No device available " << errorMsg(CL_DEVICE_NOT_AVAILABLE) << std::endl;
         delete[] platforms;
         std::exit(1);
-        return;
     }
 
-    if (devicec == 0) {
+    if (numDevices == 0) {
         status = CL_DEVICE_NOT_AVAILABLE;
         std::cerr << "No device available " << errorMsg(status) << std::endl;
         delete[] platforms;
         return;
     }
-    auto *device_ids = new cl_device_id[devicec]; // compute device id
-    if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, devicec, device_ids, nullptr)) != CL_SUCCESS) {
+    auto *device_ids = new cl_device_id[numDevices]; // compute device id
+    if ((status = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, numDevices, device_ids, nullptr)) != CL_SUCCESS) {
         std::cerr << "clGetDeviceIDs failed " << errorMsg(status) << std::endl;
         delete[] platforms;
         delete[] device_ids;
@@ -136,8 +128,7 @@ OpenCLBackend::OpenCLBackend(int configBits)
     cl_command_queue_properties queue_props = CL_QUEUE_PROFILING_ENABLE;
     const auto openCLQueue = dynamic_cast<OpenCLQueue *>(queue);
     if ((openCLQueue->command_queue = clCreateCommandQueue(context, device_ids[config->device], queue_props, &status))
-        == nullptr ||
-        status != CL_SUCCESS) {
+        == nullptr || status != CL_SUCCESS) {
         std::cerr << "clCreateCommandQueue failed " << errorMsg(status) << std::endl;
         clReleaseContext(context);
         delete[] platforms;
@@ -238,12 +229,12 @@ Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source) {
     return openclProgram;
 }
 
-
 const char *OpenCLBackend::errorMsg(cl_int status) {
     static struct {
         cl_int code;
         const char *msg;
     } error_table[] = {
+        // @formatter:off
                 {CL_SUCCESS, "success"},
                 {CL_DEVICE_NOT_FOUND, "device not found",},
                 {CL_DEVICE_NOT_AVAILABLE, "device not available",},
@@ -293,6 +284,7 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
                 {CL_INVALID_GLOBAL_WORK_SIZE, "invalid global work size",},
                 {-9999, "enqueueNdRangeKernel Illegal read or write to a buffer",},
                 {0, nullptr},
+                // @formatter:on
             };
     for (int i = 0; error_table[i].msg != nullptr; i++) {
         if (error_table[i].code == status) {
@@ -310,16 +302,15 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
     return unknown;
 }
 
-
 extern "C" long getBackend(int configBits) {
     std::cerr << "Opencl Driver =" << std::hex << configBits << std::dec << std::endl;
     return reinterpret_cast<long>(new OpenCLBackend(configBits));
 }
 
-
-void __checkOpenclErrors(cl_int status, const char *file, const int line) {
+void __checkOpenclErrors(cl_int status, const char *functionName, const char *file, const int line) {
     if (CL_SUCCESS != status) {
-        std::cerr << "Opencl Driver API error = " << status << " from file " << file << " line " << line << std::endl;
+        std::cerr << "Opencl Error ( " << functionName << ") with error code: " << status << " from file " << file <<
+                " line " << line << std::endl;
         exit(-1);
     }
 }

@@ -167,7 +167,7 @@ public final class OnnxProtoBuilder {
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
     static byte[] buildModel(Block block, List<oracle.code.onnx.Tensor> initializers) {
-        var indexer = new Indexer(block.parentBody().parentOp(), Map.of());
+        var indexer = new Indexer(block.ancestorOp(), Map.of());
         var model = buildModel(graph(null, null, indexer, block, initializers, 0), List.of(), List.of());
 //        System.out.println(OnnxModel.readFrom(model).toText());
         return model;

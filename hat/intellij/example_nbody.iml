@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../examples/nbody">
+      <sourceFolder url="file://$MODULE_DIR$/../examples/nbody/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../examples/nbody/src/main/resources" type="java-resource" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="core" />
+    <orderEntry type="module" module-name="backend_ffi_opencl" />
+    <orderEntry type="module" module-name="wrap_shared" />
+    <orderEntry type="module" module-name="wrap_opencl" />
+    <orderEntry type="module" module-name="wrap_opengl" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../build/hat-extraction-opencl-1.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../build/hat-extraction-opengl-1.0.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+  </component>
+</module>

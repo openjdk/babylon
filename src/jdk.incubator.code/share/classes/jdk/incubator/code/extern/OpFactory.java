@@ -25,10 +25,6 @@
 
 package jdk.incubator.code.extern;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import jdk.incubator.code.Op;
 
 /**
@@ -37,23 +33,6 @@ import jdk.incubator.code.Op;
  */
 @FunctionalInterface
 public interface OpFactory {
-
-    /**
-     * An operation declaration annotation.
-     * <p>
-     * This annotation may be declared on a concrete class implementing an {@link Op operation} whose name is a constant
-     * that can be declared as this attribute's value.
-     * <p>
-     * Tooling can process declarations of this annotation to build a factory for constructing operations from their name.
-     */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    @interface OpDeclaration {
-        /**
-         * {@return the operation name}
-         */
-        String value();
-    }
 
     /**
      * Constructs an {@link Op operation} from its external content.
@@ -102,25 +81,30 @@ public interface OpFactory {
         };
     }
 
-//    // Uncomment the following and execute like as follows to generate a factory method
+//    // Uncomment the following and execute using an exploded build like as follows to generate a factory method
 //    // for enclosed concrete operations
 //    // java --add-modules jdk.incubator.code jdk.incubator.code.extern.OpFactory jdk.incubator.code.dialect.core.CoreOp
-//    static void main(String[] args) throws Throwable {
-//        Class<?> enclosingOpClass = Class.forName(args[0]);
+//    static void main(String[] args) {
+//        Class<?> enclosingOpClass = null;
+//        try {
+//            enclosingOpClass = Class.forName(args[0]);
+//        } catch (ClassNotFoundException e) {
+//            throw new RuntimeException(e);
+//        }
 //        generateSwitchExpression(enclosingOpClass, System.out);
 //    }
 //
-//    static void generateSwitchExpression(Class<?> enclosingOpClass, java.io.PrintStream out) throws Throwable {
+//    static void generateSwitchExpression(Class<?> enclosingOpClass, java.io.PrintStream out) {
 //        java.util.Map<String, java.lang.reflect.Executable> opNameMap = new java.util.TreeMap<>();
 //        for (Class<?> opClass : enclosingOpClass.getNestMembers()) {
 //            if (!Op.class.isAssignableFrom(opClass)) {
 //                continue;
 //            }
-//            if (!Modifier.isFinal(opClass.getModifiers())) {
+//            if (!java.lang.reflect.Modifier.isFinal(opClass.getModifiers())) {
 //                continue;
 //            }
 //
-//            OpDeclaration opDecl = opClass.getAnnotation(OpDeclaration.class);
+//            var opDecl = opClass.getAnnotation(jdk.incubator.code.internal.OpDeclaration.class);
 //            String name = opDecl.value();
 //
 //            var e = getOpConstructorExecutable(opClass);
@@ -155,19 +139,19 @@ public interface OpFactory {
 //    private static java.lang.reflect.Executable getOpConstructorExecutable(Class<?> opClass) {
 //        java.lang.reflect.Executable e = null;
 //        try {
-//            e = opClass.getMethod("create", ExternalizedOp.class);
+//            e = opClass.getDeclaredMethod("create", ExternalizedOp.class);
 //        } catch (NoSuchMethodException _) {
 //        }
 //
 //        if (e != null) {
-//            if (!Modifier.isStatic(e.getModifiers())) {
+//            if (!java.lang.reflect.Modifier.isStatic(e.getModifiers())) {
 //                throw new InternalError("Operation constructor is not a static method: " + e);
 //            }
 //            return e;
 //        }
 //
 //        try {
-//            e = opClass.getConstructor(ExternalizedOp.class);
+//            e = opClass.getDeclaredConstructor(ExternalizedOp.class);
 //        } catch (NoSuchMethodException _) {
 //            return null;
 //        }

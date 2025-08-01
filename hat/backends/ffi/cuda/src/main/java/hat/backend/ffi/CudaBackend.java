@@ -375,7 +375,7 @@ public class CudaBackend extends C99FFIBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code =config.isPTX() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph,  args);
+            String code = config.isPTX() ? createPTX(kernelCallGraph,  ndRange, args) : createC99(kernelCallGraph,  ndRange, args);
             if (config.isSHOW_CODE()) {
                 System.out.println(code);
             }
@@ -390,14 +390,14 @@ public class CudaBackend extends C99FFIBackend {
         compiledKernel.dispatch(ndRange,args);
     }
 
-    String createC99(KernelCallGraph kernelCallGraph,  Object... args){
-        return createCode(kernelCallGraph, new CudaHATKernelBuilder(), args);
+    String createC99(KernelCallGraph kernelCallGraph, NDRange ndRange,  Object... args){
+        return createCode(kernelCallGraph, new CudaHATKernelBuilder(ndRange), args);
     }
 
     ///   Same as OpenCL backend until here
 
 
-    String createPTX(KernelCallGraph kernelCallGraph, Object... args){
+    String createPTX(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args){
         var builder = new PTXHATKernelBuilder();
         StringBuilder out = new StringBuilder();
         StringBuilder invokedMethods = new StringBuilder();
@@ -453,12 +453,12 @@ public class CudaBackend extends C99FFIBackend {
                 } else if (invokeOpWrapper.op().invokeDescriptor().refType().toString().equals("java.lang.Math")
                         && mathFns.containsKey(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString())){
                     usedMathFns.add(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString());
-                    block.apply(op);
+                    block.op(op);
                 } else {
-                    block.apply(op);
+                    block.op(op);
                 }
             } else {
-                block.apply(op);
+                block.op(op);
             }
             return block;
         }));

@@ -91,7 +91,7 @@ public final class ForwardDifferentiation {
                         // so that it can be used when differentiating subsequent operations
                         diffValueMapping.put(op.result(), dor);
                     } else {
-                        block.apply(op);
+                        block.op(op);
                     }
                     return block;
                 });
@@ -198,7 +198,7 @@ public final class ForwardDifferentiation {
                 // Replace with return of differentiated value
                 Value a = op.operands().get(0);
                 Value da = diffValueMapping.getOrDefault(a, zero);
-                yield block.op(_return(da));
+                yield block.op(return_(da));
             }
             case Op.BlockTerminating _ -> {
                 // Update with differentiated block arguments

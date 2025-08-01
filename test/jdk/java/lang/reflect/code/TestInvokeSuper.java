@@ -66,7 +66,7 @@ public class TestInvokeSuper {
     public void testInvokeSuper() {
         CoreOp.FuncOp f = getFuncOp(B.class, "f");
         f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
-        f.writeTo(System.out);
+        System.out.println(f.toText());
 
         for (boolean invokeClass : new boolean[] {true, false}) {
             B b = new B(invokeClass);
