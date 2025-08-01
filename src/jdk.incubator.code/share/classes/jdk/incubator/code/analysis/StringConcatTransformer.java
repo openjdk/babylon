@@ -44,7 +44,7 @@ public final class StringConcatTransformer implements OpTransformer {
     public StringConcatTransformer() {}
 
     @Override
-    public Block.Builder apply(Block.Builder block, Op op) {
+    public Block.Builder acceptOp(Block.Builder block, Op op) {
         switch (op) {
             case JavaOp.ConcatOp cz when isRootConcat(cz) -> {
                 // Create a string builder and build by traversing tree of operands

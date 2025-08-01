@@ -61,15 +61,15 @@ public final class NormalizeBlocksTransformer implements OpTransformer {
     ;
 
     @Override
-    public void apply(Block.Builder block, Block b) {
+    public void acceptBlock(Block.Builder block, Block b) {
         // Ignore merged block
         if (!mergedBlocks.contains(b)) {
-            OpTransformer.super.apply(block, b);
+            OpTransformer.super.acceptBlock(block, b);
         }
     }
 
     @Override
-    public Block.Builder apply(Block.Builder b, Op op) {
+    public Block.Builder acceptOp(Block.Builder b, Op op) {
         if (op instanceof CoreOp.BranchOp bop &&
                 bop.branch().targetBlock().predecessors().size() == 1) {
             // Merge the successor's target block with this block, and so on
@@ -164,6 +164,6 @@ public final class NormalizeBlocksTransformer implements OpTransformer {
         }
 
         // Check if subsequent successor block can be normalized
-        apply(b, successor.terminatingOp());
+        acceptOp(b, successor.terminatingOp());
     }
 }

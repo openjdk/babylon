@@ -29,7 +29,7 @@ public final class Inliner {
      * Inlines the invokable operation into the given block builder and returns the block builder from which to
      * continue building.
      * <p>
-     * This method {@link Block.Builder#transformBody(Body, List, CopyContext, OpTransformer) transforms} the
+     * This method {@link Block.Builder#body(Body, List, CopyContext, OpTransformer) transforms} the
      * body of the invokable operation with the given arguments, a new context, and an operation transformer that
      * replaces return operations by applying the given consumer to a block builder and a return value.
      * <p>
@@ -73,7 +73,7 @@ public final class Inliner {
                          BiConsumer<Block.Builder, Value> inlineConsumer) {
         Map<Body, Block.Builder> returnBlocks = new HashMap<>();
         // Create new context, ensuring inlining is isolated
-        _this.transformBody(invokableOp.body(), args, CopyContext.create(), (block, op) -> {
+        _this.body(invokableOp.body(), args, CopyContext.create(), (block, op) -> {
             // If the return operation is associated with the invokable operation
             if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
                 // Compute the return block
