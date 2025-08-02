@@ -42,10 +42,13 @@ import hat.tools.textmodel.tokens.Ws;
 
 import javax.swing.JTextPane;
 import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Element;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.geom.Rectangle2D;
+import java.util.List;
 
 public class AbstractTextModelViewer extends TextViewer {
     static Style style(JTextPane jTextPane, String name, Color color, boolean bold, boolean italic, boolean underline) {

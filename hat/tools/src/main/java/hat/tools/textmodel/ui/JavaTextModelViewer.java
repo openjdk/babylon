@@ -28,7 +28,6 @@ package hat.tools.textmodel.ui;
 import hat.tools.textmodel.TextModel;
 
 import javax.swing.JTextPane;
-import javax.swing.text.Element;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -43,6 +42,7 @@ public class JavaTextModelViewer extends AbstractTextModelViewer {
     Map<ElementSpan, List<ElementSpan>> javaToOp = new HashMap<>();
 
     static class JavaTextPane extends JTextPane {
+        private JavaTextModelViewer viewer;
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2d = (Graphics2D) g;
@@ -51,35 +51,31 @@ public class JavaTextModelViewer extends AbstractTextModelViewer {
         JavaTextPane(Font font) {
             super.setFont(font);
         }
+        void setViewer(JavaTextModelViewer viewer) {
+            this.viewer = viewer;
+        }
     }
-
-    ;
 
     JavaTextModelViewer(TextModel textModel, Font font, boolean dark) {
         super(textModel, new JavaTextPane(font), font, dark);
+        final var thisTextViewer = this;
+        ((JavaTextPane) this.jtextPane).setViewer(this);
         jtextPane.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                var clicked = getElementFromMouseEvent(e);
+                var clickedElement = getElementFromMouseEvent(e);
                 funcOpTextModelViewer.removeHighlights();
                 removeHighlights();
-                if (clicked != null) {
-                    if (javaToOp.keySet().stream().anyMatch(fromElementSpan -> fromElementSpan.includes(clicked.getStartOffset()))) {
-                        javaToOp.keySet().stream().
-                                filter(fromElementSpan -> fromElementSpan.includes(clicked.getStartOffset()))
-                                .forEach(fromElementSpan -> {
-                                    fromElementSpan.textViewer().highLight(fromElementSpan.element());
-                                    javaToOp.get(fromElementSpan).forEach(targetElementSpan -> {
-                                        Element targetElement = targetElementSpan.element();
-                                        targetElementSpan.textViewer().highLight(targetElement);
-                                        targetElementSpan.textViewer().scrollTo(targetElement);
-                                    });
-                                });
-                    } else {
-                        System.out.println("not a mappable java line  from op");
+                if (clickedElement != null) {
+                    var elementsReferencedByClickedElement = javaToOp.keySet().stream()
+                            .filter(fromElementSpan ->
+                                    fromElementSpan.includes(clickedElement.getStartOffset())
+                            ).toList();
+                    if (!elementsReferencedByClickedElement.isEmpty()) {
+                        elementsReferencedByClickedElement.forEach(fromElementSpan -> {
+                            thisTextViewer.highlight(fromElementSpan, javaToOp.get(fromElementSpan));
+                        });
                     }
-                } else {
-                    System.out.println("nothing from java");
                 }
             }
         });
