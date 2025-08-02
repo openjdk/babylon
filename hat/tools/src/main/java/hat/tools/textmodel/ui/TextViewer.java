@@ -36,16 +36,21 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 import javax.swing.text.Highlighter;
 import javax.swing.text.Style;
+import java.awt.Point;
 import java.awt.event.MouseEvent;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeMap;
 
 public abstract class TextViewer {
     public final JTextPane jtextPane;
     final public JScrollPane scrollPane;
     protected Highlighter.HighlightPainter highlightPainter;
     private String text;
-    protected List<Span> lines;
+    public record Line(int line, int startOffset, int endOffset) implements Span {}
+    protected List<Line> lines;
+    protected TreeMap<Integer,Line> offsetToLineTreeMap;
     protected Style defaultStyle;
 
     public TextViewer(JTextPane jtextPane) {
@@ -95,8 +100,11 @@ public abstract class TextViewer {
             throw new IllegalStateException();
         }
     }
+    public int getOffset(Point p) {
+        return jtextPane.viewToModel2D(p);
+    }
     public int getOffset(MouseEvent e) {
-        return jtextPane.viewToModel2D(e.getPoint());
+        return getOffset(e.getPoint());
     }
 
     public void highLight(Element element) {
@@ -108,35 +116,29 @@ public abstract class TextViewer {
         }
     }
 
-    public int getLine(int offset) {
-       for (int l= 0; l < lines.size(); l++) {
-            if (lines.get(l).includes(offset)) {
-               return l+1;
-            }
-        }
-       return 0;
+    public int getLine(Element element) {
+       var lineSpan = offsetToLineTreeMap.ceilingEntry(element.getStartOffset());
+       return lineSpan.getValue().line+1;
     }
 
     String setText(String text) {
         this.text = text;
         String[] linesOfText = text.split("\n");
         lines = new ArrayList<>();
+        offsetToLineTreeMap = new TreeMap<>();
         int accumOffset = 0;
         for (int currentLine = 0; currentLine < linesOfText.length; currentLine++) {
-            Span line = new Span.Impl(accumOffset, accumOffset + linesOfText[currentLine].length() + 1);// +1 for newline
+            Line line = new Line(lines.size(), accumOffset, accumOffset + linesOfText[currentLine].length() + 1);// +1 for newline
             lines.add(line);
             accumOffset = line.endOffset();
+            offsetToLineTreeMap.put(accumOffset, line);
         }
         return text;
     }
 
 
     public void removeHighlights() {
-        var highlighter = jtextPane.getHighlighter();
-        highlighter.removeAllHighlights();
-        //for (var highlight : highlighter.getHighlights()) {
-          //      highlighter.removeHighlight(highlight);
-       // }
+        jtextPane.getHighlighter().removeAllHighlights();
     }
 
 
@@ -174,4 +176,24 @@ public abstract class TextViewer {
         return lines.get(lineCol.line()-1).startOffset()+ lineCol.col();
     }
 
+    public Rectangle2D.Double getRect(Element from) {
+        try {
+            var fromPoint1 = jtextPane.modelToView2D(from.getStartOffset());
+            var fromPoint2 = jtextPane.modelToView2D(from.getEndOffset());
+            return new Rectangle2D.Double(fromPoint1.getBounds().getMinX(), fromPoint1.getMinY()
+                    , fromPoint2.getBounds().getWidth(), fromPoint2.getBounds().getHeight());
+        }catch (Exception e){
+            return null;
+        }
+    }
+
+    public void highlight(ElementSpan fromElementSpan, List<ElementSpan> toElementSpans) {
+        highLight(fromElementSpan.element());
+        toElementSpans.forEach(targetElementSpan -> {
+            var targetTextViewer = targetElementSpan.textViewer();
+            var targetElement = targetElementSpan.element();
+            targetTextViewer.highLight(targetElement);
+            targetTextViewer.scrollTo(targetElement);
+        });
+    }
 }

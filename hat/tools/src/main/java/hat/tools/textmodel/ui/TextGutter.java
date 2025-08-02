@@ -70,7 +70,6 @@ public class TextGutter extends JComponent {
         size = new Dimension(insets.left + insets.right + colWidth * 2, 1000 * fontMetrics.getHeight());
         this.currentLineForeground = Color.RED;
         this.lhs.jtextPane.addCaretListener(_ -> repaint());
-      //  this.rhs.jtextPane.addCaretListener(_ -> repaint());
         this.lhs.scrollPane.getViewport().addChangeListener(_->repaint());
         this.rhs.scrollPane.getViewport().addChangeListener(_->repaint());
 
