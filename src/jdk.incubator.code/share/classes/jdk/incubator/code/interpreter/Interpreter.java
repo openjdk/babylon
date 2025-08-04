@@ -114,9 +114,8 @@ public final class Interpreter {
                 };
                 Class<?> c = typeToResolve.toNominalDescriptor().resolveConstantDesc(l);
                 if (!c.isInstance(rv)) {
-                    Class<?> svc = ((JavaType) sv.type()).toNominalDescriptor().resolveConstantDesc(l);
                     throw interpreterException(new IllegalArgumentException(("Runtime argument at position %d has type %s " +
-                            "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), svc)));
+                            "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), sv.type())));
                 }
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
