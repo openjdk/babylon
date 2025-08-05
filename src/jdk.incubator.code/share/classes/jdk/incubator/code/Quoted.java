@@ -101,7 +101,32 @@ public final class Quoted {
         return capturedValues;
     }
 
-    // Take an op from its original context to a new one where operands and captured values are parameters
+    /**
+     * Copy {@code op} from its original context to a new one,
+     * where its operands and captured values will be parameters.
+     * <p>
+     * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp FuncOp}
+     * that has one body with one block (<i>fblock</i>).
+     * <br>
+     * For every {@code op}'s operand and capture, <i>fblock</i> will have a parameter.
+     * If the operand or capture is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp},
+     * <i>fblock</i> will have a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp}
+     * whose initial value is the parameter.
+     * <br>
+     * Then <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp QuotedOp}
+     * that has one body with one block (<i>qblock</i>).
+     * Inside <i>qblock</i> we find a copy of {@code op}
+     * and a {@link jdk.incubator.code.dialect.core.CoreOp.YieldOp YieldOp}
+     * whose yield value is the result of the {@code op}'s copy.
+     * <br>
+     * <i>fblock</i> terminates with a {@link jdk.incubator.code.dialect.core.CoreOp.ReturnOp ReturnOp},
+     * the returned value is the result of the {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp QuotedOp}
+     * object described previously.
+     *
+     * @param op The operation to quote
+     * @return The model that represent the quoting of {@code op}
+     * @throws IllegalArgumentException if {@code op} is not bound
+    * */
     public static CoreOp.FuncOp quoteOp(Op op) {
 
         if (op.result() == null) {
