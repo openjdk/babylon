@@ -110,7 +110,7 @@ public final class Interpreter {
                 JavaType typeToResolve = switch (sv.type()) {
                     case PrimitiveType pt -> pt.box().orElseThrow();
                     case JavaType jt -> jt;
-                    default -> throw new IllegalStateException("Unexpected value: " + sv.type());
+                    default -> throw new IllegalStateException("Unexpected type: " + sv.type());
                 };
                 Class<?> c = typeToResolve.toNominalDescriptor().resolveConstantDesc(l);
                 if (!c.isInstance(rv)) {
