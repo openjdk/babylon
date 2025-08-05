@@ -1,11 +1,14 @@
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.OpParser;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -13,6 +16,7 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.IntUnaryOperator;
 
@@ -447,5 +451,27 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
                 Assert.assertEquals(rv, args[p.index()]);
             }
         }
+    }
+
+    @Test
+    void testCaptureThatIsAlsoOperandIsNotParameterized() {
+        // build model that has a switch expression op that has block param used as operand and also as captured value
+        CoreOp.FuncOp model = CoreOp.func("f", CoreType.functionType(JavaType.VOID, JavaType.INT)).body(block -> {
+            Block.Parameter p = block.parameters().get(0);
+
+            Body.Builder swBody1 = Body.Builder.of(block.parentBody(), CoreType.functionType(JavaType.BOOLEAN));
+            swBody1.entryBlock().op(CoreOp.core_yield(
+                    swBody1.entryBlock().op(CoreOp.constant(JavaType.BOOLEAN, true))
+            ));
+            Body.Builder swBody2 = Body.Builder.of(block.parentBody(), CoreType.functionType(JavaType.INT));
+            swBody2.entryBlock().op(CoreOp.core_yield(p));
+            JavaOp.SwitchExpressionOp swOp = JavaOp.switchExpression(p, List.of(swBody1, swBody2));
+            block.op(swOp);
+
+            block.op(CoreOp.return_());
+        });
+        Op swOp = model.body().entryBlock().firstOp();
+        CoreOp.FuncOp funcOp = Quoted.quoteOp(swOp);
+        Assert.assertEquals(funcOp.parameters().size(), 1);
     }
 }

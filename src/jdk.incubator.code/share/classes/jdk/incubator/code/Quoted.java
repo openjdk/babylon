@@ -133,7 +133,11 @@ public final class Quoted {
             throw new IllegalArgumentException("Op not bound");
         }
 
-        List<Value> inputOperandsAndCaptures = Stream.concat(op.operands().stream(), op.capturedValues().stream()).toList();
+        // cv that is an operand shouldn't be considered
+        List<Value> operands = op.operands();
+        List<Value> cvs = op.capturedValues();
+        cvs.removeIf(operands::contains);
+        List<Value> inputOperandsAndCaptures = Stream.concat(operands.stream(), cvs.stream()).toList();
 
         // Build the function type
         List<TypeElement> params = inputOperandsAndCaptures.stream()
