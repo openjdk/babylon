@@ -108,7 +108,8 @@ public final class Quoted {
      * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp FuncOp}
      * that has one body with one block (<i>fblock</i>).
      * <br>
-     * For every {@code op}'s operand and capture, <i>fblock</i> will have a parameter.
+     * <i>fblock</i> will have a parameter for every {@code op}'s operand and capture
+     * (excluding captured values that are operands).
      * If the operand or capture is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp},
      * <i>fblock</i> will have a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp}
      * whose initial value is the parameter.
