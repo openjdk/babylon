@@ -137,8 +137,8 @@ public class Main {
     }
 
     @CodeReflection
-    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize, int local) {
-        ComputeRange computeRange = new ComputeRange(new ThreadMesh(globalSize, globalSize), new ThreadMesh(local, local));
+    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(globalSize, globalSize), new ThreadMesh(16, 16));
         cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -228,7 +228,7 @@ public class Main {
                 case _1D -> accelerator.compute(cc ->
                         Main.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
                 case _2D -> accelerator.compute(cc ->
-                        Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size, locals[index]));
+                        Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
                 case _2DLI -> accelerator.compute(cc ->
                         Main.matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
             }
