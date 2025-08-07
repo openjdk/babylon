@@ -25,10 +25,8 @@
 package hat.tools.textmodel.ui;
 
 import hat.tools.textmodel.BabylonTextModel;
-import hat.tools.textmodel.JavaTextModel;
 import hat.tools.textmodel.TextModel;
 
-import javax.swing.JTextPane;
 import javax.swing.text.Element;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -46,7 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FuncOpTextModelViewer extends BabylonTextModelViewer {
+public class FuncOpTextModelViewer extends TextModelViewer {
 
     JavaTextModelViewer javaTextModelViewer;
     Map<ElementSpan, List<ElementSpan>> opToJava = new HashMap<>();
@@ -106,15 +104,15 @@ public class FuncOpTextModelViewer extends BabylonTextModelViewer {
     }
     @Override
     public  TextModel createTextModel(String text) {
-        return BabylonTextModel.of(jTextPane.getText());
+        return BabylonTextModel.of(styleMapper.jTextPane.getText());
     }
-    FuncOpTextModelViewer(TextModel textModel, FuncOpTextPane jTextPane, boolean dark) {
-        super(textModel, jTextPane, dark);
+    FuncOpTextModelViewer(TextModel textModel,StyleMapper styleMapper) {
+        super(textModel,styleMapper);
         javaTextModelViewer = null;
         final var thisTextViewer = this;
-        jTextPane.setViewer(this);
+        ((FuncOpTextModelViewer.FuncOpTextPane)styleMapper.jTextPane).setViewer(this);
 
-        jTextPane.addMouseListener(new MouseAdapter() {
+        styleMapper.jTextPane.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 var clickedElement = getElementFromMouseEvent(e);
@@ -134,6 +132,7 @@ public class FuncOpTextModelViewer extends BabylonTextModelViewer {
                         }
                     }
                 }
+                styleMapper.jTextPane.repaint();
             }
         });
 

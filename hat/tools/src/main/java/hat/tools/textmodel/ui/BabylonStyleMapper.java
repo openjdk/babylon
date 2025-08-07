@@ -46,7 +46,7 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import java.awt.Color;
 
-public abstract class BabylonStyleMapper extends StyleMapper {
+public  class BabylonStyleMapper extends StyleMapper {
     final protected Style comment;
     final protected Style stringLiteral;
     final protected Style number;

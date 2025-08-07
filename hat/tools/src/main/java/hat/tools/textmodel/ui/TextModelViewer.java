@@ -23,8 +23,6 @@
  * questions.
  */
 package hat.tools.textmodel.ui;
-
-import hat.tools.textmodel.JavaTextModel;
 import hat.tools.textmodel.TextModel;
 import hat.tools.textmodel.tokens.LineCol;
 import hat.tools.textmodel.tokens.Span;
@@ -35,25 +33,17 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Element;
-import javax.swing.text.Highlighter;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import java.awt.Color;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Rectangle2D;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
 
-public abstract class TextViewer {
-    static class TextViewerPane<T extends TextViewer> extends JTextPane {
+public abstract class TextModelViewer {
+    static class TextViewerPane<T extends TextModelViewer> extends JTextPane {
         protected T viewer;
         TextViewerPane(Font font, boolean editable) {
             setFont(font);
@@ -63,12 +53,8 @@ public abstract class TextViewer {
             this.viewer = viewer;
         }
     }
-
-
     public TextModel textModel;
-    protected final JTextPane jTextPane;
-    protected final Style defaultStyle;
-    protected final Highlighter.HighlightPainter highlightPainter;
+    protected final StyleMapper styleMapper;
     final public JScrollPane scrollPane;
     private String text;
 
@@ -78,82 +64,70 @@ public abstract class TextViewer {
     protected List<Line> lines;
     protected TreeMap<Integer, Line> offsetToLineTreeMap;
 
-    public Style style(String name, Color color, boolean bold, boolean italic, boolean underline) {
-        var s = jTextPane.addStyle(name, null);
-        StyleConstants.setForeground(s, color);
-        StyleConstants.setBold(s, bold);
-        StyleConstants.setItalic(s, italic);
-        StyleConstants.setUnderline(s, underline);
-        return s;
-    }
     public abstract TextModel createTextModel(String text);
-
     void reparse(String msg) {
-        System.out.println(msg);
+       // System.out.println(msg);
         var newTextModel = textModel;
         try{
-            newTextModel =createTextModel(jTextPane.getText());
+            newTextModel =createTextModel(styleMapper.jTextPane.getText());
             textModel = newTextModel;
-            jTextPane.getStyledDocument().removeDocumentListener(documentListener);
+            styleMapper.jTextPane.getStyledDocument().removeDocumentListener(documentListener);
             setText(textModel.plainText());
-            jTextPane.getStyledDocument().setCharacterAttributes(0, text.length(), defaultStyle, true);
-            applyStyles();
-            jTextPane.getStyledDocument().addDocumentListener(documentListener);
+            styleMapper.jTextPane.getStyledDocument().setCharacterAttributes(0, text.length(),styleMapper.defaultStyle, true);
+            styleMapper.applyStyles(textModel);
+            styleMapper.jTextPane.getStyledDocument().addDocumentListener(documentListener);
         }catch (IllegalStateException e){
             System.out.println("Parse failed");
         }
     }
 
     final DocumentListener documentListener;
-
-    public TextViewer(TextModel textModel, JTextPane jTextPane, Color highlightColor, Color defaultStyleColor) {
-        this.textModel = textModel;
-        this.jTextPane = jTextPane;
-
-        this.highlightPainter = new DefaultHighlighter.DefaultHighlightPainter(highlightColor);
-        this.defaultStyle = style("Default", defaultStyleColor, false, false, false);
-
-        this.scrollPane = new JScrollPane(this.jTextPane);
-
-        this.documentListener = jTextPane.isEditable()
-                ?new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                SwingUtilities.invokeLater(() ->reparse("insert"));
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                SwingUtilities.invokeLater(() ->reparse("remove"));
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                SwingUtilities.invokeLater(() ->reparse("changed"));
-            }
+    final DocumentListener editableDocumentListener=new DocumentListener() {
+        @Override
+        public void insertUpdate(DocumentEvent e) {
+            SwingUtilities.invokeLater(() ->reparse("insert"));
         }
-                :new DocumentListener(){
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                SwingUtilities.invokeLater(() -> applyHighlighting());
-            }
 
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                //          SwingUtilities.invokeLater(() -> applyHighlighting());
-            }
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+            SwingUtilities.invokeLater(() ->reparse("remove"));
+        }
 
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                // Plain text attributes changed, not relevant for this highlighter
-            }
-        };
-        this.jTextPane.getStyledDocument().addDocumentListener(documentListener);
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            SwingUtilities.invokeLater(() ->reparse("changed"));
+        }
+    };
+    final DocumentListener nonEditableDocumentListener=new DocumentListener(){
+        @Override
+        public void insertUpdate(DocumentEvent e) {
+            SwingUtilities.invokeLater(() -> applyHighlighting());
+        }
 
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+            //          SwingUtilities.invokeLater(() -> applyHighlighting());
+        }
+
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            // Plain text attributes changed, not relevant for this highlighter
+        }
+    };
+
+    public TextModelViewer(TextModel textModel, StyleMapper styleMapper) {
+        this.textModel = textModel;
+        this.styleMapper = styleMapper;
+        this.scrollPane = new JScrollPane(this.styleMapper.jTextPane);
+        this.documentListener = styleMapper.jTextPane.isEditable() ?editableDocumentListener:nonEditableDocumentListener;
+
+        this.styleMapper.jTextPane.getStyledDocument().addDocumentListener(documentListener);
+        this.styleMapper.applyStyles(textModel);
+        this.setTextFromDocModel();;
     }
 
     public Element getElement(int offset) {
-        return this.jTextPane.getStyledDocument().getCharacterElement(offset);
+        return this.styleMapper.jTextPane.getStyledDocument().getCharacterElement(offset);
    }
 
     public Element getElementFromMouseEvent(MouseEvent e) {
@@ -161,25 +135,25 @@ public abstract class TextViewer {
     }
     public void scrollTo(Element funcOpElement) {
         try {
-            var rectangle2D = this.jTextPane.modelToView2D(funcOpElement.getStartOffset());
-            this.jTextPane.scrollRectToVisible(rectangle2D.getBounds());
+            var rectangle2D = this.styleMapper.jTextPane.modelToView2D(funcOpElement.getStartOffset());
+            this.styleMapper.jTextPane.scrollRectToVisible(rectangle2D.getBounds());
         } catch (BadLocationException e) {
             throw new RuntimeException(e);
         }
     }
 
     public void highLightLines(LineCol first, LineCol last) {
-        var highlighter = this.jTextPane.getHighlighter();
+        var highlighter = this.styleMapper.jTextPane.getHighlighter();
         try {
             var range = getLineRange(first, last);
-            highlighter.addHighlight(range.startOffset(), range.endOffset(), highlightPainter);
+            highlighter.addHighlight(range.startOffset(), range.endOffset(), styleMapper.highlightPainter);
         } catch (BadLocationException e) {
             throw new IllegalStateException();
         }
     }
 
     public int getOffset(Point p) {
-        return this.jTextPane.viewToModel2D(p);
+        return this.styleMapper.jTextPane.viewToModel2D(p);
     }
 
     public int getOffset(MouseEvent e) {
@@ -187,9 +161,9 @@ public abstract class TextViewer {
     }
 
     public void highLight(Element element) {
-        var highlighter = this.jTextPane.getHighlighter();
+        var highlighter = this.styleMapper.jTextPane.getHighlighter();
         try {
-            highlighter.addHighlight(element.getStartOffset(), element.getEndOffset(), highlightPainter);
+            highlighter.addHighlight(element.getStartOffset(), element.getEndOffset(), styleMapper.highlightPainter);
         } catch (BadLocationException e) {
             throw new IllegalStateException();
         }
@@ -216,28 +190,22 @@ public abstract class TextViewer {
     }
 
     public void removeHighlights() {
-        this.jTextPane.getHighlighter().removeAllHighlights();
+        this.styleMapper.jTextPane.getHighlighter().removeAllHighlights();
     }
-
-    protected abstract void applyStyles();
-
-    protected abstract String plainText();
-
     void applyHighlighting() {
         SwingUtilities.invokeLater(() -> {
-            this.jTextPane.getStyledDocument().setCharacterAttributes(0, text.length(), defaultStyle, true);
-            this.applyStyles();
-
+            this.styleMapper.jTextPane.getStyledDocument().setCharacterAttributes(0, text.length(), styleMapper.defaultStyle, true);
+            this.styleMapper.applyStyles(textModel);
         });
     }
 
     protected void setTextFromDocModel() {
         try {
             if (this.text != null && !text.equals("")) {
-                this.jTextPane.getStyledDocument().remove(0, text.length());
+                this.styleMapper.jTextPane.getStyledDocument().remove(0, text.length());
             }
-            setText(plainText());
-            this.jTextPane.getStyledDocument().insertString(0, text, defaultStyle);
+            setText(textModel.plainText());
+            this.styleMapper.jTextPane.getStyledDocument().insertString(0, text, styleMapper.defaultStyle);
         } catch (BadLocationException e) {
             e.printStackTrace();
         }
@@ -255,10 +223,9 @@ public abstract class TextViewer {
 
     public Rectangle2D.Double getRect(Element from) {
         try {
-            var fromPoint1 = this.jTextPane.modelToView2D(from.getStartOffset());
-            var fromPoint2 = this.jTextPane.modelToView2D(from.getEndOffset());
-            return new Rectangle2D.Double(fromPoint1.getBounds().getMinX(), fromPoint1.getMinY()
-                    , fromPoint2.getBounds().getWidth(), fromPoint2.getBounds().getHeight());
+            var fromPoint1 = this.styleMapper.jTextPane.modelToView2D(from.getStartOffset());
+            var fromPoint2 = this.styleMapper.jTextPane.modelToView2D(from.getEndOffset());
+            return new Rectangle2D.Double(fromPoint1.getBounds().getMinX(), fromPoint1.getMinY(), fromPoint2.getBounds().getWidth(), fromPoint2.getBounds().getHeight());
         } catch (Exception e) {
             return null;
         }
@@ -267,7 +234,7 @@ public abstract class TextViewer {
     public void highlight(ElementSpan fromElementSpan, List<ElementSpan> toElementSpans) {
         highLight(fromElementSpan.element());
         toElementSpans.forEach(targetElementSpan -> {
-            var targetTextViewer = targetElementSpan.textViewer();
+            var targetTextViewer = targetElementSpan.textModelViewer();
             var targetElement = targetElementSpan.element();
             targetTextViewer.highLight(targetElement);
             targetTextViewer.scrollTo(targetElement);
