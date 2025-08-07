@@ -359,7 +359,6 @@ public:
     static void show(std::ostream &out, void *argArray);
 };
 
-
 class KernelContext {
 public:
     int x;
@@ -376,7 +375,6 @@ public:
     int lsy;
     int lsz;
 };
-
 
 class Backend {
 public:

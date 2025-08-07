@@ -186,5 +186,3 @@ public:
     static CudaBackend * of(long backendHandle);
     static CudaBackend * of(Backend *backend);
 };
-
-
