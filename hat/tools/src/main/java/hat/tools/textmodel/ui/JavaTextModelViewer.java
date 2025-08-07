@@ -25,6 +25,7 @@
  */
 package hat.tools.textmodel.ui;
 
+import hat.tools.textmodel.JavaTextModel;
 import hat.tools.textmodel.TextModel;
 
 import javax.swing.JTextPane;
@@ -37,30 +38,30 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class JavaTextModelViewer extends AbstractTextModelViewer {
+public class JavaTextModelViewer extends BabylonTextModelViewer {
     FuncOpTextModelViewer funcOpTextModelViewer;
     Map<ElementSpan, List<ElementSpan>> javaToOp = new HashMap<>();
 
-    static class JavaTextPane extends JTextPane {
-        private JavaTextModelViewer viewer;
+    static class JavaTextPane extends TextViewer.TextViewerPane<JavaTextModelViewer> {
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
-            Graphics2D g2d = (Graphics2D) g;
         }
-
-        JavaTextPane(Font font) {
-            super.setFont(font);
-        }
-        void setViewer(JavaTextModelViewer viewer) {
-            this.viewer = viewer;
+        JavaTextPane(Font font, boolean editable) {
+            super(font, editable);
         }
     }
 
-    JavaTextModelViewer(TextModel textModel, Font font, boolean dark) {
-        super(textModel, new JavaTextPane(font), font, dark);
+    @Override
+    public  TextModel createTextModel(String text) {
+        return JavaTextModel.of(jTextPane.getText());
+    }
+
+
+    JavaTextModelViewer(TextModel textModel,JavaTextPane jTextPane, boolean dark) {
+        super(textModel, jTextPane, dark);
         final var thisTextViewer = this;
-        ((JavaTextPane) this.jtextPane).setViewer(this);
-        jtextPane.addMouseListener(new MouseAdapter() {
+        ((JavaTextPane) this.jTextPane).setViewer(this);
+        jTextPane.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 var clickedElement = getElementFromMouseEvent(e);

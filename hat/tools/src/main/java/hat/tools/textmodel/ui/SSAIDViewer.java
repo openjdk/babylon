@@ -49,8 +49,7 @@ public class SSAIDViewer extends JPanel {
     public SSAIDViewer(BabylonTextModel cr) {
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         var font = new Font("Monospaced", Font.PLAIN, 14);
-
-        var funcOpTextModelViewer = new FuncOpTextModelViewer(cr, font, false);
+        var funcOpTextModelViewer = new FuncOpTextModelViewer(cr,  new FuncOpTextModelViewer.FuncOpTextPane(font,false), false);
 
         var dotViewer = new JDot(DotBuilder.dotDigraph("name", g -> {
             g.nodeShape("record");

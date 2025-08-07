@@ -25,6 +25,7 @@
 package hat.tools.textmodel.ui;
 
 import hat.tools.textmodel.BabylonTextModel;
+import hat.tools.textmodel.JavaTextModel;
 import hat.tools.textmodel.TextModel;
 
 import javax.swing.JTextPane;
@@ -45,14 +46,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FuncOpTextModelViewer extends AbstractTextModelViewer {
+public class FuncOpTextModelViewer extends BabylonTextModelViewer {
 
     JavaTextModelViewer javaTextModelViewer;
     Map<ElementSpan, List<ElementSpan>> opToJava = new HashMap<>();
     int lineNumber = 0;
 
-    static class FuncOpTextPane extends JTextPane {
-        private FuncOpTextModelViewer viewer;
+    static class FuncOpTextPane extends TextViewerPane<FuncOpTextModelViewer> {
 
         static private final Polygon arrowHead = new Polygon();
 
@@ -81,7 +81,6 @@ public class FuncOpTextModelViewer extends AbstractTextModelViewer {
 
                 //    g2d2.setStroke(new BasicStroke(1));
                 g2d2.draw(arrow);
-
             }
         }
 
@@ -89,7 +88,8 @@ public class FuncOpTextModelViewer extends AbstractTextModelViewer {
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2d = (Graphics2D) g;
-            ((BabylonTextModel) viewer.textModel).ssaEdgeList.stream().forEach(edge -> {
+            var tm = viewer.textModel;
+            ((BabylonTextModel) tm).ssaEdgeList.stream().forEach(edge -> {
                 var ssaRef = edge.ssaRef();
                 var ssaDef = edge.ssaDef();
                 if (ssaRef.pos().line() == viewer.lineNumber || ssaDef.pos().line() == viewer.lineNumber) {
@@ -100,22 +100,21 @@ public class FuncOpTextModelViewer extends AbstractTextModelViewer {
             });
         }
 
-        FuncOpTextPane(Font font) {
-            super.setFont(font);
-            this.viewer = null;
-        }
-
-        void setViewer(FuncOpTextModelViewer viewer) {
-            this.viewer = viewer;
+        FuncOpTextPane(Font font, boolean editable) {
+            super(font,editable);
         }
     }
-
-    FuncOpTextModelViewer(TextModel textModel, Font font, boolean dark) {
-        super(textModel, new FuncOpTextPane(font), font, dark);
+    @Override
+    public  TextModel createTextModel(String text) {
+        return BabylonTextModel.of(jTextPane.getText());
+    }
+    FuncOpTextModelViewer(TextModel textModel, FuncOpTextPane jTextPane, boolean dark) {
+        super(textModel, jTextPane, dark);
+        javaTextModelViewer = null;
         final var thisTextViewer = this;
-        ((FuncOpTextPane) this.jtextPane).setViewer(this);
+        jTextPane.setViewer(this);
 
-        jtextPane.addMouseListener(new MouseAdapter() {
+        jTextPane.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 var clickedElement = getElementFromMouseEvent(e);
