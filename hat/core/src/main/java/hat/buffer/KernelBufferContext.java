@@ -27,7 +27,7 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-public interface KernelContext extends Buffer {
+public interface KernelBufferContext extends Buffer {
     int x();
     void x(int x);
 
@@ -46,22 +46,32 @@ public interface KernelContext extends Buffer {
     int maxZ();
     void maxZ(int maxZ);
 
+    int lx();
+    void lx(int lx);
+    int ly();
+    void ly(int ly);
+    int lz();
+    void lz(int lz);
+
+    int lsx();
+    void lsx(int lsx);
+    int lsy();
+    void lsy(int lsy);
+    int lsz();
+    void lsz(int lsz);
+
     int dimensions();
     void dimensions(int numDimensions);
 
     // Important part here! do not forget the new fields.
-    Schema<KernelContext> schema = Schema.of(KernelContext.class, s->s.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"));
+    Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class,
+            s -> s.fields(
+                    "x","maxX", "y", "maxY", "z", "maxZ",
+                    "dimensions",
+                    "lx", "ly", "lz", "lsx",  "lsy", "lsz"));
 
-    static KernelContext create(Accelerator accelerator, int x, int maxX) {
-        KernelContext kernelContext =  schema.allocate(accelerator);
-        kernelContext.x(x);
-        kernelContext.maxX(maxX);
-        kernelContext.dimensions(1);
-        return kernelContext;
-    }
-
-    static KernelContext create(Accelerator accelerator, int x, int y, int z, int maxX, int maxY, int maxZ) {
-        KernelContext kernelContext =  schema.allocate(accelerator);
+    static KernelBufferContext create(Accelerator accelerator, int x, int y, int z, int maxX, int maxY, int maxZ, int[] locals, int[] lgs) {
+        KernelBufferContext kernelContext =  schema.allocate(accelerator);
         kernelContext.x(x);
         kernelContext.y(y);
         kernelContext.z(z);
@@ -69,7 +79,16 @@ public interface KernelContext extends Buffer {
         kernelContext.maxY(maxY);
         kernelContext.maxZ(maxZ);
         kernelContext.dimensions(3);
+        if (locals != null) {
+            kernelContext.lx(locals[0]);
+            kernelContext.ly(locals[1]);
+            kernelContext.lz(locals[2]);
+        }
+        if (lgs != null) {
+            kernelContext.lsx(lgs[0]);
+            kernelContext.lsy(lgs[1]);
+            kernelContext.lsz(lgs[2]);
+        }
         return kernelContext;
     }
-
 }

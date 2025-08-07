@@ -25,7 +25,9 @@
 package violajones;
 
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.buffer.F32Array2D;
 import hat.buffer.S08x3RGBImage;
 import static hat.ifacemapper.MappableIface.*;
@@ -314,15 +316,19 @@ public class ViolaJonesCoreCompute {
 
         F32Array2D greyImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(width * height, kc -> rgbToGreyKernel(kc, s08X3RGBImage, greyImage));
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(width * height));
+        cc.dispatchKernel(computeRange, kc -> rgbToGreyKernel(kc, s08X3RGBImage, greyImage));
 
         F32Array2D integralImage = createF32Array2D(cc, width, height);
         F32Array2D integralSqImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(width, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
-        cc.dispatchKernel(height, kc -> integralRowKernel(kc, integralImage, integralSqImage));
+        ComputeRange range1 = new ComputeRange(new ThreadMesh(width));
+        ComputeRange range2 = new ComputeRange(new ThreadMesh(height));
+        cc.dispatchKernel(range1, kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
+        cc.dispatchKernel(range2, kc -> integralRowKernel(kc, integralImage, integralSqImage));
 
-        cc.dispatchKernel(scaleTable.multiScaleAccumulativeRange(), kc ->
+        ComputeRange range3 = new ComputeRange(new ThreadMesh(scaleTable.multiScaleAccumulativeRange()));
+        cc.dispatchKernel(range3, kc ->
                 findFeaturesKernel(kc, cascade, integralImage, integralSqImage, scaleTable, resultTable));
 
     }

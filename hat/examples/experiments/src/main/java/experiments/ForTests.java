@@ -26,7 +26,9 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.buffer.F32Array;
 
 import java.lang.invoke.MethodHandles;
@@ -76,15 +78,14 @@ public class ForTests {
 
         @CodeReflection
         static void compute(ComputeContext computeContext, F32Array a) {
-            computeContext.dispatchKernel(a.length(), (kc) -> counted(kc, a));
-            computeContext.dispatchKernel(a.length(), (kc) -> tuple(kc, a));
-            computeContext.dispatchKernel(a.length(), (kc) -> breakAndContinue(kc, a));
+            ComputeRange computeRange = new ComputeRange(new ThreadMesh(a.length()));
+            computeContext.dispatchKernel(computeRange, (kc) -> counted(kc, a));
+            computeContext.dispatchKernel(computeRange, (kc) -> tuple(kc, a));
+            computeContext.dispatchKernel(computeRange, (kc) -> breakAndContinue(kc, a));
         }
-
     }
 
-    public static void main(String[] args) {
-
+    static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
                 //  Backend.JAVA_MULTITHREADED
                 (backend) -> backend.getClass().getSimpleName().startsWith("OpenCL")
@@ -93,7 +94,5 @@ public class ForTests {
         accelerator.compute(
                 cc -> Compute.compute(cc, a)
         );
-
     }
-
 }

@@ -70,8 +70,6 @@ public class OpsAndTypes {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-
-
     }
 
     public static <T extends MappableIface> MemoryLayout getLayout(Class<T> mappableIface) {
@@ -427,7 +425,6 @@ public class OpsAndTypes {
         public HatPtrStoreValue(TypeElement typeElement, FuncOpWrapper.WrappedOpReplacer replacer) {
             super(NAME, typeElement, replacer.currentResultType(), replacer.currentOperandValues());
         }
-
 
         @Override
         public HatPtrStoreValue transform(CopyContext cc, OpTransformer ot) {

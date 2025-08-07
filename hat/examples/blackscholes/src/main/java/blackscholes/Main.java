@@ -27,7 +27,9 @@ package blackscholes;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import java.util.Random;
@@ -92,7 +94,8 @@ public class Main {
 
     @CodeReflection
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
-        cc.dispatchKernel(call.length(),
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(call.length()));
+        cc.dispatchKernel(computeRange,
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }

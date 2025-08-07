@@ -26,7 +26,9 @@ package experiments.spirv;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.buffer.SchemaBuilder;
@@ -112,9 +114,9 @@ public class MatrixMultiply {
 
         @CodeReflection
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
-
+            ComputeRange computeRange = new ComputeRange(new ThreadMesh(size * size));
             computeContext.dispatchKernel(
-                    size * size,                // range is passed as int and creation internalized
+                    computeRange,                // range is passed as int and creation internalized
                     (kid) -> matmul(kid, a, b, c, size));  // kid is Kid1D has kid.x and kid.maxX
 
                 /* A 2D dispatch - not supported yet

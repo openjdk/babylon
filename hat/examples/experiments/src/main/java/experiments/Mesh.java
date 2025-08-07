@@ -26,7 +26,9 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.backend.ffi.OpenCLBackend;
 import static hat.backend.ffi.Config.*;
 import hat.ifacemapper.BoundSchema;
@@ -127,7 +129,8 @@ public class Mesh {
 
         @CodeReflection
         public static void buildMesh(ComputeContext cc, MeshData meshData) {
-            cc.dispatchKernel(meshData.points(),
+            ComputeRange computeRange = new ComputeRange(new ThreadMesh(meshData.points()));
+            cc.dispatchKernel(computeRange,
                     kc -> initPoints(kc, meshData)
             );
 

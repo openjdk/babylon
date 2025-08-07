@@ -47,7 +47,9 @@ package heal;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.buffer.F32Array;
 import hat.buffer.S32Array2D;
 
@@ -249,7 +251,8 @@ public class Compute {
 
         F32Array sumArrayF32 = F32Array.create(cc.accelerator, searchArea.area());
 
-        cc.dispatchKernel(searchArea.area(),
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(searchArea.area()));
+        cc.dispatchKernel(computeRange,
                 kc -> bestFitKernel(kc,  s32Array2D, searchArea, selectionBox, xyrgbList, sumArrayF32)
         );
 

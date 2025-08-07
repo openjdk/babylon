@@ -27,7 +27,9 @@ package nbody.opencl;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.ifacemapper.BufferState;
 import jdk.incubator.code.CodeReflection;
 import nbody.Mode;
@@ -100,8 +102,8 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         float cmass = mass;
         float cdelT = delT;
         float cespSqr = espSqr;
-
-        cc.dispatchKernel(universe.length(), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(universe.length()));
+        cc.dispatchKernel(computeRange, kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
     }
 
 

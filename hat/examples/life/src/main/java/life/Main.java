@@ -26,7 +26,9 @@ package life;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
@@ -214,8 +216,9 @@ public class Main {
                                    Viewer viewer, @RO Control ctrl, @RW CellGrid grid) {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
             int range = grid.width() * grid.height();
+            ComputeRange computeRange = new ComputeRange(new ThreadMesh(range));
             while (viewer.stillRunning()) {
-                cc.dispatchKernel(range, kc -> Compute.life(kc, ctrl, grid));
+                cc.dispatchKernel(computeRange, kc -> Compute.life(kc, ctrl, grid));
 
                 int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
 

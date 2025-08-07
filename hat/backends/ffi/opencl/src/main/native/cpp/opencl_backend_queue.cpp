@@ -181,7 +181,6 @@ void OpenCLBackend::OpenCLQueue::marker(int bits, const char *arg) {
     inc(bits, arg);
 }
 
-
 void OpenCLBackend::OpenCLQueue::computeStart() {
     wait(); // should be no-op
     release(); // also ;
@@ -249,13 +248,26 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
         static_cast<size_t>(kernelContext->maxZ)
     };
 
+    size_t local_work_size[] = {
+        static_cast<size_t>(kernelContext->lsx),
+        static_cast<size_t>(kernelContext->lsy),
+        static_cast<size_t>(kernelContext->lsz),
+    };
+
+    if (backend->config->info) {
+        std::cout << "[INFO] OpenCLBackend::OpenCLQueue::dispatch" << std::endl;
+        std::cout << "[INFO] numDimensions: " << numDimensions << std::endl;
+        std::cout << "[INFO] GLOBAL [" << global_work_size[0] << "," << global_work_size[1] << "," << global_work_size[2] << "]" << std::endl;
+        std::cout << "[INFO] LOCAL  [" << local_work_size[0] << "," << local_work_size[1] << "," << local_work_size[2] << "]" << std::endl;
+    }
+
     cl_int status = clEnqueueNDRangeKernel(
         command_queue,
         dynamic_cast<OpenCLProgram::OpenCLKernel *>(kernel)->kernel,
         numDimensions,
         nullptr,
         global_work_size,
-        nullptr, // TODO: Select a local work group instead of the default one
+        kernelContext->lsx > 0 ? local_work_size : nullptr,
         eventc,
         eventListPtr(),
         nextEventPtr());

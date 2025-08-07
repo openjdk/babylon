@@ -81,21 +81,9 @@ public class Accelerator implements BufferAllocator, BufferTracker {
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
-    public NDRange range(int max) {
+    public NDRange range(ComputeRange computeRange) {
         NDRange ndRange = new NDRange(this);
-        ndRange.kid = new KernelContext(ndRange, max);
-        return ndRange;
-    }
-
-    public NDRange range(int maxX, int maxY) {
-        NDRange ndRange = new NDRange(this);
-        ndRange.kid = new KernelContext(ndRange, maxX, maxY);
-        return ndRange;
-    }
-
-    public NDRange range(int maxX, int maxY, int maxZ) {
-        NDRange ndRange = new NDRange(this);
-        ndRange.kid = new KernelContext(ndRange, maxX, maxY, maxZ);
+        ndRange.kid = new KernelContext(ndRange, computeRange);
         return ndRange;
     }
 
@@ -207,7 +195,6 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      * )
      * </pre>
      */
-
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
         LambdaOpWrapper lambda = OpWrapper.wrap(lookup,(JavaOp.LambdaOp) quoted.op());
@@ -220,7 +207,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
         ComputeContext computeContext = cache.computeIfAbsent(method, (_) ->
                 new ComputeContext(this, method)
         );
-        // Here we get the captured values  from the Quotable
+        // Here we get the captured values from the Quotable
         Object[] args = lambda.getQuotableCapturedValues(quoted, method);
         args[0] = computeContext;
 

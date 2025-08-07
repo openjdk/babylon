@@ -27,7 +27,9 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.backend.Backend;
 import hat.buffer.ChessState;
 
@@ -314,7 +316,7 @@ public class Chess {
 
     @CodeReflection
     public static void compute(ComputeContext cc, hat.buffer.ChessState board) {
-        cc.dispatchKernel(1,
+        cc.dispatchKernel(new ComputeRange(new ThreadMesh(1)),
                 kc -> alphaBeta(kc, board)
         );
     }

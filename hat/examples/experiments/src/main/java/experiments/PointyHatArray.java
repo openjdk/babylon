@@ -26,6 +26,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.OpsAndTypes;
 import hat.KernelContext;
 import hat.NDRange;
@@ -108,7 +109,7 @@ public class PointyHatArray {
 
         @CodeReflection
         public static void compute(ComputeContext cc, PointArray pointArray) {
-            cc.dispatchKernel(1, kc -> Compute.testMethodKernel(kc, pointArray));
+            cc.dispatchKernel(ComputeRange.SINGLE_THREADED, kc -> Compute.testMethodKernel(kc, pointArray));
         }
 
     }

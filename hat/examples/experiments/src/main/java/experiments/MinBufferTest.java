@@ -26,7 +26,9 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.backend.ffi.OpenCLBackend;
 import hat.buffer.S32Array;
 import static hat.ifacemapper.MappableIface.*;
@@ -50,7 +52,8 @@ public class MinBufferTest {
         @CodeReflection
         public static void add(ComputeContext cc, @RW S32Array s32Array, int len, int n) {
             for (int i = 0; i < n; i++) {
-                cc.dispatchKernel(len, kc -> inc(kc, s32Array, len));
+                ComputeRange computeRange = new ComputeRange(new ThreadMesh(len));
+                cc.dispatchKernel(computeRange, kc -> inc(kc, s32Array, len));
                 System.out.println(i);//s32Array.array(0));
             }
         }

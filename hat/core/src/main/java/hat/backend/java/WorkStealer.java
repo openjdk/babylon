@@ -26,8 +26,10 @@
 package hat.backend.java;
 
 import hat.Accelerator;
+import hat.ComputeRange;
 import hat.KernelContext;
 import hat.NDRange;
+import hat.ThreadMesh;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -73,7 +75,7 @@ public class WorkStealer {
                         //  System.out.println("Thread #"+Thread.currentThread()+" started");
 
                         int myChunk;
-                        ndRange.kid = new KernelContext(ndRange, range);
+                        ndRange.kid = new KernelContext(ndRange, new ComputeRange(new ThreadMesh(range)));
 
                         while ((myChunk = taskCount.getAndIncrement()) < (range / chunkSize) + 1) {
 

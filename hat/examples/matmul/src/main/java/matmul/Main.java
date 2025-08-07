@@ -26,7 +26,9 @@ package matmul;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -128,21 +130,24 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size,
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(size));
+        cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, size)
-        );
+                );
     }
 
     @CodeReflection
-    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size, size,
-                kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize, int local) {
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(globalSize, globalSize), new ThreadMesh(local, local));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size, size,
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(size, size));
+        cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, size)
         );
     }
@@ -177,7 +182,7 @@ public class Main {
      *      args: <"1D"|"2D"> for 1D dispatch
      *
      */
-    public static void main(String[] args) {
+    static void main(String[] args) {
         System.out.println("[INFO] Running Matrix Multiplication: ");
 
         Configuration configuration = Configuration._2D;
@@ -214,19 +219,19 @@ public class Main {
 
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
-
+        int[] locals = new int[] { 0, 1, 2, 4, 1, 2, 2, 4, 5};
         for (int it = 0; it < NUM_ITERATIONS; it++) {
 
             long start = System.nanoTime();
+            final int index = it;
             switch (configuration) {
                 case _1D -> accelerator.compute(cc ->
                         Main.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
                 case _2D -> accelerator.compute(cc ->
-                        Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
+                        Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size, locals[index]));
                 case _2DLI -> accelerator.compute(cc ->
                         Main.matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
             }
-
             long end = System.nanoTime();
             System.out.println("Elapsed Time: " + (end - start) + " ns");
 

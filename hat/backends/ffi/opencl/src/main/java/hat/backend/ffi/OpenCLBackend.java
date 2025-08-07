@@ -58,7 +58,7 @@ public class OpenCLBackend extends C99FFIBackend {
             }
             var compilationUnit = backendBridge.compile(code);
             if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel( kernelCallGraph.entrypoint.method.getName());
+                var kernel = compilationUnit.getKernel(kernelCallGraph.entrypoint.method.getName());
                 return new CompiledKernel(this, kernelCallGraph, kernel, args);
             } else {
                 throw new IllegalStateException("opencl failed to compile ");

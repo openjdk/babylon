@@ -24,7 +24,6 @@
  */
 package hat.codebuilders;
 
-
 import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
@@ -69,13 +68,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     intDeclaration("x").semicolonNl();
                     intDeclaration("maxX").semicolonNl();
 
-                    if (ndRange.kid.getDimensions() > 1) {
+                    if (ndRange.kid.getComputeRange().getGlobalMesh().getDims() > 1) {
                         // The code builder needs the NDRange
                         intDeclaration("y").semicolonNl();
                         intDeclaration("maxY").semicolon().nl();
                     }
 
-                    if (ndRange.kid.getDimensions() > 2) {
+                    if (ndRange.kid.getComputeRange().getGlobalMesh().getDims() > 2) {
                         // The code builder needs the NDRange
                         intDeclaration("z").semicolonNl();
                         intDeclaration("maxZ").semicolon().nl();
@@ -102,11 +101,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         identifier("KernelContext_t").asterisk().space().identifier("kc").equals().ampersand().identifier("mine").semicolon().nl();
         identifier("kc").rarrow().identifier("x").equals().globalId(0).semicolon().nl();
         identifier("kc").rarrow().identifier("maxX").equals().identifier("global_kc").rarrow().identifier("maxX").semicolon().nl();
-        if (ndRange.kid.getDimensions() > 1) {
+        if (ndRange.kid.getComputeRange().getGlobalMesh().getDims() > 1) {
             identifier("kc").rarrow().identifier("y").equals().globalId(1).semicolon().nl();
             identifier("kc").rarrow().identifier("maxY").equals().identifier("global_kc").rarrow().identifier("maxY").semicolon().nl();
         }
-        if (ndRange.kid.getDimensions() > 2) {
+        if (ndRange.kid.getComputeRange().getGlobalMesh().getDims() > 2) {
             identifier("kc").rarrow().identifier("z").equals().globalId(2).semicolon().nl();
             identifier("kc").rarrow().identifier("maxZ").equals().identifier("global_kc").rarrow().identifier("maxZ").semicolon().nl();
         }

@@ -26,9 +26,11 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.OpsAndTypes;
 import hat.KernelContext;
 import hat.NDRange;
+import hat.ThreadMesh;
 import hat.backend.BackendAdaptor;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
@@ -105,7 +107,8 @@ public class PointyHat {
 
         @CodeReflection
         public static void compute(ComputeContext cc, ColoredWeightedPoint coloredWeightedPoint) {
-            cc.dispatchKernel(1, kc -> Compute.testMethodKernel(kc, coloredWeightedPoint));
+            ComputeRange computeRange = ComputeRange.SINGLE_THREADED;
+            cc.dispatchKernel(computeRange, kc -> Compute.testMethodKernel(kc, coloredWeightedPoint));
         }
 
     }

@@ -45,7 +45,7 @@ import java.util.function.Consumer;
 
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel
- * callgraphs for the work to be performed by the backend.
+ * call graphs for the work to be performed by the backend.
  * <p/>
  * The Compute closure is created first, by walking the code model of the entrypoint, then transitively
  * visiting all conventional code reachable from this entrypoint.
@@ -102,7 +102,6 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
      * @param accelerator
      * @param computeMethod
      */
-
     protected ComputeContext(Accelerator accelerator, Method computeMethod) {
         this.accelerator = accelerator;
 
@@ -121,36 +120,22 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     /**
      * Called from within compute reachable code to dispatch a kernel.
      *
-     * @param range
+     * @param computeRange
      * @param quotableKernelContextConsumer
      */
 
-    public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        dispatchKernel(range, 0, 0, 1, quotableKernelContextConsumer);
+    public void dispatchKernel(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+        dispatchKernelWithComputeRange(computeRange, quotableKernelContextConsumer);
     }
 
-    public void dispatchKernel(int rangeX, int rangeY, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        dispatchKernel(rangeX, rangeY, 0, 2, quotableKernelContextConsumer);
-    }
-
-    public void dispatchKernel(int rangeX, int rangeY, int rangeZ, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        dispatchKernel(rangeX, rangeY, rangeZ, 3, quotableKernelContextConsumer);
-    }
-
-    private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+    private void dispatchKernelWithComputeRange(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap(computeCallGraph.computeContext.accelerator.lookup,(JavaOp.LambdaOp) quoted.op());
         MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         try {
             Object[] args = lambdaOpWrapper.getQuotableCapturedValues(quoted, kernelCallGraph.entrypoint.method);
-            NDRange ndRange;
-            switch (dimNumber) {
-                case 1 -> ndRange = accelerator.range(rangeX);
-                case 2 -> ndRange = accelerator.range(rangeX, rangeY);
-                case 3 -> ndRange = accelerator.range(rangeX, rangeY, rangeZ);
-                default -> throw new RuntimeException("[Error] Unexpected dimension value: " + dimNumber + ". Allowed dimensions <1, 2, 3>");
-            }
+            NDRange ndRange = accelerator.range(computeRange);
             args[0] = ndRange;
             accelerator.backend.dispatchKernel(kernelCallGraph, ndRange, args);
         } catch (Throwable t) {
