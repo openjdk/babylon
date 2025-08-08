@@ -133,33 +133,42 @@ int CudaBackend::CudaQueue::estimateThreadsPerBlock(int dimensions) {
 void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
     const auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
 
-    const int threadsPerBlock = estimateThreadsPerBlock(kernelContext->dimensions);
-
-    int blocksPerGridX = (kernelContext->maxX + threadsPerBlock - 1) / threadsPerBlock;
-    int blocksPerGridY = 1;
-    int blocksPerGridZ = 1;
-    int threadsPerBlockX = threadsPerBlock;
+    int threadsPerBlockX;
     int threadsPerBlockY = 1;
     int threadsPerBlockZ = 1;
+    if (kernelContext -> lsx > 0) {
+        threadsPerBlockX = kernelContext -> lsx;
+    } else {
+        threadsPerBlockX = estimateThreadsPerBlock(kernelContext->dimensions);
+    }
+    if (kernelContext-> lsy > 0) {
+        threadsPerBlockY = kernelContext-> lsy;
+    } else if (kernelContext->dimensions > 1) {
+        threadsPerBlockY = estimateThreadsPerBlock(kernelContext->dimensions);
+    }
+    if (kernelContext-> lsz > 0) {
+        threadsPerBlockZ = kernelContext-> lsz;
+    } else if (kernelContext->dimensions > 2) {
+        threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions);
+    }
+
+    int blocksPerGridX = (kernelContext->maxX + threadsPerBlockX - 1) / threadsPerBlockX;
+    int blocksPerGridY = 1;
+    int blocksPerGridZ = 1;
 
     if (kernelContext->dimensions > 1) {
-        blocksPerGridY = (kernelContext->maxY + threadsPerBlock - 1) / threadsPerBlock;
-        threadsPerBlockY = threadsPerBlock;
+        blocksPerGridY = (kernelContext->maxY + threadsPerBlockY - 1) / threadsPerBlockY;
     }
     if (kernelContext->dimensions > 2) {
-        blocksPerGridZ = (kernelContext->maxZ + threadsPerBlock - 1) / threadsPerBlock;
-        threadsPerBlockZ = threadsPerBlock;
+        blocksPerGridZ = (kernelContext->maxZ + threadsPerBlockZ - 1) / threadsPerBlockZ;
     }
 
-    // Enable debug information with trace. Use HAT=TRACE
-    if (backend->config->trace) {
+    // Enable debug information with trace. Use HAT=INFO
+    if (backend->config->info) {
         std::cout << "Dispatching the CUDA kernel" << std::endl;
-        std::cout << "   \\_ BlocksPerGrid  = [" << blocksPerGridX << "," << blocksPerGridY << "," << blocksPerGridZ << "]" << std::endl;
-        std::cout << "   \\_ ThreadsPerBlock  [" << threadsPerBlockX << "," << threadsPerBlockY << "," << threadsPerBlockZ << "]" << std::endl;
+        std::cout << "   \\_ BlocksPerGrid   = [" << blocksPerGridX << "," << blocksPerGridY << "," << blocksPerGridZ << "]" << std::endl;
+        std::cout << "   \\_ ThreadsPerBlock = [" << threadsPerBlockX << "," << threadsPerBlockY << "," << threadsPerBlockZ << "]" << std::endl;
     }
-
-    //  auto status= static_cast<CUresult>(cudaStreamSynchronize(cudaBackend->cudaQueue.cuStream));
-    //  cudaBackend->cudaQueue.wait();
 
     const std::thread::id thread_id = std::this_thread::get_id();
     if (thread_id != streamCreationThread){

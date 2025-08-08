@@ -92,14 +92,14 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 kernelContext.maxZ(globalMesh.getZ());
                 kernelContext.dimensions(globalMesh.getDims());
             }
-            if (!isComputeRangeDefined && !isLocalMeshDefined) {
-                kernelContext.lsx(0);
-                kernelContext.lsy(0);
-                kernelContext.lsz(0);
-            } else {
+            if (isComputeRangeDefined && isLocalMeshDefined) {
                 kernelContext.lsx(localMesh.getX());
                 kernelContext.lsy(localMesh.getY());
                 kernelContext.lsz(localMesh.getZ());
+            } else {
+                kernelContext.lsx(0);
+                kernelContext.lsy(0);
+                kernelContext.lsz(0);
             }
 
             args[0] = this.kernelContext;
