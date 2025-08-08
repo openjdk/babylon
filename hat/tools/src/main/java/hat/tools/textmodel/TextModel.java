@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class TextModel implements Root {
+public  class TextModel implements Root {
     List<Token> children = new ArrayList<>();
 
     @Override
