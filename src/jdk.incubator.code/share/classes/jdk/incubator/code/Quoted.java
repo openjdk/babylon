@@ -178,7 +178,21 @@ public final class Quoted {
         return new RuntimeException("Invalid code model for quoted operation : " + model);
     }
 
-    // Extract the quoted operation from funcOp and maps the operands and captured values to the runtime values
+    /**
+     * Extract the quoted operation from {@code funcOp}
+     * and map its operands and captured values to the runtime values in {@code args}.
+     * <p>
+     * {@code funcOp} must have the same structure as if it's produced by {@link #quoteOp(Op)}.
+     * In addition, we allow ConstantOp to appear in {@code funcOp} entry block.
+     *
+     * @param funcOp Model to extract the quoted op from
+     * @param args Runtime values for {@code funcOp} parameters
+     * @return Quoted instance that wraps the quoted operation,
+     * plus the mapping of its operands and captured values to the given runtime values
+     * @throws RuntimeException If {@code funcOp} isn't a valid code model
+     * @throws RuntimeException If {@code funcOp} parameters size is different from {@code args} length
+
+    * */
     // @@@ Add List<Object> accepting method, varargs array defers to it
     public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object... args) {
 
