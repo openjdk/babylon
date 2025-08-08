@@ -229,7 +229,7 @@ public final class Quoted {
         // let v be a block param or ConstantOp result
         // if v not used -> throw
         // if v used once and user is VarOp and VarOp not used or VarOp used in funcOp entry block -> throw
-        // if v is used once and not as operand or capture -> throw
+        // if v is used once and user is not a VarOp and usage isn't as operand or capture -> throw
         // if v is used more than once and one of the uses is in funcOp entry block -> throw
         Consumer<Value> validate = v -> {
             if (v.uses().isEmpty()) {
@@ -238,8 +238,8 @@ public final class Quoted {
                     && (vop.result().uses().isEmpty() ||
                     vop.result().uses().stream().anyMatch(u -> u.op().ancestorBlock() == fblock))) {
                 throw invalidQuotedModel(funcOp);
-            } else if (v.uses().size() == 1 && !operandsAndCaptures.contains(v)) {
-                // if we reach here, the user is not a VarOp
+            } else if (v.uses().size() == 1 && !(v.uses().iterator().next().op() instanceof CoreOp.VarOp)
+                    && !operandsAndCaptures.contains(v)) {
                 throw invalidQuotedModel(funcOp);
             } else if (v.uses().size() > 1 && v.uses().stream().anyMatch(u -> u.op().ancestorBlock() == fblock)) {
                 throw invalidQuotedModel(funcOp);
