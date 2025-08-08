@@ -266,8 +266,8 @@ public final class Quoted {
             }
         }
 
-        // map captured values to their corresponding runtime values
-        // captured value can be:
+        // map operands and captures to their corresponding runtime values
+        // operand and capture can be:
         // 1- block param
         // 2- result of VarOp whose initial value is constant
         // 3- result of VarOp whose initial value is block param
