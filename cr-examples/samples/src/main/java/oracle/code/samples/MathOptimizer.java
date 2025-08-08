@@ -24,7 +24,6 @@
  */
 package oracle.code.samples;
 
-import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Location;
