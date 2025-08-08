@@ -11,7 +11,7 @@ https://github.com/openjdk/babylon
 We need to use the JDK build that enables the code reflection API (Babylon).
 
 ```bash
-git clone https://github.com/openjdk/babylon 
+git clone https://github.com/openjdk/babylon
 cd babylon
 bash configure --with-boot-jdk=${JAVA_HOME}
 ```
@@ -23,7 +23,7 @@ export JAVA_HOME=/$HOME/repos/babylon/build/macosx-aarch64-server-release/jdk/
 export PATH=$JAVA_HOME/bin:$PATH
 ```
 
-#### 2. Build examples 
+#### 2. Build examples
 
 ```bash
 mvn clean package
