@@ -39,39 +39,62 @@ public class ComputeRange {
     final private ThreadMesh localMesh;
 
     /**
-     * Total number of threads to run per dimension.
-     * @param globalMesh {@link ThreadMesh}
+     * Total number of threads to run in 1D.
+     * @param globalMesh {@link ThreadMesh1D}
      */
     public ComputeRange(ThreadMesh1D globalMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = null;
     }
 
+    /**
+     * Total number of threads to run in 1D for global and local mesh.
+     * @param globalMesh {@link ThreadMesh1D}
+     * @param localMesh {@link ThreadMesh1D}
+     */
     public ComputeRange(ThreadMesh1D globalMesh, ThreadMesh1D localMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = localMesh;
     }
 
 
+    /**
+     * Defines a compute range for a 2D mesh. The parameter specifies the
+     * global mesh (total number of threads to run).
+     * @param globalMesh {@link ThreadMesh2D}
+     */
     public ComputeRange(ThreadMesh2D globalMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = null;
     }
+
     /**
-     * Total and local number of threads to run per dimension.
-     * @param globalMesh {@link ThreadMesh}
-     * @param localMesh {@link ThreadMesh}
+     * Defines a compute range for a 2D mesh. The parameters specify the
+     * global mesh (total number of threads to run) and the local mesh.
+     * @param globalMesh {@link ThreadMesh2D}
+     * @param localMesh {@link ThreadMesh2D}
      */
     public ComputeRange(ThreadMesh2D globalMesh, ThreadMesh2D localMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = localMesh;
     }
 
+    /**
+     * Defines a compute range for a 3D mesh. The parameter specifies the
+     * global mesh (total number of threads to run).
+     * @param globalMesh {@link ThreadMesh3D}
+     */
     public ComputeRange(ThreadMesh3D globalMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = null;
     }
 
+    /**
+     * Defines a compute range for a 3D mesh. The parameters specify the
+     * global mesh (total number of threads to run) and the local mesh.
+     * @param globalMesh {@link ThreadMesh3D}
+     * @param localMesh {@link ThreadMesh3D}
+     */
     public ComputeRange(ThreadMesh3D globalMesh, ThreadMesh3D localMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = localMesh;
