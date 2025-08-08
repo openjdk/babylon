@@ -225,14 +225,21 @@ public final class Quoted {
         operandsAndCaptures.addAll(op.operands());
         operandsAndCaptures.addAll(op.capturedValues());
 
-        // validation rule of block params and constant op result
+        // validation rule of block params and ConstantOp result
+        // let v be a block param or ConstantOp result
+        // if v not used -> throw
+        // if v used once and user is VarOp and VarOp not used or VarOp used in funcOp entry block -> throw
+        // if v is used once and not as operand or capture -> throw
+        // if v is used more than once and one of the uses is in funcOp entry block -> throw
         Consumer<Value> validate = v -> {
             if (v.uses().isEmpty()) {
                 throw invalidQuotedModel(funcOp);
-            } else if (v.uses().size() == 1
-                    && !(v.uses().iterator().next().op() instanceof CoreOp.VarOp vop && vop.result().uses().size() >= 1
-                    && vop.result().uses().stream().noneMatch(u -> u.op().ancestorBlock() == fblock))
-                    && !operandsAndCaptures.contains(v)) {
+            } else if (v.uses().size() == 1 && v.uses().iterator().next().op() instanceof CoreOp.VarOp vop
+                    && (vop.result().uses().isEmpty() ||
+                    vop.result().uses().stream().anyMatch(u -> u.op().ancestorBlock() == fblock))) {
+                throw invalidQuotedModel(funcOp);
+            } else if (v.uses().size() == 1 && !operandsAndCaptures.contains(v)) {
+                // if we reach here, the user is not a VarOp
                 throw invalidQuotedModel(funcOp);
             } else if (v.uses().size() > 1 && v.uses().stream().anyMatch(u -> u.op().ancestorBlock() == fblock)) {
                 throw invalidQuotedModel(funcOp);
