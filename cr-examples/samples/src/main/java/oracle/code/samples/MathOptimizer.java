@@ -55,8 +55,8 @@ import java.util.stream.Stream;
  *
  * <p>
  * Optimizations:
- * 1) Replace Pow(x, y) when x == 1 to 1 << y, if only if the parameter y is an integer.
- * 2) Replace Pow(x, y) when y == 2 to x * x.
+ * 1) Replace Pow(x, y) when x == 2 to (1 << y), if only if the parameter y is an integer.
+ * 2) Replace Pow(x, y) when y == 2 to (x * x).
  * </p>
  *
  * <p>
@@ -94,15 +94,15 @@ public class MathOptimizer {
     private static final MethodRef MY_MULT_FUNCTION = MethodRef.method(MathOptimizer.class, "functionMult", double.class, double.class);
 
     // Analyze type methods: taken from example of String Concat Transformer to traverse the tree.
-    static boolean analyseType(Block.Builder block, JavaOp.ConvOp cz, JavaType typeToMatch) {
-        return analyseType(block, cz.operands().get(0), typeToMatch);
+    static boolean analyseType(JavaOp.ConvOp convOp, JavaType typeToMatch) {
+        return analyseType(convOp.operands().get(0), typeToMatch);
     }
 
-    static boolean analyseType(Block.Builder block, Value v, JavaType typeToMatch) {
+    static boolean analyseType(Value v, JavaType typeToMatch) {
         // Maybe there is an utility already to do tree traversal
-        if (v instanceof Op.Result r && r.op() instanceof JavaOp.ConvOp conv) {
+        if (v instanceof Op.Result r && r.op() instanceof JavaOp.ConvOp convOp) {
             // Node of tree, recursively traverse the operands
-            return analyseType(block, conv, typeToMatch);
+            return analyseType(convOp, typeToMatch);
         } else {
             // Leaf of tree: analyze type
             TypeElement type = v.type();
@@ -134,11 +134,11 @@ public class MathOptimizer {
                     // pow(2, y) replace with (1 << y)
                     Value operand = operands.getFirst();  // obtain the first parameter
                     // inspect if the base (as in pow(base, exp) is value 2
-                    boolean canApplyBitShift = inspectParameter(operand, 2);
+                    boolean canApplyBitShift = inspectParameterRecursive(operand, 2);
                     if (canApplyBitShift) {
                         // We also need to inspect types. We can apply this optimization
                         // if the exp type is also an integer.
-                        boolean isIntType = analyseType(blockBuilder, operands.get(1), JavaType.INT);
+                        boolean isIntType = analyseType(operands.get(1), JavaType.INT);
                         if (!isIntType) {
                             canApplyBitShift = false;
                         }
@@ -150,7 +150,7 @@ public class MathOptimizer {
                     boolean canApplyMultiplication = false;
                     if (!canApplyBitShift) {
                         // inspect if exp (as in pow(base, exp) is value 2
-                        canApplyMultiplication = inspectParameter(operands.get(1), 2);
+                        canApplyMultiplication = inspectParameterRecursive(operands.get(1), 2);
                     }
 
                     if (canApplyBitShift) {
@@ -232,8 +232,10 @@ public class MathOptimizer {
         });
     }
 
-    // It could be a better way of doing the following.
     // Goal: obtain and check the value of the function parameters.
+    // The function inspectParameterRecursive implements this method
+    // in a much simpler and shorter manner. We can keep this first
+    // implementation as a reference.
     private static boolean inspectParameter(Value operand, final int value) {
         final Boolean[] isMultipliedByTwo = new Boolean[] { false };
         if (operand instanceof Op.Result res) {
@@ -253,6 +255,23 @@ public class MathOptimizer {
             }
         }
         return isMultipliedByTwo[0];
+    }
+
+    // Inspect a value for a parameter
+    static boolean inspectParameterRecursive(JavaOp.ConvOp convOp, int valToMatch) {
+        return inspectParameterRecursive(convOp.operands().get(0), valToMatch);
+    }
+
+    static boolean inspectParameterRecursive(Value v, int valToMatch) {
+        if (v instanceof Op.Result r && r.op() instanceof JavaOp.ConvOp convOp) {
+            return inspectParameterRecursive(convOp, valToMatch);
+        } else {
+            // Leaf of tree - we want to analyse the value
+            if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.ConstantOp constant) {
+                return constant.value().equals(valToMatch);
+            }
+            return false;
+        }
     }
 
     static final MethodRef JAVA_LANG_MATH_POW = MethodRef.method(Math.class, "pow", double.class, double.class, double.class);
