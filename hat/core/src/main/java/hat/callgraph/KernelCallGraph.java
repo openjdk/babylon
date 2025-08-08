@@ -26,17 +26,20 @@ package hat.callgraph;
 
 import hat.buffer.Buffer;
 import hat.optools.FuncOpWrapper;
+import hat.optools.InvokeOpWrapper;
+import hat.optools.ModuleOpWrapper;
 import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
+    public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
 
     public interface KernelReachable {
     }
@@ -150,5 +153,23 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         calls.forEach(m -> m.rank = 0);
         entrypoint.rankRecurse();
         return this;
+    }
+
+    KernelCallGraph closeWithModuleOp() {
+        CoreOp.ModuleOp moduleOp = ModuleOpWrapper.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOpWrapper(), this);
+        moduleOpWrapper = new ModuleOpWrapper(computeContext.accelerator.lookup, moduleOp);
+        return this;
+    }
+
+    @Override
+    public boolean filterCalls(CoreOp.FuncOp f, InvokeOpWrapper invokeOpWrapper, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
+        if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
+            bufferAccessToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                    new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodRef, method)
+            );
+        } else {
+            return false;
+        }
+        return true;
     }
 }
