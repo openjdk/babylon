@@ -33,6 +33,7 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.StructuralOpWrapper;
 import hat.util.StreamCounter;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -136,6 +137,27 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public T kernelMethod(KernelCallGraph.KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
         CodeBuilderContext buildContext = new CodeBuilderContext(kernelReachableResolvedMethodCall.funcOpWrapper());
+        buildContext.scope(buildContext.funcOpWrapper, () -> {
+            nl();
+            functionDeclaration(buildContext,buildContext.funcOpWrapper.getReturnType(), buildContext.funcOpWrapper.functionName());
+
+            var list = buildContext.funcOpWrapper.paramTable.list();
+            parenNlIndented(_ ->
+                    commaSeparated(list, (info) -> type(buildContext,info.javaType).space().varName(info.varOp))
+            );
+
+            braceNlIndented(_ -> {
+                StreamCounter.of(buildContext.funcOpWrapper.wrappedRootOpStream(), (c, root) ->
+                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                );
+            });
+        });
+        return self();
+    }
+
+    public T kernelMethod(FuncOpWrapper funcOpWrapper) {
+
+        CodeBuilderContext buildContext = new CodeBuilderContext(funcOpWrapper);
         buildContext.scope(buildContext.funcOpWrapper, () -> {
             nl();
             functionDeclaration(buildContext,buildContext.funcOpWrapper.getReturnType(), buildContext.funcOpWrapper.functionName());
