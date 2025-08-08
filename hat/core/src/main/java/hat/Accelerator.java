@@ -99,6 +99,12 @@ public class Accelerator implements BufferAllocator, BufferTracker {
         return ndRange;
     }
 
+    public NDRange range(ComputeRange computeRange) {
+        NDRange ndRange = new NDRange(this);
+        ndRange.kid = new KernelContext(ndRange, computeRange);
+        return ndRange;
+    }
+
     protected Accelerator(MethodHandles.Lookup lookup, ServiceLoader.Provider<Backend> provider) {
         this(lookup, provider.get());
     }

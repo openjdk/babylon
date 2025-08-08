@@ -25,12 +25,14 @@
 
 package hat.backend.ffi;
 
+import hat.ComputeRange;
 import hat.NDRange;
+import hat.ThreadMesh;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
 import hat.buffer.BufferTracker;
-import hat.buffer.KernelContext;
+import hat.buffer.KernelBufferContext;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
@@ -54,29 +56,55 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         public final KernelCallGraph kernelCallGraph;
         public final BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge;
         public final ArgArray argArray;
-        public final KernelContext kernelContext;
+        public final KernelBufferContext kernelContext;
 
         public CompiledKernel(C99FFIBackend c99FFIBackend, KernelCallGraph kernelCallGraph, BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge, Object[] ndRangeAndArgs) {
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator, 0, 0, 0, 0, 0, 0);
+            int[] empty = new int[] {0, 0, 0};
+            this.kernelContext = KernelBufferContext.create(kernelCallGraph.computeContext.accelerator, 0, 0, 0, 0, 0, 0, empty, empty);
             ndRangeAndArgs[0] = this.kernelContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
           //  long ns = System.nanoTime();
-            kernelContext.maxX(ndRange.kid.maxX);
-            kernelContext.maxY(ndRange.kid.maxY);
-            kernelContext.maxZ(ndRange.kid.maxZ);
-            kernelContext.dimensions(ndRange.kid.getDimensions());
+
+            ComputeRange computeRange = ndRange.kid.getComputeRange();
+            boolean isComputeRangeDefined = ndRange.kid.hasComputeRange();
+            boolean isLocalMeshDefined = ndRange.kid.hasLocalMesh();
+            ThreadMesh globalMesh = null;
+            ThreadMesh localMesh = null;
+            if (isComputeRangeDefined) {
+                globalMesh = computeRange.getGlobalMesh();
+                localMesh = computeRange.getLocalMesh();
+            }
+
+            if (!isComputeRangeDefined) {
+                kernelContext.maxX(ndRange.kid.maxX);
+                kernelContext.maxY(ndRange.kid.maxY);
+                kernelContext.maxZ(ndRange.kid.maxZ);
+                kernelContext.dimensions(ndRange.kid.getDimensions());
+            } else {
+                kernelContext.maxX(globalMesh.getX());
+                kernelContext.maxY(globalMesh.getY());
+                kernelContext.maxZ(globalMesh.getZ());
+                kernelContext.dimensions(globalMesh.getDims());
+            }
+            if (!isComputeRangeDefined && !isLocalMeshDefined) {
+                kernelContext.lsx(0);
+                kernelContext.lsy(0);
+                kernelContext.lsz(0);
+            } else {
+                kernelContext.lsx(localMesh.getX());
+                kernelContext.lsy(localMesh.getY());
+                kernelContext.lsz(localMesh.getZ());
+            }
+
             args[0] = this.kernelContext;
             ArgArray.update(argArray,kernelCallGraph, args);
-            //System.out.println("argupdate  "+((System.nanoTime()-ns)/1000)+" us");
-           // ns = System.nanoTime();
             kernelBridge.ndRange(this.argArray);
-           // System.out.println("dispatch time "+((System.nanoTime()-ns)/1000)+" us");
         }
     }
 

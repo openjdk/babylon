@@ -26,7 +26,9 @@ package matmul;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
+import hat.ThreadMesh;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -127,23 +129,26 @@ public class Main {
     }
 
     @CodeReflection
-    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size,
-                kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(globalSize));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
-    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size, size,
-                kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(globalSize, globalSize), new ThreadMesh(16, 16));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
-    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size, size,
-                kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new ThreadMesh(globalSize, globalSize), new ThreadMesh(16, 16));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
