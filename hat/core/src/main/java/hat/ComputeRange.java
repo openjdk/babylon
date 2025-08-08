@@ -42,17 +42,37 @@ public class ComputeRange {
      * Total number of threads to run per dimension.
      * @param globalMesh {@link ThreadMesh}
      */
-    public ComputeRange(ThreadMesh globalMesh) {
+    public ComputeRange(ThreadMesh1D globalMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = null;
     }
 
+    public ComputeRange(ThreadMesh1D globalMesh, ThreadMesh1D localMesh) {
+        this.globalMesh = globalMesh;
+        this.localMesh = localMesh;
+    }
+
+
+    public ComputeRange(ThreadMesh2D globalMesh) {
+        this.globalMesh = globalMesh;
+        this.localMesh = null;
+    }
     /**
      * Total and local number of threads to run per dimension.
      * @param globalMesh {@link ThreadMesh}
      * @param localMesh {@link ThreadMesh}
      */
-    public ComputeRange(ThreadMesh globalMesh, ThreadMesh localMesh) {
+    public ComputeRange(ThreadMesh2D globalMesh, ThreadMesh2D localMesh) {
+        this.globalMesh = globalMesh;
+        this.localMesh = localMesh;
+    }
+
+    public ComputeRange(ThreadMesh3D globalMesh) {
+        this.globalMesh = globalMesh;
+        this.localMesh = null;
+    }
+
+    public ComputeRange(ThreadMesh3D globalMesh, ThreadMesh3D localMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = localMesh;
     }
@@ -61,7 +81,7 @@ public class ComputeRange {
      * Factory method to run a single thread on a target accelerator. Although for some accelerators this could be
      * beneficial (e.g., FPGAs), in general, use only for debugging purposes.
      */
-    public static final ComputeRange SINGLE_THREADED = new ComputeRange(new ThreadMesh(1));
+    public static final ComputeRange SINGLE_THREADED = new ComputeRange(new ThreadMesh1D(1));
 
     /**
      * Obtain the total number of threads per dimension. The number of threads

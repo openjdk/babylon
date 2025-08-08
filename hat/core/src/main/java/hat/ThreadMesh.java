@@ -30,16 +30,16 @@ package hat;
  */
 public class ThreadMesh {
 
-    final private int x;
-    final private int y;
-    final private int z;
-    final private int dims;
+    final protected int x;
+    final protected int y;
+    final protected int z;
+    final protected int dims;
 
     /**
      * 1D Mesh
      * @param x
      */
-    public ThreadMesh(int x) {
+    protected ThreadMesh(int x) {
         this.x = x;
         this.y = 0;
         this.z = 0;
@@ -51,7 +51,7 @@ public class ThreadMesh {
      * @param x
      * @param y
      */
-    public ThreadMesh(int x, int y) {
+    protected ThreadMesh(int x, int y) {
         this.x = x;
         this.y = y;
         this.z = 0;
@@ -64,7 +64,7 @@ public class ThreadMesh {
      * @param y
      * @param z
      */
-    public ThreadMesh(int x, int y, int z) {
+    protected ThreadMesh(int x, int y, int z) {
         this.x = x;
         this.y = y;
         this.z = z;
