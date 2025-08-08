@@ -212,6 +212,37 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
 """, new Object[]{1}
                 },
                 {
+                        // param used once by a VarOp, the VarOp must be used
+                        """
+func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %2 : Var<java.type:"int"> = var %0 @"y";
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+        %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
+            return;
+        };
+        yield %6;
+    };
+    return %5;
+};
+""", new Object[]{2}
+                },
+                {
+                        // param used once by a VarOp, the VarOp must be used as operand or capture
+                        """
+func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %1 : Var<java.type:"int"> = var %0 @"y";
+    %2 : Var<Var<java.type:"int">> = var %1 @"z";
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+        %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
+            return;
+        };
+        yield %6;
+    };
+    return %5;
+};
+""", new Object[]{3}
+                },
+                {
                         // operations before quoted op must be ConstantOp or VarOp
                         """
 func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
