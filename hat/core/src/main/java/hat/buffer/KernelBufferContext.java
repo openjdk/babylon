@@ -27,7 +27,7 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-public interface KernelContext extends Buffer {
+public interface KernelBufferContext extends Buffer {
     int x();
     void x(int x);
 
@@ -49,27 +49,59 @@ public interface KernelContext extends Buffer {
     int dimensions();
     void dimensions(int numDimensions);
 
-    // Important part here! do not forget the new fields.
-    Schema<KernelContext> schema = Schema.of(KernelContext.class, s->s.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"));
+    int lx();
+    void lx(int lx);
+    int ly();
+    void ly(int ly);
+    int lz();
+    void lz(int lz);
 
-    static KernelContext create(Accelerator accelerator, int x, int maxX) {
-        KernelContext kernelContext =  schema.allocate(accelerator);
+    int lsx();
+    void lsx(int lsx);
+    int lsy();
+    void lsy(int lsy);
+    int lsz();
+    void lsz(int lsz);
+
+    // Important part here! do not forget the new fields.
+
+    Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class,
+            s -> s.fields(
+                    "x","maxX", "y", "maxY", "z", "maxZ",
+                    "dimensions",
+                    "lx", "ly", "lz", "lsx",  "lsy", "lsz"));
+
+    static KernelBufferContext create(Accelerator accelerator, int x, int maxX) {
+        KernelBufferContext kernelContext =  schema.allocate(accelerator);
         kernelContext.x(x);
         kernelContext.maxX(maxX);
         kernelContext.dimensions(1);
         return kernelContext;
     }
 
-    static KernelContext create(Accelerator accelerator, int x, int y, int z, int maxX, int maxY, int maxZ) {
-        KernelContext kernelContext =  schema.allocate(accelerator);
-        kernelContext.x(x);
-        kernelContext.y(y);
-        kernelContext.z(z);
-        kernelContext.maxX(maxX);
-        kernelContext.maxY(maxY);
-        kernelContext.maxZ(maxZ);
-        kernelContext.dimensions(3);
-        return kernelContext;
+    static KernelBufferContext create(Accelerator accelerator, int x, int y, int z, int maxX, int maxY, int maxZ, int[] locals, int[] sizeLocals) {
+        KernelBufferContext kernelBufferContext =  schema.allocate(accelerator);
+
+        kernelBufferContext.x(x);
+        kernelBufferContext.y(y);
+        kernelBufferContext.z(z);
+        kernelBufferContext.maxX(maxX);
+        kernelBufferContext.maxY(maxY);
+        kernelBufferContext.maxZ(maxZ);
+        kernelBufferContext.dimensions(3);
+
+        if (locals != null) {
+            kernelBufferContext.lsx(locals[0]);
+            kernelBufferContext.lsy(locals[1]);
+            kernelBufferContext.lsz(locals[2]);
+        }
+
+        if (sizeLocals != null) {
+            kernelBufferContext.lsx(sizeLocals[0]);
+            kernelBufferContext.lsy(sizeLocals[1]);
+            kernelBufferContext.lsz(sizeLocals[2]);
+        }
+        return kernelBufferContext;
     }
 
 }

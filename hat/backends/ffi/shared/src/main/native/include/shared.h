@@ -369,6 +369,12 @@ public:
     int z;
     int maxZ;
     int dimensions;
+    int lx;
+    int ly;
+    int lz;
+    int lsx;
+    int lsy;
+    int lsz;
 };
 
 

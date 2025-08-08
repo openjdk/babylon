@@ -52,6 +52,17 @@ public class KernelContext {
 
     final int dimensions;
 
+    private ComputeRange computeRange;
+
+    public KernelContext(NDRange ndRange, ComputeRange computeRange) {
+        this.ndRange = ndRange;
+        this.computeRange = computeRange;
+        this.maxX = computeRange.getGlobalMesh().getX();
+        this.maxY = computeRange.getGlobalMesh().getY();
+        this.maxZ = computeRange.getGlobalMesh().getZ();
+        this.dimensions = computeRange.getGlobalMesh().getDims();
+    }
+
     /**
      * 1D Kernel
      * @param ndRange {@link NDRange}
@@ -96,6 +107,21 @@ public class KernelContext {
 
     public int getDimensions() {
         return this.dimensions;
+    }
+
+    public ComputeRange getComputeRange() {
+        return this.computeRange;
+    }
+
+    public boolean hasComputeRange() {
+        return this.computeRange != null;
+    }
+
+    public boolean hasLocalMesh() {
+        if (hasComputeRange()) {
+            return this.computeRange.getLocalMesh() != null;
+        }
+        return false;
     }
 
 }

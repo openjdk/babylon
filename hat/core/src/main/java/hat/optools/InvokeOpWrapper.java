@@ -26,7 +26,7 @@ package hat.optools;
 
 import hat.ComputeContext;
 import hat.buffer.Buffer;
-import hat.buffer.KernelContext;
+import hat.buffer.KernelBufferContext;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -60,12 +60,12 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
     public boolean isRawKernelCall() {
         return (operandCount() > 1 && operandNAsValue(0) instanceof Value value
                 && value.type() instanceof JavaType javaType
-                && (isAssignable(javaType, hat.KernelContext.class) || isAssignable(javaType, KernelContext.class))
+                && (isAssignable(javaType, hat.KernelContext.class) || isAssignable(javaType, KernelBufferContext.class))
         );
     }
 
     public boolean isKernelContextMethod() {
-        return isAssignable(javaRefType(), KernelContext.class);
+        return isAssignable(javaRefType(), KernelBufferContext.class);
 
     }
 

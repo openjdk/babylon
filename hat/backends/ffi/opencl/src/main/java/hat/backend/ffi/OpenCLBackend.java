@@ -65,7 +65,6 @@ public class OpenCLBackend extends C99FFIBackend {
             }
         });
         compiledKernel.dispatch(ndRange, args);
-
     }
 
     String createC99(KernelCallGraph kernelCallGraph,  NDRange ndRange, Object[] args){

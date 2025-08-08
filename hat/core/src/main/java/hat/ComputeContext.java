@@ -124,7 +124,6 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
      * @param range
      * @param quotableKernelContextConsumer
      */
-
     public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         dispatchKernel(range, 0, 0, 1, quotableKernelContextConsumer);
     }
@@ -135,6 +134,10 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     public void dispatchKernel(int rangeX, int rangeY, int rangeZ, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         dispatchKernel(rangeX, rangeY, rangeZ, 3, quotableKernelContextConsumer);
+    }
+
+    public void dispatchKernel(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+        dispatchKernelWithComputeRange(computeRange, quotableKernelContextConsumer);
     }
 
     private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
@@ -151,6 +154,22 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
                 case 3 -> ndRange = accelerator.range(rangeX, rangeY, rangeZ);
                 default -> throw new RuntimeException("[Error] Unexpected dimension value: " + dimNumber + ". Allowed dimensions <1, 2, 3>");
             }
+            args[0] = ndRange;
+            accelerator.backend.dispatchKernel(kernelCallGraph, ndRange, args);
+        } catch (Throwable t) {
+            System.out.print("what?" + methodRef + " " + t);
+            throw t;
+        }
+    }
+
+    private void dispatchKernelWithComputeRange(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+        Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
+        LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap(computeCallGraph.computeContext.accelerator.lookup,(JavaOp.LambdaOp) quoted.op());
+        MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
+        KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+        try {
+            Object[] args = lambdaOpWrapper.getQuotableCapturedValues(quoted, kernelCallGraph.entrypoint.method);
+            NDRange ndRange = accelerator.range(computeRange);
             args[0] = ndRange;
             accelerator.backend.dispatchKernel(kernelCallGraph, ndRange, args);
         } catch (Throwable t) {
