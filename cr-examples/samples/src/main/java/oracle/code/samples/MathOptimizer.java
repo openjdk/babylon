@@ -98,7 +98,7 @@ public class MathOptimizer {
     }
 
     static boolean analyseType(Value v, JavaType typeToMatch) {
-        // Maybe there is an utility already to do tree traversal
+        // Maybe there is a utility already to do tree traversal
         if (v instanceof Op.Result r && r.op() instanceof JavaOp.ConvOp convOp) {
             // Node of tree, recursively traverse the operands
             return analyseType(convOp, typeToMatch);
@@ -170,13 +170,8 @@ public class MathOptimizer {
                     } else if (canApplyMultiplication) {
                         // Adapt the parameters to the new function. We only need the first
                         // parameter from the initial parameter list  - pow(x, 2) -
-                        // Thus, we copy parameter x into a new list and pass it to the new
-                        // invoke function.
-                        List<Value> newOperandList2 = new ArrayList<>();
-                        newOperandList2.add(operands.get(0));
-
                         // Create a new invoke function with the optimised method
-                        JavaOp.InvokeOp newInvoke = JavaOp.invoke(MY_MULT_FUNCTION, newOperandList2);
+                        JavaOp.InvokeOp newInvoke = JavaOp.invoke(MY_MULT_FUNCTION, operands.get(0));
                         // Copy the location info to the new invoke
                         newInvoke.setLocation(invokeOp.location());
 
