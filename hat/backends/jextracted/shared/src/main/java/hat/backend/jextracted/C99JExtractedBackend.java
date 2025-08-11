@@ -58,15 +58,13 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
-            int[] empty = new int[] { 0, 0, 0 };
-            this.kernelContext = KernelBufferContext.create(kernelCallGraph.computeContext.accelerator, 0, 0, 0, 0, 0, 0, empty, empty);
-            //this.kernelContext = KernelBufferContext.create(kernelCallGraph.computeContext.accelerator, 0, 0);
+            this.kernelContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
             ndRangeAndArgs[0] = this.kernelContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, kernelCallGraph,  ndRangeAndArgs);
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
-            kernelContext.maxX(ndRange.kid.maxX);
+            kernelContext.globalMesh().maxX(ndRange.kid.maxX);
             args[0] = this.kernelContext;
             ArgArray.update(argArray,kernelCallGraph,  args);
          //   c99NativeBackend.ndRange(kernelHandle, this.argArray);

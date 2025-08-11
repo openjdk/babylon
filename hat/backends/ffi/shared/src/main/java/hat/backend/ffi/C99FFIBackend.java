@@ -26,6 +26,7 @@
 package hat.backend.ffi;
 
 import hat.ComputeRange;
+import hat.KernelContext;
 import hat.ThreadMesh;
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
@@ -56,24 +57,51 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         public final KernelCallGraph kernelCallGraph;
         public final BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge;
         public final ArgArray argArray;
-        public final KernelBufferContext kernelContext;
+        public final KernelBufferContext kernelBufferContext;
 
         public CompiledKernel(C99FFIBackend c99FFIBackend, KernelCallGraph kernelCallGraph, BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge, Object[] ndRangeAndArgs) {
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            int[] empty = new int[] {0, 0, 0};
-            this.kernelContext = KernelBufferContext.create(kernelCallGraph.computeContext.accelerator, 0, 0, 0, 0, 0, 0, empty, empty);
-            ndRangeAndArgs[0] = this.kernelContext;
+            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
+            ndRangeAndArgs[0] = this.kernelBufferContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
+        }
+
+        private void setGlobalMesh(KernelContext kc) {
+            kernelBufferContext.globalMesh().maxX(kc.maxX);
+            kernelBufferContext.globalMesh().maxY(kc.maxY);
+            kernelBufferContext.globalMesh().maxZ(kc.maxZ);
+            kernelBufferContext.globalMesh().dimensions(kc.getDimensions());
+        }
+
+        private void setGlobalMesh(ThreadMesh threadMesh) {
+            kernelBufferContext.globalMesh().maxX(threadMesh.getX());
+            kernelBufferContext.globalMesh().maxY(threadMesh.getY());
+            kernelBufferContext.globalMesh().maxZ(threadMesh.getZ());
+            kernelBufferContext.globalMesh().dimensions(threadMesh.getDims());
+        }
+
+        private void setLocalMesh(ThreadMesh threadMesh) {
+            kernelBufferContext.localMesh().maxX(threadMesh.getX());
+            kernelBufferContext.localMesh().maxY(threadMesh.getY());
+            kernelBufferContext.localMesh().maxZ(threadMesh.getZ());
+            kernelBufferContext.localMesh().dimensions(threadMesh.getDims());
+        }
+
+        private void setDefaultLocalMesh() {
+            kernelBufferContext.localMesh().maxX(0);
+            kernelBufferContext.localMesh().maxY(0);
+            kernelBufferContext.localMesh().maxZ(0);
+            kernelBufferContext.localMesh().dimensions(0);
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
           //  long ns = System.nanoTime();
-
             ComputeRange computeRange = ndRange.kid.getComputeRange();
             boolean isComputeRangeDefined = ndRange.kid.hasComputeRange();
             boolean isLocalMeshDefined = ndRange.kid.hasLocalMesh();
+
             ThreadMesh globalMesh = null;
             ThreadMesh localMesh = null;
             if (isComputeRangeDefined) {
@@ -82,27 +110,17 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
 
             if (!isComputeRangeDefined) {
-                kernelContext.maxX(ndRange.kid.maxX);
-                kernelContext.maxY(ndRange.kid.maxY);
-                kernelContext.maxZ(ndRange.kid.maxZ);
-                kernelContext.dimensions(ndRange.kid.getDimensions());
+                setGlobalMesh(ndRange.kid);
             } else {
-                kernelContext.maxX(globalMesh.getX());
-                kernelContext.maxY(globalMesh.getY());
-                kernelContext.maxZ(globalMesh.getZ());
-                kernelContext.dimensions(globalMesh.getDims());
+                setGlobalMesh(globalMesh);
             }
             if (isComputeRangeDefined && isLocalMeshDefined) {
-                kernelContext.lsx(localMesh.getX());
-                kernelContext.lsy(localMesh.getY());
-                kernelContext.lsz(localMesh.getZ());
+                setLocalMesh(localMesh);
             } else {
-                kernelContext.lsx(0);
-                kernelContext.lsy(0);
-                kernelContext.lsz(0);
+                setDefaultLocalMesh();
             }
 
-            args[0] = this.kernelContext;
+            args[0] = this.kernelBufferContext;
             ArgArray.update(argArray,kernelCallGraph, args);
             kernelBridge.ndRange(this.argArray);
         }
