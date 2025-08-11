@@ -24,9 +24,25 @@
  */
 package hat;
 
-public class ThreadMesh2D extends ThreadMesh{
+public record GlobalMesh2D(int x, int y) implements ThreadMesh {
 
-    public ThreadMesh2D(int x, int y) {
-        super(x, y);
+    @Override
+    public int getX() {
+        return x;
+    }
+
+    @Override
+    public int getY() {
+        return y;
+    }
+
+    @Override
+    public int getZ() {
+        return 1;
+    }
+
+    @Override
+    public int getDims() {
+        return 2;
     }
 }

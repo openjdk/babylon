@@ -24,35 +24,25 @@
  */
 package hat;
 
-/**
- * Interface that specifies the number of threads per dimension.
- * The Thread Mesh can be used to store the global number of threads,
- * local group sizes and offsets.
- */
-public interface ThreadMesh {
+public record GlobalMesh1D(int x) implements ThreadMesh {
 
-    /**
-     * Obtain the number of threads in the first dimension of the thread-mesh.
-     * @return
-     */
-    int getX();
+    @Override
+    public int getX() {
+        return x;
+    }
 
-    /**
-     * Obtain the number of threads in the second dimension of the thread-mesh.
-     * @return
-     */
-    int getY();
+    @Override
+    public int getY() {
+        return 1;
+    }
 
-    /**
-     * Obtain the number of threads in the third dimension of the thread-mesh.
-     * @return
-     */
-    int getZ();
+    @Override
+    public int getZ() {
+        return 1;
+    }
 
-    /**
-     * Return the mesh dimension. It could be 1, 2 or 3.
-     * @return int value
-     */
-    int getDims();
-
+    @Override
+    public int getDims() {
+        return 1;
+    }
 }

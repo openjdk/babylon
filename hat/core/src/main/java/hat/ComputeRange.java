@@ -42,7 +42,7 @@ public class ComputeRange {
      * Total number of threads to run in 1D.
      * @param globalMesh {@link ThreadMesh1D}
      */
-    public ComputeRange(ThreadMesh1D globalMesh) {
+    public ComputeRange(GlobalMesh1D globalMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = null;
     }
@@ -52,7 +52,7 @@ public class ComputeRange {
      * @param globalMesh {@link ThreadMesh1D}
      * @param localMesh {@link ThreadMesh1D}
      */
-    public ComputeRange(ThreadMesh1D globalMesh, ThreadMesh1D localMesh) {
+    public ComputeRange(GlobalMesh1D globalMesh, LocalMesh1D localMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = localMesh;
     }
@@ -63,7 +63,7 @@ public class ComputeRange {
      * global mesh (total number of threads to run).
      * @param globalMesh {@link ThreadMesh2D}
      */
-    public ComputeRange(ThreadMesh2D globalMesh) {
+    public ComputeRange(GlobalMesh2D globalMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = null;
     }
@@ -74,7 +74,7 @@ public class ComputeRange {
      * @param globalMesh {@link ThreadMesh2D}
      * @param localMesh {@link ThreadMesh2D}
      */
-    public ComputeRange(ThreadMesh2D globalMesh, ThreadMesh2D localMesh) {
+    public ComputeRange(GlobalMesh2D globalMesh, LocalMesh2D localMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = localMesh;
     }
@@ -84,7 +84,7 @@ public class ComputeRange {
      * global mesh (total number of threads to run).
      * @param globalMesh {@link ThreadMesh3D}
      */
-    public ComputeRange(ThreadMesh3D globalMesh) {
+    public ComputeRange(GlobalMesh3D globalMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = null;
     }
@@ -95,7 +95,7 @@ public class ComputeRange {
      * @param globalMesh {@link ThreadMesh3D}
      * @param localMesh {@link ThreadMesh3D}
      */
-    public ComputeRange(ThreadMesh3D globalMesh, ThreadMesh3D localMesh) {
+    public ComputeRange(GlobalMesh3D globalMesh, LocalMesh3D localMesh) {
         this.globalMesh = globalMesh;
         this.localMesh = localMesh;
     }
@@ -104,7 +104,7 @@ public class ComputeRange {
      * Factory method to run a single thread on a target accelerator. Although for some accelerators this could be
      * beneficial (e.g., FPGAs), in general, use only for debugging purposes.
      */
-    public static final ComputeRange SINGLE_THREADED = new ComputeRange(new ThreadMesh1D(1));
+    public static final ComputeRange SINGLE_THREADED = new ComputeRange(new GlobalMesh1D(1));
 
     /**
      * Obtain the total number of threads per dimension. The number of threads

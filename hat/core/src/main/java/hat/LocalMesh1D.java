@@ -24,9 +24,25 @@
  */
 package hat;
 
-public class ThreadMesh1D extends ThreadMesh {
+public record LocalMesh1D(int x) implements ThreadMesh {
 
-    public ThreadMesh1D(int x) {
-        super(x);
+    @Override
+    public int getX() {
+        return x;
+    }
+
+    @Override
+    public int getY() {
+        return 1;
+    }
+
+    @Override
+    public int getZ() {
+        return 1;
+    }
+
+    @Override
+    public int getDims() {
+        return 1;
     }
 }

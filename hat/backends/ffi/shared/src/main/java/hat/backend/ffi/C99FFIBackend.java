@@ -26,8 +26,8 @@
 package hat.backend.ffi;
 
 import hat.ComputeRange;
-import hat.NDRange;
 import hat.ThreadMesh;
+import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;

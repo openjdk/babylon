@@ -27,11 +27,10 @@ package matmul;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.ComputeRange;
+import hat.GlobalMesh1D;
+import hat.GlobalMesh2D;
 import hat.KernelContext;
-import hat.ThreadMesh;
-import hat.ThreadMesh1D;
-import hat.ThreadMesh2D;
-import hat.ThreadMesh3D;
+import hat.LocalMesh2D;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -133,7 +132,7 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new ThreadMesh1D(globalSize));
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(globalSize));
         cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -141,7 +140,7 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new ThreadMesh2D(globalSize, globalSize), new ThreadMesh2D(16, 16));
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(16, 16));
         cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -149,7 +148,7 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new ThreadMesh2D(globalSize, globalSize), new ThreadMesh2D(16, 16));
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(16, 16));
         cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
