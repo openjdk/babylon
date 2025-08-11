@@ -60,12 +60,12 @@ public class MockBackend extends FFIBackend {
         // The first time we see this we need to convert the kernel entrypoint
         // and rechable methods to a form that our mock backend can execute.
         if (Boolean.getBoolean("moduleOp")) {
-            System.out.println("Using ModuleOp for CudaBackend");
+            System.out.println("Using ModuleOp for MockBackend");
             kernelCallGraph.moduleOpWrapper.functionTable().forEach((_, funcOp) -> {
 
             });
         } else {
-            System.out.println("NOT using ModuleOp for CudaBackend");
+            System.out.println("NOT using ModuleOp for MockBackend");
             kernelCallGraph.kernelReachableResolvedStream().forEach(kr -> {
 
             });
