@@ -258,7 +258,11 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
         std::cout << "[INFO] OpenCLBackend::OpenCLQueue::dispatch" << std::endl;
         std::cout << "[INFO] numDimensions: " << numDimensions << std::endl;
         std::cout << "[INFO] GLOBAL [" << global_work_size[0] << "," << global_work_size[1] << "," << global_work_size[2] << "]" << std::endl;
-        std::cout << "[INFO] LOCAL  [" << local_work_size[0] << "," << local_work_size[1] << "," << local_work_size[2] << "]" << std::endl;
+        if (kernelContext->localMesh.maxX > 0) {
+            std::cout << "[INFO] LOCAL  [" << local_work_size[0] << "," << local_work_size[1] << "," << local_work_size[2] << "]" << std::endl;
+        } else {
+            std::cout << "[INFO] LOCAL  [ nullptr ] // The driver will setup a default value" << std::endl;
+        }
     }
 
     cl_int status = clEnqueueNDRangeKernel(
@@ -267,7 +271,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
         numDimensions,
         nullptr,
         global_work_size,
-        kernelContext->localMesh.maxX> 0 ? local_work_size : nullptr,
+        kernelContext->localMesh.maxX > 0 ? local_work_size : nullptr,
         eventc,
         eventListPtr(),
         nextEventPtr());
