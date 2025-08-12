@@ -132,6 +132,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else {
             // In the case we call a new invoke method and pass the kernel context around, t
             // then we need to do the mapping between the Java type and its low level interface
+            // TODO: Check if there is a better way to obtain the type information using
+            // the code reflection APIs and avoid string comparisons.
             String kernelContextFullClassName = KernelContext.class.getCanonicalName();
             if (javaType.toString().equals(kernelContextFullClassName)) {
                 typeName("KernelContext_t *");
