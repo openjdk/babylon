@@ -38,6 +38,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
+import hat.optools.FuncOpWrapper;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -145,8 +146,13 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 });
 
         // Sorting by rank ensures we don't need forward declarations
-        kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
-                .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(kernelReachableResolvedMethod).nl());
+        if (Boolean.getBoolean("moduleOp")) {
+            kernelCallGraph.moduleOpWrapper.functionTable()
+                    .forEach((_, funcOp) -> builder.nl().kernelMethod(new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup, funcOp)).nl());
+        } else {
+            kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
+                    .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(kernelReachableResolvedMethod).nl());
+        }
 
         builder.nl().kernelEntrypoint(kernelCallGraph.entrypoint, args).nl();
 
