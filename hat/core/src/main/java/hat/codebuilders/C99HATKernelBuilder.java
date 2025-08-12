@@ -25,6 +25,7 @@
 package hat.codebuilders;
 
 
+import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
@@ -37,6 +38,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 
+import javax.annotation.processing.SupportedSourceVersion;
 import java.lang.foreign.GroupLayout;
 
 import java.util.function.Consumer;
@@ -117,7 +119,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract T globalPtrPrefix();
 
     @Override
-    public T type(CodeBuilderContext buildContext,JavaType javaType) {
+    public T type(CodeBuilderContext buildContext, JavaType javaType) {
         if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup(),javaType) && javaType instanceof ClassType classType) {
             globalPtrPrefix().space();
             String name = classType.toClassName();
@@ -129,7 +131,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             }
             suffix_t(name).asterisk();
         } else {
-            typeName(javaType.toString());
+            // In the case we call a new invoke method and pass the kernel context around, t
+            // then we need to do the mapping between the Java type and its low level interface
+            // TODO: Check if there is a better way to obtain the type information using
+            // the code reflection APIs and avoid string comparisons.
+            String kernelContextFullClassName = KernelContext.class.getCanonicalName();
+            if (javaType.toString().equals(kernelContextFullClassName)) {
+                typeName("KernelContext_t *");
+            } else {
+                typeName(javaType.toString());
+            }
         }
 
         return self();
