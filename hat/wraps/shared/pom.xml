@@ -33,7 +33,7 @@ questions.
         <artifactId>hat-wraps</artifactId>
         <version>1.0</version>
     </parent>
-    <build> 
+    <build>
       <plugins>
         <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -56,5 +56,4 @@ questions.
             </plugin>
       </plugins>
     </build>
-
 </project>
