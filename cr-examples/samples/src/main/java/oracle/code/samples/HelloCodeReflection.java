@@ -29,9 +29,11 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -109,7 +111,19 @@ public class HelloCodeReflection {
         Block.Parameter _second = ssaCodeModel.body().entryBlock().parameters().get(1);
         System.out.println("Second parameter: " + _second);
 
-        // Another way to print a code model, traversing each element until we reach the parent
+        // We can generate Java bytecode from a code model.
+        // The BytecodeGenerator.generate method receives a code model, and returns
+        // a method handle to be able to invoke the code.
+        MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), ssaCodeModel);
+        try {
+            var res = methodHandle.invoke(obj, 10);
+            System.out.println("Result from bytecode generation: " + res);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+
+        // Just for illustration purposes, this is another way to print a code model,
+        // traversing each element until we reach the parent
         codeModel.traverse(null, (acc, codeElement) -> {
             int depth = 0;
             CodeElement<?, ?> parent = codeElement;
