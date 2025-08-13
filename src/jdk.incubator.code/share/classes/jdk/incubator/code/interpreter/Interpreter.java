@@ -108,12 +108,16 @@ public final class Interpreter {
             Object rv = args.get(i);
             try {
                 JavaType typeToResolve = switch (sv.type()) {
-                    case PrimitiveType pt -> pt.box().orElseThrow();
+                    // @@@ Deconstruct and test what the var holds
+                    case VarType _ -> JavaType.type(CoreOp.Var.class);
+                    // Allow reflection to convert between primitive values
+                    // @@@ Check conversion compatible
+                    case PrimitiveType _ -> JavaType.J_L_OBJECT;
                     case JavaType jt -> jt;
                     default -> throw new IllegalStateException("Unexpected type: " + sv.type());
                 };
                 Class<?> c = typeToResolve.toNominalDescriptor().resolveConstantDesc(l);
-                if (!c.isInstance(rv)) {
+                if (rv != null && !c.isInstance(rv)) {
                     throw interpreterException(new IllegalArgumentException(("Runtime argument at position %d has type %s " +
                             "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), sv.type())));
                 }
