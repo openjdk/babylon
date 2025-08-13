@@ -78,7 +78,9 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
             Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();
             try {
                 method = methodRef.resolveToMethod(l, invokeOpWrapper.op().invokeKind());
-            } catch (ReflectiveOperationException _) {}
+            } catch (ReflectiveOperationException _) {
+                throw new IllegalStateException("Could not resolve invokeWrapper to method");
+            }
             Optional<CoreOp.FuncOp> f = Op.ofMethod(method);
             if (f.isPresent() && !callGraph.filterCalls(f.get(), invokeOpWrapper, method, methodRef, javaRefTypeClass)) {
                 work.push(new RefAndFunc(methodRef, new FuncOpWrapper(l, f.get())));
@@ -98,7 +100,9 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
                     Method invokeOpCalledMethod = null;
                     try {
                         invokeOpCalledMethod = methodRef.resolveToMethod(l, iop.invokeKind());
-                    } catch (ReflectiveOperationException _) {}
+                    } catch (ReflectiveOperationException _) {
+                        throw new IllegalStateException("Could not resolve invokeWrapper to method");
+                    }
                     if (invokeOpCalledMethod instanceof Method m) {
                         Optional<CoreOp.FuncOp> f = Op.ofMethod(m);
                         if (f.isPresent()) {
