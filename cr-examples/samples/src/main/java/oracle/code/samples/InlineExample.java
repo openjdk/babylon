@@ -43,6 +43,13 @@ import java.util.stream.Stream;
  * Example of inlining based on one of the example from the code-reflection unit-tests.
  * This example illustrates how to embed a value into a function and propagate that
  * change in the code model.
+ *
+ * <p>
+ *     How to run from the terminal?
+ *     <code>
+ *      java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.InlineExample
+ *     </code>
+ * </p>
  */
 public class InlineExample {
 
