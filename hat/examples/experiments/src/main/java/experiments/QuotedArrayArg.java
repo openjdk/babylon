@@ -33,7 +33,7 @@ import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
 
-public class QuotedConstantArgs {
+public class QuotedArrayArg {
     @CodeReflection
     public static void addScalerKernel(@MappableIface.RO KernelContext kc, @MappableIface.RO S32Array in, @MappableIface.WO S32Array out, int scaler) {
         out.array(kc.x, in.array(kc.x) + scaler);
@@ -49,13 +49,20 @@ public class QuotedConstantArgs {
         S32Array in = S32Array.create(accelerator, 32);
         in.fill((idx) -> idx);
         S32Array out = S32Array.create(accelerator, 32);
+        int[] array = new int[]{1};
+        int index = 0;
+        // This works
         if (args.length == 0) {
-            int value = 1;
-            accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, value));
-        }else if (args.length == 1 && args[0].equals("passConstant")) {
-            accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, 1));
-        }else{
-            throw new IllegalArgumentException("Invalid arguments either zero args or passConstant");
+            int lvar = array[index];
+            accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out,lvar));
+        }else {
+            if (args.length == 1 && args[0].equals("passIndex")) {
+                accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[index]));
+            }else if (args.length == 1 && args[0].equals("passZero")) {
+                accelerator.compute(computeContext -> QuotedConstantArgs.addScalerCompute(computeContext, in, out, array[0]));
+            }else{
+                throw new IllegalArgumentException("Invalid args either no args, passIndex or passZero");
+            }
         }
         for (int i = 0; i < in.length(); i++) {
             System.out.println("["+i+"]  in=" + in.array(i) + " out=" + out.array(i));
