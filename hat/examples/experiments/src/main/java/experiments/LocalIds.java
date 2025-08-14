@@ -38,6 +38,12 @@ import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
 
+/**
+ * How to test?
+ * <code>
+ *     HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-opencl LocalIds
+ * </code>
+ */
 public class LocalIds {
 
     @CodeReflection
@@ -67,16 +73,15 @@ public class LocalIds {
         S32Array arrayB = S32Array.create(accelerator, size);
         S32Array arrayC = S32Array.create(accelerator, size);
 
-        // Set value to 0
-        for (int i = 0; i < size; i++) {
-            arrayA.array(i, 0);
-            arrayB.array(i, 0);
-            arrayC.array(i, 0);
-        }
+        // Set initial value to 0
+        arrayA.fill(i -> 0);
+        arrayB.fill(i -> 0);
+        arrayC.fill(i -> 0);
 
+        // Compute on the accelerator
         accelerator.compute( cc -> LocalIds.mySimpleCompute(cc, arrayA, arrayB, arrayC));
 
-        System.out.println("Finished");
+        System.out.println("Execution finished");
         System.out.println("Result Locals: ");
         for (int i = 0; i < arrayA.length(); i++) {
             System.out.println(arrayA.array(i));
