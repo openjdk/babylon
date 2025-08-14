@@ -124,7 +124,6 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
      * @param range
      * @param quotableKernelContextConsumer
      */
-
     public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         dispatchKernel(range, 0, 0, 1, quotableKernelContextConsumer);
     }
@@ -137,13 +136,24 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         dispatchKernel(rangeX, rangeY, rangeZ, 3, quotableKernelContextConsumer);
     }
 
-    private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+    public void dispatchKernel(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+        dispatchKernelWithComputeRange(computeRange, quotableKernelContextConsumer);
+    }
+
+    record CallGraph(Quoted quoted, LambdaOpWrapper lambdaOpWrapper, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
+
+    private CallGraph buildKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap(computeCallGraph.computeContext.accelerator.lookup,(JavaOp.LambdaOp) quoted.op());
         MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+        return new CallGraph(quoted, lambdaOpWrapper, methodRef, kernelCallGraph);
+    }
+
+    private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+        CallGraph cg = buildKernelCallGraph(quotableKernelContextConsumer);
         try {
-            Object[] args = lambdaOpWrapper.getQuotableCapturedValues(quoted, kernelCallGraph.entrypoint.method);
+            Object[] args = cg.lambdaOpWrapper.getQuotableCapturedValues(cg.quoted, cg.kernelCallGraph.entrypoint.method);
             NDRange ndRange;
             switch (dimNumber) {
                 case 1 -> ndRange = accelerator.range(rangeX);
@@ -152,13 +162,27 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
                 default -> throw new RuntimeException("[Error] Unexpected dimension value: " + dimNumber + ". Allowed dimensions <1, 2, 3>");
             }
             args[0] = ndRange;
-            accelerator.backend.dispatchKernel(kernelCallGraph, ndRange, args);
+            accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);
         } catch (Throwable t) {
-            System.out.print("what?" + methodRef + " " + t);
+            System.out.print("what?" + cg.methodRef + " " + t);
             throw t;
         }
     }
 
+    private void dispatchKernelWithComputeRange(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+        CallGraph cg = buildKernelCallGraph(quotableKernelContextConsumer);
+        try {
+            Object[] args = cg.lambdaOpWrapper.getQuotableCapturedValues(cg.quoted, cg.kernelCallGraph.entrypoint.method);
+            NDRange ndRange = accelerator.range(computeRange);
+            args[0] = ndRange;
+            accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);
+        } catch (Throwable t) {
+            System.out.print("what?" + cg.methodRef + " " + t);
+            throw t;
+        }
+    }
+
+    @Override
     public void preMutate(Buffer b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
             bufferTracker.preMutate(b);

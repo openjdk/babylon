@@ -181,7 +181,6 @@ void OpenCLBackend::OpenCLQueue::marker(int bits, const char *arg) {
     inc(bits, arg);
 }
 
-
 void OpenCLBackend::OpenCLQueue::computeStart() {
     wait(); // should be no-op
     release(); // also ;
@@ -241,13 +240,30 @@ OpenCLBackend::OpenCLQueue::~OpenCLQueue() {
 }
 
 void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) {
-    size_t numDimensions = kernelContext->dimensions;
+    size_t numDimensions = kernelContext->globalMesh.dimensions;
 
-    size_t global_work_size[]{
-        static_cast<size_t>(kernelContext->maxX),
-        static_cast<size_t>(kernelContext->maxY),
-        static_cast<size_t>(kernelContext->maxZ)
+    size_t global_work_size[] {
+        static_cast<size_t>(kernelContext->globalMesh.maxX),
+        static_cast<size_t>(kernelContext->globalMesh.maxY),
+        static_cast<size_t>(kernelContext->globalMesh.maxZ)
     };
+
+    size_t local_work_size[] = {
+        static_cast<size_t>(kernelContext->localMesh.maxX),
+        static_cast<size_t>(kernelContext->localMesh.maxY),
+        static_cast<size_t>(kernelContext->localMesh.maxZ),
+    };
+
+    if (backend->config->info) {
+        std::cout << "[INFO] OpenCLBackend::OpenCLQueue::dispatch" << std::endl;
+        std::cout << "[INFO] numDimensions: " << numDimensions << std::endl;
+        std::cout << "[INFO] GLOBAL [" << global_work_size[0] << "," << global_work_size[1] << "," << global_work_size[2] << "]" << std::endl;
+        if (kernelContext->localMesh.maxX > 0) {
+            std::cout << "[INFO] LOCAL  [" << local_work_size[0] << "," << local_work_size[1] << "," << local_work_size[2] << "]" << std::endl;
+        } else {
+            std::cout << "[INFO] LOCAL  [ nullptr ] // The driver will setup a default value" << std::endl;
+        }
+    }
 
     cl_int status = clEnqueueNDRangeKernel(
         command_queue,
@@ -255,7 +271,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
         numDimensions,
         nullptr,
         global_work_size,
-        nullptr, // TODO: Select a local work group instead of the default one
+        kernelContext->localMesh.maxX > 0 ? local_work_size : nullptr,
         eventc,
         eventListPtr(),
         nextEventPtr());
@@ -265,7 +281,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
 
     OPENCL_CHECK(status, "clEnqueueNDRangeKernel");
     if (backend->config->trace | backend->config->traceEnqueues) {
-        std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << kernelContext->maxX <<
+        std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << kernelContext->globalMesh.maxX <<
                 std::endl;
     }
 }

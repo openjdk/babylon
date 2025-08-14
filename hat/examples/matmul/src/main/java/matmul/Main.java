@@ -26,7 +26,11 @@ package matmul;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
+import hat.GlobalMesh1D;
+import hat.GlobalMesh2D;
 import hat.KernelContext;
+import hat.LocalMesh2D;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -149,30 +153,36 @@ public class Main {
     }
 
     @CodeReflection
-    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size,
-                kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(globalSize));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
+    final static int BLOCK_SIZE = 16;
+
     @CodeReflection
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size,
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size));
+        cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @CodeReflection
-    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size, size,
-                kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
-    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size, size,
-                kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
