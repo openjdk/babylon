@@ -147,9 +147,11 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
         // Sorting by rank ensures we don't need forward declarations
         if (Boolean.getBoolean("moduleOp")) {
+            System.out.println("Using ModuleOp for C99FFIBackend");
             kernelCallGraph.moduleOpWrapper.functionTable()
                     .forEach((_, funcOp) -> builder.nl().kernelMethod(new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup, funcOp)).nl());
         } else {
+            System.out.println("NOT using ModuleOp for C99FFIBackend");
             kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
                     .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(kernelReachableResolvedMethod).nl());
         }

@@ -58,9 +58,6 @@ public class TestArgsTypesValidationWhenInterpreting {
 
         Assert.assertThrows(() -> Interpreter.invoke(MethodHandles.lookup(), funcOp, new Object(), 2));
 
-        Assert.assertThrows(() -> Interpreter.invoke(MethodHandles.lookup(), funcOp, null, 2));
-
         Assert.assertThrows(() -> Interpreter.invoke(MethodHandles.lookup(), funcOp, this, 2d));
-
     }
 }

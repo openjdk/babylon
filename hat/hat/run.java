@@ -172,7 +172,7 @@ void main(String[] argv) {
               }
               default -> {}
           }
-          if (config.moduleOp) System.out.println("Currently using ModuleOp config for CallGraphs");
+          if (config.moduleOp) System.out.println("Using ModuleOp for CallGraphs");
       }
       Script.java(java -> java
               .enable_preview()

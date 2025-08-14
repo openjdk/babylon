@@ -411,6 +411,7 @@ public class CudaBackend extends C99FFIBackend {
         out.append(builder.getTextAndReset());
 
         if (Boolean.getBoolean("moduleOp")) {
+            System.out.println("Using ModuleOp for CudaBackend");
             kernelCallGraph.moduleOpWrapper.functionTable().forEach((_, funcOp) -> {
                 FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,funcOp);
                 FuncOpWrapper loweredFunc = calledFunc.lower();
@@ -418,6 +419,7 @@ public class CudaBackend extends C99FFIBackend {
                 invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
             });
         } else {
+            System.out.println("NOT using ModuleOp for CudaBackend");
             for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
                 FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op());
                 FuncOpWrapper loweredFunc = calledFunc.lower();
