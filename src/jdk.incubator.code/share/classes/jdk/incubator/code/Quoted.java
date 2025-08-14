@@ -101,14 +101,44 @@ public final class Quoted {
         return capturedValues;
     }
 
-    // Take an op from its original context to a new one where operands and captured values are parameters
+    /**
+     * Copy {@code op} from its original context to a new one,
+     * where its operands and captured values will be parameters.
+     * <p>
+     * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp FuncOp}
+     * that has one body with one block (<i>fblock</i>).
+     * <br>
+     * <i>fblock</i> will have a parameter for every {@code op}'s operand and capture
+     * (excluding captured values that are operands).
+     * If the operand or capture is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp},
+     * <i>fblock</i> will have a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp}
+     * whose initial value is the parameter.
+     * <br>
+     * Then <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp QuotedOp}
+     * that has one body with one block (<i>qblock</i>).
+     * Inside <i>qblock</i> we find a copy of {@code op}
+     * and a {@link jdk.incubator.code.dialect.core.CoreOp.YieldOp YieldOp}
+     * whose yield value is the result of the {@code op}'s copy.
+     * <br>
+     * <i>fblock</i> terminates with a {@link jdk.incubator.code.dialect.core.CoreOp.ReturnOp ReturnOp},
+     * the returned value is the result of the {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp QuotedOp}
+     * object described previously.
+     *
+     * @param op The operation to quote
+     * @return The model that represent the quoting of {@code op}
+     * @throws IllegalArgumentException if {@code op} is not bound
+    * */
     public static CoreOp.FuncOp quoteOp(Op op) {
 
         if (op.result() == null) {
             throw new IllegalArgumentException("Op not bound");
         }
 
-        List<Value> inputOperandsAndCaptures = Stream.concat(op.operands().stream(), op.capturedValues().stream()).toList();
+        // cv that is an operand shouldn't be considered
+        List<Value> operands = op.operands();
+        List<Value> cvs = op.capturedValues();
+        cvs.removeIf(operands::contains);
+        List<Value> inputOperandsAndCaptures = Stream.concat(operands.stream(), cvs.stream()).toList();
 
         // Build the function type
         List<TypeElement> params = inputOperandsAndCaptures.stream()
@@ -148,7 +178,21 @@ public final class Quoted {
         return new RuntimeException("Invalid code model for quoted operation : " + model);
     }
 
-    // Extract the quoted operation from funcOp and maps the operands and captured values to the runtime values
+    /**
+     * Extract the quoted operation from {@code funcOp}
+     * and map its operands and captured values to the runtime values in {@code args}.
+     * <p>
+     * {@code funcOp} must have the same structure as if it's produced by {@link #quoteOp(Op)}.
+     * In addition, we allow ConstantOp to appear in {@code funcOp} entry block.
+     *
+     * @param funcOp Model to extract the quoted op from
+     * @param args Runtime values for {@code funcOp} parameters
+     * @return Quoted instance that wraps the quoted operation,
+     * plus the mapping of its operands and captured values to the given runtime values
+     * @throws RuntimeException If {@code funcOp} isn't a valid code model
+     * @throws RuntimeException If {@code funcOp} parameters size is different from {@code args} length
+
+    * */
     // @@@ Add List<Object> accepting method, varargs array defers to it
     public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object... args) {
 
@@ -181,13 +225,20 @@ public final class Quoted {
         operandsAndCaptures.addAll(op.operands());
         operandsAndCaptures.addAll(op.capturedValues());
 
-        // validation rule of block params and constant op result
+        // validation rule of block params and ConstantOp result
+        // let v be a block param or ConstantOp result
+        // if v not used -> throw
+        // if v used once and user is VarOp and VarOp not used or VarOp used in funcOp entry block -> throw
+        // if v is used once and user is not a VarOp and usage isn't as operand or capture -> throw
+        // if v is used more than once and one of the uses is in funcOp entry block -> throw
         Consumer<Value> validate = v -> {
             if (v.uses().isEmpty()) {
                 throw invalidQuotedModel(funcOp);
-            } else if (v.uses().size() == 1
-                    && !(v.uses().iterator().next().op() instanceof CoreOp.VarOp vop && vop.result().uses().size() >= 1
-                    && vop.result().uses().stream().noneMatch(u -> u.op().ancestorBlock() == fblock))
+            } else if (v.uses().size() == 1 && v.uses().iterator().next().op() instanceof CoreOp.VarOp vop
+                    && (vop.result().uses().isEmpty() ||
+                    vop.result().uses().stream().anyMatch(u -> u.op().ancestorBlock() == fblock))) {
+                throw invalidQuotedModel(funcOp);
+            } else if (v.uses().size() == 1 && !(v.uses().iterator().next().op() instanceof CoreOp.VarOp)
                     && !operandsAndCaptures.contains(v)) {
                 throw invalidQuotedModel(funcOp);
             } else if (v.uses().size() > 1 && v.uses().stream().anyMatch(u -> u.op().ancestorBlock() == fblock)) {
@@ -215,8 +266,8 @@ public final class Quoted {
             }
         }
 
-        // map captured values to their corresponding runtime values
-        // captured value can be:
+        // map operands and captures to their corresponding runtime values
+        // operand and capture can be:
         // 1- block param
         // 2- result of VarOp whose initial value is constant
         // 3- result of VarOp whose initial value is block param
