@@ -58,7 +58,7 @@ public interface KernelBufferContext extends Buffer {
 
     Schema<KernelBufferContext> schemaKernelBufferContext = Schema.of(KernelBufferContext.class,
             kernelBufferContext -> kernelBufferContext
-                    .field("globalMesh", f -> f.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"))
+                    .field("globalMesh", f -> f.fields("x", "maxX", "y", "maxY", "z", "maxZ", "dimensions"))
                     .field("localMesh", f -> f.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"))
             );
 

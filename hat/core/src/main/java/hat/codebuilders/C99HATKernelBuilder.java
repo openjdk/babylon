@@ -72,16 +72,26 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     intDeclaration("x").semicolonNl();
                     intDeclaration("maxX").semicolonNl();
 
+                    if (ndRange.kid.getDimensions() > 1) {
+                        // The code builder needs the NDRange
+                        intDeclaration("y").semicolonNl();
+                        intDeclaration("maxY").semicolon().nl();
+                    }
+
+                    if (ndRange.kid.getDimensions() > 2) {
+                        // The code builder needs the NDRange
+                        intDeclaration("z").semicolonNl();
+                        intDeclaration("maxZ").semicolon().nl();
+                    }
+
+                    // Because of order of serializataion, we need to put
+                    // these new members at the end.
                     intDeclaration("gix").semicolonNl();
                     intDeclaration("lix").semicolonNl();
                     intDeclaration("lsx").semicolonNl();
                     intDeclaration("bsx").semicolonNl();
 
                     if (ndRange.kid.getDimensions() > 1) {
-                        // The code builder needs the NDRange
-                        intDeclaration("y").semicolonNl();
-                        intDeclaration("maxY").semicolon().nl();
-
                         intDeclaration("giy").semicolon().nl();
                         intDeclaration("liy").semicolonNl();
                         intDeclaration("lsy").semicolonNl();
@@ -89,18 +99,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     }
 
                     if (ndRange.kid.getDimensions() > 2) {
-                        // The code builder needs the NDRange
-                        intDeclaration("z").semicolonNl();
-                        intDeclaration("maxZ").semicolon().nl();
-
                         intDeclaration("giz").semicolon().nl();
                         intDeclaration("liz").semicolonNl();
                         intDeclaration("lsz").semicolonNl();
                         intDeclaration("bsz").semicolonNl();
                     }
-
-                    // It could be an alternative solution for doing this:
-                    // NDRAnge is an iFACE with some restrictions
                 });
     }
 
@@ -133,7 +136,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
             identifier("kc").rarrow().identifier("giy").equals().globalId(1).semicolon().nl();
             identifier("kc").rarrow().identifier("liy").equals().localId(1).semicolon().nl();
-            identifier("kc").rarrow().identifier("lsy").equals().localSize(1).semicolon().nl();;
+            identifier("kc").rarrow().identifier("lsy").equals().localSize(1).semicolon().nl();
             identifier("kc").rarrow().identifier("bsy").equals().blockSize(1).semicolon().nl();
         }
         if (ndRange.kid.getDimensions() > 2) {
@@ -142,7 +145,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
             identifier("kc").rarrow().identifier("giz").equals().globalId(2).semicolon().nl();
             identifier("kc").rarrow().identifier("liz").equals().localId(2).semicolon().nl();
-            identifier("kc").rarrow().identifier("lsz").equals().localSize(2).semicolon().nl();;
+            identifier("kc").rarrow().identifier("lsz").equals().localSize(2).semicolon().nl();
             identifier("kc").rarrow().identifier("bsz").equals().blockSize(2).semicolon().nl();
         }
         return self();
