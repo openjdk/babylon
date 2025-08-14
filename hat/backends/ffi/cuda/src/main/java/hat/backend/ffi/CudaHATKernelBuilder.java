@@ -49,8 +49,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    @Override
-    public CudaHATKernelBuilder globalId(int id) {
+    private String buildThreadDimId(int id) {
         String threadDimId;
         if (id == 0) {
             threadDimId = "x";
@@ -61,6 +60,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         } else {
             throw new RuntimeException("Thread Dimension not supported");
         }
+        return threadDimId;
+    }
+
+    @Override
+    public CudaHATKernelBuilder globalId(int id) {
+        String threadDimId = buildThreadDimId(id);
         return identifier("blockIdx").dot().identifier(threadDimId)
                 .asterisk()
                 .identifier("blockDim").dot().identifier(threadDimId)
@@ -69,20 +74,29 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    public CudaHATKernelBuilder localId(int id) {
+        String threadDimId = buildThreadDimId(id);
+        return identifier("threadIdx").dot().identifier(threadDimId);
+    }
+
+    @Override
     public CudaHATKernelBuilder globalSize(int id) {
-        String threadDimId;
-        if (id == 0) {
-            threadDimId = "x";
-        } else if (id == 1) {
-            threadDimId = "y";
-        } else if (id == 2) {
-            threadDimId = "z";
-        } else {
-            throw new RuntimeException("Thread Dimension not supported");
-        }
+        String threadDimId = buildThreadDimId(id);
         return identifier("gridDim").dot().identifier(threadDimId)
                 .asterisk()
                 .identifier("blockDim").dot().identifier(threadDimId);
+    }
+
+    @Override
+    public CudaHATKernelBuilder localSize(int id) {
+        String threadDimId = buildThreadDimId(id);
+        return identifier("blockDim").dot().identifier(threadDimId);
+    }
+
+    @Override
+    public CudaHATKernelBuilder blockSize(int id) {
+        String threadDimId = buildThreadDimId(id);
+        return identifier("blockIdx").dot().identifier(threadDimId);
     }
 
 

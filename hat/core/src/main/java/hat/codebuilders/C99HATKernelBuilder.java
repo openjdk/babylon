@@ -72,16 +72,31 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     intDeclaration("x").semicolonNl();
                     intDeclaration("maxX").semicolonNl();
 
+                    intDeclaration("gix").semicolonNl();
+                    intDeclaration("lix").semicolonNl();
+                    intDeclaration("lsx").semicolonNl();
+                    intDeclaration("bsx").semicolonNl();
+
                     if (ndRange.kid.getDimensions() > 1) {
                         // The code builder needs the NDRange
                         intDeclaration("y").semicolonNl();
                         intDeclaration("maxY").semicolon().nl();
+
+                        intDeclaration("giy").semicolon().nl();
+                        intDeclaration("liy").semicolonNl();
+                        intDeclaration("lsy").semicolonNl();
+                        intDeclaration("bsy").semicolonNl();
                     }
 
                     if (ndRange.kid.getDimensions() > 2) {
                         // The code builder needs the NDRange
                         intDeclaration("z").semicolonNl();
                         intDeclaration("maxZ").semicolon().nl();
+
+                        intDeclaration("giz").semicolon().nl();
+                        intDeclaration("liz").semicolonNl();
+                        intDeclaration("lsz").semicolonNl();
+                        intDeclaration("bsz").semicolonNl();
                     }
 
                     // It could be an alternative solution for doing this:
@@ -105,13 +120,30 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         identifier("KernelContext_t").asterisk().space().identifier("kc").equals().ampersand().identifier("mine").semicolon().nl();
         identifier("kc").rarrow().identifier("x").equals().globalId(0).semicolon().nl();
         identifier("kc").rarrow().identifier("maxX").equals().identifier("global_kc").rarrow().identifier("maxX").semicolon().nl();
+
+        //
+        identifier("kc").rarrow().identifier("gix").equals().globalId(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("lix").equals().localId(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("lsx").equals().localSize(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("bsx").equals().blockSize(0).semicolon().nl();
+
         if (ndRange.kid.getDimensions() > 1) {
             identifier("kc").rarrow().identifier("y").equals().globalId(1).semicolon().nl();
             identifier("kc").rarrow().identifier("maxY").equals().identifier("global_kc").rarrow().identifier("maxY").semicolon().nl();
+
+            identifier("kc").rarrow().identifier("giy").equals().globalId(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("liy").equals().localId(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("lsy").equals().localSize(1).semicolon().nl();;
+            identifier("kc").rarrow().identifier("bsy").equals().blockSize(1).semicolon().nl();
         }
         if (ndRange.kid.getDimensions() > 2) {
             identifier("kc").rarrow().identifier("z").equals().globalId(2).semicolon().nl();
             identifier("kc").rarrow().identifier("maxZ").equals().identifier("global_kc").rarrow().identifier("maxZ").semicolon().nl();
+
+            identifier("kc").rarrow().identifier("giz").equals().globalId(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("liz").equals().localId(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("lsz").equals().localSize(2).semicolon().nl();;
+            identifier("kc").rarrow().identifier("bsz").equals().blockSize(2).semicolon().nl();
         }
         return self();
     }
@@ -233,6 +265,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T globalId(int id);
 
+    public abstract T localId(int id);
+
     public abstract T globalSize(int id);
+
+    public abstract T localSize(int id);
+
+    public abstract T blockSize(int id);
 
 }
