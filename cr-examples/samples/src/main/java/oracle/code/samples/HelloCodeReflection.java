@@ -63,7 +63,10 @@ public class HelloCodeReflection {
         this.value = value;
     }
 
-    // instance method with no accessors to any field in the function body
+    // Code Reflection methods are annotated with @CodeReflection.
+    // When javac sees an annotated method with @CodeReflection, it stores
+    // metadata in the ClassFile to be able to query and manipulate
+    // code models at runtime.
     @CodeReflection
     private double myFunction(int value) {
         return Math.pow(value, 2);
@@ -81,38 +84,42 @@ public class HelloCodeReflection {
 
         HelloCodeReflection obj = new HelloCodeReflection(5);
 
+        // 1. Build the code model of the annotated method
+        // 1.1 We use reflection to obtain the list of methods declared within a function and f
+        //     filter for the one we want to build the code model.
         Optional<Method> myFunction = Stream.of(HelloCodeReflection.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals("myFunction"))
                 .findFirst();
 
+        // 1.2 Obtain the method object
         Method m = myFunction.get();
 
-        // Obtain the code model for the annotated method
+        // 1.3 Obtain the code model for the annotated method
         CoreOp.FuncOp codeModel = Op.ofMethod(m).get();
 
-        // Print the code model of the annotated method
+        // 2. Print the code model of the annotated method
         String codeModelString = codeModel.toText();
         System.out.println(codeModelString);
 
-        // Transform the code model to an SSA representation
+        // 3. Transform the code model to an SSA representation
         CoreOp.FuncOp ssaCodeModel = SSA.transform(codeModel);
         System.out.println("SSA Representation of a code model");
         System.out.println(ssaCodeModel.toText());
 
-        // Evaluate a code model
-        // because it is an instance method, the first parameter refers to `this`.
+        // 4. Evaluate a code model
+        // Note: because it is an instance method, the first parameter refers to `this`.
         var result = Interpreter.invoke(MethodHandles.lookup(), ssaCodeModel, obj, 10);
         System.out.println("Evaluate a code model");
         System.out.println(result);
 
-        // Obtain parameters to the method
+        // 5. We can obtain parameters to the method
         Block.Parameter _this = ssaCodeModel.body().entryBlock().parameters().get(0);
         System.out.println("First parameter: " + _this);
         Block.Parameter _second = ssaCodeModel.body().entryBlock().parameters().get(1);
         System.out.println("Second parameter: " + _second);
 
-        // We can generate Java bytecode from a code model.
-        // The BytecodeGenerator.generate method receives a code model, and returns
+        // 6. Generate bytecodes from the lowered code model.
+        // Note: The BytecodeGenerator.generate method receives a code model, and returns
         // a method handle to be able to invoke the code.
         MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), ssaCodeModel);
         try {
@@ -122,6 +129,7 @@ public class HelloCodeReflection {
             throw new RuntimeException(e);
         }
 
+        // 7. AST Printer
         // Just for illustration purposes, this is another way to print a code model,
         // traversing each element until we reach the parent
         codeModel.traverse(null, (acc, codeElement) -> {

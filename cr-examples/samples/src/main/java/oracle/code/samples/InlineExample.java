@@ -98,10 +98,12 @@ public class InlineExample {
                             Inliner.INLINE_RETURN);
                 });
 
+        // 3. Print the resulting code model
         System.out.println(f.toText());
 
+        // 4. Evaluate the code model using the Code Reflection Interpreter
         var result = Interpreter.invoke(MethodHandles.lookup(), f, 10.f, 20.f);
-        // 10 * 50 + 20 => 520.0f
+        // We expect: 10 * 50 + 20 => 520.0f
         System.out.println("Result: " + result);
     }
 }
