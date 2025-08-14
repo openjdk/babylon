@@ -40,20 +40,22 @@ import java.lang.invoke.MethodHandles;
 
 public class LocalIds {
 
-    // NOTE: Do not forget to add accessor for each parameter.
     @CodeReflection
-    private static void assignLocalIds(@RO KernelContext context, @RW S32Array array) {
+    private static void assign(@RO KernelContext context, @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
         int gix = context.gix;
         int lix = context.lix;
+        int lsx = context.lsx;
         int bsx = context.bsx;
-        array.array(gix, bsx);
+        arrayA.array(gix, lix);
+        arrayB.array(gix, lsx);
+        arrayC.array(gix, bsx);
     }
 
     @CodeReflection
-    private static void mySimpleCompute(@RO ComputeContext cc, @RW S32Array array) {
+    private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
         // 2 groups of 16 threads each
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32), new LocalMesh1D(4));
-        cc.dispatchKernel(computeRange, kc -> assignLocalIds(kc, array));
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32), new LocalMesh1D(16));
+        cc.dispatchKernel(computeRange, kc -> assign(kc, arrayA, arrayB, arrayC));
     }
 
     public static void main(String[] args) {
@@ -61,19 +63,33 @@ public class LocalIds {
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 32;
-        S32Array array = S32Array.create(accelerator, size);
+        S32Array arrayA = S32Array.create(accelerator, size);
+        S32Array arrayB = S32Array.create(accelerator, size);
+        S32Array arrayC = S32Array.create(accelerator, size);
 
         // Set value to 0
         for (int i = 0; i < size; i++) {
-            array.array(i, 0);
+            arrayA.array(i, 0);
+            arrayB.array(i, 0);
+            arrayC.array(i, 0);
         }
 
-        accelerator.compute( cc -> LocalIds.mySimpleCompute(cc, array));
+        accelerator.compute( cc -> LocalIds.mySimpleCompute(cc, arrayA, arrayB, arrayC));
 
         System.out.println("Finished");
-        System.out.println("Result: ");
-        for (int i = 0; i < array.length(); i++) {
-            System.out.println(array.array(i));
+        System.out.println("Result Locals: ");
+        for (int i = 0; i < arrayA.length(); i++) {
+            System.out.println(arrayA.array(i));
+        }
+
+        System.out.println("Result Blocks: ");
+        for (int i = 0; i < arrayB.length(); i++) {
+            System.out.println(arrayB.array(i));
+        }
+
+        System.out.println("Result Block ID: ");
+        for (int i = 0; i < arrayC.length(); i++) {
+            System.out.println(arrayC.array(i));
         }
     }
 
