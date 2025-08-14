@@ -61,6 +61,7 @@ public class InlineExample {
         return a * b + c;
     }
 
+    // Utility for building a code model from a given method from a class.
     private static CoreOp.FuncOp buildCodeModelForMethod(Class<?> klass, String methodName) {
         Optional<Method> function = Stream.of(klass.getDeclaredMethods())
                 .filter(m -> m.getName().equals(methodName))
@@ -72,15 +73,17 @@ public class InlineExample {
 
     public static void main(String[] args) {
 
-        // 1. Build a new function
+        // 1. Build the code model for the fma static method of this class.
         CoreOp.FuncOp fmaCodeModel = buildCodeModelForMethod(InlineExample.class, "fma");
 
+        // 2. Builds a new FuncOp with the copy of the fmaCodeModel and with the specialized values
+        // This example is useful, for example, to apply partial evaluation of expression at runtime,
         CoreOp.FuncOp f = CoreOp.func("myFunction", CoreType.functionType(JavaType.FLOAT, // return type
                                                                                     JavaType.FLOAT, // param 1
                                                                                     JavaType.FLOAT  // param 2 (the new function has 2 params
                                         ))
                 .body(blockBuilder -> {
-                    // Get parameters
+                    // Get parameters for the new function
                     Block.Parameter parameter1 = blockBuilder.parameters().get(0);
                     Block.Parameter parameter2 = blockBuilder.parameters().get(1);
 

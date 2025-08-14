@@ -235,13 +235,15 @@ public class MathOptimizer {
             return map;
         });
 
+
         // In addition, we can generate bytecodes from a new code model that
         // has been transformed.
-        MethodHandle mhNewTransform2 = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
+        // TODO: As in Babylon version 2a03661669b, the following line throws
+        // an IllegalArgumentException, but it will be fixed.
+        MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
         // And invoke the method handle result
-        var resultBC2 = mhNewTransform.invoke( 10);
+        var resultBC2 = methodHandle.invoke( 10);
         System.out.println("Result after BC generation: " + resultBC2);
-
     }
 
     // Goal: obtain and check the value of the function parameters.
