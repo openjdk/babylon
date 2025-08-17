@@ -62,31 +62,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .floatTypeDefs("f32_t")
                 .longTypeDefs("s64_t")
                 .unsignedLongTypeDefs("u64_t")
-                .typedefStructOrUnion(true, "KernelContext", _ -> {
-
-                    // The context is customized depending on the NDRange of the application:
-                    // 1D, 2D or 3D.
-                    // An alternative is to always generate the 3D range for OpenCL.
-
-                    // Kernels are, at least, 1D
-                    intDeclaration("x").semicolonNl();
-                    intDeclaration("maxX").semicolonNl();
-
-                    if (ndRange.kid.getDimensions() > 1) {
-                        // The code builder needs the NDRange
-                        intDeclaration("y").semicolonNl();
-                        intDeclaration("maxY").semicolon().nl();
-                    }
-
-                    if (ndRange.kid.getDimensions() > 2) {
-                        // The code builder needs the NDRange
-                        intDeclaration("z").semicolonNl();
-                        intDeclaration("maxZ").semicolon().nl();
-                    }
-
-                    // It could be an alternative solution for doing this:
-                    // NDRAnge is an iFACE with some restrictions
-                });
+                .lineComment("KernelContext_s created from iface buffer")
+                // Previously we created KernelContext explicitly here.  That was required before KernelContext was an iface buffer
+                // It is reasonable to use hat.codebuilders.HATCodeBuilderWithContext.typedef()
+                // But note that we pass null as first arg which is normally expected to be a bound schema
+                // Clearly this will fail if we ever make KernelContext a variant array.  But that seems unlikely.
+                .typedef(null,hat.buffer.KernelContext.schema.rootIfaceType);
     }
 
     T typedefStructOrUnion(boolean isStruct, String name, Consumer<T> consumer) {
