@@ -13,7 +13,9 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.function.IntUnaryOperator;
 
 /*
@@ -71,7 +73,7 @@ public class TestQuoteOp {
 
         Assert.assertTrue(invOp.getClass().isInstance(quoted.op()));
 
-        Iterator<Object> iterator = quoted.capturedValues().values().iterator();
+        Iterator<Object> iterator = quoted.operands().values().iterator();
 
         Assert.assertEquals(iterator.next(), args[0]);
         Assert.assertEquals(iterator.next(), args[1]);
@@ -542,5 +544,54 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
         Op op = funcOp.body().entryBlock().ops().getFirst();
         CoreOp.FuncOp qm = Quoted.quoteOp(op);
         Assert.assertEquals(qm.parameters().size(), expectedNumParams);
+    }
+
+    @Test
+    void testQuotedConstructorValidation() {
+        String s = """
+                func @"f" (%0 : java.type:"int")java.type:"void" -> {
+                      %4 : java.type:"int" = add %0 %0;
+                      return;
+                  };
+                """;
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, s).get(0);
+        Op op = funcOp.body().entryBlock().ops().getFirst();
+        SequencedMap<Value, Object> m = new LinkedHashMap<>();
+        m.put(op.operands().getFirst(), 88);
+        new Quoted(op, m);
+    }
+
+    @Test
+    void testQuotedConstructorValidation2() {
+        String s = """
+                func @"f" (%0 : java.type:"int")java.type:"void" -> {
+                      %3 : java.type:"java.lang.String" = java.switch.expression %0
+                          ()java.type:"boolean" -> {
+                              %4 : java.type:"boolean" = constant @true;
+                              yield %4;
+                          }
+                          ()java.type:"java.lang.String" -> {
+                              %5 : java.type:"java.lang.String" = constant @"x = ";
+                              %7 : java.type:"java.lang.String" = concat %5 %0;
+                              yield %7;
+                          };
+                      return;
+                  };
+                """;
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, s).get(0);
+        Op op = funcOp.body().entryBlock().ops().getFirst();
+        SequencedMap<Value, Object> m = new LinkedHashMap<>();
+        m.put(op.operands().getFirst(), 88);
+        new Quoted(op, m);
+    }
+
+    @Test
+    void testX() {
+        SequencedMap<String, Integer> s = new LinkedHashMap<>();
+        s.put("a", 1);
+        s.put("b", 2);
+        s.put("a", 3);
+        s.put("c", 3);
+        System.out.println(s.keySet());
     }
 }

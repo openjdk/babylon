@@ -32,7 +32,6 @@ import jdk.incubator.code.dialect.core.VarType;
 
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 /**
  * The quoted form of an operation.
@@ -43,7 +42,7 @@ import java.util.stream.Stream;
  */
 public final class Quoted {
     private final Op op;
-    private final SequencedMap<Value, Object> capturedValues;
+    private final SequencedMap<Value, Object> operandsAndCapturedValues;
 
     static final SequencedMap<Value, Object> EMPTY_SEQUENCED_MAP = new LinkedHashMap<>();
     /**
@@ -59,22 +58,21 @@ public final class Quoted {
      * Constructs the quoted form of a given operation.
      * <p>
      * The captured values key set must have the same elements and same encounter order as
-     * operation's captured values, specifically the following expression should evaluate to true:
-     * {@snippet lang=java :
-     * op.capturedValues().equals(new ArrayList<>(capturedValues.keySet()));
-     * }
+     * operation's operands and captured values.
      *
      * @param op             the operation.
-     * @param capturedValues the captured values referred to by the operation
+     * @param operandsAndCapturedValues the operands and captured values referred to by the operation
      * @see Op#capturedValues()
+     * @see Op#operands()
      */
-    public Quoted(Op op, SequencedMap<Value, Object> capturedValues) {
+    public Quoted(Op op, SequencedMap<Value, Object> operandsAndCapturedValues) {
         // @@@ This check is potentially expensive, remove or keep as assert?
         // @@@ Or make Quoted an interface, with a module private implementation?
-        assert Stream.concat(op.operands().stream(), op.capturedValues().stream()).toList()
-                .equals(new ArrayList<>(capturedValues.keySet()));
+        SequencedSet<Value> s = new LinkedHashSet<>(op.operands());
+        s.addAll(op.capturedValues());
+        assert s.stream().toList().equals(operandsAndCapturedValues.keySet().stream().toList());
         this.op = op;
-        this.capturedValues = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(capturedValues));
+        this.operandsAndCapturedValues = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(operandsAndCapturedValues));
     }
 
     /**
@@ -95,10 +93,36 @@ public final class Quoted {
      * op().capturedValues().equals(new ArrayList<>(capturedValues().keySet()));
      * }
      *
-     * @return the captured values, as an unmodifiable map.
+     * @return the captured values.
      */
     public SequencedMap<Value, Object> capturedValues() {
-        return capturedValues;
+        SequencedMap<Value, Object> m = new LinkedHashMap<>();
+        for (Value cv : op.capturedValues()) {
+            m.put(cv, operandsAndCapturedValues.get(cv));
+        }
+        return m;
+    }
+
+    /**
+     * Returns the operands.
+     *
+     * @return the operands.
+     */
+    public SequencedMap<Value, Object> operands() {
+        SequencedMap<Value, Object> m = new LinkedHashMap<>();
+        for (Value operand : op.operands()) {
+            m.putIfAbsent(operand, operandsAndCapturedValues.get(operand));
+        }
+        return m;
+    }
+
+    /**
+     * Returns the operands and captured values.
+     *
+     * @return the operands + captured values, as an unmodifiable map.
+     */
+    public SequencedMap<Value, Object> operandsAndCapturedValues() {
+        return operandsAndCapturedValues;
     }
 
     /**
