@@ -1,14 +1,11 @@
 import jdk.incubator.code.Block;
-import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.OpParser;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -16,7 +13,6 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.function.IntUnaryOperator;
 
@@ -484,25 +480,67 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
         }
     }
 
-    @Test
-    void testCaptureThatIsAlsoOperandIsNotParameterized() {
-        // build model that has a switch expression op that has block param used as operand and also as captured value
-        CoreOp.FuncOp model = CoreOp.func("f", CoreType.functionType(JavaType.VOID, JavaType.INT)).body(block -> {
-            Block.Parameter p = block.parameters().get(0);
+    @DataProvider
+    Object[][] numParamsCases() {
+        return new Object[][]{
+                {
+                        """
+                func @"f" (%0 : java.type:"int", %1 : java.type:"int")java.type:"void" -> {
+                      %4 : java.type:"int" = add %0 %1;
+                      return;
+                  };
+                """, 2
+                },
+                {
+                        """
+                func @"f" (%0 : java.type:"int")java.type:"void" -> {
+                      %4 : java.type:"int" = add %0 %0;
+                      return;
+                  };
+                """, 1
+                },
+                {
+                        """
+                func @"f" (%0 : java.type:"int")java.type:"void" -> {
+                      %3 : java.type:"java.lang.String" = java.switch.expression %0
+                          ()java.type:"boolean" -> {
+                              %4 : java.type:"boolean" = constant @true;
+                              yield %4;
+                          }
+                          ()java.type:"java.lang.String" -> {
+                              %5 : java.type:"java.lang.String" = constant @"x = ";
+                              %7 : java.type:"java.lang.String" = concat %5 %0;
+                              yield %7;
+                          };
+                      return;
+                  };
+                """, 1
+                },
+                {
+                        """
+                func @"f" (%0 : java.type:"int", %1 : java.type:"java.lang.String")java.type:"void" -> {
+                      %3 : java.type:"java.lang.String" = java.switch.expression %0
+                          ()java.type:"boolean" -> {
+                              %4 : java.type:"boolean" = constant @true;
+                              yield %4;
+                          }
+                          ()java.type:"java.lang.String" -> {
+                              %5 : java.type:"java.lang.String" = constant @"x = ";
+                              %7 : java.type:"java.lang.String" = concat %5 %1;
+                              yield %7;
+                          };
+                      return;
+                  };
+                """, 2
+                }
+        };
+    }
 
-            Body.Builder swBody1 = Body.Builder.of(block.parentBody(), CoreType.functionType(JavaType.BOOLEAN));
-            swBody1.entryBlock().op(CoreOp.core_yield(
-                    swBody1.entryBlock().op(CoreOp.constant(JavaType.BOOLEAN, true))
-            ));
-            Body.Builder swBody2 = Body.Builder.of(block.parentBody(), CoreType.functionType(JavaType.INT));
-            swBody2.entryBlock().op(CoreOp.core_yield(p));
-            JavaOp.SwitchExpressionOp swOp = JavaOp.switchExpression(p, List.of(swBody1, swBody2));
-            block.op(swOp);
-
-            block.op(CoreOp.return_());
-        });
-        Op swOp = model.body().entryBlock().firstOp();
-        CoreOp.FuncOp funcOp = Quoted.quoteOp(swOp);
-        Assert.assertEquals(funcOp.parameters().size(), 1);
+    @Test(dataProvider = "numParamsCases")
+    void testNumParams(String model, int expectedNumParams) {
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, model).get(0);
+        Op op = funcOp.body().entryBlock().ops().getFirst();
+        CoreOp.FuncOp qm = Quoted.quoteOp(op);
+        Assert.assertEquals(qm.parameters().size(), expectedNumParams);
     }
 }

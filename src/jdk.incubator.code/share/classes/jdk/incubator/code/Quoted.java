@@ -134,11 +134,11 @@ public final class Quoted {
             throw new IllegalArgumentException("Op not bound");
         }
 
-        // cv that is an operand shouldn't be considered
-        List<Value> operands = op.operands();
-        List<Value> cvs = op.capturedValues();
-        cvs.removeIf(operands::contains);
-        List<Value> inputOperandsAndCaptures = Stream.concat(operands.stream(), cvs.stream()).toList();
+        // if we don't remove duplicate operands we will have unused params in the new model
+        // if we don't remove captured values that are operands we will have unused params in the new model
+        SequencedSet<Value> s = new LinkedHashSet<>(op.operands());
+        s.addAll(op.capturedValues());
+        List<Value> inputOperandsAndCaptures = s.stream().toList();
 
         // Build the function type
         List<TypeElement> params = inputOperandsAndCaptures.stream()
