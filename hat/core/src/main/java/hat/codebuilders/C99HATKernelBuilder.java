@@ -62,6 +62,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .floatTypeDefs("f32_t")
                 .longTypeDefs("s64_t")
                 .unsignedLongTypeDefs("u64_t")
+
+                // Another generic way of declaring the kernelContext is as follows:
+                // // It is reasonable to use hat.codebuilders.HATCodeBuilderWithContext.typedef()
+                // // But note that we pass null as first arg which is normally expected to be a bound schema
+                // // Clearly this will fail if we ever make KernelContext a variant array.  But that seems unlikely.
+                // .typedef(null, hat.buffer.KernelContext.schema.rootIfaceType);
+
                 .typedefStructOrUnion(true, "KernelContext", _ -> {
 
                     // The context is customized depending on the NDRange of the application:
