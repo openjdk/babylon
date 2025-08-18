@@ -461,14 +461,18 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                         sbrace(_ -> literal(1));
                                     } else {
                                         boolean[] done = new boolean[]{false};
-                                        boundSchema.boundArrayFields().forEach(a -> {
-                                            if (a.field.equals(array)) {
-                                                sbrace(_ -> literal(a.len));
-                                                done[0] = true;
+                                        if (boundSchema != null) {
+                                            boundSchema.boundArrayFields().forEach(a -> {
+                                                if (a.field.equals(array)) {
+                                                    sbrace(_ -> literal(a.len));
+                                                    done[0] = true;
+                                                }
+                                            });
+                                            if (!done[0]) {
+                                                throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                             }
-                                        });
-                                        if (!done[0]) {
-                                            throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                        }else {
+                                            throw new IllegalStateException("bound schema is null  !");
                                         }
                                     }
                                 } else if (array instanceof Schema.FieldNode.PrimitiveFixedArray fixed) {
@@ -485,15 +489,19 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                     if (isLast && ifaceType.parent == null) {
                                         sbrace(_ -> literal(1));
                                     } else {
-                                        boolean[] done = new boolean[]{false};
-                                        boundSchema.boundArrayFields().forEach(a -> {
-                                            if (a.field.equals(ifaceField)) {
-                                                sbrace(_ -> literal(a.len));
-                                                done[0] = true;
+                                        if (boundSchema != null) {
+                                            boolean[] done = new boolean[]{false};
+                                            boundSchema.boundArrayFields().forEach(a -> {
+                                                if (a.field.equals(ifaceField)) {
+                                                    sbrace(_ -> literal(a.len));
+                                                    done[0] = true;
+                                                }
+                                            });
+                                            if (!done[0]) {
+                                                throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                             }
-                                        });
-                                        if (!done[0]) {
-                                            throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                        }else {
+                                        throw new IllegalStateException("bound schema is null  !");
                                         }
                                     }
                                 } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {

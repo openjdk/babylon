@@ -31,12 +31,15 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -109,7 +112,7 @@ public class MathOptimizer {
         }
     }
 
-    static void main(String[] args) {
+    static void main(String[] args) throws Throwable {
 
         Optional<Method> myFunction = Stream.of(MathOptimizer.class.getDeclaredMethods())
                 .filter(m -> m.getName().equals("myFunction"))
@@ -120,6 +123,13 @@ public class MathOptimizer {
         // Obtain the code model for the annotated method
         CoreOp.FuncOp codeModel = Op.ofMethod(myMathMethod).get();
         System.out.println(codeModel.toText());
+
+        // In addition, we can generate bytecodes from a new code model that
+        // has been transformed.
+        MethodHandle mhNewTransform = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
+        // And invoke the method handle result
+        var resultBC = mhNewTransform.invoke( 10);
+        System.out.println("Result after BC generation: " + resultBC);
 
         System.out.println("\nLet's transform the code");
         codeModel = codeModel.transform(CopyContext.create(), (blockBuilder, op) -> {
@@ -224,6 +234,16 @@ public class MathOptimizer {
             }
             return map;
         });
+
+
+        // In addition, we can generate bytecodes from a new code model that
+        // has been transformed.
+        // TODO: As in Babylon version 2a03661669b, the following line throws
+        // an IllegalArgumentException, but it will be fixed.
+        MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
+        // And invoke the method handle result
+        var resultBC2 = methodHandle.invoke( 10);
+        System.out.println("Result after BC generation: " + resultBC2);
     }
 
     // Goal: obtain and check the value of the function parameters.
