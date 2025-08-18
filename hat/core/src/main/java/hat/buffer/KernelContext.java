@@ -27,7 +27,7 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-public interface KernelBufferContext extends Buffer {
+public interface KernelContext extends Buffer {
 
     interface MeshBuffer extends Struct {
         int x();
@@ -56,7 +56,7 @@ public interface KernelBufferContext extends Buffer {
 
     MeshBuffer localMesh();
 
-    Schema<KernelBufferContext> schemaKernelBufferContext = Schema.of(KernelBufferContext.class,
+    Schema<KernelContext> schema = Schema.of(KernelContext.class,
             kernelBufferContext -> kernelBufferContext
                     .field("globalMesh", f -> f.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"))
                     .field("localMesh", f -> f.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"))
@@ -72,8 +72,8 @@ public interface KernelBufferContext extends Buffer {
         meshBuffer.dimensions(3);
     }
 
-    static KernelBufferContext createDefault(Accelerator accelerator) {
-        KernelBufferContext kernelBufferContext =  schemaKernelBufferContext.allocate(accelerator);
+    static KernelContext createDefault(Accelerator accelerator) {
+        KernelContext kernelBufferContext =  schema.allocate(accelerator);
         setDefaultMesh(kernelBufferContext.globalMesh());
         setDefaultMesh(kernelBufferContext.localMesh());
         return kernelBufferContext;

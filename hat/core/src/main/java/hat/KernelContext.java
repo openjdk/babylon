@@ -50,14 +50,14 @@ public class KernelContext {
     final public int maxY;
     final public int maxZ;
 
-    final public int gix;
-    final public int giy;
-    final public int giz;
+    final public int gx;
+    final public int gy;
+    final public int gz;
 
     // Local accesses
-    public int lix;
-    public int liy;
-    public int liz;
+    public int lx;
+    public int ly;
+    public int lz;
 
     // Specify sizes for the local blocks (local groups)
     public int lsx;
@@ -79,9 +79,9 @@ public class KernelContext {
         this.maxX = computeRange.getGlobalMesh().getX();
         this.maxY = computeRange.getGlobalMesh().getY();
         this.maxZ = computeRange.getGlobalMesh().getZ();
-        this.gix = computeRange.getGlobalMesh().getX();
-        this.giy = computeRange.getGlobalMesh().getY();
-        this.giz = computeRange.getGlobalMesh().getZ();
+        this.gx = computeRange.getGlobalMesh().getX();
+        this.gy = computeRange.getGlobalMesh().getY();
+        this.gz = computeRange.getGlobalMesh().getZ();
         this.dimensions = computeRange.getGlobalMesh().getDims();
     }
 
@@ -95,9 +95,9 @@ public class KernelContext {
         this.maxX = maxX;
         this.maxY = 0;
         this.maxZ = 0;
-        this.gix = maxX;
-        this.giy = 0;
-        this.giz = 0;
+        this.gx = maxX;
+        this.gy = 0;
+        this.gz = 0;
         this.dimensions = 1;
     }
 
@@ -113,9 +113,9 @@ public class KernelContext {
         this.maxY = maxY;
         this.maxZ = 0;
 
-        this.gix = maxX;
-        this.giy = maxY;
-        this.giz = 0;
+        this.gx = maxX;
+        this.gy = maxY;
+        this.gz = 0;
 
         this.dimensions = 2;
     }
@@ -133,9 +133,9 @@ public class KernelContext {
         this.maxY = maxY;
         this.maxZ = maxZ;
 
-        this.gix = maxX;
-        this.giy = maxY;
-        this.giz = maxZ;
+        this.gx = maxX;
+        this.gy = maxY;
+        this.gz = maxZ;
 
         this.dimensions = 3;
     }

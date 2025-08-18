@@ -29,7 +29,7 @@ import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
-import hat.buffer.KernelBufferContext;
+import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
@@ -51,14 +51,14 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
         public final String text;
         public final long kernelHandle;
         public final ArgArray argArray;
-        public final KernelBufferContext kernelContext;
+        public final KernelContext kernelContext;
 
         public CompiledKernel(C99JExtractedBackend c99NativeBackend, KernelCallGraph kernelCallGraph, String text, long kernelHandle, Object[] ndRangeAndArgs) {
             this.c99NativeBackend = c99NativeBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.text = text;
             this.kernelHandle = kernelHandle;
-            this.kernelContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
+            this.kernelContext = KernelContext.createDefault(kernelCallGraph.computeContext.accelerator);
             ndRangeAndArgs[0] = this.kernelContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator, kernelCallGraph,  ndRangeAndArgs);
         }
