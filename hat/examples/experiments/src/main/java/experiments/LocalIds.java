@@ -51,8 +51,8 @@ public class LocalIds {
 
     @CodeReflection
     private static void assign(@RO KernelContext context, @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
-        int gx = context.gx;
-        int lx = context.lx;
+        int gx = context.gix;
+        int lx = context.lix;
         int lsx = context.lsx;
         int bsx = context.bsx;
         arrayA.array(gx, lx);

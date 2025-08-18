@@ -29,6 +29,16 @@ import hat.ifacemapper.Schema;
 
 public interface KernelContext extends Buffer {
 
+    // ----------------------------------------------------------------------|
+    //| OpenCL            | CUDA                                  | HAT      |
+    //| ----------------- | ------------------------------------- |--------- |
+    //| get_global_id(0)  | blockIdx.x *blockDim.x + threadIdx.x  | gix      |
+    //| get_global_size(0)| gridDim.x * blockDim.x                | gsx      |
+    //| get_local_id(0)   | threadIdx.x                           | lix      |
+    //| get_local_size(0) | blockDim.x                            | lsx      |
+    //| get_group_id(0)   | blockIdx.x                            | bix      |
+    //| get_num_groups(0) | gridDim.x                             | bsx      |
+    // ----------------------------------------------------------------------|
     interface MeshBuffer extends Struct {
         int x();
         void x(int x);

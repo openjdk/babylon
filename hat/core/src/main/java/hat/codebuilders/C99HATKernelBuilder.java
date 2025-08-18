@@ -93,21 +93,21 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                     // Because of order of serialization, we need to put
                     // these new members at the end.
-                    intDeclaration("gx").semicolonNl();
-                    intDeclaration("lx").semicolonNl();
+                    intDeclaration("gix").semicolonNl();
+                    intDeclaration("lix").semicolonNl();
                     intDeclaration("lsx").semicolonNl();
                     intDeclaration("bsx").semicolonNl();
 
                     if (ndRange.kid.getDimensions() > 1) {
-                        intDeclaration("gy").semicolon().nl();
-                        intDeclaration("ly").semicolonNl();
+                        intDeclaration("giy").semicolon().nl();
+                        intDeclaration("liy").semicolonNl();
                         intDeclaration("lsy").semicolonNl();
                         intDeclaration("bsy").semicolonNl();
                     }
 
                     if (ndRange.kid.getDimensions() > 2) {
-                        intDeclaration("gz").semicolon().nl();
-                        intDeclaration("lz").semicolonNl();
+                        intDeclaration("giz").semicolon().nl();
+                        intDeclaration("liz").semicolonNl();
                         intDeclaration("lsz").semicolonNl();
                         intDeclaration("bsz").semicolonNl();
                     }
@@ -132,8 +132,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         identifier("kc").rarrow().identifier("maxX").equals().identifier("global_kc").rarrow().identifier("maxX").semicolon().nl();
 
         //
-        identifier("kc").rarrow().identifier("gx").equals().globalId(0).semicolon().nl();
-        identifier("kc").rarrow().identifier("lx").equals().localId(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("gix").equals().globalId(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("lix").equals().localId(0).semicolon().nl();
         identifier("kc").rarrow().identifier("lsx").equals().localSize(0).semicolon().nl();
         identifier("kc").rarrow().identifier("bsx").equals().blockSize(0).semicolon().nl();
 
@@ -141,8 +141,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             identifier("kc").rarrow().identifier("y").equals().globalId(1).semicolon().nl();
             identifier("kc").rarrow().identifier("maxY").equals().identifier("global_kc").rarrow().identifier("maxY").semicolon().nl();
 
-            identifier("kc").rarrow().identifier("gy").equals().globalId(1).semicolon().nl();
-            identifier("kc").rarrow().identifier("ly").equals().localId(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("giy").equals().globalId(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("liy").equals().localId(1).semicolon().nl();
             identifier("kc").rarrow().identifier("lsy").equals().localSize(1).semicolon().nl();
             identifier("kc").rarrow().identifier("bsy").equals().blockSize(1).semicolon().nl();
         }
@@ -150,8 +150,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             identifier("kc").rarrow().identifier("z").equals().globalId(2).semicolon().nl();
             identifier("kc").rarrow().identifier("maxZ").equals().identifier("global_kc").rarrow().identifier("maxZ").semicolon().nl();
 
-            identifier("kc").rarrow().identifier("gz").equals().globalId(2).semicolon().nl();
-            identifier("kc").rarrow().identifier("lz").equals().localId(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("giz").equals().globalId(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("liz").equals().localId(2).semicolon().nl();
             identifier("kc").rarrow().identifier("lsz").equals().localSize(2).semicolon().nl();
             identifier("kc").rarrow().identifier("bsz").equals().blockSize(2).semicolon().nl();
         }
