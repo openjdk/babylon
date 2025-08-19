@@ -138,32 +138,32 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int threadsPerBlockZ = 1;
 
     // The local and global mesh dimensions match by design from the Java APIs
-    const int dimensions = kernelContext->globalMesh.dimensions;
-    if (kernelContext -> localMesh.maxX > 0) {
-        threadsPerBlockX = kernelContext -> localMesh.maxX;
+    const int dimensions = kernelContext->dimensions;
+    if (kernelContext->lsx > 0) {
+        threadsPerBlockX = kernelContext -> lsx;
     } else {
         threadsPerBlockX = estimateThreadsPerBlock(dimensions);
     }
-    if (kernelContext-> localMesh.maxY > 0) {
-        threadsPerBlockY = kernelContext-> localMesh.maxY;
+    if (kernelContext-> lsy > 0) {
+        threadsPerBlockY = kernelContext->lsy;
     } else if (dimensions > 1) {
         threadsPerBlockY = estimateThreadsPerBlock(dimensions);
     }
-    if (kernelContext-> localMesh.maxZ > 0) {
-        threadsPerBlockZ = kernelContext-> localMesh.maxZ;
+    if (kernelContext-> lsz > 0) {
+        threadsPerBlockZ = kernelContext-> lsz;
     } else if (dimensions > 2) {
         threadsPerBlockZ = estimateThreadsPerBlock(dimensions);
     }
 
-    int blocksPerGridX = (kernelContext->globalMesh.maxX + threadsPerBlockX - 1) / threadsPerBlockX;
+    int blocksPerGridX = (kernelContext->maxX + threadsPerBlockX - 1) / threadsPerBlockX;
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
 
     if (dimensions > 1) {
-        blocksPerGridY = (kernelContext->globalMesh.maxY + threadsPerBlockY - 1) / threadsPerBlockY;
+        blocksPerGridY = (kernelContext->maxY + threadsPerBlockY - 1) / threadsPerBlockY;
     }
     if (dimensions > 2) {
-        blocksPerGridZ = (kernelContext->globalMesh.maxZ + threadsPerBlockZ - 1) / threadsPerBlockZ;
+        blocksPerGridZ = (kernelContext->maxZ + threadsPerBlockZ - 1) / threadsPerBlockZ;
     }
 
     // Enable debug information with trace. Use HAT=INFO
