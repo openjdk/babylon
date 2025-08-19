@@ -45,4 +45,9 @@ public record GlobalMesh2D(int x, int y) implements ThreadMesh {
     public int getDims() {
         return 2;
     }
+
+    @Override
+    public String toString() {
+        return "<2D GlobalMesh: " + getX() + "," + getY() + ">";
+    }
 }

@@ -34,11 +34,9 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.StructuralOpWrapper;
 import hat.util.StreamCounter;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 
-import javax.annotation.processing.SupportedSourceVersion;
 import java.lang.foreign.GroupLayout;
 
 import java.util.function.Consumer;
@@ -62,12 +60,45 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .floatTypeDefs("f32_t")
                 .longTypeDefs("s64_t")
                 .unsignedLongTypeDefs("u64_t")
-                .lineComment("KernelContext_s created from iface buffer")
-                // Previously we created KernelContext explicitly here.  That was required before KernelContext was an iface buffer
-                // It is reasonable to use hat.codebuilders.HATCodeBuilderWithContext.typedef()
-                // But note that we pass null as first arg which is normally expected to be a bound schema
-                // Clearly this will fail if we ever make KernelContext a variant array.  But that seems unlikely.
-                .typedef(null,hat.buffer.KernelContext.schema.rootIfaceType);
+
+                // Another generic way of declaring the kernelContext is as follows:
+                // // It is reasonable to use hat.codebuilders.HATCodeBuilderWithContext.typedef()
+                // // But note that we pass null as first arg which is normally expected to be a bound schema
+                // // Clearly this will fail if we ever make KernelContext a variant array.  But that seems unlikely.
+                // .typedef(null, hat.buffer.KernelContext.schema.rootIfaceType);
+
+                .typedefStructOrUnion(true, "KernelContext", _ -> {
+
+                    intDeclaration("x").semicolonNl();
+                    intDeclaration("maxX").semicolonNl();
+                    intDeclaration("y").semicolonNl();
+                    intDeclaration("maxY").semicolon().nl();
+                    intDeclaration("z").semicolonNl();
+                    intDeclaration("maxZ").semicolon().nl();
+                    intDeclaration("dimensions").semicolonNl();
+
+                    // Because of order of serialization, we need to put
+                    // these new members at the end.
+                    intDeclaration("gix").semicolonNl();
+                    intDeclaration("giy").semicolonNl();
+                    intDeclaration("giz").semicolonNl();
+
+                    intDeclaration("gsx").semicolonNl();
+                    intDeclaration("gsy").semicolonNl();
+                    intDeclaration("gsz").semicolonNl();
+
+                    intDeclaration("lix").semicolonNl();
+                    intDeclaration("liy").semicolonNl();
+                    intDeclaration("liz").semicolonNl();
+
+                    intDeclaration("lsx").semicolonNl();
+                    intDeclaration("lsy").semicolonNl();
+                    intDeclaration("lsz").semicolonNl();
+
+                    intDeclaration("bix").semicolonNl();
+                    intDeclaration("biy").semicolonNl();
+                    intDeclaration("biz").semicolonNl();
+                });
     }
 
     T typedefStructOrUnion(boolean isStruct, String name, Consumer<T> consumer) {
@@ -86,13 +117,35 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         identifier("KernelContext_t").asterisk().space().identifier("kc").equals().ampersand().identifier("mine").semicolon().nl();
         identifier("kc").rarrow().identifier("x").equals().globalId(0).semicolon().nl();
         identifier("kc").rarrow().identifier("maxX").equals().identifier("global_kc").rarrow().identifier("maxX").semicolon().nl();
+
+        //
+        identifier("kc").rarrow().identifier("gix").equals().globalId(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("gsx").equals().globalSize(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("lix").equals().localId(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("lsx").equals().localSize(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("bix").equals().blockId(0).semicolon().nl();
+
+
         if (ndRange.kid.getDimensions() > 1) {
             identifier("kc").rarrow().identifier("y").equals().globalId(1).semicolon().nl();
             identifier("kc").rarrow().identifier("maxY").equals().identifier("global_kc").rarrow().identifier("maxY").semicolon().nl();
+
+            identifier("kc").rarrow().identifier("giy").equals().globalId(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("gsy").equals().globalSize(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("liy").equals().localId(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("lsy").equals().localSize(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("biy").equals().blockId(1).semicolon().nl();
         }
+
         if (ndRange.kid.getDimensions() > 2) {
             identifier("kc").rarrow().identifier("z").equals().globalId(2).semicolon().nl();
             identifier("kc").rarrow().identifier("maxZ").equals().identifier("global_kc").rarrow().identifier("maxZ").semicolon().nl();
+
+            identifier("kc").rarrow().identifier("giz").equals().globalId(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("gsz").equals().globalSize(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("liz").equals().localId(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("lsz").equals().localSize(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("biz").equals().blockId(2).semicolon().nl();
         }
         return self();
     }
@@ -214,6 +267,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T globalId(int id);
 
+    public abstract T localId(int id);
+
     public abstract T globalSize(int id);
+
+    public abstract T localSize(int id);
+
+    public abstract T blockId(int id);
 
 }

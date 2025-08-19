@@ -45,4 +45,9 @@ public record LocalMesh1D(int x) implements ThreadMesh {
     public int getDims() {
         return 1;
     }
+
+    @Override
+    public String toString() {
+        return "<1D LocalMesh: " + getX() + ">";
+    }
 }

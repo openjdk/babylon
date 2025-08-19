@@ -42,13 +42,37 @@ public class KernelContext {
 
     public final NDRange ndRange;
 
-    public int x;
-    public int y;
-    public int z;
+    public int x;    // proposal to rename to gix
+    public int y;    // proposal to rename to giy
+    public int z;    // proposal to rename to giz
 
     final public int maxX;
     final public int maxY;
     final public int maxZ;
+
+    // Global accesses
+    public int gix;
+    public int giy;
+    public int giz;
+
+    public final int gsx;
+    public final int gsy;
+    public final int gsz;
+
+    // Local accesses within a group
+    public int lix;
+    public int liy;
+    public int liz;
+
+    // Specify sizes for the local group sizes
+    public int lsx;
+    public int lsy;
+    public int lsz;
+
+    // Specify group/block index
+    public int bix;
+    public int biy;
+    public int biz;
 
     final int dimensions;
 
@@ -60,6 +84,9 @@ public class KernelContext {
         this.maxX = computeRange.getGlobalMesh().getX();
         this.maxY = computeRange.getGlobalMesh().getY();
         this.maxZ = computeRange.getGlobalMesh().getZ();
+        this.gsx = computeRange.getGlobalMesh().getX();
+        this.gsy = computeRange.getGlobalMesh().getY();
+        this.gsz = computeRange.getGlobalMesh().getZ();
         this.dimensions = computeRange.getGlobalMesh().getDims();
     }
 
@@ -73,6 +100,9 @@ public class KernelContext {
         this.maxX = maxX;
         this.maxY = 0;
         this.maxZ = 0;
+        this.gsx = maxX;
+        this.gsy = 0;
+        this.gsz = 0;
         this.dimensions = 1;
     }
 
@@ -87,6 +117,11 @@ public class KernelContext {
         this.maxX = maxX;
         this.maxY = maxY;
         this.maxZ = 0;
+
+        this.gsx = maxX;
+        this.gsy = maxY;
+        this.gsz = 0;
+
         this.dimensions = 2;
     }
 
@@ -102,6 +137,11 @@ public class KernelContext {
         this.maxX = maxX;
         this.maxY = maxY;
         this.maxZ = maxZ;
+
+        this.gsx = maxX;
+        this.gsy = maxY;
+        this.gsz = maxZ;
+
         this.dimensions = 3;
     }
 

@@ -359,7 +359,7 @@ public:
     static void show(std::ostream &out, void *argArray);
 };
 
-class ThreadMesh {
+class KernelContext {
 public:
     int x;
     int maxX;
@@ -368,12 +368,31 @@ public:
     int z;
     int maxZ;
     int dimensions;
-};
 
-class KernelContext {
-public:
-    ThreadMesh globalMesh;
-    ThreadMesh localMesh;
+    // global index
+    int gix;
+    int giy;
+    int giz;
+
+    // global sizes
+    int gsx;
+    int gsy;
+    int gsz;
+
+    // local index
+    int lix;
+    int liy;
+    int liz;
+
+    // local size
+    int lsx;
+    int lsy;
+    int lsz;
+
+    // Group index
+    int bix;
+    int biy;
+    int biz;
 };
 
 class Backend {
