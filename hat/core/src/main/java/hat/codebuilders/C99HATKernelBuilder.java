@@ -34,11 +34,9 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.StructuralOpWrapper;
 import hat.util.StreamCounter;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 
-import javax.annotation.processing.SupportedSourceVersion;
 import java.lang.foreign.GroupLayout;
 
 import java.util.function.Consumer;
@@ -71,46 +69,31 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                 .typedefStructOrUnion(true, "KernelContext", _ -> {
 
-                    // The context is customized depending on the NDRange of the application:
-                    // 1D, 2D or 3D.
-                    // An alternative is to always generate the 3D range for OpenCL.
-
-                    // Kernels are, at least, 1D
                     intDeclaration("x").semicolonNl();
                     intDeclaration("maxX").semicolonNl();
-
-                    if (ndRange.kid.getDimensions() > 1) {
-                        // The code builder needs the NDRange
-                        intDeclaration("y").semicolonNl();
-                        intDeclaration("maxY").semicolon().nl();
-                    }
-
-                    if (ndRange.kid.getDimensions() > 2) {
-                        // The code builder needs the NDRange
-                        intDeclaration("z").semicolonNl();
-                        intDeclaration("maxZ").semicolon().nl();
-                    }
+                    intDeclaration("y").semicolonNl();
+                    intDeclaration("maxY").semicolon().nl();
+                    intDeclaration("z").semicolonNl();
+                    intDeclaration("maxZ").semicolon().nl();
+                    intDeclaration("dimensions").semicolonNl();
 
                     // Because of order of serialization, we need to put
                     // these new members at the end.
                     intDeclaration("gix").semicolonNl();
+                    intDeclaration("giy").semicolonNl();
+                    intDeclaration("giz").semicolonNl();
+
                     intDeclaration("lix").semicolonNl();
+                    intDeclaration("liy").semicolonNl();
+                    intDeclaration("liz").semicolonNl();
+
                     intDeclaration("lsx").semicolonNl();
+                    intDeclaration("lsy").semicolonNl();
+                    intDeclaration("lsz").semicolonNl();
+
                     intDeclaration("bsx").semicolonNl();
-
-                    if (ndRange.kid.getDimensions() > 1) {
-                        intDeclaration("giy").semicolon().nl();
-                        intDeclaration("liy").semicolonNl();
-                        intDeclaration("lsy").semicolonNl();
-                        intDeclaration("bsy").semicolonNl();
-                    }
-
-                    if (ndRange.kid.getDimensions() > 2) {
-                        intDeclaration("giz").semicolon().nl();
-                        intDeclaration("liz").semicolonNl();
-                        intDeclaration("lsz").semicolonNl();
-                        intDeclaration("bsz").semicolonNl();
-                    }
+                    intDeclaration("bsy").semicolonNl();
+                    intDeclaration("bsz").semicolonNl();
                 });
     }
 

@@ -69,34 +69,33 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         }
 
         private void setGlobalMesh(hat.KernelContext kc) {
-            kernelContext.globalMesh().maxX(kc.maxX);
-            kernelContext.globalMesh().maxY(kc.maxY);
-            kernelContext.globalMesh().maxZ(kc.maxZ);
-            kernelContext.globalMesh().dimensions(kc.getDimensions());
+            kernelContext.maxX(kc.maxX);
+            kernelContext.maxY(kc.maxY);
+            kernelContext.maxZ(kc.maxZ);
+            kernelContext.dimensions(kc.getDimensions());
         }
 
         private void setGlobalMesh(ThreadMesh threadMesh) {
-            kernelContext.globalMesh().maxX(threadMesh.getX());
-            kernelContext.globalMesh().maxY(threadMesh.getY());
-            kernelContext.globalMesh().maxZ(threadMesh.getZ());
-            kernelContext.globalMesh().dimensions(threadMesh.getDims());
+            kernelContext.maxX(threadMesh.getX());
+            kernelContext.maxY(threadMesh.getY());
+            kernelContext.maxZ(threadMesh.getZ());
+            kernelContext.dimensions(threadMesh.getDims());
         }
 
         private void setLocalMesh(ThreadMesh threadMesh) {
-            kernelContext.localMesh().maxX(threadMesh.getX());
-            kernelContext.localMesh().maxY(threadMesh.getY());
-            kernelContext.localMesh().maxZ(threadMesh.getZ());
-            kernelContext.localMesh().dimensions(threadMesh.getDims());
+            kernelContext.lsx(threadMesh.getX());
+            kernelContext.lsy(threadMesh.getY());
+            kernelContext.lsz(threadMesh.getZ());
+            //kernelContext.dimensions(threadMesh.getDims());
         }
 
         private void setDefaultLocalMesh() {
-            kernelContext.localMesh().maxX(0);
-            kernelContext.localMesh().maxY(0);
-            kernelContext.localMesh().maxZ(0);
-            kernelContext.localMesh().dimensions(0);
+            kernelContext.lsx(0);
+            kernelContext.lsy(0);
+            kernelContext.lsz(0);
         }
 
-        private void setupMesh(NDRange ndRange) {
+        private void setupComputeRange(NDRange ndRange) {
 
             ComputeRange computeRange = ndRange.kid.getComputeRange();
             boolean isComputeRangeDefined = ndRange.kid.hasComputeRange();
@@ -122,7 +121,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
-            setupMesh(ndRange);
+            setupComputeRange(ndRange);
             args[0] = this.kernelContext;
             ArgArray.update(argArray,kernelCallGraph, args);
             kernelBridge.ndRange(this.argArray);

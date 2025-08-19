@@ -39,53 +39,136 @@ public interface KernelContext extends Buffer {
     //| get_group_id(0)   | blockIdx.x                            | bix      |
     //| get_num_groups(0) | gridDim.x                             | bsx      |
     // ----------------------------------------------------------------------|
-    interface MeshBuffer extends Struct {
-        int x();
-        void x(int x);
 
-        int y();
-        void y(int y);
+    int x();
+    void x(int x);
 
-        int z();
-        void z(int z);
+    int y();
+    void y(int y);
 
-        int maxX();
-        void maxX(int maxX);
+    int z();
+    void z(int z);
 
-        int maxY();
-        void maxY(int maxY);
+    int maxX();
+    void maxX(int maxX);
 
-        int maxZ();
-        void maxZ(int maxZ);
+    int maxY();
+    void maxY(int maxY);
 
-        int dimensions();
-        void dimensions(int numDimensions);
-    }
+    int maxZ();
+    void maxZ(int maxZ);
 
-    MeshBuffer globalMesh();
+    int dimensions();
+    void dimensions(int numDimensions);
 
-    MeshBuffer localMesh();
+    // Global: new names
+    int gix();
+    void gix(int gix);
+    int giy();
+    void giy(int giy);
+    int giz();
+    void giz(int giz);
+
+    // Local accesses
+    int lix();
+    void lix(int lix);
+    int liy();
+    void liy(int liy);
+    int liz();
+    void liz(int liz);
+
+    // Block size
+    int lsx();
+    void lsx(int lsx);
+    int lsy();
+    void lsy(int lsy);
+    int lsz();
+    void lsz(int lsz);
+
+    // Block ID
+    int bix();
+    void bix(int bix);
+    int biy();
+    void biy(int biy);
+    int biz();
+    void biz(int biz);
+
+//    interface MeshBuffer extends Struct {
+//        int x();
+//        void x(int x);
+//
+//        int y();
+//        void y(int y);
+//
+//        int z();
+//        void z(int z);
+//
+//        int maxX();
+//        void maxX(int maxX);
+//
+//        int maxY();
+//        void maxY(int maxY);
+//
+//        int maxZ();
+//        void maxZ(int maxZ);
+//
+//        int dimensions();
+//        void dimensions(int numDimensions);
+//    }
+//
+//    MeshBuffer globalMesh();
+//
+//    MeshBuffer localMesh();
+
+//    Schema<KernelContext> schema = Schema.of(KernelContext.class,
+//            kernelBufferContext -> kernelBufferContext
+//                    .field("globalMesh", f -> f.fields("x", "maxX", "y", "maxY", "z", "maxZ", "dimensions"))
+//                    .field("localMesh", f -> f.fields("x", "maxX", "y", "maxY", "z", "maxZ", "dimensions"))
+//            );
 
     Schema<KernelContext> schema = Schema.of(KernelContext.class,
-            kernelBufferContext -> kernelBufferContext
-                    .field("globalMesh", f -> f.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"))
-                    .field("localMesh", f -> f.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"))
-            );
+            kernelContext -> kernelContext
+                    .fields(
+                            "x", "maxX", "y", "maxY", "z", "maxZ", "dimensions",  // Initial version
+                            "gix", "giy", "giz",  // global accesses
+                            "lix", "liy", "liz",  // local (thread-ids)
+                            "lsx", "lsy", "lsz",  // block size
+                            "bix", "biy", "biz"  // block id
+                    ));
 
-    private static void setDefaultMesh(MeshBuffer meshBuffer) {
-        meshBuffer.x(0);
-        meshBuffer.maxX(0);
-        meshBuffer.y(0);
-        meshBuffer.maxY(0);
-        meshBuffer.z(0);
-        meshBuffer.maxZ(0);
-        meshBuffer.dimensions(3);
-    }
+//    private static void setDefaultMesh(MeshBuffer meshBuffer) {
+//        meshBuffer.x(0);
+//        meshBuffer.maxX(0);
+//        meshBuffer.y(0);
+//        meshBuffer.maxY(0);
+//        meshBuffer.z(0);
+//        meshBuffer.maxZ(0);
+//        meshBuffer.dimensions(3);
+//    }
 
-    static KernelContext createDefault(Accelerator accelerator) {
-        KernelContext kernelBufferContext =  schema.allocate(accelerator);
-        setDefaultMesh(kernelBufferContext.globalMesh());
-        setDefaultMesh(kernelBufferContext.localMesh());
-        return kernelBufferContext;
+    static KernelContext  createDefault(Accelerator accelerator) {
+        KernelContext kernelContext =  schema.allocate(accelerator);
+        kernelContext.x(0);
+        kernelContext.maxX(0);
+        kernelContext.y(0);
+        kernelContext.maxY(0);
+        kernelContext.z(0);
+        kernelContext.maxZ(0);
+        kernelContext.dimensions(3);
+
+        kernelContext.gix(0);
+        kernelContext.giy(0);
+        kernelContext.giz(0);
+        kernelContext.lix(0);
+        kernelContext.liy(0);
+        kernelContext.liz(0);
+        kernelContext.lsx(0);
+        kernelContext.lsy(0);
+        kernelContext.lsz(0);
+        kernelContext.bix(0);
+        kernelContext.biy(0);
+        kernelContext.biz(0);
+
+        return kernelContext;
     }
 }

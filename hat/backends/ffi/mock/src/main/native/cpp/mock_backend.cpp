@@ -64,7 +64,7 @@ public:
             std::cout << "mock dispatch() " << std::endl;
             size_t dims = 1;
             if (backend->config->trace | backend->config->traceEnqueues){
-                std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->globalMesh.maxX << std::endl;
+                std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->maxX << std::endl;
             }
 
         }
