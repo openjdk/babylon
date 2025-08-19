@@ -93,39 +93,6 @@ public interface KernelContext extends Buffer {
     int biz();
     void biz(int biz);
 
-//    interface MeshBuffer extends Struct {
-//        int x();
-//        void x(int x);
-//
-//        int y();
-//        void y(int y);
-//
-//        int z();
-//        void z(int z);
-//
-//        int maxX();
-//        void maxX(int maxX);
-//
-//        int maxY();
-//        void maxY(int maxY);
-//
-//        int maxZ();
-//        void maxZ(int maxZ);
-//
-//        int dimensions();
-//        void dimensions(int numDimensions);
-//    }
-//
-//    MeshBuffer globalMesh();
-//
-//    MeshBuffer localMesh();
-
-//    Schema<KernelContext> schema = Schema.of(KernelContext.class,
-//            kernelBufferContext -> kernelBufferContext
-//                    .field("globalMesh", f -> f.fields("x", "maxX", "y", "maxY", "z", "maxZ", "dimensions"))
-//                    .field("localMesh", f -> f.fields("x", "maxX", "y", "maxY", "z", "maxZ", "dimensions"))
-//            );
-
     Schema<KernelContext> schema = Schema.of(KernelContext.class,
             kernelContext -> kernelContext
                     .fields(
@@ -135,16 +102,6 @@ public interface KernelContext extends Buffer {
                             "lsx", "lsy", "lsz",  // block size
                             "bix", "biy", "biz"  // block id
                     ));
-
-//    private static void setDefaultMesh(MeshBuffer meshBuffer) {
-//        meshBuffer.x(0);
-//        meshBuffer.maxX(0);
-//        meshBuffer.y(0);
-//        meshBuffer.maxY(0);
-//        meshBuffer.z(0);
-//        meshBuffer.maxZ(0);
-//        meshBuffer.dimensions(3);
-//    }
 
     static KernelContext  createDefault(Accelerator accelerator) {
         KernelContext kernelContext =  schema.allocate(accelerator);
