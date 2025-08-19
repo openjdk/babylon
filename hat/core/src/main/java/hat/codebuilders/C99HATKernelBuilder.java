@@ -83,6 +83,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     intDeclaration("giy").semicolonNl();
                     intDeclaration("giz").semicolonNl();
 
+                    intDeclaration("gsx").semicolonNl();
+                    intDeclaration("gsy").semicolonNl();
+                    intDeclaration("gsz").semicolonNl();
+
                     intDeclaration("lix").semicolonNl();
                     intDeclaration("liy").semicolonNl();
                     intDeclaration("liz").semicolonNl();
@@ -91,9 +95,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     intDeclaration("lsy").semicolonNl();
                     intDeclaration("lsz").semicolonNl();
 
-                    intDeclaration("bsx").semicolonNl();
-                    intDeclaration("bsy").semicolonNl();
-                    intDeclaration("bsz").semicolonNl();
+                    intDeclaration("bix").semicolonNl();
+                    intDeclaration("biy").semicolonNl();
+                    intDeclaration("biz").semicolonNl();
                 });
     }
 
@@ -116,27 +120,32 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         //
         identifier("kc").rarrow().identifier("gix").equals().globalId(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("gsx").equals().globalSize(0).semicolon().nl();
         identifier("kc").rarrow().identifier("lix").equals().localId(0).semicolon().nl();
         identifier("kc").rarrow().identifier("lsx").equals().localSize(0).semicolon().nl();
-        identifier("kc").rarrow().identifier("bsx").equals().blockSize(0).semicolon().nl();
+        identifier("kc").rarrow().identifier("bix").equals().blockId(0).semicolon().nl();
+
 
         if (ndRange.kid.getDimensions() > 1) {
             identifier("kc").rarrow().identifier("y").equals().globalId(1).semicolon().nl();
             identifier("kc").rarrow().identifier("maxY").equals().identifier("global_kc").rarrow().identifier("maxY").semicolon().nl();
 
             identifier("kc").rarrow().identifier("giy").equals().globalId(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("gsy").equals().globalSize(1).semicolon().nl();
             identifier("kc").rarrow().identifier("liy").equals().localId(1).semicolon().nl();
             identifier("kc").rarrow().identifier("lsy").equals().localSize(1).semicolon().nl();
-            identifier("kc").rarrow().identifier("bsy").equals().blockSize(1).semicolon().nl();
+            identifier("kc").rarrow().identifier("biy").equals().blockId(1).semicolon().nl();
         }
+
         if (ndRange.kid.getDimensions() > 2) {
             identifier("kc").rarrow().identifier("z").equals().globalId(2).semicolon().nl();
             identifier("kc").rarrow().identifier("maxZ").equals().identifier("global_kc").rarrow().identifier("maxZ").semicolon().nl();
 
             identifier("kc").rarrow().identifier("giz").equals().globalId(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("gsz").equals().globalSize(1).semicolon().nl();
             identifier("kc").rarrow().identifier("liz").equals().localId(2).semicolon().nl();
             identifier("kc").rarrow().identifier("lsz").equals().localSize(2).semicolon().nl();
-            identifier("kc").rarrow().identifier("bsz").equals().blockSize(2).semicolon().nl();
+            identifier("kc").rarrow().identifier("biz").equals().blockId(2).semicolon().nl();
         }
         return self();
     }
@@ -264,6 +273,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T localSize(int id);
 
-    public abstract T blockSize(int id);
+    public abstract T blockId(int id);
 
 }

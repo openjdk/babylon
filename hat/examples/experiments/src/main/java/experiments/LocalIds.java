@@ -54,10 +54,10 @@ public class LocalIds {
         int gx = context.gix;
         int lx = context.lix;
         int lsx = context.lsx;
-        int bsx = context.bsx;
+        int bix = context.bix;
         arrayA.array(gx, lx);
         arrayB.array(gx, lsx);
-        arrayC.array(gx, bsx);
+        arrayC.array(gx, bix);
     }
 
     private static final int BLOCK_SIZE = 16;

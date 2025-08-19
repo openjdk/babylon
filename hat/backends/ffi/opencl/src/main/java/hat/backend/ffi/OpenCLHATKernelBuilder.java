@@ -75,7 +75,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder blockSize(int id) {
+    public OpenCLHATKernelBuilder blockId(int id) {
         return identifier("get_group_id").oparen().literal(id).cparen();
     }
 

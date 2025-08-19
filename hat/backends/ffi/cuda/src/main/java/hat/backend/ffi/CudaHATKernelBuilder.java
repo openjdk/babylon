@@ -94,11 +94,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder blockSize(int id) {
+    public CudaHATKernelBuilder blockId(int id) {
         String threadDimId = buildThreadDimId(id);
         return identifier("blockIdx").dot().identifier(threadDimId);
     }
-
 
     @Override
     public CudaHATKernelBuilder kernelDeclaration(String name) {

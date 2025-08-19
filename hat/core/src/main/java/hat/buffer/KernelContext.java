@@ -69,6 +69,13 @@ public interface KernelContext extends Buffer {
     int giz();
     void giz(int giz);
 
+    int gsx();
+    void gsx(int gsx);
+    int gsy();
+    void gsy(int gsy);
+    int gsz();
+    void gsz(int gsz);
+
     // Local accesses
     int lix();
     void lix(int lix);
@@ -77,7 +84,7 @@ public interface KernelContext extends Buffer {
     int liz();
     void liz(int liz);
 
-    // Block size
+    // Local group size / block size
     int lsx();
     void lsx(int lsx);
     int lsy();
@@ -98,6 +105,7 @@ public interface KernelContext extends Buffer {
                     .fields(
                             "x", "maxX", "y", "maxY", "z", "maxZ", "dimensions",  // Initial version
                             "gix", "giy", "giz",  // global accesses
+                            "gsx", "gsy", "gsz",  // global sizes
                             "lix", "liy", "liz",  // local (thread-ids)
                             "lsx", "lsy", "lsz",  // block size
                             "bix", "biy", "biz"  // block id
@@ -116,12 +124,19 @@ public interface KernelContext extends Buffer {
         kernelContext.gix(0);
         kernelContext.giy(0);
         kernelContext.giz(0);
+
+        kernelContext.gsy(0);
+        kernelContext.giy(0);
+        kernelContext.giz(0);
+
         kernelContext.lix(0);
         kernelContext.liy(0);
         kernelContext.liz(0);
+
         kernelContext.lsx(0);
         kernelContext.lsy(0);
         kernelContext.lsz(0);
+
         kernelContext.bix(0);
         kernelContext.biy(0);
         kernelContext.biz(0);
