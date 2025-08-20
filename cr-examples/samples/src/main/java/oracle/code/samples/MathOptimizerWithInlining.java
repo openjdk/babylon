@@ -169,6 +169,8 @@ public class MathOptimizerWithInlining {
 
                     // Replace the invoke node with the new optimized invoke
                     Op.Result newResult = blockBuilder.op(newInvoke);
+                    // Type conversion to double
+                    newResult = blockBuilder.op(JavaOp.conv(JavaType.DOUBLE, newResult));
                     blockBuilder.context().mapValue(invokeOp.result(), newResult);
 
                     replace.set(FunctionToUse.SHIFT);
