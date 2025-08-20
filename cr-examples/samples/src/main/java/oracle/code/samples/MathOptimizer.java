@@ -175,6 +175,9 @@ public class MathOptimizer {
 
                         // Replace the invoke node with the new optimized invoke
                         Op.Result newResult = blockBuilder.op(newInvoke);
+                        // Apply type conversion to double
+                        newResult = blockBuilder.op(JavaOp.conv(JavaType.DOUBLE, newResult));
+                        // Propagate the new result
                         blockBuilder.context().mapValue(invokeOp.result(), newResult);
 
                     } else if (canApplyMultiplication) {
@@ -235,11 +238,8 @@ public class MathOptimizer {
             return map;
         });
 
-
         // In addition, we can generate bytecodes from a new code model that
         // has been transformed.
-        // TODO: As in Babylon version 2a03661669b, the following line throws
-        // an IllegalArgumentException, but it will be fixed.
         MethodHandle methodHandle = BytecodeGenerator.generate(MethodHandles.lookup(), codeModel);
         // And invoke the method handle result
         var resultBC2 = methodHandle.invoke( 10);
