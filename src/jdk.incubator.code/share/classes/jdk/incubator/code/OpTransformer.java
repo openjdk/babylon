@@ -163,7 +163,7 @@ public interface OpTransformer {
 
     /**
      * Returns a composed code transformer that first applies a block builder and operation to
-     * {@link OpTransformer#acceptOp acceptOp} of the code transformer {@code after},
+     * {@link OpTransformer#acceptOp acceptOp} of the code transformer {@code before},
      * and then applies resulting block builder and the same operation to the function {@code f}.
      * <p>
      * If the code transformer {@code before} is {@code null} then it is as if a code transformer
