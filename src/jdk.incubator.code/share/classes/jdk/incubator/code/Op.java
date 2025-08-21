@@ -126,10 +126,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * consisting only of operations in the core dialect.
      */
     public interface Lowerable {
-        default Block.Builder lower(Block.Builder b) {
-            return lower(b, OpTransformer.NOOP_TRANSFORMER);
-        }
-
         Block.Builder lower(Block.Builder b, OpTransformer opT);
     }
 

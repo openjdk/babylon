@@ -190,14 +190,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     }
 
     public FuncOpWrapper lower() {
-        return OpWrapper.wrap(lookup,op().transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop) {
-                return lop.lower(block);
-            } else {
-                block.op(op);
-                return block;
-            }
-        }));
+        return OpWrapper.wrap(lookup,op().transform(OpTransformer.LOWERING_TRANSFORMER));
     }
 
     public FuncOpWrapper ssa() {
