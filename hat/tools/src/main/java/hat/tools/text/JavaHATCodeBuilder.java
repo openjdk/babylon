@@ -55,6 +55,7 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
         }
         return self();
     }
+
     @Override
     public T methodCall(CodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper) {
         if (invokeOpWrapper.operandNAsResult(0) instanceof Op.Result instanceResult) {
@@ -66,6 +67,24 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
                     recurse(buildContext, OpWrapper.wrap(buildContext.lookup(), ((Op.Result) o).op()))
             )
         );
+        return self();
+    }
+
+    @Override
+    public T emitCastToLocal(String typeName, String varName, String localVarS) {
+        // TODO: What would emit a Java backend
+        return self();
+    }
+
+    @Override
+    public T emitlocalArrayWithSize(String localVarS, int size) {
+        // TODO: What would emit a Java backend
+        return self();
+    }
+
+    @Override
+    public T syncBlockThreads() {
+        // TODO: What would emit a Java backend?
         return self();
     }
 

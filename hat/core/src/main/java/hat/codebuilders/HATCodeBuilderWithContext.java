@@ -58,9 +58,14 @@ import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -136,7 +141,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
 
-    public T type(CodeBuilderContext buildContext,JavaType javaType) {
+    public T type(CodeBuilderContext buildContext, JavaType javaType) {
         if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup(),javaType) && javaType instanceof ClassType classType) {
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
@@ -169,14 +174,41 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
+    private String extractClassType(CodeBuilderContext buildContext, JavaType javaType) {
+        if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup(),javaType) && javaType instanceof ClassType classType) {
+            String name = classType.toClassName();
+            int dotIdx = name.lastIndexOf('.');
+            int dollarIdx = name.lastIndexOf('$');
+            int idx = Math.max(dotIdx, dollarIdx);
+            if (idx > 0) {
+                name = name.substring(idx + 1);
+            }
+            return name;
+        } else {
+            throw new IllegalStateException("extract class type ");
+        }
+    }
+
+    record LocalArrayDeclaration(String typeName, String varName) {}
+    private Stack<LocalArrayDeclaration> localArrayDeclarations = new Stack<>();
+
     @Override
     public T varDeclaration(CodeBuilderContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) {
         if (varDeclarationOpWrapper.op().isUninitialized()) {
             // Variable is uninitialized
             type(buildContext,varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName());
         } else {
-            type(buildContext,varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
-            parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
+            if (varDeclarationOpWrapper.javaType().toString().equals("hat.buffer.S32Array")) {
+                // annotate type and variable name for the final declaration when we visit the methodCall
+                String typeName = extractClassType(buildContext, varDeclarationOpWrapper.javaType());
+                String variableName = varDeclarationOpWrapper.varName();
+                localArrayDeclarations.push(new LocalArrayDeclaration(typeName, variableName));
+
+                parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
+            } else {
+                type(buildContext, varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
+                parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
+            }
         }
         return self();
     }
@@ -327,9 +359,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T funcCall(CodeBuilderContext buildContext, FuncCallOpWrapper funcCallOpWrapper) {
-          identifier(funcCallOpWrapper.funcName());
-        paren(_ -> {
-            commaSeparated(funcCallOpWrapper.operands(), (e) -> {
+        identifier(funcCallOpWrapper.funcName());
+            paren(_ -> {
+                commaSeparated(funcCallOpWrapper.operands(), (e) -> {
                 if (e instanceof Op.Result r) {
                     parencedence(buildContext, funcCallOpWrapper, r.op());
                 } else {
@@ -529,6 +561,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T methodCall(CodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper) {
+        System.out.println(" ++++++++ OR A METHOD CALL " + invokeOpWrapper.name());
         var name = invokeOpWrapper.name();
 
         if (invokeOpWrapper.isIfaceBufferMethod()) {
@@ -639,18 +672,84 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
             }
         } else {
-            identifier(name).paren(_ ->
-                    commaSeparated(invokeOpWrapper.operands(), (op) -> {
-                        if (op instanceof Op.Result result) {
-                            recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),result.op()));
-                        } else {
-                            throw new IllegalStateException("wtf?");
+            // Detect well-known constructs
+            if (name.equals("barrier")) {
+                List<Value> operands = invokeOpWrapper.operands();
+                for (Value value : operands) {
+                    if (value instanceof Op.Result instanceResult) {
+                        FunctionType functionType = instanceResult.op().opType();
+                        // if it is a barrier from the kernel context, then we generate
+                        // a local barrier.
+                        if (functionType.returnType().toString().equals("hat.KernelContext")) {
+                            syncBlockThreads();
                         }
-                    })
-            );
+                    }
+                }
+            } else if (name.equals("createLocalIntArray")) {
+                LocalArrayDeclaration declaration = localArrayDeclarations.pop();
+                String localVarS = declaration.varName + "L";
+
+                // Obtain the operands:
+                List<Value> operands = invokeOpWrapper.operands();
+                // Param 0 is the return type.
+                // Param 1 is the argument to the function
+                // obtain first argument:
+                if (operands.size() < 2) {
+                    throw new IllegalStateException("create local Int array expect 1 parameter ");
+                }
+                Value constantOperand = operands.get(1);
+                int size = 0;
+                if (constantOperand instanceof Op.Result instanceResult) {
+                    if (instanceResult.op() instanceof CoreOp.ConstantOp constantOp) {
+                        if (constantOp.value() instanceof Integer parameter) {
+                            size = parameter.intValue();
+                        }
+                    }
+                }
+                if (size == 0) {
+                    throw new IllegalStateException("Expected size > 0 for local memory ");
+                }
+
+                size++;
+
+                emitlocalArrayWithSize(localVarS, size);
+                emitCastToLocal(declaration.typeName, declaration.varName, localVarS);
+
+                //emitText("__local S32Array_t* sharedArray = (__local S32Array_t*)sharedArrayL;");
+//                identifier("__local").space()
+//                        .suffix_t(declaration.typeName)
+//                        .asterisk().space()
+//                        .identifier(declaration.varName)
+//                        .space().equals().space()
+//                        .oparen()
+//                        .identifier("__local ")
+//                        .suffix_t(declaration.typeName)
+//                        .asterisk()
+//                        .cparen()
+//                        .identifier(localVarS);
+
+                //emitText("__local S32Array_t* sharedArray = (__local S32Array_t*)sharedArrayL;");
+            } else {
+                // General case
+                identifier(name).paren(_ ->
+                        commaSeparated(invokeOpWrapper.operands(), (op) -> {
+                            if (op instanceof Op.Result result) {
+                                recurse(buildContext, OpWrapper.wrap(buildContext.lookup(), result.op()));
+                            } else {
+                                throw new IllegalStateException("[ERROR] Illegal State Exception");
+                            }
+                        })
+                );
+            }
         }
         return self();
     }
+
+    public abstract T emitCastToLocal(String typeName, String varName, String localVarS);
+
+    public abstract T emitlocalArrayWithSize(String localVarS, int size);
+
+    public abstract T syncBlockThreads();
 
     @Override
     public T ternary(CodeBuilderContext buildContext, TernaryOpWrapper ternaryOpWrapper) {

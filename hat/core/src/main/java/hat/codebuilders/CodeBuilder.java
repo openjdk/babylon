@@ -345,6 +345,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return symbol("{");
     }
 
+    public T obracket() {
+        return symbol("[");
+    }
+
     public T braceNlIndented(Consumer<T> ct) {
         return obrace().nl().indent(ct).nl().cbrace();
     }
@@ -401,6 +405,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return symbol(")");
     }
 
+    public T cbracket() {
+        return symbol("]");
+    }
 
     public T cbrace() {
         return symbol("}");

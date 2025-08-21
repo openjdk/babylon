@@ -31,7 +31,6 @@ import hat.optools.StructuralOpWrapper;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
 
-
 public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
 
     public T computeDeclaration(TypeElement typeElement, String name) {
@@ -50,6 +49,24 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
                         recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
                 ));
 
+        return self();
+    }
+
+    @Override
+    public T emitCastToLocal(String typeName, String varName,  String localVarS) {
+        // TODO: What would emit a pure C99 backend?
+        return self();
+    }
+
+    @Override
+    public T emitlocalArrayWithSize(String localVarS, int size) {
+        // TODO: What would emit a pure C99 backend?
+        return self();
+    }
+
+    @Override
+    public T syncBlockThreads() {
+        // TODO: What would emit a pure C99 backend?
         return self();
     }
 }
