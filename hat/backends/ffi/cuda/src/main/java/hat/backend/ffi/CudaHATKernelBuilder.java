@@ -116,7 +116,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder localPtrPrefix() {
-        return keyword("__shared");
+        return keyword("__shared__");
     }
 
 
@@ -130,8 +130,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder emitCastToLocal(String typeName, String varName,  String localVarS) {
-        return localPtrPrefix().space()
-                .suffix_t(typeName)
+        return suffix_t(typeName)
                 .asterisk().space()
                 .identifier(varName)
                 .space().equals().space()
