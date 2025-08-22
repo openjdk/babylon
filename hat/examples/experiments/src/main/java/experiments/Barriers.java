@@ -79,8 +79,8 @@ public class Barriers {
     }
 
     /**
-     * Example of a simple reduction using accelerator's global memory. This is inefficient, but it shows
-     * the constructs needed to support this case, such as accessing to local ids, sizes and blocks.
+     * Example of a simple reduction using accelerator's local memory. This shows a proposal of how
+     * HAT could start offering local memory. 
      *
      * @param context
      * @param input
