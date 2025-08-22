@@ -57,20 +57,23 @@ public final class Quoted {
     /**
      * Constructs the quoted form of a given operation.
      * <p>
-     * The captured values key set must have the same elements and same encounter order as
-     * operation's operands and captured values.
+     * The {@code operandsAndCapturedValues} key set must be equal to
+     * the sequenced set of operation's operands + captured values, in order.
      *
-     * @param op             the operation.
-     * @param operandsAndCapturedValues the operands and captured values referred to by the operation
+     * @param op                        the operation.
+     * @param operandsAndCapturedValues sequenced map of {@link Value} to {@link Object}, with the requirement defined above
+     * @throws IllegalArgumentException If {@code operandsAndCapturedValues} doesn't satisfy the requirement described above
      * @see Op#capturedValues()
      * @see Op#operands()
      */
     public Quoted(Op op, SequencedMap<Value, Object> operandsAndCapturedValues) {
-        // @@@ This check is potentially expensive, remove or keep as assert?
+        // @@@ This check is potentially expensive, remove or keep ?
         // @@@ Or make Quoted an interface, with a module private implementation?
         SequencedSet<Value> s = new LinkedHashSet<>(op.operands());
         s.addAll(op.capturedValues());
-        assert s.stream().toList().equals(operandsAndCapturedValues.keySet().stream().toList());
+        if (!s.stream().toList().equals(operandsAndCapturedValues.keySet().stream().toList())) {
+            throw new IllegalArgumentException("The map key set isn't equal to the sequenced set of operands + captured values");
+        }
         this.op = op;
         this.operandsAndCapturedValues = Collections.unmodifiableSequencedMap(new LinkedHashMap<>(operandsAndCapturedValues));
     }
@@ -105,12 +108,19 @@ public final class Quoted {
 
     /**
      * Returns the operands.
+     * <p>
+     * The result key set has the same elements and same encounter order as the sequenced set of operation's operands,
+     * specifically the following expression evaluates to true:
+     * {@snippet lang = java:
+     * new LinkedHashSet<>(op.operands()).equals(operands().keySet());
+     *}
      *
      * @return the operands.
      */
     public SequencedMap<Value, Object> operands() {
         SequencedMap<Value, Object> m = new LinkedHashMap<>();
         for (Value operand : op.operands()) {
+            // putIfAbsent is used because a value may be used as operand more than once
             m.putIfAbsent(operand, operandsAndCapturedValues.get(operand));
         }
         return m;
@@ -118,6 +128,7 @@ public final class Quoted {
 
     /**
      * Returns the operands and captured values.
+     * The result key set is equal to the sequenced set of operands + captured values.
      *
      * @return the operands + captured values, as an unmodifiable map.
      */
@@ -132,7 +143,7 @@ public final class Quoted {
      * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp FuncOp}
      * that has one body with one block (<i>fblock</i>).
      * <br>
-     * <i>fblock</i> will have a parameter for every element in the set of {@code op}'s operands and captured values.
+     * <i>fblock</i> will have a parameter for every element in the sequenced set of {@code op}'s operands + captured values.
      * If the operand or capture is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp},
      * <i>fblock</i> will have a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp VarOp}
      * whose initial value is the parameter.
@@ -150,9 +161,8 @@ public final class Quoted {
      * @param op The operation to quote
      * @return The model that represent the quoting of {@code op}
      * @throws IllegalArgumentException if {@code op} is not bound
-    * */
+     */
     public static CoreOp.FuncOp quoteOp(Op op) {
-
         if (op.result() == null) {
             throw new IllegalArgumentException("Op not bound");
         }
@@ -202,36 +212,29 @@ public final class Quoted {
     }
 
     /**
-     * Extract the quoted operation from {@code funcOp}
+     * Extracts the quoted operation from {@code funcOp}
      * and map its operands and captured values to the runtime values in {@code args}.
      * <p>
      * {@code funcOp} must have the same structure as if it's produced by {@link #quoteOp(Op)}.
-     * In addition, we allow ConstantOp to appear in {@code funcOp} entry block.
      *
      * @param funcOp Model to extract the quoted op from
-     * @param args Runtime values for {@code funcOp} parameters
+     * @param args   Runtime values for {@code funcOp} parameters
      * @return Quoted instance that wraps the quoted operation,
      * plus the mapping of its operands and captured values to the given runtime values
      * @throws RuntimeException If {@code funcOp} isn't a valid code model
      * @throws RuntimeException If {@code funcOp} parameters size is different from {@code args} length
-
-    * */
-    // @@@ Add List<Object> accepting method, varargs array defers to it
-    public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object... args) {
-
+     */
+    public static Quoted quotedOp(CoreOp.FuncOp funcOp, List<Object> args) {
         if (funcOp.body().blocks().size() != 1) {
             throw invalidQuotedModel(funcOp);
         }
         Block fblock = funcOp.body().entryBlock();
-
         if (fblock.ops().size() < 2) {
             throw invalidQuotedModel(funcOp);
         }
-
         if (!(fblock.ops().get(fblock.ops().size() - 2) instanceof CoreOp.QuotedOp qop)) {
             throw invalidQuotedModel(funcOp);
         }
-
         if (!(fblock.ops().getLast() instanceof CoreOp.ReturnOp returnOp)) {
             throw invalidQuotedModel(funcOp);
         }
@@ -296,21 +299,21 @@ public final class Quoted {
         // 3- result of VarOp whose initial value is block param
         // 4- result of ConstantOp
         List<Block.Parameter> params = funcOp.parameters();
-        if (params.size() != args.length) {
+        if (params.size() != args.size()) {
             throw invalidQuotedModel(funcOp);
         }
         SequencedMap<Value, Object> m = new LinkedHashMap<>();
         for (Value v : operandsAndCaptures) {
             switch (v) {
                 case Block.Parameter p -> {
-                    Object rv = args[p.index()];
+                    Object rv = args.get(p.index());
                     m.put(v, rv);
                 }
                 case Op.Result opr when opr.op() instanceof CoreOp.VarOp varOp -> {
                     if (varOp.initOperand() instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp cop) {
                         m.put(v, CoreOp.Var.of(cop.value()));
                     } else if (varOp.initOperand() instanceof Block.Parameter p) {
-                        Object rv = args[p.index()];
+                        Object rv = args.get(p.index());
                         m.put(v, CoreOp.Var.of(rv));
                     }
                 }
@@ -322,5 +325,12 @@ public final class Quoted {
         }
 
         return new Quoted(op, m);
+    }
+
+    /**
+     * The varargs version of {@link #quotedOp(CoreOp.FuncOp, List)}.
+     */
+    public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object... args) {
+        return quotedOp(funcOp, List.of(args));
     }
 }
