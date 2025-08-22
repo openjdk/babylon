@@ -145,7 +145,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
          * <p>
          * This method behaves as if it returns the result of the following expression:
          * {@snippet lang = java:
-         * andThen(before, Op.Lowerable.lowering(before, f));
+         * OpTransformer.andThen(before, lowering(before, f));
          *}
          *
          * @param before the code transformer to apply before
