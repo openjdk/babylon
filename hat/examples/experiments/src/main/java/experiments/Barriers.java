@@ -80,7 +80,7 @@ public class Barriers {
 
     /**
      * Example of a simple reduction using accelerator's local memory. This shows a proposal of how
-     * HAT could start offering local memory. 
+     * HAT could start offering local memory.
      *
      * @param context
      * @param input
