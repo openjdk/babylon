@@ -130,7 +130,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder emitlocalArrayWithSize(String localVarS, int size) {
         return localPtrPrefix().space()
-                .intDeclaration(localVarS)
+                .floatDeclaration(localVarS)
                 .obracket()
                 .identifier("" + size)
                 .cbracket()

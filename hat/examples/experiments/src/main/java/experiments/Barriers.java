@@ -32,13 +32,11 @@ import hat.KernelContext;
 import hat.LocalMesh1D;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
-import hat.buffer.S32LocalArray;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
-import java.util.stream.IntStream;
 
 /**
  * How to test?
@@ -96,7 +94,7 @@ public class Barriers {
 
         // Prototype: allocate in shared memory an array of 16 ints
         //int[] sharedArray = context.createLocalIntArray(16);
-        S32Array sharedArray = context.createLocalIntArray(16);
+        S32Array sharedArray = context.createLocalS32Array(16);
         // another approach is to return a new type S32LocalArray
         //S32LocalArray sharedArray = context.createLocalArray(INT, 16);
 

@@ -109,6 +109,40 @@ public class Main {
     }
 
     @CodeReflection
+    public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+
+        final int tileSize = 16;
+        F32Array tileA = kc.createLocalF32Array(256); // TODO: perform partial evaluation is we see constant operations (tileSize * tileSize)
+        F32Array tileB = kc.createLocalF32Array(256);
+
+        int bx = kc.bix;
+        int by = kc.biy;
+        int tx = kc.lix;
+        int ty = kc.liy;
+
+        // we identify the row and column
+        int row = by * tileSize + ty;
+        int col = bx * tileSize + tx;
+
+        float sum = 0;
+        for (int tile = 0; tile < size/ tileSize; tile++) {
+
+            // Copy from global to shared memory
+            tileA.array((long) ty * tileSize + tx, matrixA.array((long) row * size + tile * tileSize + tx));
+            tileB.array((long) ty * tileSize + tx, matrixB.array((tile * tileSize + ty) * size + col));
+            kc.barrier();
+
+            // compute partial reductions
+            for (int k = 0; k < tileSize; k++) {
+                sum += (tileA.array((long) ty * tileSize + k) * tileB.array(k * tileSize + tx));
+            }
+            kc.barrier();
+        }
+
+        matrixC.array((long) row * size + col, sum);
+    }
+
+    @CodeReflection
     public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
         float acc = 0;
         for (int k = 0; k < size; k++) {
@@ -186,6 +220,14 @@ public class Main {
         );
     }
 
+    @CodeReflection
+    public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
+        );
+    }
+
     private static void runSequential(F32Array matrixA, F32Array matrixB, F32Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
@@ -208,7 +250,8 @@ public class Main {
         _1D,   //
         _1DFC, // 1D with multiple function calls: This is just for testing
         _2D,   //
-        _2DLI
+        _2DLI,
+        _2DTILING,
     }
 
     /**
@@ -230,6 +273,9 @@ public class Main {
             }
             if (args[0].equals("2DLI")) {
                 configuration = Configuration._2DLI;
+            }
+            if (args[0].equals("2DTILING")) {
+                configuration = Configuration._2DTILING;
             }
         }
 
@@ -270,6 +316,8 @@ public class Main {
                         Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
                 case _2DLI -> accelerator.compute(cc ->
                         Main.matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
+                case _2DTILING -> accelerator.compute(cc ->
+                        Main.matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
             }
 
             long end = System.nanoTime();

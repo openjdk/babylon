@@ -198,7 +198,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             // Variable is uninitialized
             type(buildContext,varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName());
         } else {
-            if (varDeclarationOpWrapper.javaType().toString().equals("hat.buffer.S32Array")) {
+            if (varDeclarationOpWrapper.javaType().toString().equals("hat.buffer.S32Array") ||
+            varDeclarationOpWrapper.javaType().toString().equals("hat.buffer.F32Array")) {
                 // annotate type and variable name for the final declaration when we visit the methodCall
                 String typeName = extractClassType(buildContext, varDeclarationOpWrapper.javaType());
                 String variableName = varDeclarationOpWrapper.varName();
@@ -561,7 +562,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T methodCall(CodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper) {
-        System.out.println(" ++++++++ OR A METHOD CALL " + invokeOpWrapper.name());
         var name = invokeOpWrapper.name();
 
         if (invokeOpWrapper.isIfaceBufferMethod()) {
@@ -685,7 +685,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         }
                     }
                 }
-            } else if (name.equals("createLocalIntArray")) {
+            } else if (name.equals("createLocalIntArray") || name.equals("createLocalFloatArray")) {
                 LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                 String localVarS = declaration.varName + "L";
 
