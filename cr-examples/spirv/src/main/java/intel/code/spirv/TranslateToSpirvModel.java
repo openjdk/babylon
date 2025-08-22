@@ -32,6 +32,7 @@ import java.util.HashMap;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -276,15 +277,7 @@ public class TranslateToSpirvModel  {
     }
 
     private static CoreOp.FuncOp lowerMethod(CoreOp.FuncOp fop) {
-        CoreOp.FuncOp lfop = fop.transform((block, op) -> {
-            if (op instanceof Op.Lowerable lop)  {
-                return lop.lower(block);
-            }
-            else {
-                block.op(op);
-                return block;
-            }
-        });
+        CoreOp.FuncOp lfop = fop.transform(OpTransformer.LOWERING_TRANSFORMER);
         return lfop;
     }
 
