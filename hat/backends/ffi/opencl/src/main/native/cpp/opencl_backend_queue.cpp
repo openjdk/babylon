@@ -239,21 +239,13 @@ OpenCLBackend::OpenCLQueue::~OpenCLQueue() {
     delete []events;
 }
 
-long getTime(cl_event event) {
-    clWaitForEvents(1, &event);
-    cl_ulong time_start, time_end;
-    clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
-    clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
-    return (time_end - time_start);
-}
-
 void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) {
     size_t numDimensions = kernelContext->dimensions;
 
     size_t global_work_size[] {
-        static_cast<size_t>(kernelContext->maxX),
-        static_cast<size_t>(kernelContext->maxY),
-        static_cast<size_t>(kernelContext->maxZ)
+        static_cast<size_t>(kernelContext->maxX),  // to be replaced with gsx
+        static_cast<size_t>(kernelContext->maxY),  // to be replaced with gsy
+        static_cast<size_t>(kernelContext->maxZ)   // to be replaced with gsz
     };
 
     size_t local_work_size[] = {
@@ -272,7 +264,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
             std::cout << "[INFO] LOCAL  [ nullptr ] // The driver will setup a default value" << std::endl;
         }
     }
-    cl_event kernelEvent = nullptr;
+
     const cl_int status = clEnqueueNDRangeKernel(
         command_queue,
         dynamic_cast<OpenCLProgram::OpenCLKernel *>(kernel)->kernel,
@@ -282,17 +274,10 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
         kernelContext->lsx > 0 ? local_work_size : nullptr,
         eventc,
         eventListPtr(),
-        &kernelEvent);
-
-    events[eventc] = kernelEvent;
+        nextEventPtr());
 
     inc(NDRangeBits);
     // markAsNDRangeAndInc();
-
-
-    //long time = getTime(kernelEvent);
-    //std::cout << "[INFO] KERNEL TIME: " << time << std::endl;
-
 
     OPENCL_CHECK(status, "clEnqueueNDRangeKernel");
     if (backend->config->trace | backend->config->traceEnqueues) {
