@@ -175,8 +175,8 @@ public class OpBuilder {
     FuncOp build(Op op) {
         Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
         Value result = buildOp(ancestorBody, op);
-        // freeze op
-        builder.op(invoke(MethodRef.method(Op.class, "freeze", void.class), result));
+        // seal op
+        builder.op(invoke(MethodRef.method(Op.class, "seal", void.class), result));
         builder.op(return_(result));
 
         return func("builder." + op.opName(), builder.parentBody());

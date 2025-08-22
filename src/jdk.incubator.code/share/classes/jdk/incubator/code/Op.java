@@ -49,7 +49,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
-import java.util.function.BiFunction;
 
 /**
  * An operation modelling a unit of functionality.
@@ -169,9 +168,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public static final class Result extends Value {
 
         /**
-         * If assigned to an operation result, it indicates the operation is frozen
+         * If assigned to an operation result, it indicates the operation is sealed
         */
-        private static final Result ROOT = new Result();
+        private static final Result SEALED_OPR = new Result();
 
         final Op op;
 
@@ -311,7 +310,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     @Override
     public final Block parent() {
-        if (isFrozen() || result == null) {
+        if (isSealed() || result == null) {
             return null;
         }
 
@@ -336,12 +335,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the operation's result, otherwise {@code null} if the operation is not assigned to a block.
+     * Returns the operation's result, otherwise {@code null} if the operation is unbound or sealed.
      *
-     * @return the operation's result, or {@code null} if not assigned to a block.
+     * @return the operation's result, or {@code null} if unbound or sealed.
      */
     public final Result result() {
-        return result == Result.ROOT ? null : result;
+        return result == Result.SEALED_OPR ? null : result;
     }
 
     /**
@@ -544,14 +543,17 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
     }
 
-    public void freeze() {
-        if (result != null && result != Result.ROOT) {
+    public void seal() {
+        if (result == Result.SEALED_OPR) {
+            return;
+        }
+        if (result != null) {
             throw new IllegalStateException("Can't freeze a bound operation");
         }
-        result = Result.ROOT;
+        result = Result.SEALED_OPR;
     }
 
-    public boolean isFrozen() {
-        return result == Result.ROOT;
+    public boolean isSealed() {
+        return result == Result.SEALED_OPR;
     }
 }

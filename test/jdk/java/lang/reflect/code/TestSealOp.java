@@ -13,9 +13,9 @@ import java.util.function.IntUnaryOperator;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestFreezeOp
+ * @run testng TestSealOp
  */
-public class TestFreezeOp {
+public class TestSealOp {
 
     @CodeReflection
     static List<Integer> f(int i) {
@@ -41,7 +41,7 @@ public class TestFreezeOp {
     @Test
     void test2() {
         CoreOp.ConstantOp constant = CoreOp.constant(JavaType.INT, 7);
-        constant.freeze();
+        constant.seal();
         assertOpIsCopiedWhenAddedToBlock(constant);
     }
 
@@ -50,8 +50,8 @@ public class TestFreezeOp {
         CoreOp.FuncOp funcOp = CoreOp.func("f", FunctionType.FUNCTION_TYPE_VOID).body(b -> {
             b.op(CoreOp.return_());
         });
-        funcOp.freeze();
-        funcOp.freeze();
+        funcOp.seal();
+        funcOp.seal();
     }
 
     @Test
@@ -61,7 +61,7 @@ public class TestFreezeOp {
         };
         CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) q.op().ancestorBody().ancestorOp();
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
-        Assert.assertTrue(funcOp.isFrozen());
+        Assert.assertTrue(funcOp.isSealed());
         assertOpIsCopiedWhenAddedToBlock(funcOp);
     }
 
@@ -69,7 +69,7 @@ public class TestFreezeOp {
     void test5() { // freezing an already bound op should throw
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
         Op.Result r = body.entryBlock().op(CoreOp.constant(JavaType.DOUBLE, 1d));
-        Assert.assertThrows(() -> r.op().freeze());
+        Assert.assertThrows(() -> r.op().seal());
     }
 
     void assertOpIsCopiedWhenAddedToBlock(Op op) {
