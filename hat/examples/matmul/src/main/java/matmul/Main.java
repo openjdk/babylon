@@ -115,30 +115,31 @@ public class Main {
         F32Array tileA = kc.createLocalF32Array(256); // TODO: perform partial evaluation is we see constant operations (tileSize * tileSize)
         F32Array tileB = kc.createLocalF32Array(256);
 
-        int bx = kc.bix;
-        int by = kc.biy;
-        int tx = kc.lix;
-        int ty = kc.liy;
+        int groupIndexX = kc.bix;
+        int groupIndexY = kc.biy;
+        int localIdx = kc.lix;
+        int localIdy = kc.liy;
 
         // we identify the row and column
-        int row = by * tileSize + ty;
-        int col = bx * tileSize + tx;
+        int row = groupIndexY * tileSize + localIdy;
+        int col = groupIndexX * tileSize + localIdx;
 
+        // Compute matrix-vector and accumulate the result over the tiles
         float sum = 0;
-        for (int tile = 0; tile < size/ tileSize; tile++) {
-
+        for (int tile = 0; tile < (size/tileSize); tile++) {
             // Copy from global to shared memory
-            tileA.array((long) ty * tileSize + tx, matrixA.array((long) row * size + tile * tileSize + tx));
-            tileB.array((long) ty * tileSize + tx, matrixB.array((tile * tileSize + ty) * size + col));
+            tileA.array((long) localIdy * tileSize + localIdx, matrixA.array((long) row * size + tile * tileSize + localIdx));
+            tileB.array((long) localIdy * tileSize + localIdx, matrixB.array((tile * tileSize + localIdy) * size + col));
             kc.barrier();
 
             // compute partial reductions
             for (int k = 0; k < tileSize; k++) {
-                sum += (tileA.array((long) ty * tileSize + k) * tileB.array(k * tileSize + tx));
+                sum += (tileA.array((long) localIdy * tileSize + k) * tileB.array(k * tileSize + localIdx));
             }
             kc.barrier();
         }
 
+        // copy result from local to global memory
         matrixC.array((long) row * size + col, sum);
     }
 
