@@ -144,9 +144,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder emitlocalArrayWithSize(String localVarS, int size) {
-        return localPtrPrefix().space()
-                .intDeclaration(localVarS)
+    public CudaHATKernelBuilder emitlocalArrayWithSize(String localVarS, int size, JavaType type) {
+        return localPtrPrefix()
+                .space()
+                .declareVarFromJavaType(type, localVarS)
                 .obracket()
                 .identifier("" + size)
                 .cbracket()

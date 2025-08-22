@@ -77,7 +77,7 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
     }
 
     @Override
-    public T emitlocalArrayWithSize(String localVarS, int size) {
+    public T emitlocalArrayWithSize(String localVarS, int size, JavaType type) {
         // TODO: What would emit a Java backend
         return self();
     }

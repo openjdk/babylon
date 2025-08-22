@@ -128,12 +128,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder emitlocalArrayWithSize(String localVarS, int size) {
-        return localPtrPrefix().space()
-                .floatDeclaration(localVarS)
+    public OpenCLHATKernelBuilder emitlocalArrayWithSize(String localVarS, int size, JavaType type) {
+        return localPtrPrefix()
+                .space()
+                .declareVarFromJavaType(type, localVarS)
                 .obracket()
                 .identifier("" + size)
                 .cbracket()
-                .semicolon().nl();
+                .semicolonNl();
     }
 }

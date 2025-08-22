@@ -59,7 +59,7 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
     }
 
     @Override
-    public T emitlocalArrayWithSize(String localVarS, int size) {
+    public T emitlocalArrayWithSize(String localVarS, int size, JavaType type) {
         // TODO: What would emit a pure C99 backend?
         return self();
     }

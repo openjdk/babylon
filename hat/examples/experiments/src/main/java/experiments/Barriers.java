@@ -93,15 +93,20 @@ public class Barriers {
         int blockId = context.bix;
 
         // Prototype: allocate in shared memory an array of 16 ints
-        //int[] sharedArray = context.createLocalIntArray(16);
         S32Array sharedArray = context.createLocalS32Array(16);
-        // another approach is to return a new type S32LocalArray
-        //S32LocalArray sharedArray = context.createLocalArray(INT, 16);
+
+        // [proposal] An alternative, could be to wrap any ds to be used in local
+        // memory
+        // context.warp(<MemoryRegion>, <iFace class>, <size>);
+        // This could be very powerful, allowing the user to map its own
+        // data structures into private memory, shared memory, or even
+        // constant memory (using OpenCL terms).
+        // S32Array sharedArray = context.warp(LOCAL, S32Array.class, 16);
 
         // Copy from global to shared memory
-        //sharedArray[localId] = input.array(baseIndex);
         sharedArray.array(localId, input.array(context.gix));
 
+        // Reduction using local memory
         for (int offset = localSize / 2; offset > 0; offset /= 2) {
             context.barrier();
             if (localId < offset) {
@@ -155,8 +160,10 @@ public class Barriers {
 
         if (PRINT_RESULTS) {
             System.out.println("Result Locals: ");
-            System.out.println("SEQ: " + results[0] + " vs " + partialSums.array(0));
-            System.out.println("SEQ: " + results[1] + " vs " + partialSums.array(1));
+            boolean partialResult1 = results[0] == partialSums.array(0);
+            boolean partialResult2 = results[1] == partialSums.array(1);
+            System.out.println("SEQ: " + results[0] + " vs " + partialSums.array(0) + ". Result is correct? " + partialResult1);
+            System.out.println("SEQ: " + results[1] + " vs " + partialSums.array(1) + ". Result is correct? " + partialResult2);
         }
     }
 

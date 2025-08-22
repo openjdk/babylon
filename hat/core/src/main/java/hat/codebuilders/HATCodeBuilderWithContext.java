@@ -560,6 +560,23 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         throw new IllegalStateException("atomicInc not implemented");
     }
 
+    private boolean isLocalArray(String nameType) {
+        return nameType.equals("createLocalS32Array") ||
+                nameType.equals("createLocalF32Array") ||
+                nameType.equals("createLocalF64Array")  ||
+                nameType.equals("createLocalS64Array");
+    }
+
+    private JavaType toJavaType(String nameType) {
+        return switch (nameType) {
+            case "createLocalS32Array" -> JavaType.INT;
+            case "createLocalF32Array" -> JavaType.FLOAT;
+            case "createLocalS64Array" -> JavaType.LONG;
+            case "createLocalF64Array" -> JavaType.DOUBLE;
+            default -> null;
+        };
+    }
+
     @Override
     public T methodCall(CodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper) {
         var name = invokeOpWrapper.name();
@@ -685,13 +702,13 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         }
                     }
                 }
-            } else if (name.equals("createLocalIntArray") || name.equals("createLocalFloatArray")) {
+            } else if (isLocalArray(name)) {
                 LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                 String localVarS = declaration.varName + "L";
 
                 // Obtain the operands:
                 List<Value> operands = invokeOpWrapper.operands();
-                // Param 0 is the return type.
+                // Param 0 is `this`.
                 // Param 1 is the argument to the function
                 // obtain first argument:
                 if (operands.size() < 2) {
@@ -709,26 +726,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 if (size == 0) {
                     throw new IllegalStateException("Expected size > 0 for local memory ");
                 }
-
                 size++;
-
-                emitlocalArrayWithSize(localVarS, size);
+                JavaType type = toJavaType(name);
+                emitlocalArrayWithSize(localVarS, size, type);
                 emitCastToLocal(declaration.typeName, declaration.varName, localVarS);
-
-                //emitText("__local S32Array_t* sharedArray = (__local S32Array_t*)sharedArrayL;");
-//                identifier("__local").space()
-//                        .suffix_t(declaration.typeName)
-//                        .asterisk().space()
-//                        .identifier(declaration.varName)
-//                        .space().equals().space()
-//                        .oparen()
-//                        .identifier("__local ")
-//                        .suffix_t(declaration.typeName)
-//                        .asterisk()
-//                        .cparen()
-//                        .identifier(localVarS);
-
-                //emitText("__local S32Array_t* sharedArray = (__local S32Array_t*)sharedArrayL;");
             } else {
                 // General case
                 identifier(name).paren(_ ->
@@ -747,7 +748,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     public abstract T emitCastToLocal(String typeName, String varName, String localVarS);
 
-    public abstract T emitlocalArrayWithSize(String localVarS, int size);
+    public abstract T emitlocalArrayWithSize(String localVarS, int size, JavaType type);
 
     public abstract T syncBlockThreads();
 
