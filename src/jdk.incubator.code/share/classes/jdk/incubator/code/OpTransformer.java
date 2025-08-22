@@ -148,7 +148,8 @@ public interface OpTransformer {
      * the resulting block builder and the same operation to {@link OpTransformer#acceptOp acceptOp}
      * of the code transformer {@code after}.
      * <p>
-     * If the code transformer {@code after} is {@code null} then it is not applied.
+     * If the code transformer {@code after} is {@code null} then it is as if a code transformer
+     * is applied that does nothing except return the block builder it was given.
      *
      * @param after the code transformer to apply after
      * @param f the operation transformer function to apply before
