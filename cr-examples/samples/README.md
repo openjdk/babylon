@@ -50,6 +50,7 @@ mvn clean package
 
 #### 3. Run the examples
 
+
 ##### Run HelloCodeReflection
 
 ```bash
@@ -60,4 +61,16 @@ java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.
 
 ```bash
 java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.MathOptimizer
+```
+
+##### Run InlineExample
+
+```bash
+java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.InlineExample
+```
+
+##### Run MathOptimizerWithInlining
+
+```bash
+java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.MathOptimizerWithInlining
 ```
