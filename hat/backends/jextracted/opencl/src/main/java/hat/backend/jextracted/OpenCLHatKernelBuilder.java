@@ -127,9 +127,9 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder emitlocalArrayWithSize(String localVarS, int size) {
+    public OpenCLHatKernelBuilder emitlocalArrayWithSize(String localVarS, int size, JavaType type) {
         return localPtrPrefix().space()
-                .intDeclaration(localVarS)
+                .declareVarFromJavaType(type, localVarS)
                 .obracket()
                 .identifier("" + size)
                 .cbracket()
