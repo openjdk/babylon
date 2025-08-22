@@ -26,7 +26,6 @@
 package jdk.incubator.code;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.BiFunction;
 
 /**
@@ -177,55 +176,5 @@ public interface OpTransformer {
         return before == null
                 ? f::apply
                 : (block, op) -> f.apply(before.acceptOp(block, op), op);
-    }
-
-    /**
-     * Returns a composed code transformer that composes with an operation transformer function adapted to lower
-     * operations.
-     * <p>
-     * This method behaves as if it returns the result of the following expression:
-     * {@snippet lang=java :
-     * andThen(before, lowering(before, f));
-     * }
-     *
-     * @param before the code transformer to apply before
-     * @param f the operation transformer function to apply after
-     * @return the composed code transformer
-     */
-    static OpTransformer andThenLowering(OpTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
-        return andThen(before, lowering(before, f));
-    }
-
-    /**
-     * Returns an adapted operation transformer function that adapts an operation transformer function
-     * {@code f} to also transform lowerable operations.
-     * <p>
-     * The adapted operation transformer function first applies a block builder and operation
-     * to the operation transformer function {@code f}.
-     * If the result is not {@code null} then the result is returned.
-     * Otherwise, if the operation is a lowerable operation then the result of applying the
-     * block builder and code transformer {@code before} to {@link jdk.incubator.code.Op.Lowerable#lower lower}
-     * of the lowerable operation is returned.
-     * Otherwise, the operation is copied by applying it to {@link Block.Builder#op op} of the block builder,
-     * and the block builder is returned.
-     *
-     * @param before the code transformer to apply for lowering
-     * @param f the operation transformer function to apply after
-     * @return the adapted operation transformer function
-     */
-    static BiFunction<Block.Builder, Op, Block.Builder> lowering(OpTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
-        return (block, op) -> {
-            Block.Builder b = f.apply(block, op);
-            if (b == null) {
-                if (op instanceof Op.Lowerable lop) {
-                    block = lop.lower(block, before);
-                } else {
-                    block.op(op);
-                }
-            } else {
-                block = b;
-            }
-            return block;
-        };
     }
 }
