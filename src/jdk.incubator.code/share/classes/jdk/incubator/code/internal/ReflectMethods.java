@@ -1030,6 +1030,10 @@ public class ReflectMethods extends TreeTranslator {
                 case FIELD, ENUM_CONSTANT -> {
                     if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                         result = thisValue();
+                    } else if (isQuoted && top.localToOp.containsKey(sym)) {
+                        // if we are scanning a quotable lambda
+                        // and the field being loaded is registered as constant capture, load the associated VarOp result
+                        result = loadVar(sym);
                     } else {
                         FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
                         TypeElement resultType = typeToTypeElement(sym.type);
