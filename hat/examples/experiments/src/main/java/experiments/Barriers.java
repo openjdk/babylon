@@ -95,13 +95,13 @@ public class Barriers {
         // Prototype: allocate in shared memory an array of 16 ints
         S32Array sharedArray = context.createLocalS32Array(16);
 
-        // [proposal] An alternative, could be to wrap any ds to be used in local
+        // [proposal] An alternative, could be to map any ds to be used in local
         // memory
-        // context.warp(<MemoryRegion>, <iFace class>, <size>);
+        // context.mapObjectToRegion(<MemoryRegion>, <iFaceSubType.class>, <size>);
         // This could be very powerful, allowing the user to map its own
         // data structures into private memory, shared memory, or even
         // constant memory (using OpenCL terms).
-        // S32Array sharedArray = context.warp(LOCAL, S32Array.class, 16);
+        // S32Array sharedArray = context.mapObjectToRegion(LOCAL, S32Array.class, 16);
 
         // Copy from global to shared memory
         sharedArray.array(localId, input.array(context.gix));
