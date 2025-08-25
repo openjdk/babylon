@@ -736,6 +736,9 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
+            if (targetType.hasTag(TypeTag.VOID)) {
+                return sourceValue;
+            }
             if (sourceType.isReference() && targetType.isReference() &&
                     !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
                 return append(JavaOp.cast(typeToTypeElement(targetType), sourceValue));
