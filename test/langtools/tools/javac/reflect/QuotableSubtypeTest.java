@@ -251,4 +251,19 @@ public class QuotableSubtypeTest {
             };
             """)
     static final QuotableIntUnaryOperator QUOTED_CAPTURE_THIS_REF = new ContextRef().capture();
+
+    static final int Z = 42;
+    @IR("""
+            func @"f" (%0 : Var<java.type:"int">)java.type:"void" -> {
+                %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                    %2 : java.type:"int" = var.load %0;
+                    %3 : Var<java.type:"int"> = var %2 @"x";
+                    return;
+                };
+                return;
+            };
+            """)
+    static QuotableRunnable QUOTED_CAPTURE_FINAL_STATIC_FIELD = () -> {
+        int x = Z;
+    };
 }
