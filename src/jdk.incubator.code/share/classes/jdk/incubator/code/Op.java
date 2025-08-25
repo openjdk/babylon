@@ -122,15 +122,72 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * An operation characteristic indicating the operation can replace itself with a lowered form,
-     * consisting only of operations in the core dialect.
+     * An operation characteristic indicating the operation can replace itself with a lowered form.
      */
+    // @@@ Hide this abstraction within JavaOp?
     public interface Lowerable {
-        default Block.Builder lower(Block.Builder b) {
-            return lower(b, OpTransformer.NOOP_TRANSFORMER);
+
+        /**
+         * Lowers this operation into the block builder, commonly replacing nested structure
+         * with interconnected basic blocks. The previous lowering code transformation
+         * is used to compose with a lowering transformation that is applied to bodies
+         * of this operation, ensuring lowering is applied consistently to nested content.
+         *
+         * @param b the block builder
+         * @param opT the previous lowering code transformation, may be {@code null}
+         * @return the block builder to use for further building
+         */
+        Block.Builder lower(Block.Builder b, OpTransformer opT);
+
+        /**
+         * Returns a composed code transformer that composes with an operation transformer function adapted to lower
+         * operations.
+         * <p>
+         * This method behaves as if it returns the result of the following expression:
+         * {@snippet lang = java:
+         * OpTransformer.andThen(before, lowering(before, f));
+         *}
+         *
+         * @param before the code transformer to apply before
+         * @param f the operation transformer function to apply after
+         * @return the composed code transformer
+         */
+        static OpTransformer andThenLowering(OpTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+            return OpTransformer.andThen(before, lowering(before, f));
         }
 
-        Block.Builder lower(Block.Builder b, OpTransformer opT);
+        /**
+         * Returns an adapted operation transformer function that adapts an operation transformer function
+         * {@code f} to also transform lowerable operations.
+         * <p>
+         * The adapted operation transformer function first applies a block builder and operation
+         * to the operation transformer function {@code f}.
+         * If the result is not {@code null} then the result is returned.
+         * Otherwise, if the operation is a lowerable operation then the result of applying the
+         * block builder and code transformer {@code before} to {@link Lowerable#lower lower}
+         * of the lowerable operation is returned.
+         * Otherwise, the operation is copied by applying it to {@link Block.Builder#op op} of the block builder,
+         * and the block builder is returned.
+         *
+         * @param before the code transformer to apply for lowering
+         * @param f the operation transformer function to apply after
+         * @return the adapted operation transformer function
+         */
+        static BiFunction<Block.Builder, Op, Block.Builder> lowering(OpTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+            return (block, op) -> {
+                Block.Builder b = f.apply(block, op);
+                if (b == null) {
+                    if (op instanceof Lowerable lop) {
+                        block = lop.lower(block, before);
+                    } else {
+                        block.op(op);
+                    }
+                } else {
+                    block = b;
+                }
+                return block;
+            };
+        }
     }
 
     /**
