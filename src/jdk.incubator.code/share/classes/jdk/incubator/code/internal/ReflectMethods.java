@@ -1482,9 +1482,10 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             // Scan the lambda body
+            Type lambdaReturnType = tree.getDescriptorType(types).getReturnType();
             if (tree.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION) {
-                Value exprVal = toValue(((JCExpression) tree.body), tree.getDescriptorType(types).getReturnType());
-                if (!tree.body.type.hasTag(TypeTag.VOID)) {
+                Value exprVal = toValue(((JCExpression) tree.body), lambdaReturnType);
+                if (!lambdaReturnType.hasTag(TypeTag.VOID)) {
                     append(CoreOp.return_(exprVal));
                 } else {
                     appendTerminating(CoreOp::return_);
@@ -1492,7 +1493,7 @@ public class ReflectMethods extends TreeTranslator {
             } else {
                 Type prevBodyTarget = bodyTarget;
                 try {
-                    bodyTarget = tree.getDescriptorType(types).getReturnType();
+                    bodyTarget = lambdaReturnType;
                     toValue(((JCTree.JCStatement) tree.body));
                     appendReturnOrUnreachable(tree.body);
                 } finally {
