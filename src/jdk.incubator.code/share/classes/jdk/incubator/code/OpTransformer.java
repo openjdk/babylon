@@ -26,7 +26,7 @@
 package jdk.incubator.code;
 
 import java.util.List;
-import java.util.Objects;
+import java.util.function.BiFunction;
 
 /**
  * An operation transformer.
@@ -44,11 +44,6 @@ public interface OpTransformer {
     };
 
     /**
-     * A transformer that performs no action on the block builder.
-     */
-    OpTransformer NOOP_TRANSFORMER = (block, op) -> block;
-
-    /**
      * A transformer that drops location information from operations.
      */
     OpTransformer DROP_LOCATION_TRANSFORMER = (block, op) -> {
@@ -63,7 +58,7 @@ public interface OpTransformer {
      */
     OpTransformer LOWERING_TRANSFORMER = (block, op) -> {
         if (op instanceof Op.Lowerable lop) {
-            return lop.lower(block);
+            return lop.lower(block, null);
         } else {
             block.op(op);
             return block;
@@ -129,13 +124,10 @@ public interface OpTransformer {
      *
      * @param builder the block builder
      * @param block   the block to transform
-     * @throws NullPointerException if a resulting block builder is null
      */
     default void acceptBlock(Block.Builder builder, Block block) {
         for (Op op : block.ops()) {
             builder = acceptOp(builder, op);
-            // @@@ See andThen composition
-            Objects.requireNonNull(builder);
         }
     }
 
@@ -150,25 +142,40 @@ public interface OpTransformer {
      */
     Block.Builder acceptOp(Block.Builder block, Op op);
 
-    default OpTransformer compose(OpTransformer before) {
-        return before.andThen(this);
+    /**
+     * Returns a composed code transform that transforms an operation that first applies
+     * a block builder and operation to the function {@code f}, and then applies
+     * the resulting block builder and the same operation to {@link OpTransformer#acceptOp acceptOp}
+     * of the code transformer {@code after}.
+     * <p>
+     * If the code transformer {@code after} is {@code null} then it is as if a code transformer
+     * is applied that does nothing except return the block builder it was given.
+     *
+     * @param after the code transformer to apply after
+     * @param f the operation transformer function to apply before
+     * @return the composed code transformer
+     */
+    static OpTransformer compose(OpTransformer after, BiFunction<Block.Builder, Op, Block.Builder> f) {
+        return after == null
+                ? f::apply
+                : (block, op) -> after.acceptOp(f.apply(block, op), op);
     }
 
-    default OpTransformer andThen(OpTransformer after) {
-        if (after == NOOP_TRANSFORMER) {
-            return this;
-        } else if (this == NOOP_TRANSFORMER) {
-            return after;
-        } else {
-            return (bb, o) -> {
-                Block.Builder nbb = acceptOp(bb, o);
-                if (nbb != null) {
-                    return after.acceptOp(nbb, o);
-                } else {
-                    // @@@ This does not currently occur
-                    return null;
-                }
-            };
-        }
+    /**
+     * Returns a composed code transformer that first applies a block builder and operation to
+     * {@link OpTransformer#acceptOp acceptOp} of the code transformer {@code before},
+     * and then applies resulting block builder and the same operation to the function {@code f}.
+     * <p>
+     * If the code transformer {@code before} is {@code null} then it is as if a code transformer
+     * is applied that does nothing except return the block builder it was given.
+     *
+     * @param before the code transformer to apply before
+     * @param f the operation transformer function to apply after
+     * @return the composed code transformer
+     */
+    static OpTransformer andThen(OpTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+        return before == null
+                ? f::apply
+                : (block, op) -> f.apply(before.acceptOp(block, op), op);
     }
 }
