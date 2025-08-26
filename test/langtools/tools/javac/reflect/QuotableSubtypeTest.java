@@ -266,4 +266,34 @@ public class QuotableSubtypeTest {
     static QuotableRunnable QUOTED_CAPTURE_FINAL_STATIC_FIELD = () -> {
         int x = Z;
     };
+
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                      %2 : java.type:"int" = constant @1;
+                      %3 : java.type:"int" = invoke %2 @java.ref:"QuotableSubtypeTest::n(int):int";
+                      return;
+                  };
+                  return;
+            };
+            """)
+    // the lambda model used to contain operation that perform unnecessary type conversion
+    static QuotableRunnable QUOTED_RETURN_VOID = () -> {
+        n(1);
+    };
+    static int n(int i) {
+        return i;
+    }
+
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                      %2 : java.type:"java.lang.Object" = new @java.ref:"java.lang.Object::()";
+                      return;
+                  };
+                  return;
+            };
+            """)
+    // the lambda model used to contain ReturnOp with a value, even though the lambda type is void
+    static QuotableRunnable QUOTED_EXPRESSION_RETURN_VOID = () -> new Object();
 }
