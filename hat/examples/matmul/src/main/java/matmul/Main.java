@@ -37,6 +37,7 @@ import hat.buffer.F32Array;
 import jdk.incubator.code.CodeReflection;
 
 import java.util.Random;
+import java.util.stream.IntStream;
 
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
@@ -62,7 +63,7 @@ public class Main {
 
     private static final boolean CHECK_RESULT = true;
 
-    private static final int NUM_ITERATIONS = 10;
+    private static final int NUM_ITERATIONS = 100;
 
     /**
      * Naive Matrix Multiplication implemented in 2D.
@@ -77,7 +78,7 @@ public class Main {
     public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.x < kc.maxX) {
             if (kc.y < kc.maxY) {
-                float acc = 0;
+                float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
                     acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + kc.y));
                 }
@@ -99,7 +100,7 @@ public class Main {
     public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.x < kc.maxX) {
             if (kc.y < kc.maxY) {
-                float acc = 0;
+                float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
                     acc += (matrixA.array(kc.y * size + k) * matrixB.array(k * size + kc.x));
                 }
@@ -125,7 +126,7 @@ public class Main {
         int col = groupIndexX * tileSize + localIdx;
 
         // Compute matrix-vector and accumulate the result over the tiles
-        float sum = 0;
+        float sum = 0.0f;
         for (int tile = 0; tile < (size/tileSize); tile++) {
             // Copy from global to shared memory
             tileA.array((long) localIdy * tileSize + localIdx, matrixA.array((long) row * size + tile * tileSize + localIdx));
@@ -145,7 +146,7 @@ public class Main {
 
     @CodeReflection
     public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
-        float acc = 0;
+        float acc = 0.0f;
         for (int k = 0; k < size; k++) {
             acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
         }
@@ -165,7 +166,7 @@ public class Main {
     public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.x < kc.maxX) {
             for (int j = 0; j < size; j++) {
-                float acc = 0;
+                float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
                     acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
                 }
@@ -248,6 +249,7 @@ public class Main {
      * 1D range or 2D range.
      */
     private enum Configuration {
+        _MT,  // Runs the Multi-thread Java code on the host side (no HAT)
         _1D,   //
         _1DFC, // 1D with multiple function calls: This is just for testing
         _2D,   //
@@ -266,18 +268,14 @@ public class Main {
 
         Configuration configuration = Configuration._2D;
         if (args.length > 0) {
-            if (args[0].equals("1D")) {
-                configuration = Configuration._1D;
-            }
-            if (args[0].equals("1DFC")) {
-                configuration = Configuration._1DFC;
-            }
-            if (args[0].equals("2DLI")) {
-                configuration = Configuration._2DLI;
-            }
-            if (args[0].equals("2DTILING")) {
-                configuration = Configuration._2DTILING;
-            }
+            configuration = switch (args[0]) {
+                case "MT" -> Configuration._MT;
+                case "1D" -> Configuration._1D;
+                case "1DFC" -> Configuration._1DFC;
+                case "2DLI" -> Configuration._2DLI;
+                case "2DTILING" -> Configuration._2DTILING;
+                default -> configuration;
+            };
         }
 
         System.out.println("[INFO] NDRangeConfiguration: " + configuration);
@@ -309,6 +307,7 @@ public class Main {
 
             long start = System.nanoTime();
             switch (configuration) {
+                case _MT -> runMultiThreadedWithStreams(matrixA, matrixB, matrixC, size);
                 case _1D -> accelerator.compute(cc ->
                         Main.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
                 case _1DFC -> accelerator.compute(cc ->
@@ -347,5 +346,17 @@ public class Main {
                 }
             }
         }
+    }
+
+    private static void runMultiThreadedWithStreams(F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+        IntStream.range(0, size).parallel().forEach(i -> {
+            IntStream.range(0, size).parallel().forEach(j -> {
+                float sum = 0.0f;
+                for (int k = 0; k < size; k++) {
+                    sum += matrixA.array(i * size + k) * matrixB.array(k * size + j);
+                }
+                matrixC.array(i * size + j, sum);
+            });
+        });
     }
 }

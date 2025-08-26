@@ -282,6 +282,10 @@ public class Schema<T extends Buffer> {
             }
         }
 
+        public ArrayBuildState buildArray() {
+            return new ArrayBuildState(this, null);
+        }
+
         public ArrayBuildState arrayLen(String... arrayLenFieldNames) {
             List<FieldNode.ArrayLen> arrayLenFields = new ArrayList<>();
             Arrays.stream(arrayLenFieldNames).forEach(arrayLenFieldName -> {

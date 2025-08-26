@@ -60,6 +60,7 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Stack;
 
 import jdk.incubator.code.Op;
@@ -728,6 +729,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 }
                 size++;
                 JavaType type = toJavaType(name);
+                Random r = new Random();
+                var rv = r.nextInt(100);
+//                emitText("" +
+//                        "   __local float tile" + rv + " [256];\n" +
+//                        "    __local F32ArrayR_t* " + declaration.varName + " = (__local F32ArrayR_t*)tile" + rv +" ;");
                 emitlocalArrayWithSize(localVarS, size, type);
                 emitCastToLocal(declaration.typeName, declaration.varName, localVarS);
             } else {
