@@ -1468,7 +1468,13 @@ public class ReflectMethods extends TreeTranslator {
             // Push quoted body
             // We can either be explicitly quoted or a structural quoted expression
             // within some larger reflected code
-            if (isQuoted || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL) {
+            // a lambda targeted to Quoted is always going to be quoted regardless of whether
+            // we are visiting the method that contain it or we are visiting the lambda itself
+            // a lambda target it to subtype of Quotable is only going to be quoted when we are visiting the lambda
+            // also, we will not introduce nested quoting in case the top level lambda
+            // contain other lambdas targeted for quoting
+            boolean toQuote = (isQuoted && body == tree) || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL;
+            if (toQuote) {
                 pushBody(tree.body, CoreType.FUNCTION_TYPE_VOID);
             }
 
@@ -1520,13 +1526,13 @@ public class ReflectMethods extends TreeTranslator {
             popBody();
 
             Value lambdaResult;
-            if (isQuoted) {
+            if (toQuote) {
                 lambdaResult = append(lambdaOp, generateLocation(tree, true));
             } else {
                 lambdaResult = append(lambdaOp);
             }
 
-            if (isQuoted || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL) {
+            if (toQuote) {
                 append(CoreOp.core_yield(lambdaResult));
                 CoreOp.QuotedOp quotedOp = CoreOp.quoted(stack.body);
 

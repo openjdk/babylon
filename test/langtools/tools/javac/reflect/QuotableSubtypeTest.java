@@ -296,4 +296,37 @@ public class QuotableSubtypeTest {
             """)
     // the lambda model used to contain ReturnOp with a value, even though the lambda type is void
     static QuotableRunnable QUOTED_EXPRESSION_RETURN_VOID = () -> new Object();
+
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                      %2 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
+                          return;
+                      };
+                      %3 : Var<java.type:"java.lang.Runnable"> = var %2 @"r";
+                      return;
+                  };
+                  return;
+            };
+            """)
+    static QuotableRunnable QUOTED_NESTED_LAMBDA = () -> {
+        Runnable r = () -> {};
+    };
+
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                      %2 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                          return;
+                      };
+                      %3 : Var<java.type:"QuotableSubtypeTest$QuotableRunnable"> = var %2 @"r";
+                      return;
+                  };
+                  return;
+            };
+            """)
+    // @@@ should this be the excepted behaviour in case we have a nested quotable lambda ?
+    static QuotableRunnable QUOTED_NESTED_QUOTABLE_LAMBDA = () -> {
+        QuotableRunnable r = () -> {};
+    };
 }
