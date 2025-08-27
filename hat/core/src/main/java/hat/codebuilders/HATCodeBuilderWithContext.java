@@ -544,8 +544,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                     throw new IllegalStateException("what kind of array ");
                                 }
                             }
-                        } else if (field instanceof Schema.SchemaNode.Padding) {
-                            // SKIP
+                        } else if (field instanceof Schema.SchemaNode.Padding padding) {
+                            emitText(padding.toC99()).semicolon().nl();
                         } else {
                             throw new IllegalStateException("hmm");
                         }
