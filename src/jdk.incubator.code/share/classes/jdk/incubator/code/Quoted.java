@@ -162,7 +162,7 @@ public final class Quoted {
      * @return The model that represent the quoting of {@code op}
      * @throws IllegalArgumentException if {@code op} is not bound
      */
-    public static CoreOp.FuncOp quoteOp(Op op) {
+    public static CoreOp.FuncOp embedOp(Op op) {
         if (op.result() == null) {
             throw new IllegalArgumentException("Op not bound");
         }
@@ -215,7 +215,7 @@ public final class Quoted {
      * Extracts the quoted operation from {@code funcOp}
      * and map its operands and captured values to the runtime values in {@code args}.
      * <p>
-     * {@code funcOp} must have the same structure as if it's produced by {@link #quoteOp(Op)}.
+     * {@code funcOp} must have the same structure as if it's produced by {@link #embedOp(Op)}.
      *
      * @param funcOp Model to extract the quoted op from
      * @param args   Runtime values for {@code funcOp} parameters
@@ -224,7 +224,7 @@ public final class Quoted {
      * @throws RuntimeException If {@code funcOp} isn't a valid code model
      * @throws RuntimeException If {@code funcOp} parameters size is different from {@code args} length
      */
-    public static Quoted quotedOp(CoreOp.FuncOp funcOp, List<Object> args) {
+    public static Quoted extractOp(CoreOp.FuncOp funcOp, List<Object> args) {
         if (funcOp.body().blocks().size() != 1) {
             throw invalidQuotedModel(funcOp);
         }
@@ -331,7 +331,7 @@ public final class Quoted {
      * Extracts the quoted operation from {@code funcOp}
      * and map its operands and captured values to the runtime values in {@code args}.
      * <p>
-     * {@code funcOp} must have the same structure as if it's produced by {@link #quoteOp(Op)}.
+     * {@code funcOp} must have the same structure as if it's produced by {@link #embedOp(Op)}.
      *
      * @param funcOp Model to extract the quoted op from
      * @param args   Runtime values for {@code funcOp} parameters
@@ -339,9 +339,9 @@ public final class Quoted {
      * plus the mapping of its operands and captured values to the given runtime values
      * @throws RuntimeException If {@code funcOp} isn't a valid code model
      * @throws RuntimeException If {@code funcOp} parameters size is different from {@code args} length
-     * @see Quoted#quotedOp(CoreOp.FuncOp, List)
+     * @see Quoted#extractOp(CoreOp.FuncOp, List)
      */
-    public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object... args) {
-        return quotedOp(funcOp, List.of(args));
+    public static Quoted extractOp(CoreOp.FuncOp funcOp, Object... args) {
+        return extractOp(funcOp, List.of(args));
     }
 }

@@ -248,7 +248,7 @@ public class ReflectMethods extends TreeTranslator {
                     ListBuffer<JCExpression> capturedArgs = quotedCapturedArgs(tree, bodyScanner);
                     args.appendList(capturedArgs.toList());
                     // Get the quoted instance by calling Quoted::quotedOp
-                    JCMethodInvocation quotedInvoke = make.App(make.Ident(crSyms.quotedQuotedOp), args.toList());
+                    JCMethodInvocation quotedInvoke = make.App(make.Ident(crSyms.quotedExtractOp), args.toList());
                     quotedInvoke.varargsElement = syms.objectType;
                     super.visitLambda(tree);
                     result = quotedInvoke;
