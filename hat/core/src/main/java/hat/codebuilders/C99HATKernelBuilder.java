@@ -152,18 +152,36 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T globalPtrPrefix();
 
+    public abstract T localPtrPrefix();
+
     @Override
     public T type(CodeBuilderContext buildContext, JavaType javaType) {
         if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup(),javaType) && javaType instanceof ClassType classType) {
-            globalPtrPrefix().space();
-            String name = classType.toClassName();
-            int dotIdx = name.lastIndexOf('.');
-            int dollarIdx = name.lastIndexOf('$');
-            int idx = Math.max(dotIdx, dollarIdx);
-            if (idx > 0) {
-                name = name.substring(idx + 1);
+            if (classType.toClassName().equals("hat.buffer.S32LocalArray")) {
+//                // ignore
+//                // Allocations in Local Memory are solved in the method gen
+//                String name = classType.toClassName();
+//                int dotIdx = name.lastIndexOf('.');
+//                int dollarIdx = name.lastIndexOf('$');
+//                int idx = Math.max(dotIdx, dollarIdx);
+//                if (idx > 0) {
+//                    name = name.substring(idx + 1);
+//                }
+//
+//                localPtrPrefix().space().suffix_t(name).semicolon().nl();
+//
+//                localPtrPrefix().space().suffix_t(name).asterisk();
+            } else {
+                globalPtrPrefix().space();
+                String name = classType.toClassName();
+                int dotIdx = name.lastIndexOf('.');
+                int dollarIdx = name.lastIndexOf('$');
+                int idx = Math.max(dotIdx, dollarIdx);
+                if (idx > 0) {
+                    name = name.substring(idx + 1);
+                }
+                suffix_t(name).asterisk();
             }
-            suffix_t(name).asterisk();
         } else {
             // In the case we call a new invoke method and pass the kernel context around, t
             // then we need to do the mapping between the Java type and its low level interface

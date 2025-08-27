@@ -33,7 +33,6 @@ import jdk.incubator.code.dialect.java.JavaType;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
-
     public OpenCLHATKernelBuilder(NDRange ndRange) {
         super(ndRange);
     }
@@ -80,6 +79,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
+    public OpenCLHATKernelBuilder syncBlockThreads() {
+        return identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen().semicolon();
+    }
+
+    @Override
     public OpenCLHATKernelBuilder kernelDeclaration(String name) {
         return keyword("__kernel").space().voidType().space().identifier(name);
     }
@@ -95,10 +99,42 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
+    public OpenCLHATKernelBuilder localPtrPrefix() {
+        return keyword("__local");
+    }
+
+    @Override
     public OpenCLHATKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ -> {
               ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),instanceResult.op()));
               rarrow().identifier(name);
           });
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder emitCastToLocal(String typeName, String varName, String localVarS) {
+        return localPtrPrefix().space()
+                .suffix_t(typeName)
+                .asterisk().space()
+                .identifier(varName)
+                .space().equals().space()
+                .oparen()
+                .localPtrPrefix()
+                .space()
+                .suffix_t(typeName)
+                .asterisk()
+                .cparen()
+                .identifier(localVarS);
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder emitlocalArrayWithSize(String localVarS, int size, JavaType type) {
+        return localPtrPrefix()
+                .space()
+                .declareVarFromJavaType(type, localVarS)
+                .obracket()
+                .identifier("" + size)
+                .cbracket()
+                .semicolonNl();
     }
 }

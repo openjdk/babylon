@@ -47,7 +47,7 @@ import java.util.stream.IntStream;
  */
 public class LocalIds {
 
-    private static boolean PRINT_RESULTS = false;
+    private static boolean PRINT_RESULTS = true;
 
     @CodeReflection
     private static void assign(@RO KernelContext context, @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {

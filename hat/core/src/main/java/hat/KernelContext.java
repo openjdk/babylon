@@ -24,6 +24,9 @@
  */
 package hat;
 
+import hat.buffer.F32Array;
+import hat.buffer.S32Array;
+
 /**
  * Created by a dispatch call to a kernel from within a Compute method and 'conceptually' passed to a kernel.
  * <p>
@@ -162,6 +165,21 @@ public class KernelContext {
             return this.computeRange.getLocalMesh() != null;
         }
         return false;
+    }
+
+    public void barrier() {
+    }
+
+    public S32Array createLocalS32Array(int elements) {
+        // We will need an implementation when running on the CPU (host)
+        // the Java backends
+        return null;
+    }
+
+    public F32Array createLocalF32Array(int elements) {
+        // We will need an implementation when running on the CPU (host)
+        // the Java backends
+        return null;
     }
 
 }

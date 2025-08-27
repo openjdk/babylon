@@ -243,9 +243,9 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
     size_t numDimensions = kernelContext->dimensions;
 
     size_t global_work_size[] {
-        static_cast<size_t>(kernelContext->maxX),
-        static_cast<size_t>(kernelContext->maxY),
-        static_cast<size_t>(kernelContext->maxZ)
+        static_cast<size_t>(kernelContext->maxX),  // to be replaced with gsx
+        static_cast<size_t>(kernelContext->maxY),  // to be replaced with gsy
+        static_cast<size_t>(kernelContext->maxZ)   // to be replaced with gsz
     };
 
     size_t local_work_size[] = {
@@ -265,7 +265,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
         }
     }
 
-    cl_int status = clEnqueueNDRangeKernel(
+    const cl_int status = clEnqueueNDRangeKernel(
         command_queue,
         dynamic_cast<OpenCLProgram::OpenCLKernel *>(kernel)->kernel,
         numDimensions,
