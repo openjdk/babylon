@@ -727,13 +727,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 if (size == 0) {
                     throw new IllegalStateException("Expected size > 0 for local memory ");
                 }
+
+                // TODO: if there is padding, then we need to update the size += paddingSize.
                 size++;
+
                 JavaType type = toJavaType(name);
-                Random r = new Random();
-                var rv = r.nextInt(100);
-//                emitText("" +
-//                        "   __local float tile" + rv + " [256];\n" +
-//                        "    __local F32ArrayR_t* " + declaration.varName + " = (__local F32ArrayR_t*)tile" + rv +" ;");
                 emitlocalArrayWithSize(localVarS, size, type);
                 emitCastToLocal(declaration.typeName, declaration.varName, localVarS);
             } else {

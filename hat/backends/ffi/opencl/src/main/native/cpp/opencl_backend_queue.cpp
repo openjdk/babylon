@@ -265,7 +265,6 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
         }
     }
 
-    cl_event kernelEvent = nullptr;
     const cl_int status = clEnqueueNDRangeKernel(
         command_queue,
         dynamic_cast<OpenCLProgram::OpenCLKernel *>(kernel)->kernel,
@@ -276,15 +275,6 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Backend:
         eventc,
         eventListPtr(),
         nextEventPtr());
-        //&kernelEvent);
-
-    // clWaitForEvents(1, &kernelEvent);
-    // cl_ulong start_time, end_time;
-    // clGetEventProfilingInfo(kernelEvent, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL);
-    // clGetEventProfilingInfo(kernelEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL);
-    //
-    // std::cout << "[INFO] Kernel Time: " << (end_time - start_time) << std::endl;
-    // events[eventc] = kernelEvent;
 
     inc(NDRangeBits);
     // markAsNDRangeAndInc();
