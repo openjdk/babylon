@@ -328,7 +328,18 @@ public final class Quoted {
     }
 
     /**
-     * The varargs version of {@link #quotedOp(CoreOp.FuncOp, List)}.
+     * Extracts the quoted operation from {@code funcOp}
+     * and map its operands and captured values to the runtime values in {@code args}.
+     * <p>
+     * {@code funcOp} must have the same structure as if it's produced by {@link #quoteOp(Op)}.
+     *
+     * @param funcOp Model to extract the quoted op from
+     * @param args   Runtime values for {@code funcOp} parameters
+     * @return Quoted instance that wraps the quoted operation,
+     * plus the mapping of its operands and captured values to the given runtime values
+     * @throws RuntimeException If {@code funcOp} isn't a valid code model
+     * @throws RuntimeException If {@code funcOp} parameters size is different from {@code args} length
+     * @see Quoted#quotedOp(CoreOp.FuncOp, List)
      */
     public static Quoted quotedOp(CoreOp.FuncOp funcOp, Object... args) {
         return quotedOp(funcOp, List.of(args));
