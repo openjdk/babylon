@@ -131,16 +131,23 @@ public class Main {
             // Copy from global to shared memory
             tileA.array((long) localIdy * tileSize + localIdx, matrixA.array((long) row * size + tile * tileSize + localIdx));
             tileB.array((long) localIdy * tileSize + localIdx, matrixB.array((tile * tileSize + localIdy) * size + col));
+
+            // Apply a barrier for the local group: we need to guarantee that all threads that belong
+            // to the same group reach this point before doing the partial reduction
             kc.barrier();
 
-            // compute partial reductions
+            // compute partial reductions over the tile
             for (int k = 0; k < tileSize; k++) {
                 sum += (tileA.array((long) localIdy * tileSize + k) * tileB.array(k * tileSize + localIdx));
             }
+
+            // A new local barrier for all threads that belong to the same group before loading a new tile into
+            // share memory. With the following barrier, we can ensure that all threads within the same workgroup
+            // finished the compute for the partial reduction
             kc.barrier();
         }
 
-        // copy result from local to global memory
+        // copy result from shared memory to global memory
         matrixC.array((long) row * size + col, sum);
     }
 
