@@ -2772,11 +2772,11 @@ public class ReflectMethods extends TreeTranslator {
             }
         }
 
+        private static final Set<MethodRef> mRefs = Set.of(M_BLOCK_BUILDER_OP, M_BLOCK_BUILDER_PARAM, M_OP_SEAL);
         public JCTree.JCStatement translateFuncOp(CoreOp.FuncOp funcOp, MethodSymbol ms) {
             Assert.check(funcOp.parameters().isEmpty());
             Assert.check(funcOp.body().blocks().size() == 1);
 
-            Set<MethodRef> mRefs = new HashSet<>(List.of(M_BLOCK_BUILDER_OP, M_BLOCK_BUILDER_PARAM, M_OP_SEAL));
             java.util.List<Value> rootValues = funcOp.traverse(new ArrayList<>(), (l, ce) -> {
                 boolean isRoot = switch (ce) {
                     case JavaOp.InvokeOp invokeOp when mRefs.contains(invokeOp.invokeDescriptor()) -> true;

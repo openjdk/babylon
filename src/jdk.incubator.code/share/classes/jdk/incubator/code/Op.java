@@ -170,7 +170,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         /**
          * If assigned to an operation result, it indicates the operation is sealed
         */
-        private static final Result SEALED_OPR = new Result();
+        private static final Result SEALED_RESULT = new Result();
 
         final Op op;
 
@@ -340,7 +340,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the operation's result, or {@code null} if unbound or sealed.
      */
     public final Result result() {
-        return result == Result.SEALED_OPR ? null : result;
+        return result == Result.SEALED_RESULT ? null : result;
     }
 
     /**
@@ -544,16 +544,16 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     public void seal() {
-        if (result == Result.SEALED_OPR) {
+        if (result == Result.SEALED_RESULT) {
             return;
         }
         if (result != null) {
-            throw new IllegalStateException("Can't freeze a bound operation");
+            throw new IllegalStateException("Operation cannot be sealed since it bound to a parent block");
         }
-        result = Result.SEALED_OPR;
+        result = Result.SEALED_RESULT;
     }
 
     public boolean isSealed() {
-        return result == Result.SEALED_OPR;
+        return result == Result.SEALED_RESULT;
     }
 }
