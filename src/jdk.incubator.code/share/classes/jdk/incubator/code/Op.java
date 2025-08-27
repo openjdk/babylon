@@ -543,6 +543,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
     }
 
+    /**
+     * Seals this operation, making it immutable
+     * and causes the operation to be copied when we append it to a {@link Block.Builder}.
+     * @throws IllegalStateException If this operation is bound.
+     * @implSpec This implementation is idempotent.
+     */
     public void seal() {
         if (result == Result.SEALED_RESULT) {
             return;
@@ -553,6 +559,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         result = Result.SEALED_RESULT;
     }
 
+    /**
+     * Returns {@code true} if this operation is sealed.
+     * @return {@code true} if this operation is sealed.
+     * @see #seal()
+    * */
     public boolean isSealed() {
         return result == Result.SEALED_RESULT;
     }
