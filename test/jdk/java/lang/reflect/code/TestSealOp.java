@@ -72,6 +72,14 @@ public class TestSealOp {
         Assert.assertThrows(() -> r.op().seal());
     }
 
+    @Test
+    void test6() {
+        CoreOp.ConstantOp cop = CoreOp.constant(JavaType.LONG, 1L);
+        cop.setLocation(Location.NO_LOCATION);
+        cop.seal();
+        Assert.assertThrows(() -> cop.setLocation(Location.NO_LOCATION));
+    }
+
     void assertOpIsCopiedWhenAddedToBlock(Op op) {
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
         body.entryBlock().op(op);

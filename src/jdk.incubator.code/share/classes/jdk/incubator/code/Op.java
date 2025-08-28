@@ -285,11 +285,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * Sets the originating source location of this operation, if unbound.
      *
      * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
-     * @throws IllegalStateException if this operation is bound
+     * @throws IllegalStateException if this operation is bound or sealed
      */
     public final void setLocation(Location l) {
         // @@@ Fail if location != null?
-        if (result != null && result.block.isBound()) {
+        if (isSealed() || (result != null && result.block.isBound())) {
             throw new IllegalStateException();
         }
 
@@ -304,9 +304,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns this operation's parent block, otherwise {@code null} if the operation is not assigned to a block.
+     * Returns this operation's parent block, otherwise {@code null} if the operation is unbound or sealed.
      *
-     * @return operation's parent block, or {@code null} if the operation is not assigned to a block.
+     * @return operation's parent block, or {@code null} if the operation is unbound or sealed.
      */
     @Override
     public final Block parent() {
@@ -544,10 +544,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Seals this operation, making it immutable
-     * and causes the operation to be copied when we append it to a {@link Block.Builder}.
-     * @throws IllegalStateException If this operation is bound.
-     * @implSpec This implementation is idempotent.
+     * Seals this operation. After this operation is sealed its {@link #result result} and {@link #parent parent} are guaranteed to always be {@code null}.
+     * <p>
+     * If a sealed operation is {@link Block.Builder#op appended} to a {@link Block.Builder} then it is
+     * treated as if the operation is bound, and therefore the sealed operation will be transformed.
+     * <p>
+     * Sealing is idempotent if the operation is already sealed.
+     *
+     * @throws IllegalStateException if this operation is bound.
      */
     public void seal() {
         if (result == Result.SEALED_RESULT) {
