@@ -30,7 +30,7 @@ import hat.tools.textmodel.tokens.Token;
 import javax.swing.text.Element;
 
 public interface ElementSpan extends Span {
-     TextViewer textViewer();
+     TextModelViewer textModelViewer();
      Element element();
     default int startOffset() {
         return element().getStartOffset();
@@ -40,7 +40,7 @@ public interface ElementSpan extends Span {
         return element().getEndOffset();
     }
 
-    record Impl(Token token, TextViewer textViewer, Element element) implements ElementSpan {
+    record Impl(Token token, TextModelViewer textModelViewer, Element element) implements ElementSpan {
 
     }
 }

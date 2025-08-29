@@ -40,6 +40,7 @@ import jdk.incubator.code.TypeElement;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -100,7 +101,30 @@ public final class Interpreter {
                     String.format("Actual #arguments (%d) differs from #parameters (%d) plus #captured arguments (%d)",
                             args.size(), parameters.size(), capturedValues.size())));
         }
-
+        // validate runtime args types
+        List<Value> symbolicValues = Stream.concat(parameters.stream(), capturedValues.stream()).toList();
+        for (int i = 0; i < symbolicValues.size(); i++) {
+            Value sv = symbolicValues.get(i);
+            Object rv = args.get(i);
+            try {
+                JavaType typeToResolve = switch (sv.type()) {
+                    // @@@ Deconstruct and test what the var holds
+                    case VarType _ -> JavaType.type(CoreOp.Var.class);
+                    // Allow reflection to convert between primitive values
+                    // @@@ Check conversion compatible
+                    case PrimitiveType _ -> JavaType.J_L_OBJECT;
+                    case JavaType jt -> jt;
+                    default -> throw new IllegalStateException("Unexpected type: " + sv.type());
+                };
+                Class<?> c = typeToResolve.toNominalDescriptor().resolveConstantDesc(l);
+                if (rv != null && !c.isInstance(rv)) {
+                    throw interpreterException(new IllegalArgumentException(("Runtime argument at position %d has type %s " +
+                            "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), sv.type())));
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
+        }
         // Map symbolic parameters to runtime arguments
         Map<Value, Object> valuesAndArguments = new HashMap<>();
         for (int i = 0; i < parameters.size(); i++) {

@@ -26,7 +26,11 @@ package matmul;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
+import hat.GlobalMesh1D;
+import hat.GlobalMesh2D;
 import hat.KernelContext;
+import hat.LocalMesh2D;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -104,6 +108,15 @@ public class Main {
         }
     }
 
+    @CodeReflection
+    public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
+        float acc = 0;
+        for (int k = 0; k < size; k++) {
+            acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
+        }
+        return acc;
+    }
+
     /**
      * Naive Matrix Multiplication implemented in 1D.
      *
@@ -126,24 +139,50 @@ public class Main {
         }
     }
 
+    /**
+     * 1D Matrix Multiply with function calls passing the kernel context ID. This is just for testing purposes.
+     */
     @CodeReflection
-    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size,
-                kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+        if (kc.x < kc.maxX) {
+            for (int j = 0; j < size; j++) {
+                float acc = compute(kc, matrixA, matrixB, size, j);
+                matrixC.array(kc.x * size + j, acc);
+            }
+        }
+    }
+
+    @CodeReflection
+    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(globalSize));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
+        );
+    }
+
+    final static int BLOCK_SIZE = 16;
+
+    @CodeReflection
+    public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @CodeReflection
-    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size, size,
-                kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
-    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        cc.dispatchKernel(size, size,
-                kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, size)
+    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
@@ -166,8 +205,9 @@ public class Main {
      * 1D range or 2D range.
      */
     private enum Configuration {
-        _1D, //
-        _2D, //
+        _1D,   //
+        _1DFC, // 1D with multiple function calls: This is just for testing
+        _2D,   //
         _2DLI
     }
 
@@ -184,6 +224,9 @@ public class Main {
         if (args.length > 0) {
             if (args[0].equals("1D")) {
                 configuration = Configuration._1D;
+            }
+            if (args[0].equals("1DFC")) {
+                configuration = Configuration._1DFC;
             }
             if (args[0].equals("2DLI")) {
                 configuration = Configuration._2DLI;
@@ -221,6 +264,8 @@ public class Main {
             switch (configuration) {
                 case _1D -> accelerator.compute(cc ->
                         Main.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
+                case _1DFC -> accelerator.compute(cc ->
+                        Main.matrixMultiply1DWithFunctionCalls(cc, matrixA, matrixB, matrixC, size));
                 case _2D -> accelerator.compute(cc ->
                         Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
                 case _2DLI -> accelerator.compute(cc ->

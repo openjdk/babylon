@@ -87,7 +87,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         bldr.op(iow.op());
         bldr.op(JavaOp.invoke(wrapper.post, cc, iface));
     }
-
+ // This code should be common with ffi-shared probably should be pushed down into another lib?
     protected static FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         FuncOpWrapper prevFOW = computeMethod.funcOpWrapper();
         FuncOpWrapper returnFOW = prevFOW;
@@ -113,15 +113,16 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                     bldr.op(invokeOW.op());
                 } else {
                     invokeOW.op().operands().stream()
-                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
-                            .forEach(value ->
-                                    bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(value)))
+                            .filter(val -> val.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
+                            .forEach(val ->
+                                    bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(val)))
                             );
                     bldr.op(invokeOW.op());
                     invokeOW.op().operands().stream()
-                            .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
-                            .forEach(value -> bldr.op(
-                                    JavaOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(value)))
+                            .filter(val -> val.type() instanceof JavaType javaType &&
+                                    InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
+                            .forEach(val -> bldr.op(
+                                    JavaOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(val)))
                             );
                 }
                 return bldr;

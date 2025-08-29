@@ -26,6 +26,9 @@ package hat.callgraph;
 
 import hat.ComputeContext;
 import hat.optools.FuncOpWrapper;
+import hat.optools.InvokeOpWrapper;
+import hat.optools.ModuleOpWrapper;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.annotation.Annotation;
@@ -41,10 +44,13 @@ public abstract class CallGraph<E extends Entrypoint> {
     public final E entrypoint;
     public final Set<MethodCall> calls = new HashSet<>();
     public final Map<MethodRef, MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
+    public ModuleOpWrapper moduleOpWrapper;
 
     public Stream<MethodCall> callStream() {
         return methodRefToMethodCallMap.values().stream();
     }
+
+    public abstract boolean filterCalls(CoreOp.FuncOp f, InvokeOpWrapper invokeOpWrapper, Method method, MethodRef methodRef, Class<?> javaRefTypeClass);
 
     public interface Resolved {
         FuncOpWrapper funcOpWrapper();

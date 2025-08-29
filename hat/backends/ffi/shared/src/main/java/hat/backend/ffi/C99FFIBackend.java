@@ -25,6 +25,8 @@
 
 package hat.backend.ffi;
 
+import hat.ComputeRange;
+import hat.ThreadMesh;
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
@@ -35,6 +37,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
+import hat.optools.FuncOpWrapper;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -60,23 +63,68 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelContext = KernelContext.create(kernelCallGraph.computeContext.accelerator, 0, 0, 0, 0, 0, 0);
+            this.kernelContext = KernelContext.createDefault(kernelCallGraph.computeContext.accelerator);
             ndRangeAndArgs[0] = this.kernelContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
 
+        private void setGlobalMesh(hat.KernelContext kc) {
+            kernelContext.maxX(kc.maxX);
+            kernelContext.maxY(kc.maxY);
+            kernelContext.maxZ(kc.maxZ);
+            kernelContext.dimensions(kc.getDimensions());
+        }
+
+        private void setGlobalMesh(ThreadMesh threadMesh) {
+            kernelContext.maxX(threadMesh.getX());
+            kernelContext.maxY(threadMesh.getY());
+            kernelContext.maxZ(threadMesh.getZ());
+            kernelContext.dimensions(threadMesh.getDims());
+        }
+
+        private void setLocalMesh(ThreadMesh threadMesh) {
+            kernelContext.lsx(threadMesh.getX());
+            kernelContext.lsy(threadMesh.getY());
+            kernelContext.lsz(threadMesh.getZ());
+            //kernelContext.dimensions(threadMesh.getDims());
+        }
+
+        private void setDefaultLocalMesh() {
+            kernelContext.lsx(0);
+            kernelContext.lsy(0);
+            kernelContext.lsz(0);
+        }
+
+        private void setupComputeRange(NDRange ndRange) {
+
+            ComputeRange computeRange = ndRange.kid.getComputeRange();
+            boolean isComputeRangeDefined = ndRange.kid.hasComputeRange();
+            boolean isLocalMeshDefined = ndRange.kid.hasLocalMesh();
+
+            ThreadMesh globalMesh = null;
+            ThreadMesh localMesh = null;
+            if (isComputeRangeDefined) {
+                globalMesh = computeRange.getGlobalMesh();
+                localMesh = computeRange.getLocalMesh();
+            }
+
+            if (!isComputeRangeDefined) {
+                setGlobalMesh(ndRange.kid);
+            } else {
+                setGlobalMesh(globalMesh);
+            }
+            if (isComputeRangeDefined && isLocalMeshDefined) {
+                setLocalMesh(localMesh);
+            } else {
+                setDefaultLocalMesh();
+            }
+        }
+
         public void dispatch(NDRange ndRange, Object[] args) {
-          //  long ns = System.nanoTime();
-            kernelContext.maxX(ndRange.kid.maxX);
-            kernelContext.maxY(ndRange.kid.maxY);
-            kernelContext.maxZ(ndRange.kid.maxZ);
-            kernelContext.dimensions(ndRange.kid.getDimensions());
+            setupComputeRange(ndRange);
             args[0] = this.kernelContext;
             ArgArray.update(argArray,kernelCallGraph, args);
-            //System.out.println("argupdate  "+((System.nanoTime()-ns)/1000)+" us");
-           // ns = System.nanoTime();
             kernelBridge.ndRange(this.argArray);
-           // System.out.println("dispatch time "+((System.nanoTime()-ns)/1000)+" us");
         }
     }
 
@@ -99,8 +147,15 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 });
 
         // Sorting by rank ensures we don't need forward declarations
-        kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
-                .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(kernelReachableResolvedMethod).nl());
+        if (Boolean.getBoolean("moduleOp")) {
+            System.out.println("Using ModuleOp for C99FFIBackend");
+            kernelCallGraph.moduleOpWrapper.functionTable()
+                    .forEach((_, funcOp) -> builder.nl().kernelMethod(new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup, funcOp)).nl());
+        } else {
+            System.out.println("NOT using ModuleOp for C99FFIBackend");
+            kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
+                    .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(kernelReachableResolvedMethod).nl());
+        }
 
         builder.nl().kernelEntrypoint(kernelCallGraph.entrypoint, args).nl();
 

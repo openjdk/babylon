@@ -410,11 +410,22 @@ public class CudaBackend extends C99FFIBackend {
         builder.ptxHeader(major, minor, target, addressSize);
         out.append(builder.getTextAndReset());
 
-        for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
-            FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op());
-            FuncOpWrapper loweredFunc = calledFunc.lower();
-            loweredFunc = transformPTXPtrs(loweredFunc, argsMap, usedMathFns);
-            invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+        if (Boolean.getBoolean("moduleOp")) {
+            System.out.println("Using ModuleOp for CudaBackend");
+            kernelCallGraph.moduleOpWrapper.functionTable().forEach((_, funcOp) -> {
+                FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,funcOp);
+                FuncOpWrapper loweredFunc = calledFunc.lower();
+                loweredFunc = transformPTXPtrs(loweredFunc, argsMap, usedMathFns);
+                invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+            });
+        } else {
+            System.out.println("NOT using ModuleOp for CudaBackend");
+            for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
+                FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op());
+                FuncOpWrapper loweredFunc = calledFunc.lower();
+                loweredFunc = transformPTXPtrs(loweredFunc, argsMap, usedMathFns);
+                invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+            }
         }
 
         lowered = transformPTXPtrs(lowered, argsMap, usedMathFns);

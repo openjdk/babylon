@@ -49,7 +49,7 @@ questions.
             <version>1.0</version>
         </dependency>
     </dependencies>
-    <build> 
+    <build>
       <plugins>
         <plugin>
            <groupId>org.apache.maven.plugins</groupId>

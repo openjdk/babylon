@@ -28,6 +28,18 @@ import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 public interface KernelContext extends Buffer {
+
+    // ----------------------------------------------------------------------|
+    //| OpenCL            | CUDA                                  | HAT      |
+    //| ----------------- | ------------------------------------- |--------- |
+    //| get_global_id(0)  | blockIdx.x *blockDim.x + threadIdx.x  | gix      |
+    //| get_global_size(0)| gridDim.x * blockDim.x                | gsx      |
+    //| get_local_id(0)   | threadIdx.x                           | lix      |
+    //| get_local_size(0) | blockDim.x                            | lsx      |
+    //| get_group_id(0)   | blockIdx.x                            | bix      |
+    //| get_num_groups(0) | gridDim.x                             | bsx      |
+    // ----------------------------------------------------------------------|
+
     int x();
     void x(int x);
 
@@ -49,27 +61,86 @@ public interface KernelContext extends Buffer {
     int dimensions();
     void dimensions(int numDimensions);
 
-    // Important part here! do not forget the new fields.
-    Schema<KernelContext> schema = Schema.of(KernelContext.class, s->s.fields("x","maxX", "y", "maxY", "z", "maxZ", "dimensions"));
+    // Global: new names
+    int gix();
+    void gix(int gix);
+    int giy();
+    void giy(int giy);
+    int giz();
+    void giz(int giz);
 
-    static KernelContext create(Accelerator accelerator, int x, int maxX) {
-        KernelContext kernelContext =  schema.allocate(accelerator);
-        kernelContext.x(x);
-        kernelContext.maxX(maxX);
-        kernelContext.dimensions(1);
-        return kernelContext;
-    }
+    int gsx();
+    void gsx(int gsx);
+    int gsy();
+    void gsy(int gsy);
+    int gsz();
+    void gsz(int gsz);
 
-    static KernelContext create(Accelerator accelerator, int x, int y, int z, int maxX, int maxY, int maxZ) {
+    // Local accesses
+    int lix();
+    void lix(int lix);
+    int liy();
+    void liy(int liy);
+    int liz();
+    void liz(int liz);
+
+    // Local group size / block size
+    int lsx();
+    void lsx(int lsx);
+    int lsy();
+    void lsy(int lsy);
+    int lsz();
+    void lsz(int lsz);
+
+    // Block ID
+    int bix();
+    void bix(int bix);
+    int biy();
+    void biy(int biy);
+    int biz();
+    void biz(int biz);
+
+    Schema<KernelContext> schema = Schema.of(KernelContext.class,
+            kernelContext -> kernelContext
+                    .fields(
+                            "x", "maxX", "y", "maxY", "z", "maxZ", "dimensions",  // Initial version
+                            "gix", "giy", "giz",  // global accesses
+                            "gsx", "gsy", "gsz",  // global sizes
+                            "lix", "liy", "liz",  // local (thread-ids)
+                            "lsx", "lsy", "lsz",  // block size
+                            "bix", "biy", "biz"  // block id
+                    ));
+
+    static KernelContext  createDefault(Accelerator accelerator) {
         KernelContext kernelContext =  schema.allocate(accelerator);
-        kernelContext.x(x);
-        kernelContext.y(y);
-        kernelContext.z(z);
-        kernelContext.maxX(maxX);
-        kernelContext.maxY(maxY);
-        kernelContext.maxZ(maxZ);
+        kernelContext.x(0);
+        kernelContext.maxX(0);
+        kernelContext.y(0);
+        kernelContext.maxY(0);
+        kernelContext.z(0);
+        kernelContext.maxZ(0);
         kernelContext.dimensions(3);
+
+        kernelContext.gix(0);
+        kernelContext.giy(0);
+        kernelContext.giz(0);
+
+        kernelContext.gsy(0);
+        kernelContext.giy(0);
+        kernelContext.giz(0);
+
+        kernelContext.lix(0);
+        kernelContext.liy(0);
+        kernelContext.liz(0);
+
+        kernelContext.lsx(0);
+        kernelContext.lsy(0);
+        kernelContext.lsz(0);
+
+        kernelContext.bix(0);
+        kernelContext.biy(0);
+        kernelContext.biz(0);
+
         return kernelContext;
     }
-
 }

@@ -25,14 +25,16 @@
 
 package jdk.incubator.code;
 
-import java.util.Objects;
+import java.util.List;
 import java.util.function.BiFunction;
 
 /**
  * An operation transformer.
  */
 @FunctionalInterface
-public interface OpTransformer extends BiFunction<Block.Builder, Op, Block.Builder> {
+// @@@ Change to OpTransform or CodeTransform
+public interface OpTransformer {
+
     /**
      * A copying transformer that applies the operation to the block builder, and returning the block builder.
      */
@@ -40,11 +42,6 @@ public interface OpTransformer extends BiFunction<Block.Builder, Op, Block.Build
         block.op(op);
         return block;
     };
-
-    /**
-     * A transformer that performs no action on the block builder.
-     */
-    OpTransformer NOOP_TRANSFORMER = (block, op) -> block;
 
     /**
      * A transformer that drops location information from operations.
@@ -61,7 +58,7 @@ public interface OpTransformer extends BiFunction<Block.Builder, Op, Block.Build
      */
     OpTransformer LOWERING_TRANSFORMER = (block, op) -> {
         if (op instanceof Op.Lowerable lop) {
-            return lop.lower(block);
+            return lop.lower(block, null);
         } else {
             block.op(op);
             return block;
@@ -69,59 +66,116 @@ public interface OpTransformer extends BiFunction<Block.Builder, Op, Block.Build
     };
 
     /**
-     * Transforms a given operation to zero or more other operations appended to the
-     * given block builder. Returns a block builder to be used for appending further operations, such
-     * as subsequent operations from the same block as the given operation.
-     *
-     * @param block the block builder.
-     * @param op    the operation to transform.
-     * @return      the block builder to append to for subsequent operations to transform that have same parent block.
-     */
-    Block.Builder apply(Block.Builder block, Op op);
-
-    /**
-     * Transforms a given block to zero or more operations appended to the given block builder.
+     * Transforms a body starting from a block builder.
      *
      * @implSpec
-     * The default implementation iterates through each operation of the block to transform
-     * and {@link #apply(Block.Builder, Op) applies} a block builder and the operation to this
-     * transformer.
+     * The default implementation {@link #acceptBlock(Block.Builder, Block) accepts} a block builder
+     * and a block for each block of the body, in order, using this operation transformer.
+     * The following sequence of actions is performed:
+     * <ol>
+     * <li>
+     * the body's entry block is mapped to the block builder, and the (input) block parameters of the
+     * body's entry block are mapped to the (output) values, using the builder's context.
+     * <li>for each (input) block in the body (except the entry block) an (output) block builder is created
+     * from the builder with the same parameter types as the (input) block, in order.
+     * The (input) block is mapped to the (output) builder, and the (input) block parameters are mapped to the
+     * (output) block parameters, using the builder's context.
+     * <li>
+     * for each (input) block in the body (in order) the (input) block is transformed
+     * by {@link #acceptBlock(Block.Builder, Block) accepting} the mapped (output) builder and
+     * (input) block, using this operation transformer.
+     * </ol>
+     *
+     * @param builder the block builder
+     * @param body the body to transform
+     * @param values the values to map to the body's entry block parameters
+     */
+    default void acceptBody(Block.Builder builder, Body body, List<? extends Value> values) {
+        CopyContext cc = builder.context();
+
+        // Map blocks up front, for forward referencing successors
+        for (Block block : body.blocks()) {
+            if (block.isEntryBlock()) {
+                cc.mapBlock(block, builder);
+                cc.mapValues(block.parameters(), values);
+            } else {
+                Block.Builder blockBuilder = builder.block(block.parameterTypes());
+                cc.mapBlock(block, blockBuilder);
+                cc.mapValues(block.parameters(), blockBuilder.parameters());
+            }
+        }
+
+        // Transform blocks
+        for (Block b : body.blocks()) {
+            acceptBlock(cc.getBlock(b), b);
+        }
+    }
+
+    /**
+     * Transforms a block starting from a block builder.
+     *
+     * @implSpec
+     * The default implementation {@link #acceptOp(Block.Builder, Op) accepts} a block builder
+     * and an operation for each operation of the block, in order, using this operation transformer.
      * On first iteration the block builder that is applied is block builder passed as an argument
      * to this method.
      * On second and subsequent iterations the block builder that is applied is the resulting
      * block builder of the prior iteration.
      *
-     * @param block the block builder
-     * @param b     the block to transform
-     * @throws NullPointerException if a resulting block builder is null
+     * @param builder the block builder
+     * @param block   the block to transform
      */
-    default void apply(Block.Builder block, Block b) {
-        for (Op op : b.ops()) {
-            block = apply(block, op);
-            // @@@ See andThen composition
-            Objects.requireNonNull(block);
+    default void acceptBlock(Block.Builder builder, Block block) {
+        for (Op op : block.ops()) {
+            builder = acceptOp(builder, op);
         }
     }
 
-    default OpTransformer compose(OpTransformer before) {
-        return before.andThen(this);
+    /**
+     * Transforms an operation to zero or more operations, appending those operations to a
+     * block builder. Returns a block builder to be used for transforming further operations, such
+     * as subsequent operations from the same block as the given operation.
+     *
+     * @param block the block builder.
+     * @param op    the operation to transform.
+     * @return      the block builder to append to for subsequent operations.
+     */
+    Block.Builder acceptOp(Block.Builder block, Op op);
+
+    /**
+     * Returns a composed code transform that transforms an operation that first applies
+     * a block builder and operation to the function {@code f}, and then applies
+     * the resulting block builder and the same operation to {@link OpTransformer#acceptOp acceptOp}
+     * of the code transformer {@code after}.
+     * <p>
+     * If the code transformer {@code after} is {@code null} then it is as if a code transformer
+     * is applied that does nothing except return the block builder it was given.
+     *
+     * @param after the code transformer to apply after
+     * @param f the operation transformer function to apply before
+     * @return the composed code transformer
+     */
+    static OpTransformer compose(OpTransformer after, BiFunction<Block.Builder, Op, Block.Builder> f) {
+        return after == null
+                ? f::apply
+                : (block, op) -> after.acceptOp(f.apply(block, op), op);
     }
 
-    default OpTransformer andThen(OpTransformer after) {
-        if (after == NOOP_TRANSFORMER) {
-            return this;
-        } else if (this == NOOP_TRANSFORMER) {
-            return after;
-        } else {
-            return (bb, o) -> {
-                Block.Builder nbb = apply(bb, o);
-                if (nbb != null) {
-                    return after.apply(nbb, o);
-                } else {
-                    // @@@ This does not currently occur
-                    return null;
-                }
-            };
-        }
+    /**
+     * Returns a composed code transformer that first applies a block builder and operation to
+     * {@link OpTransformer#acceptOp acceptOp} of the code transformer {@code before},
+     * and then applies resulting block builder and the same operation to the function {@code f}.
+     * <p>
+     * If the code transformer {@code before} is {@code null} then it is as if a code transformer
+     * is applied that does nothing except return the block builder it was given.
+     *
+     * @param before the code transformer to apply before
+     * @param f the operation transformer function to apply after
+     * @return the composed code transformer
+     */
+    static OpTransformer andThen(OpTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+        return before == null
+                ? f::apply
+                : (block, op) -> f.apply(before.acceptOp(block, op), op);
     }
 }

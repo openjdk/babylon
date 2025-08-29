@@ -58,8 +58,23 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
+    public OpenCLHatKernelBuilder localId(int id) {
+        return identifier("get_local_id").oparen().literal(id).cparen();
+    }
+
+    @Override
     public OpenCLHatKernelBuilder globalSize(int id) {
         return identifier("get_global_size").oparen().literal(id).cparen();
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder localSize(int id) {
+        return identifier("get_local_size").oparen().literal(id).cparen();
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder blockId(int id) {
+        return identifier("get_group_id").oparen().literal(id).cparen();
     }
 
     @Override

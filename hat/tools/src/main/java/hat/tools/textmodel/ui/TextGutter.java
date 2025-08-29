@@ -25,7 +25,6 @@
 package hat.tools.textmodel.ui;
 
 import javax.swing.JComponent;
-import javax.swing.JViewport;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -42,8 +41,8 @@ import java.awt.Rectangle;
 
 public class TextGutter extends JComponent {
     private final static Border OUTER = new MatteBorder(0, 0, 0, 2, Color.GRAY);
-    private final AbstractTextModelViewer lhs;
-    private final AbstractTextModelViewer rhs;
+    private final TextModelViewer lhs;
+    private final TextModelViewer rhs;
     private final Color currentLineForeground;
     private final FontMetrics fontMetrics;
     private final int colWidth;
@@ -59,43 +58,42 @@ public class TextGutter extends JComponent {
         return size;
     }
 
-    public TextGutter(AbstractTextModelViewer lhs, AbstractTextModelViewer rhs) {
+    public TextGutter(TextModelViewer lhs, TextModelViewer rhs) {
         this.lhs = lhs;
         this.rhs = rhs;
-        setFont(this.lhs.jtextPane.getFont());
+        setFont(this.lhs.styleMapper.jTextPane.getFont());
         setBorder(new CompoundBorder(OUTER, new EmptyBorder(0, 5, 0, 5)));
         this.fontMetrics = getFontMetrics(getFont());
         Insets insets = getInsets();
         colWidth = fontMetrics.charWidth('0') * 4; // for digits either side
         size = new Dimension(insets.left + insets.right + colWidth * 2, 1000 * fontMetrics.getHeight());
         this.currentLineForeground = Color.RED;
-        this.lhs.jtextPane.addCaretListener(_ -> repaint());
-      //  this.rhs.jtextPane.addCaretListener(_ -> repaint());
+        this.lhs.styleMapper.jTextPane.addCaretListener(_ -> repaint());
         this.lhs.scrollPane.getViewport().addChangeListener(_->repaint());
         this.rhs.scrollPane.getViewport().addChangeListener(_->repaint());
 
     }
 
-    void paintNumbers(Graphics g, AbstractTextModelViewer tv, int col) {
+    void paintNumbers(Graphics g, TextModelViewer tv, int col) {
         var viewPort = tv.scrollPane.getViewport();
         var viewportPosition = viewPort.getViewPosition();
-        int rowStartOffset = tv.jtextPane.viewToModel(new Point(0, viewportPosition.y));
-        int endOffset = tv.jtextPane.viewToModel(new Point(0, viewportPosition.y + viewPort.getHeight()));
-        Element root = tv.jtextPane.getDocument().getDefaultRootElement();
+        int rowStartOffset = tv.styleMapper.jTextPane.viewToModel(new Point(0, viewportPosition.y));
+        int endOffset = tv.styleMapper.jTextPane.viewToModel(new Point(0, viewportPosition.y + viewPort.getHeight()));
+        Element root = tv.styleMapper.jTextPane.getDocument().getDefaultRootElement();
         while (rowStartOffset <= endOffset) {
             try {
-                int caretPosition = tv.jtextPane.getCaretPosition();
+                int caretPosition = tv.styleMapper.jTextPane.getCaretPosition();
                 g.setColor(root.getElementIndex(rowStartOffset) == root.getElementIndex(caretPosition)
                         ? currentLineForeground
                         : getForeground());
                 int index = root.getElementIndex(rowStartOffset);
                 String lineNumber = (root.getElement(index).getStartOffset() == rowStartOffset) ? Integer.toString(index + 1) : "";
                 int width = fontMetrics.stringWidth(lineNumber);
-                Rectangle r = tv.jtextPane.modelToView(rowStartOffset);
+                Rectangle r = tv.styleMapper.jTextPane.modelToView(rowStartOffset);
                 int x = this.getInsets().left + ((col == 0) ? 0 : colWidth * 2 - width);
                 int y = r.y + r.height - fontMetrics.getDescent() - viewportPosition.y;
                 g.drawString(lineNumber, x, y);
-                rowStartOffset = Utilities.getRowEnd(tv.jtextPane, rowStartOffset) + 1;
+                rowStartOffset = Utilities.getRowEnd(tv.styleMapper.jTextPane, rowStartOffset) + 1;
             } catch (Exception e) {
                 break;
             }

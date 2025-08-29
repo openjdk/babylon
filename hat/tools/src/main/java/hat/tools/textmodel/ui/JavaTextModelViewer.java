@@ -25,61 +25,56 @@
  */
 package hat.tools.textmodel.ui;
 
+import hat.tools.textmodel.JavaTextModel;
 import hat.tools.textmodel.TextModel;
 
-import javax.swing.JTextPane;
-import javax.swing.text.Element;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class JavaTextModelViewer extends AbstractTextModelViewer {
+public class JavaTextModelViewer extends TextModelViewer {
     FuncOpTextModelViewer funcOpTextModelViewer;
     Map<ElementSpan, List<ElementSpan>> javaToOp = new HashMap<>();
 
-    static class JavaTextPane extends JTextPane {
+    static class JavaTextPane extends TextModelViewer.TextViewerPane<JavaTextModelViewer> {
         public void paintComponent(Graphics g) {
             super.paintComponent(g);
-            Graphics2D g2d = (Graphics2D) g;
         }
-
-        JavaTextPane(Font font) {
-            super.setFont(font);
+        JavaTextPane(Font font, boolean editable) {
+            super(font, editable);
         }
     }
 
-    ;
+    @Override
+    public  TextModel createTextModel(String text) {
+        return JavaTextModel.of(styleMapper.jTextPane.getText());
+    }
 
-    JavaTextModelViewer(TextModel textModel, Font font, boolean dark) {
-        super(textModel, new JavaTextPane(font), font, dark);
-        jtextPane.addMouseListener(new MouseAdapter() {
+
+    JavaTextModelViewer(TextModel textModel,StyleMapper styleMapper) {
+        super(textModel, styleMapper);
+        final var thisTextViewer = this;
+        ((JavaTextPane) this.styleMapper.jTextPane).setViewer(this);
+        styleMapper.jTextPane.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                var clicked = getElementFromMouseEvent(e);
+                var clickedElement = getElementFromMouseEvent(e);
                 funcOpTextModelViewer.removeHighlights();
                 removeHighlights();
-                if (clicked != null) {
-                    if (javaToOp.keySet().stream().anyMatch(fromElementSpan -> fromElementSpan.includes(clicked.getStartOffset()))) {
-                        javaToOp.keySet().stream().
-                                filter(fromElementSpan -> fromElementSpan.includes(clicked.getStartOffset()))
-                                .forEach(fromElementSpan -> {
-                                    fromElementSpan.textViewer().highLight(fromElementSpan.element());
-                                    javaToOp.get(fromElementSpan).forEach(targetElementSpan -> {
-                                        Element targetElement = targetElementSpan.element();
-                                        targetElementSpan.textViewer().highLight(targetElement);
-                                        targetElementSpan.textViewer().scrollTo(targetElement);
-                                    });
-                                });
-                    } else {
-                        System.out.println("not a mappable java line  from op");
+                if (clickedElement != null) {
+                    var elementsReferencedByClickedElement = javaToOp.keySet().stream()
+                            .filter(fromElementSpan ->
+                                    fromElementSpan.includes(clickedElement.getStartOffset())
+                            ).toList();
+                    if (!elementsReferencedByClickedElement.isEmpty()) {
+                        elementsReferencedByClickedElement.forEach(fromElementSpan -> {
+                            thisTextViewer.highlight(fromElementSpan, javaToOp.get(fromElementSpan));
+                        });
                     }
-                } else {
-                    System.out.println("nothing from java");
                 }
             }
         });

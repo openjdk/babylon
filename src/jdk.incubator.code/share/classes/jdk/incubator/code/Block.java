@@ -606,87 +606,64 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Transforms a body into this block, with this block builder's context.
+         * Transforms a body starting from this block builder, using an operation transformer.
+         * <p>
+         * This method first rebinds this builder with a child context created from
+         * this builder's context and the given operation transformer, and then
+         * transforms the body using the operation transformer by
+         * {@link OpTransformer#acceptBody(Builder, Body, List) accepting}
+         * the rebound builder, the body, and the values.
          *
-         * @param bodyToTransform the body to transform
-         * @param args        the list of output values to map to the input parameters of the body's entry block
-         * @param ot          the operation transformer
-         * @see #transformBody(Body, List, CopyContext, OpTransformer)
-         */
-        public void transformBody(Body bodyToTransform, List<? extends Value> args,
-                                  OpTransformer ot) {
-            transformBody(bodyToTransform, args, cc, ot);
-        }
-
-        /**
-         * Transforms a body into this block.
-         * <p>
-         * First, a new context is created from the given context and that new context is used to map values and
-         * blocks.
-         * <p>
-         * Second, the entry block is mapped to this block builder rebound with the given operation transformer and
-         * copy context, the input block parameters of the body's entry block are mapped to the given arguments.
-         * <p>
-         * Third, for each input block in the body (except the entry block) an output block builder is created with
-         * equivalent parameters as the input block and with the given operation transformer and copy context.
-         * The input block parameters are mapped to the output block parameters, and the input block is mapped to the
-         * output block builder.
-         * <p>
-         * Fourth, for each input block in the body (in order) the input block's operations are transformed
-         * by applying the output block builder and input block to the given operation transformer.
-         * <p>
-         * When the parent body is built any empty non-entry blocks that have no successors will be removed.
+         * @apiNote
+         * Creation of a child context ensures block and value mappings produced by
+         * the transformation do not affect this builder's context.
          *
-         * @param bodyToTransform the body to transform
-         * @param args            the list of output values to map to the input parameters of the body's entry block
-         * @param cc              the copy context, for values captured in the body
-         * @param ot              the operation transformer
+         * @param body the body to transform
+         * @param values the output values to map to the input parameters of the body's entry block
+         * @param ot the operation transformer
+         * @see OpTransformer#acceptBody(Builder, Body, List)
          */
-        public void transformBody(Body bodyToTransform, List<? extends Value> args,
-                                  CopyContext cc, OpTransformer ot) {
+        public void body(Body body, List<? extends Value> values,
+                         OpTransformer ot) {
             check();
 
-            // @@@ This might be a new context e.g., when transforming a body
-            cc = CopyContext.create(cc);
-
-            Block entryBlockToTransform  = bodyToTransform.entryBlock();
-            List<Block> blocksToTransform = bodyToTransform.blocks();
-
-            // Map entry block
-            // Rebind this block builder to the created context and transformer
-            Block.Builder startingBlock = rebind(cc, ot);
-            cc.mapBlock(entryBlockToTransform, startingBlock);
-            cc.mapValues(entryBlockToTransform.parameters(), args);
-
-            // Map subsequent blocks up front, for forward referencing successors
-            for (int i = 1; i < blocksToTransform.size(); i++) {
-                Block blockToTransform = blocksToTransform.get(i);
-                if (cc.getBlock(blockToTransform) != null) {
-                    throw new IllegalStateException("Block is already transformed");
-                }
-
-                // Create block and map block
-                Block.Builder transformedBlock = startingBlock.block(List.of());
-                for (Block.Parameter ba : blockToTransform.parameters()) {
-                    transformedBlock.parameter(ba.type());
-                }
-                cc.mapBlock(blockToTransform, transformedBlock);
-                cc.mapValues(blockToTransform.parameters(), transformedBlock.parameters());
-            }
-
-            for (Block blockToTransform : blocksToTransform) {
-                ot.apply(cc.getBlock(blockToTransform), blockToTransform);
-            }
+            ot.acceptBody(rebind(CopyContext.create(cc), ot), body, values);
         }
 
         /**
-         * Appends an operation to this block.
+         * Transforms a body starting from this block builder, using a given operation transformer.
+         * <p>
+         * This method first rebinds this builder with the given context
+         * and the given operation transformer, and then
+         * transforms the body using the operation transformer by
+         * {@link OpTransformer#acceptBody(Builder, Body, List) accepting}
+         * the rebound builder, the body, and the values.
+         *
+         * @apiNote
+         * The passing of a context can ensure block and value mappings produced by
+         * the transformation do not affect this builder's context.
+         *
+         * @param body the body to transform
+         * @param values the output values to map to the input parameters of the body's entry block
+         * @param cc the copy context
+         * @param ot the operation transformer
+         * @see OpTransformer#acceptBody(Builder, Body, List)
+         */
+        public void body(Body body, List<? extends Value> values,
+                         CopyContext cc, OpTransformer ot) {
+            check();
+
+            ot.acceptBody(rebind(cc, ot), body, values);
+        }
+
+        /**
+         * Appends an operation to this block builder, first transforming the operation if bound.
          * <p>
          * If the operation is not bound to a block, then the operation is appended and bound to this block.
          * Otherwise, if the operation is bound, the operation is first
          * {@link Op#transform(CopyContext, OpTransformer) transformed} with this builder's context and
-         * operation transformer, the unbound transformed operation is appended, and the operation's result is mapped
-         * to the transformed operation's result (using the builder's context).
+         * operation transformer, the resulting unbound transformed operation is appended, and the
+         * operation's result mapped to the transformed operation's result, using the builder's context.
          * <p>
          * If the unbound operation (transformed, or otherwise) is structurally invalid then an
          * {@code IllegalStateException} is thrown. An unbound operation is structurally invalid if:
