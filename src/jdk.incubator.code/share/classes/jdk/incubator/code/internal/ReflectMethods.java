@@ -736,16 +736,15 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
-            if (targetType.hasTag(TypeTag.VOID)) {
-                // if target type is void, nothing to coerce
+            if (targetType == null || targetType.hasTag(TypeTag.VOID)) {
+                // if target type null or void, nothing to coerce
                 return sourceValue;
             }
             if (sourceType.isReference() && targetType.isReference() &&
                     !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
                 return append(JavaOp.cast(typeToTypeElement(targetType), sourceValue));
-            } else {
-                return convert(sourceValue, targetType);
             }
+            return convert(sourceValue, targetType);
         }
 
         Value boxIfNeeded(Value exprVal) {
