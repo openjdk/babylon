@@ -137,7 +137,7 @@ public final class Quoted {
     }
 
     /**
-     * Copy {@code op} from its original context to a new one,
+     * Embeds the given {@code op}, copying it from its original context to a new one,
      * where its operands and captured values will be parameters.
      * <p>
      * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp FuncOp}
@@ -158,7 +158,7 @@ public final class Quoted {
      * the returned value is the result of the {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp QuotedOp}
      * object described previously.
      *
-     * @param op The operation to quote
+     * @param op The operation to embed
      * @return The model that represent the quoting of {@code op}
      * @throws IllegalArgumentException if {@code op} is not bound
      */
