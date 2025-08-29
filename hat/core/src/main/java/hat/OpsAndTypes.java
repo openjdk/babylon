@@ -124,7 +124,7 @@ public class OpsAndTypes {
 
                 if (op instanceof JavaOp.InvokeOp invokeOp
                         && OpWrapper.wrap(lookup, invokeOp) instanceof InvokeOpWrapper invokeOpWrapper
-                        && invokeOpWrapper.hasOperands()
+                        && !invokeOpWrapper.op.operands().isEmpty()
                         && invokeOpWrapper.isIfaceBufferMethod()
                         && invokeOpWrapper.getReceiver() instanceof Value iface // Is there a containing iface type Iface
                         && getMappableClassOrNull(lookup, iface.type()) != null
@@ -136,7 +136,7 @@ public class OpsAndTypes {
                     //    BoundSchema.FieldLayout layout= boundSchemaNode.getChild(fieldName);
                     OpsAndTypes.HatPtrOp<T> hatPtrOp = new OpsAndTypes.HatPtrOp<>(hatPtrTypeValue, fieldName);         // Create ptrOp to replace invokeOp
                     Op.Result ptrResult = builder.op(hatPtrOp);// replace and capture the result of the invoke
-                    if (invokeOpWrapper.operandCount() == 1) {                  // No args (operand(0)==containing iface))
+                    if (invokeOpWrapper.op.operands().size() == 1) {                  // No args (operand(0)==containing iface))
                         /*
                           this turns into a load
                           interface Iface extends Buffer // or Buffer.StructChild
@@ -150,7 +150,7 @@ public class OpsAndTypes {
                         } else {                                                 // pointing to another iface mappable
                             builder.context().mapValue(invokeOp.result(), ptrResult);
                         }
-                    } else if (invokeOpWrapper.operandCount() == 2) {
+                    } else if (invokeOpWrapper.op.operands().size() == 2) {
                          /*
                           This turns into a store
                           interface Iface extends Buffer // or Buffer.StructChild
@@ -158,7 +158,7 @@ public class OpsAndTypes {
                           }
                          */
                         if (hatPtrOp.hatPtrType == null) { // are we pointing to a primitive
-                            Value valueToStore = builder.context().getValue(invokeOpWrapper.operandNAsValue(1));
+                            Value valueToStore = builder.context().getValue(invokeOpWrapper.op.operands().get(1));
                             OpsAndTypes.HatPtrStoreValue primitiveStore = new OpsAndTypes.HatPtrStoreValue(iface.type(), ptrResult, valueToStore);
                             Op.Result replacedReturnValue = builder.op(primitiveStore);
                             builder.context().mapValue(invokeOp.result(), replacedReturnValue);

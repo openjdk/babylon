@@ -26,6 +26,7 @@ package hat.backend.ffi;
 
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.codebuilders.HATCodeBuilderContext;
 import hat.optools.OpWrapper;
 
 import jdk.incubator.code.Op;
@@ -85,7 +86,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder functionDeclaration(CodeBuilderContext codeBuilderContext, JavaType type, String name) {
+    public OpenCLHATKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, String name) {
         return keyword("inline").space().type(codeBuilderContext,type).space().identifier(name);
     }
 
@@ -95,9 +96,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder atomicInc(CodeBuilderContext buildContext, Op.Result instanceResult, String name){
+    public OpenCLHATKernelBuilder atomicInc(HATCodeBuilderContext buildContext, Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ -> {
-              ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup(),instanceResult.op()));
+              ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup,instanceResult.op()));
               rarrow().identifier(name);
           });
     }

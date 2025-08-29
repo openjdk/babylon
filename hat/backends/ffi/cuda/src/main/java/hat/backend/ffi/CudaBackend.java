@@ -401,7 +401,7 @@ public class CudaBackend extends C99FFIBackend {
         var builder = new PTXHATKernelBuilder();
         StringBuilder out = new StringBuilder();
         StringBuilder invokedMethods = new StringBuilder();
-        FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op());
+        FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op);
         FuncOpWrapper lowered = f.lower();
         HashMap<String, Object> argsMap = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
@@ -421,7 +421,7 @@ public class CudaBackend extends C99FFIBackend {
         } else {
             System.out.println("NOT using ModuleOp for CudaBackend");
             for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
-                FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op());
+                FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op);
                 FuncOpWrapper loweredFunc = calledFunc.lower();
                 loweredFunc = transformPTXPtrs(loweredFunc, argsMap, usedMathFns);
                 invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
@@ -444,7 +444,7 @@ public class CudaBackend extends C99FFIBackend {
     }
 
       static  public FuncOpWrapper transformPTXPtrs(FuncOpWrapper func, HashMap<String, Object> argsMap, Set<String> usedMathFns) {
-        return FuncOpWrapper.wrap(func.lookup,func.op().transform((block, op) -> {
+        return FuncOpWrapper.wrap(func.lookup,func.op.transform((block, op) -> {
             CopyContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (op instanceof JavaOp.InvokeOp invokeOp
@@ -461,9 +461,9 @@ public class CudaBackend extends C99FFIBackend {
                     PTXHATKernelBuilder.PTXPtrOp ptxOp = new PTXHATKernelBuilder.PTXPtrOp(inputResult.type(), invokeOp.invokeDescriptor().name(), outputOperands, boundSchema);
                     Op.Result outputResult = block.op(ptxOp);
                     cc.mapValue(inputResult, outputResult);
-                } else if (invokeOpWrapper.op().invokeDescriptor().refType().toString().equals("java.lang.Math")
-                        && mathFns.containsKey(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString())){
-                    usedMathFns.add(invokeOpWrapper.op().invokeDescriptor().name() + "_" + invokeOpWrapper.resultType().toString());
+                } else if (invokeOpWrapper.op.invokeDescriptor().refType().toString().equals("java.lang.Math")
+                        && mathFns.containsKey(invokeOpWrapper.op.invokeDescriptor().name() + "_" + invokeOpWrapper.op.resultType().toString())){
+                    usedMathFns.add(invokeOpWrapper.op.invokeDescriptor().name() + "_" + invokeOpWrapper.op.resultType().toString());
                     block.op(op);
                 } else {
                     block.op(op);
@@ -480,7 +480,7 @@ public class CudaBackend extends C99FFIBackend {
         String out, body;
 
         // building fn info (name, params)
-        builder.functionHeader(lowered.functionName(), entry, lowered.op().body().yieldType());
+        builder.functionHeader(lowered.functionName(), entry, lowered.op.body().yieldType());
 
         // printing out params
         builder.parameters(lowered.paramTable().list());
@@ -489,7 +489,7 @@ public class CudaBackend extends C99FFIBackend {
         builder.functionPrologue();
 
         out = builder.getTextAndReset();
-        ssa.firstBody().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(o->OpWrapper.wrap(lowered.lookup,o))));
+        ssa.op.bodies().getFirst().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(o->OpWrapper.wrap(lowered.lookup,o))));
 
         builder.functionEpilogue();
         body = builder.getTextAndReset();

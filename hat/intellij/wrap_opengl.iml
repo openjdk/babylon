@@ -12,7 +12,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../build/hat-extraction-opengl-1.0.jar!/" />
+          <root url="jar://$MODULE_DIR$/../build/hat-extracted-opengl-1.0.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

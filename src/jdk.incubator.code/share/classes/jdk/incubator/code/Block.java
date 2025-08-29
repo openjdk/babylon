@@ -684,11 +684,12 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Op.Result op(Op op) {
             check();
+
             final Op.Result oprToTransform = op.result();
 
             Op transformedOp = op;
-            if (oprToTransform != null) {
-                // If operation is assigned to block, then copy it and transform its contents
+            if (op.isSealed() || oprToTransform != null) {
+                // If operation is assigned to block, or it's sealed, then copy it and transform its contents
                 transformedOp = op.transform(cc, ot);
                 assert transformedOp.result == null;
             }

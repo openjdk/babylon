@@ -35,6 +35,6 @@ public class FuncCallOpWrapper extends OpWrapper<CoreOp.FuncCallOp> {
 
 
     public String funcName() {
-        return op().funcName();
+        return op.funcName();
     }
 }

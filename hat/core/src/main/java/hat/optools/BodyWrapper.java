@@ -40,13 +40,4 @@ public class BodyWrapper extends CodeElementWrapper<Body> {
         return new BodyWrapper(body);
     }
 
-    public static void onlyBlock(Body body, Consumer<BlockWrapper> blockWrapperConsumer) {
-        blockWrapperConsumer.accept(new BlockWrapper(body.entryBlock()));
-    }
-
-    public void onlyBlock(Consumer<BlockWrapper> blockWrapperConsumer) {
-        onlyBlock(body(), blockWrapperConsumer);
-    }
-
-
 }

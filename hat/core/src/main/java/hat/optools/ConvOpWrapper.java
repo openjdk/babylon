@@ -35,6 +35,6 @@ public class ConvOpWrapper extends UnaryOpWrapper<JavaOp.ConvOp> {
     }
 
     public JavaType resultJavaType() {
-        return (JavaType) op().resultType();
+        return (JavaType) op.resultType();
     }
 }

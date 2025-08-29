@@ -36,24 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-//Recursive
-/*
-static Node<Value> dependencyTree(Value value) {
-    // @@@ There should exactly one Node in the tree for a given Value
-    List<Node<Value>> children = new ArrayList<>();
-    for (Value dependencyOnValue : value.dependsOn()) {
-        Node<Value> child;
-        if (dependencyOnValue instanceof Op.Result or && or.op() instanceof JavaOps.VarAccessOp.VarLoadOp) {
-            // Break the tree at a var load
-            child = new Node<>(dependencyOnValue, List.of());
-        } else {
-            // Traverse backwards
-            child = dependencyTree(dependencyOnValue); // recurses
-        }
-        children.add(child);
-    }
-    return new Node<>(value, children);
-} */
 public class RootSet {
     record Node<T extends Value>(T node, List<Node<T>> children) {
     }
@@ -75,7 +57,7 @@ public class RootSet {
             trees.put(op, new Node<>(op.result(), children));
         });
 
-        trees.forEach((op, valueNode) -> {
+        trees.forEach((op, _) -> {
             if (op instanceof CoreOp.VarAccessOp.VarStoreOp) {
                 Value value = op.operands().get(1);
                 if (value.uses().size() < 2) {

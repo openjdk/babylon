@@ -36,14 +36,14 @@ public class TernaryOpWrapper extends OpWrapper<JavaOp.ConditionalExpressionOp> 
     }
 
     public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(0));
+        return wrappedYieldOpStream(op.bodies().getFirst().entryBlock()/*,firstBlockOfBodyN(0)*/);
     }
 
     public Stream<OpWrapper<?>> thenWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(1));
+        return wrappedYieldOpStream(op.bodies().get(1).entryBlock()/*firstBlockOfBodyN(1)*/);
     }
 
     public Stream<OpWrapper<?>> elseWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(2));
+        return wrappedYieldOpStream(op.bodies().get(2).entryBlock()/*firstBlockOfBodyN(2)*/);
     }
 }
