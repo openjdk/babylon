@@ -49,7 +49,7 @@ public class CodeReflectionSymbols {
     public final Type codeReflectionType;
     public final Type opType;
     public final Type funcOpType;
-    public final MethodSymbol quotedQuotedOp;
+    public final MethodSymbol quotedExtractOp;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -60,8 +60,8 @@ public class CodeReflectionSymbols {
         quotableType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Quotable");
         opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
         funcOpType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.dialect.core.CoreOp$FuncOp");
-        quotedQuotedOp = new MethodSymbol(PUBLIC | STATIC | VARARGS,
-                names.fromString("quotedOp"),
+        quotedExtractOp = new MethodSymbol(PUBLIC | STATIC | VARARGS,
+                names.fromString("extractOp"),
                 new MethodType(List.of(funcOpType, new ArrayType(syms.objectType, syms.arrayClass)), quotedType,
                         List.nil(), syms.methodClass),
                 quotedType.tsym);
