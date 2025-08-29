@@ -224,7 +224,18 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * A value that is the result of an operation.
      */
     public static final class Result extends Value {
+
+        /**
+         * If assigned to an operation result, it indicates the operation is sealed
+        */
+        private static final Result SEALED_RESULT = new Result();
+
         final Op op;
+
+        private Result() {
+            super(null, null);
+            this.op = null;
+        }
 
         Result(Block block, Op op) {
             super(block, op.resultType());
@@ -332,11 +343,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * Sets the originating source location of this operation, if unbound.
      *
      * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
-     * @throws IllegalStateException if this operation is bound
+     * @throws IllegalStateException if this operation is bound or sealed
      */
     public final void setLocation(Location l) {
         // @@@ Fail if location != null?
-        if (result != null && result.block.isBound()) {
+        if (isSealed() || (result != null && result.block.isBound())) {
             throw new IllegalStateException();
         }
 
@@ -351,13 +362,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns this operation's parent block, otherwise {@code null} if the operation is not assigned to a block.
+     * Returns this operation's parent block, otherwise {@code null} if the operation is unbound or sealed.
      *
-     * @return operation's parent block, or {@code null} if the operation is not assigned to a block.
+     * @return operation's parent block, or {@code null} if the operation is unbound or sealed.
      */
     @Override
     public final Block parent() {
-        if (result == null) {
+        if (isSealed() || result == null) {
             return null;
         }
 
@@ -382,12 +393,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the operation's result, otherwise {@code null} if the operation is not assigned to a block.
+     * Returns the operation's result, otherwise {@code null} if the operation is unbound or sealed.
      *
-     * @return the operation's result, or {@code null} if not assigned to a block.
+     * @return the operation's result, or {@code null} if unbound or sealed.
      */
     public final Result result() {
-        return result;
+        return result == Result.SEALED_RESULT ? null : result;
     }
 
     /**
@@ -588,5 +599,34 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             ex.printStackTrace();
             return Optional.empty();
         }
+    }
+
+    /**
+     * Seals this operation. After this operation is sealed its {@link #result result} and {@link #parent parent} are guaranteed to always be {@code null}.
+     * <p>
+     * If a sealed operation is {@link Block.Builder#op appended} to a {@link Block.Builder} then it is
+     * treated as if the operation is bound, and therefore the sealed operation will be transformed.
+     * <p>
+     * Sealing is idempotent if the operation is already sealed.
+     *
+     * @throws IllegalStateException if this operation is bound.
+     */
+    public void seal() {
+        if (result == Result.SEALED_RESULT) {
+            return;
+        }
+        if (result != null) {
+            throw new IllegalStateException("Operation cannot be sealed since it bound to a parent block");
+        }
+        result = Result.SEALED_RESULT;
+    }
+
+    /**
+     * Returns {@code true} if this operation is sealed.
+     * @return {@code true} if this operation is sealed.
+     * @see #seal()
+    * */
+    public boolean isSealed() {
+        return result == Result.SEALED_RESULT;
     }
 }
