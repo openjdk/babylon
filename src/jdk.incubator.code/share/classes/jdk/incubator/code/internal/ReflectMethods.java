@@ -736,6 +736,10 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
+            if (targetType.hasTag(TypeTag.VOID)) {
+                // if target type is void, nothing to coerce
+                return sourceValue;
+            }
             if (sourceType.isReference() && targetType.isReference() &&
                     !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
                 return append(JavaOp.cast(typeToTypeElement(targetType), sourceValue));
@@ -1030,6 +1034,14 @@ public class ReflectMethods extends TreeTranslator {
                 case FIELD, ENUM_CONSTANT -> {
                     if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                         result = thisValue();
+                    } else if (top.localToOp.containsKey(sym)) {
+                        // if field symbol is a key in top.localToOp
+                        // we expect that we're producing the model of a lambda
+                        // we also expect that the field is a constant capture and sym was mapped to VarOp result
+                        Assert.check(isQuoted);
+                        Assert.check(sym.isStatic());
+                        Assert.check(sym.isFinal());
+                        result = loadVar(sym);
                     } else {
                         FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
                         TypeElement resultType = typeToTypeElement(sym.type);
@@ -1461,7 +1473,16 @@ public class ReflectMethods extends TreeTranslator {
             // Push quoted body
             // We can either be explicitly quoted or a structural quoted expression
             // within some larger reflected code
-            if (isQuoted || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL) {
+
+            // a lambda targeted to Quoted is always going to have its model wrapped in QuotedOp, regardless of whether
+            // we are producing the model of the method that contain it or we are producing the model of the lambda itself
+            // on the other hand, a lambda targeted to a subtype of Quotable is going to have its model wrapped in QuotedOp
+            // only when we are producing the model of the lambda, thus the condition (isQuoted ...)
+            // also, a lambda contained in a quotable lambda, will not have its model wrapped in QuotedOp,
+            // thus the condition (... body == tree)
+            // @@@ better name for isQuoted ?
+            boolean toQuote = (isQuoted && body == tree) || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL;
+            if (toQuote) {
                 pushBody(tree.body, CoreType.FUNCTION_TYPE_VOID);
             }
 
@@ -1478,9 +1499,10 @@ public class ReflectMethods extends TreeTranslator {
             }
 
             // Scan the lambda body
+            Type lambdaReturnType = tree.getDescriptorType(types).getReturnType();
             if (tree.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION) {
-                Value exprVal = toValue(((JCExpression) tree.body), tree.getDescriptorType(types).getReturnType());
-                if (!tree.body.type.hasTag(TypeTag.VOID)) {
+                Value exprVal = toValue(((JCExpression) tree.body), lambdaReturnType);
+                if (!lambdaReturnType.hasTag(TypeTag.VOID)) {
                     append(CoreOp.return_(exprVal));
                 } else {
                     appendTerminating(CoreOp::return_);
@@ -1488,7 +1510,7 @@ public class ReflectMethods extends TreeTranslator {
             } else {
                 Type prevBodyTarget = bodyTarget;
                 try {
-                    bodyTarget = tree.getDescriptorType(types).getReturnType();
+                    bodyTarget = lambdaReturnType;
                     toValue(((JCTree.JCStatement) tree.body));
                     appendReturnOrUnreachable(tree.body);
                 } finally {
@@ -1512,13 +1534,13 @@ public class ReflectMethods extends TreeTranslator {
             popBody();
 
             Value lambdaResult;
-            if (isQuoted) {
+            if (toQuote) {
                 lambdaResult = append(lambdaOp, generateLocation(tree, true));
             } else {
                 lambdaResult = append(lambdaOp);
             }
 
-            if (isQuoted || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL) {
+            if (toQuote) {
                 append(CoreOp.core_yield(lambdaResult));
                 CoreOp.QuotedOp quotedOp = CoreOp.quoted(stack.body);
 
