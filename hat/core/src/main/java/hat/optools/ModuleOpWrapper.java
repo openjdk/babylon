@@ -41,7 +41,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
     }
 
     public SequencedMap<String, CoreOp.FuncOp> functionTable() {
-        return op().functionTable();
+        return op.functionTable();
     }
 
 //    public static ModuleOpWrapper createTransitiveInvokeModule(MethodHandles.Lookup lookup,
@@ -71,20 +71,24 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
         record RefAndFunc(MethodRef r, FuncOpWrapper f) {}
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
-
-        entry.selectCalls((invokeOpWrapper) -> {
-            MethodRef methodRef = invokeOpWrapper.methodRef();
-            Method method = null;
-            Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();
-            try {
-                method = methodRef.resolveToMethod(l, invokeOpWrapper.op().invokeKind());
-            } catch (ReflectiveOperationException _) {
-                throw new IllegalStateException("Could not resolve invokeWrapper to method");
+        entry.op.traverse(null, (map, op) -> {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
+                var invokeOpWrapper = (InvokeOpWrapper) OpWrapper.wrap(entry.lookup,invokeOp);
+                MethodRef methodRef = invokeOpWrapper.methodRef();
+                Method method = null;
+                Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();
+                try {
+                    method = methodRef.resolveToMethod(l, invokeOpWrapper.op.invokeKind());
+                } catch (ReflectiveOperationException _) {
+                    throw new IllegalStateException("Could not resolve invokeWrapper to method");
+                }
+                Optional<CoreOp.FuncOp> f = Op.ofMethod(method);
+                if (f.isPresent() && !callGraph.filterCalls(f.get(), invokeOpWrapper, method, methodRef, javaRefTypeClass)) {
+                    work.push(new RefAndFunc(methodRef, new FuncOpWrapper(l, f.get())));
+                }
+              //  consumer.accept(wrap(lookup,invokeOp));
             }
-            Optional<CoreOp.FuncOp> f = Op.ofMethod(method);
-            if (f.isPresent() && !callGraph.filterCalls(f.get(), invokeOpWrapper, method, methodRef, javaRefTypeClass)) {
-                work.push(new RefAndFunc(methodRef, new FuncOpWrapper(l, f.get())));
-            }
+            return map;
         });
 
         while (!work.isEmpty()) {
@@ -111,7 +115,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
 
                             Op.Result result = blockBuilder.op(CoreOp.funcCall(
                                     call.r.name(),
-                                    call.f.op().invokableType(),
+                                    call.f.op.invokableType(),
                                     blockBuilder.context().getValues(iop.operands())));
                             blockBuilder.context().mapValue(op.result(), result);
                             return blockBuilder;

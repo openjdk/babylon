@@ -35,14 +35,11 @@ public abstract class VarOpWrapper extends OpWrapper<CoreOp.VarOp> {
     }
 
     public JavaType javaType() {
-        return (JavaType) op().varValueType();
+        return (JavaType) op.varValueType();
     }
 
     public String varName() {
-        return op().varName();
+        return op.varName();
     }
 
-    public boolean isIfaceAssignment() {
-        return isIface(javaType());
-    }
 }

@@ -45,12 +45,12 @@ public abstract class FieldAccessOpWrapper<T extends JavaOp.FieldAccessOp> exten
     }
 
     public boolean isStaticFinalPrimitive() {
-      return hasNoOperands() && resultType() instanceof PrimitiveType;
+      return op.operands().isEmpty() && op.result().type() instanceof PrimitiveType;
       // Can we check for final?
     }
 
     public FieldRef fieldRef() {
-        return op().fieldDescriptor();
+        return op.fieldDescriptor();
     }
 
     public String fieldName() {

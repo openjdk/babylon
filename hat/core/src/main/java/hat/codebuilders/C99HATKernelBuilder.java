@@ -153,8 +153,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract T globalPtrPrefix();
 
     @Override
-    public T type(CodeBuilderContext buildContext, JavaType javaType) {
-        if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup(),javaType) && javaType instanceof ClassType classType) {
+    public T type(HATCodeBuilderContext buildContext, JavaType javaType) {
+        if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup,javaType) && javaType instanceof ClassType classType) {
             globalPtrPrefix().space();
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
@@ -181,7 +181,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T kernelMethod(KernelCallGraph.KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
-        CodeBuilderContext buildContext = new CodeBuilderContext(kernelReachableResolvedMethodCall.funcOpWrapper());
+        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelReachableResolvedMethodCall.funcOpWrapper().lookup,kernelReachableResolvedMethodCall.funcOpWrapper());
         buildContext.scope(buildContext.funcOpWrapper, () -> {
             nl();
             functionDeclaration(buildContext,buildContext.funcOpWrapper.getReturnType(), buildContext.funcOpWrapper.functionName());
@@ -202,7 +202,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public T kernelMethod(FuncOpWrapper funcOpWrapper) {
 
-        CodeBuilderContext buildContext = new CodeBuilderContext(funcOpWrapper);
+        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(funcOpWrapper.lookup,funcOpWrapper);
         buildContext.scope(buildContext.funcOpWrapper, () -> {
             nl();
             functionDeclaration(buildContext,buildContext.funcOpWrapper.getReturnType(), buildContext.funcOpWrapper.functionName());
@@ -224,7 +224,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T kernelEntrypoint(KernelEntrypoint kernelEntrypoint,Object... args) {
 
         nl();
-        CodeBuilderContext buildContext = new CodeBuilderContext(kernelEntrypoint.funcOpWrapper());
+        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelEntrypoint.funcOpWrapper().lookup,kernelEntrypoint.funcOpWrapper());
         //  System.out.print(kernelReachableResolvedMethodCall.funcOpWrapper().toText());
         buildContext.scope(buildContext.funcOpWrapper, () -> {
 
@@ -263,7 +263,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T kernelDeclaration(String name);
 
-    public abstract T functionDeclaration(CodeBuilderContext codeBuilderContext,JavaType javaType, String name);
+    public abstract T functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType javaType, String name);
 
     public abstract T globalId(int id);
 

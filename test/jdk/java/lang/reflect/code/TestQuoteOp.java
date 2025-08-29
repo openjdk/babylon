@@ -13,7 +13,11 @@ import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.SequencedMap;
+import java.util.SequencedSet;
 import java.util.function.IntUnaryOperator;
 
 /*
@@ -71,7 +75,7 @@ public class TestQuoteOp {
 
         Assert.assertTrue(invOp.getClass().isInstance(quoted.op()));
 
-        Iterator<Object> iterator = quoted.capturedValues().values().iterator();
+        Iterator<Object> iterator = quoted.operands().values().iterator();
 
         Assert.assertEquals(iterator.next(), args[0]);
         Assert.assertEquals(iterator.next(), args[1]);
@@ -206,6 +210,37 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
     return %5;
 };
 """, new Object[]{1}
+                },
+                {
+                        // param used once by a VarOp, the VarOp must be used
+                        """
+func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %2 : Var<java.type:"int"> = var %0 @"y";
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+        %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
+            return;
+        };
+        yield %6;
+    };
+    return %5;
+};
+""", new Object[]{2}
+                },
+                {
+                        // param used once by a VarOp, the VarOp must be used as operand or capture
+                        """
+func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
+    %1 : Var<java.type:"int"> = var %0 @"y";
+    %2 : Var<Var<java.type:"int">> = var %1 @"z";
+    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+        %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
+            return;
+        };
+        yield %6;
+    };
+    return %5;
+};
+""", new Object[]{3}
                 },
                 {
                         // operations before quoted op must be ConstantOp or VarOp
@@ -447,5 +482,83 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
                 Assert.assertEquals(rv, args[p.index()]);
             }
         }
+    }
+
+    @DataProvider
+    Object[][] numParamsCases() {
+        return new Object[][]{
+                {
+                        """
+                func @"f" (%0 : java.type:"int", %1 : java.type:"int")java.type:"void" -> {
+                      %4 : java.type:"int" = add %0 %1;
+                      return;
+                  };
+                """, 2
+                },
+                {
+                        """
+                func @"f" (%0 : java.type:"int")java.type:"void" -> {
+                      %4 : java.type:"int" = add %0 %0;
+                      return;
+                  };
+                """, 1
+                },
+                {
+                        """
+                func @"f" (%0 : java.type:"int")java.type:"void" -> {
+                      %3 : java.type:"java.lang.String" = java.switch.expression %0
+                          ()java.type:"boolean" -> {
+                              %4 : java.type:"boolean" = constant @true;
+                              yield %4;
+                          }
+                          ()java.type:"java.lang.String" -> {
+                              %5 : java.type:"java.lang.String" = constant @"x = ";
+                              %7 : java.type:"java.lang.String" = concat %5 %0;
+                              yield %7;
+                          };
+                      return;
+                  };
+                """, 1
+                },
+                {
+                        """
+                func @"f" (%0 : java.type:"int", %1 : java.type:"java.lang.String")java.type:"void" -> {
+                      %3 : java.type:"java.lang.String" = java.switch.expression %0
+                          ()java.type:"boolean" -> {
+                              %4 : java.type:"boolean" = constant @true;
+                              yield %4;
+                          }
+                          ()java.type:"java.lang.String" -> {
+                              %5 : java.type:"java.lang.String" = constant @"x = ";
+                              %7 : java.type:"java.lang.String" = concat %5 %1;
+                              yield %7;
+                          };
+                      return;
+                  };
+                """, 2
+                }
+        };
+    }
+
+    @Test(dataProvider = "numParamsCases")
+    void testNumAndOrderOfParams(String model, int expectedNumParams) {
+        CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, model).get(0);
+        CoreOp.FuncOp qm = Quoted.quoteOp(funcOp.body().entryBlock().ops().getFirst());
+        Assert.assertEquals(qm.parameters().size(), expectedNumParams);
+
+        // test that qm parameters are the sequence set of op 's operands + captured values
+        CoreOp.QuotedOp qop = ((CoreOp.QuotedOp) qm.body().entryBlock().ops().get(qm.body().entryBlock().ops().size() - 2));
+        Op op = qop.quotedOp();
+        SequencedSet<Value> expectedParams = new LinkedHashSet<>();
+        expectedParams.addAll(op.operands());
+        expectedParams.addAll(op.capturedValues());
+        Assert.assertEquals(qm.parameters(), expectedParams);
+
+        // test that validation in Quoted constructor are correct
+        SequencedMap<Value, Object> m = new LinkedHashMap<>();
+        for (Value p : expectedParams) {
+            m.put(p, new Object());
+        }
+        new Quoted(op, m);
     }
 }
