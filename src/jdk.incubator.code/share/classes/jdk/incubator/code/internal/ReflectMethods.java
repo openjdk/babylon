@@ -737,6 +737,7 @@ public class ReflectMethods extends TreeTranslator {
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
             if (targetType.hasTag(TypeTag.VOID)) {
+                // if target type is void, nothing to coerce
                 return sourceValue;
             }
             if (sourceType.isReference() && targetType.isReference() &&
@@ -1033,9 +1034,13 @@ public class ReflectMethods extends TreeTranslator {
                 case FIELD, ENUM_CONSTANT -> {
                     if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                         result = thisValue();
-                    } else if (isQuoted && top.localToOp.containsKey(sym)) {
-                        // if we are scanning a quotable lambda
-                        // and the field being loaded is registered as constant capture, load the associated VarOp result
+                    } else if (top.localToOp.containsKey(sym)) {
+                        // if field symbol is a key in top.localToOp
+                        // we expect that we're producing the model of a lambda
+                        // we also expect that the field is a constant capture and sym was mapped to VarOp result
+                        Assert.check(isQuoted);
+                        Assert.check(sym.isStatic());
+                        Assert.check(sym.isFinal());
                         result = loadVar(sym);
                     } else {
                         FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
@@ -1475,6 +1480,7 @@ public class ReflectMethods extends TreeTranslator {
             // only when we are producing the model of the lambda, thus the condition (isQuoted ...)
             // also, a lambda contained in a quotable lambda, will not have its model wrapped in QuotedOp,
             // thus the condition (... body == tree)
+            // @@@ better name for isQuoted ?
             boolean toQuote = (isQuoted && body == tree) || kind == FunctionalExpressionKind.QUOTED_STRUCTURAL;
             if (toQuote) {
                 pushBody(tree.body, CoreType.FUNCTION_TYPE_VOID);
