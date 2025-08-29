@@ -44,16 +44,8 @@ public class LambdaOpWrapper extends OpWrapper<JavaOp.LambdaOp> {
         super(lookup,op);
     }
 
-    public InvokeOpWrapper getInvoke(int index) {
-        var result = new Result<JavaOp.InvokeOp>();
-        selectOnlyBlockOfOnlyBody(blockWrapper ->
-                result.of(blockWrapper.op(index))
-        );
-        return OpWrapper.wrap(lookup, result.get());
-    }
-
     public List<Value> operands() {
-        return op().operands();
+        return op.operands();
     }
 
     public Method getQuotableTargetMethod() {
@@ -61,7 +53,7 @@ public class LambdaOpWrapper extends OpWrapper<JavaOp.LambdaOp> {
     }
 
     public InvokeOpWrapper getQuotableTargetInvokeOpWrapper() {
-        return OpWrapper.wrap(lookup, op().body().entryBlock().ops().stream()
+        return OpWrapper.wrap(lookup, op.body().entryBlock().ops().stream()
                 .filter(op -> op instanceof JavaOp.InvokeOp)
                 .map(op -> (JavaOp.InvokeOp) op)
                 .findFirst().get());
@@ -72,7 +64,7 @@ public class LambdaOpWrapper extends OpWrapper<JavaOp.LambdaOp> {
     }
 
     public Object[] getQuotableCapturedValues(Quoted quoted, Method method) {
-        var block = op().body().entryBlock();
+        var block = op.body().entryBlock();
         var ops = block.ops();
         Object[] varLoadNames = ops.stream()
                 .filter(op -> op instanceof CoreOp.VarAccessOp.VarLoadOp)

@@ -93,125 +93,13 @@ public class OpWrapper<T extends Op> {
         };
     }
 
-    private final T op;
-public MethodHandles.Lookup lookup;
+    public final T op;
+    public final MethodHandles.Lookup lookup;
     OpWrapper( MethodHandles.Lookup lookup,T op) {
         this.lookup= lookup;
         this.op = op;
 
     }
-
-    public T op() {
-        return (T) op;
-    }
-
-    public Body firstBody() {
-        if (op.bodies().isEmpty()) {
-            throw new IllegalStateException("no body!");
-        }
-        return op.bodies().getFirst();
-    }
-
-    public Body onlyBody() {
-        if (op.bodies().size() != 1) {
-            throw new IllegalStateException("not the only body!");
-        }
-        return firstBody();
-    }
-
-    public void onlyBody(Consumer<BodyWrapper> bodyWrapperConsumer) {
-        bodyWrapperConsumer.accept(new BodyWrapper(onlyBody()));
-    }
-
-    public final Stream<Body> bodies() {
-        return op.bodies().stream();
-    }
-
-    public void selectOnlyBlockOfOnlyBody(Consumer<BlockWrapper> blockWrapperConsumer) {
-        onlyBody(w -> {
-            w.onlyBlock(blockWrapperConsumer);
-        });
-    }
-
-    public void selectCalls(Consumer<InvokeOpWrapper> consumer) {
-        this.op.traverse(null, (map, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                consumer.accept(wrap(lookup,invokeOp));
-            }
-            return map;
-        });
-    }
-    public void selectAssignments(Consumer<VarOpWrapper> consumer) {
-        this.op.traverse(null, (map, op) -> {
-            if (op instanceof CoreOp.VarOp varOp) {
-                consumer.accept(wrap(lookup,varOp));
-            }
-            return map;
-        });
-    }
-
-    public BlockWrapper parentBlock() {
-        return new BlockWrapper(op.ancestorBlock());
-    }
-
-    public BodyWrapper parentBodyOfParentBlock() {
-//        return new BodyWrapper(op.ancestorBody());
-        return parentBlock().parentBody();
-    }
-
-
-    public Op.Result operandNAsResult(int i) {
-        if (operandNAsValue(i) instanceof Op.Result result) {
-            return result;
-        } else {
-            return null;
-        }
-    }
-
-    public Value operandNAsValue(int i) {
-        return hasOperandN(i) ? op().operands().get(i) : null;
-    }
-
-    public boolean hasOperandN(int i) {
-        return operandCount() > i;
-    }
-
-    public int operandCount() {
-        return op().operands().size();
-    }
-
-    public boolean hasOperands() {
-        return !hasNoOperands();
-    }
-
-    public boolean hasNoOperands() {
-        return operands().isEmpty();
-    }
-
-    public List<Value> operands() {
-        return op.operands();
-    }
-
-    public Body bodyN(int i) {
-        return op().bodies().get(i);
-    }
-
-    public boolean hasBodyN(int i) {
-        return op().bodies().size() > i;
-    }
-
-    public Block firstBlockOfBodyN(int i) {
-        return bodyN(i).entryBlock();
-    }
-
-    public Block firstBlockOfFirstBody() {
-        return op().bodies().getFirst().entryBlock();
-    }
-
-    public String toText() {
-        return op().toText();
-    }
-
     public Stream<OpWrapper<?>> wrappedOpStream(Block block) {
         return block.ops().stream().map(o->wrap(lookup,o));
     }
@@ -245,18 +133,11 @@ public MethodHandles.Lookup lookup;
         return list.stream();
     }
 
-    public Op.Result result() {
-        return op.result();
-    }
-
-    public TypeElement resultType() {
-        return op.resultType();
-    }
     public  static boolean isIfaceUsingLookup(MethodHandles.Lookup lookup,JavaType javaType) {
-        return  (isAssignableUsingLookup(lookup,javaType, MappableIface.class));
+        return  isAssignableUsingLookup(lookup,javaType, MappableIface.class);
     }
     public  boolean isIface(JavaType javaType) {
-        return  (isAssignable(javaType, MappableIface.class));
+        return  isAssignable(javaType, MappableIface.class);
     }
 
     public  static Type classTypeToTypeUsingLookup(MethodHandles.Lookup lookup,ClassType classType) {
@@ -286,6 +167,5 @@ public MethodHandles.Lookup lookup;
     }
     public  boolean isAssignable(JavaType javaType, Class<?> ... classes) {
        return isAssignableUsingLookup(lookup,javaType,classes);
-
     }
 }

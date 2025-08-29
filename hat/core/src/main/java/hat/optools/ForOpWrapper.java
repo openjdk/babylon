@@ -35,20 +35,20 @@ public class ForOpWrapper extends LoopOpWrapper<JavaOp.ForOp> {
     }
 
     public Stream<OpWrapper<?>> initWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(0));
+        return wrappedYieldOpStream(op.bodies().getFirst().entryBlock()/*firstBlockOfBodyN(0)*/);
     }
 
     @Override
     public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(1));
+        return wrappedYieldOpStream(op.bodies().get(1).entryBlock()/*firstBlockOfBodyN(1)*/);
     }
 
     public Stream<OpWrapper<?>> mutateRootWrappedOpStream() {
-        return wrappedRootOpStream(firstBlockOfBodyN(2));
+        return wrappedRootOpStream(op.bodies().get(2).entryBlock()/*firstBlockOfBodyN(2)*/);
     }
 
     @Override
     public Stream<OpWrapper<?>> loopWrappedRootOpStream() {
-        return wrappedRootOpStreamSansFinalContinue(firstBlockOfBodyN(3));
+        return wrappedRootOpStreamSansFinalContinue(op.bodies().get(3).entryBlock()/*firstBlockOfBodyN(3)*/);
     }
 }

@@ -27,7 +27,6 @@ package hat.optools;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
-import java.util.stream.Stream;
 
 public class IfOpWrapper extends StructuralOpWrapper<JavaOp.IfOp> {
     public IfOpWrapper(MethodHandles.Lookup lookup,JavaOp.IfOp op) {
@@ -35,18 +34,6 @@ public class IfOpWrapper extends StructuralOpWrapper<JavaOp.IfOp> {
     }
 
     public boolean hasElseN(int idx) {
-        return hasBodyN(idx) && firstBlockOfBodyN(idx).ops().size() > 1;
-    }
-
-    public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
-        return wrappedYieldOpStream(bodyN(0).entryBlock());
-    }
-
-    public Stream<OpWrapper<?>> thenWrappedRootOpStream() {
-        return wrappedRootOpStream(bodyN(1).entryBlock());
-    }
-
-    public Stream<OpWrapper<?>> elseWrappedRootOpStream() {
-        return wrappedRootOpStream(bodyN(2).entryBlock());
+        return op.bodies().size()>idx && op.bodies().get(idx).entryBlock().ops().size() > 1;
     }
 }

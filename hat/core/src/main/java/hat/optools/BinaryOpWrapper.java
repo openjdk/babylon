@@ -34,11 +34,11 @@ public abstract class BinaryOpWrapper<T extends Op> extends OpWrapper<T> {
     }
 
     public Op lhsAsOp() {
-        return operandNAsResult(0).op();
+        return ((Op.Result)op.operands().getFirst()).op();
     }
 
     public Op rhsAsOp() {
-        return operandNAsResult(1).op();
+        return  ((Op.Result)op.operands().get(1)).op();
     }
 
 

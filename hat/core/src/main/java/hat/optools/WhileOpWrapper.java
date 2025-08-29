@@ -37,11 +37,11 @@ public class WhileOpWrapper extends LoopOpWrapper<JavaOp.WhileOp> {
 
     @Override
     public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(0));
+        return wrappedYieldOpStream(op.bodies().getFirst().entryBlock()/*firstBlockOfBodyN(0)*/);
     }
 
     @Override
     public Stream<OpWrapper<?>> loopWrappedRootOpStream() {
-        return wrappedRootOpStreamSansFinalContinue(firstBlockOfBodyN(1));
+        return wrappedRootOpStreamSansFinalContinue(op.bodies().get(1).entryBlock()/*firstBlockOfBodyN(1)*/);
     }
 }

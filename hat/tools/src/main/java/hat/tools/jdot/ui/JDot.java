@@ -685,21 +685,22 @@ public class JDot {
         this(dotToJson(dotText));
     }
 
+
     public static void main(String[] args) throws IOException {
         SwingUtilities.invokeLater(() -> {
             JDot jDot = new JDot(DotBuilder.dotDigraph("cmake",db->db
-                            .assign("rankdir", "RL")
-                            .nodeShape("record")
-                            .record("backend-ffi-opencl", "backend|{ffi|extracted}|opencl")
-                            .record("backend-ffi-shared", "backend|ffi|<in>shared")
-                            .record("backend-ffi", "backend|ffi")
-                            .record("core",  "core")
-                            .record("cmake-info-opencl", "<in>cmake|info|opencl")
-                            .edge("backend-ffi-opencl","backend-ffi-shared:se")
-                            .edge("backend-ffi-shared","backend-ffi:n")
-                            .edge("backend-ffi","core:s")
-                            .edge("backend-ffi-opencl","cmake-info-opencl:ne")
-                    ));
+                    .assign("rankdir", "RL")
+                    .nodeShape("record")
+                    .record("backend-ffi-opencl", "backend|{ffi|extracted}|opencl")
+                    .record("backend-ffi-shared", "backend|ffi|<in>shared")
+                    .record("backend-ffi", "backend|ffi")
+                    .record("core",  "core")
+                    .record("cmake-info-opencl", "<in>cmake|info|opencl")
+                    .edge("backend-ffi-opencl","backend-ffi-shared:se")
+                    .edge("backend-ffi-shared","backend-ffi:n")
+                    .edge("backend-ffi","core:s")
+                    .edge("backend-ffi-opencl","cmake-info-opencl:ne")
+            ));
             var frame = new JFrame();
             frame.setLayout(new BorderLayout());
             frame.getContentPane().add(jDot.pane);

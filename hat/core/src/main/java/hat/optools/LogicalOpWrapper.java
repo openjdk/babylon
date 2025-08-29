@@ -35,10 +35,10 @@ public class LogicalOpWrapper extends BinaryOpWrapper<JavaOp.JavaConditionalOp> 
     }
 
     public Stream<OpWrapper<?>> lhsWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(0));
+        return wrappedYieldOpStream(op.bodies().getFirst().entryBlock()/*firstBlockOfBodyN(0)*/);
     }
 
     public Stream<OpWrapper<?>> rhsWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(1));
+        return wrappedYieldOpStream(op.bodies().get(1).entryBlock()/*firstBlockOfBodyN(1)*/);
     }
 }
