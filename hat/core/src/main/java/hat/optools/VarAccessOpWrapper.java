@@ -40,7 +40,7 @@ public abstract class VarAccessOpWrapper<T extends CoreOp.VarAccessOp> extends O
         // @@@ At a high-level a Var value occur as a BlockArgument.
         // Lowering should remove such cases and the var definition should emerge
         // @@@ This method is used when transforming to pure SSA
-        Value value = operands().getFirst();
+        Value value = op.operands().getFirst();
         Op.Result variable = (Op.Result) value;
         return (CoreOp.VarOp) variable.op();
     }

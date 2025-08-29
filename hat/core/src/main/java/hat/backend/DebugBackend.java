@@ -69,7 +69,7 @@ public class DebugBackend extends BackendAdaptor {
                 if (computeContext.computeCallGraph.entrypoint.lowered == null) {
                     computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
                 }
-                Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op(), args);
+                Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
@@ -78,11 +78,11 @@ public class DebugBackend extends BackendAdaptor {
                 }
                 try {
                     if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                        computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op());
+                        computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op);
                     }
                     computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
                 } catch (Throwable e) {
-                    System.out.println(computeContext.computeCallGraph.entrypoint.lowered.op().toText());
+                    System.out.println(computeContext.computeCallGraph.entrypoint.lowered.op.toText());
                     throw new RuntimeException(e);
                 }
                 break;
@@ -110,12 +110,12 @@ public class DebugBackend extends BackendAdaptor {
             }
             case BABYLON_INTERPRETER:{
                 var lowered = kernelCallGraph.entrypoint.funcOpWrapper().lower();
-                Interpreter.invoke(kernelCallGraph.computeContext.accelerator.lookup, lowered.op(), args);
+                Interpreter.invoke(kernelCallGraph.computeContext.accelerator.lookup, lowered.op, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
                 var lowered = kernelCallGraph.entrypoint.funcOpWrapper().lower();
-                var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, lowered.op());
+                var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, lowered.op);
                 try {
                     mh.invokeWithArguments(args);
                 } catch (Throwable e) {

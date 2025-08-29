@@ -31,6 +31,7 @@ import hat.optools.ModuleOpWrapper;
 import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
@@ -92,43 +93,40 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
          *    b) setters (return void)
          * 3) calls on the NDRange id
          */
-     /*   kernelReachableResolvedMethodCall.funcOpWrapper().selectAssignments(varOpWrapper -> {
-            if (varOpWrapper.isIfaceAssignment()){
-                // We might be aliasing a buffer which is 'frowned upon'
-                System.out.println("Kernel appears to be aliasing a buffer  " + varOpWrapper.javaType() + " name " + varOpWrapper.varName());
-                System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Yep");
-            }
-        }); */
-        kernelReachableResolvedMethodCall.funcOpWrapper().selectCalls(invokeOpWrapper -> {
-            MethodRef methodRef = invokeOpWrapper.methodRef();
-            Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();
-            Method invokeOpCalledMethod = invokeOpWrapper.method();
-            if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
-                //System.out.println("kernel reachable iface mapped buffer call  -> " + methodRef);
-                kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                        new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodRef, invokeOpCalledMethod)
-                ));
-            } else if (entrypoint.method.getDeclaringClass().equals(javaRefTypeClass)) {
-                Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeOpCalledMethod);
-                if (optionalFuncOp.isPresent()) {
-                    //System.out.println("A call to a method on the kernel class which we have code model for " + methodRef);
+
+        kernelReachableResolvedMethodCall.funcOpWrapper().op.traverse(null, (map, op) -> {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
+                var invokeOpWrapper = (InvokeOpWrapper)OpWrapper.wrap(  kernelReachableResolvedMethodCall.funcOpWrapper().lookup,invokeOp);
+                MethodRef methodRef = invokeOpWrapper.methodRef();
+                Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();
+                Method invokeOpCalledMethod = invokeOpWrapper.method();
+                if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
+                    //System.out.println("kernel reachable iface mapped buffer call  -> " + methodRef);
                     kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                            new KernelReachableResolvedMethodCall(this, methodRef, invokeOpCalledMethod, OpWrapper.wrap(computeContext.accelerator.lookup,optionalFuncOp.get())
-                            )));
+                            new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodRef, invokeOpCalledMethod)
+                    ));
+                } else if (entrypoint.method.getDeclaringClass().equals(javaRefTypeClass)) {
+                    Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeOpCalledMethod);
+                    if (optionalFuncOp.isPresent()) {
+                        //System.out.println("A call to a method on the kernel class which we have code model for " + methodRef);
+                        kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                                new KernelReachableResolvedMethodCall(this, methodRef, invokeOpCalledMethod, OpWrapper.wrap(computeContext.accelerator.lookup,optionalFuncOp.get())
+                                )));
+                    } else {
+                        // System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
+                        kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                                new KernelReachableUnresolvedMethodCall(this, methodRef, invokeOpCalledMethod)
+                        ));
+                    }
                 } else {
-                    // System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
+                    //  System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
                     kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
                             new KernelReachableUnresolvedMethodCall(this, methodRef, invokeOpCalledMethod)
                     ));
+                    // System.out.println("Were we expecting " + methodRef + " here ");
                 }
-            } else {
-                //  System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
-                kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                        new KernelReachableUnresolvedMethodCall(this, methodRef, invokeOpCalledMethod)
-                ));
-                // System.out.println("Were we expecting " + methodRef + " here ");
             }
-
+            return map;
         });
 
         boolean updated = true;

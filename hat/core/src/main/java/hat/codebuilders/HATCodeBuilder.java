@@ -33,7 +33,6 @@ import hat.optools.FieldLoadOpWrapper;
 import hat.optools.FieldStoreOpWrapper;
 import hat.optools.ForOpWrapper;
 import hat.optools.FuncCallOpWrapper;
-import hat.optools.FuncOpWrapper;
 import hat.optools.IfOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.JavaBreakOpWrapper;
@@ -52,15 +51,10 @@ import hat.optools.VarLoadOpWrapper;
 import hat.optools.VarStoreOpWrapper;
 import hat.optools.WhileOpWrapper;
 import hat.optools.YieldOpWrapper;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 
-import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBuilder<T> {
@@ -281,73 +275,73 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
 
     /* this should not be too C99 specific */
-    public static interface CodeBuilderInterface<T extends HATCodeBuilderWithContext<?>> {
+    public  interface CodeBuilderInterface<T extends HATCodeBuilderWithContext<?>> {
 
 
-         T varLoad(CodeBuilderContext buildContext, VarLoadOpWrapper varAccessOpWrapper);
+         T varLoad(HATCodeBuilderContext buildContext, VarLoadOpWrapper varAccessOpWrapper);
 
-         T varStore(CodeBuilderContext buildContext, VarStoreOpWrapper varAccessOpWrapper);
+         T varStore(HATCodeBuilderContext buildContext, VarStoreOpWrapper varAccessOpWrapper);
 
         // public T var(BuildContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) ;
 
-         T varDeclaration(CodeBuilderContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper);
+         T varDeclaration(HATCodeBuilderContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper);
 
-         T varFuncDeclaration(CodeBuilderContext buildContext, VarFuncDeclarationOpWrapper varFuncDeclarationOpWrapper);
+         T varFuncDeclaration(HATCodeBuilderContext buildContext, VarFuncDeclarationOpWrapper varFuncDeclarationOpWrapper);
 
-         T fieldLoad(CodeBuilderContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper);
+         T fieldLoad(HATCodeBuilderContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper);
 
-         T fieldStore(CodeBuilderContext buildContext, FieldStoreOpWrapper fieldStoreOpWrapper);
+         T fieldStore(HATCodeBuilderContext buildContext, FieldStoreOpWrapper fieldStoreOpWrapper);
 
-        T unaryOperation(CodeBuilderContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper);
-
-
-        T binaryOperation(CodeBuilderContext buildContext, BinaryArithmeticOrLogicOperation binaryOperatorOpWrapper);
-
-        T logical(CodeBuilderContext buildContext, LogicalOpWrapper logicalOpWrapper);
-
-        T binaryTest(CodeBuilderContext buildContext, BinaryTestOpWrapper binaryTestOpWrapper);
-
-        T conv(CodeBuilderContext buildContext, ConvOpWrapper convOpWrapper);
+        T unaryOperation(HATCodeBuilderContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper);
 
 
-        T constant(CodeBuilderContext buildContext, ConstantOpWrapper constantOpWrapper);
+        T binaryOperation(HATCodeBuilderContext buildContext, BinaryArithmeticOrLogicOperation binaryOperatorOpWrapper);
 
-        T javaYield(CodeBuilderContext buildContext, YieldOpWrapper yieldOpWrapper);
+        T logical(HATCodeBuilderContext buildContext, LogicalOpWrapper logicalOpWrapper);
 
-        T lambda(CodeBuilderContext buildContext, LambdaOpWrapper lambdaOpWrapper);
+        T binaryTest(HATCodeBuilderContext buildContext, BinaryTestOpWrapper binaryTestOpWrapper);
 
-        T tuple(CodeBuilderContext buildContext, TupleOpWrapper lambdaOpWrapper);
-
-        T funcCall(CodeBuilderContext buildContext, FuncCallOpWrapper funcCallOpWrapper);
-
-        T javaIf(CodeBuilderContext buildContext, IfOpWrapper ifOpWrapper);
-
-        T javaWhile(CodeBuilderContext buildContext, WhileOpWrapper whileOpWrapper);
-
-        T javaLabeled(CodeBuilderContext buildContext, JavaLabeledOpWrapper javaLabeledOpWrapperOp);
-
-        T javaContinue(CodeBuilderContext buildContext, JavaContinueOpWrapper javaContinueOpWrapper);
-
-        T javaBreak(CodeBuilderContext buildContext, JavaBreakOpWrapper javaBreakOpWrapper);
-
-        T javaFor(CodeBuilderContext buildContext, ForOpWrapper forOpWrapper);
+        T conv(HATCodeBuilderContext buildContext, ConvOpWrapper convOpWrapper);
 
 
-         T methodCall(CodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper);
+        T constant(HATCodeBuilderContext buildContext, ConstantOpWrapper constantOpWrapper);
 
-         T ternary(CodeBuilderContext buildContext, TernaryOpWrapper ternaryOpWrapper);
+        T javaYield(HATCodeBuilderContext buildContext, YieldOpWrapper yieldOpWrapper);
 
-         T parencedence(CodeBuilderContext buildContext, Op parent, OpWrapper<?> child);
+        T lambda(HATCodeBuilderContext buildContext, LambdaOpWrapper lambdaOpWrapper);
 
-         T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
+        T tuple(HATCodeBuilderContext buildContext, TupleOpWrapper lambdaOpWrapper);
 
-         T parencedence(CodeBuilderContext buildContext,  Op parent, Op child);
+        T funcCall(HATCodeBuilderContext buildContext, FuncCallOpWrapper funcCallOpWrapper);
 
-         T parencedence(CodeBuilderContext buildContext, OpWrapper<?> parent, Op child);
+        T javaIf(HATCodeBuilderContext buildContext, IfOpWrapper ifOpWrapper);
 
-         T ret(CodeBuilderContext buildContext, ReturnOpWrapper returnOpWrapper);
+        T javaWhile(HATCodeBuilderContext buildContext, WhileOpWrapper whileOpWrapper);
 
-        default T recurse(CodeBuilderContext buildContext, OpWrapper<?> wrappedOp) {
+        T javaLabeled(HATCodeBuilderContext buildContext, JavaLabeledOpWrapper javaLabeledOpWrapperOp);
+
+        T javaContinue(HATCodeBuilderContext buildContext, JavaContinueOpWrapper javaContinueOpWrapper);
+
+        T javaBreak(HATCodeBuilderContext buildContext, JavaBreakOpWrapper javaBreakOpWrapper);
+
+        T javaFor(HATCodeBuilderContext buildContext, ForOpWrapper forOpWrapper);
+
+
+         T methodCall(HATCodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper);
+
+         T ternary(HATCodeBuilderContext buildContext, TernaryOpWrapper ternaryOpWrapper);
+
+         T parencedence(HATCodeBuilderContext buildContext, Op parent, OpWrapper<?> child);
+
+         T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
+
+         T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
+
+         T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, Op child);
+
+         T ret(HATCodeBuilderContext buildContext, ReturnOpWrapper returnOpWrapper);
+
+        default T recurse(HATCodeBuilderContext buildContext, OpWrapper<?> wrappedOp) {
             switch (wrappedOp) {
                 case VarLoadOpWrapper $ -> varLoad(buildContext, $);
                 case VarStoreOpWrapper $ -> varStore(buildContext, $);
@@ -370,229 +364,15 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
                 case WhileOpWrapper $ -> javaWhile(buildContext, $);
                 case IfOpWrapper $ -> javaIf(buildContext, $);
                 case ForOpWrapper $ -> javaFor(buildContext, $);
-
                 case ReturnOpWrapper $ -> ret(buildContext, $);
                 case JavaLabeledOpWrapper $ -> javaLabeled(buildContext, $);
                 case JavaBreakOpWrapper $ -> javaBreak(buildContext, $);
                 case JavaContinueOpWrapper $ -> javaContinue(buildContext, $);
-                default -> throw new IllegalStateException("handle nesting of op " + wrappedOp.op());
+                default -> throw new IllegalStateException("handle nesting of op " + wrappedOp.op);
             }
             return (T) this;
         }
 
-
-    }
-
-    public static class CodeBuilderContext {
-        public MethodHandles.Lookup lookup(){
-            return funcOpWrapper.lookup;
-        }
-        public static class Scope<OW extends OpWrapper<?>> {
-            final Scope<?> parent;
-            final OW opWrapper;
-
-            public Scope(Scope<?> parent, OW opWrapper) {
-                this.parent = parent;
-                this.opWrapper = opWrapper;
-            }
-
-            public CoreOp.VarOp resolve(Value value) {
-                if (value instanceof Op.Result result && result.op() instanceof CoreOp.VarOp varOp) {
-                    return varOp;
-                }
-                if (parent != null) {
-                    return parent.resolve(value);
-                }
-                throw new IllegalStateException("failed to resolve VarOp for value " + value);
-            }
-        }
-
-        public static class FuncScope extends Scope<FuncOpWrapper> {
-            FuncScope(Scope<?> parent, FuncOpWrapper funcOpWrapper) {
-                super(parent, funcOpWrapper);
-            }
-
-            @Override
-            public CoreOp.VarOp resolve(Value value) {
-                if (value instanceof Block.Parameter blockParameter) {
-                    if (opWrapper.parameterVarOpMap.containsKey(blockParameter)) {
-                        return opWrapper.parameterVarOpMap.get(blockParameter);
-                    } else {
-                        throw new IllegalStateException("what ?");
-                    }
-                } else {
-                    return super.resolve(value);
-                }
-            }
-        }
-
-        public static abstract class LoopScope<T extends OpWrapper<?>> extends Scope<T> {
-
-            public LoopScope(Scope<?> parent, T opWrapper) {
-                super(parent, opWrapper);
-            }
-        }
-
-
-        public  static class ForScope extends LoopScope<ForOpWrapper> {
-            Map<Block.Parameter, CoreOp.VarOp> blockParamToVarOpMap = new HashMap<>();
-
-            ForOpWrapper forOpWrapper() {
-                return opWrapper;
-            }
-
-            ForScope(Scope<?> parent, ForOpWrapper forOpWrapper) {
-                super(parent, forOpWrapper);
-                var loopParams = forOpWrapper().op().loopBody().entryBlock().parameters().toArray(new Block.Parameter[0]);
-                var updateParams = forOpWrapper().op().update().entryBlock().parameters().toArray(new Block.Parameter[0]);
-                var condParams = forOpWrapper().op().cond().entryBlock().parameters().toArray(new Block.Parameter[0]);
-                var lastInitOp = forOpWrapper().op().init().entryBlock().ops().getLast();
-                var lastInitOpOperand0Result = (Op.Result) lastInitOp.operands().getFirst();
-                var lastInitOpOperand0ResultOp = lastInitOpOperand0Result.op();
-                CoreOp.VarOp varOps[];
-                if (lastInitOpOperand0ResultOp instanceof CoreOp.TupleOp tupleOp) {
-                     /*
-                     for (int j = 1, i=2, k=3; j < size; k+=1,i+=2,j+=3) {
-                        float sum = k+i+j;
-                     }
-                     java.for
-                     ()Tuple<Var<int>, Var<int>, Var<int>> -> {
-                         %0 : int = constant @"1";
-                         %1 : Var<int> = var %0 @"j";
-                         %2 : int = constant @"2";
-                         %3 : Var<int> = var %2 @"i";
-                         %4 : int = constant @"3";
-                         %5 : Var<int> = var %4 @"k";
-                         %6 : Tuple<Var<int>, Var<int>, Var<int>> = tuple %1 %3 %5;
-                         yield %6;
-                     }
-                     (%7 : Var<int>, %8 : Var<int>, %9 : Var<int>)boolean -> {
-                         %10 : int = var.load %7;
-                         %11 : int = var.load %12;
-                         %13 : boolean = lt %10 %11;
-                         yield %13;
-                     }
-                     (%14 : Var<int>, %15 : Var<int>, %16 : Var<int>)void -> {
-                         %17 : int = var.load %16;
-                         %18 : int = constant @"1";
-                         %19 : int = add %17 %18;
-                         var.store %16 %19;
-                         %20 : int = var.load %15;
-                         %21 : int = constant @"2";
-                         %22 : int = add %20 %21;
-                         var.store %15 %22;
-                         %23 : int = var.load %14;
-                         %24 : int = constant @"3";
-                         %25 : int = add %23 %24;
-                         var.store %14 %25;
-                         yield;
-                     }
-                     (%26 : Var<int>, %27 : Var<int>, %28 : Var<int>)void -> {
-                         %29 : int = var.load %28;
-                         %30 : int = var.load %27;
-                         %31 : int = add %29 %30;
-                         %32 : int = var.load %26;
-                         %33 : int = add %31 %32;
-                         %34 : float = conv %33;
-                         %35 : Var<float> = var %34 @"sum";
-                         java.continue;
-                     };
-                     */
-                    varOps = tupleOp.operands().stream().map(operand -> (CoreOp.VarOp) (((Op.Result) operand).op())).toList().toArray(new CoreOp.VarOp[0]);
-                } else {
-                     /*
-                     for (int j = 0; j < size; j+=1) {
-                        float sum = j;
-                     }
-                     java.for
-                        ()Var<int> -> {
-                            %0 : int = constant @"0";
-                            %1 : Var<int> = var %0 @"j";
-                            yield %1;
-                        }
-                        (%2 : Var<int>)boolean -> {
-                            %3 : int = var.load %2;
-                            %4 : int = var.load %5;
-                            %6 : boolean = lt %3 %4;
-                            yield %6;
-                        }
-                        (%7 : Var<int>)void -> {
-                            %8 : int = var.load %7;
-                            %9 : int = constant @"1";
-                            %10 : int = add %8 %9;
-                            var.store %7 %10;
-                            yield;
-                        }
-                        (%11 : Var<int>)void -> {
-                            %12 : int = var.load %11;
-                            %13 : float = conv %12;
-                            %14 : Var<float> = var %13 @"sum";
-                            java.continue;
-                        };
-
-                     */
-                    varOps = new CoreOp.VarOp[]{(CoreOp.VarOp) lastInitOpOperand0ResultOp};
-                }
-                for (int i = 0; i < varOps.length; i++) {
-                    blockParamToVarOpMap.put(condParams[i], varOps[i]);
-                    blockParamToVarOpMap.put(updateParams[i], varOps[i]);
-                    blockParamToVarOpMap.put(loopParams[i], varOps[i]);
-                }
-            }
-
-
-            @Override
-            public CoreOp.VarOp resolve(Value value) {
-                if (value instanceof Block.Parameter blockParameter) {
-                    CoreOp.VarOp varOp = this.blockParamToVarOpMap.get(blockParameter);
-                    if (varOp != null) {
-                        return varOp;
-                    }
-                }
-                return super.resolve(value);
-            }
-        }
-
-        public static class IfScope extends Scope<IfOpWrapper> {
-            IfScope(Scope<?> parent, IfOpWrapper opWrapper) {
-                super(parent, opWrapper);
-            }
-        }
-
-        public static class WhileScope extends LoopScope<WhileOpWrapper> {
-            WhileScope(Scope<?> parent, WhileOpWrapper opWrapper) {
-                super(parent, opWrapper);
-            }
-
-        }
-
-        public Scope<?> scope = null;
-
-        private void popScope() {
-            scope = scope.parent;
-        }
-
-        private void pushScope(OpWrapper<?> opWrapper) {
-            scope = switch (opWrapper) {
-                case FuncOpWrapper $ -> new FuncScope(scope, $);
-                case ForOpWrapper $ -> new ForScope(scope, $);
-                case IfOpWrapper $ -> new IfScope(scope, $);
-                case WhileOpWrapper $ -> new WhileScope(scope, $);
-                default -> new Scope<>(scope, opWrapper);
-            };
-        }
-
-        public void scope(OpWrapper<?> opWrapper, Runnable r) {
-            pushScope(opWrapper);
-            r.run();
-            popScope();
-        }
-
-        public  FuncOpWrapper funcOpWrapper;
-
-        public CodeBuilderContext(FuncOpWrapper funcOpWrapper) {
-            this.funcOpWrapper = funcOpWrapper;
-        }
 
     }
 

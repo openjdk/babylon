@@ -68,15 +68,15 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
 
         boolean interpret = false;
         if (interpret) {
-            Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op(), args);
+            Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op, args);
         } else {
             try {
                 if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                    computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op());
+                    computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op);
                 }
                 computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
             } catch (Throwable e) {
-                System.out.println(computeContext.computeCallGraph.entrypoint.lowered.op().toText());
+                System.out.println(computeContext.computeCallGraph.entrypoint.lowered.op.toText());
                 throw new RuntimeException(e);
             }
         }
@@ -84,7 +84,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
 
     static void wrapInvoke(InvokeOpWrapper iow, Block.Builder bldr, ComputeContext.WRAPPER wrapper, Value cc, Value iface) {
         bldr.op(JavaOp.invoke(wrapper.pre, cc, iface));
-        bldr.op(iow.op());
+        bldr.op(iow.op);
         bldr.op(JavaOp.invoke(wrapper.post, cc, iface));
     }
  // This code should be common with ffi-shared probably should be pushed down into another lib?
@@ -94,31 +94,31 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         boolean transform = true;
         if (transform) {
             System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
-            System.out.println(returnFOW.op().toText());
+            System.out.println(returnFOW.op.toText());
             returnFOW = prevFOW.transformInvokes((bldr, invokeOW) -> {
                 CopyContext bldrCntxt = bldr.context();
                 //Map compute method's first param (computeContext) value to transformed model
                 Value cc = bldrCntxt.getValue(prevFOW.parameter(0));
                 if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
-                    Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
+                    Value iface = bldrCntxt.getValue(invokeOW.op.operands().getFirst());
                     bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
-                    bldr.op(invokeOW.op());                         // iface.v(newV);
+                    bldr.op(invokeOW.op);                         // iface.v(newV);
                     bldr.op(JavaOp.invoke(MUTATE.post, cc, iface)); // cc->postMutate(iface)
                 } else if (invokeOW.isIfaceAccessor()) {            // iface.v()
-                    Value iface = bldrCntxt.getValue(invokeOW.operandNAsValue(0));
+                    Value iface = bldrCntxt.getValue(invokeOW.op.operands().getFirst());
                     bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
-                    bldr.op(invokeOW.op());                         // iface.v();
+                    bldr.op(invokeOW.op);                         // iface.v();
                     bldr.op(JavaOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
                 } else if (invokeOW.isComputeContextMethod() || invokeOW.isRawKernelCall()) { //dispatchKernel
-                    bldr.op(invokeOW.op());
+                    bldr.op(invokeOW.op);
                 } else {
-                    invokeOW.op().operands().stream()
+                    invokeOW.op.operands().stream()
                             .filter(val -> val.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
                             .forEach(val ->
                                     bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(val)))
                             );
-                    bldr.op(invokeOW.op());
-                    invokeOW.op().operands().stream()
+                    bldr.op(invokeOW.op);
+                    invokeOW.op.operands().stream()
                             .filter(val -> val.type() instanceof JavaType javaType &&
                                     InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
                             .forEach(val -> bldr.op(
@@ -128,7 +128,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                 return bldr;
             });
             System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
-            System.out.println(returnFOW.op().toText());
+            System.out.println(returnFOW.op.toText());
         }
         computeMethod.funcOpWrapper(returnFOW);
         return returnFOW;
