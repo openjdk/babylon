@@ -100,14 +100,6 @@ public class OpWrapper<T extends Op> {
         this.op = op;
 
     }
-    public Stream<OpWrapper<?>> wrappedOpStream(Block block) {
-        return block.ops().stream().map(o->wrap(lookup,o));
-    }
-
-    public Stream<OpWrapper<?>> wrappedYieldOpStream(Block block) {
-        return wrappedOpStream(block).filter(wrapped -> wrapped instanceof YieldOpWrapper);
-    }
-
     private Stream<OpWrapper<?>> roots(Block block) {
         var rootSet = RootSet.getRootSet(block.ops().stream());
         return block.ops().stream().filter(rootSet::contains).map(o->wrap(lookup,o));

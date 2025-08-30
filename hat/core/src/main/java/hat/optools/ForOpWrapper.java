@@ -24,6 +24,7 @@
  */
 package hat.optools;
 
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
@@ -35,20 +36,20 @@ public class ForOpWrapper extends LoopOpWrapper<JavaOp.ForOp> {
     }
 
     public Stream<OpWrapper<?>> initWrappedYieldOpStream() {
-        return wrappedYieldOpStream(op.bodies().getFirst().entryBlock()/*firstBlockOfBodyN(0)*/);
+       return  op.init().entryBlock().ops().stream().filter(o->o instanceof CoreOp.YieldOp).map(o->OpWrapper.wrap(lookup,o) );
     }
 
     @Override
     public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
-        return wrappedYieldOpStream(op.bodies().get(1).entryBlock()/*firstBlockOfBodyN(1)*/);
+        return  op.cond().entryBlock().ops().stream().filter(o->o instanceof CoreOp.YieldOp).map(o->OpWrapper.wrap(lookup,o) );
     }
 
     public Stream<OpWrapper<?>> mutateRootWrappedOpStream() {
-        return wrappedRootOpStream(op.bodies().get(2).entryBlock()/*firstBlockOfBodyN(2)*/);
+          return wrappedRootOpStream(op.bodies().get(2).entryBlock()/*firstBlockOfBodyN(2)*/);
     }
 
     @Override
     public Stream<OpWrapper<?>> loopWrappedRootOpStream() {
-        return wrappedRootOpStreamSansFinalContinue(op.bodies().get(3).entryBlock()/*firstBlockOfBodyN(3)*/);
+          return wrappedRootOpStreamSansFinalContinue(op.bodies().get(3).entryBlock()/*firstBlockOfBodyN(3)*/);
     }
 }

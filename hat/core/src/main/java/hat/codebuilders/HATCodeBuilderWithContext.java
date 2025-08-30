@@ -398,12 +398,13 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     if (c.isNotFirst()) {
                         elseKeyword().space();
                     }
+
                     ifKeyword().paren(_ ->
-                            ifOpWrapper.wrappedYieldOpStream(
-                                    ifOpWrapper.op.bodies().get(c.value()).entryBlock())
-                            //        ifOpWrapper.firstBlockOfBodyN(c.value()))
-                            .forEach((wrapped) ->
-                                    recurse(buildContext, wrapped))
+                            ifOpWrapper.op.bodies().get(c.value()).entryBlock()            // get the entryblock if bodies[c.value]
+                                    .ops().stream().filter(o->o instanceof CoreOp.YieldOp) // we want all the yields
+                                    .forEach((yield) ->
+                                            recurse(buildContext, OpWrapper.wrap(ifOpWrapper.lookup,yield))
+                                    )
                     );
                     lastWasBody[0] = false;
                 }

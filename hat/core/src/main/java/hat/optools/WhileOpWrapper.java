@@ -24,6 +24,7 @@
  */
 package hat.optools;
 
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
@@ -37,7 +38,7 @@ public class WhileOpWrapper extends LoopOpWrapper<JavaOp.WhileOp> {
 
     @Override
     public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
-        return wrappedYieldOpStream(op.bodies().getFirst().entryBlock()/*firstBlockOfBodyN(0)*/);
+        return op.bodies().getFirst().entryBlock().ops().stream().filter(o->o instanceof CoreOp.YieldOp).map(o->wrap(lookup,o));
     }
 
     @Override

@@ -65,27 +65,11 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
         );
     }
 
-    public boolean isKernelContextMethod() {
-        return isAssignable(javaRefType(), KernelContext.class);
-
-    }
-
     public boolean isComputeContextMethod() {
         return isAssignable(javaRefType(), ComputeContext.class);
-
     }
-
-    private boolean isReturnTypeAssignableFrom(Class<?> clazz) {
-        Optional<Class<?>> optionalClazz = javaReturnClass();
-        return optionalClazz.isPresent() && clazz.isAssignableFrom(optionalClazz.get());
-    }
-
     public JavaType javaReturnType() {
         return (JavaType) methodRef().type().returnType();
-    }
-
-    public boolean returnsVoid() {
-        return javaReturnType().equals(JavaType.VOID);
     }
 
     public Method method() {
@@ -97,18 +81,15 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
     }
 
     public Value getReceiver() {
-        return hasReceiver() ? op.operands().getFirst() : null;
-    }
-
-    public boolean hasReceiver() {
-        return op.hasReceiver();
+        return op.hasReceiver() ? op.operands().getFirst() : null;
     }
 
     public enum IfaceBufferAccess {None, Access, Mutate}
 
     public boolean isIfaceAccessor() {
-        if (isIfaceBufferMethod() && !returnsVoid()) {
-            return !isReturnTypeAssignableFrom(Buffer.class);
+        if (isIfaceBufferMethod() && !javaReturnType().equals(JavaType.VOID)) {
+            Optional<Class<?>> optionalClazz = javaReturnClass();
+            return optionalClazz.isPresent() && Buffer.class.isAssignableFrom(optionalClazz.get());
         } else {
             return false;
         }
@@ -116,7 +97,7 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
 
 
     public boolean isIfaceMutator() {
-        return isIfaceBufferMethod() && returnsVoid();
+        return isIfaceBufferMethod() && javaReturnType().equals(JavaType.VOID);
     }
 
     public IfaceBufferAccess getIfaceBufferAccess() {
