@@ -37,7 +37,7 @@ public class FieldLoadOpWrapper extends FieldAccessOpWrapper<JavaOp.FieldAccessO
 
     public Object getStaticFinalPrimitiveValue() {
         if (fieldType() instanceof ClassType classType) {
-            Class<?> clazz = (Class<?>) classTypeToType(classType);
+            Class<?> clazz = (Class<?>) classTypeToType(lookup,classType);
             try {
                 Field field = clazz.getField(fieldName());
                 field.setAccessible(true);

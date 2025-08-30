@@ -81,22 +81,11 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
                 commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
         braceNlIndented(_ ->
-                funcOpWrapper.wrappedRootOpStream(funcOpWrapper.op.bodies().getFirst().entryBlock()).forEach(root ->
+                funcOpWrapper.wrappedRootOpStream()
+                        .forEach(root ->
                         recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
                 ));
         return self();
     }
 
-   /* public T compute(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(funcOpWrapper);
-        typeName(funcOpWrapper.functionReturnTypeDesc().toString()).space().identifier(funcOpWrapper.functionName());
-        parenNlIndented(_ ->
-                commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
-        );
-        braceNlIndented(_ ->
-                funcOpWrapper.wrappedRootOpStream(funcOpWrapper.firstBlockOfFirstBody()).forEach(root ->
-                        recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
-                ));
-        return self();
-    }*/
 }

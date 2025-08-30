@@ -199,20 +199,9 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
 
 
     public Stream<OpWrapper<?>> wrappedRootOpStream() {
-        return wrappedRootOpStream(op.bodies().getFirst().entryBlock());
+        return RootSet.rootsWithoutVarFuncDeclarationsOrYields(lookup,op.bodies().getFirst().entryBlock());
     }
 
-    public CoreOp.FuncOp transform(String newName, OpTransformer opTransformer) {
-        return op.transform(newName, opTransformer);
-    }
-
-    public boolean isParameterVarOp(VarDeclarationOpWrapper varDeclarationOpWrapper) {
-        return paramTable().isParameterVarOp(varDeclarationOpWrapper.op);
-    }
-
-    public boolean isParameterVarOp(CoreOp.VarOp varOp) {
-        return paramTable().isParameterVarOp(varOp);
-    }
 
 
 
@@ -231,21 +220,6 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         }));
     }
 
-    public FuncOpWrapper transformIfaceInvokes(BiConsumer<Block.Builder,InvokeOpWrapper> wrappedOpTransformer) {
-        return OpWrapper.wrap(lookup,op.transform((b, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                InvokeOpWrapper wrapped = OpWrapper.wrap(lookup,invokeOp);
-                if (wrapped.isIfaceBufferMethod()) {
-                    wrappedOpTransformer.accept(b,wrapped);
-                }else{
-                    b.op(op);
-                }
-            } else {
-                b.op(op);
-            }
-            return b;
-        }));
-    }
     public static class WrappedOpReplacer<T extends Op, WT extends OpWrapper<T>>{
 
         final private Block.Builder builder;
@@ -273,36 +247,6 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         public TypeElement currentResultType() {
             return current.op.resultType();
         }
-    }
-
-    public FuncOpWrapper replace(Consumer<WrappedOpReplacer<?,OpWrapper<?>>> wrappedOpTransformer) {
-        return OpWrapper.wrap(lookup, op.transform((b, op) -> {
-            var replacer = new WrappedOpReplacer(b, OpWrapper.wrap(lookup,op));
-            wrappedOpTransformer.accept(replacer);
-            if (!replacer.replaced) {
-               b.op(op);
-            }
-            return b;
-        }));
-    }
-
-    public  <T extends Op, WT extends OpWrapper<T>>FuncOpWrapper findMapAndReplace(
-            Predicate<OpWrapper<?>> predicate,
-            Function<OpWrapper<?>, WT> mapper,
-            Consumer<WrappedOpReplacer<T,WT>> wrappedOpTransformer) {
-        return OpWrapper.wrap(lookup, op.transform((b, op) -> {
-            var opWrapper = OpWrapper.wrap(lookup,op);
-            if (predicate.test(opWrapper)) {
-                var replacer = new WrappedOpReplacer<T,WT>(b, mapper.apply(opWrapper));
-                wrappedOpTransformer.accept(replacer);
-                if (!replacer.replaced) {
-                    b.op(op);
-                }
-            }else{
-                b.op(op);
-            }
-            return b;
-        }));
     }
     public String functionName() {
         return op.funcName();

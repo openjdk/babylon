@@ -30,6 +30,7 @@ import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
+import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.StructuralOpWrapper;
@@ -154,7 +155,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T type(HATCodeBuilderContext buildContext, JavaType javaType) {
-        if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup,javaType) && javaType instanceof ClassType classType) {
+        if (InvokeOpWrapper.isAssignable(buildContext.lookup,javaType, MappableIface.class) && javaType instanceof ClassType classType){
+              //  .isIfaceUsingLookup(buildContext.lookup,javaType) && javaType instanceof ClassType classType) {
             globalPtrPrefix().space();
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');

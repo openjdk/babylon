@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.buffer.Buffer;
+import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.ModuleOpWrapper;
@@ -103,7 +104,8 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
-                        } else if (InvokeOpWrapper.isIfaceUsingLookup(fow.lookup, paramInfo.javaType)) {
+                        } else if (InvokeOpWrapper.isAssignable(fow.lookup,paramInfo.javaType, MappableIface.class)){
+                             //   .isIfaceUsingLookup(fow.lookup, paramInfo.javaType)) {
                             atLeastOneIfaceBufferParam.of(true);
                         } else {
                             hasOnlyPrimitiveAndIfaceBufferParams.of(false);

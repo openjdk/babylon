@@ -24,26 +24,15 @@
  */
 package hat.optools;
 
-import hat.buffer.Buffer;
-
-import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class OpWrapper<T extends Op> {
     @SuppressWarnings("unchecked")
@@ -100,39 +89,8 @@ public class OpWrapper<T extends Op> {
         this.op = op;
 
     }
-    private Stream<OpWrapper<?>> roots(Block block) {
-        var rootSet = RootSet.getRootSet(block.ops().stream());
-        return block.ops().stream().filter(rootSet::contains).map(o->wrap(lookup,o));
-    }
 
-    private Stream<OpWrapper<?>> rootsWithoutVarFuncDeclarations(Block block) {
-        return roots(block).filter(w -> !(w instanceof VarFuncDeclarationOpWrapper));
-    }
-
-    private Stream<OpWrapper<?>> rootsWithoutVarFuncDeclarationsOrYields(Block block) {
-        return rootsWithoutVarFuncDeclarations(block).filter(w -> !(w instanceof YieldOpWrapper));
-    }
-
-    public Stream<OpWrapper<?>> wrappedRootOpStream(Block block) {
-        return rootsWithoutVarFuncDeclarationsOrYields(block);
-    }
-
-    public Stream<OpWrapper<?>> wrappedRootOpStreamSansFinalContinue(Block block) {
-        var list = new ArrayList<>(rootsWithoutVarFuncDeclarationsOrYields(block).toList());
-        if (list.getLast() instanceof JavaContinueOpWrapper javaContinueOpWrapper) {
-            list.removeLast();
-        }
-        return list.stream();
-    }
-
-    public  static boolean isIfaceUsingLookup(MethodHandles.Lookup lookup,JavaType javaType) {
-        return  isAssignableUsingLookup(lookup,javaType, MappableIface.class);
-    }
-    public  boolean isIface(JavaType javaType) {
-        return  isAssignable(javaType, MappableIface.class);
-    }
-
-    public  static Type classTypeToTypeUsingLookup(MethodHandles.Lookup lookup,ClassType classType) {
+    public  static Type classTypeToType(MethodHandles.Lookup lookup, ClassType classType) {
         Type javaTypeClass = null;
         try {
             javaTypeClass = classType.resolve(lookup);
@@ -142,12 +100,9 @@ public class OpWrapper<T extends Op> {
         return javaTypeClass;
 
     }
-    public  Type classTypeToType(ClassType classType) {
-       return classTypeToTypeUsingLookup(lookup,classType);
-    }
-    public  static boolean isAssignableUsingLookup(MethodHandles.Lookup lookup,JavaType javaType, Class<?> ... classes) {
+    public  static boolean isAssignable(MethodHandles.Lookup lookup, JavaType javaType, Class<?> ... classes) {
         if (javaType instanceof ClassType classType) {
-            Type type = classTypeToTypeUsingLookup(lookup,classType);
+            Type type = classTypeToType(lookup,classType);
             for (Class<?> clazz : classes) {
                 if (clazz.isAssignableFrom((Class<?>) type)) {
                     return true;
@@ -156,8 +111,5 @@ public class OpWrapper<T extends Op> {
         }
         return false;
 
-    }
-    public  boolean isAssignable(JavaType javaType, Class<?> ... classes) {
-       return isAssignableUsingLookup(lookup,javaType,classes);
     }
 }
