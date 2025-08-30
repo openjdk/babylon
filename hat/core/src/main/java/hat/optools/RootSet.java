@@ -24,9 +24,12 @@
  */
 package hat.optools;
 
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+
+import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -39,8 +42,19 @@ import java.util.stream.Stream;
 public class RootSet {
     record Node<T extends Value>(T node, List<Node<T>> children) {
     }
-
-    public static Set<Op> getRootSet(Stream<Op> ops) {
+    public final Set<Op> set;
+    public RootSet(Stream<Op> ops){
+        this.set = getRootSet(ops);
+    }
+    static public Stream<OpWrapper<?>> rootsWithoutVarFuncDeclarationsOrYields(MethodHandles.Lookup lookup,Block block) {
+        RootSet rootSet = new RootSet(block.ops().stream());
+        return block.ops().stream()
+                .filter(rootSet.set::contains).map(o->OpWrapper.wrap(lookup,o))
+                .filter(w -> !(w instanceof VarFuncDeclarationOpWrapper))
+                .filter(w -> !(w instanceof YieldOpWrapper))
+                .map(o->(OpWrapper<?>) o);
+    }
+    private static Set<Op> getRootSet(Stream<Op> ops) {
         Set<Op> roots = new LinkedHashSet<>();
         Map<Op, Node<Value>> trees = new LinkedHashMap<>();
         Map<Value, Node<Value>> params = new HashMap<>();
@@ -50,7 +64,6 @@ public class RootSet {
                 if (operand instanceof Op.Result opr) {
                     children.add(trees.get(opr.op()));
                 } else {
-                    // Block parameter
                     children.add(params.computeIfAbsent(operand, _ -> new Node<>(operand, List.of())));
                 }
             }

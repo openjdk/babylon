@@ -97,7 +97,7 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
                 continue;
             }
 
-            CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
+            CoreOp.FuncOp tf = rf.f.op.transform(rf.r.name(), (blockBuilder, op) -> {
                 if (op instanceof JavaOp.InvokeOp iop) {
                     InvokeOpWrapper iopWrapper = OpWrapper.wrap(entry.lookup, iop);
                     MethodRef methodRef = iopWrapper.methodRef();

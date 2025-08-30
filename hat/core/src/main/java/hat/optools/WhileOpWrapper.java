@@ -28,6 +28,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.stream.Stream;
 
 public class WhileOpWrapper extends LoopOpWrapper<JavaOp.WhileOp> {
@@ -43,6 +44,10 @@ public class WhileOpWrapper extends LoopOpWrapper<JavaOp.WhileOp> {
 
     @Override
     public Stream<OpWrapper<?>> loopWrappedRootOpStream() {
-        return wrappedRootOpStreamSansFinalContinue(op.bodies().get(1).entryBlock()/*firstBlockOfBodyN(1)*/);
+        var list = new ArrayList<>(RootSet.rootsWithoutVarFuncDeclarationsOrYields(lookup,op.bodies().get(1).entryBlock()).toList());
+        if (list.getLast() instanceof JavaContinueOpWrapper) {
+            list.removeLast();
+        }
+        return list.stream();
     }
 }

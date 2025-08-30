@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
@@ -113,14 +114,18 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                     bldr.op(invokeOW.op);
                 } else {
                     invokeOW.op.operands().stream()
-                            .filter(val -> val.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
+                            .filter(val -> val.type() instanceof JavaType javaType &&
+                                    InvokeOpWrapper.isAssignable(prevFOW.lookup,javaType, MappableIface.class))
+                                           // isIfaceUsingLookup(prevFOW.lookup,javaType))
                             .forEach(val ->
                                     bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(val)))
                             );
                     bldr.op(invokeOW.op);
                     invokeOW.op.operands().stream()
                             .filter(val -> val.type() instanceof JavaType javaType &&
-                                    InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup,javaType))
+                                    InvokeOpWrapper.isAssignable(prevFOW.lookup,javaType,MappableIface.class))
+                                           // isIfaceUsingLookup(prevFOW.lookup,javaType))
+
                             .forEach(val -> bldr.op(
                                     JavaOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(val)))
                             );

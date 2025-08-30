@@ -162,10 +162,11 @@ public class DependencyTree {
     public static void main(String[] args) {
         CoreOp.FuncOp f = getFuncOp("f");
         System.out.println(f.toText());
+        RootSet rootSet = new RootSet(f.body().entryBlock().ops().stream());
 
-        Set<Op> roots = RootSet.getRootSet(f.body().entryBlock().ops().stream());
-        f.body().entryBlock().ops().stream().filter(roots::contains).forEach(op -> {
-            System.out.print(op.toText());
+       // Set<Op> roots = RootSet.getRootSet(f.body().entryBlock().ops().stream());
+        f.body().entryBlock().ops().stream().filter(rootSet.set::contains).forEach(op -> {
+            System.out.println(op.toText());
         });
 
 

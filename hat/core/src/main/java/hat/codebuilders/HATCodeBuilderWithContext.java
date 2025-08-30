@@ -26,6 +26,7 @@ package hat.codebuilders;
 
 
 import hat.ifacemapper.BoundSchema;
+import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import hat.optools.BinaryArithmeticOrLogicOperation;
 import hat.optools.BinaryTestOpWrapper;
@@ -44,6 +45,7 @@ import hat.optools.LambdaOpWrapper;
 import hat.optools.LogicalOpWrapper;
 import hat.optools.OpWrapper;
 import hat.optools.ReturnOpWrapper;
+import hat.optools.RootSet;
 import hat.optools.StructuralOpWrapper;
 import hat.optools.TernaryOpWrapper;
 import hat.optools.TupleOpWrapper;
@@ -137,7 +139,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
 
     public T type(HATCodeBuilderContext buildContext, JavaType javaType) {
-        if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup,javaType) && javaType instanceof ClassType classType) {
+        if (InvokeOpWrapper.isAssignable(buildContext.lookup,javaType, MappableIface.class)
+                //isIfaceUsingLookup(buildContext.lookup,javaType)
+                        && javaType instanceof ClassType classType) {
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
             int dollarIdx = name.lastIndexOf('$');
@@ -384,9 +388,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
-                                StreamCounter.of(ifOpWrapper.wrappedRootOpStream(
+                                StreamCounter.of(RootSet.rootsWithoutVarFuncDeclarationsOrYields(ifOpWrapper.lookup,
                                         ifOpWrapper.op.bodies().get(c.value()).entryBlock())
-                                        //ifOpWrapper.firstBlockOfBodyN(c.value()))
                                         , (innerc, root) ->
                                         nlIf(innerc.isNotFirst())
                                                 .recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))

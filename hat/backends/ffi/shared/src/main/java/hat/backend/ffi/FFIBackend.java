@@ -102,7 +102,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
             return new TypeAndAccess(annotations, value, (JavaType) value.type());
         }
         boolean isIface(MethodHandles.Lookup lookup) {
-            return InvokeOpWrapper.isIfaceUsingLookup(lookup, javaType);
+            return InvokeOpWrapper.isAssignable(lookup, javaType,MappableIface.class);
         }
         boolean ro(){
             for (Annotation annotation : annotations) {
@@ -211,7 +211,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                         //  );
                         bldr.op(invokeOW.op);
                         typeAndAccesses.stream()
-                                .filter(typeAndAccess -> InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
+                                .filter(typeAndAccess -> InvokeOpWrapper.isAssignable(prevFOW.lookup, typeAndAccess.javaType,MappableIface.class))
                                 .forEach(typeAndAccess -> {
                                     if (typeAndAccess.ro()) {
                                         bldr.op(JavaOp.invoke(ACCESS.post, cc,  bldrCntxt.getValue(typeAndAccess.value)));
