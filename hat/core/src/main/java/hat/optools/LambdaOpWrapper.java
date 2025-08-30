@@ -47,7 +47,6 @@ public class LambdaOpWrapper extends OpWrapper<JavaOp.LambdaOp> {
     public List<Value> operands() {
         return op.operands();
     }
-
     public Method getQuotableTargetMethod() {
         return getQuotableTargetInvokeOpWrapper().method();
     }
@@ -69,9 +68,9 @@ public class LambdaOpWrapper extends OpWrapper<JavaOp.LambdaOp> {
         Object[] varLoadNames = ops.stream()
                 .filter(op -> op instanceof CoreOp.VarAccessOp.VarLoadOp)
                 .map(op -> (CoreOp.VarAccessOp.VarLoadOp) op)
-                .map(varLoadOp -> (Op.Result) varLoadOp.operands().get(0))
+                .map(varLoadOp -> (Op.Result) varLoadOp.operands().getFirst())
                 .map(varLoadOp -> (CoreOp.VarOp) varLoadOp.op())
-                .map(varOp -> varOp.varName()).toArray();
+                .map(CoreOp.VarOp::varName).toArray();
 
 
         Map<String, Object> nameValueMap = new HashMap<>();

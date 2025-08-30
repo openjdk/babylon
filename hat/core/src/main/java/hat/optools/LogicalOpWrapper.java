@@ -24,6 +24,7 @@
  */
 package hat.optools;
 
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
@@ -35,10 +36,10 @@ public class LogicalOpWrapper extends BinaryOpWrapper<JavaOp.JavaConditionalOp> 
     }
 
     public Stream<OpWrapper<?>> lhsWrappedYieldOpStream() {
-        return wrappedYieldOpStream(op.bodies().getFirst().entryBlock()/*firstBlockOfBodyN(0)*/);
+        return op.bodies().get(0).entryBlock().ops().stream().filter(o->o instanceof CoreOp.YieldOp).map(o->wrap(lookup,o));
     }
 
     public Stream<OpWrapper<?>> rhsWrappedYieldOpStream() {
-        return wrappedYieldOpStream(op.bodies().get(1).entryBlock()/*firstBlockOfBodyN(1)*/);
+        return op.bodies().get(1).entryBlock().ops().stream().filter(o->o instanceof CoreOp.YieldOp).map(o->wrap(lookup,o));
     }
 }
