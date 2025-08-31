@@ -33,8 +33,4 @@ public class ConvOpWrapper extends UnaryOpWrapper<JavaOp.ConvOp> {
     public ConvOpWrapper( MethodHandles.Lookup lookup,JavaOp.ConvOp op) {
         super(lookup,op);
     }
-
-    public JavaType resultJavaType() {
-        return (JavaType) op.resultType();
-    }
 }

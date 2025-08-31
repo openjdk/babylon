@@ -33,7 +33,7 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.ModuleOpWrapper;
 import hat.optools.OpWrapper;
-import hat.util.Result;
+import hat.util.StreamMutable;
 
 import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
@@ -95,20 +95,20 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
             if (calledMethod.getParameterTypes() instanceof Class<?>[] parameterTypes && parameterTypes.length > 1) {
                 // We check that the proposed kernel first arg is an KernelContext and
                 // the only other args are primitive or ifacebuffers
-                var firstArgIsKid = new Result<>(false);
-                var atLeastOneIfaceBufferParam = new Result<>(false);
-                var hasOnlyPrimitiveAndIfaceBufferParams = new Result<Boolean>(true);
+                var firstArgIsKid = StreamMutable.of(false);
+                var atLeastOneIfaceBufferParam = StreamMutable.of(false);
+                var hasOnlyPrimitiveAndIfaceBufferParams = StreamMutable.of(true);
                 fow.paramTable().stream().forEach(paramInfo -> {
                     if (paramInfo.idx == 0) {
-                        firstArgIsKid.of(parameterTypes[0].isAssignableFrom(KernelContext.class));
+                        firstArgIsKid.set(parameterTypes[0].isAssignableFrom(KernelContext.class));
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
                         } else if (InvokeOpWrapper.isAssignable(fow.lookup,paramInfo.javaType, MappableIface.class)){
                              //   .isIfaceUsingLookup(fow.lookup, paramInfo.javaType)) {
-                            atLeastOneIfaceBufferParam.of(true);
+                            atLeastOneIfaceBufferParam.set(true);
                         } else {
-                            hasOnlyPrimitiveAndIfaceBufferParams.of(false);
+                            hasOnlyPrimitiveAndIfaceBufferParams.set(false);
                         }
                     }
                 });

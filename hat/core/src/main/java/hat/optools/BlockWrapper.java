@@ -39,7 +39,7 @@ public class BlockWrapper extends CodeElementWrapper<Block> {
     public int opCount() {
         return block().ops().size();
     }
-
+/*
     public <O extends Op> O op(int delta) {
         O op = null;
         if (delta >= 0) {
@@ -52,5 +52,5 @@ public class BlockWrapper extends CodeElementWrapper<Block> {
 
     public BodyWrapper parentBody() {
         return new BodyWrapper(block().ancestorBody());
-    }
+    } */
 }

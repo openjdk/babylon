@@ -44,26 +44,6 @@ public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
         return op.functionTable();
     }
 
-//    public static ModuleOpWrapper createTransitiveInvokeModule(MethodHandles.Lookup lookup,
-//                                                               CallGraph.ResolvedMethodCall resolvedMethodCall) {
-//        Optional<CoreOp.FuncOp> codeModel = Op.ofMethod(entryPoint);
-//        if (codeModel.isPresent()) {
-//            return OpWrapper.wrap(lookup, createTransitiveInvokeModule(lookup, resolvedMethodCall.targetMethodRef, resolvedMethodCall.funcOpWrapper()));
-//        } else {
-//            return OpWrapper.wrap(lookup, CoreOp.module(List.of()));
-//        }
-//    }
-
-   /*  Method resolveToMethod(MethodHandles.Lookup lookup, MethodRef invokedMethodRef){
-        Method invokedMethod = null;
-        try {
-            invokedMethod = invokedMethodRef.resolveToMethod(lookup);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
-        return invokedMethod;
-    } */
-
     public static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup l,
                                                         FuncOpWrapper entry, CallGraph<?> callGraph) {
         LinkedHashSet<MethodRef> funcsVisited = new LinkedHashSet<>();

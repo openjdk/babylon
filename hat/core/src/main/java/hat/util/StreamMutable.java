@@ -22,26 +22,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.optools;
+package hat.util;
 
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
-
-import java.lang.invoke.MethodHandles;
-
-public abstract class VarAccessOpWrapper<T extends CoreOp.VarAccessOp> extends OpWrapper<T> {
-    VarAccessOpWrapper( MethodHandles.Lookup lookup,T op) {
-        super(lookup, op);
+public class StreamMutable<R> {
+    private R value;
+    public R get() {
+        return value;
     }
-/*
-    public static CoreOp.VarOp varOp(CoreOp.VarAccessOp op) {
-        // See comment in VarAccess.varOp()
-        // @@@ At a high-level a Var value occur as a BlockArgument.
-        // Lowering should remove such cases and the var definition should emerge
-        // @@@ This method is used when transforming to pure SSA
-        Value value = op.operands().getFirst();
-        Op.Result variable = (Op.Result) value;
-        return (CoreOp.VarOp) variable.op();
-    } */
+    public StreamMutable<R> set(R value) {
+        this.value = value;
+        return this;
+    }
+    private StreamMutable(){}
+    static public <R> StreamMutable<R> of(R value){
+        return new StreamMutable<R>().set(value);
+    }
 }

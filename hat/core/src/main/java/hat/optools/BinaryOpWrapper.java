@@ -33,11 +33,11 @@ public abstract class BinaryOpWrapper<T extends Op> extends OpWrapper<T> {
         super(lookup, op);
     }
 
-    public Op lhsAsOp() {
+    public static Op lhsAsOp(Op op) {
         return ((Op.Result)op.operands().getFirst()).op();
     }
 
-    public Op rhsAsOp() {
+    public static Op rhsAsOp(Op op) {
         return  ((Op.Result)op.operands().get(1)).op();
     }
 

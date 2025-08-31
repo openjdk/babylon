@@ -34,7 +34,6 @@ public class StreamCounter<E> {
 
     public static <E> void of(Iterable<E> iterable, BiConsumer<StreamCounter<E>, E> counterConsumer) {
         StreamCounter<E> sc = new StreamCounter<>();
-        iterable.spliterator();
         iterable.forEach((e) -> {
             sc.convey = e;
             counterConsumer.accept(sc, e);

@@ -35,30 +35,16 @@ public abstract class FieldAccessOpWrapper<T extends JavaOp.FieldAccessOp> exten
     FieldAccessOpWrapper( MethodHandles.Lookup lookup,T op) {
         super(lookup,op);
     }
-    public boolean isKernelContextAccess() {
-        var refType = fieldRef().refType();
-        if (refType instanceof ClassType classType) {
-            // This should not rely on string
-            return (classType.toClassName().equals("hat.KernelContext"));
-        }
-        return false;
+    public static boolean isKernelContextAccess(JavaOp.FieldAccessOp fieldAccessOp) {
+        return fieldAccessOp.fieldDescriptor().refType() instanceof  ClassType classType && classType.toClassName().equals("hat.KernelContext");
     }
 
-    public boolean isStaticFinalPrimitive() {
-      return op.operands().isEmpty() && op.result().type() instanceof PrimitiveType;
-      // Can we check for final?
+    public static TypeElement fieldType(JavaOp.FieldAccessOp fieldAccessOp) {
+        return fieldAccessOp.fieldDescriptor().refType();
     }
 
-    public FieldRef fieldRef() {
-        return op.fieldDescriptor();
-    }
-
-    public String fieldName() {
-        return fieldRef().name();
-    }
-
-    public TypeElement fieldType() {
-        return fieldRef().refType();
+    public static String fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
+        return fieldAccessOp.fieldDescriptor().name();
     }
 
 }

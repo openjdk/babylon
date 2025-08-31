@@ -33,7 +33,7 @@ public class IfOpWrapper extends StructuralOpWrapper<JavaOp.IfOp> {
         super(lookup,op);
     }
 
-    public boolean hasElseN(int idx) {
+    public static boolean hasElse(JavaOp.IfOp op,  int idx) {
         return op.bodies().size()>idx && op.bodies().get(idx).entryBlock().ops().size() > 1;
     }
 }

@@ -34,18 +34,17 @@ public class FieldLoadOpWrapper extends FieldAccessOpWrapper<JavaOp.FieldAccessO
     FieldLoadOpWrapper( MethodHandles.Lookup lookup,JavaOp.FieldAccessOp.FieldLoadOp op) {
         super(lookup,op);
     }
-
-    public Object getStaticFinalPrimitiveValue() {
-        if (fieldType() instanceof ClassType classType) {
+    public static Object getStaticFinalPrimitiveValue(MethodHandles.Lookup lookup,JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        if (fieldType(fieldLoadOp) instanceof ClassType classType) {
             Class<?> clazz = (Class<?>) classTypeToType(lookup,classType);
             try {
-                Field field = clazz.getField(fieldName());
+                Field field = clazz.getField(fieldName(fieldLoadOp));
                 field.setAccessible(true);
                 return field.get(null);
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
         }
-        throw new RuntimeException("Could not find field value" + fieldName() + " in " + fieldType());
+        throw new RuntimeException("Could not find field value" + fieldLoadOp);
     }
 }

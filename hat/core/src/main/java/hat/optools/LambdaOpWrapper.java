@@ -24,8 +24,6 @@
  */
 package hat.optools;
 
-import hat.util.Result;
-
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.Op;

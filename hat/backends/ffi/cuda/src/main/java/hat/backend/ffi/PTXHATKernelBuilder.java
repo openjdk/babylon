@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.ifacemapper.BoundSchema;
 import hat.optools.*;
 import hat.codebuilders.CodeBuilder;
-import hat.util.StreamCounter;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -39,7 +38,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
@@ -240,21 +238,21 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         }
     }
 
-    public void fieldLoad(FieldLoadOpWrapper wop) {
-        if (wop.fieldName().equals(Field.KC_X.toString())) {
+    public void fieldLoad(FieldLoadOpWrapper fieldLoadOpWrapper) {
+        if (FieldAccessOpWrapper.fieldName(fieldLoadOpWrapper.op).equals(Field.KC_X.toString())) {
             if (!fieldToRegMap.containsKey(Field.KC_X)) {
-                loadKcX(wop.op.result());
+                loadKcX(fieldLoadOpWrapper.op.result());
             } else {
-                mov().u32().space().resultReg(wop, PTXRegister.Type.U32).commaSpace().fieldReg(Field.KC_X);
+                mov().u32().space().resultReg(fieldLoadOpWrapper, PTXRegister.Type.U32).commaSpace().fieldReg(Field.KC_X);
             }
-        } else if (wop.fieldName().equals(Field.KC_MAXX.toString())) {
+        } else if (FieldAccessOpWrapper.fieldName(fieldLoadOpWrapper.op).equals(Field.KC_MAXX.toString())) {
             if (!fieldToRegMap.containsKey(Field.KC_X)) {
-                loadKcX(wop.op.operands().getFirst());
+                loadKcX(fieldLoadOpWrapper.op.operands().getFirst());
             }
-            ld().global().u32().space().fieldReg(Field.KC_MAXX, wop.op.result()).commaSpace()
+            ld().global().u32().space().fieldReg(Field.KC_MAXX, fieldLoadOpWrapper.op.result()).commaSpace()
                     .address(fieldToRegMap.get(Field.KC_ADDR).name(), 4);
         } else {
-            ld().global().u32().space().resultReg(wop, PTXRegister.Type.U64).commaSpace().reg(wop.op.operands().getFirst());
+            ld().global().u32().space().resultReg(fieldLoadOpWrapper, PTXRegister.Type.U64).commaSpace().reg(fieldLoadOpWrapper.op.operands().getFirst());
         }
     }
 
@@ -324,7 +322,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public void conv(ConvOpWrapper op) {
-        if (op.resultJavaType().equals(JavaType.LONG)) {
+        if (op.op.resultType().equals(JavaType.LONG)) {
             if (isIndex(op)) {
                 mul().wide().s32().space().resultReg(op, PTXRegister.Type.U64).commaSpace()
                         .reg(op.op.operands().getFirst()).commaSpace().intVal(4);
@@ -332,17 +330,17 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                 cvt().u64().dot().regType(op.op.operands().getFirst()).space()
                         .resultReg(op, PTXRegister.Type.U64).commaSpace().reg(op.op.operands().getFirst()).ptxNl();
             }
-        } else if (op.resultJavaType().equals(JavaType.FLOAT)) {
+        } else if (op.op.resultType().equals(JavaType.FLOAT)) {
             cvt().rn().f32().dot().regType(op.op.operands().getFirst()).space()
                     .resultReg(op, PTXRegister.Type.F32).commaSpace().reg(op.op.operands().getFirst());
-        } else if (op.resultJavaType().equals(JavaType.DOUBLE)) {
+        } else if (op.op.resultType().equals(JavaType.DOUBLE)) {
             cvt();
             if (op.op.operands().getFirst().type().equals(JavaType.INT)) {
                 rn();
             }
             f64().dot().regType(op.op.operands().getFirst()).space()
                     .resultReg(op, PTXRegister.Type.F64).commaSpace().reg(op.op.operands().getFirst());
-        } else if (op.resultJavaType().equals(JavaType.INT)) {
+        } else if (op.op.resultType().equals(JavaType.INT)) {
             cvt();
             if (op.op.operands().getFirst().type().equals(JavaType.DOUBLE) || op.op.operands().getFirst().type().equals(JavaType.FLOAT)) {
                 rzi();
@@ -700,6 +698,8 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
 
     // used for parameter list
     // prints out items separated by a comma then new line
+    // Don't know why this was overriding with the same code grf.
+   /* @Override
     public <I> PTXHATKernelBuilder commaNlSeparated(Iterable<I> iterable, Consumer<I> c) {
         StreamCounter.of(iterable, (counter, t) -> {
             if (counter.isNotFirst()) {
@@ -709,7 +709,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         });
         return self();
     }
-
+*/
     public PTXHATKernelBuilder address(String address) {
         return osbrace().append(address).csbrace();
     }

@@ -34,11 +34,11 @@ public abstract class VarOpWrapper extends OpWrapper<CoreOp.VarOp> {
         super(lookup, op);
     }
 
-    public JavaType javaType() {
+    public static JavaType javaType(CoreOp.VarOp op) {
         return (JavaType) op.varValueType();
     }
 
-    public String varName() {
+    public static String varName(CoreOp.VarOp op) {
         return op.varName();
     }
 

@@ -26,7 +26,7 @@ package hat.util;
 
 import java.util.Optional;
 
-public class Result<R> {
+public class StreamOptionalMutable<R> {
     private Optional<R> value = Optional.empty();
 
     public void of(R value) {
@@ -41,11 +41,11 @@ public class Result<R> {
         return value.orElseThrow();
     }
 
-    public Result(R initial) {
+    public StreamOptionalMutable(R initial) {
         of(initial);
     }
 
-    public Result() {
+    public StreamOptionalMutable() {
 
     }
 }

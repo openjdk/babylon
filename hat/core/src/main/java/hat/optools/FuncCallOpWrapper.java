@@ -32,9 +32,4 @@ public class FuncCallOpWrapper extends OpWrapper<CoreOp.FuncCallOp> {
     public FuncCallOpWrapper( MethodHandles.Lookup lookup,CoreOp.FuncCallOp op) {
         super(lookup,op);
     }
-
-
-    public String funcName() {
-        return op.funcName();
-    }
 }

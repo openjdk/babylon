@@ -29,9 +29,11 @@ import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import hat.optools.BinaryArithmeticOrLogicOperation;
+import hat.optools.BinaryOpWrapper;
 import hat.optools.BinaryTestOpWrapper;
 import hat.optools.ConstantOpWrapper;
 import hat.optools.ConvOpWrapper;
+import hat.optools.FieldAccessOpWrapper;
 import hat.optools.FieldLoadOpWrapper;
 import hat.optools.FieldStoreOpWrapper;
 import hat.optools.ForOpWrapper;
@@ -53,9 +55,11 @@ import hat.optools.UnaryArithmeticOrLogicOpWrapper;
 import hat.optools.VarDeclarationOpWrapper;
 import hat.optools.VarFuncDeclarationOpWrapper;
 import hat.optools.VarLoadOpWrapper;
+import hat.optools.VarOpWrapper;
 import hat.optools.VarStoreOpWrapper;
 import hat.optools.WhileOpWrapper;
 import hat.optools.YieldOpWrapper;
+import hat.util.StreamMutable;
 import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
@@ -177,9 +181,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T varDeclaration(HATCodeBuilderContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) {
         if (varDeclarationOpWrapper.op.isUninitialized()) {
             // Variable is uninitialized
-            type(buildContext,varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName());
+            type(buildContext, VarOpWrapper.javaType(varDeclarationOpWrapper.op)).space().identifier(VarOpWrapper.varName(varDeclarationOpWrapper.op));
         } else {
-            type(buildContext,varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
+            type(buildContext,VarOpWrapper.javaType(varDeclarationOpWrapper.op)).space().identifier(VarOpWrapper.varName(varDeclarationOpWrapper.op)).space().equals().space();
             parencedence(buildContext, varDeclarationOpWrapper, ((Op.Result)varDeclarationOpWrapper.op.operands().getFirst()).op());
         }
         return self();
@@ -193,12 +197,13 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T fieldLoad(HATCodeBuilderContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper) {
-        if (fieldLoadOpWrapper.isKernelContextAccess()) {
-            identifier("kc").rarrow().identifier(fieldLoadOpWrapper.fieldName());
-        } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {    Object value = fieldLoadOpWrapper.getStaticFinalPrimitiveValue();
+        if (FieldAccessOpWrapper.isKernelContextAccess(fieldLoadOpWrapper.op)) {
+            identifier("kc").rarrow().identifier(FieldAccessOpWrapper.fieldName(fieldLoadOpWrapper.op));
+        } else if (fieldLoadOpWrapper.op.operands().isEmpty() && fieldLoadOpWrapper.op.result().type() instanceof PrimitiveType) {
+            Object value = FieldLoadOpWrapper.getStaticFinalPrimitiveValue(fieldLoadOpWrapper.lookup,fieldLoadOpWrapper.op);
             literal(value.toString());
         } else {
-            throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
+            throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.op);
         }
 
         return self();
@@ -248,9 +253,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T binaryOperation(HATCodeBuilderContext buildContext, BinaryArithmeticOrLogicOperation binaryOperatorOpWrapper) {
-        parencedence(buildContext, binaryOperatorOpWrapper.op, binaryOperatorOpWrapper.lhsAsOp());
+        parencedence(buildContext, binaryOperatorOpWrapper.op, BinaryOpWrapper.lhsAsOp(binaryOperatorOpWrapper.op));
         symbol(binaryOperatorOpWrapper.op);
-        parencedence(buildContext, binaryOperatorOpWrapper.op, binaryOperatorOpWrapper.rhsAsOp());
+        parencedence(buildContext, binaryOperatorOpWrapper.op, BinaryOpWrapper.rhsAsOp(binaryOperatorOpWrapper.op));
         return self();
     }
 
@@ -268,19 +273,19 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T binaryTest(HATCodeBuilderContext buildContext, BinaryTestOpWrapper binaryTestOpWrapper) {
-        parencedence(buildContext, binaryTestOpWrapper.op, binaryTestOpWrapper.lhsAsOp());
+        parencedence(buildContext, binaryTestOpWrapper.op, BinaryOpWrapper.lhsAsOp(binaryTestOpWrapper.op));
         symbol(binaryTestOpWrapper.op);
-        parencedence(buildContext, binaryTestOpWrapper.op, binaryTestOpWrapper.rhsAsOp());
+        parencedence(buildContext, binaryTestOpWrapper.op, BinaryOpWrapper.rhsAsOp(binaryTestOpWrapper.op));
         return self();
     }
 
     @Override
 
     public T conv(HATCodeBuilderContext buildContext, ConvOpWrapper convOpWrapper) {
-        if (convOpWrapper.resultJavaType() == JavaType.DOUBLE) {
+        if (convOpWrapper.op.resultType() == JavaType.DOUBLE) {
             paren(_ -> type(buildContext,JavaType.FLOAT));
         } else {
-            paren(_ -> type(buildContext,convOpWrapper.resultJavaType()));
+            paren(_ -> type(buildContext,(JavaType)convOpWrapper.op.resultType()));
         }
         parencedence(buildContext, convOpWrapper, ((Op.Result)convOpWrapper.op.operands().getFirst()).op());
         return self();
@@ -327,7 +332,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T funcCall(HATCodeBuilderContext buildContext, FuncCallOpWrapper funcCallOpWrapper) {
-          identifier(funcCallOpWrapper.funcName());
+          identifier(funcCallOpWrapper.op.funcName());
         paren(_ -> {
             commaSeparated(funcCallOpWrapper.op.operands(), (e) -> {
                 if (e instanceof Op.Result result) {
@@ -380,11 +385,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T javaIf(HATCodeBuilderContext buildContext, IfOpWrapper ifOpWrapper) {
         buildContext.scope(ifOpWrapper, () -> {
-            boolean[] lastWasBody = new boolean[]{false};
+            var lastWasBody = StreamMutable.of(false);
             StreamCounter.of(ifOpWrapper.op.bodies(), (c, b) -> {
                 if (b.yieldType() instanceof JavaType javaType && javaType == JavaType.VOID) {
-                    if (ifOpWrapper.hasElseN(c.value())) {
-                        if (lastWasBody[0]) {
+                    if (IfOpWrapper.hasElse(ifOpWrapper.op,c.value())) { // we might have more than one else
+                        if (lastWasBody.get()) {
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
@@ -396,7 +401,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                 )
                         );
                     }
-                    lastWasBody[0] = true;
+                    lastWasBody.set(true);
                 } else {
                     if (c.isNotFirst()) {
                         elseKeyword().space();
@@ -409,9 +414,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                             recurse(buildContext, OpWrapper.wrap(ifOpWrapper.lookup,yield))
                                     )
                     );
-                    lastWasBody[0] = false;
+                    lastWasBody.set(false);
                 }
-
             });
         });
         return self();
