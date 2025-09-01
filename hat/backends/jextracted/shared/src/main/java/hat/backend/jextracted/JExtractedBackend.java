@@ -33,6 +33,7 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
+import hat.optools.OpTk;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
@@ -63,7 +64,8 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-            computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
+            computeContext.computeCallGraph.entrypoint.lowered =
+                    OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOpWrapper().op);
         }
 
 
@@ -115,7 +117,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                 } else {
                     invokeOW.op.operands().stream()
                             .filter(val -> val.type() instanceof JavaType javaType &&
-                                    InvokeOpWrapper.isAssignable(prevFOW.lookup,javaType, MappableIface.class))
+                                    OpTk.isAssignable(prevFOW.lookup,javaType, MappableIface.class))
                                            // isIfaceUsingLookup(prevFOW.lookup,javaType))
                             .forEach(val ->
                                     bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(val)))
@@ -123,7 +125,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                     bldr.op(invokeOW.op);
                     invokeOW.op.operands().stream()
                             .filter(val -> val.type() instanceof JavaType javaType &&
-                                    InvokeOpWrapper.isAssignable(prevFOW.lookup,javaType,MappableIface.class))
+                                    OpTk.isAssignable(prevFOW.lookup,javaType,MappableIface.class))
                                            // isIfaceUsingLookup(prevFOW.lookup,javaType))
 
                             .forEach(val -> bldr.op(

@@ -25,26 +25,12 @@
 package hat.optools;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.FieldRef;
+
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
 public abstract class FieldAccessOpWrapper<T extends JavaOp.FieldAccessOp> extends OpWrapper<T> {
     FieldAccessOpWrapper( MethodHandles.Lookup lookup,T op) {
         super(lookup,op);
-    }
-    public static boolean isKernelContextAccess(JavaOp.FieldAccessOp fieldAccessOp) {
-        return fieldAccessOp.fieldDescriptor().refType() instanceof  ClassType classType && classType.toClassName().equals("hat.KernelContext");
-    }
-
-    public static TypeElement fieldType(JavaOp.FieldAccessOp fieldAccessOp) {
-        return fieldAccessOp.fieldDescriptor().refType();
-    }
-
-    public static String fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
-        return fieldAccessOp.fieldDescriptor().name();
     }
 
 }

@@ -25,16 +25,15 @@
 package hat.optools;
 
 import hat.OpsAndTypes;
-import hat.ifacemapper.MappableIface;
 
 import java.lang.foreign.GroupLayout;
+
+import hat.util.BiMap;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -46,27 +45,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
-    protected void collectParams(Block block) {
-
-        block.parameters().stream()
-                .map(parameter -> {
-                    var op = parameter.uses().stream().findFirst().orElseThrow().op();
-                    return Map.entry(parameter, (CoreOp.VarOp) op);
-                })
-                .forEach(paramTable::add);
-    }
-
-    public JavaType getReturnType() {
-        return (JavaType) op.body().yieldType();
-    }
 
     public static class ParamTable {
         public static class Info {
@@ -141,34 +123,11 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         return paramInfo(idx).parameter;
     }
 
-    public static class BiMap<T1 extends Block.Parameter,T2 extends Op>{
-        public Map<T1, T2> t1ToT2 = new LinkedHashMap<>();
-        public Map<T2,T1> t2ToT1 = new LinkedHashMap<>();
-        public void add(T1 t1,T2 t2){
-            t1ToT2.put(t1,t2);
-            t2ToT1.put(t2,t1);
-        }
-        public T1 get(T2 t2){
-            return t2ToT1.get(t2);
-        }
-        public T2 get(T1 t1){
-            return t1ToT2.get(t1);
-        }
-
-        public boolean containsKey(T1 t1) {
-            return t1ToT2.containsKey(t1);
-        }
-        public boolean containsKey(T2 t2) {
-            return t2ToT1.containsKey(t2);
-        }
-    }
-
     public BiMap<Block.Parameter, CoreOp.VarOp> parameterVarOpMap = new BiMap<>();
     public BiMap<Block.Parameter, JavaOp.InvokeOp> parameterInvokeOpMap = new BiMap<>();
-    public BiMap<Block.Parameter, OpsAndTypes.HatPtrOp> parameterHatPtrOpMap = new BiMap<>();
+    public BiMap<Block.Parameter, OpsAndTypes.HatPtrOp<?>> parameterHatPtrOpMap = new BiMap<>();
     public FuncOpWrapper( MethodHandles.Lookup lookup,CoreOp.FuncOp op) {
         super(lookup,op);
-
         op.parameters().forEach(parameter -> {
             Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
             optionalResult.ifPresentOrElse(result -> {
@@ -189,21 +148,6 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         });
     }
 
-    public FuncOpWrapper lower() {
-        return OpWrapper.wrap(lookup,op.transform(OpTransformer.LOWERING_TRANSFORMER));
-    }
-
-    public FuncOpWrapper ssa() {
-        return OpWrapper.wrap(lookup,SSA.transform(op));
-    }
-
-
-    public Stream<OpWrapper<?>> wrappedRootOpStream() {
-        return RootSet.rootsWithoutVarFuncDeclarationsOrYields(lookup,op.bodies().getFirst().entryBlock());
-    }
-
-
-
 
     public interface WrappedInvokeOpTransformer extends BiFunction<Block.Builder, InvokeOpWrapper, Block.Builder> {
         Block.Builder apply(Block.Builder block, InvokeOpWrapper op);
@@ -221,7 +165,6 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     }
 
     public static class WrappedOpReplacer<T extends Op, WT extends OpWrapper<T>>{
-
         final private Block.Builder builder;
         final private CopyContext context;
         final private WT current;

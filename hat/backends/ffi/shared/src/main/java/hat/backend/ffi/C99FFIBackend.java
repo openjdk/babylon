@@ -38,6 +38,7 @@ import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import hat.optools.FuncOpWrapper;
+import hat.optools.OpTk;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -149,7 +150,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         // Sorting by rank ensures we don't need forward declarations
         if (Boolean.getBoolean("moduleOp")) {
             System.out.println("Using ModuleOp for C99FFIBackend");
-            kernelCallGraph.moduleOpWrapper.functionTable()
+            kernelCallGraph.moduleOpWrapper.op.functionTable()
                     .forEach((_, funcOp) -> builder.nl().kernelMethod(new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup, funcOp)).nl());
         } else {
             System.out.println("NOT using ModuleOp for C99FFIBackend");
@@ -163,7 +164,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             System.out.println("Original");
             System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op.toText());
             System.out.println("Lowered");
-            System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op.toText());
+            System.out.println(OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op).op.toText());
         }
         return builder.toString();
     }

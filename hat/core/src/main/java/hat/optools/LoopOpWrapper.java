@@ -33,8 +33,4 @@ public abstract class LoopOpWrapper<T extends Op> extends StructuralOpWrapper<T>
     LoopOpWrapper(MethodHandles.Lookup lookup, T op ) {
         super(lookup,op);
     }
-
-    public abstract Stream<OpWrapper<?>> conditionWrappedYieldOpStream();
-
-    public abstract Stream<OpWrapper<?>> loopWrappedRootOpStream();
 }

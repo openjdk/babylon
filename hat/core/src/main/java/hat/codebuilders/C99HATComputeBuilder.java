@@ -26,6 +26,7 @@ package hat.codebuilders;
 
 
 import hat.optools.FuncOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.StructuralOpWrapper;
 
 import jdk.incubator.code.TypeElement;
@@ -46,11 +47,11 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
         );
 
         braceNlIndented(_ ->
-                funcOpWrapper.wrappedRootOpStream()
-                      //  .rootsWithoutVarFuncDeclarationsOrYields(funcOpWrapper.op.bodies().getFirst().entryBlock())
+                OpTk.wrappedRootOpStream(buildContext.lookup,funcOpWrapper.op)
                         .forEach(root ->
-                        recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
-                ));
+                                recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
+                        )
+        );
 
         return self();
     }

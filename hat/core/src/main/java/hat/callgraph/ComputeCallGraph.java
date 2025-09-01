@@ -32,6 +32,7 @@ import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.ModuleOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 import hat.util.StreamMutable;
 
@@ -91,7 +92,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     static boolean isKernelDispatch(Method calledMethod, FuncOpWrapper fow) {
-        if (fow.getReturnType().equals(JavaType.VOID)) {
+        if (fow.op.body().yieldType().equals(JavaType.VOID)) {
             if (calledMethod.getParameterTypes() instanceof Class<?>[] parameterTypes && parameterTypes.length > 1) {
                 // We check that the proposed kernel first arg is an KernelContext and
                 // the only other args are primitive or ifacebuffers
@@ -104,8 +105,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
-                        } else if (InvokeOpWrapper.isAssignable(fow.lookup,paramInfo.javaType, MappableIface.class)){
-                             //   .isIfaceUsingLookup(fow.lookup, paramInfo.javaType)) {
+                        } else if (OpTk.isAssignable(fow.lookup,paramInfo.javaType, MappableIface.class)){
                             atLeastOneIfaceBufferParam.set(true);
                         } else {
                             hasOnlyPrimitiveAndIfaceBufferParams.set(false);
@@ -122,9 +122,9 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     public final Map<MethodRef, KernelCallGraph> kernelCallGraphMap = new HashMap<>();
 
-    public Stream<KernelCallGraph> kernelCallGraphStream() {
-        return kernelCallGraphMap.values().stream();
-    }
+  //  public Stream<KernelCallGraph> kernelCallGraphStream() {
+    //    return kernelCallGraphMap.values().stream();
+   // }
 
     public ComputeCallGraph(ComputeContext computeContext, Method method, FuncOpWrapper funcOpWrapper) {
         super(computeContext, new ComputeEntrypoint(null, method, funcOpWrapper));
@@ -285,7 +285,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     public void closeWithModuleOp(ComputeReachableResolvedMethodCall computeReachableResolvedMethodCall) {
-        CoreOp.ModuleOp moduleOp = ModuleOpWrapper.createTransitiveInvokeModule(computeContext.accelerator.lookup, computeReachableResolvedMethodCall.funcOpWrapper(), this);
+        CoreOp.ModuleOp moduleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, computeReachableResolvedMethodCall.funcOpWrapper(), this);
         moduleOpWrapper = new ModuleOpWrapper(computeContext.accelerator.lookup, moduleOp);
     }
 

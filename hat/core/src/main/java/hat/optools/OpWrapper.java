@@ -28,11 +28,8 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Type;
 
 public class OpWrapper<T extends Op> {
     @SuppressWarnings("unchecked")
@@ -87,29 +84,6 @@ public class OpWrapper<T extends Op> {
     OpWrapper( MethodHandles.Lookup lookup,T op) {
         this.lookup= lookup;
         this.op = op;
-
     }
 
-    public  static Type classTypeToType(MethodHandles.Lookup lookup, ClassType classType) {
-        Type javaTypeClass = null;
-        try {
-            javaTypeClass = classType.resolve(lookup);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
-        return javaTypeClass;
-
-    }
-    public  static boolean isAssignable(MethodHandles.Lookup lookup, JavaType javaType, Class<?> ... classes) {
-        if (javaType instanceof ClassType classType) {
-            Type type = classTypeToType(lookup,classType);
-            for (Class<?> clazz : classes) {
-                if (clazz.isAssignableFrom((Class<?>) type)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-
-    }
 }

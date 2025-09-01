@@ -239,13 +239,13 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public void fieldLoad(FieldLoadOpWrapper fieldLoadOpWrapper) {
-        if (FieldAccessOpWrapper.fieldName(fieldLoadOpWrapper.op).equals(Field.KC_X.toString())) {
+        if (OpTk.fieldName(fieldLoadOpWrapper.op).equals(Field.KC_X.toString())) {
             if (!fieldToRegMap.containsKey(Field.KC_X)) {
                 loadKcX(fieldLoadOpWrapper.op.result());
             } else {
                 mov().u32().space().resultReg(fieldLoadOpWrapper, PTXRegister.Type.U32).commaSpace().fieldReg(Field.KC_X);
             }
-        } else if (FieldAccessOpWrapper.fieldName(fieldLoadOpWrapper.op).equals(Field.KC_MAXX.toString())) {
+        } else if (OpTk.fieldName(fieldLoadOpWrapper.op).equals(Field.KC_MAXX.toString())) {
             if (!fieldToRegMap.containsKey(Field.KC_X)) {
                 loadKcX(fieldLoadOpWrapper.op.operands().getFirst());
             }

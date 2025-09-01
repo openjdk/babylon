@@ -24,22 +24,12 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
-import java.util.stream.Stream;
 
 public class LogicalOpWrapper extends BinaryOpWrapper<JavaOp.JavaConditionalOp> {
     LogicalOpWrapper(MethodHandles.Lookup lookup,JavaOp.JavaConditionalOp op) {
         super(lookup,op);
-    }
-
-    public Stream<OpWrapper<?>> lhsWrappedYieldOpStream() {
-        return op.bodies().get(0).entryBlock().ops().stream().filter(o->o instanceof CoreOp.YieldOp).map(o->wrap(lookup,o));
-    }
-
-    public Stream<OpWrapper<?>> rhsWrappedYieldOpStream() {
-        return op.bodies().get(1).entryBlock().ops().stream().filter(o->o instanceof CoreOp.YieldOp).map(o->wrap(lookup,o));
     }
 }

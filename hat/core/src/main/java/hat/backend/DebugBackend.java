@@ -29,8 +29,10 @@ import hat.OpsAndTypes;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
-import java.lang.invoke.MethodHandles;
+
 import java.lang.reflect.InvocationTargetException;
+
+import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
@@ -67,14 +69,14 @@ public class DebugBackend extends BackendAdaptor {
             }
             case BABYLON_INTERPRETER:{
                 if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-                    computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
+                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOpWrapper().op);
                 }
                 Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
                 if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-                    computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
+                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOpWrapper().op);
                 }
                 try {
                     if (computeContext.computeCallGraph.entrypoint.mh == null) {
@@ -109,12 +111,12 @@ public class DebugBackend extends BackendAdaptor {
                 break;
             }
             case BABYLON_INTERPRETER:{
-                var lowered = kernelCallGraph.entrypoint.funcOpWrapper().lower();
+                var lowered = OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op);
                 Interpreter.invoke(kernelCallGraph.computeContext.accelerator.lookup, lowered.op, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
-                var lowered = kernelCallGraph.entrypoint.funcOpWrapper().lower();
+                var lowered = OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op);
                 var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, lowered.op);
                 try {
                     mh.invokeWithArguments(args);

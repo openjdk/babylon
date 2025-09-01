@@ -24,12 +24,9 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
-import java.util.ArrayList;
-import java.util.stream.Stream;
 
 public class WhileOpWrapper extends LoopOpWrapper<JavaOp.WhileOp> {
 
@@ -37,17 +34,5 @@ public class WhileOpWrapper extends LoopOpWrapper<JavaOp.WhileOp> {
         super(lookup,op);
     }
 
-    @Override
-    public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
-        return op.bodies().getFirst().entryBlock().ops().stream().filter(o->o instanceof CoreOp.YieldOp).map(o->wrap(lookup,o));
-    }
 
-    @Override
-    public Stream<OpWrapper<?>> loopWrappedRootOpStream() {
-        var list = new ArrayList<>(RootSet.rootsWithoutVarFuncDeclarationsOrYields(lookup,op.bodies().get(1).entryBlock()).toList());
-        if (list.getLast() instanceof JavaContinueOpWrapper) {
-            list.removeLast();
-        }
-        return list.stream();
-    }
 }

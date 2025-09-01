@@ -40,8 +40,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 public class RootSet {
-    record Node<T extends Value>(T node, List<Node<T>> children) {
-    }
+
     public final Set<Op> set;
     public RootSet(Stream<Op> ops){
         this.set = getRootSet(ops);
@@ -55,6 +54,8 @@ public class RootSet {
                 .map(o->(OpWrapper<?>) o);
     }
     private static Set<Op> getRootSet(Stream<Op> ops) {
+         record Node<T extends Value>(T node, List<Node<T>> children) {
+        }
         Set<Op> roots = new LinkedHashSet<>();
         Map<Op, Node<Value>> trees = new LinkedHashMap<>();
         Map<Value, Node<Value>> params = new HashMap<>();

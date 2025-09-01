@@ -24,8 +24,6 @@
  */
 package hat.optools;
 
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
@@ -34,14 +32,5 @@ public abstract class VarAccessOpWrapper<T extends CoreOp.VarAccessOp> extends O
     VarAccessOpWrapper( MethodHandles.Lookup lookup,T op) {
         super(lookup, op);
     }
-/*
-    public static CoreOp.VarOp varOp(CoreOp.VarAccessOp op) {
-        // See comment in VarAccess.varOp()
-        // @@@ At a high-level a Var value occur as a BlockArgument.
-        // Lowering should remove such cases and the var definition should emerge
-        // @@@ This method is used when transforming to pure SSA
-        Value value = op.operands().getFirst();
-        Op.Result variable = (Op.Result) value;
-        return (CoreOp.VarOp) variable.op();
-    } */
+
 }

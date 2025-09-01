@@ -33,6 +33,7 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
+import hat.optools.OpTk;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
@@ -68,7 +69,8 @@ public abstract class FFIBackend extends FFIBackendDriver {
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-            computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
+            computeContext.computeCallGraph.entrypoint.lowered =
+                    OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOpWrapper().op);
         }
 
         boolean interpret = false;
@@ -102,7 +104,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
             return new TypeAndAccess(annotations, value, (JavaType) value.type());
         }
         boolean isIface(MethodHandles.Lookup lookup) {
-            return InvokeOpWrapper.isAssignable(lookup, javaType,MappableIface.class);
+            return OpTk.isAssignable(lookup, javaType,MappableIface.class);
         }
         boolean ro(){
             for (Annotation annotation : annotations) {
@@ -211,7 +213,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                         //  );
                         bldr.op(invokeOW.op);
                         typeAndAccesses.stream()
-                                .filter(typeAndAccess -> InvokeOpWrapper.isAssignable(prevFOW.lookup, typeAndAccess.javaType,MappableIface.class))
+                                .filter(typeAndAccess -> OpTk.isAssignable(prevFOW.lookup, typeAndAccess.javaType,MappableIface.class))
                                 .forEach(typeAndAccess -> {
                                     if (typeAndAccess.ro()) {
                                         bldr.op(JavaOp.invoke(ACCESS.post, cc,  bldrCntxt.getValue(typeAndAccess.value)));
