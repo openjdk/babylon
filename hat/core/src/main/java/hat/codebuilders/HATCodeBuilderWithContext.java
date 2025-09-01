@@ -753,7 +753,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 } else {
                     throw new IllegalStateException("arr");
                 }
-
             }
         } else {
             // Detect well-known constructs
