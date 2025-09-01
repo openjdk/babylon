@@ -98,7 +98,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         if (transform) {
             System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
             System.out.println(returnFOW.op.toText());
-            returnFOW = prevFOW.transformInvokes((bldr, invokeOW) -> {
+            returnFOW = FuncOpWrapper.transformInvokes(prevFOW.lookup, prevFOW.op,(bldr, invokeOW) -> {
                 CopyContext bldrCntxt = bldr.context();
                 //Map compute method's first param (computeContext) value to transformed model
                 Value cc = bldrCntxt.getValue(prevFOW.parameter(0));

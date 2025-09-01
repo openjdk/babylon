@@ -24,7 +24,6 @@
  */
 package hat.optools;
 
-import hat.OpsAndTypes;
 
 import java.lang.foreign.GroupLayout;
 
@@ -125,7 +124,7 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
 
     public BiMap<Block.Parameter, CoreOp.VarOp> parameterVarOpMap = new BiMap<>();
     public BiMap<Block.Parameter, JavaOp.InvokeOp> parameterInvokeOpMap = new BiMap<>();
-    public BiMap<Block.Parameter, OpsAndTypes.HatPtrOp<?>> parameterHatPtrOpMap = new BiMap<>();
+    //public BiMap<Block.Parameter, OpsAndTypes.HatPtrOp<?>> parameterHatPtrOpMap = new BiMap<>();
     public FuncOpWrapper( MethodHandles.Lookup lookup,CoreOp.FuncOp op) {
         super(lookup,op);
         op.parameters().forEach(parameter -> {
@@ -137,8 +136,8 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
                     paramTable.add(Map.entry(parameter, varOp));
                 }else if (resultOp instanceof JavaOp.InvokeOp invokeOp) {
                     parameterInvokeOpMap.add(parameter,invokeOp);
-                }else if (resultOp instanceof OpsAndTypes.HatPtrOp hatPtrOp) {
-                    parameterHatPtrOpMap.add(parameter,hatPtrOp);
+      //          }else if (resultOp instanceof OpsAndTypes.HatPtrOp hatPtrOp) {
+        //            parameterHatPtrOpMap.add(parameter,hatPtrOp);
                 }else{
                     //System.out.println("neither varOp or an invokeOp "+resultOp.getClass().getName());
                 }
@@ -153,8 +152,8 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
         Block.Builder apply(Block.Builder block, InvokeOpWrapper op);
     }
 
-    public FuncOpWrapper transformInvokes(WrappedInvokeOpTransformer wrappedOpTransformer) {
-        return OpWrapper.wrap(lookup,op.transform((b, op) -> {
+    public static FuncOpWrapper transformInvokes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, WrappedInvokeOpTransformer wrappedOpTransformer) {
+        return OpWrapper.wrap(lookup,funcOp.transform((b, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 wrappedOpTransformer.apply(b, OpWrapper.wrap(lookup,invokeOp));
             } else {

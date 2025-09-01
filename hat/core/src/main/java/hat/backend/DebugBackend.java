@@ -25,7 +25,6 @@
 package hat.backend;
 
 import hat.ComputeContext;
-import hat.OpsAndTypes;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
@@ -38,7 +37,6 @@ import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.interpreter.Interpreter;
 
 public class DebugBackend extends BackendAdaptor {
@@ -160,7 +158,7 @@ public class DebugBackend extends BackendAdaptor {
                 System.out.println("SSA form which maintains original invokes and args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
-
+/*
                 FunctionType functionType = OpsAndTypes.transformTypes(kernelCallGraph.computeContext.accelerator.lookup, ssaInvokeForm);
                 System.out.println("SSA form with types transformed args");
                 System.out.println(ssaInvokeForm.toText());
@@ -168,7 +166,7 @@ public class DebugBackend extends BackendAdaptor {
 
                 CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(kernelCallGraph.computeContext.accelerator.lookup, ssaInvokeForm, functionType);
                 System.out.println("SSA form with invokes replaced by ptrs");
-                System.out.println(ssaPtrForm.toText());
+                System.out.println(ssaPtrForm.toText()); */
             }
         }
     }
