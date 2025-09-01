@@ -77,7 +77,7 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
 
     public T compute(MethodHandles.Lookup lookup,FuncOpWrapper funcOpWrapper) {
         HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOpWrapper);
-        typeName(funcOpWrapper.functionReturnTypeDesc().toString()).space().identifier(funcOpWrapper.functionName());
+        typeName(funcOpWrapper.op.resultType().toString()).space().identifier(funcOpWrapper.op.funcName());
         parenNlIndented(_ ->
                 commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );

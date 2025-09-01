@@ -481,7 +481,7 @@ public class CudaBackend extends C99FFIBackend {
         String out, body;
 
         // building fn info (name, params)
-        builder.functionHeader(lowered.functionName(), entry, lowered.op.body().yieldType());
+        builder.functionHeader(lowered.op.funcName(), entry, lowered.op.body().yieldType());
 
         // printing out params
         builder.parameters(lowered.paramTable().list());

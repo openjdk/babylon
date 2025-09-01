@@ -186,7 +186,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelReachableResolvedMethodCall.funcOpWrapper().lookup,kernelReachableResolvedMethodCall.funcOpWrapper());
         buildContext.scope(buildContext.funcOpWrapper, () -> {
             nl();
-            functionDeclaration(buildContext,(JavaType) buildContext.funcOpWrapper.op.body().yieldType(), buildContext.funcOpWrapper.functionName());
+            functionDeclaration(buildContext,(JavaType) buildContext.funcOpWrapper.op.body().yieldType(),
+                    buildContext.funcOpWrapper.op.funcName());
 
             var list = buildContext.funcOpWrapper.paramTable.list();
             parenNlIndented(_ ->
@@ -207,7 +208,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         HATCodeBuilderContext buildContext = new HATCodeBuilderContext(funcOpWrapper.lookup,funcOpWrapper);
         buildContext.scope(buildContext.funcOpWrapper, () -> {
             nl();
-            functionDeclaration(buildContext,(JavaType) buildContext.funcOpWrapper.op.body().yieldType(), buildContext.funcOpWrapper.functionName());
+            functionDeclaration(buildContext,(JavaType) buildContext.funcOpWrapper.op.body().yieldType(),
+                    buildContext.funcOpWrapper.op.funcName());
 
             var list = buildContext.funcOpWrapper.paramTable.list();
             parenNlIndented(_ ->
@@ -227,12 +229,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         nl();
         HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelEntrypoint.funcOpWrapper().lookup,kernelEntrypoint.funcOpWrapper());
         buildContext.scope(buildContext.funcOpWrapper, () -> {
-            kernelDeclaration(buildContext.funcOpWrapper.functionName());
+            kernelDeclaration(buildContext.funcOpWrapper.op.funcName());
             // We skip the first arg which was KernelContext.
             var list = buildContext.funcOpWrapper.paramTable.list();
             for (int arg = 1; arg < args.length; arg++) {
                 if (args[arg] instanceof Buffer buffer) {
-                    FuncOpWrapper.ParamTable.Info info = list.get(arg);
+                    OpTk.ParamTable.Info info = list.get(arg);
                     info.setLayout((GroupLayout) Buffer.getLayout(buffer));
                     info.setClass(args[arg].getClass());
                 }

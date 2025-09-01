@@ -108,7 +108,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         funcName(funcName);
     }
 
-    public PTXHATKernelBuilder parameters(List<FuncOpWrapper.ParamTable.Info> infoList) {
+    public PTXHATKernelBuilder parameters(List<OpTk.ParamTable.Info> infoList) {
         paren(_ -> nl().commaNlSeparated(infoList, (info) -> {
             ptxIndent().dot().param().space().paramType(info.javaType);
             space().regName(info.varOp.varName());

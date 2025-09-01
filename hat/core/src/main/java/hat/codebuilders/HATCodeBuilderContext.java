@@ -71,8 +71,8 @@ public class HATCodeBuilderContext {
         @Override
         public CoreOp.VarOp resolve(Value value) {
             if (value instanceof Block.Parameter blockParameter) {
-                if (opWrapper.parameterVarOpMap.containsKey(blockParameter)) {
-                    return opWrapper.parameterVarOpMap.get(blockParameter);
+                if (opWrapper.paramTable.parameterVarOpMap.containsKey(blockParameter)) {
+                    return opWrapper.paramTable.parameterVarOpMap.get(blockParameter);
                 } else {
                     throw new IllegalStateException("what ?");
                 }
