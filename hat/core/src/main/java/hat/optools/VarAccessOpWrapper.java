@@ -29,8 +29,8 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public abstract class VarAccessOpWrapper<T extends CoreOp.VarAccessOp> extends OpWrapper<T> {
-    VarAccessOpWrapper( MethodHandles.Lookup lookup,T op) {
-        super(lookup, op);
+    VarAccessOpWrapper( T op) {
+        super(op);
     }
 
 }

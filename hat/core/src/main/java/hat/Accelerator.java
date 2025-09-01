@@ -216,7 +216,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
         LambdaOpWrapper lambda = OpWrapper.wrap(lookup,(JavaOp.LambdaOp) quoted.op());
-        Method method = OpTk.getQuotableTargetInvokeOpWrapper(lambda.lookup,lambda.op).method();
+        Method method = OpTk.getQuotableTargetInvokeOpWrapper(lookup,lambda.op).method();
 
         // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation

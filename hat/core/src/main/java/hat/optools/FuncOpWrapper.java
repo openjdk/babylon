@@ -35,9 +35,11 @@ public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
     public OpTk.ParamTable paramTable() {
         return paramTable;
     }
+    public final MethodHandles.Lookup lookup;
 
     public FuncOpWrapper(MethodHandles.Lookup lookup,CoreOp.FuncOp op) {
-        super(lookup,op);
+        super(op);
+        this.lookup=lookup;
         this.paramTable = new OpTk.ParamTable(op);
     }
 }

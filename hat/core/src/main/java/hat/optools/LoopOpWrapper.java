@@ -30,7 +30,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public abstract class LoopOpWrapper<T extends Op> extends StructuralOpWrapper<T> {
-    LoopOpWrapper(MethodHandles.Lookup lookup, T op ) {
-        super(lookup,op);
+    LoopOpWrapper(T op ) {
+        super(op);
     }
 }

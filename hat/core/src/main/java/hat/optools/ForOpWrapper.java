@@ -30,7 +30,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public class ForOpWrapper extends LoopOpWrapper<JavaOp.ForOp> {
-    ForOpWrapper( MethodHandles.Lookup lookup,JavaOp.ForOp op) {
-        super(lookup,op);
+    ForOpWrapper(JavaOp.ForOp op) {
+        super(op);
     }
 }

@@ -31,7 +31,11 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import java.util.*;
 
 public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
-    public ModuleOpWrapper(MethodHandles.Lookup lookup, CoreOp.ModuleOp op) {
-        super(lookup,op);
+   // public MethodHandles.Lookup lookup;
+    public ModuleOpWrapper(
+            //MethodHandles.Lookup lookup,
+            CoreOp.ModuleOp op) {
+        super(op);
+        //this.lookup=lookup;
     }
 }

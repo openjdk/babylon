@@ -286,7 +286,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     public void closeWithModuleOp(ComputeReachableResolvedMethodCall computeReachableResolvedMethodCall) {
         CoreOp.ModuleOp moduleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, computeReachableResolvedMethodCall.funcOpWrapper(), this);
-        moduleOpWrapper = new ModuleOpWrapper(computeContext.accelerator.lookup, moduleOp);
+        moduleOpWrapper = OpWrapper.wrap(computeContext.accelerator.lookup, moduleOp);
     }
 
     @Override

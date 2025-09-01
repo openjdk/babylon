@@ -29,7 +29,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 
 public class LogicalOpWrapper extends BinaryOpWrapper<JavaOp.JavaConditionalOp> {
-    LogicalOpWrapper(MethodHandles.Lookup lookup,JavaOp.JavaConditionalOp op) {
-        super(lookup,op);
+    LogicalOpWrapper(JavaOp.JavaConditionalOp op) {
+        super(op);
     }
 }

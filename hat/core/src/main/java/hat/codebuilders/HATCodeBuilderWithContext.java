@@ -198,7 +198,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         if (OpTk.isKernelContextAccess(fieldLoadOpWrapper.op)) {
             identifier("kc").rarrow().identifier(OpTk.fieldName(fieldLoadOpWrapper.op));
         } else if (fieldLoadOpWrapper.op.operands().isEmpty() && fieldLoadOpWrapper.op.result().type() instanceof PrimitiveType) {
-            Object value = OpTk.getStaticFinalPrimitiveValue(fieldLoadOpWrapper.lookup,fieldLoadOpWrapper.op);
+            Object value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOpWrapper.op);
             literal(value.toString());
         } else {
             throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.op);
@@ -391,7 +391,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
-                                StreamCounter.of(RootSet.rootsWithoutVarFuncDeclarationsOrYields(ifOpWrapper.lookup,
+                                StreamCounter.of(RootSet.rootsWithoutVarFuncDeclarationsOrYields(buildContext.lookup,
                                         ifOpWrapper.op.bodies().get(c.value()).entryBlock())
                                         , (innerc, root) ->
                                         nlIf(innerc.isNotFirst())
@@ -409,7 +409,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             ifOpWrapper.op.bodies().get(c.value()).entryBlock()            // get the entryblock if bodies[c.value]
                                     .ops().stream().filter(o->o instanceof CoreOp.YieldOp) // we want all the yields
                                     .forEach((yield) ->
-                                            recurse(buildContext, OpWrapper.wrap(ifOpWrapper.lookup,yield))
+                                            recurse(buildContext, OpWrapper.wrap(buildContext.lookup,yield))
                                     )
                     );
                     lastWasBody.set(false);
@@ -435,15 +435,15 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T javaFor(HATCodeBuilderContext buildContext, ForOpWrapper forOpWrapper) {
         buildContext.scope(forOpWrapper, () ->
                 forKeyword().paren(_ -> {
-                    OpTk.initWrappedYieldOpStream(forOpWrapper.lookup,forOpWrapper.op).forEach((wrapped) -> recurse(buildContext, wrapped));
+                    OpTk.initWrappedYieldOpStream(buildContext.lookup,forOpWrapper.op).forEach((wrapped) -> recurse(buildContext, wrapped));
                     semicolon().space();
-                    OpTk.conditionWrappedYieldOpStream(forOpWrapper.lookup,forOpWrapper.op).forEach((wrapped) -> recurse(buildContext, wrapped));
+                    OpTk.conditionWrappedYieldOpStream(buildContext.lookup,forOpWrapper.op).forEach((wrapped) -> recurse(buildContext, wrapped));
                     semicolon().space();
-                    StreamCounter.of(OpTk.mutateRootWrappedOpStream(forOpWrapper.lookup,forOpWrapper.op), (c, wrapped) ->
+                    StreamCounter.of(OpTk.mutateRootWrappedOpStream(buildContext.lookup,forOpWrapper.op), (c, wrapped) ->
                             commaSpaceIf(c.isNotFirst()).recurse(buildContext, wrapped)
                     );
                 }).braceNlIndented(_ ->
-                        StreamCounter.of(OpTk.loopWrappedRootOpStream(forOpWrapper.lookup,forOpWrapper.op), (c, root) ->
+                        StreamCounter.of(OpTk.loopWrappedRootOpStream(buildContext.lookup,forOpWrapper.op), (c, root) ->
                                 nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                         )
                 )

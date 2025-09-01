@@ -42,9 +42,10 @@ import java.util.Optional;
 
 public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
 
-
+     final public MethodHandles.Lookup lookup;
     public InvokeOpWrapper( MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
-        super(lookup,op);
+        super(op);
+        this.lookup=lookup;
     }
 
     public MethodRef methodRef() {
@@ -81,9 +82,9 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
         }
     }
 
-    public Value getReceiver() {
-        return op.hasReceiver() ? op.operands().getFirst() : null;
-    }
+  //  public Value getReceiver() {
+    //    return op.hasReceiver() ? op.operands().getFirst() : null;
+   // }
 
     public enum IfaceBufferAccess {None, Access, Mutate}
 

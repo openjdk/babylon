@@ -29,8 +29,8 @@ import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 public abstract class FieldAccessOpWrapper<T extends JavaOp.FieldAccessOp> extends OpWrapper<T> {
-    FieldAccessOpWrapper( MethodHandles.Lookup lookup,T op) {
-        super(lookup,op);
+    FieldAccessOpWrapper( T op) {
+        super(op);
     }
 
 }

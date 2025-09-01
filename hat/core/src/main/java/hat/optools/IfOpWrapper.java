@@ -29,8 +29,12 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 
 public class IfOpWrapper extends StructuralOpWrapper<JavaOp.IfOp> {
-    public IfOpWrapper(MethodHandles.Lookup lookup,JavaOp.IfOp op) {
-        super(lookup,op);
+   //public MethodHandles.Lookup lookup;
+    public IfOpWrapper(
+            //MethodHandles.Lookup lookup,
+            JavaOp.IfOp op) {
+        super(op);
+     //   this.lookup = lookup;
     }
 
 }

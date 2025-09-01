@@ -29,8 +29,10 @@ import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 public class LambdaOpWrapper extends OpWrapper<JavaOp.LambdaOp> {
+    public final MethodHandles.Lookup lookup;
     public LambdaOpWrapper( MethodHandles.Lookup lookup, JavaOp.LambdaOp op) {
-        super(lookup,op);
+        super(op);
+        this.lookup=lookup;
     }
 
 }

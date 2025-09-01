@@ -29,7 +29,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 
 public class FieldLoadOpWrapper extends FieldAccessOpWrapper<JavaOp.FieldAccessOp.FieldLoadOp> implements LoadOpWrapper {
-    FieldLoadOpWrapper( MethodHandles.Lookup lookup,JavaOp.FieldAccessOp.FieldLoadOp op) {
-        super(lookup,op);
+    FieldLoadOpWrapper( JavaOp.FieldAccessOp.FieldLoadOp op) {
+        super(op);
     }
 }
