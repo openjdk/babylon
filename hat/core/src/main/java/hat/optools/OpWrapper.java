@@ -94,11 +94,11 @@ public class OpWrapper<T extends Op> {
     }
 
     private final T op;
-public MethodHandles.Lookup lookup;
+    public MethodHandles.Lookup lookup;
+
     OpWrapper( MethodHandles.Lookup lookup,T op) {
         this.lookup= lookup;
         this.op = op;
-
     }
 
     public T op() {

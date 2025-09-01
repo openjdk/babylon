@@ -31,7 +31,9 @@ import hat.buffer.KernelContext;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -41,9 +43,34 @@ import java.util.Optional;
 
 public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
 
+    private String klassNameForCustomType;
 
     public InvokeOpWrapper( MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
         super(lookup,op);
+        checkIntrinsicCallFromBufferContext();
+    }
+    private void checkIntrinsicCallFromBufferContext() {
+        if (isIface(javaRefType())) {
+            if (isIntrinsicCallFromBufferContext()) {
+                Value klassValue = this.operands().getFirst();
+                if (klassValue instanceof Op.Result result) {
+                    if (result.op() instanceof CoreOp.ConstantOp constant) {
+                        if (constant.value() instanceof ClassType classType) {
+                            klassNameForCustomType = classType.toClassName();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private boolean isIntrinsicCallFromBufferContext() {
+        return methodRef().name().equals("createPrivate")
+                || methodRef().name().equals("createLocal");
+    }
+
+    public String klassNameForCustomType() {
+        return klassNameForCustomType;
     }
 
     public MethodRef methodRef() {
@@ -67,7 +94,6 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
 
     public boolean isKernelContextMethod() {
         return isAssignable(javaRefType(), KernelContext.class);
-
     }
 
     public boolean isComputeContextMethod() {
@@ -134,7 +160,6 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
             return false;
         }
     }
-
 
     public boolean isIfaceMutator() {
         return isIfaceBufferMethod() && returnsVoid();

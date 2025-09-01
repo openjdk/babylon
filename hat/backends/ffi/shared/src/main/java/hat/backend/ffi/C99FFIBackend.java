@@ -25,6 +25,7 @@
 
 package hat.backend.ffi;
 
+import hat.Accelerator;
 import hat.ComputeRange;
 import hat.ThreadMesh;
 import hat.NDRange;
@@ -38,11 +39,22 @@ import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import hat.optools.FuncOpWrapper;
+import hat.optools.InvokeOpWrapper;
+import hat.optools.OpWrapper;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.JavaOp;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
@@ -130,6 +142,18 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
+    private void updateListOfSchemas(Op op, MethodHandles.Lookup lookup, List<String> localIfaceList) {
+        if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
+            InvokeOpWrapper wrapped = OpWrapper.wrap(lookup, invokeOp);
+            if (wrapped.isIfaceBufferMethod()) {
+                if (wrapped.klassNameForCustomType() != null) {
+                    String klassName = wrapped.klassNameForCustomType();
+                    localIfaceList.add(klassName);
+                }
+            }
+        }
+    }
+
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().pragmas().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
@@ -145,6 +169,52 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                         }
                     });
                 });
+
+        List<String> localIFaceList = new ArrayList<>();
+        // Traverse the list of reachable functions and append the intrinsics functions found for each of the functions
+        kernelCallGraph.moduleOpWrapper.functionTable()
+                .forEach((_, funcOp) -> {
+                    funcOp.transform(CopyContext.create(), (blockBuilder, op) -> {
+                        updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                        blockBuilder.op(op);
+                        return blockBuilder;
+                    });
+                });
+
+        // Traverse the main kernel and append the intrinsics functions found in the main kernel
+        kernelCallGraph.entrypoint.funcOpWrapper()
+                .transform(null, (blockBuilder, op) -> {
+                    updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    blockBuilder.op(op);
+                    return blockBuilder;
+                });
+
+        // Add for struct for iface objects
+        for (String klassName : localIFaceList) {
+            // Load the class dynamically
+            Class<?> clazz;
+            try {
+                clazz = Class.forName(klassName);
+
+                // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
+                Method method = clazz.getMethod("create", Accelerator.class, int.class);
+                method.setAccessible(true);
+                Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator, 1);
+
+                // code gen of the struct
+                BoundSchema<?> boundSchema = Buffer.getBoundSchema(invoke);
+                boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
+                    if (!already.contains(t)) {
+                        builder.typedef(boundSchema, t);
+                        already.add(t);
+                    }
+                });
+            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException |
+                     ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
 
         // Sorting by rank ensures we don't need forward declarations
         if (Boolean.getBoolean("moduleOp")) {

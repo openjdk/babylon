@@ -25,6 +25,7 @@
 package hat.buffer;
 
 
+import hat.HatInlineBoundary;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.MappableIface;
@@ -104,5 +105,15 @@ public interface Buffer extends MappableIface {
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @HatInlineBoundary
+    static <T extends Buffer> T createLocal(Class<T> type, int size) {
+        return null;
+    }
+
+    @HatInlineBoundary
+    static <T extends Buffer> T createPrivate(Class<T> type, int size) {
+        return null;
     }
 }
