@@ -22,35 +22,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.optools;
+package hat.util;
 
-import jdk.incubator.code.Block;
-import jdk.incubator.code.Op;
+import java.util.Optional;
 
-public class BlockWrapper extends CodeElementWrapper<Block> {
-    public Block block() {
-        return codeElement;
+public class StreamOptionalMutable<R> {
+    private Optional<R> value = Optional.empty();
+
+    public void of(R value) {
+        this.value = Optional.of(value);
     }
 
-    public BlockWrapper(Block block) {
-        super(block);
+    public boolean isPresent() {
+        return value.isPresent();
     }
 
-    public int opCount() {
-        return block().ops().size();
+    public R get() {
+        return value.orElseThrow();
     }
 
-    public <O extends Op> O op(int delta) {
-        O op = null;
-        if (delta >= 0) {
-            op = (O) block().children().get(delta);
-        } else {
-            op = (O) block().children().get(opCount() + delta);
-        }
-        return op;
+    public StreamOptionalMutable(R initial) {
+        of(initial);
     }
 
-    public BodyWrapper parentBody() {
-        return new BodyWrapper(block().ancestorBody());
+    public StreamOptionalMutable() {
+
     }
 }

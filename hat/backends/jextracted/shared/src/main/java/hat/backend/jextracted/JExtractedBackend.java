@@ -33,6 +33,7 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
+import hat.optools.OpTk;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
@@ -63,7 +64,8 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-            computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
+            computeContext.computeCallGraph.entrypoint.lowered =
+                    OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOpWrapper().op);
         }
 
 
@@ -96,10 +98,10 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         if (transform) {
             System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
             System.out.println(returnFOW.op.toText());
-            returnFOW = prevFOW.transformInvokes((bldr, invokeOW) -> {
+            returnFOW = OpTk.transformInvokes(prevFOW.lookup, prevFOW.op,(bldr, invokeOW) -> {
                 CopyContext bldrCntxt = bldr.context();
                 //Map compute method's first param (computeContext) value to transformed model
-                Value cc = bldrCntxt.getValue(prevFOW.parameter(0));
+                Value cc = bldrCntxt.getValue(prevFOW.paramTable.list().getFirst().parameter);
                 if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
                     Value iface = bldrCntxt.getValue(invokeOW.op.operands().getFirst());
                     bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
@@ -115,7 +117,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                 } else {
                     invokeOW.op.operands().stream()
                             .filter(val -> val.type() instanceof JavaType javaType &&
-                                    InvokeOpWrapper.isAssignable(prevFOW.lookup,javaType, MappableIface.class))
+                                    OpTk.isAssignable(prevFOW.lookup,javaType, MappableIface.class))
                                            // isIfaceUsingLookup(prevFOW.lookup,javaType))
                             .forEach(val ->
                                     bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(val)))
@@ -123,7 +125,7 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                     bldr.op(invokeOW.op);
                     invokeOW.op.operands().stream()
                             .filter(val -> val.type() instanceof JavaType javaType &&
-                                    InvokeOpWrapper.isAssignable(prevFOW.lookup,javaType,MappableIface.class))
+                                    OpTk.isAssignable(prevFOW.lookup,javaType,MappableIface.class))
                                            // isIfaceUsingLookup(prevFOW.lookup,javaType))
 
                             .forEach(val -> bldr.op(

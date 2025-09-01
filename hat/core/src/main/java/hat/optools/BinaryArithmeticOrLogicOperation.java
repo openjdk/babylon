@@ -29,7 +29,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 
 public class BinaryArithmeticOrLogicOperation extends BinaryOpWrapper<JavaOp.BinaryOp> {
-    BinaryArithmeticOrLogicOperation( MethodHandles.Lookup lookup, JavaOp.BinaryOp op) {
-        super(lookup, op);
+    BinaryArithmeticOrLogicOperation(  JavaOp.BinaryOp op) {
+        super( op);
     }
 }

@@ -42,9 +42,10 @@ import java.util.Optional;
 
 public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
 
-
+     final public MethodHandles.Lookup lookup;
     public InvokeOpWrapper( MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
-        super(lookup,op);
+        super(op);
+        this.lookup=lookup;
     }
 
     public MethodRef methodRef() {
@@ -56,18 +57,18 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
     }
 
     public boolean isIfaceBufferMethod() {
-        return  isAssignable(lookup,javaRefType(), MappableIface.class) ;
+        return  OpTk.isAssignable(lookup,javaRefType(), MappableIface.class) ;
     }
 
     public boolean isRawKernelCall() {
         return (op.operands().size() > 1 && op.operands().getFirst() instanceof Value value
                 && value.type() instanceof JavaType javaType
-                && (isAssignable(lookup,javaType, hat.KernelContext.class) || isAssignable(lookup,javaType, KernelContext.class))
+                && (OpTk.isAssignable(lookup,javaType, hat.KernelContext.class) || OpTk.isAssignable(lookup,javaType, KernelContext.class))
         );
     }
 
     public boolean isComputeContextMethod() {
-        return isAssignable(lookup,javaRefType(), ComputeContext.class);
+        return OpTk.isAssignable(lookup,javaRefType(), ComputeContext.class);
     }
     public JavaType javaReturnType() {
         return (JavaType) methodRef().type().returnType();
@@ -81,9 +82,9 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
         }
     }
 
-    public Value getReceiver() {
-        return op.hasReceiver() ? op.operands().getFirst() : null;
-    }
+  //  public Value getReceiver() {
+    //    return op.hasReceiver() ? op.operands().getFirst() : null;
+   // }
 
     public enum IfaceBufferAccess {None, Access, Mutate}
 
@@ -111,7 +112,7 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
 
     public Optional<Class<?>> javaRefClass() {
         if (javaRefType() instanceof ClassType classType) {
-            return Optional.of((Class<?>) classTypeToType(lookup,classType));
+            return Optional.of((Class<?>) OpTk.classTypeToType(lookup,classType));
         }else{
             return Optional.empty();
         }
@@ -119,7 +120,7 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
 
     public Optional<Class<?>> javaReturnClass() {
         if (javaReturnType() instanceof ClassType classType) {
-            return Optional.of((Class<?>) classTypeToType(lookup,classType));
+            return Optional.of((Class<?>) OpTk.classTypeToType(lookup,classType));
         }else{
             return Optional.empty();
         }

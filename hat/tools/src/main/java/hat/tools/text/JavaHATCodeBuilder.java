@@ -29,13 +29,13 @@ import hat.codebuilders.HATCodeBuilderWithContext;
 import hat.optools.FieldLoadOpWrapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 import hat.optools.StructuralOpWrapper;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 
 public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCodeBuilderWithContext<T> {
@@ -51,12 +51,13 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
 
     @Override
     public T fieldLoad(HATCodeBuilderContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper) {
-        if (fieldLoadOpWrapper.isKernelContextAccess()) {
-            identifier("kc").dot().identifier(fieldLoadOpWrapper.fieldName());
-        } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {
-            literal(fieldLoadOpWrapper.getStaticFinalPrimitiveValue().toString());
+        if (OpTk.isKernelContextAccess(fieldLoadOpWrapper.op)) {
+            identifier("kc").dot().identifier(OpTk.fieldName(fieldLoadOpWrapper.op));
+        } else if (fieldLoadOpWrapper.op.operands().isEmpty() && fieldLoadOpWrapper.op.result().type() instanceof PrimitiveType) { // only primitve fields
+            var value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOpWrapper.op);
+            literal(value.toString());
         } else {
-            throw new IllegalStateException("An instance field? I guess - we dont get those in HAT " + fieldLoadOpWrapper.fieldRef());
+            throw new IllegalStateException("An instance field? I guess - we dont get those in HAT " + fieldLoadOpWrapper.op);
         }
         return self();
     }
@@ -76,15 +77,16 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
 
     public T compute(MethodHandles.Lookup lookup,FuncOpWrapper funcOpWrapper) {
         HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOpWrapper);
-        typeName(funcOpWrapper.functionReturnTypeDesc().toString()).space().identifier(funcOpWrapper.functionName());
+        typeName(funcOpWrapper.op.resultType().toString()).space().identifier(funcOpWrapper.op.funcName());
         parenNlIndented(_ ->
                 commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
         braceNlIndented(_ ->
-                funcOpWrapper.wrappedRootOpStream()
+                OpTk.wrappedRootOpStream(buildContext.lookup,funcOpWrapper.op)
                         .forEach(root ->
-                        recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
-                ));
+                                recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
+                        )
+        );
         return self();
     }
 

@@ -26,6 +26,7 @@ package hat.codebuilders;
 
 
 import hat.optools.FuncOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.StructuralOpWrapper;
 
 import jdk.incubator.code.TypeElement;
@@ -40,17 +41,17 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
 
     public T compute(FuncOpWrapper funcOpWrapper) {
         HATCodeBuilderContext buildContext = new HATCodeBuilderContext(funcOpWrapper.lookup,funcOpWrapper);
-        computeDeclaration(funcOpWrapper.functionReturnTypeDesc(), funcOpWrapper.functionName());
+        computeDeclaration(funcOpWrapper.op.resultType(), funcOpWrapper.op.funcName());
         parenNlIndented(_ ->
                 commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
 
         braceNlIndented(_ ->
-                funcOpWrapper.wrappedRootOpStream()
-                      //  .rootsWithoutVarFuncDeclarationsOrYields(funcOpWrapper.op.bodies().getFirst().entryBlock())
+                OpTk.wrappedRootOpStream(buildContext.lookup,funcOpWrapper.op)
                         .forEach(root ->
-                        recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
-                ));
+                                recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
+                        )
+        );
 
         return self();
     }

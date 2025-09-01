@@ -28,6 +28,7 @@ import hat.buffer.Buffer;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.ModuleOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -154,8 +155,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     }
 
     KernelCallGraph closeWithModuleOp() {
-        CoreOp.ModuleOp moduleOp = ModuleOpWrapper.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOpWrapper(), this);
-        moduleOpWrapper = new ModuleOpWrapper(computeContext.accelerator.lookup, moduleOp);
+        CoreOp.ModuleOp moduleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOpWrapper(), this);
+        moduleOpWrapper = OpWrapper.wrap(computeContext.accelerator.lookup, moduleOp);
         return this;
     }
 

@@ -34,8 +34,8 @@ public class VarFuncDeclarationOpWrapper extends VarOpWrapper {
     final Block.Parameter blockParameter;
     final int idx;
 
-    public VarFuncDeclarationOpWrapper( MethodHandles.Lookup lookup, CoreOp.VarOp op, CoreOp.FuncOp funcOp, Block.Parameter blockParameter) {
-        super(lookup,op);
+    public VarFuncDeclarationOpWrapper(CoreOp.VarOp op, CoreOp.FuncOp funcOp, Block.Parameter blockParameter) {
+        super(op);
         this.funcOp = funcOp;
         this.blockParameter = blockParameter;
         this.idx = blockParameter.index();

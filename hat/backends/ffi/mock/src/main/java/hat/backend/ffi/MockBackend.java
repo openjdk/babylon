@@ -61,7 +61,7 @@ public class MockBackend extends FFIBackend {
         // and rechable methods to a form that our mock backend can execute.
         if (Boolean.getBoolean("moduleOp")) {
             System.out.println("Using ModuleOp for MockBackend");
-            kernelCallGraph.moduleOpWrapper.functionTable().forEach((_, funcOp) -> {
+            kernelCallGraph.moduleOpWrapper.op.functionTable().forEach((_, funcOp) -> {
 
             });
         } else {

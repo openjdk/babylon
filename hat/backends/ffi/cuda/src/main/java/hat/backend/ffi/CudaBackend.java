@@ -32,6 +32,7 @@ import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 
 import jdk.incubator.code.CopyContext;
@@ -402,7 +403,7 @@ public class CudaBackend extends C99FFIBackend {
         StringBuilder out = new StringBuilder();
         StringBuilder invokedMethods = new StringBuilder();
         FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op);
-        FuncOpWrapper lowered = f.lower();
+        FuncOpWrapper lowered = OpTk.lower(f.lookup,f.op);
         HashMap<String, Object> argsMap = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
             argsMap.put(f.paramTable().list().get(i).varOp.varName(), args[i]);
@@ -412,9 +413,9 @@ public class CudaBackend extends C99FFIBackend {
 
         if (Boolean.getBoolean("moduleOp")) {
             System.out.println("Using ModuleOp for CudaBackend");
-            kernelCallGraph.moduleOpWrapper.functionTable().forEach((_, funcOp) -> {
+            kernelCallGraph.moduleOpWrapper.op.functionTable().forEach((_, funcOp) -> {
                 FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,funcOp);
-                FuncOpWrapper loweredFunc = calledFunc.lower();
+                FuncOpWrapper loweredFunc = OpTk.lower(calledFunc.lookup,calledFunc.op);
                 loweredFunc = transformPTXPtrs(loweredFunc, argsMap, usedMathFns);
                 invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
             });
@@ -422,7 +423,7 @@ public class CudaBackend extends C99FFIBackend {
             System.out.println("NOT using ModuleOp for CudaBackend");
             for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
                 FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,k.funcOpWrapper().op);
-                FuncOpWrapper loweredFunc = calledFunc.lower();
+                FuncOpWrapper loweredFunc = OpTk.lower(calledFunc.lookup,calledFunc.op);
                 loweredFunc = transformPTXPtrs(loweredFunc, argsMap, usedMathFns);
                 invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
             }
@@ -476,11 +477,11 @@ public class CudaBackend extends C99FFIBackend {
     }
 
     static public String createFunction(PTXHATKernelBuilder builder, FuncOpWrapper lowered, boolean entry) {
-        FuncOpWrapper ssa = lowered.ssa();
+        FuncOpWrapper ssa = OpTk.ssa(lowered.lookup,lowered.op);
         String out, body;
 
         // building fn info (name, params)
-        builder.functionHeader(lowered.functionName(), entry, lowered.op.body().yieldType());
+        builder.functionHeader(lowered.op.funcName(), entry, lowered.op.body().yieldType());
 
         // printing out params
         builder.parameters(lowered.paramTable().list());
