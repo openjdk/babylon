@@ -29,14 +29,8 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class FuncOpWrapper extends OpWrapper<CoreOp.FuncOp> {
-
     public final OpTk.ParamTable paramTable;
-
-    public OpTk.ParamTable paramTable() {
-        return paramTable;
-    }
     public final MethodHandles.Lookup lookup;
-
     public FuncOpWrapper(MethodHandles.Lookup lookup,CoreOp.FuncOp op) {
         super(op);
         this.lookup=lookup;

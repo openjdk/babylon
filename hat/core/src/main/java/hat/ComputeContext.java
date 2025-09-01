@@ -38,6 +38,7 @@ import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
@@ -106,15 +107,8 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     protected ComputeContext(Accelerator accelerator, Method computeMethod) {
         this.accelerator = accelerator;
-
-        //   ModuleOpWrapper module = ModuleOpWrapper.createTransitiveInvokeModule(accelerator.lookup, computeMethod);
-
-        // System.out.println(module.op().toText());
-
-        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(accelerator.lookup,Op.ofMethod(computeMethod).orElseThrow());
-
-        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOpWrapper);
-
+        CoreOp.FuncOp funcOp = Op.ofMethod(computeMethod).orElseThrow();
+        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp);
         this.computeCallGraph.close();
         this.accelerator.backend.computeContextHandoff(this);
     }

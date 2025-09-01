@@ -27,29 +27,27 @@ package hat.codebuilders;
 import hat.optools.ForOpWrapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.IfOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 import hat.optools.WhileOpWrapper;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 
 public class HATCodeBuilderContext {
-  //  public MethodHandles.Lookup lookup() {
-    //    return funcOpWrapper.lookup;
-    //}
-
-    public static class Scope<OW extends OpWrapper<?>> {
+    public static class Scope<O extends Op> {
         final Scope<?> parent;
-        final OW opWrapper;
+        final O op;
 
-        public Scope(Scope<?> parent, OW opWrapper) {
+        public Scope(Scope<?> parent, O op) {
             this.parent = parent;
-            this.opWrapper = opWrapper;
+            this.op = op;
         }
 
         public CoreOp.VarOp resolve(Value value) {
@@ -63,16 +61,18 @@ public class HATCodeBuilderContext {
         }
     }
 
-    public static class FuncScope extends Scope<FuncOpWrapper> {
-        FuncScope(Scope<?> parent, FuncOpWrapper funcOpWrapper) {
-            super(parent, funcOpWrapper);
+    public static class FuncScope extends Scope<CoreOp.FuncOp> {
+        final OpTk.ParamTable paramTable;
+        FuncScope(Scope<?> parent, CoreOp.FuncOp funcOp) {
+            super(parent, funcOp);
+            paramTable = new OpTk.ParamTable(funcOp);
         }
 
         @Override
         public CoreOp.VarOp resolve(Value value) {
             if (value instanceof Block.Parameter blockParameter) {
-                if (opWrapper.paramTable.parameterVarOpMap.containsKey(blockParameter)) {
-                    return opWrapper.paramTable.parameterVarOpMap.get(blockParameter);
+                if (paramTable.parameterVarOpMap.containsKey(blockParameter)) {
+                    return paramTable.parameterVarOpMap.get(blockParameter);
                 } else {
                     throw new IllegalStateException("what ?");
                 }
@@ -82,7 +82,7 @@ public class HATCodeBuilderContext {
         }
     }
 
-    public static abstract class LoopScope<T extends OpWrapper<?>> extends Scope<T> {
+    public static abstract class LoopScope<T extends Op> extends Scope<T> {
 
         public LoopScope(Scope<?> parent, T opWrapper) {
             super(parent, opWrapper);
@@ -90,19 +90,19 @@ public class HATCodeBuilderContext {
     }
 
 
-    public static class ForScope extends LoopScope<ForOpWrapper> {
+    public static class ForScope extends LoopScope<JavaOp.ForOp> {
         Map<Block.Parameter, CoreOp.VarOp> blockParamToVarOpMap = new HashMap<>();
 
-        ForOpWrapper forOpWrapper() {
-            return opWrapper;
+        JavaOp.ForOp forOp() {
+            return op;
         }
 
-        ForScope(Scope<?> parent, ForOpWrapper forOpWrapper) {
-            super(parent, forOpWrapper);
-            var loopParams = forOpWrapper.op.loopBody().entryBlock().parameters().toArray(new Block.Parameter[0]);
-            var updateParams = forOpWrapper.op.update().entryBlock().parameters().toArray(new Block.Parameter[0]);
-            var condParams = forOpWrapper.op.cond().entryBlock().parameters().toArray(new Block.Parameter[0]);
-            var lastInitOp = forOpWrapper.op.init().entryBlock().ops().getLast();
+        ForScope(Scope<?> parent, JavaOp.ForOp forOp) {
+            super(parent, forOp);
+            var loopParams = forOp.loopBody().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var updateParams = forOp.update().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var condParams = forOp.cond().entryBlock().parameters().toArray(new Block.Parameter[0]);
+            var lastInitOp = forOp.init().entryBlock().ops().getLast();
             var lastInitOpOperand0Result = (Op.Result) lastInitOp.operands().getFirst();
             var lastInitOpOperand0ResultOp = lastInitOpOperand0Result.op();
             CoreOp.VarOp varOps[];
@@ -209,15 +209,15 @@ public class HATCodeBuilderContext {
         }
     }
 
-    public static class IfScope extends Scope<IfOpWrapper> {
-        IfScope(Scope<?> parent, IfOpWrapper opWrapper) {
-            super(parent, opWrapper);
+    public static class IfScope extends Scope<JavaOp.IfOp> {
+        IfScope(Scope<?> parent, JavaOp.IfOp op) {
+            super(parent, op);
         }
     }
 
-    public static class WhileScope extends LoopScope<WhileOpWrapper> {
-        WhileScope(Scope<?> parent, WhileOpWrapper opWrapper) {
-            super(parent, opWrapper);
+    public static class WhileScope extends LoopScope<JavaOp.WhileOp> {
+        WhileScope(Scope<?> parent, JavaOp.WhileOp op) {
+            super(parent, op);
         }
 
     }
@@ -228,27 +228,28 @@ public class HATCodeBuilderContext {
         scope = scope.parent;
     }
 
-    private void pushScope(OpWrapper<?> opWrapper) {
-        scope = switch (opWrapper) {
-            case FuncOpWrapper $ -> new FuncScope(scope, $);
-            case ForOpWrapper $ -> new ForScope(scope, $);
-            case IfOpWrapper $ -> new IfScope(scope, $);
-            case WhileOpWrapper $ -> new WhileScope(scope, $);
-            default -> new Scope<>(scope, opWrapper);
+    private void pushScope(Op op) {
+        scope = switch (op) {
+            case CoreOp.FuncOp $ -> new FuncScope(scope, $);
+            case JavaOp.ForOp $ -> new ForScope(scope, $);
+            case JavaOp.IfOp $ -> new IfScope(scope, $);
+            case JavaOp.WhileOp $ -> new WhileScope(scope, $);
+            default -> new Scope<>(scope, op);
         };
     }
 
-    public void scope(OpWrapper<?> opWrapper, Runnable r) {
-        pushScope(opWrapper);
+    public void scope(Op op, Runnable r) {
+        pushScope(op);
         r.run();
         popScope();
     }
-    public MethodHandles.Lookup lookup;
-    public FuncOpWrapper funcOpWrapper;
-
-    public HATCodeBuilderContext(MethodHandles.Lookup lookup,FuncOpWrapper funcOpWrapper) {
+    final public MethodHandles.Lookup lookup;
+    final public CoreOp.FuncOp funcOp;
+    final public OpTk.ParamTable paramTable;
+    public HATCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         this.lookup = lookup;
-        this.funcOpWrapper = funcOpWrapper;
+        this.funcOp = funcOp;
+        this.paramTable = new OpTk.ParamTable(funcOp);
     }
 
 }

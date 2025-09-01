@@ -47,15 +47,25 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
         super(op);
         this.lookup=lookup;
     }
-
-    public MethodRef methodRef() {
+    public static  MethodRef methodRef(JavaOp.InvokeOp op) {
         return op.invokeDescriptor();
     }
 
-    public JavaType javaRefType() {
-        return (JavaType) methodRef().refType();
+    public static JavaType javaRefType(JavaOp.InvokeOp op) {
+        return (JavaType) methodRef(op).refType();
     }
 
+
+    public MethodRef methodRef() {
+        return methodRef(op);
+    }
+
+    public JavaType javaRefType() {
+        return javaRefType(op);
+    }
+    public static  boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+        return  OpTk.isAssignable(lookup,javaRefType(invokeOp), MappableIface.class) ;
+    }
     public boolean isIfaceBufferMethod() {
         return  OpTk.isAssignable(lookup,javaRefType(), MappableIface.class) ;
     }
@@ -70,21 +80,27 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
     public boolean isComputeContextMethod() {
         return OpTk.isAssignable(lookup,javaRefType(), ComputeContext.class);
     }
-    public JavaType javaReturnType() {
-        return (JavaType) methodRef().type().returnType();
+
+    public static JavaType javaReturnType(JavaOp.InvokeOp op) {
+        return (JavaType) methodRef(op).type().returnType();
     }
 
-    public Method method() {
+    public JavaType javaReturnType() {
+        return javaReturnType(op);
+    }
+
+    public static Method method(MethodHandles.Lookup lookup,JavaOp.InvokeOp op ) {
         try {
-            return methodRef().resolveToMethod(lookup, op.invokeKind());
+            return methodRef(op).resolveToMethod(lookup, op.invokeKind());
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
 
-  //  public Value getReceiver() {
-    //    return op.hasReceiver() ? op.operands().getFirst() : null;
-   // }
+    public Method method() {
+        return method(lookup,op);
+    }
+
 
     public enum IfaceBufferAccess {None, Access, Mutate}
 
@@ -110,20 +126,24 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
         return op.invokeDescriptor().name();
     }
 
+    public static Optional<Class<?>> javaRefClass(MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
+        if (javaRefType(op) instanceof ClassType classType) {
+            return Optional.of((Class<?>) OpTk.classTypeToType(lookup,classType));
+        }else{
+            return Optional.empty();
+        }
+    }
     public Optional<Class<?>> javaRefClass() {
-        if (javaRefType() instanceof ClassType classType) {
+       return javaRefClass(lookup,op);
+    }
+    public static Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
+        if (javaReturnType(op) instanceof ClassType classType) {
             return Optional.of((Class<?>) OpTk.classTypeToType(lookup,classType));
         }else{
             return Optional.empty();
         }
     }
-
     public Optional<Class<?>> javaReturnClass() {
-        if (javaReturnType() instanceof ClassType classType) {
-            return Optional.of((Class<?>) OpTk.classTypeToType(lookup,classType));
-        }else{
-            return Optional.empty();
-        }
+        return javaReturnClass(lookup,op);
     }
-
 }

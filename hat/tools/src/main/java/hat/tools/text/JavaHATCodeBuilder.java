@@ -33,6 +33,7 @@ import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 import hat.optools.StructuralOpWrapper;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
@@ -75,14 +76,14 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
         return self();
     }
 
-    public T compute(MethodHandles.Lookup lookup,FuncOpWrapper funcOpWrapper) {
-        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOpWrapper);
-        typeName(funcOpWrapper.op.resultType().toString()).space().identifier(funcOpWrapper.op.funcName());
+    public T compute(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOp);
+        typeName(funcOp.resultType().toString()).space().identifier(funcOp.funcName());
         parenNlIndented(_ ->
-                commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
+                commaSeparated(buildContext.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
         braceNlIndented(_ ->
-                OpTk.wrappedRootOpStream(buildContext.lookup,funcOpWrapper.op)
+                OpTk.wrappedRootOpStream(buildContext.lookup,funcOp)
                         .forEach(root ->
                                 recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
                         )

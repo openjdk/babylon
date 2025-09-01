@@ -151,7 +151,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         if (Boolean.getBoolean("moduleOp")) {
             System.out.println("Using ModuleOp for C99FFIBackend");
             kernelCallGraph.moduleOpWrapper.op.functionTable()
-                    .forEach((_, funcOp) -> builder.nl().kernelMethod(new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup, funcOp)).nl());
+                    .forEach((_, funcOp) -> builder.nl().kernelMethod(kernelCallGraph.computeContext.accelerator.lookup, funcOp).nl());
         } else {
             System.out.println("NOT using ModuleOp for C99FFIBackend");
             kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
@@ -162,9 +162,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
         if (config.isSHOW_KERNEL_MODEL()) {
             System.out.println("Original");
-            System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op.toText());
+            System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
             System.out.println("Lowered");
-            System.out.println(OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op).op.toText());
+            System.out.println(OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp()).toText());
         }
         return builder.toString();
     }
