@@ -28,6 +28,7 @@ package hat.backend.ffi;
 import hat.ComputeRange;
 import hat.ThreadMesh;
 import hat.NDRange;
+import hat.callgraph.CallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
@@ -37,7 +38,6 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
-import hat.optools.FuncOpWrapper;
 import hat.optools.OpTk;
 
 import java.util.Arrays;
@@ -148,9 +148,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 });
 
         // Sorting by rank ensures we don't need forward declarations
-        if (Boolean.getBoolean("moduleOp")) {
+        if (CallGraph.usingModuleOp) {
             System.out.println("Using ModuleOp for C99FFIBackend");
-            kernelCallGraph.moduleOpWrapper.op.functionTable()
+            kernelCallGraph.moduleOp.functionTable()
                     .forEach((_, funcOp) -> builder.nl().kernelMethod(kernelCallGraph.computeContext.accelerator.lookup, funcOp).nl());
         } else {
             System.out.println("NOT using ModuleOp for C99FFIBackend");

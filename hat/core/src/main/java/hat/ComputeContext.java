@@ -135,20 +135,20 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         dispatchKernelWithComputeRange(computeRange, quotableKernelContextConsumer);
     }
 
-    record CallGraph(Quoted quoted, LambdaOpWrapper lambdaOpWrapper, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
+    record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
     private CallGraph buildKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
-        LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap(computeCallGraph.computeContext.accelerator.lookup,(JavaOp.LambdaOp) quoted.op());
-        MethodRef methodRef = OpTk.getQuotableTargetMethodRef(lambdaOpWrapper.lookup,lambdaOpWrapper.op);
+        JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
+        MethodRef methodRef = OpTk.getQuotableTargetMethodRef(accelerator.lookup,lambdaOp);
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-        return new CallGraph(quoted, lambdaOpWrapper, methodRef, kernelCallGraph);
+        return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
     private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         CallGraph cg = buildKernelCallGraph(quotableKernelContextConsumer);
         try {
-            Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOpWrapper.op,cg.quoted, cg.kernelCallGraph.entrypoint.method);
+            Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
             NDRange ndRange;
             switch (dimNumber) {
                 case 1 -> ndRange = accelerator.range(rangeX);
@@ -167,7 +167,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     private void dispatchKernelWithComputeRange(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         CallGraph cg = buildKernelCallGraph(quotableKernelContextConsumer);
         try {
-            Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOpWrapper.op,cg.quoted, cg.kernelCallGraph.entrypoint.method);
+            Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
             NDRange ndRange = accelerator.range(computeRange);
             args[0] = ndRange;
             accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);

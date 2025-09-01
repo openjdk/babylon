@@ -29,11 +29,8 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.buffer.Buffer;
 import hat.ifacemapper.MappableIface;
-import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
-import hat.optools.ModuleOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.OpWrapper;
 import hat.util.StreamMutable;
 
 import java.lang.invoke.MethodHandles;
@@ -45,12 +42,11 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.util.*;
-import java.util.stream.Stream;
 
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
-    boolean moduleOp = Boolean.getBoolean("moduleOp");
+
     ComputeContextMethodCall computeContextMethodCall;
 
     public interface ComputeReachable {
@@ -225,7 +221,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     public void close() {
-        if (moduleOp) {
+        if (CallGraph.usingModuleOp) {
             closeWithModuleOp(entrypoint);
         } else {
             updateDag(entrypoint);
@@ -233,8 +229,8 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     public void closeWithModuleOp(ComputeReachableResolvedMethodCall computeReachableResolvedMethodCall) {
-        CoreOp.ModuleOp moduleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, computeReachableResolvedMethodCall.funcOp(), this);
-        moduleOpWrapper = OpWrapper.wrap(computeContext.accelerator.lookup, moduleOp);
+        moduleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, computeReachableResolvedMethodCall.funcOp(), this);
+       // moduleOpWrapper = moduleOp;// OpWrapper.wrap(computeContext.accelerator.lookup, moduleOp);
     }
 
     @Override

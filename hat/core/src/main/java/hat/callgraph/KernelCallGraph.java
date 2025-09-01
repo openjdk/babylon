@@ -25,11 +25,8 @@
 package hat.callgraph;
 
 import hat.buffer.Buffer;
-import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
-import hat.optools.ModuleOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -97,10 +94,10 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
         kernelReachableResolvedMethodCall.funcOp().traverse(null, (map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-                var invokeOpWrapper = (InvokeOpWrapper)OpWrapper.wrap(  kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
-                MethodRef methodRef = invokeOpWrapper.methodRef();
-                Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();
-                Method invokeOpCalledMethod = invokeOpWrapper.method();
+              //  var invokeOpWrapper = (InvokeOpWrapper)OpWrapper.wrap(  kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
+                MethodRef methodRef = InvokeOpWrapper.methodRef(invokeOp);
+                Class<?> javaRefTypeClass = InvokeOpWrapper.javaRefClass(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp).orElseThrow();
+                Method invokeOpCalledMethod = InvokeOpWrapper.method(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
                 if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
                     //System.out.println("kernel reachable iface mapped buffer call  -> " + methodRef);
                     kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
@@ -155,8 +152,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     }
 
     KernelCallGraph closeWithModuleOp() {
-        CoreOp.ModuleOp moduleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this);
-        moduleOpWrapper = OpWrapper.wrap(computeContext.accelerator.lookup, moduleOp);
+        moduleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this);
+       // moduleOpWrapper = OpWrapper.wrap(computeContext.accelerator.lookup, moduleOp);
         return this;
     }
 

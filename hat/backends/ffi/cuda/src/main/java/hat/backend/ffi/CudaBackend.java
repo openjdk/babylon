@@ -27,10 +27,10 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.NDRange;
+import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
-import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.OpTk;
 import hat.optools.OpWrapper;
@@ -413,9 +413,9 @@ public class CudaBackend extends C99FFIBackend {
         builder.ptxHeader(major, minor, target, addressSize);
         out.append(builder.getTextAndReset());
 
-        if (Boolean.getBoolean("moduleOp")) {
+        if (CallGraph.usingModuleOp) {
             System.out.println("Using ModuleOp for CudaBackend");
-            kernelCallGraph.moduleOpWrapper.op.functionTable().forEach((_, funcOp) -> {
+            kernelCallGraph.moduleOp.functionTable().forEach((_, funcOp) -> {
               //  FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,funcOp);
                 CoreOp.FuncOp loweredFunc = OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,funcOp);
                 loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,loweredFunc, argsMap, usedMathFns);
