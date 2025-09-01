@@ -34,18 +34,6 @@ import java.lang.invoke.MethodHandles;
 public class OpWrapper<T extends Op> {
     @SuppressWarnings("unchecked")
     public static <O extends Op, OW extends OpWrapper<O>> OW wrap(MethodHandles.Lookup lookup,O op) {
-        // We have one special case
-        // This is possibly a premature optimization. But it allows us to treat var declarations differently from params.
-        // this gets called a lot and we can't wrap yet or we recurse so we
-        // use the raw model. Basically we want a different wrapper for VarDeclarations
-        // which  relate to func parameters.
-        // This saves us asking each time if a var is indeed a func param.
-        if (op instanceof CoreOp.VarOp varOp
-                && !varOp.isUninitialized()
-                && varOp.operands().getFirst() instanceof Block.Parameter parameter
-                && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp) {
-                return (OW) new VarFuncDeclarationOpWrapper(varOp, funcOp, parameter);
-        }
         return switch (op) {
             case CoreOp.FuncOp $ -> (OW) new FuncOpWrapper(lookup, $);
             case JavaOp.InvokeOp $ -> (OW) new InvokeOpWrapper(lookup, $);
@@ -61,6 +49,14 @@ public class OpWrapper<T extends Op> {
             case JavaOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper( $);
             case JavaOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation( $);
             case JavaOp.BinaryTestOp $ -> (OW) new BinaryTestOpWrapper( $);
+            case CoreOp.VarOp $
+                // We have one special case for VarOp
+                // This is possibly a premature optimization. But it allows us to treat var declarations differently from params.
+                // we want a different wrapper for VarDeclarations which  relate to func parameters.
+                // This saves us asking each time if a var is indeed a func param.
+                    when !$.isUninitialized() && $.operands().getFirst() instanceof Block.Parameter parameter
+                    && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp
+                    -> (OW) new VarFuncDeclarationOpWrapper($, funcOp, parameter);
             case CoreOp.VarOp $ -> (OW) new VarDeclarationOpWrapper( $);
             case CoreOp.YieldOp $ -> (OW) new YieldOpWrapper( $);
             case CoreOp.FuncCallOp $ -> (OW) new FuncCallOpWrapper( $);

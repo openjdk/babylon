@@ -27,11 +27,8 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.NDRange;
+import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
-
-import java.lang.invoke.MethodHandle;
-
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class MockBackend extends FFIBackend {
     //final FFILib.LongIntMethodPtr getBackend_MPtr;
@@ -59,10 +56,9 @@ public class MockBackend extends FFIBackend {
         // Here we receive a callgraph from the kernel entrypoint
         // The first time we see this we need to convert the kernel entrypoint
         // and rechable methods to a form that our mock backend can execute.
-        if (Boolean.getBoolean("moduleOp")) {
+        if (CallGraph.usingModuleOp) {
             System.out.println("Using ModuleOp for MockBackend");
-            kernelCallGraph.moduleOpWrapper.op.functionTable().forEach((_, funcOp) -> {
-
+            kernelCallGraph.moduleOp.functionTable().forEach((_, funcOp) -> {
             });
         } else {
             System.out.println("NOT using ModuleOp for MockBackend");

@@ -80,8 +80,8 @@ public class QuotedTest {
         System.out.println(f.toText());
         MethodHandles.Lookup lookup =  MethodHandles.lookup();
         C99HATComputeBuilder codeBuilder = new C99HATComputeBuilder();
-        FuncOpWrapper wf = OpWrapper.wrap(lookup,f);
-        codeBuilder.compute(wf);
+        //FuncOpWrapper wf = OpWrapper.wrap(lookup,f);
+        codeBuilder.compute(lookup,f);
         System.out.println(codeBuilder);
 
         // target type of a lambda must be an interface

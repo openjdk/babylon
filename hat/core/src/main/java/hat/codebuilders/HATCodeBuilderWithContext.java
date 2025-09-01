@@ -381,18 +381,18 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T javaIf(HATCodeBuilderContext buildContext, IfOpWrapper ifOpWrapper) {
-        buildContext.scope(ifOpWrapper, () -> {
+    public T javaIf(HATCodeBuilderContext buildContext, JavaOp.IfOp ifOp) {
+        buildContext.scope(ifOp, () -> {
             var lastWasBody = StreamMutable.of(false);
-            StreamCounter.of(ifOpWrapper.op.bodies(), (c, b) -> {
+            StreamCounter.of(ifOp.bodies(), (c, b) -> {
                 if (b.yieldType() instanceof JavaType javaType && javaType == JavaType.VOID) {
-                    if (OpTk.hasElse(ifOpWrapper.op,c.value())) { // we might have more than one else
+                    if (OpTk.hasElse(ifOp,c.value())) { // we might have more than one else
                         if (lastWasBody.get()) {
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
                                 StreamCounter.of(RootSet.rootsWithoutVarFuncDeclarationsOrYields(buildContext.lookup,
-                                        ifOpWrapper.op.bodies().get(c.value()).entryBlock())
+                                        ifOp.bodies().get(c.value()).entryBlock())
                                         , (innerc, root) ->
                                         nlIf(innerc.isNotFirst())
                                                 .recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
@@ -406,7 +406,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     }
 
                     ifKeyword().paren(_ ->
-                            ifOpWrapper.op.bodies().get(c.value()).entryBlock()            // get the entryblock if bodies[c.value]
+                            ifOp.bodies().get(c.value()).entryBlock()            // get the entryblock if bodies[c.value]
                                     .ops().stream().filter(o->o instanceof CoreOp.YieldOp) // we want all the yields
                                     .forEach((yield) ->
                                             recurse(buildContext, OpWrapper.wrap(buildContext.lookup,yield))
@@ -432,18 +432,18 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T javaFor(HATCodeBuilderContext buildContext, ForOpWrapper forOpWrapper) {
-        buildContext.scope(forOpWrapper, () ->
+    public T javaFor(HATCodeBuilderContext buildContext, JavaOp.ForOp forOp) {
+        buildContext.scope(forOp, () ->
                 forKeyword().paren(_ -> {
-                    OpTk.initWrappedYieldOpStream(buildContext.lookup,forOpWrapper.op).forEach((wrapped) -> recurse(buildContext, wrapped));
+                    OpTk.initWrappedYieldOpStream(buildContext.lookup,forOp).forEach((wrapped) -> recurse(buildContext, wrapped));
                     semicolon().space();
-                    OpTk.conditionWrappedYieldOpStream(buildContext.lookup,forOpWrapper.op).forEach((wrapped) -> recurse(buildContext, wrapped));
+                    OpTk.conditionWrappedYieldOpStream(buildContext.lookup,forOp).forEach((wrapped) -> recurse(buildContext, wrapped));
                     semicolon().space();
-                    StreamCounter.of(OpTk.mutateRootWrappedOpStream(buildContext.lookup,forOpWrapper.op), (c, wrapped) ->
+                    StreamCounter.of(OpTk.mutateRootWrappedOpStream(buildContext.lookup,forOp), (c, wrapped) ->
                             commaSpaceIf(c.isNotFirst()).recurse(buildContext, wrapped)
                     );
                 }).braceNlIndented(_ ->
-                        StreamCounter.of(OpTk.loopWrappedRootOpStream(buildContext.lookup,forOpWrapper.op), (c, root) ->
+                        StreamCounter.of(OpTk.loopWrappedRootOpStream(buildContext.lookup,forOp), (c, root) ->
                                 nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                         )
                 )

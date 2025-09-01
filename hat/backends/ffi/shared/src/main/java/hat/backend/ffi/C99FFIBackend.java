@@ -28,6 +28,7 @@ package hat.backend.ffi;
 import hat.ComputeRange;
 import hat.ThreadMesh;
 import hat.NDRange;
+import hat.callgraph.CallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
@@ -37,7 +38,6 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
-import hat.optools.FuncOpWrapper;
 import hat.optools.OpTk;
 
 import java.util.Arrays;
@@ -148,10 +148,10 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 });
 
         // Sorting by rank ensures we don't need forward declarations
-        if (Boolean.getBoolean("moduleOp")) {
+        if (CallGraph.usingModuleOp) {
             System.out.println("Using ModuleOp for C99FFIBackend");
-            kernelCallGraph.moduleOpWrapper.op.functionTable()
-                    .forEach((_, funcOp) -> builder.nl().kernelMethod(new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup, funcOp)).nl());
+            kernelCallGraph.moduleOp.functionTable()
+                    .forEach((_, funcOp) -> builder.nl().kernelMethod(kernelCallGraph.computeContext.accelerator.lookup, funcOp).nl());
         } else {
             System.out.println("NOT using ModuleOp for C99FFIBackend");
             kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
@@ -162,9 +162,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
         if (config.isSHOW_KERNEL_MODEL()) {
             System.out.println("Original");
-            System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op.toText());
+            System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
             System.out.println("Lowered");
-            System.out.println(OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOpWrapper().op).op.toText());
+            System.out.println(OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp()).toText());
         }
         return builder.toString();
     }

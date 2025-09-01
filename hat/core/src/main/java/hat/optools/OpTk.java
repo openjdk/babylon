@@ -156,25 +156,24 @@ public class OpTk {
 
 
     public static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup l,
-                                                        FuncOpWrapper entry, CallGraph<?> callGraph) {
+                                                               CoreOp.FuncOp entry, CallGraph<?> callGraph) {
         LinkedHashSet<MethodRef> funcsVisited = new LinkedHashSet<>();
         List<CoreOp.FuncOp> funcs = new ArrayList<>();
         record RefAndFunc(MethodRef r, FuncOpWrapper f) {}
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
-        entry.op.traverse(null, (map, op) -> {
+        entry.traverse(null, (map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-                var invokeOpWrapper = (InvokeOpWrapper) OpWrapper.wrap(entry.lookup,invokeOp);
-                MethodRef methodRef = invokeOpWrapper.methodRef();
+                MethodRef methodRef = InvokeOpWrapper.methodRef(invokeOp);
                 Method method = null;
-                Class<?> javaRefTypeClass = invokeOpWrapper.javaRefClass().orElseThrow();
+                Class<?> javaRefTypeClass = InvokeOpWrapper.javaRefClass(callGraph.computeContext.accelerator.lookup,invokeOp).orElseThrow();
                 try {
-                    method = methodRef.resolveToMethod(l, invokeOpWrapper.op.invokeKind());
+                    method = methodRef.resolveToMethod(l, invokeOp.invokeKind());
                 } catch (ReflectiveOperationException _) {
                     throw new IllegalStateException("Could not resolve invokeWrapper to method");
                 }
                 Optional<CoreOp.FuncOp> f = Op.ofMethod(method);
-                if (f.isPresent() && !callGraph.filterCalls(f.get(), invokeOpWrapper, method, methodRef, javaRefTypeClass)) {
+                if (f.isPresent() && !callGraph.filterCalls(f.get(), invokeOp, method, methodRef, javaRefTypeClass)) {
                     work.push(new RefAndFunc(methodRef, new FuncOpWrapper(l, f.get())));
                 }
             }
@@ -189,8 +188,8 @@ public class OpTk {
 
             CoreOp.FuncOp tf = rf.f.op.transform(rf.r.name(), (blockBuilder, op) -> {
                 if (op instanceof JavaOp.InvokeOp iop) {
-                    InvokeOpWrapper iopWrapper = OpWrapper.wrap(entry.lookup, iop);
-                    MethodRef methodRef = iopWrapper.methodRef();
+                  //  InvokeOpWrapper iopWrapper = OpWrapper.wrap(entry.lookup, iop);
+                    MethodRef methodRef = InvokeOpWrapper.methodRef(iop);
                     Method invokeOpCalledMethod = null;
                     try {
                         invokeOpCalledMethod = methodRef.resolveToMethod(l, iop.invokeKind());
@@ -293,27 +292,27 @@ public class OpTk {
         return args;
     }
 
-    public static FuncOpWrapper lower(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        return OpWrapper.wrap(lookup,funcOp.transform(OpTransformer.LOWERING_TRANSFORMER));
+    public static CoreOp.FuncOp lower(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
     }
 
-    public static FuncOpWrapper ssa(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        return OpWrapper.wrap(lookup, SSA.transform(funcOp));
+    public static CoreOp.FuncOp ssa(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        return SSA.transform(funcOp);
     }
 
     public static Stream<OpWrapper<?>> wrappedRootOpStream(MethodHandles.Lookup lookup, CoreOp.FuncOp op) {
         return RootSet.rootsWithoutVarFuncDeclarationsOrYields(lookup,op.bodies().getFirst().entryBlock());
     }
 
-    public static FuncOpWrapper transformInvokes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, WrappedInvokeOpTransformer wrappedOpTransformer) {
-        return OpWrapper.wrap(lookup,funcOp.transform((b, op) -> {
+    public static CoreOp.FuncOp transformInvokes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, WrappedInvokeOpTransformer wrappedOpTransformer) {
+        return funcOp.transform((b, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 wrappedOpTransformer.apply(b, OpWrapper.wrap(lookup,invokeOp));
             } else {
                 b.op(op);
             }
             return b;
-        }));
+        });
     }
 
     public interface WrappedInvokeOpTransformer extends BiFunction<Block.Builder, InvokeOpWrapper, Block.Builder> {
@@ -377,7 +376,7 @@ public class OpTk {
         }
 
         final public  CoreOp funcOp;
-        ParamTable(CoreOp.FuncOp funcOp){
+        public ParamTable(CoreOp.FuncOp funcOp){
             this.funcOp = funcOp;
             funcOp.parameters().forEach(parameter -> {
                 Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();

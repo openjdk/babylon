@@ -35,11 +35,13 @@ import hat.optools.FuncOpWrapper;
 import hat.optools.OpTk;
 import hat.optools.StructuralOpWrapper;
 import hat.util.StreamCounter;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.foreign.GroupLayout;
 
+import java.lang.invoke.MethodHandles;
 import java.util.function.Consumer;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends HATCodeBuilderWithContext<T> {
@@ -183,19 +185,20 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T kernelMethod(KernelCallGraph.KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
-        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelReachableResolvedMethodCall.funcOpWrapper().lookup,kernelReachableResolvedMethodCall.funcOpWrapper());
-        buildContext.scope(buildContext.funcOpWrapper, () -> {
+        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup
+                ,kernelReachableResolvedMethodCall.funcOp());
+        buildContext.scope(buildContext.funcOp, () -> {
             nl();
-            functionDeclaration(buildContext,(JavaType) buildContext.funcOpWrapper.op.body().yieldType(),
-                    buildContext.funcOpWrapper.op.funcName());
+            functionDeclaration(buildContext,(JavaType) buildContext.funcOp.body().yieldType(),
+                    buildContext.funcOp.funcName());
 
-            var list = buildContext.funcOpWrapper.paramTable.list();
+            var list = buildContext.paramTable.list();
             parenNlIndented(_ ->
                     commaSeparated(list, (info) -> type(buildContext,info.javaType).space().varName(info.varOp))
             );
 
             braceNlIndented(_ -> {
-                StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOpWrapper.op), (c, root) ->
+                StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
                         nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                 );
             });
@@ -203,21 +206,21 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public T kernelMethod(FuncOpWrapper funcOpWrapper) {
+    public T kernelMethod(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
 
-        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(funcOpWrapper.lookup,funcOpWrapper);
-        buildContext.scope(buildContext.funcOpWrapper, () -> {
+        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOp);
+        buildContext.scope(buildContext.funcOp, () -> {
             nl();
-            functionDeclaration(buildContext,(JavaType) buildContext.funcOpWrapper.op.body().yieldType(),
-                    buildContext.funcOpWrapper.op.funcName());
+            functionDeclaration(buildContext,(JavaType) buildContext.funcOp.body().yieldType(),
+                    buildContext.funcOp.funcName());
 
-            var list = buildContext.funcOpWrapper.paramTable.list();
+            var list = buildContext.paramTable.list();
             parenNlIndented(_ ->
                     commaSeparated(list, (info) -> type(buildContext,info.javaType).space().varName(info.varOp))
             );
 
             braceNlIndented(_ -> {
-                StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOpWrapper.op), (c, root) ->
+                StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
                         nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                 );
             });
@@ -227,11 +230,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public T kernelEntrypoint(KernelEntrypoint kernelEntrypoint,Object... args) {
         nl();
-        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelEntrypoint.funcOpWrapper().lookup,kernelEntrypoint.funcOpWrapper());
-        buildContext.scope(buildContext.funcOpWrapper, () -> {
-            kernelDeclaration(buildContext.funcOpWrapper.op.funcName());
+        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelEntrypoint.callGraph.computeContext.accelerator.lookup,kernelEntrypoint.funcOp());
+        buildContext.scope(buildContext.funcOp, () -> {
+            kernelDeclaration(buildContext.funcOp.funcName());
             // We skip the first arg which was KernelContext.
-            var list = buildContext.funcOpWrapper.paramTable.list();
+            var list = buildContext.paramTable.list();
             for (int arg = 1; arg < args.length; arg++) {
                 if (args[arg] instanceof Buffer buffer) {
                     OpTk.ParamTable.Info info = list.get(arg);
@@ -249,7 +252,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
             braceNlIndented(_ -> {
                 scope();
-                StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOpWrapper.op), (c, root) ->
+                StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
                         nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
                 );
             });

@@ -38,6 +38,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -70,22 +71,22 @@ public abstract class FFIBackend extends FFIBackendDriver {
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
             computeContext.computeCallGraph.entrypoint.lowered =
-                    OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOpWrapper().op);
+                    OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOp());
         }
 
         boolean interpret = false;
      //   long ns = System.nanoTime();
         backendBridge.computeStart();
         if (config.isINTERPRET()) {
-            Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op, args);
+            Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
         } else {
             try {
                 if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                    computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op);
+                    computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered);
                 }
                 computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
             } catch (Throwable e) {
-                System.out.println(computeContext.computeCallGraph.entrypoint.lowered.op.toText());
+                System.out.println(computeContext.computeCallGraph.entrypoint.lowered.toText());
                 throw new RuntimeException(e);
             }
         }
@@ -155,18 +156,20 @@ public abstract class FFIBackend extends FFIBackendDriver {
             }
         }
 
-    protected  FuncOpWrapper injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
-        FuncOpWrapper prevFOW = computeMethod.funcOpWrapper();
-        FuncOpWrapper returnFOW = prevFOW;
+    protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
+        CoreOp.FuncOp prevFO = computeMethod.funcOp();
+        CoreOp.FuncOp returnFO = prevFO;
         if (config.isSHOW_COMPUTE_MODEL()) {
             if (config.isSHOW_COMPUTE_MODEL()) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
-                System.out.println(returnFOW.op.toText());
+                System.out.println(returnFO.toText());
             }
-            returnFOW = OpTk.transformInvokes(prevFOW.lookup,prevFOW.op,(bldr, invokeOW) -> {
+            var lookup = computeMethod.callGraph.computeContext.accelerator.lookup;
+            var paramTable = new OpTk.ParamTable(prevFO);
+            returnFO = OpTk.transformInvokes(lookup,prevFO,(bldr, invokeOW) -> {
                 CopyContext bldrCntxt = bldr.context();
                 //Map compute method's first param (computeContext) value to transformed model
-                Value cc = bldrCntxt.getValue(prevFOW.paramTable.list().getFirst().parameter);
+                Value cc = bldrCntxt.getValue(paramTable.list().getFirst().parameter);
                 if (invokeOW.isIfaceMutator()) {                    // iface.v(newV)
                     Value iface = bldrCntxt.getValue(invokeOW.op.operands().getFirst());
                     bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
@@ -196,7 +199,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                             }
                         List<PrePost> prePosts = new ArrayList<>();
                         typeAndAccesses.stream()
-                                .filter(typeAndAccess -> typeAndAccess.isIface(prevFOW.lookup))//InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
+                                .filter(typeAndAccess -> typeAndAccess.isIface(lookup))//InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
                                 .forEach(typeAndAccess -> {
                                      if (typeAndAccess.ro()) {
                                          bldr.op(JavaOp.invoke(ACCESS.pre, cc,  bldrCntxt.getValue(typeAndAccess.value)));
@@ -213,7 +216,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                         //  );
                         bldr.op(invokeOW.op);
                         typeAndAccesses.stream()
-                                .filter(typeAndAccess -> OpTk.isAssignable(prevFOW.lookup, typeAndAccess.javaType,MappableIface.class))
+                                .filter(typeAndAccess -> OpTk.isAssignable(lookup, typeAndAccess.javaType,MappableIface.class))
                                 .forEach(typeAndAccess -> {
                                     if (typeAndAccess.ro()) {
                                         bldr.op(JavaOp.invoke(ACCESS.post, cc,  bldrCntxt.getValue(typeAndAccess.value)));
@@ -231,15 +234,15 @@ public abstract class FFIBackend extends FFIBackendDriver {
             });
             if (config.isSHOW_COMPUTE_MODEL()) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
-                System.out.println(returnFOW.op.toText());
+                System.out.println(returnFO.toText());
             }
         }else{
             if (config.isSHOW_COMPUTE_MODEL()) {
                 System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
-                System.out.println(returnFOW.op.toText());
+                System.out.println(returnFO.toText());
             }
         }
-        computeMethod.funcOpWrapper(returnFOW);
-        return returnFOW;
+        computeMethod.funcOp(returnFO);
+        return returnFO;
     }
 }

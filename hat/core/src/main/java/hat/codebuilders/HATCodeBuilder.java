@@ -53,6 +53,7 @@ import hat.optools.WhileOpWrapper;
 import hat.optools.YieldOpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -314,7 +315,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
         T funcCall(HATCodeBuilderContext buildContext, FuncCallOpWrapper funcCallOpWrapper);
 
-        T javaIf(HATCodeBuilderContext buildContext, IfOpWrapper ifOpWrapper);
+        T javaIf(HATCodeBuilderContext buildContext, JavaOp.IfOp ifOp);
 
         T javaWhile(HATCodeBuilderContext buildContext, WhileOpWrapper whileOpWrapper);
 
@@ -324,7 +325,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
         T javaBreak(HATCodeBuilderContext buildContext, JavaBreakOpWrapper javaBreakOpWrapper);
 
-        T javaFor(HATCodeBuilderContext buildContext, ForOpWrapper forOpWrapper);
+        T javaFor(HATCodeBuilderContext buildContext, JavaOp.ForOp forOp);
 
 
          T methodCall(HATCodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper);
@@ -362,8 +363,8 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
                 case LambdaOpWrapper $ -> lambda(buildContext, $);
                 case TupleOpWrapper $ -> tuple(buildContext, $);
                 case WhileOpWrapper $ -> javaWhile(buildContext, $);
-                case IfOpWrapper $ -> javaIf(buildContext, $);
-                case ForOpWrapper $ -> javaFor(buildContext, $);
+                case IfOpWrapper $ -> javaIf(buildContext, $.op);
+                case ForOpWrapper $ -> javaFor(buildContext, $.op);
                 case ReturnOpWrapper $ -> ret(buildContext, $);
                 case JavaLabeledOpWrapper $ -> javaLabeled(buildContext, $);
                 case JavaBreakOpWrapper $ -> javaBreak(buildContext, $);
