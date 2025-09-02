@@ -84,9 +84,9 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
                 commaSeparated(buildContext.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
         braceNlIndented(_ ->
-                OpTk.wrappedRootOpStream(buildContext.lookup,funcOp)
+                OpTk.rootOpStream(buildContext.lookup,funcOp)
                         .forEach(root ->
-                                recurse(buildContext, root.op).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
+                                recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root)).nl()
                         )
         );
         return self();

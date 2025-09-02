@@ -256,13 +256,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T logical(HATCodeBuilderContext buildContext, JavaOp.JavaConditionalOp logicalOp) {
-        OpTk.lhsWrappedYieldOpStream(buildContext.lookup, logicalOp).forEach((wrapped) -> {
-            recurse(buildContext, wrapped.op);
-        });
+        OpTk.lhsYieldOpStream(logicalOp).forEach(o ->  recurse(buildContext, o));
         space().symbol(logicalOp).space();
-        OpTk.rhsWrappedYieldOpStream(buildContext.lookup,logicalOp).forEach((wrapped) -> {
-            recurse(buildContext, wrapped.op);
-        });
+        OpTk.rhsYieldOpStream(logicalOp).forEach(o-> recurse(buildContext, o));
         return self();
     }
 
@@ -341,8 +337,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T javaLabeled(HATCodeBuilderContext buildContext, JavaOp.LabeledOp labeledOp) {
-        var labelNameOp = OpWrapper.wrap(buildContext.lookup,labeledOp.bodies().getFirst().entryBlock().ops().getFirst());
-        CoreOp.ConstantOp constantOp = (CoreOp.ConstantOp) labelNameOp.op;
+        var labelNameOp = labeledOp.bodies().getFirst().entryBlock().ops().getFirst();
+        CoreOp.ConstantOp constantOp = (CoreOp.ConstantOp) labelNameOp;
         literal(constantOp.value().toString()).colon().nl();
         var forLoopOp = labeledOp.bodies().getFirst().entryBlock().ops().get(1);
         recurse(buildContext,forLoopOp);
@@ -412,10 +408,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T javaWhile(HATCodeBuilderContext buildContext, JavaOp.WhileOp whileOp) {
         whileKeyword().paren(_ ->
-                OpTk.conditionWrappedYieldOpStream(buildContext.lookup,whileOp).forEach((wrapped) -> recurse(buildContext, wrapped.op))
+                OpTk.conditionYieldOpStream(whileOp).forEach(o -> recurse(buildContext, o))
         ).braceNlIndented(_ ->
-                StreamCounter.of(OpTk.loopWrappedRootOpStream(buildContext.lookup,whileOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root.op).semicolonIf(!OpTk.isStructural(root.op))
+                StreamCounter.of(OpTk.loopRootOpStream(buildContext.lookup,whileOp), (c, root) ->
+                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
                 )
         );
         return self();
@@ -425,16 +421,16 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T javaFor(HATCodeBuilderContext buildContext, JavaOp.ForOp forOp) {
         buildContext.scope(forOp, () ->
                 forKeyword().paren(_ -> {
-                    OpTk.initWrappedYieldOpStream(buildContext.lookup,forOp).forEach((wrapped) -> recurse(buildContext, wrapped.op));
+                    OpTk.initYieldOpStream(forOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
-                    OpTk.conditionWrappedYieldOpStream(buildContext.lookup,forOp).forEach((wrapped) -> recurse(buildContext, wrapped.op));
+                    OpTk.conditionYieldOpStream(forOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
-                    StreamCounter.of(OpTk.mutateRootWrappedOpStream(buildContext.lookup,forOp), (c, wrapped) ->
-                            commaSpaceIf(c.isNotFirst()).recurse(buildContext, wrapped.op)
+                    StreamCounter.of(OpTk.mutateRootOpStream(buildContext.lookup,forOp), (c, wrapped) ->
+                            commaSpaceIf(c.isNotFirst()).recurse(buildContext, wrapped)
                     );
                 }).braceNlIndented(_ ->
-                        StreamCounter.of(OpTk.loopWrappedRootOpStream(buildContext.lookup,forOp), (c, root) ->
-                                nlIf(c.isNotFirst()).recurse(buildContext, root.op).semicolonIf(!OpTk.isStructural(root.op))
+                        StreamCounter.of(OpTk.loopRootOpStream(buildContext.lookup,forOp), (c, root) ->
+                                nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
                         )
                 )
         );
@@ -651,11 +647,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T ternary(HATCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {
-        OpTk.conditionWrappedYieldOpStream(buildContext.lookup,ternaryOp).forEach((wrapped) -> recurse(buildContext, wrapped.op));
+        OpTk.conditionYieldOpStream(ternaryOp).forEach(o -> recurse(buildContext, o));
         questionMark();
-        OpTk.thenWrappedYieldOpStream(buildContext.lookup,ternaryOp).forEach((wrapped) -> recurse(buildContext, wrapped.op));
+        OpTk.thenYieldOpStream(ternaryOp).forEach(o -> recurse(buildContext, o));
         colon();
-        OpTk.elseWrappedYieldOpStream(buildContext.lookup,ternaryOp).forEach((wrapped) -> recurse(buildContext, wrapped.op));
+        OpTk.elseYieldOpStream(ternaryOp).forEach(o -> recurse(buildContext, o));
         return self();
     }
 

@@ -50,9 +50,9 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
         );
 
         braceNlIndented(_ ->
-                OpTk.wrappedRootOpStream(buildContext.lookup,funcOp)
+                OpTk.rootOpStream(buildContext.lookup,funcOp)
                         .forEach(root ->
-                                recurse(buildContext, root.op).semicolonIf(!OpTk.isStructural(root.op)).nl()
+                                recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root)).nl()
                         )
         );
 

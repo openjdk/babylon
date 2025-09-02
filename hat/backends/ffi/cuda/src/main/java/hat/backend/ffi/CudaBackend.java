@@ -484,7 +484,7 @@ public class CudaBackend extends C99FFIBackend {
 
         // building fn info (name, params)
         builder.functionHeader(lowered.funcName(), entry, lowered.body().yieldType());
-var paramTable = new OpTk.ParamTable(lowered);
+        var paramTable = new OpTk.ParamTable(lowered);
         // printing out params
         builder.parameters(paramTable.list());
 
@@ -492,7 +492,8 @@ var paramTable = new OpTk.ParamTable(lowered);
         builder.functionPrologue();
 
         out = builder.getTextAndReset();
-        ssa.bodies().getFirst().blocks().forEach(block -> builder.blockBody(block, block.ops().stream().map(o->OpWrapper.wrap(lookup,o))));
+        ssa.bodies().getFirst().blocks().forEach(block ->
+                builder.blockBody(block, block.ops().stream()));
 
         builder.functionEpilogue();
         body = builder.getTextAndReset();

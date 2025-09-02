@@ -69,12 +69,18 @@ public class OpTk {
         return ((Op.Result) op.operands().get(1)).op();
     }
 
-    public static Stream<OpWrapper<?>> lhsWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.JavaConditionalOp op) {
-        return op.bodies().get(0).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+   // public static Stream<OpWrapper<?>> lhsWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.JavaConditionalOp op) {
+     //   return op.bodies().get(0).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+   // }
+    public static Stream<Op> lhsYieldOpStream(JavaOp.JavaConditionalOp op) {
+        return op.bodies().get(0).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
     }
 
-    public static Stream<OpWrapper<?>> rhsWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.JavaConditionalOp op) {
-        return op.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+   // public static Stream<OpWrapper<?>> rhsWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.JavaConditionalOp op) {
+     //   return op.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+   // }
+    public static Stream<Op> rhsYieldOpStream( JavaOp.JavaConditionalOp op) {
+        return op.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
     }
 
     public static boolean isKernelContextAccess(JavaOp.FieldAccessOp fieldAccessOp) {
@@ -111,40 +117,28 @@ public class OpTk {
         throw new RuntimeException("Could not find field value" + fieldLoadOp);
     }
 
-    public static Stream<OpWrapper<?>> initWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
-        return op.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
-    }
+   // public static Stream<OpWrapper<?>> initWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
+     //   return op.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+   // }
 
+    public static Stream<Op> initYieldOpStream(JavaOp.ForOp op) {
+        return op.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
+    }
     // Maybe instead of three of these we can add cond() to Op.Loop?
-    public static Stream<OpWrapper<?>> conditionWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
-        return op.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+  //  public static Stream<OpWrapper<?>> conditionWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
+    //    return op.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+   // }
+    public static Stream<Op> conditionYieldOpStream(JavaOp.ForOp op) {
+        return op.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
     }
-
-    public static Stream<OpWrapper<?>> conditionWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.WhileOp op) {
+    public static Stream<Op> conditionYieldOpStream( JavaOp.WhileOp op) {
         // ADD op.cond() to JavaOp.WhileOp  match ForOp?
-        return op.bodies().getFirst().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+        return op.bodies().getFirst().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
     }
-
-    public static Stream<OpWrapper<?>> conditionWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ConditionalExpressionOp op) {
-        // ADD op.cond() to JavaOp.ConditionalExpressionOp match ForOp?
-        return op.bodies().getFirst().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+    public static Stream<Op> conditionYieldOpStream( JavaOp.ConditionalExpressionOp op) {
+        // ADD op.cond() to JavaOp.WhileOp  match ForOp?
+        return op.bodies().getFirst().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
     }
-
-
-    public static Stream<OpWrapper<?>> loopWrappedRootOpStream(MethodHandles.Lookup lookup, Op.Loop op) {
-        var list = new ArrayList<>(wrappedRootsExcludingVarFuncDeclarationsAndYields(lookup, op.loopBody().entryBlock()).toList());
-        if (list.getLast() instanceof JavaContinueOpWrapper) {
-            list.removeLast();
-        }
-        return list.stream();
-    }
-
-
-    public static Stream<OpWrapper<?>> mutateRootWrappedOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
-        return wrappedRootsExcludingVarFuncDeclarationsAndYields(lookup, op.bodies().get(2).entryBlock());
-    }
-
-
     public static Stream<Op> loopRootOpStream(MethodHandles.Lookup lookup, Op.Loop op) {
         var list = new ArrayList<>(rootsExcludingVarFuncDeclarationsAndYields( op.loopBody().entryBlock()).toList());
         if (list.getLast() instanceof JavaOp.ContinueOp) {
@@ -159,13 +153,14 @@ public class OpTk {
     }
 
 
-    public static Stream<OpWrapper<?>> thenWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ConditionalExpressionOp op) {
-        return op.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+    public static Stream<Op> thenYieldOpStream( JavaOp.ConditionalExpressionOp op) {
+        return op.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
     }
 
-    public static Stream<OpWrapper<?>> elseWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ConditionalExpressionOp op) {
-        return op.bodies().get(2).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
+    public static Stream<Op> elseYieldOpStream(JavaOp.ConditionalExpressionOp op) {
+        return op.bodies().get(2).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
     }
+
 
     public static boolean hasElse(JavaOp.IfOp op, int idx) {
         return op.bodies().size() > idx && op.bodies().get(idx).entryBlock().ops().size() > 1;
@@ -263,15 +258,15 @@ public class OpTk {
     }
 
 
-    public static InvokeOpWrapper getQuotableTargetInvokeOpWrapper(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp) {
-        return OpWrapper.wrap(lookup, lambdaOp.body().entryBlock().ops().stream()
+    public static JavaOp.InvokeOp getQuotableTargetInvokeOpWrapper( JavaOp.LambdaOp lambdaOp) {
+        return lambdaOp.body().entryBlock().ops().stream()
                 .filter(op -> op instanceof JavaOp.InvokeOp)
                 .map(op -> (JavaOp.InvokeOp) op)
-                .findFirst().get());
+                .findFirst().get();
     }
 
-    public static MethodRef getQuotableTargetMethodRef(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp) {
-        return getQuotableTargetInvokeOpWrapper(lookup, lambdaOp).methodRef();
+    public static MethodRef getQuotableTargetMethodRef(JavaOp.LambdaOp lambdaOp) {
+        return InvokeOpWrapper.methodRef(getQuotableTargetInvokeOpWrapper( lambdaOp));
     }
 
     public static Object[] getQuotableCapturedValues(JavaOp.LambdaOp lambdaOp, Quoted quoted, Method method) {
@@ -314,23 +309,14 @@ public class OpTk {
     public static CoreOp.FuncOp ssa(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         return SSA.transform(funcOp);
     }
-
+/*
     public static Stream<OpWrapper<?>> wrappedRootOpStream(MethodHandles.Lookup lookup, CoreOp.FuncOp op) {
         return wrappedRootsExcludingVarFuncDeclarationsAndYields(lookup, op.bodies().getFirst().entryBlock());
-    }
+    } */
     public static Stream<Op> rootOpStream(MethodHandles.Lookup lookup, CoreOp.FuncOp op) {
         return rootsExcludingVarFuncDeclarationsAndYields(op.bodies().getFirst().entryBlock());
     }
-    public static CoreOp.FuncOp transformInvokes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, WrappedInvokeOpTransformer wrappedOpTransformer) {
-        return funcOp.transform((b, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                wrappedOpTransformer.apply(b, OpWrapper.wrap(lookup, invokeOp));
-            } else {
-                b.op(op);
-            }
-            return b;
-        });
-    }
+
 
     static public Set<Op> roots(Block block) {
         record Node<T extends Value>(T node, List<Node<T>> children) {
@@ -369,11 +355,11 @@ public class OpTk {
                 .filter(w -> !(w instanceof CoreOp.YieldOp));
     }
 
-    static public Stream<OpWrapper<?>> wrappedRootsExcludingVarFuncDeclarationsAndYields(MethodHandles.Lookup lookup, Block block) {
-        return rootsExcludingVarFuncDeclarationsAndYields(block).map(o -> OpWrapper.wrap(lookup, o));
-    }
+   // static public Stream<OpWrapper<?>> wrappedRootsExcludingVarFuncDeclarationsAndYields(MethodHandles.Lookup lookup, Block block) {
+     //   return rootsExcludingVarFuncDeclarationsAndYields(block).map(o -> OpWrapper.wrap(lookup, o));
+   // }
 
-    public interface WrappedInvokeOpTransformer extends BiFunction<Block.Builder, InvokeOpWrapper, Block.Builder> {
+    public interface InvokeOpTransformer extends BiFunction<Block.Builder, JavaOp.InvokeOp, Block.Builder> {
         Block.Builder apply(Block.Builder block, InvokeOpWrapper op);
     }
 

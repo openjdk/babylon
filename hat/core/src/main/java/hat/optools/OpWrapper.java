@@ -32,6 +32,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 
 public class OpWrapper<T extends Op> {
+  /*
     @SuppressWarnings("unchecked")
     public static <O extends Op, OW extends OpWrapper<O>> OW wrap(MethodHandles.Lookup lookup,O op) {
         return switch (op) {
@@ -69,7 +70,7 @@ public class OpWrapper<T extends Op> {
             default -> (OW) new OpWrapper<>(op);
         };
     }
-
+*/
     public final T op;
     OpWrapper(T op) {
         this.op = op;

@@ -34,6 +34,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.foreign.MemoryLayout;
+import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -117,7 +118,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         return this;
     }
 
-    public void blockBody(Block block, Stream<OpWrapper<?>> ops) {
+    public void blockBody(Block block, Stream<Op> ops) {
         if (block.index() == 0) {
             for (Block.Parameter p : block.parameters()) {
                 ptxIndent().ld().dot().param();
@@ -130,7 +131,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         block(block);
         colon().nl();
         ops.forEach(op -> {
-            if (op instanceof InvokeOpWrapper invoke && !invoke.isIfaceBufferMethod()) {
+            if (op instanceof JavaOp.InvokeOp invoke && !InvokeOpWrapper.isIfaceBufferMethod(MethodHandles.lookup(),invoke)) {  // We should pass lookup down
                 ptxIndent().convert(op).nl();
             } else {
                 ptxIndent().convert(op).semicolon().nl();
@@ -193,26 +194,26 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
 
-    public PTXHATKernelBuilder convert(OpWrapper<?> wrappedOp) {
-        switch (wrappedOp) {
-            case FieldLoadOpWrapper op -> fieldLoad(op);
-            case FieldStoreOpWrapper op -> fieldStore(op);
-            case BinaryArithmeticOrLogicOperation op -> binaryOperation(op);
-            case BinaryTestOpWrapper op -> binaryTest(op);
-            case ConvOpWrapper op -> conv(op);
-            case ConstantOpWrapper op -> constant(op);
-            case YieldOpWrapper op -> javaYield(op);
-            case InvokeOpWrapper op -> methodCall(op);
-            case VarDeclarationOpWrapper op -> varDeclaration(op);
-            case VarFuncDeclarationOpWrapper op -> varFuncDeclaration(op);
-            case ReturnOpWrapper op -> ret(op);
-            case JavaBreakOpWrapper op -> javaBreak(op);
+    public PTXHATKernelBuilder convert(Op op) {
+        switch (op) {
+            case JavaOp.FieldAccessOp.FieldLoadOp $ -> fieldLoad($);
+            case JavaOp.FieldAccessOp.FieldStoreOp $ -> fieldStore($);
+            case JavaOp.BinaryOp $ -> binaryOperation($);
+            case JavaOp.BinaryTestOp $ -> binaryTest($);
+            case JavaOp.ConvOp $ -> conv($);
+            case CoreOp.ConstantOp $ -> constant($);
+            case CoreOp.YieldOp $ -> javaYield($);
+            case JavaOp.InvokeOp $ -> methodCall($);
+            case CoreOp.VarOp $ when OpTk.paramVar($) != null -> varFuncDeclaration($);
+            case CoreOp.VarOp $ -> varDeclaration($);
+            case CoreOp.ReturnOp $ -> ret($);
+            case JavaOp.BreakOp $ -> javaBreak($);
             default -> {
-                switch (wrappedOp.op){
-                    case CoreOp.BranchOp op -> branch(op);
-                    case CoreOp.ConditionalBranchOp op -> condBranch(op);
-                    case JavaOp.NegOp op -> neg(op);
-                    case PTXPtrOp op -> ptxPtr(op);
+                switch (op){
+                    case CoreOp.BranchOp $ -> branch($);
+                    case CoreOp.ConditionalBranchOp $ -> condBranch($);
+                    case JavaOp.NegOp $ -> neg($);
+                    case PTXPtrOp $ -> ptxPtr($);
                     default -> throw new IllegalStateException("op translation doesn't exist");
                 }
             }
@@ -238,21 +239,21 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         }
     }
 
-    public void fieldLoad(FieldLoadOpWrapper fieldLoadOpWrapper) {
-        if (OpTk.fieldName(fieldLoadOpWrapper.op).equals(Field.KC_X.toString())) {
+    public void fieldLoad(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        if (OpTk.fieldName(fieldLoadOp).equals(Field.KC_X.toString())) {
             if (!fieldToRegMap.containsKey(Field.KC_X)) {
-                loadKcX(fieldLoadOpWrapper.op.result());
+                loadKcX(fieldLoadOp.result());
             } else {
-                mov().u32().space().resultReg(fieldLoadOpWrapper, PTXRegister.Type.U32).commaSpace().fieldReg(Field.KC_X);
+                mov().u32().space().resultReg(fieldLoadOp, PTXRegister.Type.U32).commaSpace().fieldReg(Field.KC_X);
             }
-        } else if (OpTk.fieldName(fieldLoadOpWrapper.op).equals(Field.KC_MAXX.toString())) {
+        } else if (OpTk.fieldName(fieldLoadOp).equals(Field.KC_MAXX.toString())) {
             if (!fieldToRegMap.containsKey(Field.KC_X)) {
-                loadKcX(fieldLoadOpWrapper.op.operands().getFirst());
+                loadKcX(fieldLoadOp.operands().getFirst());
             }
-            ld().global().u32().space().fieldReg(Field.KC_MAXX, fieldLoadOpWrapper.op.result()).commaSpace()
+            ld().global().u32().space().fieldReg(Field.KC_MAXX, fieldLoadOp.result()).commaSpace()
                     .address(fieldToRegMap.get(Field.KC_ADDR).name(), 4);
         } else {
-            ld().global().u32().space().resultReg(fieldLoadOpWrapper, PTXRegister.Type.U64).commaSpace().reg(fieldLoadOpWrapper.op.operands().getFirst());
+            ld().global().u32().space().resultReg(fieldLoadOp, PTXRegister.Type.U64).commaSpace().reg(fieldLoadOp.operands().getFirst());
         }
     }
 
@@ -267,9 +268,9 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         st().global().u32().space().address(fieldToRegMap.get(Field.KC_ADDR).name()).commaSpace().fieldReg(Field.KC_X);
     }
 
-    public void fieldStore(FieldStoreOpWrapper op) {
+    public void fieldStore(JavaOp.FieldAccessOp.FieldStoreOp op) {
         // TODO: fix
-        st().global().u64().space().resultReg(op, PTXRegister.Type.U64).commaSpace().reg(op.op.operands().getFirst());
+        st().global().u64().space().resultReg(op, PTXRegister.Type.U64).commaSpace().reg(op.operands().getFirst());
     }
 
     PTXHATKernelBuilder symbol(Op op) {
@@ -294,64 +295,64 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         };
     }
 
-    public void binaryOperation(BinaryArithmeticOrLogicOperation op) {
-        symbol(op.op);
-        if (getResultType(op.op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
-                && (op.op instanceof JavaOp.DivOp || op.op instanceof JavaOp.MulOp)) {
+    public void binaryOperation(JavaOp.BinaryOp op) {
+        symbol(op);
+        if (getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
+                && (op instanceof JavaOp.DivOp || op instanceof JavaOp.MulOp)) {
             rn();
-        } else if (!getResultType(op.op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
-                && op.op instanceof JavaOp.MulOp) {
+        } else if (!getResultType(op.resultType()).getBasicType().equals(PTXRegister.Type.BasicType.FLOATING)
+                && op instanceof JavaOp.MulOp) {
             lo();
         }
-        resultType(op.op.resultType(), true).space();
-        resultReg(op, getResultType(op.op.resultType()));
+        resultType(op.resultType(), true).space();
+        resultReg(op, getResultType(op.resultType()));
         commaSpace();
-        reg(op.op.operands().getFirst());
+        reg(op.operands().getFirst());
         commaSpace();
-        reg(op.op.operands().get(1));
+        reg(op.operands().get(1));
     }
 
-    public void binaryTest(BinaryTestOpWrapper op) {
+    public void binaryTest(JavaOp.BinaryTestOp op) {
         setp().dot();
-        symbol(op.op).resultType(op.op.operands().getFirst().type(), true).space();
+        symbol(op).resultType(op.operands().getFirst().type(), true).space();
         resultReg(op, PTXRegister.Type.PREDICATE);
         commaSpace();
-        reg(op.op.operands().getFirst());
+        reg(op.operands().getFirst());
         commaSpace();
-        reg(op.op.operands().get(1));
+        reg(op.operands().get(1));
     }
 
-    public void conv(ConvOpWrapper op) {
-        if (op.op.resultType().equals(JavaType.LONG)) {
+    public void conv(JavaOp.ConvOp op) {
+        if (op.resultType().equals(JavaType.LONG)) {
             if (isIndex(op)) {
                 mul().wide().s32().space().resultReg(op, PTXRegister.Type.U64).commaSpace()
-                        .reg(op.op.operands().getFirst()).commaSpace().intVal(4);
+                        .reg(op.operands().getFirst()).commaSpace().intVal(4);
             } else {
-                cvt().u64().dot().regType(op.op.operands().getFirst()).space()
-                        .resultReg(op, PTXRegister.Type.U64).commaSpace().reg(op.op.operands().getFirst()).ptxNl();
+                cvt().u64().dot().regType(op.operands().getFirst()).space()
+                        .resultReg(op, PTXRegister.Type.U64).commaSpace().reg(op.operands().getFirst()).ptxNl();
             }
-        } else if (op.op.resultType().equals(JavaType.FLOAT)) {
-            cvt().rn().f32().dot().regType(op.op.operands().getFirst()).space()
-                    .resultReg(op, PTXRegister.Type.F32).commaSpace().reg(op.op.operands().getFirst());
-        } else if (op.op.resultType().equals(JavaType.DOUBLE)) {
+        } else if (op.resultType().equals(JavaType.FLOAT)) {
+            cvt().rn().f32().dot().regType(op.operands().getFirst()).space()
+                    .resultReg(op, PTXRegister.Type.F32).commaSpace().reg(op.operands().getFirst());
+        } else if (op.resultType().equals(JavaType.DOUBLE)) {
             cvt();
-            if (op.op.operands().getFirst().type().equals(JavaType.INT)) {
+            if (op.operands().getFirst().type().equals(JavaType.INT)) {
                 rn();
             }
-            f64().dot().regType(op.op.operands().getFirst()).space()
-                    .resultReg(op, PTXRegister.Type.F64).commaSpace().reg(op.op.operands().getFirst());
-        } else if (op.op.resultType().equals(JavaType.INT)) {
+            f64().dot().regType(op.operands().getFirst()).space()
+                    .resultReg(op, PTXRegister.Type.F64).commaSpace().reg(op.operands().getFirst());
+        } else if (op.resultType().equals(JavaType.INT)) {
             cvt();
-            if (op.op.operands().getFirst().type().equals(JavaType.DOUBLE) || op.op.operands().getFirst().type().equals(JavaType.FLOAT)) {
+            if (op.operands().getFirst().type().equals(JavaType.DOUBLE) || op.operands().getFirst().type().equals(JavaType.FLOAT)) {
                 rzi();
             } else {
                 rn();
             }
-            s32().dot().regType(op.op.operands().getFirst()).space()
-                    .resultReg(op, PTXRegister.Type.S32).commaSpace().reg(op.op.operands().getFirst());
+            s32().dot().regType(op.operands().getFirst()).space()
+                    .resultReg(op, PTXRegister.Type.S32).commaSpace().reg(op.operands().getFirst());
         } else {
-            cvt().rn().s32().dot().regType(op.op.operands().getFirst()).space()
-                    .resultReg(op, PTXRegister.Type.S32).commaSpace().reg(op.op.operands().getFirst());
+            cvt().rn().s32().dot().regType(op.operands().getFirst()).space()
+                    .resultReg(op, PTXRegister.Type.S32).commaSpace().reg(op.operands().getFirst());
         }
     }
 
@@ -439,89 +440,89 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
 
-    private boolean isIndex(ConvOpWrapper op) {
-        for (Op.Result r : op.op.result().uses()) {
+    private boolean isIndex(JavaOp.ConvOp op) {
+        for (Op.Result r : op.result().uses()) {
             if (r.op() instanceof PTXPtrOp) return true;
         }
         return false;
     }
 
-    public void constant(ConstantOpWrapper op) {
-        mov().resultType(op.op.resultType(), false).space().resultReg(op, getResultType(op.op.resultType())).commaSpace();
-        if (op.op.resultType().toString().equals("float")) {
-            if (op.op.value().toString().equals("0.0")) {
+    public void constant(CoreOp.ConstantOp op) {
+        mov().resultType(op.resultType(), false).space().resultReg(op, getResultType(op.resultType())).commaSpace();
+        if (op.resultType().toString().equals("float")) {
+            if (op.value().toString().equals("0.0")) {
                 floatVal("00000000");
             } else {
-                floatVal(Integer.toHexString(Float.floatToIntBits(Float.parseFloat(op.op.value().toString()))).toUpperCase());
+                floatVal(Integer.toHexString(Float.floatToIntBits(Float.parseFloat(op.value().toString()))).toUpperCase());
             }
         } else {
-            append(op.op.value().toString());
+            append(op.value().toString());
         }
     }
 
-    public void javaYield(YieldOpWrapper op) {
+    public void javaYield(CoreOp.YieldOp op) {
         exit();
     }
 
     // S32Array and S32Array2D functions can be deleted after schema is done
-    public void methodCall(InvokeOpWrapper op) {
-        switch (op.methodRef().toString()) {
+    public void methodCall(JavaOp.InvokeOp op) {
+        switch (InvokeOpWrapper.methodRef(op).toString()) {
             // S32Array functions
             case "hat.buffer.S32Array::array(long)int" -> {
                 PTXRegister temp = new PTXRegister(incrOrdinal(addressType()), addressType());
-                add().s64().space().regName(temp).commaSpace().reg(op.op.operands().getFirst()).commaSpace().reg(op.op.operands().get(1)).ptxNl();
+                add().s64().space().regName(temp).commaSpace().reg(op.operands().getFirst()).commaSpace().reg(op.operands().get(1)).ptxNl();
                 ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(temp.name(), 4);
             }
             case "hat.buffer.S32Array::array(long, int)void" -> {
                 PTXRegister temp = new PTXRegister(incrOrdinal(addressType()), addressType());
-                add().s64().space().regName(temp).commaSpace().reg(op.op.operands().getFirst()).commaSpace().reg(op.op.operands().get(1)).ptxNl();
-                st().global().u32().space().address(temp.name(), 4).commaSpace().reg(op.op.operands().get(2));
+                add().s64().space().regName(temp).commaSpace().reg(op.operands().getFirst()).commaSpace().reg(op.operands().get(1)).ptxNl();
+                st().global().u32().space().address(temp.name(), 4).commaSpace().reg(op.operands().get(2));
             }
             case "hat.buffer.S32Array::length()int" -> {
-                ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(getReg(op.op.operands().getFirst()).name());
+                ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(getReg(op.operands().getFirst()).name());
             }
             // S32Array2D functions
             case "hat.buffer.S32Array2D::array(long, int)void" -> {
                 PTXRegister temp = new PTXRegister(incrOrdinal(addressType()), addressType());
-                add().s64().space().regName(temp).commaSpace().reg(op.op.operands().getFirst()).commaSpace().reg(op.op.operands().get(1)).ptxNl();
-                st().global().u32().space().address(temp.name(), 8).commaSpace().reg(op.op.operands().get(2));
+                add().s64().space().regName(temp).commaSpace().reg(op.operands().getFirst()).commaSpace().reg(op.operands().get(1)).ptxNl();
+                st().global().u32().space().address(temp.name(), 8).commaSpace().reg(op.operands().get(2));
             }
             case "hat.buffer.S32Array2D::width()int" -> {
-                ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(getReg(op.op.operands().getFirst()).name());
+                ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(getReg(op.operands().getFirst()).name());
             }
             case "hat.buffer.S32Array2D::height()int" -> {
-                ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(getReg(op.op.operands().getFirst()).name(), 4);
+                ld().global().u32().space().resultReg(op, PTXRegister.Type.U32).commaSpace().address(getReg(op.operands().getFirst()).name(), 4);
             }
             // Java Math function
             case "java.lang.Math::sqrt(double)double" -> {
-                sqrt().rn().f64().space().resultReg(op, PTXRegister.Type.F64).commaSpace().reg(op.op.operands().getFirst()).semicolon();
+                sqrt().rn().f64().space().resultReg(op, PTXRegister.Type.F64).commaSpace().reg(op.operands().getFirst()).semicolon();
             }
             default -> {
                 obrace().nl().ptxIndent();
-                for (int i = 0; i < op.op.operands().size(); i++) {
-                    dot().param().space().paramType(op.op.operands().get(i).type()).space().param().intVal(i).ptxNl();
-                    st().dot().param().paramType(op.op.operands().get(i).type()).space().osbrace().param().intVal(i).csbrace().commaSpace().reg(op.op.operands().get(i)).ptxNl();
+                for (int i = 0; i < op.operands().size(); i++) {
+                    dot().param().space().paramType(op.operands().get(i).type()).space().param().intVal(i).ptxNl();
+                    st().dot().param().paramType(op.operands().get(i).type()).space().osbrace().param().intVal(i).csbrace().commaSpace().reg(op.operands().get(i)).ptxNl();
                 }
-                dot().param().space().paramType(op.op.resultType()).space().retVal().ptxNl();
-                call().uni().space().oparen().retVal().cparen().commaSpace().append(op.method().getName()).commaSpace();
+                dot().param().space().paramType(op.resultType()).space().retVal().ptxNl();
+                call().uni().space().oparen().retVal().cparen().commaSpace().append(InvokeOpWrapper.method(MethodHandles.lookup(),op).getName()).commaSpace();
                 final int[] counter = {0};
-                paren(_ -> commaSeparated(op.op.operands(), _ -> param().intVal(counter[0]++))).ptxNl();
-                ld().dot().param().paramType(op.op.resultType()).space().resultReg(op, getResultType(op.op.resultType())).commaSpace().osbrace().retVal().csbrace();
+                paren(_ -> commaSeparated(op.operands(), _ -> param().intVal(counter[0]++))).ptxNl();
+                ld().dot().param().paramType(op.resultType()).space().resultReg(op, getResultType(op.resultType())).commaSpace().osbrace().retVal().csbrace();
                 ptxNl().cbrace();
             }
         }
     }
 
-    public void varDeclaration(VarDeclarationOpWrapper op) {
-        ld().dot().param().resultType(op.op.resultType(), false).space().resultReg(op, addressType()).commaSpace().reg(op.op.operands().getFirst());
+    public void varDeclaration(CoreOp.VarOp op) {
+        ld().dot().param().resultType(op.resultType(), false).space().resultReg(op, addressType()).commaSpace().reg(op.operands().getFirst());
     }
 
-    public void varFuncDeclaration(VarFuncDeclarationOpWrapper op) {
-        ld().dot().param().resultType(op.op.resultType(), false).space().resultReg(op, addressType()).commaSpace().reg(op.op.operands().getFirst());
+    public void varFuncDeclaration(CoreOp.VarOp op) {
+        ld().dot().param().resultType(op.resultType(), false).space().resultReg(op, addressType()).commaSpace().reg(op.operands().getFirst());
     }
 
-    public void ret(ReturnOpWrapper op) {
-        if (!op.op.operands().isEmpty()) {
+    public void ret(CoreOp.ReturnOp op) {
+        if (!op.operands().isEmpty()) {
             st().dot().param();
             if (returnReg.type().equals(PTXRegister.Type.U32)) {
                 b32();
@@ -530,12 +531,12 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             } else {
                 dot().regType(returnReg.type());
             }
-            space().osbrace().regName(returnReg).csbrace().commaSpace().reg(op.op.operands().getFirst()).ptxNl();
+            space().osbrace().regName(returnReg).csbrace().commaSpace().reg(op.operands().getFirst()).ptxNl();
         }
         ret();
     }
 
-    public void javaBreak(JavaBreakOpWrapper op) {
+    public void javaBreak(JavaOp.BreakOp op) {
         brkpt();
     }
 
@@ -604,8 +605,8 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         throw new IllegalStateException("no existing field");
     }
 
-    public PTXHATKernelBuilder resultReg(OpWrapper<?> opWrapper, PTXRegister.Type type) {
-        return append(addReg(opWrapper.op.result(), type));
+    public PTXHATKernelBuilder resultReg(Op op, PTXRegister.Type type) {
+        return append(addReg(op.result(), type));
     }
 
     public PTXHATKernelBuilder reg(Value val, PTXRegister.Type type) {

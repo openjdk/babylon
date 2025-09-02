@@ -32,6 +32,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
+import hat.optools.InvokeOpWrapper;
 import hat.optools.LambdaOpWrapper;
 import hat.optools.OpTk;
 import hat.optools.OpWrapper;
@@ -140,7 +141,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     private CallGraph buildKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
-        MethodRef methodRef = OpTk.getQuotableTargetMethodRef(accelerator.lookup,lambdaOp);
+        MethodRef methodRef =OpTk.getQuotableTargetMethodRef(lambdaOp);
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
