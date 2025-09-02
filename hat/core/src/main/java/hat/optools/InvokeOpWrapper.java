@@ -52,14 +52,16 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
     private void checkIntrinsicCallFromBufferContext() {
         if (isIface(javaRefType())) {
             if (isIntrinsicCallFromBufferContext()) {
-                Value klassValue = this.operands().getFirst();
-                if (klassValue instanceof Op.Result result) {
-                    if (result.op() instanceof CoreOp.ConstantOp constant) {
-                        if (constant.value() instanceof ClassType classType) {
-                            klassNameForCustomType = classType.toClassName();
-                        }
-                    }
-                }
+                System.out.println("RETURN TYPE: " + resultType().toString());
+                klassNameForCustomType = resultType().toString();
+//                Value klassValue = this.operands().getFirst();
+//                if (klassValue instanceof Op.Result result) {
+//                    if (result.op() instanceof CoreOp.ConstantOp constant) {
+//                        if (constant.value() instanceof ClassType classType) {
+//                            klassNameForCustomType = classType.toClassName();
+//                        }
+//                    }
+//                }
             }
         }
     }

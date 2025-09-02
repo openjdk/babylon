@@ -62,14 +62,14 @@ public class LocalArray {
             return schema.allocate(accelerator, length);
         }
 
-        static <T extends Buffer> MySharedArray createLocal(Class<T> klass, int length) {
-            return (MySharedArray) Buffer.createLocal(klass, length);
+        static <T extends MySharedArray> MySharedArray createLocal(int length) {
+            return (T) Buffer.createLocal(MySharedArray.class, length);
         }
     }
 
     @CodeReflection
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-        MySharedArray mySharedArray = MySharedArray.createLocal(MySharedArray.class, 18);
+        MySharedArray mySharedArray = MySharedArray.createLocal(18);
         mySharedArray.array(0, kernelContext.lix);
         data.array(kernelContext.gix, mySharedArray.array(0));
     }

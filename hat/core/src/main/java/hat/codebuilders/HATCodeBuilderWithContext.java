@@ -200,15 +200,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 String variableName = varDeclarationOpWrapper.varName();
                 localArrayDeclarations.push(new LocalArrayDeclaration(typeName, variableName));
                 parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
-//            }
-//            if (varDeclarationOpWrapper.javaType().toString().equals("hat.buffer.S32Array") ||
-//            varDeclarationOpWrapper.javaType().toString().equals("hat.buffer.F32Array")) {
-//                // annotate type and variable name for the final declaration when we visit the methodCall
-//                String typeStructName = extractClassType(buildContext, varDeclarationOpWrapper.javaType());
-//                String variableName = varDeclarationOpWrapper.varName();
-//                localArrayDeclarations.push(new LocalArrayDeclaration(typeStructName, variableName));
-//
-//                parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
             } else {
                 type(buildContext, varDeclarationOpWrapper.javaType()).space().identifier(varDeclarationOpWrapper.varName()).space().equals().space();
                 parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
@@ -229,6 +220,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             identifier("kc").rarrow().identifier(fieldLoadOpWrapper.fieldName());
         } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {
             Object value = fieldLoadOpWrapper.getStaticFinalPrimitiveValue();
+            System.out.println("VALUE ==========> " + value.toString());
             literal(value.toString());
         } else {
             throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
@@ -640,13 +632,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                           cascade->tree + treeIdx;
                  */
                     if (name.startsWith("createPrivate")) {
-                        emitText(" /// FOUND THE CALL ").nl();
-
                         LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                         String varName = declaration.varName + "$private";
                         String typeStruct = declaration.typeStructName;
 
-                        var valueOperandSize = invokeOpWrapper.operands().get(1);
+                        var valueOperandSize = invokeOpWrapper.operands().getFirst();
                         Integer size = obtainSize(valueOperandSize);
                         if (size == null) {
                             throw new IllegalStateException("size is null");
@@ -687,13 +677,12 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
                         // Obtain the operands:
                         List<Value> operands = invokeOpWrapper.operands();
-                        // Param 0 is `<T extends Buffer>.class`.
-                        // Param 1 is the argument to the function
-                        // obtain first argument:
-                        if (operands.size() < 2) {
+
+                        // Param 0 is the size
+                        if (operands.isEmpty()) {
                             throw new IllegalStateException("create local array expect 2 parameter ");
                         }
-                        Value constantOperand = operands.get(1);
+                        Value constantOperand = operands.getFirst();
                         int size = obtainSize(constantOperand);
 
                         JavaType typeToGenerate = JavaType.FLOAT; // FIXME

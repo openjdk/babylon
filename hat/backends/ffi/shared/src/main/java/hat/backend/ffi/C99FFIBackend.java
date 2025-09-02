@@ -49,6 +49,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -210,7 +211,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 clazz = Class.forName(klassName);
 
                 // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
-                Method method = clazz.getMethod("create", Accelerator.class, int.class);
+                Method method = clazz.getMethod("create", hat.Accelerator.class, int.class);
                 method.setAccessible(true);
                 Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator, 1);
 

@@ -30,6 +30,7 @@ import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
 import hat.KernelContext;
+import hat.LocalMesh1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
@@ -44,79 +45,55 @@ import java.lang.invoke.MethodHandles;
  * Example of how to declare and use a custom data type in a method kernel on the GPU.
  * This is just a proof of concept.
  */
-public class PrivateArray {
+public class PointPrivate {
 
-    /**
-     * Bound iFaceMapping
-     */
-    private interface MyPrivateArray extends Buffer {
+    private interface MyBoundArray extends Buffer {
+        int array(int index);
+        void array(int index, int value);
+        Schema<MyBoundArray> schema = Schema.of(MyBoundArray.class,
+                myPoint -> myPoint.array("array", 256));
 
-        void array(long index, float value);
-        float array(long index);
-
-        Schema<MyPrivateArray> schema = Schema.of(MyPrivateArray.class,
-                myPrivateArray -> myPrivateArray
-                        .array("array", 256));
-
-        static MyPrivateArray create(Accelerator accelerator, int length) {
+        static MyBoundArray create(Accelerator accelerator, int length) {
             return schema.allocate(accelerator, length);
         }
 
-        static <T extends Buffer> MyPrivateArray createPrivate(Class<T> klass, int length) {
-            return (MyPrivateArray) Buffer.createPrivate(klass, length);
-        }
-
-        static <T extends MyPrivateArray> MyPrivateArray createPrivate(int length) {
-            return Buffer.createPrivate(MyPrivateArray.class, length);
-        }
-
-        static String schemaDescription() {
-            StringBuilder sb = new StringBuilder();
-            schema.toText(sb::append);
-            return sb.toString();
+        static <T extends Buffer> MyBoundArray createPrivate(Class<T> klass, int length) {
+            return (MyBoundArray) Buffer.createLocal(klass, length);
         }
     }
 
     @CodeReflection
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-
-        // Initial Approach: this approach requires instance objects at compilation time, which is not possible
-        // MyPrivateArray myPrivateArray = kernelContext.allocateSchema(Space.PRIVATE, MyPrivateArray.schema, 1);
-
-        // We can use this factory to create a new private local array
-        //MyPrivateArray myPrivateArray = Buffer.createPrivate(MyPrivateArray.class, 18);
-
-        // Alternatively, the user can create a new static method with the same signature
-        MyPrivateArray myPrivateArray = MyPrivateArray.createPrivate(18);
-
-        myPrivateArray.array(0, kernelContext.gix);
-        data.array(kernelContext.gix, myPrivateArray.array(0));
+        MyBoundArray myPoint = MyBoundArray.createPrivate(MyBoundArray.class, 1);
+        myPoint.array(0, 20);
+        int someCompute = myPoint.array(0);
+        data.array(kernelContext.gix, someCompute);
     }
 
     @CodeReflection
     private static void myCompute(@RO ComputeContext computeContext, @RW F32Array data) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32));
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32), new LocalMesh1D(16));
         computeContext.dispatchKernel(computeRange,
                 kernelContext -> compute(kernelContext, data)
         );
     }
 
     static void main(String[] args) {
-        System.out.println("Testing Private DT Mapping");
-
+        System.out.println("Testing Shared Data Structures Mapping");
         System.out.println("Schema description");
-        MyPrivateArray.schema.toText(System.out::print);
+        MyBoundArray.schema.toText(System.out::print);
+        System.out.println(" ==================");
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);
         accelerator.compute(computeContext -> {
-            PrivateArray.myCompute(computeContext, data);
+            PointPrivate.myCompute(computeContext, data);
         });
 
         // Check result
         boolean isCorrect = true;
         for (int i = 0; i < data.length(); i++) {
-            if (data.array(i) != i) {
+            if (data.array(i) != 20) {
                 isCorrect = false;
                 break;
             }
