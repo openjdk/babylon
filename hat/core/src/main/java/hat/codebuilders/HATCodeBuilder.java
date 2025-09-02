@@ -26,7 +26,7 @@ package hat.codebuilders;
 
 
 import hat.optools.OpTk;
-import hat.optools.UnaryArithmeticOrLogicOpWrapper;
+//import hat.optools.UnaryArithmeticOrLogicOpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -268,7 +268,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
          T fieldStore(HATCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp);
 
-        T unaryOperation(HATCodeBuilderContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper);
+        T unaryOperation(HATCodeBuilderContext buildContext, JavaOp.UnaryOp unaryOp);
 
 
         T binaryOperation(HATCodeBuilderContext buildContext, Op binaryOp);

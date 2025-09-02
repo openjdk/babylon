@@ -29,7 +29,6 @@ import hat.KernelContext;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
 import hat.ifacemapper.MappableIface;
-import hat.optools.OpWrapper;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;

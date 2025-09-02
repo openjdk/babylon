@@ -24,7 +24,6 @@
  */
 package hat.callgraph;
 
-import hat.optools.FuncOpWrapper;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandle;

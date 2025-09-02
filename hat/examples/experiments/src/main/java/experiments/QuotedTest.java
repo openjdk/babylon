@@ -25,9 +25,6 @@
 package experiments;
 
 import hat.codebuilders.C99HATComputeBuilder;
-import hat.optools.FuncOpWrapper;
-import hat.optools.OpWrapper;
-
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;

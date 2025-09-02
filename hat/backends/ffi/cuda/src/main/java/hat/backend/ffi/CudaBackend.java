@@ -31,9 +31,7 @@ import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
-import hat.optools.InvokeOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.OpWrapper;
 
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
@@ -452,7 +450,7 @@ public class CudaBackend extends C99FFIBackend {
             // use first operand of invoke to figure out schema
             if (op instanceof JavaOp.InvokeOp invokeOp){
                    // && OpWrapper.wrap(func.lookup,invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
-                if (InvokeOpWrapper.isIfaceBufferMethod(lookup,invokeOp)
+                if (OpTk.isIfaceBufferMethod(lookup,invokeOp)
                         && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
                         && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
                         && varLoadResult.op() instanceof CoreOp.VarOp varOp

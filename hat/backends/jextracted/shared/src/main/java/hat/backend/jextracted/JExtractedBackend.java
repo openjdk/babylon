@@ -31,8 +31,7 @@ import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
-import hat.optools.FuncOpWrapper;
-import hat.optools.InvokeOpWrapper;
+//import hat.optools.InvokeOpWrapper;
 import hat.optools.OpTk;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
@@ -86,11 +85,6 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         }
     }
 
-    static void wrapInvoke(InvokeOpWrapper iow, Block.Builder bldr, ComputeContext.WRAPPER wrapper, Value cc, Value iface) {
-        bldr.op(JavaOp.invoke(wrapper.pre, cc, iface));
-        bldr.op(iow.op);
-        bldr.op(JavaOp.invoke(wrapper.post, cc, iface));
-    }
  // This code should be common with ffi-shared probably should be pushed down into another lib?
     protected static CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         CoreOp.FuncOp prevFO = computeMethod.funcOp();
@@ -107,17 +101,17 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
                     CopyContext bldrCntxt = bldr.context();
                     //Map compute method's first param (computeContext) value to transformed model
                     Value cc = bldrCntxt.getValue(paramTable.list().getFirst().parameter);
-                    if (InvokeOpWrapper.isIfaceMutator(lookup,invokeO)) {                    // iface.v(newV)
+                    if (OpTk.isIfaceMutator(lookup,invokeO)) {                    // iface.v(newV)
                         Value iface = bldrCntxt.getValue(invokeO.operands().getFirst());
                         bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
                         bldr.op(invokeO);                         // iface.v(newV);
                         bldr.op(JavaOp.invoke(MUTATE.post, cc, iface)); // cc->postMutate(iface)
-                    } else if (InvokeOpWrapper.isIfaceAccessor(lookup,invokeO)) {            // iface.v()
+                    } else if (OpTk.isIfaceAccessor(lookup,invokeO)) {            // iface.v()
                         Value iface = bldrCntxt.getValue(invokeO.operands().getFirst());
                         bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
                         bldr.op(invokeO);                         // iface.v();
                         bldr.op(JavaOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
-                    } else if (InvokeOpWrapper.isComputeContextMethod(lookup,invokeO) || InvokeOpWrapper.isRawKernelCall(lookup,invokeO)) { //dispatchKernel
+                    } else if (OpTk.isComputeContextMethod(lookup,invokeO) || OpTk.isRawKernelCall(lookup,invokeO)) { //dispatchKernel
                         bldr.op(invokeO);
                     } else {
                         invokeO.operands().stream()

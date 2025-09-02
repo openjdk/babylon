@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.HATCodeBuilderContext;
-import hat.optools.OpWrapper;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaType;

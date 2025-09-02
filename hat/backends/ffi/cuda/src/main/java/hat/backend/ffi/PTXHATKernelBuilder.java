@@ -131,7 +131,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         block(block);
         colon().nl();
         ops.forEach(op -> {
-            if (op instanceof JavaOp.InvokeOp invoke && !InvokeOpWrapper.isIfaceBufferMethod(MethodHandles.lookup(),invoke)) {  // We should pass lookup down
+            if (op instanceof JavaOp.InvokeOp invoke && !OpTk.isIfaceBufferMethod(MethodHandles.lookup(),invoke)) {  // We should pass lookup down
                 ptxIndent().convert(op).nl();
             } else {
                 ptxIndent().convert(op).semicolon().nl();
@@ -466,7 +466,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
 
     // S32Array and S32Array2D functions can be deleted after schema is done
     public void methodCall(JavaOp.InvokeOp op) {
-        switch (InvokeOpWrapper.methodRef(op).toString()) {
+        switch (OpTk.methodRef(op).toString()) {
             // S32Array functions
             case "hat.buffer.S32Array::array(long)int" -> {
                 PTXRegister temp = new PTXRegister(incrOrdinal(addressType()), addressType());
@@ -504,7 +504,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                     st().dot().param().paramType(op.operands().get(i).type()).space().osbrace().param().intVal(i).csbrace().commaSpace().reg(op.operands().get(i)).ptxNl();
                 }
                 dot().param().space().paramType(op.resultType()).space().retVal().ptxNl();
-                call().uni().space().oparen().retVal().cparen().commaSpace().append(InvokeOpWrapper.method(MethodHandles.lookup(),op).getName()).commaSpace();
+                call().uni().space().oparen().retVal().cparen().commaSpace().append(OpTk.method(MethodHandles.lookup(),op).getName()).commaSpace();
                 final int[] counter = {0};
                 paren(_ -> commaSeparated(op.operands(), _ -> param().intVal(counter[0]++))).ptxNl();
                 ld().dot().param().paramType(op.resultType()).space().resultReg(op, getResultType(op.resultType())).commaSpace().osbrace().retVal().csbrace();

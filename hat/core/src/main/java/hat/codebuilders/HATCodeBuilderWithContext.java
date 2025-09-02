@@ -28,9 +28,7 @@ package hat.codebuilders;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
-import hat.optools.InvokeOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.UnaryArithmeticOrLogicOpWrapper;
 import hat.util.StreamMutable;
 import hat.util.StreamCounter;
 
@@ -216,10 +214,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T unaryOperation(HATCodeBuilderContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper) {
-      //  parencedence(buildContext, binaryOperatorOpWrapper.op(), binaryOperatorOpWrapper.lhsAsOp());
-        symbol(unaryOperatorOpWrapper.op);
-        parencedence(buildContext, unaryOperatorOpWrapper.op, ((Op.Result)unaryOperatorOpWrapper.op.operands().getFirst()).op());
+    public T unaryOperation(HATCodeBuilderContext buildContext, JavaOp.UnaryOp unaryOp) {
+        symbol(unaryOp);
+        parencedence(buildContext, unaryOp, ((Op.Result)unaryOp.operands().getFirst()).op());
         return self();
     }
 
@@ -502,9 +499,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         var name = invokeOp.invokeDescriptor().name();//OpTk.name(invokeOp);
 
-        if (InvokeOpWrapper.isIfaceBufferMethod(buildContext.lookup,invokeOp)) {
+        if (OpTk.isIfaceBufferMethod(buildContext.lookup,invokeOp)) {
             var operandCount = invokeOp.operands().size();
-            var returnType = InvokeOpWrapper.javaReturnType(invokeOp);
+            var returnType = OpTk.javaReturnType(invokeOp);
 
             if (operandCount == 1 && name.startsWith("atomic") && name.endsWith("Inc")
                     && returnType instanceof PrimitiveType primitiveType && primitiveType.equals(JavaType.INT)) {

@@ -31,8 +31,6 @@ import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
-import hat.optools.FuncOpWrapper;
-import hat.optools.InvokeOpWrapper;
 import hat.optools.OpTk;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
@@ -51,7 +49,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
-//import static hat.ComputeContext.WRAPPER.ESCAPE;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 
 public abstract class FFIBackend extends FFIBackendDriver {
@@ -94,11 +91,6 @@ public abstract class FFIBackend extends FFIBackendDriver {
        // System.out.println("compute "+ ((System.nanoTime() - ns)/1000)+" us");
     }
 
-    static void wrapInvoke(InvokeOpWrapper iow, Block.Builder bldr, ComputeContext.WRAPPER wrapper, Value cc, Value iface) {
-        bldr.op(JavaOp.invoke(wrapper.pre, cc, iface));
-        bldr.op(iow.op);
-        bldr.op(JavaOp.invoke(wrapper.post, cc, iface));
-    }
 
     record TypeAndAccess(Annotation[] annotations, Value value, JavaType javaType) {
         static TypeAndAccess of(Annotation[] annotations, Value value) {
@@ -137,24 +129,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
     }
 
 
-        record PrePost(MethodRef pre, MethodRef post) {
-            static PrePost access() {
-                return new PrePost(ACCESS.pre, ACCESS.post);
-            }
 
-            static PrePost mutate() {
-                return new PrePost(MUTATE.pre, MUTATE.post);
-            }
-
-            void apply(Block.Builder bldr, CopyContext bldrCntxt, Value computeContext, InvokeOpWrapper invokeOW) {
-                if (InvokeOpWrapper.isIfaceMutator(invokeOW.lookup,invokeOW.op)) {                    // iface.v(newV)
-                    Value iface = bldrCntxt.getValue(invokeOW.op.operands().getFirst());
-                    bldr.op(JavaOp.invoke(MUTATE.pre, computeContext, iface));  // cc->preMutate(iface);
-                    bldr.op(invokeOW.op);                         // iface.v(newV);
-                    bldr.op(JavaOp.invoke(MUTATE.post, computeContext, iface));
-                }
-            }
-        }
 
     protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         CoreOp.FuncOp prevFO = computeMethod.funcOp();
@@ -171,24 +146,24 @@ public abstract class FFIBackend extends FFIBackendDriver {
                     CopyContext bldrCntxt = bldr.context();
                     //Map compute method's first param (computeContext) value to transformed model
                     Value cc = bldrCntxt.getValue(paramTable.list().getFirst().parameter);
-                    if (InvokeOpWrapper.isIfaceBufferMethod(lookup, invokeO)) {                    // iface.v(newV)
+                    if (OpTk.isIfaceBufferMethod(lookup, invokeO)) {                    // iface.v(newV)
                         Value iface = bldrCntxt.getValue(invokeO.operands().getFirst());
                         bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
                         bldr.op(invokeO);                         // iface.v(newV);
                         bldr.op(JavaOp.invoke(MUTATE.post, cc, iface)); // cc->postMutate(iface)
-                    } else if (InvokeOpWrapper.isIfaceBufferMethod(lookup, invokeO)) {            // iface.v()
+                    } else if (OpTk.isIfaceBufferMethod(lookup, invokeO)) {            // iface.v()
                         Value iface = bldrCntxt.getValue(invokeO.operands().getFirst());
                         bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
                         bldr.op(invokeO);                         // iface.v();
                         bldr.op(JavaOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
-                    } else if (InvokeOpWrapper.isComputeContextMethod(lookup,invokeO) || InvokeOpWrapper.isRawKernelCall(lookup,invokeO)) { //dispatchKernel
+                    } else if (OpTk.isComputeContextMethod(lookup,invokeO) || OpTk.isRawKernelCall(lookup,invokeO)) { //dispatchKernel
                         bldr.op(invokeO);
                     } else {
                         List<Value> list = invokeO.operands();
                         //   System.out.println("args "+list.size());
                         if (!list.isEmpty()) {
                             // System.out.println("method "+invokeOW.method());
-                            Annotation[][] parameterAnnotations = InvokeOpWrapper.method(lookup, invokeO).getParameterAnnotations();
+                            Annotation[][] parameterAnnotations = OpTk.method(lookup, invokeO).getParameterAnnotations();
                             boolean isVirtual = list.size() > parameterAnnotations.length;
                             //   System.out.println("params length"+parameterAnnotations.length);
                             List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
@@ -198,31 +173,21 @@ public abstract class FFIBackend extends FFIBackendDriver {
                                         parameterAnnotations[i - (isVirtual ? 1 : 0)],
                                         list.get(i)));
                             }
-                            List<PrePost> prePosts = new ArrayList<>();
                             typeAndAccesses.stream()
                                     .filter(typeAndAccess -> typeAndAccess.isIface(lookup))//InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, typeAndAccess.javaType))
                                     .forEach(typeAndAccess -> {
                                         if (typeAndAccess.ro()) {
                                             bldr.op(JavaOp.invoke(ACCESS.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
-                                            //   }else if (typeAndAccess.wo()||typeAndAccess.rw()) {
-                                            //     bldr.op(CoreOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                         } else {
                                             bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                         }
                                     });
-                            //  invokeOW.op().operands().stream()
-                            // .filter(value -> value.type() instanceof JavaType javaType && InvokeOpWrapper.isIfaceUsingLookup(prevFOW.lookup, javaType))
-                            //  .forEach(value ->
-                            //          bldr.op(CoreOp.invoke(ESCAPE.pre, cc, bldrCntxt.getValue(value)))
-                            //  );
                             bldr.op(invokeO);
                             typeAndAccesses.stream()
                                     .filter(typeAndAccess -> OpTk.isAssignable(lookup, typeAndAccess.javaType, MappableIface.class))
                                     .forEach(typeAndAccess -> {
                                         if (typeAndAccess.ro()) {
                                             bldr.op(JavaOp.invoke(ACCESS.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
-                                            //   }else if (typeAndAccess.rw() || typeAndAccess.wo()) {
-                                            //       bldr.op(CoreOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                         } else {
                                             bldr.op(JavaOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(typeAndAccess.value)));
                                         }

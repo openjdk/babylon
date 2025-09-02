@@ -24,10 +24,7 @@
  */
 package hat.codebuilders;
 
-
-import hat.optools.FuncOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.StructuralOpWrapper;
 
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;

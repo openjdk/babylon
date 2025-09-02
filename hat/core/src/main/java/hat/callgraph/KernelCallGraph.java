@@ -25,7 +25,6 @@
 package hat.callgraph;
 
 import hat.buffer.Buffer;
-import hat.optools.InvokeOpWrapper;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -95,9 +94,9 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         kernelReachableResolvedMethodCall.funcOp().traverse(null, (map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
               //  var invokeOpWrapper = (InvokeOpWrapper)OpWrapper.wrap(  kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
-                MethodRef methodRef = InvokeOpWrapper.methodRef(invokeOp);
-                Class<?> javaRefTypeClass = InvokeOpWrapper.javaRefClass(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp).orElseThrow();
-                Method invokeOpCalledMethod = InvokeOpWrapper.method(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
+                MethodRef methodRef = OpTk.methodRef(invokeOp);
+                Class<?> javaRefTypeClass = OpTk.javaRefClass(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp).orElseThrow();
+                Method invokeOpCalledMethod = OpTk.method(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
                 if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
                     //System.out.println("kernel reachable iface mapped buffer call  -> " + methodRef);
                     kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
