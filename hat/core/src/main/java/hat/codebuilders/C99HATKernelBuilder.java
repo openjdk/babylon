@@ -31,9 +31,7 @@ import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import hat.ifacemapper.MappableIface;
-import hat.optools.FuncOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.StructuralOpWrapper;
 import hat.util.StreamCounter;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -198,8 +196,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             );
 
             braceNlIndented(_ -> {
-                StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                StreamCounter.of(OpTk.rootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
+                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
                 );
             });
         });
@@ -220,8 +218,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             );
 
             braceNlIndented(_ -> {
-                StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                StreamCounter.of(OpTk.rootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
+                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
                 );
             });
         });
@@ -252,8 +250,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
             braceNlIndented(_ -> {
                 scope();
-                StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                StreamCounter.of(OpTk.rootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
+                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
                 );
             });
         });

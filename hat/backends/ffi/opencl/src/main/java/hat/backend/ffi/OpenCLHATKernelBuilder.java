@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.HATCodeBuilderContext;
-import hat.optools.OpWrapper;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -98,7 +97,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder atomicInc(HATCodeBuilderContext buildContext, Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ -> {
-              ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup,instanceResult.op()));
+              ampersand().recurse(buildContext, instanceResult.op());
               rarrow().identifier(name);
           });
     }

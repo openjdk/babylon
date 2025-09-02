@@ -29,7 +29,6 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.buffer.Buffer;
 import hat.ifacemapper.MappableIface;
-import hat.optools.InvokeOpWrapper;
 import hat.optools.OpTk;
 import hat.util.StreamMutable;
 
@@ -148,10 +147,10 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
         MethodHandles.Lookup lookup =  computeReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup;
         computeReachableResolvedMethodCall.funcOp().traverse(null, (map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-                MethodRef methodRef = InvokeOpWrapper.methodRef(invokeOp);
+                MethodRef methodRef = OpTk.methodRef(invokeOp);
 
-                Class<?> javaRefClass = InvokeOpWrapper.javaRefClass(lookup,invokeOp).orElseThrow();
-                Method invokeWrapperCalledMethod = InvokeOpWrapper.method(lookup,invokeOp);
+                Class<?> javaRefClass = OpTk.javaRefClass(lookup,invokeOp).orElseThrow();
+                Method invokeWrapperCalledMethod = OpTk.method(lookup,invokeOp);
                 if (Buffer.class.isAssignableFrom(javaRefClass)) {
                     // System.out.println("iface mapped buffer call  -> " + methodRef);
                     computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
@@ -236,7 +235,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
 
-        if (entrypoint.method.getDeclaringClass().equals(InvokeOpWrapper.javaRefClass(computeContext.accelerator.lookup,invokeOp).orElseThrow()) && isKernelDispatch(computeContext.accelerator.lookup,method, f)) {
+        if (entrypoint.method.getDeclaringClass().equals(OpTk.javaRefClass(computeContext.accelerator.lookup,invokeOp).orElseThrow()) && isKernelDispatch(computeContext.accelerator.lookup,method, f)) {
             kernelCallGraphMap.computeIfAbsent(methodRef, _ ->
                     new KernelCallGraph(this, methodRef, method, f).closeWithModuleOp()
             );
