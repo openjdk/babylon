@@ -43,6 +43,7 @@ import hat.optools.InvokeOpWrapper;
 import hat.optools.OpWrapper;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
@@ -181,6 +182,16 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                             return blockBuilder;
                         });
                     });
+        } else {
+            // We take the list from all reachable methods. When we finally merge with the moduleOpWrapper,
+            // this else-branch will be deleted.
+            kernelCallGraph.kernelReachableResolvedStream().forEach((kernel) -> {
+                kernel.funcOpWrapper().transform(null, (blockBuilder, op) -> {
+                    updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    blockBuilder.op(op);
+                    return blockBuilder;
+                });
+            });
         }
 
         // Traverse the main kernel and append the intrinsics functions found in the main kernel
