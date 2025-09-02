@@ -34,9 +34,7 @@ import hat.optools.ConstantOpWrapper;
 import hat.optools.ConvOpWrapper;
 import hat.optools.FieldLoadOpWrapper;
 import hat.optools.FieldStoreOpWrapper;
-import hat.optools.ForOpWrapper;
 import hat.optools.FuncCallOpWrapper;
-import hat.optools.IfOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.JavaBreakOpWrapper;
 import hat.optools.JavaContinueOpWrapper;
@@ -46,7 +44,6 @@ import hat.optools.LogicalOpWrapper;
 import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 import hat.optools.ReturnOpWrapper;
-import hat.optools.RootSet;
 import hat.optools.StructuralOpWrapper;
 import hat.optools.TernaryOpWrapper;
 import hat.optools.TupleOpWrapper;
@@ -391,7 +388,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
-                                StreamCounter.of(RootSet.rootsWithoutVarFuncDeclarationsOrYields(buildContext.lookup,
+                                StreamCounter.of(OpTk.rootsWithoutVarFuncDeclarationsOrYields(buildContext.lookup,
                                         ifOp.bodies().get(c.value()).entryBlock())
                                         , (innerc, root) ->
                                         nlIf(innerc.isNotFirst())

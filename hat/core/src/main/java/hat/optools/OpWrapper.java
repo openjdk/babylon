@@ -49,14 +49,9 @@ public class OpWrapper<T extends Op> {
             case JavaOp.NegOp $ -> (OW) new UnaryArithmeticOrLogicOpWrapper( $);
             case JavaOp.BinaryOp $ -> (OW) new BinaryArithmeticOrLogicOperation( $);
             case JavaOp.BinaryTestOp $ -> (OW) new BinaryTestOpWrapper( $);
-            case CoreOp.VarOp $
-                // We have one special case for VarOp
-                // This is possibly a premature optimization. But it allows us to treat var declarations differently from params.
-                // we want a different wrapper for VarDeclarations which  relate to func parameters.
-                // This saves us asking each time if a var is indeed a func param.
-                    when !$.isUninitialized() && $.operands().getFirst() instanceof Block.Parameter parameter
-                    && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp
-                    -> (OW) new VarFuncDeclarationOpWrapper($, funcOp, parameter);
+            // We have one special case for VarOp (possibly a premature optimization) but it allows us to treat var declarations differently from params.
+            // This saves us asking each time if a var is indeed a func param.
+            case CoreOp.VarOp $ when OpTk.paramVar($) instanceof OpTk.ParamVar pv-> (OW) new VarFuncDeclarationOpWrapper($, pv.funcOp(), pv.parameter());
             case CoreOp.VarOp $ -> (OW) new VarDeclarationOpWrapper( $);
             case CoreOp.YieldOp $ -> (OW) new YieldOpWrapper( $);
             case CoreOp.FuncCallOp $ -> (OW) new FuncCallOpWrapper( $);

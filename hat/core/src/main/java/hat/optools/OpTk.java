@@ -31,6 +31,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -53,6 +54,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -129,7 +131,7 @@ public class OpTk {
 
 
     public static Stream<OpWrapper<?>> loopWrappedRootOpStream(MethodHandles.Lookup lookup, Op.Loop op) {
-        var list = new ArrayList<>(RootSet.rootsWithoutVarFuncDeclarationsOrYields(lookup,op.loopBody().entryBlock()).toList());
+        var list = new ArrayList<>(rootsWithoutVarFuncDeclarationsOrYields(lookup,op.loopBody().entryBlock()).toList());
         if (list.getLast() instanceof JavaContinueOpWrapper) {
             list.removeLast();
         }
@@ -138,7 +140,7 @@ public class OpTk {
 
 
     public static Stream<OpWrapper<?>> mutateRootWrappedOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
-        return RootSet.rootsWithoutVarFuncDeclarationsOrYields(lookup,op.bodies().get(2).entryBlock());
+        return rootsWithoutVarFuncDeclarationsOrYields(lookup,op.bodies().get(2).entryBlock());
     }
 
     public static Stream<OpWrapper<?>> thenWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ConditionalExpressionOp op) {
@@ -301,7 +303,7 @@ public class OpTk {
     }
 
     public static Stream<OpWrapper<?>> wrappedRootOpStream(MethodHandles.Lookup lookup, CoreOp.FuncOp op) {
-        return RootSet.rootsWithoutVarFuncDeclarationsOrYields(lookup,op.bodies().getFirst().entryBlock());
+        return rootsWithoutVarFuncDeclarationsOrYields(lookup,op.bodies().getFirst().entryBlock());
     }
 
     public static CoreOp.FuncOp transformInvokes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, WrappedInvokeOpTransformer wrappedOpTransformer) {
@@ -313,6 +315,45 @@ public class OpTk {
             }
             return b;
         });
+    }
+
+    static public Stream<Op> unwrappedRootsWithoutVarFuncDeclarationsOrYields(Block block) {
+        record Node<T extends Value>(T node, List<Node<T>> children) {
+        }
+        Set<Op> roots = new LinkedHashSet<>();
+        Map<Op, Node<Value>> trees = new LinkedHashMap<>();
+        Map<Value, Node<Value>> params = new HashMap<>();
+        block.ops().forEach(op -> {
+            List<Node<Value>> children = new ArrayList<>();
+            for (Value operand : op.operands()) {
+                if (operand instanceof Op.Result opr) {
+                    children.add(trees.get(opr.op()));
+                } else {
+                    children.add(params.computeIfAbsent(operand, _ -> new Node<>(operand, List.of())));
+                }
+            }
+            trees.put(op, new Node<>(op.result(), children));
+        });
+
+        trees.forEach((op, _) -> {
+            if (op instanceof CoreOp.VarAccessOp.VarStoreOp) {
+                Value value = op.operands().get(1);
+                if (value.uses().size() < 2) {
+                    roots.add(op);
+                }
+            } else if (op instanceof CoreOp.VarOp || op.result().uses().isEmpty()) {
+                roots.add(op);
+            }
+        });
+        return block.ops().stream()
+                .filter(roots::contains)
+                .filter(w -> !(w instanceof CoreOp.VarOp varOp && paramVar(varOp) instanceof ParamVar paramVar))
+                .filter(w -> !(w instanceof CoreOp.YieldOp));
+    }
+
+    static public Stream<OpWrapper<?>> rootsWithoutVarFuncDeclarationsOrYields(MethodHandles.Lookup lookup, Block block) {
+        return unwrappedRootsWithoutVarFuncDeclarationsOrYields(block)
+                .map(o->OpWrapper.wrap(lookup,o));
     }
 
     public interface WrappedInvokeOpTransformer extends BiFunction<Block.Builder, InvokeOpWrapper, Block.Builder> {
@@ -395,5 +436,13 @@ public class OpTk {
                 });
             });
         }
+    }
+
+    public record ParamVar(CoreOp.VarOp varOp,Block.Parameter parameter, CoreOp.FuncOp funcOp){}
+
+    public static  ParamVar paramVar(CoreOp.VarOp varOp){
+        return !varOp.isUninitialized()
+                && varOp.operands().getFirst() instanceof Block.Parameter parameter
+                && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp?new ParamVar(varOp,parameter,funcOp):null;
     }
 }
