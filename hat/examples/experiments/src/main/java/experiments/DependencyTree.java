@@ -161,7 +161,7 @@ public class DependencyTree {
     public static void main(String[] args) {
         CoreOp.FuncOp f = getFuncOp("f");
         System.out.println(f.toText());
-        OpTk.unwrappedRootsWithoutVarFuncDeclarationsOrYields(f.body().entryBlock()).forEach(op -> {
+        OpTk.rootsExcludingVarFuncDeclarationsAndYields(f.body().entryBlock()).forEach(op -> {
             System.out.println(op.toText());
         });
 

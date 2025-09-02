@@ -388,7 +388,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             elseKeyword();
                         }
                         braceNlIndented(_ ->
-                                StreamCounter.of(OpTk.rootsWithoutVarFuncDeclarationsOrYields(buildContext.lookup,
+                                StreamCounter.of(OpTk.wrappedRootsExcludingVarFuncDeclarationsAndYields(buildContext.lookup,
                                         ifOp.bodies().get(c.value()).entryBlock())
                                         , (innerc, root) ->
                                         nlIf(innerc.isNotFirst())
