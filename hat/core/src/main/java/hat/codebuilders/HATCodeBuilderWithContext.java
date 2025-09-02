@@ -220,7 +220,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             identifier("kc").rarrow().identifier(fieldLoadOpWrapper.fieldName());
         } else if (fieldLoadOpWrapper.isStaticFinalPrimitive()) {
             Object value = fieldLoadOpWrapper.getStaticFinalPrimitiveValue();
-            System.out.println("VALUE ==========> " + value.toString());
             literal(value.toString());
         } else {
             throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
