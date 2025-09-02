@@ -58,7 +58,7 @@ public class PointPrivate {
         }
 
         static <T extends Buffer> MyBoundArray createPrivate(Class<T> klass, int length) {
-            return (MyBoundArray) Buffer.createLocal(klass, length);
+            return (MyBoundArray) Buffer.createLocal(klass);
         }
     }
 

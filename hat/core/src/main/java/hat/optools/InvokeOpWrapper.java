@@ -52,7 +52,6 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
     private void checkIntrinsicCallFromBufferContext() {
         if (isIface(javaRefType())) {
             if (isIntrinsicCallFromBufferContext()) {
-                System.out.println("RETURN TYPE: " + resultType().toString());
                 klassNameForCustomType = resultType().toString();
 //                Value klassValue = this.operands().getFirst();
 //                if (klassValue instanceof Op.Result result) {

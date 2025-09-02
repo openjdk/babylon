@@ -58,16 +58,12 @@ public class PrivateArray {
                 myPrivateArray -> myPrivateArray
                         .array("array", 256));
 
-        static MyPrivateArray create(Accelerator accelerator, int length) {
-            return schema.allocate(accelerator, length);
+        static MyPrivateArray create(Accelerator accelerator) {
+            return schema.allocate(accelerator, 1);
         }
 
-        static <T extends Buffer> MyPrivateArray createPrivate(Class<T> klass, int length) {
-            return (MyPrivateArray) Buffer.createPrivate(klass, length);
-        }
-
-        static <T extends MyPrivateArray> MyPrivateArray createPrivate(int length) {
-            return Buffer.createPrivate(MyPrivateArray.class, length);
+        static <T extends MyPrivateArray> MyPrivateArray createPrivate(int size) {
+            return Buffer.createPrivate(MyPrivateArray.class);
         }
 
         static String schemaDescription() {
@@ -87,7 +83,7 @@ public class PrivateArray {
         //MyPrivateArray myPrivateArray = Buffer.createPrivate(MyPrivateArray.class, 18);
 
         // Alternatively, the user can create a new static method with the same signature
-        MyPrivateArray myPrivateArray = MyPrivateArray.createPrivate(18);
+        MyPrivateArray myPrivateArray = MyPrivateArray.createPrivate(1);
 
         myPrivateArray.array(0, kernelContext.gix);
         data.array(kernelContext.gix, myPrivateArray.array(0));

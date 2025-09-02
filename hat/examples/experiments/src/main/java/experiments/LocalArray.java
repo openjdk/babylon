@@ -58,18 +58,18 @@ public class LocalArray {
                         .pad(12)
                         .array("array"));
 
-        static MySharedArray create(Accelerator accelerator, int length) {
-            return schema.allocate(accelerator, length);
+        static MySharedArray create(Accelerator accelerator) {
+            return schema.allocate(accelerator, 1);
         }
 
-        static <T extends MySharedArray> MySharedArray createLocal(int length) {
-            return (T) Buffer.createLocal(MySharedArray.class, length);
+        static <T extends MySharedArray> MySharedArray createLocal(int size) {
+            return (T) Buffer.createLocal(MySharedArray.class);
         }
     }
 
     @CodeReflection
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-        MySharedArray mySharedArray = MySharedArray.createLocal(18);
+        MySharedArray mySharedArray = MySharedArray.createLocal(1);
         mySharedArray.array(0, kernelContext.lix);
         data.array(kernelContext.gix, mySharedArray.array(0));
     }

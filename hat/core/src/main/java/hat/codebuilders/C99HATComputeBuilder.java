@@ -53,7 +53,7 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
     }
 
     @Override
-    public T emitCastToLocal(String typeName, String varName,  String localVarS) {
+    public T emitCastToLocal(String typeName, String varName,  String localVarS, boolean isAPISimplified) {
         // TODO: What would emit a pure C99 backend?
         return self();
     }

@@ -32,8 +32,10 @@ import hat.GlobalMesh2D;
 import hat.KernelContext;
 import hat.LocalMesh2D;
 import hat.backend.Backend;
+import hat.buffer.Buffer;
 import hat.buffer.F32Array;
 
+import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 
 import java.util.Random;
@@ -109,12 +111,31 @@ public class Main {
         }
     }
 
+    private interface MyLocalArray extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+
+        Schema<MyLocalArray> schema = Schema.of(MyLocalArray.class,
+                myPrivateArray -> myPrivateArray
+                        .array("array", 256));
+
+        static MyLocalArray create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+
+        static <T extends Buffer> MyLocalArray createLocal(int size) {
+            return Buffer.createLocal(MyLocalArray.class);
+        }
+    }
+
     @CodeReflection
     public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
         final int tileSize = 16;
         F32Array tileA = kc.createLocalF32Array(256); // TODO: perform partial evaluation is we see constant operations (tileSize * tileSize)
         F32Array tileB = kc.createLocalF32Array(256);
+        //MyLocalArray tileA = MyLocalArray.createLocal(256);
+        //MyLocalArray tileB = MyLocalArray.createLocal(256);
 
         int groupIndexX = kc.bix;
         int groupIndexY = kc.biy;

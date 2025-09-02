@@ -112,7 +112,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder emitCastToLocal(String typeName, String varName, String localVarS) {
+    public OpenCLHATKernelBuilder emitCastToLocal(String typeName, String varName, String localVarS, boolean isAPISimplified) {
+        if (isAPISimplified) {
+            return localPtrPrefix().space()
+                    .suffix_t(typeName)
+                    .space()
+                    .identifier(varName);
+        }
         return localPtrPrefix().space()
                 .suffix_t(typeName)
                 .asterisk().space()
@@ -125,6 +131,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .asterisk()
                 .cparen()
                 .identifier(localVarS);
+
     }
 
     @Override

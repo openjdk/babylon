@@ -58,7 +58,10 @@ import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 
 import jdk.incubator.code.Op;
@@ -186,6 +189,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     record LocalArrayDeclaration(String typeStructName, String varName) {}
     private Stack<LocalArrayDeclaration> localArrayDeclarations = new Stack<>();
+    private Set<String> privateAndLocalTypes = new HashSet<>();
 
     @Override
     public T varDeclaration(CodeBuilderContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) {
@@ -198,6 +202,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             if (InvokeOpWrapper.isIfaceUsingLookup(buildContext.lookup(),javaType) && javaType instanceof ClassType classType) {
                 String typeName = extractClassType(buildContext, varDeclarationOpWrapper.javaType(), classType);
                 String variableName = varDeclarationOpWrapper.varName();
+                privateAndLocalTypes.add(variableName);
                 localArrayDeclarations.push(new LocalArrayDeclaration(typeName, variableName));
                 parencedence(buildContext, varDeclarationOpWrapper, varDeclarationOpWrapper.operandNAsResult(0).op());
             } else {
@@ -224,7 +229,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         } else {
             throw new IllegalStateException("What is this field load ?" + fieldLoadOpWrapper.fieldRef());
         }
-
         return self();
     }
 
@@ -635,37 +639,37 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         String varName = declaration.varName + "$private";
                         String typeStruct = declaration.typeStructName;
 
-                        var valueOperandSize = invokeOpWrapper.operands().getFirst();
-                        Integer size = obtainSize(valueOperandSize);
-                        if (size == null) {
-                            throw new IllegalStateException("size is null");
-                        }
-
-                        size += 1;
-
-                        // Private declaration
-                        emitText("float")
-                                .space()
-                                .emitText(varName)
-                                .emitText("[")
-                                .emitText(size.toString())
-                                .emitText("]")
-                                .semicolonNl();
+//                        var valueOperandSize = invokeOpWrapper.operands().getFirst();
+//                        Integer size = obtainSize(valueOperandSize);
+//                        if (size == null) {
+//                            throw new IllegalStateException("size is null");
+//                        }
+//
+//                        size += 1;
+//
+//                        // Private declaration
+//                        emitText("float")
+//                                .space()
+//                                .emitText(varName)
+//                                .emitText("[")
+//                                .emitText(size.toString())
+//                                .emitText("]")
+//                                .semicolonNl();
 
                         // Typecast
                         suffix_t(typeStruct)
                                 .space()
-                                .asterisk()
-                                .emitText(declaration.varName)
-                                .equals()
-                                .oparen()
-                                .suffix_t(typeStruct)
-                                .asterisk()
-                                .cparen()
-                                .space()
-                                .emitText(varName)
-                                .semicolon()
-                                .nl();
+                                //.asterisk()
+                                .emitText(declaration.varName).nl();
+                                //.equals()
+                                //.oparen()
+                                //.suffix_t(typeStruct)
+                                //.asterisk()
+                                //.cparen()
+                                //.space()
+                                //.emitText(varName)
+                                //.semicolon()
+                                //.nl();
 
                     } else if (name.startsWith("createLocal")) {
                         // simple declaration
@@ -674,19 +678,19 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         String varName = declaration.varName + "$shared";
                         String type = declaration.typeStructName;
 
-                        // Obtain the operands:
-                        List<Value> operands = invokeOpWrapper.operands();
-
-                        // Param 0 is the size
-                        if (operands.isEmpty()) {
-                            throw new IllegalStateException("create local array expect 2 parameter ");
-                        }
-                        Value constantOperand = operands.getFirst();
-                        int size = obtainSize(constantOperand);
-
-                        JavaType typeToGenerate = JavaType.FLOAT; // FIXME
-                        emitlocalArrayWithSize(varName, size, typeToGenerate);
-                        emitCastToLocal(declaration.typeStructName, declaration.varName, varName);
+//                        // Obtain the operands:
+//                        List<Value> operands = invokeOpWrapper.operands();
+//
+//                        // Param 0 is the size
+//                        if (operands.isEmpty()) {
+//                            throw new IllegalStateException("create local array expect 2 parameter ");
+//                        }
+//                        Value constantOperand = operands.getFirst();
+//                        int size = obtainSize(constantOperand);
+//
+//                        JavaType typeToGenerate = JavaType.FLOAT; // FIXME
+                        //emitlocalArrayWithSize(varName, size, typeToGenerate);
+                        emitCastToLocal(declaration.typeStructName, declaration.varName, varName, true);
 
                     } else {
 
@@ -699,8 +703,25 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
                      */
                         }
+
+                        OpWrapper<?> wrap = OpWrapper.wrap(buildContext.lookup(), instanceResult.op());
+                        boolean isLocal = false;
+                        if (wrap instanceof VarLoadOpWrapper varLoad) {
+                            CoreOp.VarOp resolve = buildContext.scope.resolve(varLoad.operandNAsValue(0));
+                            if (privateAndLocalTypes.contains(resolve.varName())) {
+                                isLocal = true;
+                            }
+                        }
+
                         recurse(buildContext, OpWrapper.wrap(buildContext.lookup(), instanceResult.op()));
-                        rarrow().identifier(name);
+
+                        if (!isLocal) {
+                            rarrow();
+                        } else {
+                            dot();
+                        }
+                        identifier(name);
+
                         //if (invokeOpWrapper.name().equals("value") || invokeOpWrapper.name().equals("anon")){
                         //System.out.println("value|anon");
                         // }
@@ -739,7 +760,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         }
                     }
                 } else {
-                    throw new IllegalStateException("arr");
+                    throw new IllegalStateException("[Illegal] Expected a parameter for the InvokOpWrapper Node");
                 }
             }
         } else {
@@ -786,9 +807,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
                 JavaType type = toJavaType(name);
                 emitlocalArrayWithSize(localVarS, size, type);
-                emitCastToLocal(declaration.typeStructName, declaration.varName, localVarS);
+                emitCastToLocal(declaration.typeStructName, declaration.varName, localVarS, false);
             } else {
-                emitText(" // Is it going here? why? ").nl();
                 // General case
                 identifier(name).paren(_ ->
                         commaSeparated(invokeOpWrapper.operands(), (op) -> {
@@ -815,7 +835,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return null;
     }
 
-    public abstract T emitCastToLocal(String typeName, String varName, String localVarS);
+    public abstract T emitCastToLocal(String typeName, String varName, String localVarS, boolean isAPISimplified);
 
     public abstract T emitlocalArrayWithSize(String localVarS, int size, JavaType type);
 

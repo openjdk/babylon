@@ -211,9 +211,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 clazz = Class.forName(klassName);
 
                 // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
-                Method method = clazz.getMethod("create", hat.Accelerator.class, int.class);
+                Method method = clazz.getMethod("create", hat.Accelerator.class);
                 method.setAccessible(true);
-                Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator, 1);
+                Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);
 
                 // code gen of the struct
                 BoundSchema<?> boundSchema = Buffer.getBoundSchema(invoke);
