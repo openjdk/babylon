@@ -66,6 +66,7 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
     public static  boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         return  OpTk.isAssignable(lookup,javaRefType(invokeOp), MappableIface.class) ;
     }
+
     public boolean isIfaceBufferMethod() {
         return  OpTk.isAssignable(lookup,javaRefType(), MappableIface.class) ;
     }

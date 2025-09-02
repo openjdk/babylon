@@ -33,7 +33,7 @@ public class IfOpWrapper extends StructuralOpWrapper<JavaOp.IfOp> {
     public IfOpWrapper(
             //MethodHandles.Lookup lookup,
             JavaOp.IfOp op) {
-        super(op);
+        super(op,false);
      //   this.lookup = lookup;
     }
 

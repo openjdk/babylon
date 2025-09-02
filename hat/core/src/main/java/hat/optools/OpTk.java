@@ -144,6 +144,21 @@ public class OpTk {
         return wrappedRootsExcludingVarFuncDeclarationsAndYields(lookup, op.bodies().get(2).entryBlock());
     }
 
+
+    public static Stream<Op> loopRootOpStream(MethodHandles.Lookup lookup, Op.Loop op) {
+        var list = new ArrayList<>(rootsExcludingVarFuncDeclarationsAndYields( op.loopBody().entryBlock()).toList());
+        if (list.getLast() instanceof JavaOp.ContinueOp) {
+            list.removeLast();
+        }
+        return list.stream();
+    }
+
+
+    public static Stream<Op> mutateRootOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
+        return rootsExcludingVarFuncDeclarationsAndYields( op.bodies().get(2).entryBlock());
+    }
+
+
     public static Stream<OpWrapper<?>> thenWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ConditionalExpressionOp op) {
         return op.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
     }
@@ -303,7 +318,9 @@ public class OpTk {
     public static Stream<OpWrapper<?>> wrappedRootOpStream(MethodHandles.Lookup lookup, CoreOp.FuncOp op) {
         return wrappedRootsExcludingVarFuncDeclarationsAndYields(lookup, op.bodies().getFirst().entryBlock());
     }
-
+    public static Stream<Op> rootOpStream(MethodHandles.Lookup lookup, CoreOp.FuncOp op) {
+        return rootsExcludingVarFuncDeclarationsAndYields(op.bodies().getFirst().entryBlock());
+    }
     public static CoreOp.FuncOp transformInvokes(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, WrappedInvokeOpTransformer wrappedOpTransformer) {
         return funcOp.transform((b, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -451,5 +468,17 @@ public class OpTk {
         return !varOp.isUninitialized()
                 && varOp.operands().getFirst() instanceof Block.Parameter parameter
                 && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp ? new ParamVar(varOp, parameter, funcOp) : null;
+    }
+
+    public static boolean isStructural(Op op){
+        return switch (op){
+            case JavaOp.ForOp _ -> true;
+            case JavaOp.WhileOp _ -> true;
+            case JavaOp.IfOp _ -> true;
+            case JavaOp.LabeledOp _ ->true;
+            case JavaOp.YieldOp _ ->true;
+            case CoreOp.TupleOp _ ->true;
+            default -> false;
+        };
     }
 }

@@ -31,7 +31,7 @@ import java.lang.invoke.MethodHandles;
 
 public class TupleOpWrapper extends StructuralOpWrapper<CoreOp.TupleOp> {
     public TupleOpWrapper( CoreOp.TupleOp op) {
-        super(op);
+        super(op,false);
     }
 
 }

@@ -119,7 +119,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder atomicInc(HATCodeBuilderContext buildContext, Op.Result instanceResult, String name){
         return identifier("atomicAdd").paren(_ -> {
-             ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup,instanceResult.op()));
+             ampersand().recurse(buildContext, instanceResult.op());
              rarrow().identifier(name).comma().literal(1);
         });
     }

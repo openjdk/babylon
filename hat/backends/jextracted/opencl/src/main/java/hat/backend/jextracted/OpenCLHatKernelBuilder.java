@@ -96,7 +96,7 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     @Override
     public OpenCLHatKernelBuilder atomicInc(HATCodeBuilderContext buildContext, Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ -> {
-              ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup,instanceResult.op()));
+              ampersand().recurse(buildContext, instanceResult.op());
               rarrow().identifier(name);
           });
     }

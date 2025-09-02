@@ -25,12 +25,15 @@
 package hat.optools;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 
 public abstract class StructuralOpWrapper<T extends Op> extends OpWrapper<T> {
-    StructuralOpWrapper(T op) {
+    StructuralOpWrapper(T op,boolean b) {
         super(op);
 
     }
+
+
 }

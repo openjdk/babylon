@@ -30,6 +30,6 @@ import java.lang.invoke.MethodHandles;
 
 public class YieldOpWrapper extends StructuralOpWrapper<CoreOp.YieldOp> {
     public YieldOpWrapper(CoreOp.YieldOp op) {
-        super(op);
+        super(op, false);
     }
 }

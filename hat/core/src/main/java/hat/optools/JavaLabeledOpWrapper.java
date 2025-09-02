@@ -30,7 +30,7 @@ import java.lang.invoke.MethodHandles;
 
 public class JavaLabeledOpWrapper extends StructuralOpWrapper<JavaOp.LabeledOp> {
     public JavaLabeledOpWrapper(JavaOp.LabeledOp op) {
-        super(op);
+        super(op, false);
     }
 
 }

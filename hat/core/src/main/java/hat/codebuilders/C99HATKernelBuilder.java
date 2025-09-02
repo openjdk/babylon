@@ -199,7 +199,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
             braceNlIndented(_ -> {
                 StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                        nlIf(c.isNotFirst()).recurse(buildContext, root.op).semicolonIf(!OpTk.isStructural(root.op))
                 );
             });
         });
@@ -221,7 +221,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
             braceNlIndented(_ -> {
                 StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                        nlIf(c.isNotFirst()).recurse(buildContext, root.op).semicolonIf(!OpTk.isStructural(root.op))
                 );
             });
         });
@@ -253,7 +253,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             braceNlIndented(_ -> {
                 scope();
                 StreamCounter.of(OpTk.wrappedRootOpStream(buildContext.lookup,buildContext.funcOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>))
+                        nlIf(c.isNotFirst()).recurse(buildContext, root.op).semicolonIf(!OpTk.isStructural(root.op))
                 );
             });
         });

@@ -31,6 +31,6 @@ import java.util.stream.Stream;
 
 public abstract class LoopOpWrapper<T extends Op> extends StructuralOpWrapper<T> {
     LoopOpWrapper(T op ) {
-        super(op);
+        super(op, false);
     }
 }

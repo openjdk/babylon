@@ -40,6 +40,7 @@ import hat.optools.JavaContinueOpWrapper;
 import hat.optools.JavaLabeledOpWrapper;
 import hat.optools.LambdaOpWrapper;
 import hat.optools.LogicalOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 import hat.optools.ReturnOpWrapper;
 import hat.optools.TernaryOpWrapper;
@@ -279,97 +280,99 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     public  interface CodeBuilderInterface<T extends HATCodeBuilderWithContext<?>> {
 
 
-         T varLoad(HATCodeBuilderContext buildContext, VarLoadOpWrapper varAccessOpWrapper);
+         T varLoad(HATCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp);
 
-         T varStore(HATCodeBuilderContext buildContext, VarStoreOpWrapper varAccessOpWrapper);
+         T varStore(HATCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp);
 
-        // public T var(BuildContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) ;
 
-         T varDeclaration(HATCodeBuilderContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper);
+         T varDeclaration(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp);
 
-         T varFuncDeclaration(HATCodeBuilderContext buildContext, VarFuncDeclarationOpWrapper varFuncDeclarationOpWrapper);
+         T varFuncDeclaration(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp);
 
-         T fieldLoad(HATCodeBuilderContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper);
+         T fieldLoad(HATCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp);
 
-         T fieldStore(HATCodeBuilderContext buildContext, FieldStoreOpWrapper fieldStoreOpWrapper);
+         T fieldStore(HATCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp);
 
         T unaryOperation(HATCodeBuilderContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper);
 
 
-        T binaryOperation(HATCodeBuilderContext buildContext, BinaryArithmeticOrLogicOperation binaryOperatorOpWrapper);
+        T binaryOperation(HATCodeBuilderContext buildContext, Op binaryOp);
 
-        T logical(HATCodeBuilderContext buildContext, LogicalOpWrapper logicalOpWrapper);
+        T logical(HATCodeBuilderContext buildContext, JavaOp.JavaConditionalOp logicalOp);
 
-        T binaryTest(HATCodeBuilderContext buildContext, BinaryTestOpWrapper binaryTestOpWrapper);
+        T binaryTest(HATCodeBuilderContext buildContext, Op binaryTestOp);
 
-        T conv(HATCodeBuilderContext buildContext, ConvOpWrapper convOpWrapper);
+        T conv(HATCodeBuilderContext buildContext, JavaOp.ConvOp convOp);
 
 
-        T constant(HATCodeBuilderContext buildContext, ConstantOpWrapper constantOpWrapper);
+        T constant(HATCodeBuilderContext buildContext, CoreOp.ConstantOp constantOp);
 
-        T javaYield(HATCodeBuilderContext buildContext, YieldOpWrapper yieldOpWrapper);
+        T javaYield(HATCodeBuilderContext buildContext, CoreOp.YieldOp yieldOp);
 
-        T lambda(HATCodeBuilderContext buildContext, LambdaOpWrapper lambdaOpWrapper);
+        T lambda(HATCodeBuilderContext buildContext, JavaOp.LambdaOp lambdaOp);
 
-        T tuple(HATCodeBuilderContext buildContext, TupleOpWrapper lambdaOpWrapper);
+        T tuple(HATCodeBuilderContext buildContext, CoreOp.TupleOp tupleOp);
 
-        T funcCall(HATCodeBuilderContext buildContext, FuncCallOpWrapper funcCallOpWrapper);
+        T funcCall(HATCodeBuilderContext buildContext, CoreOp.FuncCallOp funcCallOp);
 
         T javaIf(HATCodeBuilderContext buildContext, JavaOp.IfOp ifOp);
 
-        T javaWhile(HATCodeBuilderContext buildContext, WhileOpWrapper whileOpWrapper);
+        T javaWhile(HATCodeBuilderContext buildContext, JavaOp.WhileOp whileOp);
 
-        T javaLabeled(HATCodeBuilderContext buildContext, JavaLabeledOpWrapper javaLabeledOpWrapperOp);
+        T javaLabeled(HATCodeBuilderContext buildContext, JavaOp.LabeledOp labeledOp);
 
-        T javaContinue(HATCodeBuilderContext buildContext, JavaContinueOpWrapper javaContinueOpWrapper);
+        T javaContinue(HATCodeBuilderContext buildContext, JavaOp.ContinueOp continueOp);
 
-        T javaBreak(HATCodeBuilderContext buildContext, JavaBreakOpWrapper javaBreakOpWrapper);
+        T javaBreak(HATCodeBuilderContext buildContext, JavaOp.BreakOp breakOp);
 
         T javaFor(HATCodeBuilderContext buildContext, JavaOp.ForOp forOp);
 
 
-         T methodCall(HATCodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper);
+         T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp);
 
-         T ternary(HATCodeBuilderContext buildContext, TernaryOpWrapper ternaryOpWrapper);
-
-         T parencedence(HATCodeBuilderContext buildContext, Op parent, OpWrapper<?> child);
-
-         T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
+         T ternary(HATCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp);
 
          T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
 
-         T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, Op child);
+       //  T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
 
-         T ret(HATCodeBuilderContext buildContext, ReturnOpWrapper returnOpWrapper);
+        // T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
 
-        default T recurse(HATCodeBuilderContext buildContext, OpWrapper<?> wrappedOp) {
-            switch (wrappedOp) {
-                case VarLoadOpWrapper $ -> varLoad(buildContext, $);
-                case VarStoreOpWrapper $ -> varStore(buildContext, $);
-                case FieldLoadOpWrapper $ -> fieldLoad(buildContext, $);
-                case FieldStoreOpWrapper $ -> fieldStore(buildContext, $);
-                case BinaryArithmeticOrLogicOperation $ -> binaryOperation(buildContext, $);
-                case UnaryArithmeticOrLogicOpWrapper $ -> unaryOperation(buildContext, $);
-                case BinaryTestOpWrapper $ -> binaryTest(buildContext, $);
-                case ConvOpWrapper $ -> conv(buildContext, $);
-                case ConstantOpWrapper $ -> constant(buildContext, $);
-                case YieldOpWrapper $ -> javaYield(buildContext, $);
-                case FuncCallOpWrapper $ -> funcCall(buildContext, $);
-                case LogicalOpWrapper $ -> logical(buildContext, $);
-                case InvokeOpWrapper $ -> methodCall(buildContext, $);
-                case TernaryOpWrapper $ -> ternary(buildContext, $);
-                case VarDeclarationOpWrapper $ -> varDeclaration(buildContext, $);
-                case VarFuncDeclarationOpWrapper $ -> varFuncDeclaration(buildContext, $);
-                case LambdaOpWrapper $ -> lambda(buildContext, $);
-                case TupleOpWrapper $ -> tuple(buildContext, $);
-                case WhileOpWrapper $ -> javaWhile(buildContext, $);
-                case IfOpWrapper $ -> javaIf(buildContext, $.op);
-                case ForOpWrapper $ -> javaFor(buildContext, $.op);
-                case ReturnOpWrapper $ -> ret(buildContext, $);
-                case JavaLabeledOpWrapper $ -> javaLabeled(buildContext, $);
-                case JavaBreakOpWrapper $ -> javaBreak(buildContext, $);
-                case JavaContinueOpWrapper $ -> javaContinue(buildContext, $);
-                default -> throw new IllegalStateException("handle nesting of op " + wrappedOp.op);
+        // T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
+
+         T ret(HATCodeBuilderContext buildContext, CoreOp.ReturnOp returnOp);
+
+        default T recurse(HATCodeBuilderContext buildContext, Op op) {
+            switch (op) {
+                case CoreOp.VarAccessOp.VarLoadOp $ -> varLoad(buildContext, $);
+                case CoreOp.VarAccessOp.VarStoreOp $ -> varStore(buildContext, $);
+                case JavaOp.FieldAccessOp.FieldLoadOp $ -> fieldLoad(buildContext, $);
+                case JavaOp.FieldAccessOp.FieldStoreOp $ -> fieldStore(buildContext, $);
+
+
+
+                case JavaOp.ConvOp $ -> conv(buildContext, $);
+                case CoreOp.ConstantOp $ -> constant(buildContext, $);
+                case CoreOp.YieldOp $ -> javaYield(buildContext, $);
+                case CoreOp.FuncCallOp $ -> funcCall(buildContext, $);
+                case JavaOp.InvokeOp $ -> methodCall(buildContext, $);
+                case JavaOp.ConditionalExpressionOp $ -> ternary(buildContext, $);
+                case CoreOp.VarOp $ when OpTk.paramVar($) != null -> varFuncDeclaration(buildContext, $);
+                case CoreOp.VarOp $ -> varDeclaration(buildContext, $);
+                case JavaOp.LambdaOp $ -> lambda(buildContext, $);
+                case CoreOp.TupleOp $ -> tuple(buildContext, $);
+                case JavaOp.WhileOp $ -> javaWhile(buildContext, $);
+                case JavaOp.IfOp $ -> javaIf(buildContext, $);
+                case JavaOp.ForOp $ -> javaFor(buildContext, $);
+                case CoreOp.ReturnOp $ -> ret(buildContext, $);
+                case JavaOp.LabeledOp $ -> javaLabeled(buildContext, $);
+                case JavaOp.BreakOp $ -> javaBreak(buildContext, $);
+                case JavaOp.ContinueOp $ -> javaContinue(buildContext, $);
+                case JavaOp.BinaryTestOp $ -> binaryTest(buildContext, $);
+                case JavaOp.BinaryOp $ -> binaryOperation(buildContext, $);
+                case JavaOp.JavaConditionalOp $ -> logical(buildContext, $);
+                // case UnaryArithmeticOrLogicOpWrapper $ -> unaryOperation(buildContext, $);
+                default -> throw new IllegalStateException("handle nesting of op " + op);
             }
             return (T) this;
         }
