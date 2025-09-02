@@ -30,11 +30,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import java.lang.invoke.MethodHandles;
 
 public class ConvOpWrapper extends UnaryOpWrapper<JavaOp.ConvOp> {
-    public ConvOpWrapper( MethodHandles.Lookup lookup,JavaOp.ConvOp op) {
-        super(lookup,op);
-    }
-
-    public JavaType resultJavaType() {
-        return (JavaType) op().resultType();
+    public ConvOpWrapper( JavaOp.ConvOp op) {
+        super(op);
     }
 }

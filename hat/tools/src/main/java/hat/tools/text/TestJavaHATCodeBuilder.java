@@ -78,7 +78,7 @@ public class TestJavaHATCodeBuilder {
         Method method = Compute.class.getDeclaredMethod(methodName,
                 KernelContext.class, S32Array2D.class, S32Array.class, float.class, float.class,float.class);
         CoreOp.FuncOp javaFunc = Op.ofMethod(method).get();
-        builder.compute(OpWrapper.wrap(lookup,javaFunc));
+        builder.compute(lookup,javaFunc);
         System.out.println(builder.toString());
     }
 }

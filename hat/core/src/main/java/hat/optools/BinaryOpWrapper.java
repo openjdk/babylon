@@ -29,16 +29,8 @@ import jdk.incubator.code.Op;
 import java.lang.invoke.MethodHandles;
 
 public abstract class BinaryOpWrapper<T extends Op> extends OpWrapper<T> {
-    BinaryOpWrapper( MethodHandles.Lookup lookup,T op) {
-        super(lookup, op);
-    }
-
-    public Op lhsAsOp() {
-        return operandNAsResult(0).op();
-    }
-
-    public Op rhsAsOp() {
-        return operandNAsResult(1).op();
+    BinaryOpWrapper(T op) {
+        super( op);
     }
 
 

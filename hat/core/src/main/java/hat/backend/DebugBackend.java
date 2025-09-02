@@ -25,18 +25,18 @@
 package hat.backend;
 
 import hat.ComputeContext;
-import hat.OpsAndTypes;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
-import java.lang.invoke.MethodHandles;
+
 import java.lang.reflect.InvocationTargetException;
+
+import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.interpreter.Interpreter;
 
 public class DebugBackend extends BackendAdaptor {
@@ -67,22 +67,22 @@ public class DebugBackend extends BackendAdaptor {
             }
             case BABYLON_INTERPRETER:{
                 if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-                    computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
+                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOp());
                 }
-                Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op(), args);
+                Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
                 if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-                    computeContext.computeCallGraph.entrypoint.lowered = computeContext.computeCallGraph.entrypoint.funcOpWrapper().lower();
+                    computeContext.computeCallGraph.entrypoint.lowered = OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOp());
                 }
                 try {
                     if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                        computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered.op());
+                        computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered);
                     }
                     computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
                 } catch (Throwable e) {
-                    System.out.println(computeContext.computeCallGraph.entrypoint.lowered.op().toText());
+                    System.out.println(computeContext.computeCallGraph.entrypoint.lowered.toText());
                     throw new RuntimeException(e);
                 }
                 break;
@@ -109,13 +109,13 @@ public class DebugBackend extends BackendAdaptor {
                 break;
             }
             case BABYLON_INTERPRETER:{
-                var lowered = kernelCallGraph.entrypoint.funcOpWrapper().lower();
-                Interpreter.invoke(kernelCallGraph.computeContext.accelerator.lookup, lowered.op(), args);
+                var lowered = OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp());
+                Interpreter.invoke(kernelCallGraph.computeContext.accelerator.lookup, lowered, args);
                 break;
             }
             case BABYLON_CLASSFILE:{
-                var lowered = kernelCallGraph.entrypoint.funcOpWrapper().lower();
-                var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, lowered.op());
+                var lowered = OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp());
+                var mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, lowered);
                 try {
                     mh.invokeWithArguments(args);
                 } catch (Throwable e) {
@@ -158,7 +158,7 @@ public class DebugBackend extends BackendAdaptor {
                 System.out.println("SSA form which maintains original invokes and args");
                 System.out.println(ssaInvokeForm.toText());
                 System.out.println("------------------");
-
+/*
                 FunctionType functionType = OpsAndTypes.transformTypes(kernelCallGraph.computeContext.accelerator.lookup, ssaInvokeForm);
                 System.out.println("SSA form with types transformed args");
                 System.out.println(ssaInvokeForm.toText());
@@ -166,7 +166,7 @@ public class DebugBackend extends BackendAdaptor {
 
                 CoreOp.FuncOp ssaPtrForm = OpsAndTypes.transformInvokesToPtrs(kernelCallGraph.computeContext.accelerator.lookup, ssaInvokeForm, functionType);
                 System.out.println("SSA form with invokes replaced by ptrs");
-                System.out.println(ssaPtrForm.toText());
+                System.out.println(ssaPtrForm.toText()); */
             }
         }
     }

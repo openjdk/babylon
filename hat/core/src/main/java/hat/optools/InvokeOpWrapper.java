@@ -32,6 +32,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
 import jdk.incubator.code.Op;
+import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -45,14 +46,17 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
 
     private String klassNameForCustomType;
 
+     final public MethodHandles.Lookup lookup;
     public InvokeOpWrapper( MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
-        super(lookup,op);
+        super(op);
+        this.lookup=lookup;
         checkIntrinsicCallFromBufferContext();
     }
+
     private void checkIntrinsicCallFromBufferContext() {
-        if (isIface(javaRefType())) {
+        if (isIfaceBufferMethod()) {
             if (isIntrinsicCallFromBufferContext()) {
-                klassNameForCustomType = resultType().toString();
+                klassNameForCustomType = op.resultType().toString();
 //                Value klassValue = this.operands().getFirst();
 //                if (klassValue instanceof Op.Result result) {
 //                    if (result.op() instanceof CoreOp.ConstantOp constant) {
@@ -66,104 +70,82 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
     }
 
     private boolean isIntrinsicCallFromBufferContext() {
-        return methodRef().name().equals("createPrivate")
-                || methodRef().name().equals("createLocal");
+        return methodRef(op).name().equals("createPrivate")
+                || methodRef(op).name().equals("createLocal");
     }
 
     public String klassNameForCustomType() {
         return klassNameForCustomType;
     }
 
+    public static  MethodRef methodRef(JavaOp.InvokeOp op) {
+        return op.invokeDescriptor();
+    }
+
+    public static JavaType javaRefType(JavaOp.InvokeOp op) {
+        return (JavaType) methodRef(op).refType();
+    }
+
+
     public MethodRef methodRef() {
-        return op().invokeDescriptor();
+        return methodRef(op);
     }
 
     public JavaType javaRefType() {
-        return (JavaType) methodRef().refType();
+        return javaRefType(op);
     }
-
+    public static  boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+        return  OpTk.isAssignable(lookup,javaRefType(invokeOp), MappableIface.class) ;
+    }
     public boolean isIfaceBufferMethod() {
-        return isIface(javaRefType());
+        return  OpTk.isAssignable(lookup,javaRefType(), MappableIface.class) ;
     }
 
     public boolean isRawKernelCall() {
-        return (operandCount() > 1 && operandNAsValue(0) instanceof Value value
+        return (op.operands().size() > 1 && op.operands().getFirst() instanceof Value value
                 && value.type() instanceof JavaType javaType
-                && (isAssignable(javaType, hat.KernelContext.class) || isAssignable(javaType, KernelContext.class))
+                && (OpTk.isAssignable(lookup,javaType, hat.KernelContext.class) || OpTk.isAssignable(lookup,javaType, KernelContext.class))
         );
     }
 
-    public boolean isKernelContextMethod() {
-        return isAssignable(javaRefType(), KernelContext.class);
-    }
-
     public boolean isComputeContextMethod() {
-        return isAssignable(javaRefType(), ComputeContext.class);
-
+        return OpTk.isAssignable(lookup,javaRefType(), ComputeContext.class);
     }
 
-    private boolean isReturnTypeAssignableFrom(Class<?> clazz) {
-        Optional<Class<?>> optionalClazz = javaReturnClass();
-        return optionalClazz.isPresent() && clazz.isAssignableFrom(optionalClazz.get());
+    public static JavaType javaReturnType(JavaOp.InvokeOp op) {
+        return (JavaType) methodRef(op).type().returnType();
     }
 
     public JavaType javaReturnType() {
-        return (JavaType) methodRef().type().returnType();
+        return javaReturnType(op);
     }
 
-    public boolean returnsVoid() {
-        return javaReturnType().equals(JavaType.VOID);
-    }
-/*
-    public Method methodNoLookup() {
-        Class<?> declaringClass = javaRefClass().orElseThrow();
-        // TODO this is just matching the name....
-        Optional<Method> declaredMethod = Stream.of(declaringClass.getDeclaredMethods())
-                .filter(method -> method.getName().equals(methodRef().name()))
-                .findFirst();
-        if (declaredMethod.isPresent()) {
-            return declaredMethod.get();
-        }
-        Optional<Method> nonDeclaredMethod = Stream.of(declaringClass.getMethods())
-                .filter(method -> method.getName().equals(methodRef().name()))
-                .findFirst();
-        if (nonDeclaredMethod.isPresent()) {
-            return nonDeclaredMethod.get();
-        } else {
-            throw new IllegalStateException("what were we looking for ?"); // getClass causes this
-        }
-    } */
-    public Method method() {
-        Method invokedMethod = null;
+    public static Method method(MethodHandles.Lookup lookup,JavaOp.InvokeOp op ) {
         try {
-            return methodRef().resolveToMethod(lookup, op().invokeKind());
-          //  MethodRef methodRef = methodRef();
-         //   return invokedMethod;
+            return methodRef(op).resolveToMethod(lookup, op.invokeKind());
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public Value getReceiver() {
-        return hasReceiver() ? operandNAsValue(0) : null;
+    public Method method() {
+        return method(lookup,op);
     }
 
-    public boolean hasReceiver() {
-        return op().hasReceiver();
-    }
 
     public enum IfaceBufferAccess {None, Access, Mutate}
 
     public boolean isIfaceAccessor() {
-        if (isIfaceBufferMethod() && !returnsVoid()) {
-            return !isReturnTypeAssignableFrom(Buffer.class);
+        if (isIfaceBufferMethod() && !javaReturnType().equals(JavaType.VOID)) {
+            Optional<Class<?>> optionalClazz = javaReturnClass();
+            return optionalClazz.isPresent() && Buffer.class.isAssignableFrom(optionalClazz.get());
         } else {
             return false;
         }
     }
 
     public boolean isIfaceMutator() {
-        return isIfaceBufferMethod() && returnsVoid();
+        return isIfaceBufferMethod() && javaReturnType().equals(JavaType.VOID);
     }
 
     public IfaceBufferAccess getIfaceBufferAccess() {
@@ -171,23 +153,27 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
     }
 
     public String name() {
-        return op().invokeDescriptor().name();
+        return op.invokeDescriptor().name();
     }
 
+    public static Optional<Class<?>> javaRefClass(MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
+        if (javaRefType(op) instanceof ClassType classType) {
+            return Optional.of((Class<?>) OpTk.classTypeToType(lookup,classType));
+        }else{
+            return Optional.empty();
+        }
+    }
     public Optional<Class<?>> javaRefClass() {
-        if (javaRefType() instanceof ClassType classType) {
-            return Optional.of((Class<?>)classTypeToType(classType));
+       return javaRefClass(lookup,op);
+    }
+    public static Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
+        if (javaReturnType(op) instanceof ClassType classType) {
+            return Optional.of((Class<?>) OpTk.classTypeToType(lookup,classType));
         }else{
             return Optional.empty();
         }
     }
-
     public Optional<Class<?>> javaReturnClass() {
-        if (javaReturnType() instanceof ClassType classType) {
-            return Optional.of((Class<?>)classTypeToType(classType));
-        }else{
-            return Optional.empty();
-        }
+        return javaReturnClass(lookup,op);
     }
-
 }

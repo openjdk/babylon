@@ -28,33 +28,33 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.buffer.Buffer;
-import hat.optools.FuncOpWrapper;
+import hat.ifacemapper.MappableIface;
 import hat.optools.InvokeOpWrapper;
-import hat.optools.ModuleOpWrapper;
-import hat.optools.OpWrapper;
-import hat.util.Result;
+import hat.optools.OpTk;
+import hat.util.StreamMutable;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.util.*;
-import java.util.stream.Stream;
 
 public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
-    boolean moduleOp = Boolean.getBoolean("moduleOp");
+
     ComputeContextMethodCall computeContextMethodCall;
 
     public interface ComputeReachable {
     }
 
     public abstract static class ComputeReachableResolvedMethodCall extends ResolvedMethodCall implements ComputeReachable {
-        public ComputeReachableResolvedMethodCall(CallGraph<ComputeEntrypoint> callGraph, MethodRef targetMethodRef, Method method, FuncOpWrapper funcOpWrapper) {
-            super(callGraph, targetMethodRef, method, funcOpWrapper);
+        public ComputeReachableResolvedMethodCall(CallGraph<ComputeEntrypoint> callGraph, MethodRef targetMethodRef, Method method, CoreOp.FuncOp funcOp) {
+            super(callGraph, targetMethodRef, method, funcOp);
         }
     }
 
@@ -83,29 +83,30 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     public static class OtherComputeReachableResolvedMethodCall extends ComputeReachableResolvedMethodCall {
-        OtherComputeReachableResolvedMethodCall(CallGraph<ComputeEntrypoint> callGraph, MethodRef targetMethodRef, Method method, FuncOpWrapper funcOpWrapper) {
-            super(callGraph, targetMethodRef, method, funcOpWrapper);
+        OtherComputeReachableResolvedMethodCall(CallGraph<ComputeEntrypoint> callGraph, MethodRef targetMethodRef, Method method, CoreOp.FuncOp funcOp) {
+            super(callGraph, targetMethodRef, method, funcOp);
         }
     }
 
-    static boolean isKernelDispatch(Method calledMethod, FuncOpWrapper fow) {
-        if (fow.getReturnType().equals(JavaType.VOID)) {
+    static boolean isKernelDispatch(MethodHandles.Lookup lookup,Method calledMethod, CoreOp.FuncOp fow) {
+        if (fow.body().yieldType().equals(JavaType.VOID)) {
             if (calledMethod.getParameterTypes() instanceof Class<?>[] parameterTypes && parameterTypes.length > 1) {
                 // We check that the proposed kernel first arg is an KernelContext and
                 // the only other args are primitive or ifacebuffers
-                var firstArgIsKid = new Result<>(false);
-                var atLeastOneIfaceBufferParam = new Result<>(false);
-                var hasOnlyPrimitiveAndIfaceBufferParams = new Result<Boolean>(true);
-                fow.paramTable().stream().forEach(paramInfo -> {
+                var firstArgIsKid = StreamMutable.of(false);
+                var atLeastOneIfaceBufferParam = StreamMutable.of(false);
+                var hasOnlyPrimitiveAndIfaceBufferParams = StreamMutable.of(true);
+                OpTk.ParamTable paramTable = new OpTk.ParamTable(fow);
+                paramTable.stream().forEach(paramInfo -> {
                     if (paramInfo.idx == 0) {
-                        firstArgIsKid.of(parameterTypes[0].isAssignableFrom(KernelContext.class));
+                        firstArgIsKid.set(parameterTypes[0].isAssignableFrom(KernelContext.class));
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
-                        } else if (InvokeOpWrapper.isIfaceUsingLookup(fow.lookup, paramInfo.javaType)) {
-                            atLeastOneIfaceBufferParam.of(true);
+                        } else if (OpTk.isAssignable(lookup,paramInfo.javaType, MappableIface.class)){
+                            atLeastOneIfaceBufferParam.set(true);
                         } else {
-                            hasOnlyPrimitiveAndIfaceBufferParams.of(false);
+                            hasOnlyPrimitiveAndIfaceBufferParams.set(false);
                         }
                     }
                 });
@@ -119,12 +120,9 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     public final Map<MethodRef, KernelCallGraph> kernelCallGraphMap = new HashMap<>();
 
-    public Stream<KernelCallGraph> kernelCallGraphStream() {
-        return kernelCallGraphMap.values().stream();
-    }
 
-    public ComputeCallGraph(ComputeContext computeContext, Method method, FuncOpWrapper funcOpWrapper) {
-        super(computeContext, new ComputeEntrypoint(null, method, funcOpWrapper));
+    public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp funcOp) {
+        super(computeContext, new ComputeEntrypoint(null, method, funcOp));
         entrypoint.callGraph = this;
     }
 
@@ -147,57 +145,61 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
          * 5) References to the dispatched kernels
          *    a) We must also have the code models for these and must extend the dag to include these.
          */
+        MethodHandles.Lookup lookup =  computeReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup;
+        computeReachableResolvedMethodCall.funcOp().traverse(null, (map, op) -> {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
+                MethodRef methodRef = InvokeOpWrapper.methodRef(invokeOp);
 
-        computeReachableResolvedMethodCall.funcOpWrapper().selectCalls((invokeWrapper) -> {
-            MethodRef methodRef = invokeWrapper.methodRef();
-            Class<?> javaRefClass = invokeWrapper.javaRefClass().orElseThrow();
-            Method invokeWrapperCalledMethod = invokeWrapper.method();
-            if (Buffer.class.isAssignableFrom(javaRefClass)) {
-                // System.out.println("iface mapped buffer call  -> " + methodRef);
-                computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                        new ComputeReachableIfaceMappedMethodCall(this, methodRef, invokeWrapperCalledMethod)
-                ));
-            } else if (Accelerator.class.isAssignableFrom(javaRefClass)) {
-                // System.out.println("call on the accelerator (must be through the computeContext) -> " + methodRef);
-                computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                        new ComputeReachableAcceleratorMethodCall(this, methodRef, invokeWrapperCalledMethod)
-                ));
+                Class<?> javaRefClass = InvokeOpWrapper.javaRefClass(lookup,invokeOp).orElseThrow();
+                Method invokeWrapperCalledMethod = InvokeOpWrapper.method(lookup,invokeOp);
+                if (Buffer.class.isAssignableFrom(javaRefClass)) {
+                    // System.out.println("iface mapped buffer call  -> " + methodRef);
+                    computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                            new ComputeReachableIfaceMappedMethodCall(this, methodRef, invokeWrapperCalledMethod)
+                    ));
+                } else if (Accelerator.class.isAssignableFrom(javaRefClass)) {
+                    // System.out.println("call on the accelerator (must be through the computeContext) -> " + methodRef);
+                    computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                            new ComputeReachableAcceleratorMethodCall(this, methodRef, invokeWrapperCalledMethod)
+                    ));
 
-            } else if (ComputeContext.class.isAssignableFrom(javaRefClass)) {
-                // System.out.println("call on the computecontext -> " + methodRef);
-                computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                        new ComputeContextMethodCall(this, methodRef, invokeWrapperCalledMethod)
-                ));
-            } else if (entrypoint.method.getDeclaringClass().equals(javaRefClass)) {
-                Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeWrapperCalledMethod);
-                if (optionalFuncOp.isPresent()) {
-                    FuncOpWrapper fow = OpWrapper.wrap(computeContext.accelerator.lookup, optionalFuncOp.get());
-                    if (isKernelDispatch(invokeWrapperCalledMethod, fow)) {
-                        // System.out.println("A kernel reference (not a direct call) to a kernel " + methodRef);
-                        kernelCallGraphMap.computeIfAbsent(methodRef, _ ->
-                                new KernelCallGraph(this, methodRef, invokeWrapperCalledMethod, fow).close()
-                        );
+                } else if (ComputeContext.class.isAssignableFrom(javaRefClass)) {
+                    // System.out.println("call on the computecontext -> " + methodRef);
+                    computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                            new ComputeContextMethodCall(this, methodRef, invokeWrapperCalledMethod)
+                    ));
+                } else if (entrypoint.method.getDeclaringClass().equals(javaRefClass)) {
+                    Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeWrapperCalledMethod);
+                    if (optionalFuncOp.isPresent()) {
+                        CoreOp.FuncOp fow = optionalFuncOp.get();//OpWrapper.wrap(computeContext.accelerator.lookup, optionalFuncOp.get());
+                        if (isKernelDispatch(lookup,invokeWrapperCalledMethod, fow)) {
+                            // System.out.println("A kernel reference (not a direct call) to a kernel " + methodRef);
+                            kernelCallGraphMap.computeIfAbsent(methodRef, _ ->
+                                    new KernelCallGraph(this, methodRef, invokeWrapperCalledMethod, fow).close()
+                            );
+                        } else {
+                            // System.out.println("A call to a method on the compute class which we have code model for " + methodRef);
+                            computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
+                                    new OtherComputeReachableResolvedMethodCall(this, methodRef, invokeWrapperCalledMethod, fow)
+                            ));
+                        }
                     } else {
-                        // System.out.println("A call to a method on the compute class which we have code model for " + methodRef);
+                        //  System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
                         computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                                new OtherComputeReachableResolvedMethodCall(this, methodRef, invokeWrapperCalledMethod, fow)
+                                new ComputeReachableUnresolvedMethodCall(this, methodRef, invokeWrapperCalledMethod)
                         ));
                     }
                 } else {
-                    //  System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
+                    //TODO what about ifacenestings?
+                    // System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
                     computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
                             new ComputeReachableUnresolvedMethodCall(this, methodRef, invokeWrapperCalledMethod)
                     ));
                 }
-            } else {
-                //TODO what about ifacenestings?
-                // System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
-                computeReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                        new ComputeReachableUnresolvedMethodCall(this, methodRef, invokeWrapperCalledMethod)
-                ));
+              //  consumer.accept(wrap(lookup,invokeOp));
             }
+            return map;
         });
-
         if (kernelCallGraphMap.isEmpty()) {
             throw new IllegalStateException("entrypoint compute has no kernel references!");
         }
@@ -219,7 +221,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     public void close() {
-        if (moduleOp) {
+        if (CallGraph.usingModuleOp) {
             closeWithModuleOp(entrypoint);
         } else {
             updateDag(entrypoint);
@@ -227,16 +229,16 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     public void closeWithModuleOp(ComputeReachableResolvedMethodCall computeReachableResolvedMethodCall) {
-        CoreOp.ModuleOp moduleOp = ModuleOpWrapper.createTransitiveInvokeModule(computeContext.accelerator.lookup, computeReachableResolvedMethodCall.funcOpWrapper(), this);
-        moduleOpWrapper = new ModuleOpWrapper(computeContext.accelerator.lookup, moduleOp);
+        moduleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, computeReachableResolvedMethodCall.funcOp(), this);
+       // moduleOpWrapper = moduleOp;// OpWrapper.wrap(computeContext.accelerator.lookup, moduleOp);
     }
 
     @Override
-    public boolean filterCalls(CoreOp.FuncOp f, InvokeOpWrapper invokeOpWrapper, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
-        FuncOpWrapper funcOpWrapper = new FuncOpWrapper(computeContext.accelerator.lookup, f);
-        if (entrypoint.method.getDeclaringClass().equals(invokeOpWrapper.javaRefClass().orElseThrow()) && isKernelDispatch(method, funcOpWrapper)) {
+    public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
+
+        if (entrypoint.method.getDeclaringClass().equals(InvokeOpWrapper.javaRefClass(computeContext.accelerator.lookup,invokeOp).orElseThrow()) && isKernelDispatch(computeContext.accelerator.lookup,method, f)) {
             kernelCallGraphMap.computeIfAbsent(methodRef, _ ->
-                    new KernelCallGraph(this, methodRef, method, funcOpWrapper).closeWithModuleOp()
+                    new KernelCallGraph(this, methodRef, method, f).closeWithModuleOp()
             );
         } else if (ComputeContext.class.isAssignableFrom(javaRefTypeClass)) {
             computeContextMethodCall = new ComputeContextMethodCall(this, methodRef, method);

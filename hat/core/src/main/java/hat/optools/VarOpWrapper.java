@@ -25,24 +25,12 @@
 package hat.optools;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.invoke.MethodHandles;
 
 public abstract class VarOpWrapper extends OpWrapper<CoreOp.VarOp> {
-    public VarOpWrapper(MethodHandles.Lookup lookup,CoreOp.VarOp op) {
-        super(lookup, op);
+    public VarOpWrapper(CoreOp.VarOp op) {
+        super(op);
     }
 
-    public JavaType javaType() {
-        return (JavaType) op().varValueType();
-    }
-
-    public String varName() {
-        return op().varName();
-    }
-
-    public boolean isIfaceAssignment() {
-        return isIface(javaType());
-    }
 }

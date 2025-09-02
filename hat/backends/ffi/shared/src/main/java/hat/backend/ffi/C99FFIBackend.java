@@ -29,6 +29,7 @@ import hat.Accelerator;
 import hat.ComputeRange;
 import hat.ThreadMesh;
 import hat.NDRange;
+import hat.callgraph.CallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
@@ -38,6 +39,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
+import hat.optools.OpTk;
 import hat.optools.FuncOpWrapper;
 import hat.optools.InvokeOpWrapper;
 import hat.optools.OpWrapper;
@@ -174,8 +176,8 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
         List<String> localIFaceList = new ArrayList<>();
         // Traverse the list of reachable functions and append the intrinsics functions found for each of the functions
-        if (kernelCallGraph.moduleOpWrapper != null) {
-            kernelCallGraph.moduleOpWrapper.functionTable()
+        if (kernelCallGraph.moduleOp != null) {
+            kernelCallGraph.moduleOp.functionTable()
                     .forEach((_, funcOp) -> {
                         funcOp.transform(CopyContext.create(), (blockBuilder, op) -> {
                             updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
@@ -187,7 +189,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             // We take the list from all reachable methods. When we finally merge with the moduleOpWrapper,
             // this else-branch will be deleted.
             kernelCallGraph.kernelReachableResolvedStream().forEach((kernel) -> {
-                kernel.funcOpWrapper().transform(null, (blockBuilder, op) -> {
+                kernel.funcOp().transform(CopyContext.create(), (blockBuilder, op) -> {
                     updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
                     blockBuilder.op(op);
                     return blockBuilder;
@@ -196,8 +198,8 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         }
 
         // Traverse the main kernel and append the intrinsics functions found in the main kernel
-        kernelCallGraph.entrypoint.funcOpWrapper()
-                .transform(null, (blockBuilder, op) -> {
+        kernelCallGraph.entrypoint.funcOp()
+                .transform(CopyContext.create(), (blockBuilder, op) -> {
                     updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
                     blockBuilder.op(op);
                     return blockBuilder;
@@ -231,10 +233,10 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
 
         // Sorting by rank ensures we don't need forward declarations
-        if (Boolean.getBoolean("moduleOp")) {
+        if (CallGraph.usingModuleOp) {
             System.out.println("Using ModuleOp for C99FFIBackend");
-            kernelCallGraph.moduleOpWrapper.functionTable()
-                    .forEach((_, funcOp) -> builder.nl().kernelMethod(new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup, funcOp)).nl());
+            kernelCallGraph.moduleOp.functionTable()
+                    .forEach((_, funcOp) -> builder.nl().kernelMethod(kernelCallGraph.computeContext.accelerator.lookup, funcOp).nl());
         } else {
             System.out.println("NOT using ModuleOp for C99FFIBackend");
             kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
@@ -245,9 +247,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
         if (config.isSHOW_KERNEL_MODEL()) {
             System.out.println("Original");
-            System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
+            System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
             System.out.println("Lowered");
-            System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
+            System.out.println(OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp()).toText());
         }
         return builder.toString();
     }

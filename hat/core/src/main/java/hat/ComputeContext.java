@@ -33,10 +33,12 @@ import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpWrapper;
 import hat.optools.LambdaOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
@@ -105,15 +107,8 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     protected ComputeContext(Accelerator accelerator, Method computeMethod) {
         this.accelerator = accelerator;
-
-        //   ModuleOpWrapper module = ModuleOpWrapper.createTransitiveInvokeModule(accelerator.lookup, computeMethod);
-
-        // System.out.println(module.op().toText());
-
-        FuncOpWrapper funcOpWrapper = OpWrapper.wrap(accelerator.lookup,Op.ofMethod(computeMethod).orElseThrow());
-
-        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOpWrapper);
-
+        CoreOp.FuncOp funcOp = Op.ofMethod(computeMethod).orElseThrow();
+        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp);
         this.computeCallGraph.close();
         this.accelerator.backend.computeContextHandoff(this);
     }
@@ -140,20 +135,20 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         dispatchKernelWithComputeRange(computeRange, quotableKernelContextConsumer);
     }
 
-    record CallGraph(Quoted quoted, LambdaOpWrapper lambdaOpWrapper, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
+    record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
     private CallGraph buildKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
-        LambdaOpWrapper lambdaOpWrapper = OpWrapper.wrap(computeCallGraph.computeContext.accelerator.lookup,(JavaOp.LambdaOp) quoted.op());
-        MethodRef methodRef = lambdaOpWrapper.getQuotableTargetMethodRef();
+        JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
+        MethodRef methodRef = OpTk.getQuotableTargetMethodRef(accelerator.lookup,lambdaOp);
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-        return new CallGraph(quoted, lambdaOpWrapper, methodRef, kernelCallGraph);
+        return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
     private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         CallGraph cg = buildKernelCallGraph(quotableKernelContextConsumer);
         try {
-            Object[] args = cg.lambdaOpWrapper.getQuotableCapturedValues(cg.quoted, cg.kernelCallGraph.entrypoint.method);
+            Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
             NDRange ndRange;
             switch (dimNumber) {
                 case 1 -> ndRange = accelerator.range(rangeX);
@@ -172,7 +167,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     private void dispatchKernelWithComputeRange(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         CallGraph cg = buildKernelCallGraph(quotableKernelContextConsumer);
         try {
-            Object[] args = cg.lambdaOpWrapper.getQuotableCapturedValues(cg.quoted, cg.kernelCallGraph.entrypoint.method);
+            Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
             NDRange ndRange = accelerator.range(computeRange);
             args[0] = ndRange;
             accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);

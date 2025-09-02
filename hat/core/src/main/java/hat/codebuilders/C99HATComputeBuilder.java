@@ -26,10 +26,15 @@ package hat.codebuilders;
 
 
 import hat.optools.FuncOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.StructuralOpWrapper;
 
 import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
+
+import java.lang.invoke.MethodHandles;
+
 
 public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
 
@@ -37,17 +42,19 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
         return typeName(typeElement.toString()).space().identifier(name);
     }
 
-    public T compute(FuncOpWrapper funcOpWrapper) {
-        CodeBuilderContext buildContext = new CodeBuilderContext(funcOpWrapper);
-        computeDeclaration(funcOpWrapper.functionReturnTypeDesc(), funcOpWrapper.functionName());
+    public T compute(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOp);
+        computeDeclaration(funcOp.resultType(), funcOp.funcName());
         parenNlIndented(_ ->
-                commaSeparated(funcOpWrapper.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
+                commaSeparated(buildContext.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
 
         braceNlIndented(_ ->
-                funcOpWrapper.wrappedRootOpStream(funcOpWrapper.firstBlockOfFirstBody()).forEach(root ->
-                        recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
-                ));
+                OpTk.wrappedRootOpStream(buildContext.lookup,funcOp)
+                        .forEach(root ->
+                                recurse(buildContext, root).semicolonIf(!(root instanceof StructuralOpWrapper<?>)).nl()
+                        )
+        );
 
         return self();
     }

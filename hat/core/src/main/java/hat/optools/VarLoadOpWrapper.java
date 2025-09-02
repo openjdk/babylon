@@ -30,8 +30,8 @@ import java.lang.invoke.MethodHandles;
 
 public class VarLoadOpWrapper extends VarAccessOpWrapper<CoreOp.VarAccessOp.VarLoadOp> implements LoadOpWrapper {
 
-    VarLoadOpWrapper( MethodHandles.Lookup lookup,CoreOp.VarAccessOp.VarLoadOp op) {
-        super(lookup,op);
+    VarLoadOpWrapper( CoreOp.VarAccessOp.VarLoadOp op) {
+        super(op);
     }
 
 }

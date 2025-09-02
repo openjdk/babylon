@@ -30,8 +30,8 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 
 public class JavaContinueOpWrapper extends OpWrapper<JavaOp.ContinueOp> {
-    public JavaContinueOpWrapper(MethodHandles.Lookup lookup, JavaOp.ContinueOp op) {
-        super(lookup,op);
+    public JavaContinueOpWrapper( JavaOp.ContinueOp op) {
+        super(op);
     }
 
 }

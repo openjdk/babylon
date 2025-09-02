@@ -30,25 +30,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.stream.Stream;
 
 public class ForOpWrapper extends LoopOpWrapper<JavaOp.ForOp> {
-    ForOpWrapper( MethodHandles.Lookup lookup,JavaOp.ForOp op) {
-        super(lookup,op);
-    }
-
-    public Stream<OpWrapper<?>> initWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(0));
-    }
-
-    @Override
-    public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(1));
-    }
-
-    public Stream<OpWrapper<?>> mutateRootWrappedOpStream() {
-        return wrappedRootOpStream(firstBlockOfBodyN(2));
-    }
-
-    @Override
-    public Stream<OpWrapper<?>> loopWrappedRootOpStream() {
-        return wrappedRootOpStreamSansFinalContinue(firstBlockOfBodyN(3));
+    ForOpWrapper(JavaOp.ForOp op) {
+        super(op);
     }
 }

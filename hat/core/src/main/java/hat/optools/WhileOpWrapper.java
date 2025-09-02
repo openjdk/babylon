@@ -27,21 +27,15 @@ package hat.optools;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
-import java.util.stream.Stream;
 
 public class WhileOpWrapper extends LoopOpWrapper<JavaOp.WhileOp> {
-
-    WhileOpWrapper( MethodHandles.Lookup lookup,JavaOp.WhileOp op) {
-        super(lookup,op);
+   //public final MethodHandles.Lookup lookup;
+    WhileOpWrapper(
+            //MethodHandles.Lookup lookup,
+            JavaOp.WhileOp op) {
+        super(op);
+     //   this.lookup=lookup;
     }
 
-    @Override
-    public Stream<OpWrapper<?>> conditionWrappedYieldOpStream() {
-        return wrappedYieldOpStream(firstBlockOfBodyN(0));
-    }
 
-    @Override
-    public Stream<OpWrapper<?>> loopWrappedRootOpStream() {
-        return wrappedRootOpStreamSansFinalContinue(firstBlockOfBodyN(1));
-    }
 }

@@ -32,6 +32,7 @@ import hat.buffer.BufferTracker;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.LambdaOpWrapper;
+import hat.optools.OpTk;
 import hat.optools.OpWrapper;
 
 import java.lang.invoke.MethodHandles;
@@ -40,7 +41,6 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.HashMap;
@@ -215,8 +215,8 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      */
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
-        LambdaOpWrapper lambda = OpWrapper.wrap(lookup,(JavaOp.LambdaOp) quoted.op());
-        Method method = lambda.getQuotableTargetMethod();
+        JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
+        Method method = OpTk.getQuotableTargetInvokeOpWrapper(lookup,lambda).method();
 
         // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
@@ -226,7 +226,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
                 new ComputeContext(this, method)
         );
         // Here we get the captured values  from the Quotable
-        Object[] args = lambda.getQuotableCapturedValues(quoted, method);
+        Object[] args = OpTk.getQuotableCapturedValues(lambda,quoted, method);
         args[0] = computeContext;
 
         // now ask the backend to execute

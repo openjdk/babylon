@@ -29,8 +29,8 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public class ReturnOpWrapper extends OpWrapper<CoreOp.ReturnOp> {
-    public ReturnOpWrapper( MethodHandles.Lookup lookup,CoreOp.ReturnOp op) {
-        super(lookup,op);
+    public ReturnOpWrapper( CoreOp.ReturnOp op) {
+        super(op);
     }
 
 

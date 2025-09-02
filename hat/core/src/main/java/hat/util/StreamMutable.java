@@ -24,28 +24,17 @@
  */
 package hat.util;
 
-import java.util.Optional;
-
-public class Result<R> {
-    private Optional<R> value = Optional.empty();
-
-    public void of(R value) {
-        this.value = Optional.of(value);
-    }
-
-    public boolean isPresent() {
-        return value.isPresent();
-    }
-
+public class StreamMutable<R> {
+    private R value;
     public R get() {
-        return value.orElseThrow();
+        return value;
     }
-
-    public Result(R initial) {
-        of(initial);
+    public StreamMutable<R> set(R value) {
+        this.value = value;
+        return this;
     }
-
-    public Result() {
-
+    private StreamMutable(){}
+    static public <R> StreamMutable<R> of(R value){
+        return new StreamMutable<R>().set(value);
     }
 }

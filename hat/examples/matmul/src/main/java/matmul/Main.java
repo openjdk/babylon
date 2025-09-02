@@ -132,10 +132,10 @@ public class Main {
     public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
         final int tileSize = 16;
-        F32Array tileA = kc.createLocalF32Array(256); // TODO: perform partial evaluation is we see constant operations (tileSize * tileSize)
-        F32Array tileB = kc.createLocalF32Array(256);
-        //MyLocalArray tileA = MyLocalArray.createLocal(256);
-        //MyLocalArray tileB = MyLocalArray.createLocal(256);
+        //F32Array tileA = kc.createLocalF32Array(256); // TODO: perform partial evaluation is we see constant operations (tileSize * tileSize)
+        //F32Array tileB = kc.createLocalF32Array(256);
+        MyLocalArray tileA = MyLocalArray.createLocal(256);
+        MyLocalArray tileB = MyLocalArray.createLocal(256);
 
         int groupIndexX = kc.bix;
         int groupIndexY = kc.biy;

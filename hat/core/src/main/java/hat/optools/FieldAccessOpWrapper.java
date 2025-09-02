@@ -25,40 +25,12 @@
 package hat.optools;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.FieldRef;
+
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
 public abstract class FieldAccessOpWrapper<T extends JavaOp.FieldAccessOp> extends OpWrapper<T> {
-    FieldAccessOpWrapper( MethodHandles.Lookup lookup,T op) {
-        super(lookup,op);
-    }
-    public boolean isKernelContextAccess() {
-        var refType = fieldRef().refType();
-        if (refType instanceof ClassType classType) {
-            // This should not rely on string
-            return (classType.toClassName().equals("hat.KernelContext"));
-        }
-        return false;
-    }
-
-    public boolean isStaticFinalPrimitive() {
-      return hasNoOperands() && resultType() instanceof PrimitiveType;
-      // Can we check for final?
-    }
-
-    public FieldRef fieldRef() {
-        return op().fieldDescriptor();
-    }
-
-    public String fieldName() {
-        return fieldRef().name();
-    }
-
-    public TypeElement fieldType() {
-        return fieldRef().refType();
+    FieldAccessOpWrapper( T op) {
+        super(op);
     }
 
 }

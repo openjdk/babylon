@@ -33,6 +33,7 @@ import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
+import hat.optools.OpTk;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -96,9 +97,9 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
         builder.nl().kernelEntrypoint(kernelCallGraph.entrypoint, args).nl();
 
         System.out.println("Original");
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().op().toText());
+        System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
         System.out.println("Lowered");
-        System.out.println(kernelCallGraph.entrypoint.funcOpWrapper().lower().op().toText());
+        System.out.println(OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp()).toText());
 
         return builder.toString();
     }

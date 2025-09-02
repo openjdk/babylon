@@ -29,8 +29,8 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 
 public class JavaLabeledOpWrapper extends StructuralOpWrapper<JavaOp.LabeledOp> {
-    public JavaLabeledOpWrapper( MethodHandles.Lookup lookup,JavaOp.LabeledOp op) {
-        super(lookup,op);
+    public JavaLabeledOpWrapper(JavaOp.LabeledOp op) {
+        super(op);
     }
 
 }

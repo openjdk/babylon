@@ -24,83 +24,15 @@
  */
 package hat.optools;
 
-import hat.util.Result;
-
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Quoted;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.MethodRef;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 public class LambdaOpWrapper extends OpWrapper<JavaOp.LambdaOp> {
+    public final MethodHandles.Lookup lookup;
     public LambdaOpWrapper( MethodHandles.Lookup lookup, JavaOp.LambdaOp op) {
-        super(lookup,op);
+        super(op);
+        this.lookup=lookup;
     }
 
-    public InvokeOpWrapper getInvoke(int index) {
-        var result = new Result<JavaOp.InvokeOp>();
-        selectOnlyBlockOfOnlyBody(blockWrapper ->
-                result.of(blockWrapper.op(index))
-        );
-        return OpWrapper.wrap(lookup, result.get());
-    }
-
-    public List<Value> operands() {
-        return op().operands();
-    }
-
-    public Method getQuotableTargetMethod() {
-        return getQuotableTargetInvokeOpWrapper().method();
-    }
-
-    public InvokeOpWrapper getQuotableTargetInvokeOpWrapper() {
-        return OpWrapper.wrap(lookup, op().body().entryBlock().ops().stream()
-                .filter(op -> op instanceof JavaOp.InvokeOp)
-                .map(op -> (JavaOp.InvokeOp) op)
-                .findFirst().get());
-    }
-
-    public MethodRef getQuotableTargetMethodRef() {
-        return getQuotableTargetInvokeOpWrapper().methodRef();
-    }
-
-    public Object[] getQuotableCapturedValues(Quoted quoted, Method method) {
-        var block = op().body().entryBlock();
-        var ops = block.ops();
-        Object[] varLoadNames = ops.stream()
-                .filter(op -> op instanceof CoreOp.VarAccessOp.VarLoadOp)
-                .map(op -> (CoreOp.VarAccessOp.VarLoadOp) op)
-                .map(varLoadOp -> (Op.Result) varLoadOp.operands().get(0))
-                .map(varLoadOp -> (CoreOp.VarOp) varLoadOp.op())
-                .map(varOp -> varOp.varName()).toArray();
-
-
-        Map<String, Object> nameValueMap = new HashMap<>();
-
-        quoted.capturedValues().forEach((k, v) -> {
-            if (k instanceof Op.Result result) {
-                if (result.op() instanceof CoreOp.VarOp varOp) {
-                    nameValueMap.put(varOp.varName(), v);
-                }
-            }
-        });
-        Object[] args = new Object[method.getParameterCount()];
-        if (args.length != varLoadNames.length) {
-            throw new IllegalStateException("Why don't we have enough captures.!! ");
-        }
-        for (int i = 1; i < args.length; i++) {
-            args[i] = nameValueMap.get(varLoadNames[i].toString());
-            if (args[i] instanceof CoreOp.Var varbox) {
-                args[i] = varbox.value();
-            }
-        }
-        return args;
-    }
 }

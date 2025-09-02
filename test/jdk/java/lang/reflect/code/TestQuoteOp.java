@@ -41,10 +41,10 @@ public class TestQuoteOp {
         CoreOp.FuncOp fm = Op.ofMethod(f).orElseThrow();
         Op lop = fm.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.LambdaOp).findFirst().orElseThrow();
 
-        CoreOp.FuncOp funcOp = Quoted.quoteOp(lop);
+        CoreOp.FuncOp funcOp = Quoted.embedOp(lop);
 
         Object[] args = new Object[]{1, "a", this};
-        Quoted quoted = Quoted.quotedOp(funcOp, args);
+        Quoted quoted = Quoted.extractOp(funcOp, args);
         // op must have the same structure as lop
         // for the moment, we don't have utility to check that
 
@@ -68,10 +68,10 @@ public class TestQuoteOp {
         CoreOp.FuncOp gm = Op.ofMethod(g).orElseThrow();
         Op invOp = gm.body().entryBlock().ops().stream().filter(o -> o instanceof JavaOp.InvokeOp).findFirst().orElseThrow();
 
-        CoreOp.FuncOp funcOp = Quoted.quoteOp(invOp);
+        CoreOp.FuncOp funcOp = Quoted.embedOp(invOp);
 
         Object[] args = {"abc", "b"};
-        Quoted quoted = Quoted.quotedOp(funcOp, args);
+        Quoted quoted = Quoted.extractOp(funcOp, args);
 
         Assert.assertTrue(invOp.getClass().isInstance(quoted.op()));
 
@@ -94,7 +94,7 @@ public class TestQuoteOp {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) qop.ancestorOp());
 
         Object[] args = {this, 111};
-        Quoted quoted2 = Quoted.quotedOp(fop, args);
+        Quoted quoted2 = Quoted.extractOp(fop, args);
 
         Iterator<Object> iterator = quoted2.capturedValues().values().iterator();
 
@@ -336,7 +336,7 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
     @Test(dataProvider = "invalidCases")
     void testInvalidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
-        Assert.assertThrows(RuntimeException.class, () -> Quoted.quotedOp(fop, args));
+        Assert.assertThrows(RuntimeException.class, () -> Quoted.extractOp(fop, args));
     }
 
     @DataProvider
@@ -469,7 +469,7 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
     @Test(dataProvider = "validCases")
     void testValidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
-        Quoted quoted = Quoted.quotedOp(fop, args);
+        Quoted quoted = Quoted.extractOp(fop, args);
 
         for (Map.Entry<Value, Object> e : quoted.capturedValues().entrySet()) {
             Value sv = e.getKey();
@@ -543,7 +543,7 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
     @Test(dataProvider = "numParamsCases")
     void testNumAndOrderOfParams(String model, int expectedNumParams) {
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, model).get(0);
-        CoreOp.FuncOp qm = Quoted.quoteOp(funcOp.body().entryBlock().ops().getFirst());
+        CoreOp.FuncOp qm = Quoted.embedOp(funcOp.body().entryBlock().ops().getFirst());
         Assert.assertEquals(qm.parameters().size(), expectedNumParams);
 
         // test that qm parameters are the sequence set of op 's operands + captured values

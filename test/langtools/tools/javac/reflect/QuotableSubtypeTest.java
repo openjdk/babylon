@@ -251,4 +251,82 @@ public class QuotableSubtypeTest {
             };
             """)
     static final QuotableIntUnaryOperator QUOTED_CAPTURE_THIS_REF = new ContextRef().capture();
+
+    static final int Z = 42;
+    @IR("""
+            func @"f" (%0 : Var<java.type:"int">)java.type:"void" -> {
+                %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                    %2 : java.type:"int" = var.load %0;
+                    %3 : Var<java.type:"int"> = var %2 @"x";
+                    return;
+                };
+                return;
+            };
+            """)
+    static QuotableRunnable QUOTED_CAPTURE_FINAL_STATIC_FIELD = () -> {
+        int x = Z;
+    };
+
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                      %2 : java.type:"int" = constant @1;
+                      %3 : java.type:"int" = invoke %2 @java.ref:"QuotableSubtypeTest::n(int):int";
+                      return;
+                  };
+                  return;
+            };
+            """)
+    // the lambda model used to contain operation that perform unnecessary type conversion
+    static QuotableRunnable QUOTED_RETURN_VOID = () -> {
+        n(1);
+    };
+    static int n(int i) {
+        return i;
+    }
+
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                      %2 : java.type:"java.lang.Object" = new @java.ref:"java.lang.Object::()";
+                      return;
+                  };
+                  return;
+            };
+            """)
+    // the lambda model used to contain ReturnOp with a value, even though the lambda type is void
+    static QuotableRunnable QUOTED_EXPRESSION_RETURN_VOID = () -> new Object();
+
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                      %2 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
+                          return;
+                      };
+                      %3 : Var<java.type:"java.lang.Runnable"> = var %2 @"r";
+                      return;
+                  };
+                  return;
+            };
+            """)
+    static QuotableRunnable QUOTED_NESTED_LAMBDA = () -> {
+        Runnable r = () -> {};
+    };
+
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                      %2 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                          return;
+                      };
+                      %3 : Var<java.type:"QuotableSubtypeTest$QuotableRunnable"> = var %2 @"r";
+                      return;
+                  };
+                  return;
+            };
+            """)
+    // @@@ should this be the excepted behaviour in case we have a nested quotable lambda ?
+    static QuotableRunnable QUOTED_NESTED_QUOTABLE_LAMBDA = () -> {
+        QuotableRunnable r = () -> {};
+    };
 }

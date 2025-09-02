@@ -26,6 +26,7 @@ package hat.codebuilders;
 
 
 import hat.util.StreamCounter;
+import hat.util.StreamMutable;
 
 import java.util.Collection;
 import java.util.function.Consumer;
@@ -545,6 +546,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
 
     public <I> T commaSeparated(Iterable<I> iterable, Consumer<I> c) {
+
         StreamCounter.of(iterable, (counter, t) -> {
             if (counter.isNotFirst()) {
                 comma().space();
