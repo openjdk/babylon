@@ -25,9 +25,6 @@
 package hat.optools;
 
 import jdk.incubator.code.Op;
-
-import java.lang.invoke.MethodHandles;
-
 public abstract class UnaryOpWrapper<T extends Op> extends OpWrapper<T> {
     UnaryOpWrapper(T op) {
         super(op);

@@ -25,9 +25,6 @@
 package hat.optools;
 
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaOp;
-
-import java.lang.invoke.MethodHandles;
 
 public class JavaContinueOpWrapper extends OpWrapper<JavaOp.ContinueOp> {
     public JavaContinueOpWrapper( JavaOp.ContinueOp op) {

@@ -24,18 +24,10 @@
  */
 package hat.optools;
 
-import java.lang.invoke.MethodHandles;
-
 import jdk.incubator.code.dialect.core.CoreOp;
 
-import java.util.*;
-
 public class ModuleOpWrapper extends OpWrapper<CoreOp.ModuleOp> {
-   // public MethodHandles.Lookup lookup;
-    public ModuleOpWrapper(
-            //MethodHandles.Lookup lookup,
-            CoreOp.ModuleOp op) {
+    public ModuleOpWrapper(  CoreOp.ModuleOp op) {
         super(op);
-        //this.lookup=lookup;
     }
 }

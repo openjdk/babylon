@@ -25,9 +25,6 @@
 package hat.optools;
 
 import jdk.incubator.code.dialect.java.JavaOp;
-
-import java.lang.invoke.MethodHandles;
-
 public class BinaryArithmeticOrLogicOperation extends BinaryOpWrapper<JavaOp.BinaryOp> {
     BinaryArithmeticOrLogicOperation(  JavaOp.BinaryOp op) {
         super( op);

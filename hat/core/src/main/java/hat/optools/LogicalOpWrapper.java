@@ -26,8 +26,6 @@ package hat.optools;
 
 import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.invoke.MethodHandles;
-
 public class LogicalOpWrapper extends BinaryOpWrapper<JavaOp.JavaConditionalOp> {
     LogicalOpWrapper(JavaOp.JavaConditionalOp op) {
         super(op);

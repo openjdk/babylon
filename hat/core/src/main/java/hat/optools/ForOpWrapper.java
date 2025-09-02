@@ -25,10 +25,6 @@
 package hat.optools;
 
 import jdk.incubator.code.dialect.java.JavaOp;
-
-import java.lang.invoke.MethodHandles;
-import java.util.stream.Stream;
-
 public class ForOpWrapper extends LoopOpWrapper<JavaOp.ForOp> {
     ForOpWrapper(JavaOp.ForOp op) {
         super(op);

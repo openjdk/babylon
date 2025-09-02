@@ -26,12 +26,7 @@ package hat.tools.text;
 
 import hat.codebuilders.HATCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
-import hat.optools.FieldLoadOpWrapper;
-import hat.optools.FuncOpWrapper;
-import hat.optools.InvokeOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.OpWrapper;
-import hat.optools.StructuralOpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;

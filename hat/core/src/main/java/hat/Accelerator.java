@@ -32,9 +32,7 @@ import hat.buffer.BufferTracker;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.InvokeOpWrapper;
-import hat.optools.LambdaOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.OpWrapper;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;

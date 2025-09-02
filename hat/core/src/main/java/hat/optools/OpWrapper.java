@@ -23,13 +23,7 @@
  * questions.
  */
 package hat.optools;
-
-import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
-
-import java.lang.invoke.MethodHandles;
 
 public class OpWrapper<T extends Op> {
   /*

@@ -25,33 +25,8 @@
 package hat.codebuilders;
 
 
-import hat.optools.BinaryArithmeticOrLogicOperation;
-import hat.optools.BinaryTestOpWrapper;
-import hat.optools.ConstantOpWrapper;
-import hat.optools.ConvOpWrapper;
-import hat.optools.FieldLoadOpWrapper;
-import hat.optools.FieldStoreOpWrapper;
-import hat.optools.ForOpWrapper;
-import hat.optools.FuncCallOpWrapper;
-import hat.optools.IfOpWrapper;
-import hat.optools.InvokeOpWrapper;
-import hat.optools.JavaBreakOpWrapper;
-import hat.optools.JavaContinueOpWrapper;
-import hat.optools.JavaLabeledOpWrapper;
-import hat.optools.LambdaOpWrapper;
-import hat.optools.LogicalOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.OpWrapper;
-import hat.optools.ReturnOpWrapper;
-import hat.optools.TernaryOpWrapper;
-import hat.optools.TupleOpWrapper;
 import hat.optools.UnaryArithmeticOrLogicOpWrapper;
-import hat.optools.VarDeclarationOpWrapper;
-import hat.optools.VarFuncDeclarationOpWrapper;
-import hat.optools.VarLoadOpWrapper;
-import hat.optools.VarStoreOpWrapper;
-import hat.optools.WhileOpWrapper;
-import hat.optools.YieldOpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;

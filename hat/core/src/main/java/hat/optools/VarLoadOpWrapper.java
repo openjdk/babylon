@@ -25,11 +25,7 @@
 package hat.optools;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-
-import java.lang.invoke.MethodHandles;
-
 public class VarLoadOpWrapper extends VarAccessOpWrapper<CoreOp.VarAccessOp.VarLoadOp> implements LoadOpWrapper {
-
     VarLoadOpWrapper( CoreOp.VarAccessOp.VarLoadOp op) {
         super(op);
     }

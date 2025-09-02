@@ -24,12 +24,7 @@
  */
 package hat.codebuilders;
 
-import hat.optools.ForOpWrapper;
-import hat.optools.FuncOpWrapper;
-import hat.optools.IfOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.OpWrapper;
-import hat.optools.WhileOpWrapper;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;

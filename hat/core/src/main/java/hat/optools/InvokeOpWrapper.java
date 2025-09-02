@@ -55,51 +55,22 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
         return (JavaType) methodRef(op).refType();
     }
 
-
-    public MethodRef methodRef() {
-        return methodRef(op);
-    }
-
-    public JavaType javaRefType() {
-        return javaRefType(op);
-    }
     public static  boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         return  OpTk.isAssignable(lookup,javaRefType(invokeOp), MappableIface.class) ;
     }
-
-  /*  public boolean isIfaceBufferMethod() {
-        return  OpTk.isAssignable(lookup,javaRefType(), MappableIface.class) ;
-    } */
-    //public static boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-      //  return  OpTk.isAssignable(lookup,javaRefType(invokeOp), MappableIface.class) ;
-   // }
   public static boolean isRawKernelCall(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
       return (op.operands().size() > 1 && op.operands().getFirst() instanceof Value value
               && value.type() instanceof JavaType javaType
               && (OpTk.isAssignable(lookup,javaType, hat.KernelContext.class) || OpTk.isAssignable(lookup,javaType, KernelContext.class))
       );
   }
-    public boolean isRawKernelCall() {
-        return (op.operands().size() > 1 && op.operands().getFirst() instanceof Value value
-                && value.type() instanceof JavaType javaType
-                && (OpTk.isAssignable(lookup,javaType, hat.KernelContext.class) || OpTk.isAssignable(lookup,javaType, KernelContext.class))
-        );
-    }
     public static boolean isComputeContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         return OpTk.isAssignable(lookup,javaRefType(invokeOp), ComputeContext.class);
     }
-   // public boolean isComputeContextMethod() {
-     //   return OpTk.isAssignable(lookup,javaRefType(), ComputeContext.class);
-   // }
 
     public static JavaType javaReturnType(JavaOp.InvokeOp op) {
         return (JavaType) methodRef(op).type().returnType();
     }
-
-    public JavaType javaReturnType() {
-        return javaReturnType(op);
-    }
-
     public static Method method(MethodHandles.Lookup lookup,JavaOp.InvokeOp op ) {
         try {
             return methodRef(op).resolveToMethod(lookup, op.invokeKind());
@@ -124,26 +95,10 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
             return false;
         }
     }
-  /*  public boolean isIfaceAccessor() {
-        if (isIfaceBufferMethod() && !javaReturnType().equals(JavaType.VOID)) {
-            Optional<Class<?>> optionalClazz = javaReturnClass();
-            return optionalClazz.isPresent() && Buffer.class.isAssignableFrom(optionalClazz.get());
-        } else {
-            return false;
-        }
-    }*/
 
     public static boolean isIfaceMutator(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         return isIfaceBufferMethod(lookup,invokeOp) && javaReturnType(invokeOp).equals(JavaType.VOID);
     }
-
-  //  public boolean isIfaceMutator() {
-    //    return isIfaceBufferMethod() && javaReturnType().equals(JavaType.VOID);
-   // }
-
- //   public IfaceBufferAccess getIfaceBufferAccess() {
-   //     return isIfaceAccessor() ? IfaceBufferAccess.Access : isIfaceMutator() ? IfaceBufferAccess.Mutate : IfaceBufferAccess.None;
-   // }
 
     public String name() {
         return op.invokeDescriptor().name();
@@ -156,17 +111,12 @@ public class InvokeOpWrapper extends OpWrapper<JavaOp.InvokeOp> {
             return Optional.empty();
         }
     }
-    public Optional<Class<?>> javaRefClass() {
-       return javaRefClass(lookup,op);
-    }
+
     public static Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup,JavaOp.InvokeOp op) {
         if (javaReturnType(op) instanceof ClassType classType) {
             return Optional.of((Class<?>) OpTk.classTypeToType(lookup,classType));
         }else{
             return Optional.empty();
         }
-    }
-    public Optional<Class<?>> javaReturnClass() {
-        return javaReturnClass(lookup,op);
     }
 }

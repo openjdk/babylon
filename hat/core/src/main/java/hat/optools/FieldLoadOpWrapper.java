@@ -25,9 +25,6 @@
 package hat.optools;
 
 import jdk.incubator.code.dialect.java.JavaOp;
-
-import java.lang.invoke.MethodHandles;
-
 public class FieldLoadOpWrapper extends FieldAccessOpWrapper<JavaOp.FieldAccessOp.FieldLoadOp> implements LoadOpWrapper {
     FieldLoadOpWrapper( JavaOp.FieldAccessOp.FieldLoadOp op) {
         super(op);

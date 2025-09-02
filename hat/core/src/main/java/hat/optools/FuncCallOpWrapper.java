@@ -25,9 +25,6 @@
 package hat.optools;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-
-import java.lang.invoke.MethodHandles;
-
 public class FuncCallOpWrapper extends OpWrapper<CoreOp.FuncCallOp> {
     public FuncCallOpWrapper( CoreOp.FuncCallOp op) {
         super(op);

@@ -24,8 +24,6 @@
  */
 package hat.optools;
 
-import java.lang.invoke.MethodHandles;
-
 import jdk.incubator.code.dialect.java.JavaOp;
 
 public abstract class FieldAccessOpWrapper<T extends JavaOp.FieldAccessOp> extends OpWrapper<T> {

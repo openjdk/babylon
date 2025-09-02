@@ -26,15 +26,9 @@ package hat.optools;
 
 import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.invoke.MethodHandles;
-
 public class IfOpWrapper extends StructuralOpWrapper<JavaOp.IfOp> {
-   //public MethodHandles.Lookup lookup;
-    public IfOpWrapper(
-            //MethodHandles.Lookup lookup,
-            JavaOp.IfOp op) {
+    public IfOpWrapper(JavaOp.IfOp op) {
         super(op,false);
-     //   this.lookup = lookup;
     }
 
 }
