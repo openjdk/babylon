@@ -172,14 +172,16 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
         List<String> localIFaceList = new ArrayList<>();
         // Traverse the list of reachable functions and append the intrinsics functions found for each of the functions
-        kernelCallGraph.moduleOpWrapper.functionTable()
-                .forEach((_, funcOp) -> {
-                    funcOp.transform(CopyContext.create(), (blockBuilder, op) -> {
-                        updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
-                        blockBuilder.op(op);
-                        return blockBuilder;
+        if (kernelCallGraph.moduleOpWrapper != null) {
+            kernelCallGraph.moduleOpWrapper.functionTable()
+                    .forEach((_, funcOp) -> {
+                        funcOp.transform(CopyContext.create(), (blockBuilder, op) -> {
+                            updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                            blockBuilder.op(op);
+                            return blockBuilder;
+                        });
                     });
-                });
+        }
 
         // Traverse the main kernel and append the intrinsics functions found in the main kernel
         kernelCallGraph.entrypoint.funcOpWrapper()
