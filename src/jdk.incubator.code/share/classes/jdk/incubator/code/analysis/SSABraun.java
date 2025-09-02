@@ -190,13 +190,16 @@ final class SSABraun implements OpTransformer {
         }
         // we shouldn't have phis without operands (other than itself)
         assert same != null : "phi without different operands";
-        List<Phi> phiUsers = phi.replaceBy(same, this);
         List<Phi> phis = this.additionalParameters.get(phi.block());
         if (phis != null) {
             phis.remove(phi);
         }
-        for (Phi user : phiUsers) {
-            tryRemoveTrivialPhi(user);
+        phi.users.remove(phi);
+        phi.replaceBy(same, this);
+        for (Object o : phi.users()) {
+            if (o instanceof Phi user){
+                tryRemoveTrivialPhi(user);
+            }
         }
         return same;
     }
