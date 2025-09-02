@@ -736,8 +736,8 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
-            if (targetType == null || targetType.hasTag(TypeTag.VOID)) {
-                // if target type null or void, nothing to coerce
+            if (targetType.hasTag(TypeTag.VOID)) {
+                // if target type is void, nothing to coerce
                 return sourceValue;
             }
             if (sourceType.isReference() && targetType.isReference() &&
@@ -1777,7 +1777,7 @@ public class ReflectMethods extends TreeTranslator {
 
         private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType) {
             Body.Builder body = null;
-            Type yieldType = tree.type != null ? adaptBottom(tree.type) : null;
+            Type yieldType = tree.type != null ? adaptBottom(tree.type) : syms.voidType;
 
             JCTree.JCCaseLabel headCl = c.labels.head;
             switch (c.caseKind) {
