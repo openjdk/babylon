@@ -717,9 +717,7 @@ public class ReflectMethods extends TreeTranslator {
             try {
                 pt = targetType;
                 scan(expression);
-                return result != null ?
-                        coerce(result, expression.type, targetType) :
-                        null;
+                return result == null || targetType.hasTag(TypeTag.VOID) ? result : coerce(result, expression.type, targetType);
             } finally {
                 pt = prevPt;
             }
@@ -736,10 +734,6 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
-            if (targetType.hasTag(TypeTag.VOID)) {
-                // if target type is void, nothing to coerce
-                return sourceValue;
-            }
             if (sourceType.isReference() && targetType.isReference() &&
                     !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
                 return append(JavaOp.cast(typeToTypeElement(targetType), sourceValue));
