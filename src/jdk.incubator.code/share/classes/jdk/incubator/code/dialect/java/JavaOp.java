@@ -158,23 +158,31 @@ public sealed abstract class JavaOp extends Op {
             final Body.Builder ancestorBody;
             final FunctionType funcType;
             final TypeElement functionalInterface;
-            boolean quotable = false;
+            final boolean isQuotable;
 
             Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface) {
                 this.ancestorBody = ancestorBody;
                 this.funcType = funcType;
                 this.functionalInterface = functionalInterface;
+                this.isQuotable = false;
+            }
+
+            Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface,
+                    boolean isQuotable) {
+                this.ancestorBody = ancestorBody;
+                this.funcType = funcType;
+                this.functionalInterface = functionalInterface;
+                this.isQuotable = isQuotable;
             }
 
             public LambdaOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
-                return new LambdaOp(functionalInterface, body, quotable);
+                return new LambdaOp(functionalInterface, body, isQuotable);
             }
 
             public Builder quotable() {
-                this.quotable = true;
-                return this;
+                return new Builder(ancestorBody, funcType, functionalInterface, true);
             }
         }
 
@@ -258,9 +266,7 @@ public sealed abstract class JavaOp extends Op {
 
         @Override
         public Map<String, Object> externalize() {
-            Map<String, Object> m = new HashMap<>();
-            m.put(ATTRIBUTE_LAMBDA_IS_QUOTABLE, isQuotable);
-            return Collections.unmodifiableMap(m);
+            return Map.of(ATTRIBUTE_LAMBDA_IS_QUOTABLE, isQuotable);
         }
 
         /**
