@@ -136,8 +136,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-
-
     @Override
     public T varLoad(HATCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         CoreOp.VarOp varOp = buildContext.scope.resolve(varLoadOp.operands().getFirst());
@@ -165,8 +163,29 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     record LocalArrayDeclaration(String typeStructName, String varName) {}
-    private Stack<LocalArrayDeclaration> localArrayDeclarations = new Stack<>();
-    private Set<String> privateAndLocalTypes = new HashSet<>();
+    private final Stack<LocalArrayDeclaration> localArrayDeclarations = new Stack<>();
+    private final Set<String> privateAndLocalTypes = new HashSet<>();
+
+    private boolean isMappableIFace(HATCodeBuilderContext buildContext, JavaType javaType) {
+        return (OpTk.isAssignable(buildContext.lookup,javaType, MappableIface.class));
+    }
+
+    private void annotateTypeAndName(HATCodeBuilderContext buildContext, JavaType javaType, ClassType classType, CoreOp.VarOp varOp) {
+        String typeName = extractClassType(buildContext, javaType, classType);
+        String variableName = OpTk.varName(varOp);
+        privateAndLocalTypes.add(variableName);
+        localArrayDeclarations.push(new LocalArrayDeclaration(typeName, variableName));
+    }
+
+    private void varDeclarationWithInitialization(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
+        // if type is Buffer (iMappable), then we ignore it and pass it along to the methodCall
+        if (isMappableIFace(buildContext, OpTk.javaType(varOp)) && OpTk.javaType(varOp) instanceof ClassType classType) {
+            annotateTypeAndName(buildContext, OpTk.javaType(varOp), classType, varOp);
+        } else {
+            type(buildContext, OpTk.javaType(varOp)).space().identifier(OpTk.varName(varOp)).space().equals().space();
+        }
+        parencedence(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
+    }
 
     @Override
     public T varDeclaration(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
@@ -174,18 +193,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             // Variable is uninitialized
             type(buildContext, OpTk.javaType(varOp)).space().identifier(OpTk.varName(varOp));
         } else {
-            // if type is Buffer (iMappable), then we ignore it and pass it along to the methodCall
-            JavaType javaType = OpTk.javaType(varOp);
-            if (OpTk.isAssignable(buildContext.lookup,javaType, MappableIface.class) && javaType instanceof ClassType classType) {
-                String typeName = extractClassType(buildContext, javaType, classType);
-                String variableName = OpTk.varName(varOp);
-                privateAndLocalTypes.add(variableName);
-                localArrayDeclarations.push(new LocalArrayDeclaration(typeName, variableName));
-                parencedence(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
-            } else {
-                type(buildContext, OpTk.javaType(varOp)).space().identifier(OpTk.varName(varOp)).space().equals().space();
-                parencedence(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
-            }
+            varDeclarationWithInitialization(buildContext, varOp);
         }
         return self();
     }
@@ -529,7 +537,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         var name = invokeOp.invokeDescriptor().name();//OpTk.name(invokeOp);
 
-        if (OpTk.isIfaceBufferMethod(buildContext.lookup,invokeOp)) {
+        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)) {
             var operandCount = invokeOp.operands().size();
             var returnType = OpTk.javaReturnType(invokeOp);
 
@@ -546,7 +554,14 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     throw new IllegalStateException("bad atomic");
                 }
             } else {
-                if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
+
+                if (name.startsWith("createPrivate")) {
+                    LocalArrayDeclaration declaration = localArrayDeclarations.pop();
+                    emitPrivateDeclaration(declaration.typeStructName, declaration.varName);
+                } else if (name.startsWith("createLocal")) {
+                    LocalArrayDeclaration declaration = localArrayDeclarations.pop();
+                    emitLocalDeclaration(declaration.typeStructName, declaration.varName);
+                } else if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
                 /*
                 We have three types of returned values from an ifaceBuffer
                 A primitive
@@ -583,76 +598,67 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                  of course we could return
                           cascade->tree + treeIdx;
                  */
-                    if (name.startsWith("createPrivate")) {
-                        LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-                        emitPrivateDeclaration(declaration.typeStructName, declaration.varName);
-                    } else if (name.startsWith("createLocal")) {
-                        LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-                        emitLocalDeclaration(declaration.typeStructName, declaration.varName);
+                    if (returnType instanceof ClassType) {
+                        ampersand();
+                        /* This is way more complicated I think we need to determine the expression type.
+                         * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
+                         */
+                    }
+
+                    // Check if the varOpLoad that could follow corresponds to a local/private type
+                    boolean isLocal = false;
+                    if (instanceResult.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                        CoreOp.VarOp resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
+                        if (privateAndLocalTypes.contains(resolve.varName())) {
+                            isLocal = true;
+                        }
+                    }
+
+                    recurse(buildContext, instanceResult.op());
+
+                    if (!isLocal) {
+                        // If it is not local or private, it generates an arrow
+                        rarrow();
                     } else {
-                        if (returnType instanceof ClassType) {
-                            ampersand();
-                            /* This is way more complicated I think we need to determine the expression type.
-                             * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
-                             */
-                        }
-
-                        // Check if the varOpLoad that could follow corresponds to a local/private type
-                        boolean isLocal = false;
-                        Op op = instanceResult.op();
-                        if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                            CoreOp.VarOp resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
-                            if (privateAndLocalTypes.contains(resolve.varName())) {
-                                isLocal = true;
-                            }
-                        }
-
-                        recurse(buildContext, instanceResult.op());
-
-                        if (!isLocal) {
-                            // If it is not local or private, it generates an arrow
-                            rarrow();
-                        } else {
-                            // Otherwise, it generates a do (access members without pointers)
-                            dot();
-                        }
-                        identifier(name);
+                        // Otherwise, it generates a do (access members without pointers)
+                        dot();
+                    }
+                    identifier(name);
 
 
-                        //if (invokeOpWrapper.name().equals("value") || invokeOpWrapper.name().equals("anon")){
-                        //System.out.println("value|anon");
-                        // }
-                        if (returnType instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
-                            //   setter
-                            switch (operandCount) {
-                                case 2: {
-                                    if (invokeOp.operands().get(1) instanceof Op.Result result1) {
-                                        equals().recurse(buildContext, result1.op());
-                                    } else {
-                                        throw new IllegalStateException("How ");
-                                    }
-                                    break;
-                                }
-                                case 3: {
-                                    if (invokeOp.operands().get(1) instanceof Op.Result result1
-                                            && invokeOp.operands().get(2) instanceof Op.Result result2) {
-                                        sbrace(_ -> recurse(buildContext, result1.op()));
-                                        equals().recurse(buildContext, result2.op());
-                                    } else {
-                                        throw new IllegalStateException("How ");
-                                    }
-                                    break;
-                                }
-                                default: {
+                    //if (invokeOpWrapper.name().equals("value") || invokeOpWrapper.name().equals("anon")){
+                    //System.out.println("value|anon");
+                    // }
+                    if (returnType instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
+                        //   setter
+                        switch (operandCount) {
+                            case 2: {
+                                if (invokeOp.operands().get(1) instanceof Op.Result result1) {
+                                    equals().recurse(buildContext, result1.op());
+                                } else {
                                     throw new IllegalStateException("How ");
                                 }
+                                break;
                             }
+                            case 3: {
+                                if (invokeOp.operands().get(1) instanceof Op.Result result1
+                                        && invokeOp.operands().get(2) instanceof Op.Result result2) {
+                                    sbrace(_ -> recurse(buildContext, result1.op()));
+                                    equals().recurse(buildContext, result2.op());
+                                } else {
+                                    throw new IllegalStateException("How ");
+                                }
+                                break;
+                            }
+                            default: {
+                                throw new IllegalStateException("How ");
+                            }
+                        }
+                    } else {
+                        if (invokeOp.operands().size() > 1 && invokeOp.operands().get(1) instanceof Op.Result result1) {
+                            sbrace(_ -> recurse(buildContext, result1.op()));
                         } else {
-                            if (invokeOp.operands().size() > 1 && invokeOp.operands().get(1) instanceof Op.Result result1) {
-                                sbrace(_ -> recurse(buildContext, result1.op()));
-                            } else {
-                                // This is a simple usage.   So scaleTable->multiScaleAccumRange
-                            }
+                            // This is a simple usage.   So scaleTable->multiScaleAccumRange
                         }
                     }
                 } else {

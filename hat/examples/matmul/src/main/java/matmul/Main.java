@@ -111,20 +111,21 @@ public class Main {
         }
     }
 
-    private interface MyLocalArray extends Buffer {
+    private interface MyLocalArrayFixedSize extends Buffer {
         void array(long index, float value);
         float array(long index);
 
-        Schema<MyLocalArray> schema = Schema.of(MyLocalArray.class,
+        Schema<MyLocalArrayFixedSize> schema = Schema.of(MyLocalArrayFixedSize.class,
                 myPrivateArray -> myPrivateArray
+                        // It is a bound schema, so we fix the size here
                         .array("array", 256));
 
-        static MyLocalArray create(Accelerator accelerator) {
+        static MyLocalArrayFixedSize create(Accelerator accelerator) {
             return schema.allocate(accelerator);
         }
 
-        static <T extends Buffer> MyLocalArray createLocal(int size) {
-            return Buffer.createLocal(MyLocalArray.class);
+        static <T extends Buffer> MyLocalArrayFixedSize createLocal(int size) {
+            return Buffer.createLocal(MyLocalArrayFixedSize.class);
         }
     }
 
@@ -132,10 +133,8 @@ public class Main {
     public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
         final int tileSize = 16;
-        //F32Array tileA = kc.createLocalF32Array(256); // TODO: perform partial evaluation is we see constant operations (tileSize * tileSize)
-        //F32Array tileB = kc.createLocalF32Array(256);
-        MyLocalArray tileA = MyLocalArray.createLocal(256);
-        MyLocalArray tileB = MyLocalArray.createLocal(256);
+        MyLocalArrayFixedSize tileA = MyLocalArrayFixedSize.createLocal(256);
+        MyLocalArrayFixedSize tileB = MyLocalArrayFixedSize.createLocal(256);
 
         int groupIndexX = kc.bix;
         int groupIndexY = kc.biy;
