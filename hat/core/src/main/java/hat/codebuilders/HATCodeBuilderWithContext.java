@@ -223,7 +223,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-
     T symbol(Op op) {
         return switch (op) {
             case JavaOp.ModOp o -> percent();
