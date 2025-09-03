@@ -29,8 +29,10 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
+import hat.HatInlineBoundary;
 import hat.KernelContext;
 import hat.LocalMesh1D;
+import hat.Space;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
@@ -62,14 +64,15 @@ public class LocalArray {
             return schema.allocate(accelerator, 1);
         }
 
-        static <T extends MySharedArray> MySharedArray createLocal(int size) {
-            return (T) Buffer.createLocal(MySharedArray.class);
+        @HatInlineBoundary
+        static MySharedArray create(Space space) {
+            return Buffer.create(space);
         }
     }
 
     @CodeReflection
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-        MySharedArray mySharedArray = MySharedArray.createLocal(1);
+        MySharedArray mySharedArray = MySharedArray.create(Space.SHARED);
         mySharedArray.array(0, kernelContext.lix);
         data.array(kernelContext.gix, mySharedArray.array(0));
     }

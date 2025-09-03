@@ -29,8 +29,10 @@ import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
 import hat.GlobalMesh2D;
+import hat.HatInlineBoundary;
 import hat.KernelContext;
 import hat.LocalMesh2D;
+import hat.Space;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
@@ -120,12 +122,19 @@ public class Main {
                         // It is a bound schema, so we fix the size here
                         .array("array", 256));
 
+        @HatInlineBoundary
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
             return schema.allocate(accelerator);
         }
 
+        @HatInlineBoundary
         static <T extends Buffer> MyLocalArrayFixedSize createLocal(int size) {
             return Buffer.createLocal(MyLocalArrayFixedSize.class);
+        }
+
+        @HatInlineBoundary
+        static <T extends Buffer> MyLocalArrayFixedSize create(Space space) {
+            return Buffer.create(space);
         }
     }
 
@@ -133,8 +142,8 @@ public class Main {
     public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
         final int tileSize = 16;
-        MyLocalArrayFixedSize tileA = MyLocalArrayFixedSize.createLocal(256);
-        MyLocalArrayFixedSize tileB = MyLocalArrayFixedSize.createLocal(256);
+        MyLocalArrayFixedSize tileA = Buffer.create(Space.SHARED);
+        MyLocalArrayFixedSize tileB = Buffer.create(Space.SHARED);
 
         int groupIndexX = kc.bix;
         int groupIndexY = kc.biy;
