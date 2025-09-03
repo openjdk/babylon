@@ -24,7 +24,7 @@
  */
 package hat.codebuilders;
 
-import hat.optools.OpTk;
+import hat.optools.FuncOpParams;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
@@ -57,10 +57,10 @@ public class HATCodeBuilderContext {
     }
 
     public static class FuncScope extends Scope<CoreOp.FuncOp> {
-        final OpTk.ParamTable paramTable;
+        final FuncOpParams paramTable;
         FuncScope(Scope<?> parent, CoreOp.FuncOp funcOp) {
             super(parent, funcOp);
-            paramTable = new OpTk.ParamTable(funcOp);
+            paramTable = new FuncOpParams(funcOp);
         }
 
         @Override
@@ -240,11 +240,11 @@ public class HATCodeBuilderContext {
     }
     final public MethodHandles.Lookup lookup;
     final public CoreOp.FuncOp funcOp;
-    final public OpTk.ParamTable paramTable;
+    final public FuncOpParams paramTable;
     public HATCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         this.lookup = lookup;
         this.funcOp = funcOp;
-        this.paramTable = new OpTk.ParamTable(funcOp);
+        this.paramTable = new FuncOpParams(funcOp);
     }
 
 }

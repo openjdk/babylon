@@ -28,6 +28,7 @@ import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.HATCodeBuilderContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
@@ -78,13 +79,13 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder kernelDeclaration(String name) {
-        return keyword("__kernel").space().voidType().space().identifier(name);
+    public OpenCLHatKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return keyword("__kernel").space().voidType().space().identifier(funcOp.funcName());
     }
 
     @Override
-    public OpenCLHatKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, String name) {
-        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(name);
+    public OpenCLHatKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, CoreOp.FuncOp funcOp) {
+        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(funcOp.funcName());
     }
 
     @Override

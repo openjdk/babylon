@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
+import java.util.stream.Stream;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
@@ -174,17 +175,18 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     private void annotateTypeAndName(HATCodeBuilderContext buildContext, JavaType javaType, ClassType classType, CoreOp.VarOp varOp) {
         String typeName = extractClassType(buildContext, javaType, classType);
-        String variableName = OpTk.varName(varOp);
+        String variableName = varOp.varName();
         privateAndLocalTypes.add(variableName);
         localArrayDeclarations.push(new LocalArrayDeclaration(typeName, variableName));
     }
 
     private void varDeclarationWithInitialization(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         // if type is Buffer (iMappable), then we ignore it and pass it along to the methodCall
-        if (isMappableIFace(buildContext, OpTk.javaType(varOp)) && OpTk.javaType(varOp) instanceof ClassType classType) {
-            annotateTypeAndName(buildContext, OpTk.javaType(varOp), classType, varOp);
+        if (isMappableIFace(buildContext, (JavaType) varOp.varValueType()) && (JavaType) varOp.varValueType() instanceof ClassType classType) {
+            annotateTypeAndName(buildContext, (JavaType) varOp.varValueType(), classType, varOp);
         } else {
-            type(buildContext, OpTk.javaType(varOp)).space().identifier(OpTk.varName(varOp)).space().equals().space();
+            type(buildContext, (JavaType) varOp.varValueType()).space().identifier(varOp.varName());
+            space().equals().space();
         }
         parencedence(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
     }
@@ -193,7 +195,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T varDeclaration(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         if (varOp.isUninitialized()) {
             // Variable is uninitialized
-            type(buildContext, OpTk.javaType(varOp)).space().identifier(OpTk.varName(varOp));
+            type(buildContext, (JavaType) varOp.varValueType()).space().identifier(varOp.varName());
         } else {
             varDeclarationWithInitialization(buildContext, varOp);
         }
@@ -261,25 +263,27 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T binaryOperation(HATCodeBuilderContext buildContext, Op binaryOp) {
-        parencedence(buildContext, binaryOp, OpTk.lhsAsOp(binaryOp));
+        parencedence(buildContext, binaryOp, ((Op.Result) binaryOp.operands().get(0)).op());
         symbol(binaryOp);
-        parencedence(buildContext, binaryOp, OpTk.rhsAsOp(binaryOp));
+        parencedence(buildContext, binaryOp, ((Op.Result) binaryOp.operands().get(1)).op());
         return self();
     }
 
     @Override
     public T logical(HATCodeBuilderContext buildContext, JavaOp.JavaConditionalOp logicalOp) {
-        OpTk.lhsYieldOpStream(logicalOp).forEach(o ->  recurse(buildContext, o));
+        logicalOp.bodies().get(0).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp)
+                .forEach(o ->  recurse(buildContext, o));
         space().symbol(logicalOp).space();
-        OpTk.rhsYieldOpStream(logicalOp).forEach(o-> recurse(buildContext, o));
+        logicalOp.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp)
+                .forEach(o-> recurse(buildContext, o));
         return self();
     }
 
     @Override
     public T binaryTest(HATCodeBuilderContext buildContext, Op binaryTestOp) {
-        parencedence(buildContext, binaryTestOp, OpTk.lhsAsOp(binaryTestOp));
+        parencedence(buildContext, binaryTestOp, ((Op.Result) binaryTestOp.operands().get(0)).op());
         symbol(binaryTestOp);
-        parencedence(buildContext, binaryTestOp, OpTk.rhsAsOp(binaryTestOp));
+        parencedence(buildContext, binaryTestOp, ((Op.Result) binaryTestOp.operands().get(1)).op());
         return self();
     }
 
@@ -390,7 +394,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             var lastWasBody = StreamMutable.of(false);
             StreamCounter.of(ifOp.bodies(), (c, b) -> {
                 if (b.yieldType() instanceof JavaType javaType && javaType == JavaType.VOID) {
-                    if (OpTk.hasElse(ifOp,c.value())) { // we might have more than one else
+                    int idx = c.value();
+                    if (ifOp.bodies().size() > idx && ifOp.bodies().get(idx).entryBlock().ops().size() > 1){
                         if (lastWasBody.get()) {
                             elseKeyword();
                         }
@@ -421,9 +426,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T javaWhile(HATCodeBuilderContext buildContext, JavaOp.WhileOp whileOp) {
         whileKeyword().paren(_ ->
-                OpTk.conditionYieldOpStream(whileOp).forEach(o -> recurse(buildContext, o))
+                whileOp.bodies().getFirst().entryBlock().ops().stream() // cond
+                        .filter(o -> o instanceof CoreOp.YieldOp)
+                        .forEach(o -> recurse(buildContext, o))
         ).braceNlIndented(_ ->
-                StreamCounter.of(OpTk.loopRootOpStream(buildContext.lookup,whileOp), (c, root) ->
+                StreamCounter.of(OpTk.loopRootOpStream(whileOp), (c, root) ->
                         nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
                 )
         );
@@ -434,15 +441,20 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T javaFor(HATCodeBuilderContext buildContext, JavaOp.ForOp forOp) {
         buildContext.scope(forOp, () ->
                 forKeyword().paren(_ -> {
-                    OpTk.initYieldOpStream(forOp).forEach(o -> recurse(buildContext, o));
+                    forOp.init().entryBlock().ops().stream()
+                            .filter(o -> o instanceof CoreOp.YieldOp)
+                            .forEach(o -> recurse(buildContext, o));
                     semicolon().space();
-                    OpTk.conditionYieldOpStream(forOp).forEach(o -> recurse(buildContext, o));
+                    forOp.cond().entryBlock().ops().stream()
+                            .filter(o -> o instanceof CoreOp.YieldOp)
+                            .forEach(o -> recurse(buildContext, o));
                     semicolon().space();
-                    StreamCounter.of(OpTk.mutateRootOpStream(buildContext.lookup,forOp), (c, wrapped) ->
-                            commaSpaceIf(c.isNotFirst()).recurse(buildContext, wrapped)
+                    StreamCounter.of(
+                            OpTk.rootsExcludingVarFuncDeclarationsAndYields( forOp.bodies().get(2).entryBlock()) //mutate block
+                            , (c, op) -> commaSpaceIf(c.isNotFirst()).recurse(buildContext, op)
                     );
                 }).braceNlIndented(_ ->
-                        StreamCounter.of(OpTk.loopRootOpStream(buildContext.lookup,forOp), (c, root) ->
+                        StreamCounter.of(OpTk.loopRootOpStream(forOp), (c, root) ->
                                 nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
                         )
                 )
@@ -732,11 +744,17 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T ternary(HATCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {
-        OpTk.conditionYieldOpStream(ternaryOp).forEach(o -> recurse(buildContext, o));
+        ternaryOp.bodies().get(0).entryBlock().ops().stream()
+                .filter(o -> o instanceof CoreOp.YieldOp) // cond
+                .forEach(o -> recurse(buildContext, o));
         questionMark();
-        OpTk.thenYieldOpStream(ternaryOp).forEach(o -> recurse(buildContext, o));
+        ternaryOp.bodies().get(1).entryBlock().ops().stream()
+                .filter(o -> o instanceof CoreOp.YieldOp) // iff yield
+                .forEach(o -> recurse(buildContext, o));
         colon();
-        OpTk.elseYieldOpStream(ternaryOp).forEach(o -> recurse(buildContext, o));
+        ternaryOp.bodies().get(2).entryBlock().ops().stream()
+                 .filter(o -> o instanceof CoreOp.YieldOp) // else yield
+                 .forEach(o -> recurse(buildContext, o));
         return self();
     }
 

@@ -41,7 +41,9 @@ import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
@@ -53,6 +55,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
@@ -140,19 +143,31 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
+    // FIXME: As Gary if we need to remove this
+    private Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
+        if (OpTk.javaReturnType(op) instanceof ClassType classType) {
+            return Optional.of((Class<?>) OpTk.classTypeToTypeOrThrow(lookup, classType));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    private boolean isIfaceAccessor(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+        if (OpTk.isIfaceBufferMethod(lookup, invokeOp) && !OpTk.javaReturnType(invokeOp).equals(JavaType.VOID)) {
+            Optional<Class<?>> optionalClazz = javaReturnClass(lookup, invokeOp);
+            return optionalClazz.isPresent() && Buffer.class.isAssignableFrom(optionalClazz.get());
+        } else {
+            return false;
+        }
+    }
+    // FIXME: to here
+
     private void updateListOfSchemas(Op op, MethodHandles.Lookup lookup, List<String> localIfaceList) {
         if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
-            if (OpTk.isIfaceAccessor(lookup, invokeOp)) {
+            if (isIfaceAccessor(lookup, invokeOp)) {
                 String klassName = invokeOp.resultType().toString();
                 localIfaceList.add(klassName);
             }
-//            //InvokeOpWrapper wrapped = OpWrapper.wrap(lookup, invokeOp);
-//            if (wrapped.isIfaceBufferMethod()) {
-//                if (wrapped.klassNameForCustomType() != null) {
-//                    String klassName = wrapped.klassNameForCustomType();
-//                    localIfaceList.add(klassName);
-//                }
-//            }
         }
     }
 
@@ -247,7 +262,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             System.out.println("Original");
             System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
             System.out.println("Lowered");
-            System.out.println(OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp()).toText());
+            System.out.println(OpTk.lower(kernelCallGraph.entrypoint.funcOp()).toText());
         }
         return builder.toString();
     }

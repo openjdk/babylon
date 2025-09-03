@@ -109,7 +109,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         funcName(funcName);
     }
 
-    public PTXHATKernelBuilder parameters(List<OpTk.ParamTable.Info> infoList) {
+    public PTXHATKernelBuilder parameters(List<FuncOpParams.Info> infoList) {
         paren(_ -> nl().commaNlSeparated(infoList, (info) -> {
             ptxIndent().dot().param().space().paramType(info.javaType);
             space().regName(info.varOp.varName());
@@ -466,7 +466,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
 
     // S32Array and S32Array2D functions can be deleted after schema is done
     public void methodCall(JavaOp.InvokeOp op) {
-        switch (OpTk.methodRef(op).toString()) {
+        switch (op.invokeDescriptor().toString()) {
             // S32Array functions
             case "hat.buffer.S32Array::array(long)int" -> {
                 PTXRegister temp = new PTXRegister(incrOrdinal(addressType()), addressType());
@@ -504,7 +504,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                     st().dot().param().paramType(op.operands().get(i).type()).space().osbrace().param().intVal(i).csbrace().commaSpace().reg(op.operands().get(i)).ptxNl();
                 }
                 dot().param().space().paramType(op.resultType()).space().retVal().ptxNl();
-                call().uni().space().oparen().retVal().cparen().commaSpace().append(OpTk.method(MethodHandles.lookup(),op).getName()).commaSpace();
+                call().uni().space().oparen().retVal().cparen().commaSpace().append(OpTk.methodOrThrow(MethodHandles.lookup(),op).getName()).commaSpace();
                 final int[] counter = {0};
                 paren(_ -> commaSeparated(op.operands(), _ -> param().intVal(counter[0]++))).ptxNl();
                 ld().dot().param().paramType(op.resultType()).space().resultReg(op, getResultType(op.resultType())).commaSpace().osbrace().retVal().csbrace();

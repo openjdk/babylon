@@ -159,20 +159,6 @@ public class Accelerator implements BufferAllocator, BufferTracker {
             ((BufferTracker) backend).postAccess(b);
         }
     }
-/*
-    @Override
-    public void preEscape(Buffer b) {
-        if (backend instanceof BufferTracker) {
-            ((BufferTracker) backend).preEscape(b);
-        }
-    }
-
-    @Override
-    public void postEscape(Buffer b) {
-        if (backend instanceof BufferTracker) {
-            ((BufferTracker) backend).postEscape(b);
-        }
-    } */
 
     /**
      * An interface used for wrapping the compute entrypoint of work to be performed by the Accelerator.
@@ -214,19 +200,15 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
-        Method method = OpTk.method(lookup,OpTk.getQuotableTargetInvokeOpWrapper(lambda));
-
+        Method method = OpTk.methodOrThrow(lookup,OpTk.getQuotableTargetInvokeOpWrapper(lambda));
         // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.
-        ComputeContext computeContext = cache.computeIfAbsent(method, (_) ->
-                new ComputeContext(this, method)
-        );
+        ComputeContext computeContext = cache.computeIfAbsent(method, (_) -> new ComputeContext(this, method));
         // Here we get the captured values  from the Quotable
         Object[] args = OpTk.getQuotableCapturedValues(lambda,quoted, method);
         args[0] = computeContext;
-
         // now ask the backend to execute
         backend.dispatchCompute(computeContext, args);
     }
