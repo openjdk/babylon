@@ -525,23 +525,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         throw new IllegalStateException("atomicInc not implemented");
     }
 
-    private boolean isLocalArray(String nameType) {
-        return nameType.equals("createLocalS32Array") ||
-                nameType.equals("createLocalF32Array") ||
-                nameType.equals("createLocalF64Array")  ||
-                nameType.equals("createLocalS64Array");
-    }
-
-    private JavaType toJavaType(String nameType) {
-        return switch (nameType) {
-            case "createLocalS32Array" -> JavaType.INT;
-            case "createLocalF32Array" -> JavaType.FLOAT;
-            case "createLocalS64Array" -> JavaType.LONG;
-            case "createLocalF64Array" -> JavaType.DOUBLE;
-            default -> null;
-        };
-    }
-
     @Override
     public T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         var name = invokeOp.invokeDescriptor().name();//OpTk.name(invokeOp);
@@ -602,190 +585,78 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                  */
                     if (name.startsWith("createPrivate")) {
                         LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-                        String varName = declaration.varName + "$private";
                         String typeStruct = declaration.typeStructName;
-
-//                        var valueOperandSize = invokeOpWrapper.operands().getFirst();
-//                        Integer size = obtainSize(valueOperandSize);
-//                        if (size == null) {
-//                            throw new IllegalStateException("size is null");
-//                        }
-//
-//                        size += 1;
-//
-//                        // Private declaration
-//                        emitText("float")
-//                                .space()
-//                                .emitText(varName)
-//                                .emitText("[")
-//                                .emitText(size.toString())
-//                                .emitText("]")
-//                                .semicolonNl();
-
-                        // Typecast
                         suffix_t(typeStruct)
                                 .space()
-                                //.asterisk()
                                 .emitText(declaration.varName).nl();
-                        //.equals()
-                        //.oparen()
-                        //.suffix_t(typeStruct)
-                        //.asterisk()
-                        //.cparen()
-                        //.space()
-                        //.emitText(varName)
-                        //.semicolon()
-                        //.nl();
-
                     } else if (name.startsWith("createLocal")) {
-                        // simple declaration
                         LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-
                         String varName = declaration.varName + "$shared";
-                        String type = declaration.typeStructName;
-
-//                        // Obtain the operands:
-//                        List<Value> operands = invokeOpWrapper.operands();
-//
-//                        // Param 0 is the size
-//                        if (operands.isEmpty()) {
-//                            throw new IllegalStateException("create local array expect 2 parameter ");
-//                        }
-//                        Value constantOperand = operands.getFirst();
-//                        int size = obtainSize(constantOperand);
-//
-//                        JavaType typeToGenerate = JavaType.FLOAT; // FIXME
-                        //emitlocalArrayWithSize(varName, size, typeToGenerate);
-                        emitCastToLocal(declaration.typeStructName, declaration.varName, varName, true);
+                        emitCastToLocal(declaration.typeStructName, declaration.varName, varName);
 
                     } else {
+                        if (returnType instanceof ClassType classType) {
+                            ampersand();
+                            /* This is way more complicated I think we need to determine the expression type.
+                             * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
+                             */
+                        }
 
-                        if (name.startsWith("createPrivate")) {
-                            LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-                            String varName = declaration.varName + "$private";
-                            String typeStruct = declaration.typeStructName;
+                        // Check if the varOpLoad that could follow corresponds to a local/private type
+                        boolean isLocal = false;
+                        Op op = instanceResult.op();
+                        if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                            CoreOp.VarOp resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
+                            if (privateAndLocalTypes.contains(resolve.varName())) {
+                                isLocal = true;
+                            }
+                        }
 
-//                        var valueOperandSize = invokeOpWrapper.operands().getFirst();
-//                        Integer size = obtainSize(valueOperandSize);
-//                        if (size == null) {
-//                            throw new IllegalStateException("size is null");
-//                        }
-//
-//                        size += 1;
-//
-//                        // Private declaration
-//                        emitText("float")
-//                                .space()
-//                                .emitText(varName)
-//                                .emitText("[")
-//                                .emitText(size.toString())
-//                                .emitText("]")
-//                                .semicolonNl();
+                        recurse(buildContext, instanceResult.op());
 
-                            // Typecast
-                            suffix_t(typeStruct)
-                                    .space()
-                                    //.asterisk()
-                                    .emitText(declaration.varName).nl();
-                            //.equals()
-                            //.oparen()
-                            //.suffix_t(typeStruct)
-                            //.asterisk()
-                            //.cparen()
-                            //.space()
-                            //.emitText(varName)
-                            //.semicolon()
-                            //.nl();
-
-                        } else if (name.startsWith("createLocal")) {
-                            // simple declaration
-                            LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-
-                            String varName = declaration.varName + "$shared";
-                            String type = declaration.typeStructName;
-
-//                        // Obtain the operands:
-//                        List<Value> operands = invokeOpWrapper.operands();
-//
-//                        // Param 0 is the size
-//                        if (operands.isEmpty()) {
-//                            throw new IllegalStateException("create local array expect 2 parameter ");
-//                        }
-//                        Value constantOperand = operands.getFirst();
-//                        int size = obtainSize(constantOperand);
-//
-//                        JavaType typeToGenerate = JavaType.FLOAT; // FIXME
-                            //emitlocalArrayWithSize(varName, size, typeToGenerate);
-                            emitCastToLocal(declaration.typeStructName, declaration.varName, varName, true);
-
+                        if (!isLocal) {
+                            // If it is not local or private, it generates an arrow
+                            rarrow();
                         } else {
-
-                            if (returnType instanceof ClassType classType) {
-                                ampersand();
-                    /* This is way more complicated I think we need to determine the expression type.
-
-
-                     sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
-
-                     */
-                            }
-
-                            // Check if the varOpLoad that could follow corresponds to a local/private type
-                            boolean isLocal = false;
-                            Op op = instanceResult.op();
-                            if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                                CoreOp.VarOp resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
-                                if (privateAndLocalTypes.contains(resolve.varName())) {
-                                    isLocal = true;
-                                }
-                            }
-
-                            recurse(buildContext, instanceResult.op());
-
-                            if (!isLocal) {
-                                // If it is not local or private, it generates an arrow
-                                rarrow();
-                            } else {
-                                // Otherwise, it generates a do (access members without pointers)
-                                dot();
-                            }
-                            identifier(name);
+                            // Otherwise, it generates a do (access members without pointers)
+                            dot();
+                        }
+                        identifier(name);
 
 
-                            //if (invokeOpWrapper.name().equals("value") || invokeOpWrapper.name().equals("anon")){
-                            //System.out.println("value|anon");
-                            // }
-                            if (returnType instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
-                                //   setter
-                                switch (operandCount) {
-                                    case 2: {
-                                        if (invokeOp.operands().get(1) instanceof Op.Result result1) {
-                                            equals().recurse(buildContext, result1.op());
-                                        } else {
-                                            throw new IllegalStateException("How ");
-                                        }
-                                        break;
-                                    }
-                                    case 3: {
-                                        if (invokeOp.operands().get(1) instanceof Op.Result result1
-                                                && invokeOp.operands().get(2) instanceof Op.Result result2) {
-                                            sbrace(_ -> recurse(buildContext, result1.op()));
-                                            equals().recurse(buildContext, result2.op());
-                                        } else {
-                                            throw new IllegalStateException("How ");
-                                        }
-                                        break;
-                                    }
-                                    default: {
+                        //if (invokeOpWrapper.name().equals("value") || invokeOpWrapper.name().equals("anon")){
+                        //System.out.println("value|anon");
+                        // }
+                        if (returnType instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
+                            //   setter
+                            switch (operandCount) {
+                                case 2: {
+                                    if (invokeOp.operands().get(1) instanceof Op.Result result1) {
+                                        equals().recurse(buildContext, result1.op());
+                                    } else {
                                         throw new IllegalStateException("How ");
                                     }
+                                    break;
                                 }
+                                case 3: {
+                                    if (invokeOp.operands().get(1) instanceof Op.Result result1
+                                            && invokeOp.operands().get(2) instanceof Op.Result result2) {
+                                        sbrace(_ -> recurse(buildContext, result1.op()));
+                                        equals().recurse(buildContext, result2.op());
+                                    } else {
+                                        throw new IllegalStateException("How ");
+                                    }
+                                    break;
+                                }
+                                default: {
+                                    throw new IllegalStateException("How ");
+                                }
+                            }
+                        } else {
+                            if (invokeOp.operands().size() > 1 && invokeOp.operands().get(1) instanceof Op.Result result1) {
+                                sbrace(_ -> recurse(buildContext, result1.op()));
                             } else {
-                                if (invokeOp.operands().size() > 1 && invokeOp.operands().get(1) instanceof Op.Result result1) {
-                                    sbrace(_ -> recurse(buildContext, result1.op()));
-                                } else {
-                                    // This is a simple usage.   So scaleTable->multiScaleAccumRange
-                                }
+                                // This is a simple usage.   So scaleTable->multiScaleAccumRange
                             }
                         }
                     }
@@ -807,37 +678,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         }
                     }
                 }
-            } else if (isLocalArray(name)) {
-                LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-                String localVarS = declaration.varName + "L";
-
-                // Obtain the operands:
-                List<Value> operands = invokeOp.operands();
-                // Param 0 is `this`.
-                // Param 1 is the argument to the function
-                // obtain first argument:
-                if (operands.size() < 2) {
-                    throw new IllegalStateException("create local Int array expect 1 parameter ");
-                }
-                Value constantOperand = operands.get(1);
-                int size = 0;
-                if (constantOperand instanceof Op.Result instanceResult) {
-                    if (instanceResult.op() instanceof CoreOp.ConstantOp constantOp) {
-                        if (constantOp.value() instanceof Integer parameter) {
-                            size = parameter.intValue();
-                        }
-                    }
-                }
-                if (size == 0) {
-                    throw new IllegalStateException("Expected size > 0 for local memory ");
-                }
-
-                // TODO: if there is padding, then we need to update the size += paddingSize.
-                size++;
-
-                JavaType type = toJavaType(name);
-                emitlocalArrayWithSize(localVarS, size, type);
-                emitCastToLocal(declaration.typeStructName, declaration.varName, localVarS, false);
             } else {
                 // General case
                 identifier(name).paren(_ ->
@@ -865,9 +705,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return null;
     }
 
-    public abstract T emitCastToLocal(String typeName, String varName, String localVarS, boolean isAPISimplified);
-
-    public abstract T emitlocalArrayWithSize(String localVarS, int size, JavaType type);
+    public abstract T emitCastToLocal(String typeName, String varName, String localVarS);
 
     public abstract T syncBlockThreads();
 
