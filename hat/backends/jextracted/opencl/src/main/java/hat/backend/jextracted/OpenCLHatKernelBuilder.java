@@ -112,28 +112,11 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
 
     @Override
     public OpenCLHatKernelBuilder emitCastToLocal(String typeName, String varName, String localVarS) {
-        return localPtrPrefix().space()
-                .suffix_t(typeName)
-                .asterisk().space()
-                .identifier(varName)
-                .space().equals().space()
-                .oparen()
-                .localPtrPrefix()
+        return localPtrPrefix()
                 .space()
                 .suffix_t(typeName)
-                .asterisk()
-                .cparen()
-                .identifier(localVarS);
-    }
-
-    @Override
-    public OpenCLHatKernelBuilder emitlocalArrayWithSize(String localVarS, int size, JavaType type) {
-        return localPtrPrefix().space()
-                .declareVarFromJavaType(type, localVarS)
-                .obracket()
-                .identifier("" + size)
-                .cbracket()
-                .semicolon().nl();
+                .space()
+                .identifier(varName);
     }
 
 }
