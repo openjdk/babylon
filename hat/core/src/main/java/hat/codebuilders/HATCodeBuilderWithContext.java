@@ -575,7 +575,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                 }
                             }
 
-                            // obtain the name
+                            // If the type is correct, then we obtain the enum value and invoke the
+                            // corresponding declaration
                             String spaceName = fieldLoadOp.fieldDescriptor().name();
                             LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                             if (spaceName.equals(Space.PRIVATE.name())) {
