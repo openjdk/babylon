@@ -717,7 +717,8 @@ public class ReflectMethods extends TreeTranslator {
             try {
                 pt = targetType;
                 scan(expression);
-                return result == null || targetType.hasTag(TypeTag.VOID) ? result : coerce(result, expression.type, targetType);
+                return (result == null || targetType.hasTag(TypeTag.VOID) || targetType.hasTag(NONE)) ?
+                        result : coerce(result, expression.type, targetType);
             } finally {
                 pt = prevPt;
             }
@@ -1771,7 +1772,7 @@ public class ReflectMethods extends TreeTranslator {
 
         private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType) {
             Body.Builder body = null;
-            Type yieldType = tree.type != null ? adaptBottom(tree.type) : syms.voidType;
+            Type yieldType = tree.type != null ? adaptBottom(tree.type) : Type.noType;
 
             JCTree.JCCaseLabel headCl = c.labels.head;
             switch (c.caseKind) {
