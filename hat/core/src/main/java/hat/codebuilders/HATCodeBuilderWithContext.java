@@ -25,6 +25,7 @@
 package hat.codebuilders;
 
 
+import hat.Space;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
@@ -40,6 +41,7 @@ import java.util.Set;
 import java.util.Stack;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -47,6 +49,8 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+
+import javax.management.RuntimeMBeanException;
 
 public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements HATCodeBuilder.CodeBuilderInterface<T> {
     /*
@@ -554,10 +558,37 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 }
             } else {
 
-                if (name.startsWith("createPrivate")) {
+                if (name.equals("create")) {
+                    // Obtain the space in the first parameter
+                    List<Value> operands = invokeOp.operands();
+                    if (operands.size() != 1) {
+                        throw new RuntimeException("[Fail] `create` method expects one parameter for the space");
+                    }
+                    Value spaceValue = operands.getFirst();
+                    if (spaceValue instanceof Op.Result instanceResult) {
+                        if (instanceResult.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp ) {
+                            // check type of field load
+                            TypeElement typeElement = fieldLoadOp.fieldDescriptor().refType();
+                            if (typeElement instanceof ClassType classType) {
+                                if (!classType.toClassName().equals(Space.class.getCanonicalName())) {
+                                    throw new RuntimeException("[Fail] Expected an instance from Space");
+                                }
+                            }
+
+                            // obtain the name
+                            String spaceName = fieldLoadOp.fieldDescriptor().name();
+                            LocalArrayDeclaration declaration = localArrayDeclarations.pop();
+                            if (spaceName.equals(Space.PRIVATE.name())) {
+                                emitPrivateDeclaration(declaration.typeStructName, declaration.varName);
+                            } else if (spaceName.equals(Space.SHARED.name())) {
+                                emitLocalDeclaration(declaration.typeStructName, declaration.varName);
+                            }
+                        }
+                    }
+                } else if (name.equals("createPrivate")) {
                     LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                     emitPrivateDeclaration(declaration.typeStructName, declaration.varName);
-                } else if (name.startsWith("createLocal")) {
+                } else if (name.equals("createLocal")) {
                     LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                     emitLocalDeclaration(declaration.typeStructName, declaration.varName);
                 } else if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {

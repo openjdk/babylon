@@ -30,6 +30,7 @@ import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
 import hat.KernelContext;
+import hat.Space;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
@@ -66,6 +67,10 @@ public class PrivateArray {
             return Buffer.createPrivate(MyPrivateArray.class);
         }
 
+        static <T extends MyPrivateArray> MyPrivateArray create(Space space) {
+            return Buffer.create(space);
+        }
+
         static String schemaDescription() {
             StringBuilder sb = new StringBuilder();
             schema.toText(sb::append);
@@ -83,7 +88,7 @@ public class PrivateArray {
         //MyPrivateArray myPrivateArray = Buffer.createPrivate(MyPrivateArray.class, 18);
 
         // Alternatively, the user can create a new static method with the same signature
-        MyPrivateArray myPrivateArray = MyPrivateArray.createPrivate(1);
+        MyPrivateArray myPrivateArray = MyPrivateArray.create(Space.PRIVATE);
 
         myPrivateArray.array(0, kernelContext.gix);
         data.array(kernelContext.gix, myPrivateArray.array(0));
