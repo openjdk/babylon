@@ -93,32 +93,27 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
         kernelReachableResolvedMethodCall.funcOp().traverse(null, (map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-              //  var invokeOpWrapper = (InvokeOpWrapper)OpWrapper.wrap(  kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
-                MethodRef methodRef = OpTk.methodRef(invokeOp);
-                Class<?> javaRefTypeClass = OpTk.javaRefClass(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp).orElseThrow();
-                Method invokeOpCalledMethod = OpTk.method(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
+              //  MethodRef methodRef = invokeOp.invokeDescriptor();
+                Class<?> javaRefTypeClass = OpTk.javaRefClassOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
+                Method invokeOpCalledMethod = OpTk.methodOrThrow(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup,invokeOp);
                 if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
-                    //System.out.println("kernel reachable iface mapped buffer call  -> " + methodRef);
-                    kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                            new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodRef, invokeOpCalledMethod)
+                        kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
+                            new KernelReachableUnresolvedIfaceMappedMethodCall(this, invokeOp.invokeDescriptor(), invokeOpCalledMethod)
                     ));
                 } else if (entrypoint.method.getDeclaringClass().equals(javaRefTypeClass)) {
                     Optional<CoreOp.FuncOp> optionalFuncOp = Op.ofMethod(invokeOpCalledMethod);
                     if (optionalFuncOp.isPresent()) {
-                        //System.out.println("A call to a method on the kernel class which we have code model for " + methodRef);
-                        kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                                new KernelReachableResolvedMethodCall(this, methodRef, invokeOpCalledMethod, optionalFuncOp.get()
+                             kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
+                                new KernelReachableResolvedMethodCall(this, invokeOp.invokeDescriptor(), invokeOpCalledMethod, optionalFuncOp.get()
                                 )));
                     } else {
-                        // System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
-                        kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                                new KernelReachableUnresolvedMethodCall(this, methodRef, invokeOpCalledMethod)
+                           kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
+                                new KernelReachableUnresolvedMethodCall(this, invokeOp.invokeDescriptor(), invokeOpCalledMethod)
                         ));
                     }
                 } else {
-                    //  System.out.println("A call to a method on the compute class which we DO NOT have code model for " + methodRef);
-                    kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(methodRef, _ ->
-                            new KernelReachableUnresolvedMethodCall(this, methodRef, invokeOpCalledMethod)
+                       kernelReachableResolvedMethodCall.addCall(methodRefToMethodCallMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
+                            new KernelReachableUnresolvedMethodCall(this, invokeOp.invokeDescriptor(), invokeOpCalledMethod)
                     ));
                     // System.out.println("Were we expecting " + methodRef + " here ");
                 }

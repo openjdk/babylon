@@ -29,6 +29,7 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.HATCodeBuilderContext;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
@@ -100,13 +101,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder kernelDeclaration(String name) {
-        return externC().space().keyword("__global__").space().voidType().space().identifier(name);
+    public CudaHATKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return externC().space().keyword("__global__").space().voidType().space().identifier(funcOp.funcName());
     }
 
     @Override
-    public CudaHATKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType javaType, String name) {
-        return externC().space().keyword("__device__").space().keyword("inline").space().type(codeBuilderContext,javaType).space().identifier(name);
+    public CudaHATKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
+        return externC().space().keyword("__device__").space().keyword("inline").space().type(codeBuilderContext,javaType).space().identifier(funcOp.funcName());
     }
 
     @Override

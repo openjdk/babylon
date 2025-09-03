@@ -29,6 +29,7 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.HATCodeBuilderContext;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
@@ -80,13 +81,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder kernelDeclaration(String name) {
-        return keyword("__kernel").space().voidType().space().identifier(name);
+    public OpenCLHATKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return keyword("__kernel").space().voidType().space().identifier(funcOp.funcName());
     }
 
     @Override
-    public OpenCLHATKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, String name) {
-        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(name);
+    public OpenCLHATKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, CoreOp.FuncOp funcOp) {
+        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(funcOp.funcName());
     }
 
     @Override
@@ -96,9 +97,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder atomicInc(HATCodeBuilderContext buildContext, Op.Result instanceResult, String name){
-          return identifier("atomic_inc").paren(_ -> {
-              ampersand().recurse(buildContext, instanceResult.op());
-              rarrow().identifier(name);
-          });
+          return identifier("atomic_inc").paren(_ ->
+              ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name)
+          );
     }
 }
