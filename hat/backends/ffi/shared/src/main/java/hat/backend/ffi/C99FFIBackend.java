@@ -25,7 +25,6 @@
 
 package hat.backend.ffi;
 
-import hat.Accelerator;
 import hat.ComputeRange;
 import hat.ThreadMesh;
 import hat.NDRange;
@@ -40,18 +39,13 @@ import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
-import hat.optools.FuncOpWrapper;
-import hat.optools.InvokeOpWrapper;
-import hat.optools.OpWrapper;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -148,13 +142,17 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     private void updateListOfSchemas(Op op, MethodHandles.Lookup lookup, List<String> localIfaceList) {
         if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
-            InvokeOpWrapper wrapped = OpWrapper.wrap(lookup, invokeOp);
-            if (wrapped.isIfaceBufferMethod()) {
-                if (wrapped.klassNameForCustomType() != null) {
-                    String klassName = wrapped.klassNameForCustomType();
-                    localIfaceList.add(klassName);
-                }
+            if (OpTk.isIfaceAccessor(lookup, invokeOp)) {
+                String klassName = invokeOp.resultType().toString();
+                localIfaceList.add(klassName);
             }
+//            //InvokeOpWrapper wrapped = OpWrapper.wrap(lookup, invokeOp);
+//            if (wrapped.isIfaceBufferMethod()) {
+//                if (wrapped.klassNameForCustomType() != null) {
+//                    String klassName = wrapped.klassNameForCustomType();
+//                    localIfaceList.add(klassName);
+//                }
+//            }
         }
     }
 

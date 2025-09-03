@@ -31,9 +31,7 @@ import hat.buffer.BufferAllocator;
 import hat.buffer.BufferTracker;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
-import hat.optools.LambdaOpWrapper;
 import hat.optools.OpTk;
-import hat.optools.OpWrapper;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -216,7 +214,7 @@ public class Accelerator implements BufferAllocator, BufferTracker {
     public void compute(QuotableComputeContextConsumer quotableComputeContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableComputeContextConsumer).orElseThrow();
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.op();
-        Method method = OpTk.getQuotableTargetInvokeOpWrapper(lookup,lambda).method();
+        Method method = OpTk.method(lookup,OpTk.getQuotableTargetInvokeOpWrapper(lambda));
 
         // Create (or get cached) a compute context which closes over compute entryppint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
