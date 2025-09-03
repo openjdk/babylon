@@ -158,6 +158,7 @@ public sealed abstract class JavaOp extends Op {
             final Body.Builder ancestorBody;
             final FunctionType funcType;
             final TypeElement functionalInterface;
+            boolean quotable = false;
 
             Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface) {
                 this.ancestorBody = ancestorBody;
@@ -168,17 +169,29 @@ public sealed abstract class JavaOp extends Op {
             public LambdaOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(ancestorBody, funcType);
                 c.accept(body.entryBlock());
-                return new LambdaOp(functionalInterface, body);
+                return new LambdaOp(functionalInterface, body, quotable);
+            }
+
+            public Builder quotable() {
+                this.quotable = true;
+                return this;
             }
         }
 
         static final String NAME = "lambda";
+        static final String ATTRIBUTE_LAMBDA_IS_QUOTABLE = NAME + ".isQuotable";
 
         final TypeElement functionalInterface;
         final Body body;
+        final boolean isQuotable;
 
-        LambdaOp(ExternalizedOp def) {
-            this(def.resultType(), def.bodyDefinitions().get(0));
+        static LambdaOp create(ExternalizedOp def) {
+            boolean isQuotable = def.extractAttributeValue(ATTRIBUTE_LAMBDA_IS_QUOTABLE,
+                    false, v -> switch (v) {
+                        case Boolean b -> b;
+                        case null, default -> false;
+                    });
+            return new LambdaOp(def.resultType(), def.bodyDefinitions().get(0), isQuotable);
         }
 
         LambdaOp(LambdaOp that, CopyContext cc, OpTransformer ot) {
@@ -186,6 +199,7 @@ public sealed abstract class JavaOp extends Op {
 
             this.functionalInterface = that.functionalInterface;
             this.body = that.body.transform(cc, ot).build(this);
+            this.isQuotable = that.isQuotable;
         }
 
         @Override
@@ -193,12 +207,13 @@ public sealed abstract class JavaOp extends Op {
             return new LambdaOp(this, cc, ot);
         }
 
-        LambdaOp(TypeElement functionalInterface, Body.Builder bodyC) {
+        LambdaOp(TypeElement functionalInterface, Body.Builder bodyC, boolean isQuotable) {
             super(NAME,
                     List.of());
 
             this.functionalInterface = functionalInterface;
             this.body = bodyC.build(this);
+            this.isQuotable = isQuotable;
         }
 
         @Override
@@ -235,6 +250,17 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public TypeElement resultType() {
             return functionalInterface();
+        }
+
+        public boolean isQuotable() {
+            return isQuotable;
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            Map<String, Object> m = new HashMap<>();
+            m.put(ATTRIBUTE_LAMBDA_IS_QUOTABLE, isQuotable);
+            return Collections.unmodifiableMap(m);
         }
 
         /**
@@ -4975,7 +5001,7 @@ public sealed abstract class JavaOp extends Op {
             case "java.try" -> TryOp.create(def);
             case "java.while" -> new WhileOp(def);
             case "java.yield" -> new YieldOp(def);
-            case "lambda" -> new LambdaOp(def);
+            case "lambda" -> LambdaOp.create(def);
             case "le" -> new LeOp(def);
             case "lshl" -> new LshlOp(def);
             case "lshr" -> new LshrOp(def);
@@ -5039,7 +5065,19 @@ public sealed abstract class JavaOp extends Op {
      * @return the lambda operation
      */
     public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body) {
-        return new LambdaOp(functionalInterface, body);
+        return new LambdaOp(functionalInterface, body, false);
+    }
+
+    /**
+     * Creates a lambda operation.
+     *
+     * @param functionalInterface the lambda operation's functional interface type
+     * @param body                the body of the lambda operation
+     * @param isQuotable          true if the lambda is quotable
+     * @return the lambda operation
+     */
+    public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body, boolean isQuotable) {
+        return new LambdaOp(functionalInterface, body, isQuotable);
     }
 
     /**

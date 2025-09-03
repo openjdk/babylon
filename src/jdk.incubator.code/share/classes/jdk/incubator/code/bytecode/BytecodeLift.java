@@ -471,6 +471,8 @@ public final class BytecodeLift {
                         }
                         FunctionType lambdaFunc = CoreType.functionType(JavaType.type(mt.returnType()),
                                                                             mt.parameterList().stream().map(JavaType::type).toList());
+                        // how to know if lambda is Quotable ?
+                        // if the last bsm arg is a MH to a an opMethod ?
                         JavaOp.LambdaOp.Builder lambda = JavaOp.lambda(currentBlock.parentBody(),
                                                                        lambdaFunc,
                                                                        JavaType.type(inst.typeSymbol().returnType()));
