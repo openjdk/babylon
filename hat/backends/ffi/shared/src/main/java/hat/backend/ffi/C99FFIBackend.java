@@ -143,7 +143,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    // FIXME: As Gary if we need to remove this
     private Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         if (OpTk.javaReturnType(op) instanceof ClassType classType) {
             return Optional.of((Class<?>) OpTk.classTypeToTypeOrThrow(lookup, classType));
@@ -160,7 +159,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             return false;
         }
     }
-    // FIXME: to here
 
     private void updateListOfSchemas(Op op, MethodHandles.Lookup lookup, List<String> localIfaceList) {
         if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
