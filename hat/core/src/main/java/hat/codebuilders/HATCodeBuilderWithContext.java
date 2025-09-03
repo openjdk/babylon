@@ -689,18 +689,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-    private Integer obtainSize(Value parameter) {
-        if (parameter instanceof Op.Result opResult) {
-            if (opResult.op() instanceof CoreOp.ConstantOp constantOp) {
-                if (constantOp.value() instanceof Integer intValue) {
-                    return intValue;
-                }
-            }
-        }
-        return null;
-    }
-
-
     public abstract T emitPrivateDeclaration(String typeName, String varName);
 
     public abstract T emitLocalDeclaration(String typeName, String varName);
