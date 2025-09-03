@@ -164,7 +164,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             System.out.println("Original");
             System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
             System.out.println("Lowered");
-            System.out.println(OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp()).toText());
+            System.out.println(OpTk.lower(kernelCallGraph.entrypoint.funcOp()).toText());
         }
         return builder.toString();
     }

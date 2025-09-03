@@ -31,15 +31,14 @@ import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
+import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.annotation.Annotation;
@@ -68,7 +67,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
             computeContext.computeCallGraph.entrypoint.lowered =
-                    OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOp());
+                    OpTk.lower(computeContext.computeCallGraph.entrypoint.funcOp());
         }
 
         boolean interpret = false;
@@ -140,7 +139,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 System.out.println(returnFO.toText());
             }
             var lookup = computeMethod.callGraph.computeContext.accelerator.lookup;
-            var paramTable = new OpTk.ParamTable(prevFO);
+            var paramTable = new FuncOpParams(prevFO);
             returnFO = prevFO.transform((bldr, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeO) {
                     CopyContext bldrCntxt = bldr.context();
@@ -156,14 +155,14 @@ public abstract class FFIBackend extends FFIBackendDriver {
                         bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
                         bldr.op(invokeO);                         // iface.v();
                         bldr.op(JavaOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
-                    } else if (OpTk.isComputeContextMethod(lookup,invokeO) || OpTk.isRawKernelCall(lookup,invokeO)) { //dispatchKernel
+                    } else if (OpTk.isComputeContextMethod(lookup,invokeO) || OpTk.isKernelContextMethod(lookup,invokeO)) { //dispatchKernel
                         bldr.op(invokeO);
                     } else {
                         List<Value> list = invokeO.operands();
                         //   System.out.println("args "+list.size());
                         if (!list.isEmpty()) {
                             // System.out.println("method "+invokeOW.method());
-                            Annotation[][] parameterAnnotations = OpTk.method(lookup, invokeO).getParameterAnnotations();
+                            Annotation[][] parameterAnnotations = OpTk.methodOrThrow(lookup, invokeO).getParameterAnnotations();
                             boolean isVirtual = list.size() > parameterAnnotations.length;
                             //   System.out.println("params length"+parameterAnnotations.length);
                             List<TypeAndAccess> typeAndAccesses = new ArrayList<>();
