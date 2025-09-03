@@ -29,8 +29,10 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
+import hat.HatInlineBoundary;
 import hat.KernelContext;
 import hat.LocalMesh1D;
+import hat.Space;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
@@ -47,26 +49,31 @@ import java.lang.invoke.MethodHandles;
  */
 public class PointPrivate {
 
-    private interface MyBoundArray extends Buffer {
-        int array(int index);
-        void array(int index, int value);
-        Schema<MyBoundArray> schema = Schema.of(MyBoundArray.class,
-                myPoint -> myPoint.array("array", 256));
+    private interface Point extends Buffer {
+        int x();
+        int y();
+        void x(int x);
+        void y(int y);
+        Schema<Point> schema = Schema.of(Point.class,
+                myPoint -> myPoint.fields("x", "y"));
 
-        static MyBoundArray create(Accelerator accelerator, int length) {
-            return schema.allocate(accelerator, length);
+        @HatInlineBoundary
+        static Point create(Accelerator accelerator) {
+            return schema.allocate(accelerator, 1);
         }
 
-        static <T extends Buffer> MyBoundArray createPrivate(Class<T> klass, int length) {
-            return (MyBoundArray) Buffer.createLocal(klass);
+        @HatInlineBoundary
+        static <T extends Point> Point create(Space space) {
+            return Buffer.create(space);
         }
     }
 
     @CodeReflection
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-        MyBoundArray myPoint = MyBoundArray.createPrivate(MyBoundArray.class, 1);
-        myPoint.array(0, 20);
-        int someCompute = myPoint.array(0);
+        Point myPoint = Point.create(Space.PRIVATE);
+        myPoint.x(10);
+        myPoint.y(10);
+        int someCompute = myPoint.x() + myPoint.y();
         data.array(kernelContext.gix, someCompute);
     }
 
@@ -81,7 +88,7 @@ public class PointPrivate {
     static void main(String[] args) {
         System.out.println("Testing Shared Data Structures Mapping");
         System.out.println("Schema description");
-        MyBoundArray.schema.toText(System.out::print);
+        Point.schema.toText(System.out::print);
         System.out.println(" ==================");
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);

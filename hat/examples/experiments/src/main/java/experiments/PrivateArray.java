@@ -63,11 +63,7 @@ public class PrivateArray {
             return schema.allocate(accelerator, 1);
         }
 
-        static <T extends MyPrivateArray> MyPrivateArray createPrivate(int size) {
-            return Buffer.createPrivate(MyPrivateArray.class);
-        }
-
-        static <T extends MyPrivateArray> MyPrivateArray create(Space space) {
+        static <T extends MyPrivateArray> T create(Space space) {
             return Buffer.create(space);
         }
 

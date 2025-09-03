@@ -65,7 +65,7 @@ public class LocalArray {
         }
 
         @HatInlineBoundary
-        static MySharedArray create(Space space) {
+        static <T extends MySharedArray> T create(Space space) {
             return Buffer.create(space);
         }
     }

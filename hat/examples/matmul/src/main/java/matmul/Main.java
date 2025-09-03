@@ -126,16 +126,6 @@ public class Main {
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
             return schema.allocate(accelerator);
         }
-
-        @HatInlineBoundary
-        static <T extends Buffer> MyLocalArrayFixedSize createLocal(int size) {
-            return Buffer.createLocal(MyLocalArrayFixedSize.class);
-        }
-
-        @HatInlineBoundary
-        static <T extends Buffer> MyLocalArrayFixedSize create(Space space) {
-            return Buffer.create(space);
-        }
     }
 
     @CodeReflection

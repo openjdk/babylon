@@ -109,16 +109,6 @@ public interface Buffer extends MappableIface {
     }
 
     @HatInlineBoundary
-    static <T extends Buffer> T createLocal(Class<T> type) {
-        return null;
-    }
-
-    @HatInlineBoundary
-    static <T extends Buffer> T createPrivate(Class<T> type) {
-        return null;
-    }
-
-    @HatInlineBoundary
     static <T extends Buffer> T create(Space space) {
         return null;
     }
