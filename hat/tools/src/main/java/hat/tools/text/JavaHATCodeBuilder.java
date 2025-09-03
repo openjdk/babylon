@@ -74,7 +74,13 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
     }
 
     @Override
-    public T emitCastToLocal(String typeName, String varName, String localVarS) {
+    public T emitPrivateDeclaration(String typeName, String varName) {
+        // TODO: What would emit a Java backend
+        return self();
+    }
+
+    @Override
+    public T emitLocalDeclaration(String typeName, String varName) {
         // TODO: What would emit a Java backend
         return self();
     }

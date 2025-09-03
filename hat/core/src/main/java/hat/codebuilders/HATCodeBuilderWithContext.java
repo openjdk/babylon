@@ -585,17 +585,12 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                  */
                     if (name.startsWith("createPrivate")) {
                         LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-                        String typeStruct = declaration.typeStructName;
-                        suffix_t(typeStruct)
-                                .space()
-                                .emitText(declaration.varName).nl();
+                        emitPrivateDeclaration(declaration.typeStructName, declaration.varName);
                     } else if (name.startsWith("createLocal")) {
                         LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-                        String varName = declaration.varName + "$shared";
-                        emitCastToLocal(declaration.typeStructName, declaration.varName, varName);
-
+                        emitLocalDeclaration(declaration.typeStructName, declaration.varName);
                     } else {
-                        if (returnType instanceof ClassType classType) {
+                        if (returnType instanceof ClassType) {
                             ampersand();
                             /* This is way more complicated I think we need to determine the expression type.
                              * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
@@ -705,7 +700,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return null;
     }
 
-    public abstract T emitCastToLocal(String typeName, String varName, String localVarS);
+
+    public abstract T emitPrivateDeclaration(String typeName, String varName);
+
+    public abstract T emitLocalDeclaration(String typeName, String varName);
 
     public abstract T syncBlockThreads();
 

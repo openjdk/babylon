@@ -112,7 +112,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder emitCastToLocal(String typeName, String varName, String localVarS) {
+    public OpenCLHATKernelBuilder emitPrivateDeclaration(String typeStructName, String varName) {
+        return suffix_t(typeStructName)
+                .space()
+                .emitText(varName).nl();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder emitLocalDeclaration(String typeName, String varName) {
         return localPtrPrefix()
                 .space()
                 .suffix_t(typeName)

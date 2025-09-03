@@ -129,7 +129,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder emitCastToLocal(String typeName, String varName,  String localVarS) {
+    public CudaHATKernelBuilder emitPrivateDeclaration(String typeStructName, String varName) {
+        return suffix_t(typeStructName)
+                .space()
+                .emitText(varName).nl();
+    }
+
+    @Override
+    public CudaHATKernelBuilder emitLocalDeclaration(String typeName, String varName) {
         return localPtrPrefix()
                 .space()
                 .suffix_t(typeName)
