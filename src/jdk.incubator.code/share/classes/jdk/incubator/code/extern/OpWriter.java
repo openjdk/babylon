@@ -345,8 +345,15 @@ public final class OpWriter {
         /** Performs no coloring. */
         NONE((_, text) -> text),
 
-        /** Uses ANSI codes to color the output */
+        /** Uses ANSI codes to color the output. */
         ANSI((itemType, text) -> "\033[3" +
+                (itemType == Op.class ? '4' : // blue
+                itemType == Block.class ? '5': // purple
+                itemType == TypeElement.class ? '2': '1') // green : red
+                + "m" + text + "\033[0m"),
+
+        /** Uses ANSI high intensity codes to color the output. */
+        ANSI_HI((itemType, text) -> "\033[9" +
                 (itemType == Op.class ? '4' : // blue
                 itemType == Block.class ? '5': // purple
                 itemType == TypeElement.class ? '2': '1') // green : red
