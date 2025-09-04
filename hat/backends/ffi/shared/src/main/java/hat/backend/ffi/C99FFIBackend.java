@@ -55,11 +55,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
-
 
     public C99FFIBackend(String libName, Config config) {
         super(libName, config);
@@ -143,35 +141,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-//    private Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
-//        if (OpTk.javaReturnType(op) instanceof ClassType classType) {
-//            return Optional.of((Class<?>) OpTk.classTypeToTypeOrThrow(lookup, classType));
-//        } else {
-//            return Optional.empty();
-//        }
-//    }
-//
-//    private boolean isIfaceAccessor(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-//        if (OpTk.isIfaceBufferMethod(lookup, invokeOp) && !OpTk.javaReturnType(invokeOp).equals(JavaType.VOID)) {
-//            Optional<Class<?>> optionalClazz = javaReturnClass(lookup, invokeOp);
-//            return optionalClazz.isPresent() && Buffer.class.isAssignableFrom(optionalClazz.get());
-//        } else {
-//            return false;
-//        }
-//    }
-
-    private boolean isIfaceAccessor(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-        return (OpTk.isIfaceBufferMethod(lookup, invokeOp)
-                && !OpTk.javaReturnType(invokeOp).equals(JavaType.VOID)
-                && OpTk.javaReturnType(invokeOp) instanceof ClassType returnClassType
-                && OpTk.classTypeToTypeOrThrow(lookup, returnClassType) instanceof Class<?> type
-                && Buffer.class.isAssignableFrom(type));
-    }
-
     private void updateListOfSchemas(Op op, MethodHandles.Lookup lookup, List<String> localIfaceList) {
         if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
-            //if (OpTk.isIfaceAccessor(lookup, invokeOp)) {
-            if (isIfaceAccessor(lookup, invokeOp)) {
+            if (OpTk.isIfaceAccessor(lookup, invokeOp)) {
                 String klassName = invokeOp.resultType().toString();
                 localIfaceList.add(klassName);
             }
