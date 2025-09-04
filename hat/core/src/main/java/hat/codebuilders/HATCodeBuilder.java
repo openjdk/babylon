@@ -30,6 +30,7 @@ import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -54,6 +55,14 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
     public T floatDeclaration(String name) {
         return floatType().space().identifier(name);
+    }
+
+    public T doubleDeclaration(String name) {
+        return doubleType().space().identifier(name);
+    }
+
+    public T longDeclaration(String name) {
+        return longType().space().identifier(name);
     }
 
     public T booleanDeclaration(String name) {
@@ -250,6 +259,18 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return typeName("unsigned").space().shortType();
     }
 
+    public T declareVarFromJavaType(JavaType type, String varName) {
+        if (type.equals(JavaType.INT)) {
+            intDeclaration(varName);
+        } else if (type.equals(JavaType.LONG)) {
+            longDeclaration(varName);
+        } else  if (type.equals(JavaType.FLOAT)) {
+            floatDeclaration(varName);
+        } else if (type.equals(JavaType.DOUBLE)) {
+            doubleDeclaration(varName);
+        }
+        return self();
+    }
 
     /* this should not be too C99 specific */
     public  interface CodeBuilderInterface<T extends HATCodeBuilderWithContext<?>> {

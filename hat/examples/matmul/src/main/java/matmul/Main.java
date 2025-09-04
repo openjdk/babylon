@@ -31,12 +31,17 @@ import hat.GlobalMesh1D;
 import hat.GlobalMesh2D;
 import hat.KernelContext;
 import hat.LocalMesh2D;
+import hat.Space;
 import hat.backend.Backend;
+import hat.buffer.Buffer;
 import hat.buffer.F32Array;
 
+import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Random;
+import java.util.stream.IntStream;
 
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
@@ -62,7 +67,7 @@ public class Main {
 
     private static final boolean CHECK_RESULT = true;
 
-    private static final int NUM_ITERATIONS = 10;
+    private static final int NUM_ITERATIONS = 100;
 
     /**
      * Naive Matrix Multiplication implemented in 2D.
@@ -77,7 +82,7 @@ public class Main {
     public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.x < kc.maxX) {
             if (kc.y < kc.maxY) {
-                float acc = 0;
+                float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
                     acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + kc.y));
                 }
@@ -99,7 +104,7 @@ public class Main {
     public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.x < kc.maxX) {
             if (kc.y < kc.maxY) {
-                float acc = 0;
+                float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
                     acc += (matrixA.array(kc.y * size + k) * matrixB.array(k * size + kc.x));
                 }
@@ -108,9 +113,73 @@ public class Main {
         }
     }
 
+    private interface MyLocalArrayFixedSize extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+
+        Schema<MyLocalArrayFixedSize> schema = Schema.of(MyLocalArrayFixedSize.class,
+                myPrivateArray -> myPrivateArray
+                        // It is a bound schema, so we fix the size here
+                        .array("array", 256));
+
+        static MyLocalArrayFixedSize create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+
+        static MyLocalArrayFixedSize createLocal(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+
+        static MyLocalArrayFixedSize createLocal() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+    }
+
+    @CodeReflection
+    public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+
+        final int tileSize = 16;
+        MyLocalArrayFixedSize tileA = MyLocalArrayFixedSize.createLocal();
+        MyLocalArrayFixedSize tileB = MyLocalArrayFixedSize.createLocal();
+
+        int groupIndexX = kc.bix;
+        int groupIndexY = kc.biy;
+        int localIdx = kc.lix;
+        int localIdy = kc.liy;
+
+        // we identify the row and column
+        int row = groupIndexY * tileSize + localIdy;
+        int col = groupIndexX * tileSize + localIdx;
+
+        // Compute matrix-vector and accumulate the result over the tiles
+        float sum = 0.0f;
+        for (int tile = 0; tile < (size/tileSize); tile++) {
+            // Copy from global to shared memory
+            tileA.array((long) localIdy * tileSize + localIdx, matrixA.array((long) row * size + tile * tileSize + localIdx));
+            tileB.array((long) localIdy * tileSize + localIdx, matrixB.array((tile * tileSize + localIdy) * size + col));
+
+            // Apply a barrier for the local group: we need to guarantee that all threads that belong
+            // to the same group reach this point before doing the partial reduction
+            kc.barrier();
+
+            // compute partial reductions over the tile
+            for (int k = 0; k < tileSize; k++) {
+                sum += (tileA.array((long) localIdy * tileSize + k) * tileB.array(k * tileSize + localIdx));
+            }
+
+            // A new local barrier for all threads that belong to the same group before loading a new tile into
+            // share memory. With the following barrier, we can ensure that all threads within the same workgroup
+            // finished the compute for the partial reduction
+            kc.barrier();
+        }
+
+        // copy result from shared memory to global memory
+        matrixC.array((long) row * size + col, sum);
+    }
+
     @CodeReflection
     public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
-        float acc = 0;
+        float acc = 0.0f;
         for (int k = 0; k < size; k++) {
             acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
         }
@@ -130,7 +199,7 @@ public class Main {
     public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
         if (kc.x < kc.maxX) {
             for (int j = 0; j < size; j++) {
-                float acc = 0;
+                float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
                     acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
                 }
@@ -186,6 +255,14 @@ public class Main {
         );
     }
 
+    @CodeReflection
+    public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
+        );
+    }
+
     private static void runSequential(F32Array matrixA, F32Array matrixB, F32Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
@@ -205,10 +282,12 @@ public class Main {
      * 1D range or 2D range.
      */
     private enum Configuration {
+        _MT,  // Runs the Multi-thread Java code on the host side (no HAT)
         _1D,   //
         _1DFC, // 1D with multiple function calls: This is just for testing
         _2D,   //
-        _2DLI
+        _2DLI,
+        _2DTILING,
     }
 
     /**
@@ -222,15 +301,14 @@ public class Main {
 
         Configuration configuration = Configuration._2D;
         if (args.length > 0) {
-            if (args[0].equals("1D")) {
-                configuration = Configuration._1D;
-            }
-            if (args[0].equals("1DFC")) {
-                configuration = Configuration._1DFC;
-            }
-            if (args[0].equals("2DLI")) {
-                configuration = Configuration._2DLI;
-            }
+            configuration = switch (args[0]) {
+                case "MT" -> Configuration._MT;
+                case "1D" -> Configuration._1D;
+                case "1DFC" -> Configuration._1DFC;
+                case "2DLI" -> Configuration._2DLI;
+                case "2DTILING" -> Configuration._2DTILING;
+                default -> configuration;
+            };
         }
 
         System.out.println("[INFO] NDRangeConfiguration: " + configuration);
@@ -262,6 +340,7 @@ public class Main {
 
             long start = System.nanoTime();
             switch (configuration) {
+                case _MT -> runMultiThreadedWithStreams(matrixA, matrixB, matrixC, size);
                 case _1D -> accelerator.compute(cc ->
                         Main.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
                 case _1DFC -> accelerator.compute(cc ->
@@ -270,6 +349,8 @@ public class Main {
                         Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
                 case _2DLI -> accelerator.compute(cc ->
                         Main.matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
+                case _2DTILING -> accelerator.compute(cc ->
+                        Main.matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
             }
 
             long end = System.nanoTime();
@@ -298,5 +379,17 @@ public class Main {
                 }
             }
         }
+    }
+
+    private static void runMultiThreadedWithStreams(F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+        IntStream.range(0, size).parallel().forEach(i -> {
+            IntStream.range(0, size).parallel().forEach(j -> {
+                float sum = 0.0f;
+                for (int k = 0; k < size; k++) {
+                    sum += matrixA.array(i * size + k) * matrixB.array(k * size + j);
+                }
+                matrixC.array(i * size + j, sum);
+            });
+        });
     }
 }

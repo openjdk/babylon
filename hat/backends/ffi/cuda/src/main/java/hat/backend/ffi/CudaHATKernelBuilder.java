@@ -115,6 +115,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    @Override
+    public CudaHATKernelBuilder localPtrPrefix() {
+        return keyword("__shared__");
+    }
+
 
     @Override
     public CudaHATKernelBuilder atomicInc(HATCodeBuilderContext buildContext, Op.Result instanceResult, String name){
@@ -122,5 +127,26 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
              ampersand().recurse(buildContext, instanceResult.op());
              rarrow().identifier(name).comma().literal(1);
         });
+    }
+
+    @Override
+    public CudaHATKernelBuilder emitPrivateDeclaration(String typeStructName, String varName) {
+        return suffix_t(typeStructName)
+                .space()
+                .emitText(varName).nl();
+    }
+
+    @Override
+    public CudaHATKernelBuilder emitLocalDeclaration(String typeName, String varName) {
+        return localPtrPrefix()
+                .space()
+                .suffix_t(typeName)
+                .space()
+                .identifier(varName);
+    }
+
+    @Override
+    public CudaHATKernelBuilder syncBlockThreads() {
+        return identifier("__syncthreads()");
     }
 }

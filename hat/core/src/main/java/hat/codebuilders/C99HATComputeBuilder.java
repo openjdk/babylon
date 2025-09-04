@@ -55,4 +55,22 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
 
         return self();
     }
+
+    @Override
+    public T emitPrivateDeclaration(String typeName, String varName) {
+        // TODO: What would emit a Java backend
+        return self();
+    }
+
+    @Override
+    public T emitLocalDeclaration(String typeName, String varName) {
+        // TODO: What would emit a pure C99 backend?
+        return self();
+    }
+
+    @Override
+    public T syncBlockThreads() {
+        // TODO: What would emit a pure C99 backend?
+        return self();
+    }
 }

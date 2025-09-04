@@ -28,36 +28,45 @@ import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.StructLayout;
-import java.lang.invoke.MethodHandles;
+import java.util.function.Function;
 
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface F32Array extends Buffer {
+public interface S32LocalArray extends Buffer {
+
     int length();
-    float array(long idx);
-    void array(long idx, float f);
+    int array(long idx);
+    void array(long idx, int i);
 
-    Schema<F32Array> schema = Schema.of(F32Array.class, s32Array ->
-            s32Array.arrayLen("length").array("array"));
+    Schema<S32LocalArray> schema = Schema.of(S32LocalArray.class, s32Array->s32Array
+            .arrayLen("length").array("array"));
 
-    static F32Array create(Accelerator accelerator, int length){
+    static S32LocalArray create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
     }
 
-    default F32Array copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, 4, length());
-        return this;
+    static S32LocalArray create(Accelerator accelerator, int length, Function<Integer,Integer> filler){
+        return schema.allocate(accelerator, length).fill(filler);
     }
 
-    static F32Array createFrom(Accelerator accelerator, float[] arr){
+    static S32LocalArray createFrom(Accelerator accelerator, int[] arr) {
         return create( accelerator, arr.length).copyFrom(arr);
     }
 
-    default F32Array copyTo(float[] floats) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, 4, floats, 0, length());
+    default S32LocalArray copyFrom(int[] ints) {
+        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());
         return this;
     }
 
+    default S32LocalArray copyTo(int[] ints) {
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 4, ints, 0, length());
+        return this;
+    }
+
+    default S32LocalArray fill(Function<Integer, Integer> filler) {
+        for (int i = 0; i < length(); i++) {
+            array(i, filler.apply(i));
+        }
+        return this;
+    }
 }

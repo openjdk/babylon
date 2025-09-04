@@ -25,6 +25,7 @@
 package hat.buffer;
 
 
+import hat.Space;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.MappableIface;

@@ -100,4 +100,31 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
               rarrow().identifier(name);
           });
     }
+
+    @Override
+    public OpenCLHatKernelBuilder localPtrPrefix() {
+        return keyword("__local");
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder syncBlockThreads() {
+        return identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen().semicolon();
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder emitPrivateDeclaration(String typeStructName, String varName) {
+        return suffix_t(typeStructName)
+                .space()
+                .emitText(varName).nl();
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder emitLocalDeclaration(String typeName, String varName) {
+        return localPtrPrefix()
+                .space()
+                .suffix_t(typeName)
+                .space()
+                .identifier(varName);
+    }
+
 }

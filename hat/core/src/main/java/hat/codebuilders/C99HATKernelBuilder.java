@@ -154,10 +154,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T globalPtrPrefix();
 
+    public abstract T localPtrPrefix();
+
     @Override
     public T type(HATCodeBuilderContext buildContext, JavaType javaType) {
-        if (OpTk.isAssignable(buildContext.lookup,javaType, MappableIface.class) && javaType instanceof ClassType classType){
-              //  .isIfaceUsingLookup(buildContext.lookup,javaType) && javaType instanceof ClassType classType) {
+        if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
+            //  .isIfaceUsingLookup(buildContext.lookup,javaType) && javaType instanceof ClassType classType) {
             globalPtrPrefix().space();
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
@@ -179,7 +181,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 typeName(javaType.toString());
             }
         }
-
         return self();
     }
 
@@ -205,7 +206,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T kernelMethod(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-
         HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOp);
         buildContext.scope(buildContext.funcOp, () -> {
             nl();

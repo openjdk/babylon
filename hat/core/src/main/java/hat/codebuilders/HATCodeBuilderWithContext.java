@@ -25,6 +25,7 @@
 package hat.codebuilders;
 
 
+import hat.Space;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
@@ -34,10 +35,17 @@ import hat.util.StreamCounter;
 
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.StructLayout;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.Stack;
 import java.util.stream.Stream;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -131,8 +139,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-
-
     @Override
     public T varLoad(HATCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         CoreOp.VarOp varOp = buildContext.scope.resolve(varLoadOp.operands().getFirst());
@@ -148,12 +154,50 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
+    private String extractClassType(HATCodeBuilderContext buildContext, JavaType javaType, ClassType classType) {
+        String name = classType.toClassName();
+        int dotIdx = name.lastIndexOf('.');
+        int dollarIdx = name.lastIndexOf('$');
+        int idx = Math.max(dotIdx, dollarIdx);
+        if (idx > 0) {
+            name = name.substring(idx + 1);
+        }
+        return name;
+    }
+
+    record LocalArrayDeclaration(String typeStructName, String varName) {}
+    private final Stack<LocalArrayDeclaration> localArrayDeclarations = new Stack<>();
+    private final Set<String> privateAndLocalTypes = new HashSet<>();
+
+    private boolean isMappableIFace(HATCodeBuilderContext buildContext, JavaType javaType) {
+        return (OpTk.isAssignable(buildContext.lookup,javaType, MappableIface.class));
+    }
+
+    private void annotateTypeAndName(HATCodeBuilderContext buildContext, JavaType javaType, ClassType classType, CoreOp.VarOp varOp) {
+        String typeName = extractClassType(buildContext, javaType, classType);
+        String variableName = varOp.varName();
+        privateAndLocalTypes.add(variableName);
+        localArrayDeclarations.push(new LocalArrayDeclaration(typeName, variableName));
+    }
+
+    private void varDeclarationWithInitialization(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
+        // if type is Buffer (iMappable), then we ignore it and pass it along to the methodCall
+        if (isMappableIFace(buildContext, (JavaType) varOp.varValueType()) && (JavaType) varOp.varValueType() instanceof ClassType classType) {
+            annotateTypeAndName(buildContext, (JavaType) varOp.varValueType(), classType, varOp);
+        } else {
+            type(buildContext, (JavaType) varOp.varValueType()).space().identifier(varOp.varName());
+            space().equals().space();
+        }
+        parencedence(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
+    }
+
     @Override
     public T varDeclaration(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
-        type(buildContext, (JavaType) varOp.varValueType()).space().identifier(varOp.varName());
-        if (!varOp.isUninitialized()) {
-            space().equals().space();
-            parencedence(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
+        if (varOp.isUninitialized()) {
+            // Variable is uninitialized
+            type(buildContext, (JavaType) varOp.varValueType()).space().identifier(varOp.varName());
+        } else {
+            varDeclarationWithInitialization(buildContext, varOp);
         }
         return self();
     }
@@ -174,7 +218,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         } else {
             throw new IllegalStateException("What is this field load ?" + fieldLoadOp);
         }
-
         return self();
     }
 
@@ -183,7 +226,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
       //  throw new IllegalStateException("What is this field store ?" + fieldStoreOp);
         return self();
     }
-
 
     T symbol(Op op) {
         return switch (op) {
@@ -508,7 +550,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         var name = invokeOp.invokeDescriptor().name();//OpTk.name(invokeOp);
 
-        if (OpTk.isIfaceBufferMethod(buildContext.lookup,invokeOp)) {
+        if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)) {
             var operandCount = invokeOp.operands().size();
             var returnType = OpTk.javaReturnType(invokeOp);
 
@@ -525,7 +567,42 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     throw new IllegalStateException("bad atomic");
                 }
             } else {
-                if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
+
+                if (name.equals("create")) {
+                    // If we decide to keep the version in which we pass the enum with the memory space
+                    // to allocate a particular data structure (E.g., shared, or private)
+
+                    // Obtain the space in the first parameter
+                    List<Value> operands = invokeOp.operands();
+                    if (operands.size() != 1) {
+                        throw new RuntimeException("[Fail] `create` method expects one parameter for the space");
+                    }
+                    Value spaceValue = operands.getFirst();
+                    if (spaceValue instanceof Op.Result instanceResult) {
+                        if (instanceResult.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp ) {
+                            // check type of field load
+                            TypeElement typeElement = fieldLoadOp.fieldDescriptor().refType();
+                            if (typeElement instanceof ClassType classType) {
+                                if (!classType.toClassName().equals(Space.class.getCanonicalName())) {
+                                    throw new RuntimeException("[Fail] Expected an instance from Space");
+                                }
+                            }
+
+                            // If the type is correct, then we obtain the enum value and invoke the
+                            // corresponding declaration
+                            String spaceName = fieldLoadOp.fieldDescriptor().name();
+                            LocalArrayDeclaration declaration = localArrayDeclarations.pop();
+                            if (spaceName.equals(Space.PRIVATE.name())) {
+                                emitPrivateDeclaration(declaration.typeStructName, declaration.varName);
+                            } else if (spaceName.equals(Space.SHARED.name())) {
+                                emitLocalDeclaration(declaration.typeStructName, declaration.varName);
+                            }
+                        }
+                    }
+                } else if (name.equals("createLocal")) {
+                    LocalArrayDeclaration declaration = localArrayDeclarations.pop();
+                    emitLocalDeclaration(declaration.typeStructName, declaration.varName);
+                } else if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
                 /*
                 We have three types of returned values from an ifaceBuffer
                 A primitive
@@ -562,18 +639,34 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                  of course we could return
                           cascade->tree + treeIdx;
                  */
-
-                    if (returnType instanceof ClassType classType) {
+                    if (returnType instanceof ClassType) {
                         ampersand();
-                    /* This is way more complicated I think we need to determine the expression type.
-
-
-                     sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
-
-                     */
+                        /* This is way more complicated I think we need to determine the expression type.
+                         * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
+                         */
                     }
+
+                    // Check if the varOpLoad that could follow corresponds to a local/private type
+                    boolean isLocal = false;
+                    if (instanceResult.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                        CoreOp.VarOp resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
+                        if (privateAndLocalTypes.contains(resolve.varName())) {
+                            isLocal = true;
+                        }
+                    }
+
                     recurse(buildContext, instanceResult.op());
-                    rarrow().identifier(name);
+
+                    if (!isLocal) {
+                        // If it is not local or private, it generates an arrow
+                        rarrow();
+                    } else {
+                        // Otherwise, it generates a do (access members without pointers)
+                        dot();
+                    }
+                    identifier(name);
+
+
                     //if (invokeOpWrapper.name().equals("value") || invokeOpWrapper.name().equals("anon")){
                     //System.out.println("value|anon");
                     // }
@@ -603,30 +696,51 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             }
                         }
                     } else {
-                        if (invokeOp.operands().size()>1 && invokeOp.operands().get(1) instanceof Op.Result result1) {
+                        if (invokeOp.operands().size() > 1 && invokeOp.operands().get(1) instanceof Op.Result result1) {
                             sbrace(_ -> recurse(buildContext, result1.op()));
                         } else {
                             // This is a simple usage.   So scaleTable->multiScaleAccumRange
                         }
                     }
                 } else {
-                    throw new IllegalStateException("arr");
+                    throw new IllegalStateException("[Illegal] Expected a parameter for the InvokOpWrapper Node");
                 }
-
             }
         } else {
-            identifier(name).paren(_ ->
-                    commaSeparated(invokeOp.operands(), (op) -> {
-                        if (op instanceof Op.Result result) {
-                            recurse(buildContext, result.op());
-                        } else {
-                            throw new IllegalStateException("wtf?");
+            // Detect well-known constructs
+            if (name.equals("barrier")) {
+                List<Value> operands = invokeOp.operands();
+                for (Value value : operands) {
+                    if (value instanceof Op.Result instanceResult) {
+                        FunctionType functionType = instanceResult.op().opType();
+                        // if it is a barrier from the kernel context, then we generate
+                        // a local barrier.
+                        if (functionType.returnType().toString().equals("hat.KernelContext")) {
+                            syncBlockThreads();
                         }
-                    })
-            );
+                    }
+                }
+            } else {
+                // General case
+                identifier(name).paren(_ ->
+                        commaSeparated(invokeOp.operands(), (op) -> {
+                            if (op instanceof Op.Result result) {
+                                recurse(buildContext, result.op());
+                            } else {
+                                throw new IllegalStateException("wtf?");
+                            }
+                        })
+                );
+            }
         }
         return self();
     }
+
+    public abstract T emitPrivateDeclaration(String typeName, String varName);
+
+    public abstract T emitLocalDeclaration(String typeName, String varName);
+
+    public abstract T syncBlockThreads();
 
     @Override
     public T ternary(HATCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {

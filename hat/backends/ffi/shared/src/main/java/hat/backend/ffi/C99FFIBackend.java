@@ -39,15 +39,25 @@ import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
-
 
     public C99FFIBackend(String libName, Config config) {
         super(libName, config);
@@ -131,6 +141,15 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
+    private void updateListOfSchemas(Op op, MethodHandles.Lookup lookup, List<String> localIfaceList) {
+        if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
+            if (OpTk.isIfaceAccessor(lookup, invokeOp)) {
+                String klassName = invokeOp.resultType().toString();
+                localIfaceList.add(klassName);
+            }
+        }
+    }
+
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().pragmas().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
@@ -146,6 +165,68 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                         }
                     });
                 });
+
+        List<String> localIFaceList = new ArrayList<>();
+        // Traverse the list of reachable functions and append the intrinsics functions found for each of the functions
+        if (kernelCallGraph.moduleOp != null) {
+            kernelCallGraph.moduleOp.functionTable()
+                    .forEach((_, funcOp) -> {
+                        funcOp.transform(CopyContext.create(), (blockBuilder, op) -> {
+                            updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                            blockBuilder.op(op);
+                            return blockBuilder;
+                        });
+                    });
+        } else {
+            // We take the list from all reachable methods. When we finally merge with the moduleOpWrapper,
+            // this else-branch will be deleted.
+            kernelCallGraph.kernelReachableResolvedStream().forEach((kernel) -> {
+                kernel.funcOp().transform(CopyContext.create(), (blockBuilder, op) -> {
+                    updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    blockBuilder.op(op);
+                    return blockBuilder;
+                });
+            });
+        }
+
+        // Traverse the main kernel and append the intrinsics functions found in the main kernel
+        kernelCallGraph.entrypoint.funcOp()
+                .transform(CopyContext.create(), (blockBuilder, op) -> {
+                    updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    blockBuilder.op(op);
+                    return blockBuilder;
+                });
+
+        // Dynamically build the schema for the user data type we are creating within the kernel.
+        // This is because no allocation was done from the host. This is kernel code, and it is reflected
+        // using the code reflection API
+        // 1. Add for struct for iface objects
+        for (String klassName : localIFaceList) {
+            // 1.1 Load the class dynamically
+            Class<?> clazz;
+            try {
+                clazz = Class.forName(klassName);
+
+                // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
+                // 1.2 Obtain the create method
+                Method method = clazz.getMethod("create", hat.Accelerator.class);
+                method.setAccessible(true);
+                Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);
+
+                // code gen of the struct
+                BoundSchema<?> boundSchema = Buffer.getBoundSchema(invoke);
+                boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
+                    if (!already.contains(t)) {
+                        builder.typedef(boundSchema, t);
+                        already.add(t);
+                    }
+                });
+            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException |
+                     ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
 
         // Sorting by rank ensures we don't need forward declarations
         if (CallGraph.usingModuleOp) {

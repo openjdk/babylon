@@ -25,6 +25,7 @@
 package hat.optools;
 
 import hat.ComputeContext;
+import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 import hat.callgraph.CallGraph;
 import hat.ifacemapper.MappableIface;
@@ -51,6 +52,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -260,6 +262,25 @@ public class OpTk {
             throw new RuntimeException(e);
         }
     }
+
+    public static Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
+        if (javaReturnType(op) instanceof ClassType classType) {
+            return Optional.of((Class<?>) classTypeToTypeOrThrow(lookup, classType));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public static boolean isIfaceAccessor(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+        if (isIfaceBufferMethod(lookup, invokeOp) && !javaReturnType(invokeOp).equals(JavaType.VOID)) {
+            Optional<Class<?>> optionalClazz = javaReturnClass(lookup, invokeOp);
+            return optionalClazz.isPresent() && Buffer.class.isAssignableFrom(optionalClazz.get());
+        } else {
+            return false;
+        }
+    }
+
+
     public static Class<?> javaRefClassOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         if (javaRefType(op) instanceof ClassType classType) {
             return (Class<?>) classTypeToTypeOrThrow(lookup, classType);
