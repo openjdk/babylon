@@ -35,6 +35,7 @@ import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -337,11 +338,44 @@ public final class OpWriter {
         }
     }
 
+    /**
+     * An option describing how to color the output.
+     */
+    public enum ColoringOption implements Option {
+        /** Performs no coloring. */
+        NONE((_, text) -> text),
+
+        /** Uses ANSI codes to color the output */
+        ANSI((itemType, text) -> "\033[3" +
+                (itemType == Op.class ? '4' : // blue
+                itemType == Block.class ? '5': // purple
+                itemType == TypeElement.class ? '2': '1') // green : red
+                + "m" + text + "\033[0m"),
+
+        /** Uses HTML elements to color the output */
+        HTML((itemType, text) -> "<font color=\"" +
+                (itemType == Op.class ? "blue" :
+                itemType == Block.class ? "purple":
+                itemType == TypeElement.class ? "green" : "red")
+                + "\">" + text + "</font>");
+
+        public static ColoringOption defaultValue() {
+            return NONE;
+        }
+
+        final BiFunction<Class<? extends CodeItem>, String, String> dyer;
+
+        ColoringOption(BiFunction<Class<? extends CodeItem>, String, String> dyer) {
+            this.dyer = dyer;
+        }
+    }
+
     final Function<CodeItem, String> namer;
     final IndentWriter w;
     final boolean dropLocation;
     final boolean dropOpDescendants;
     final boolean writeVoidOpResult;
+    final BiFunction<Class<? extends CodeItem>, String, String> dyer;
 
     /**
      * Creates a writer of code models (operations) to their textual form.
@@ -354,6 +388,7 @@ public final class OpWriter {
         this.dropLocation = false;
         this.dropOpDescendants = false;
         this.writeVoidOpResult = false;
+        this.dyer = ColoringOption.NONE.dyer;
     }
 
     /**
@@ -367,6 +402,7 @@ public final class OpWriter {
         boolean dropLocation = false;
         boolean dropOpDescendants = false;
         boolean writeVoidOpResult = false;
+        var dyer = ColoringOption.NONE.dyer;
         for (Option option : options) {
             switch (option) {
                 case CodeItemNamerOption namerOption -> {
@@ -383,6 +419,9 @@ public final class OpWriter {
                 case VoidOpResultOption voidOpResultOption -> {
                     writeVoidOpResult = voidOpResultOption == VoidOpResultOption.WRITE_VOID;
                 }
+                case ColoringOption colorSchemaOption -> {
+                    dyer = colorSchemaOption.dyer;
+                }
             }
         }
 
@@ -391,6 +430,7 @@ public final class OpWriter {
         this.dropLocation = dropLocation;
         this.dropOpDescendants = dropOpDescendants;
         this.writeVoidOpResult = writeVoidOpResult;
+        this.dyer = dyer;
     }
 
     /**
@@ -413,7 +453,7 @@ public final class OpWriter {
                 write(" = ");
             }
         }
-        write(op.opName());
+        write(Op.class, op.opName());
 
         if (!op.operands().isEmpty()) {
             write(" ");
@@ -519,18 +559,15 @@ public final class OpWriter {
     }
 
     void writeBlockName(Block b) {
-        write("^");
-        write(namer.apply(b));
+        write(Block.class, "^" + namer.apply(b));
     }
 
     void writeValueUse(Value v) {
-        write("%");
-        write(namer.apply(v));
+        write(Value.class, "%" + namer.apply(v));
     }
 
     void writeValueDeclaration(Value v) {
-        write("%");
-        write(namer.apply(v));
+        write(Value.class, "%" + namer.apply(v));
         write(" : ");
         writeType(v.type());
     }
@@ -555,7 +592,11 @@ public final class OpWriter {
     }
 
     void writeType(TypeElement te) {
-        write(JavaTypeUtils.flatten(te.externalize()).toString());
+        write(TypeElement.class, JavaTypeUtils.flatten(te.externalize()).toString());
+    }
+
+    void write(Class<? extends CodeItem> itemType, String s) {
+        write(dyer.apply(itemType, s));
     }
 
     void write(String s) {
