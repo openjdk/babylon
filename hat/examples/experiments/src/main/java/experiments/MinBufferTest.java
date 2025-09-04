@@ -71,7 +71,7 @@ public class MinBufferTest {
         accelerator.compute(
                 cc -> Compute.add(cc, s32Array, len, valueToAdd)
         );
-        // Quite an expensive way of adding 20 to each array alement
+        // Quite an expensive way of adding 20 to each array element
         for (int i = 0; i < 20; i++) {
             System.out.println(i + "=" + s32Array.array(i));
         }
