@@ -33,7 +33,6 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -48,9 +47,7 @@ import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 
 public abstract class JExtractedBackend extends JExtractedBackendDriver {
-
     public final Arena arena = Arena.global();
-
 
     @Override
     public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
@@ -86,8 +83,8 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     protected static CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
         System.out.println(computeMethod.funcOp().toText());
-        var paramTable = new FuncOpParams(computeMethod.funcOp());
         var lookup = computeMethod.callGraph.computeContext.accelerator.lookup;
+        var paramTable = new FuncOpParams(computeMethod.funcOp());
         var transformedFuncOp = computeMethod.funcOp().transform((bldr, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Value computeContext = bldr.context().getValue(paramTable.list().getFirst().parameter);
