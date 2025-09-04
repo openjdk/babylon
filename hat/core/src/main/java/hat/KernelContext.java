@@ -168,18 +168,7 @@ public class KernelContext {
     }
 
     public void barrier() {
-    }
 
-    public S32Array createLocalS32Array(int elements) {
-        // We will need an implementation when running on the CPU (host)
-        // the Java backends
-        return null;
-    }
-
-    public F32Array createLocalF32Array(int elements) {
-        // We will need an implementation when running on the CPU (host)
-        // the Java backends
-        return null;
     }
 
 }
