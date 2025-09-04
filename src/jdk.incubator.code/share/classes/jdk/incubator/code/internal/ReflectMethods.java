@@ -717,9 +717,8 @@ public class ReflectMethods extends TreeTranslator {
             try {
                 pt = targetType;
                 scan(expression);
-                return result != null ?
-                        coerce(result, expression.type, targetType) :
-                        null;
+                return (result == null || targetType.hasTag(TypeTag.VOID) || targetType.hasTag(NONE)) ?
+                        result : coerce(result, expression.type, targetType);
             } finally {
                 pt = prevPt;
             }
@@ -736,16 +735,11 @@ public class ReflectMethods extends TreeTranslator {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
-            if (targetType.hasTag(TypeTag.VOID)) {
-                // if target type is void, nothing to coerce
-                return sourceValue;
-            }
             if (sourceType.isReference() && targetType.isReference() &&
                     !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
                 return append(JavaOp.cast(typeToTypeElement(targetType), sourceValue));
-            } else {
-                return convert(sourceValue, targetType);
             }
+            return convert(sourceValue, targetType);
         }
 
         Value boxIfNeeded(Value exprVal) {
@@ -1778,7 +1772,7 @@ public class ReflectMethods extends TreeTranslator {
 
         private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType) {
             Body.Builder body = null;
-            Type yieldType = tree.type != null ? adaptBottom(tree.type) : null;
+            Type yieldType = tree.type != null ? adaptBottom(tree.type) : Type.noType;
 
             JCTree.JCCaseLabel headCl = c.labels.head;
             switch (c.caseKind) {
