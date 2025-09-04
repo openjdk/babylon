@@ -197,14 +197,18 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                     return blockBuilder;
                 });
 
-        // Add for struct for iface objects
+        // Dynamically build the schema for the user data type we are creating within the kernel.
+        // This is because no allocation was done from the host. This is kernel code, and it is reflected
+        // using the code reflection API
+        // 1. Add for struct for iface objects
         for (String klassName : localIFaceList) {
-            // Load the class dynamically
+            // 1.1 Load the class dynamically
             Class<?> clazz;
             try {
                 clazz = Class.forName(klassName);
 
                 // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
+                // 1.2 Obtain the create method
                 Method method = clazz.getMethod("create", hat.Accelerator.class);
                 method.setAccessible(true);
                 Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);

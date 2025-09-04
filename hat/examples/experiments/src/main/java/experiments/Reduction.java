@@ -63,8 +63,8 @@ public class Reduction {
             return schema.allocate(accelerator, 1);
         }
 
-        static MySharedArray createLocal(Accelerator accelerator) {
-            return create(accelerator);
+        static MySharedArray createLocal() {
+            return create(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
     }
 
@@ -98,8 +98,8 @@ public class Reduction {
     }
 
     /**
-     * Example of a simple reduction using accelerator's local memory. This shows a proposal of how
-     * HAT could start offering local memory.
+     * Example of a simple parallel reduction using accelerator's local memory. This shows a proposal of how
+     * HAT could start offering local(shared) types.
      *
      * @param context
      * @param input
@@ -112,7 +112,7 @@ public class Reduction {
         int blockId = context.bix;
 
         // Prototype: allocate in shared memory an array of 16 ints
-        MySharedArray sharedArray = MySharedArray.createLocal(context.ndRange.accelerator);
+        MySharedArray sharedArray = MySharedArray.createLocal();
 
         // Copy from global to shared memory
         sharedArray.array(localId, input.array(context.gix));

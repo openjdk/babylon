@@ -569,6 +569,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             } else {
 
                 if (name.equals("create")) {
+                    // If we decide to keep the version in which we pass the enum with the memory space
+                    // to allocate a particular data structure (E.g., shared, or private)
+
                     // Obtain the space in the first parameter
                     List<Value> operands = invokeOp.operands();
                     if (operands.size() != 1) {
@@ -596,9 +599,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             }
                         }
                     }
-                } else if (name.equals("createPrivate")) {
-                    LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-                    emitPrivateDeclaration(declaration.typeStructName, declaration.varName);
                 } else if (name.equals("createLocal")) {
                     LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                     emitLocalDeclaration(declaration.typeStructName, declaration.varName);

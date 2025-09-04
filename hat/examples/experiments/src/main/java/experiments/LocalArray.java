@@ -44,6 +44,13 @@ import java.lang.invoke.MethodHandles;
 /**
  * Example of how to declare and use a custom data type in a method kernel on the GPU.
  * This is just a proof of concept.
+ * <p>
+ *     How to run?
+ *     <code>
+ *         HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-opencl LocalArray
+ *         HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-cuda LocalArray
+ *     </code>
+ * </p>
  */
 public class LocalArray {
 
@@ -59,16 +66,15 @@ public class LocalArray {
             return schema.allocate(accelerator, 1);
         }
 
-        static MySharedArray createLocal(Accelerator accelerator) {
-            return create(accelerator);
+        static MySharedArray createLocal() {
+            return create(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
     }
 
 
     @CodeReflection
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-        MySharedArray mySharedArray = MySharedArray.createLocal(kernelContext.ndRange.accelerator);
-
+        MySharedArray mySharedArray = MySharedArray.createLocal();
         int lix = kernelContext.lix;
         int blockId = kernelContext.bix;
         int blockSize = kernelContext.lsx;
