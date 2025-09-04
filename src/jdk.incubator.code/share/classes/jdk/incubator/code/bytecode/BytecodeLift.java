@@ -51,6 +51,7 @@ import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
+import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AccessFlag;
 import jdk.incubator.code.Block;
@@ -471,11 +472,13 @@ public final class BytecodeLift {
                         }
                         FunctionType lambdaFunc = CoreType.functionType(JavaType.type(mt.returnType()),
                                                                             mt.parameterList().stream().map(JavaType::type).toList());
-                        // how to know if lambda is Quotable ?
-                        // if the last bsm arg is a MH to a an opMethod ?
                         JavaOp.LambdaOp.Builder lambda = JavaOp.lambda(currentBlock.parentBody(),
                                                                        lambdaFunc,
                                                                        JavaType.type(inst.typeSymbol().returnType()));
+                        // if before last boostrap arg equals to FLAG_QUOTABLE, the lambda is quotable
+                        if (inst.bootstrapArgs().get(inst.bootstrapArgs().size() - 2).equals(LambdaMetafactory.FLAG_QUOTABLE)) {
+                            lambda = lambda.quotable();
+                        }
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
                             // inline lambda impl method
                             MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
