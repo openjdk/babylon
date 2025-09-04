@@ -31,9 +31,11 @@ import hat.GlobalMesh1D;
 import hat.KernelContext;
 import hat.LocalMesh1D;
 import hat.backend.Backend;
+import hat.buffer.Buffer;
 import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
+import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
@@ -41,13 +43,30 @@ import java.lang.invoke.MethodHandles;
 /**
  * How to test?
  * <code>
- *     HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-opencl Barriers
- *     HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-cuda Barriers
+ *     HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-opencl Reduction
+ *     HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-cuda Reduction
  * </code>
  */
-public class Barriers {
+public class Reduction {
 
     private static boolean PRINT_RESULTS = true;
+
+    private interface MySharedArray extends Buffer {
+        void array(long index, int value);
+        int array(long index);
+
+        Schema<MySharedArray> schema = Schema.of(MySharedArray.class,
+                myPrivateArray -> myPrivateArray
+                        .array("array", 16));
+
+        static MySharedArray create(Accelerator accelerator) {
+            return schema.allocate(accelerator, 1);
+        }
+
+        static MySharedArray createLocal(Accelerator accelerator) {
+            return create(accelerator);
+        }
+    }
 
     /**
      * Example of a simple reduction using accelerator's global memory. This is inefficient, but it shows
@@ -93,15 +112,7 @@ public class Barriers {
         int blockId = context.bix;
 
         // Prototype: allocate in shared memory an array of 16 ints
-        S32Array sharedArray = context.createLocalS32Array(16);
-
-        // [proposal] An alternative, could be to map any ds to be used in local
-        // memory
-        // context.mapObjectToRegion(<MemoryRegion>, <iFaceSubType.class>, <size>);
-        // This could be very powerful, allowing the user to map its own
-        // data structures into private memory, shared memory, or even
-        // constant memory (using OpenCL terms).
-        // S32Array sharedArray = context.mapObjectToRegion(LOCAL, S32Array.class, 16);
+        MySharedArray sharedArray = MySharedArray.createLocal(context.ndRange.accelerator);
 
         // Copy from global to shared memory
         sharedArray.array(localId, input.array(context.gix));
@@ -144,7 +155,7 @@ public class Barriers {
         partialSums.fill(_ -> 0);
 
         // Compute on the accelerator
-        accelerator.compute( cc -> Barriers.mySimpleCompute(cc, input, partialSums));
+        accelerator.compute( cc -> Reduction.mySimpleCompute(cc, input, partialSums));
 
         int[] results = new int[2]; // 2 groups
         int sum = 0;

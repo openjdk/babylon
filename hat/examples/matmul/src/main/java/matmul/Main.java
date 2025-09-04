@@ -29,7 +29,6 @@ import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
 import hat.GlobalMesh2D;
-import hat.HatInlineBoundary;
 import hat.KernelContext;
 import hat.LocalMesh2D;
 import hat.Space;
@@ -40,6 +39,7 @@ import hat.buffer.F32Array;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 
+import java.lang.invoke.MethodHandles;
 import java.util.Random;
 import java.util.stream.IntStream;
 
@@ -122,9 +122,16 @@ public class Main {
                         // It is a bound schema, so we fix the size here
                         .array("array", 256));
 
-        @HatInlineBoundary
         static MyLocalArrayFixedSize create(Accelerator accelerator) {
             return schema.allocate(accelerator);
+        }
+
+        static MyLocalArrayFixedSize createLocal(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+
+        static MyLocalArrayFixedSize createLocal() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
     }
 
@@ -132,8 +139,8 @@ public class Main {
     public static void matrixMultiplyKernel2DTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
         final int tileSize = 16;
-        MyLocalArrayFixedSize tileA = Buffer.create(Space.SHARED);
-        MyLocalArrayFixedSize tileB = Buffer.create(Space.SHARED);
+        MyLocalArrayFixedSize tileA = MyLocalArrayFixedSize.createLocal();
+        MyLocalArrayFixedSize tileB = MyLocalArrayFixedSize.createLocal();
 
         int groupIndexX = kc.bix;
         int groupIndexY = kc.biy;

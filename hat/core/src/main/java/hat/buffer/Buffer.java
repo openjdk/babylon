@@ -25,7 +25,6 @@
 package hat.buffer;
 
 
-import hat.HatInlineBoundary;
 import hat.Space;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
@@ -106,10 +105,5 @@ public interface Buffer extends MappableIface {
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @HatInlineBoundary
-    static <T extends Buffer> T create(Space space) {
-        return null;
     }
 }

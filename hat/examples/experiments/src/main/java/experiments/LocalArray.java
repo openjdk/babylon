@@ -29,10 +29,8 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
-import hat.HatInlineBoundary;
 import hat.KernelContext;
 import hat.LocalMesh1D;
-import hat.Space;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
@@ -50,31 +48,33 @@ import java.lang.invoke.MethodHandles;
 public class LocalArray {
 
     private interface MySharedArray extends Buffer {
-        int length();
         void array(long index, float value);
         float array(long index);
 
         Schema<MySharedArray> schema = Schema.of(MySharedArray.class,
                 myPrivateArray -> myPrivateArray
-                        .arrayLen("length")
-                        .pad(12)
-                        .array("array"));
+                        .array("array", 16));
 
         static MySharedArray create(Accelerator accelerator) {
             return schema.allocate(accelerator, 1);
         }
 
-        @HatInlineBoundary
-        static <T extends MySharedArray> T create(Space space) {
-            return Buffer.create(space);
+        static MySharedArray createLocal(Accelerator accelerator) {
+            return create(accelerator);
         }
     }
 
+
     @CodeReflection
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-        MySharedArray mySharedArray = MySharedArray.create(Space.SHARED);
-        mySharedArray.array(0, kernelContext.lix);
-        data.array(kernelContext.gix, mySharedArray.array(0));
+        MySharedArray mySharedArray = MySharedArray.createLocal(kernelContext.ndRange.accelerator);
+
+        int lix = kernelContext.lix;
+        int blockId = kernelContext.bix;
+        int blockSize = kernelContext.lsx;
+        mySharedArray.array(lix, lix);
+        kernelContext.barrier();
+        data.array(lix + (long) blockId * blockSize, mySharedArray.array(lix));
     }
 
     @CodeReflection
@@ -101,6 +101,7 @@ public class LocalArray {
         boolean isCorrect = true;
         int jIndex = 0;
         for (int i = 0; i < data.length(); i++) {
+            System.out.println(data.array(i));
             if (data.array(i) != jIndex) {
                 isCorrect = false;
                 break;
