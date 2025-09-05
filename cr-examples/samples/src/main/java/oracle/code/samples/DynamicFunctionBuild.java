@@ -82,6 +82,11 @@ public class DynamicFunctionBuild {
                 CoreType.functionType(JavaType.DOUBLE, JavaType.DOUBLE))
                 .body(builder -> {
 
+                    // The function to build is as follows:
+                    // double: function rsqrt(double input)
+                    //      ret double: 1 / Math.sqrt(input)
+                    //
+
                     // Obtain the first parameter
                     Block.Parameter inputParameter = builder.parameters().get(0);
 
