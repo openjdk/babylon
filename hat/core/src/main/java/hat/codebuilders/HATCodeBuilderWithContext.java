@@ -167,7 +167,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     record LocalArrayDeclaration(String typeStructName, String varName) {}
     private final Stack<LocalArrayDeclaration> localArrayDeclarations = new Stack<>();
-    private final Set<String> privateAndLocalTypes = new HashSet<>();
+    private final Set<String> localDataStructures = new HashSet<>();
 
     private boolean isMappableIFace(HATCodeBuilderContext buildContext, JavaType javaType) {
         return (OpTk.isAssignable(buildContext.lookup,javaType, MappableIface.class));
@@ -176,7 +176,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     private void annotateTypeAndName(HATCodeBuilderContext buildContext, JavaType javaType, ClassType classType, CoreOp.VarOp varOp) {
         String typeName = extractClassType(buildContext, javaType, classType);
         String variableName = varOp.varName();
-        privateAndLocalTypes.add(variableName);
+        //localDataStructures.add(variableName);
         localArrayDeclarations.push(new LocalArrayDeclaration(typeName, variableName));
     }
 
@@ -604,6 +604,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 } else if (name.equals("createLocal")) {
                     LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                     emitLocalDeclaration(declaration.typeStructName, declaration.varName);
+                    localDataStructures.add(declaration.varName);
                 } else if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
                 /*
                 We have three types of returned values from an ifaceBuffer
@@ -652,7 +653,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     boolean isLocal = false;
                     if (instanceResult.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         CoreOp.VarOp resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
-                        if (name.contains("create") && privateAndLocalTypes.contains(resolve.varName())) {
+                        if (localDataStructures.contains(resolve.varName())) {
                             isLocal = true;
                         }
                     }
