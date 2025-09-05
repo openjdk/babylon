@@ -164,7 +164,7 @@ public class DialectSample {
 
         // 10. Print the transformed code model
         System.out.println("Model with new OpNodes for Dialect: ");
-        dialectModel.toText();
+        System.out.println(dialectModel.toText());
 
         System.out.println("Print Code Tree: ");
         printCodeTree(dialectModel);
@@ -251,11 +251,11 @@ public class DialectSample {
         });
 
         System.out.println("Model with new OpNodes for Dialect: ");
-        dialectModel.toText();
+        System.out.println(dialectModel.toText());
 
         CoreOp.FuncOp ssaDialect = SSA.transform(dialectModel);
         System.out.println("Model with new OpNodes for SsaDialect: ");
-        ssaDialect.toText();
+        System.out.println(ssaDialect.toText());
 
         System.out.println("Printing the code tree. Is the new Op present? ");
         printCodeTree(ssaDialect);
