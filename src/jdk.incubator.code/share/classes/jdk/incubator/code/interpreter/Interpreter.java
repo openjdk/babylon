@@ -499,7 +499,7 @@ public final class Interpreter {
             Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
 
             // If a quotable lambda proxy again to add method Quoted quoted()
-            if (Quotable.class.isAssignableFrom(fi)) {
+            if (lo.isQuotable()) {
                 return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi},
                         new InvocationHandler() {
                             private final Quoted quoted = new Quoted(lo, capturedValuesAndArguments);
