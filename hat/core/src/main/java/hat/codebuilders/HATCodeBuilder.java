@@ -367,7 +367,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
                 case JavaOp.BinaryTestOp $ -> binaryTest(buildContext, $);
                 case JavaOp.BinaryOp $ -> binaryOperation(buildContext, $);
                 case JavaOp.JavaConditionalOp $ -> logical(buildContext, $);
-                // case UnaryArithmeticOrLogicOpWrapper $ -> unaryOperation(buildContext, $);
+                case JavaOp.UnaryOp $ -> unaryOperation(buildContext, $);
                 default -> throw new IllegalStateException("handle nesting of op " + op);
             }
             return (T) this;
