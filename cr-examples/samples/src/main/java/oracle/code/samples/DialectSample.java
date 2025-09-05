@@ -171,9 +171,9 @@ public class DialectSample {
         System.out.println("Print Code Tree: ");
         printCodeTree(dialectModel);
 
-
-        var result = Interpreter.invoke(MethodHandles.lookup(), dialectModel,  10, 20);
-        System.out.println("Result: ");
+        // Currently, we can't interpreter a code model with dialect ops
+        //var result = Interpreter.invoke(MethodHandles.lookup(), dialectModel,  10, 20);
+        //System.out.println("Result: ");
     }
 
 
@@ -266,16 +266,16 @@ public class DialectSample {
         System.out.println("Printing the code tree. Is the new Op present? ");
         printCodeTree(ssaDialect);
 
-        var result = Interpreter.invoke(MethodHandles.lookup(), ssaDialect,  10, 20);
-        System.out.println("Result: ");
-
+        // Currently, we can't interpreter a code model with dialect ops
+        //var result = Interpreter.invoke(MethodHandles.lookup(), ssaDialect,  10, 20);
+        //System.out.println("Result: " + result);
     }
 
     static void main() {
         System.out.println("Create new Integer Add Op: ");
         customAdd();
 
-       // System.out.println("Create new Invoke Op: ");
-       // customInvoke();
+       System.out.println("Create new Invoke Op: ");
+       customInvoke();
     }
 }
