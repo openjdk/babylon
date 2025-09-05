@@ -35,7 +35,9 @@ import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.interpreter.Interpreter;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -168,6 +170,10 @@ public class DialectSample {
 
         System.out.println("Print Code Tree: ");
         printCodeTree(dialectModel);
+
+
+        var result = Interpreter.invoke(MethodHandles.lookup(), dialectModel,  10, 20);
+        System.out.println("Result: ");
     }
 
 
@@ -259,13 +265,17 @@ public class DialectSample {
 
         System.out.println("Printing the code tree. Is the new Op present? ");
         printCodeTree(ssaDialect);
+
+        var result = Interpreter.invoke(MethodHandles.lookup(), ssaDialect,  10, 20);
+        System.out.println("Result: ");
+
     }
 
     static void main() {
         System.out.println("Create new Integer Add Op: ");
         customAdd();
 
-        System.out.println("Create new Invoke Op: ");
-        customInvoke();
+       // System.out.println("Create new Invoke Op: ");
+       // customInvoke();
     }
 }
