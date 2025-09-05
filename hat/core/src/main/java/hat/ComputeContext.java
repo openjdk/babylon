@@ -29,17 +29,21 @@ import hat.buffer.BufferAllocator;
 import hat.buffer.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
+import hat.dialect.HatBarrierOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.OpTk;
+import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -137,8 +141,32 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     private CallGraph buildKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
-        MethodRef methodRef =OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
+        MethodRef methodRef = OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+        CoreOp.FuncOp funcOp = kernelCallGraph.entrypoint.funcOp();
+        // Analysis : dialect
+//        funcOp = funcOp.transform((blockBuilder, op) -> {
+//            CopyContext context = blockBuilder.context();
+//            if (op instanceof JavaOp.InvokeOp invokeOp) {
+//                if (invokeOp.invokeDescriptor().name().equals("barrier")) {
+//                    List<Value> inputOperands = invokeOp.operands();
+//                    List<Value> outputOperands = context.getValues(inputOperands);
+//                    Op.Result inputResult = invokeOp.result();
+//                    HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
+//                    Op.Result outputResult = blockBuilder.op(hatBarrierOp);
+//                    context.mapValue(inputResult, outputResult);
+//                    blockBuilder.op(op);
+//                } else {
+//                    blockBuilder.op(op);
+//                }
+//            } else {
+//                blockBuilder.op(op);
+//            }
+//            return blockBuilder;
+//        });
+//        System.out.println("Code model: " + funcOp.toText());
+
+        kernelCallGraph.entrypoint.funcOp(funcOp);
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
