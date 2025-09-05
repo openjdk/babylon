@@ -137,7 +137,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     private CallGraph buildKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
-        MethodRef methodRef =OpTk.getQuotableTargetMethodRef(lambdaOp);
+        MethodRef methodRef =OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }

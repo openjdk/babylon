@@ -31,27 +31,23 @@ import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
-//import hat.optools.InvokeOpWrapper;
+import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.interpreter.Interpreter;
+import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.interpreter.Interpreter;
 
 import java.lang.foreign.Arena;
 
 import static hat.ComputeContext.WRAPPER.ACCESS;
-//import static hat.ComputeContext.WRAPPER.ESCAPE;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 
 public abstract class JExtractedBackend extends JExtractedBackendDriver {
-
     public final Arena arena = Arena.global();
-
 
     @Override
     public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {
@@ -65,10 +61,8 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
             computeContext.computeCallGraph.entrypoint.lowered =
-                    OpTk.lower(computeContext.accelerator.lookup,computeContext.computeCallGraph.entrypoint.funcOp());
+                    OpTk.lower(computeContext.computeCallGraph.entrypoint.funcOp());
         }
-
-
         boolean interpret = false;
         if (interpret) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
@@ -85,62 +79,50 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         }
     }
 
- // This code should be common with ffi-shared probably should be pushed down into another lib?
+    // This code should be common with ffi-shared probably should be pushed down into another lib?
     protected static CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
-        CoreOp.FuncOp prevFO = computeMethod.funcOp();
-        CoreOp.FuncOp returnFO = prevFO;
-        boolean transform = true;
-        if (transform) {
-            System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
-            System.out.println(returnFO.toText());
-            var paramTable = new OpTk.ParamTable(prevFO);
-            var lookup = computeMethod.callGraph.computeContext.accelerator.lookup;
-            returnFO = prevFO.transform((bldr, op)->{
-
-                if (op instanceof JavaOp.InvokeOp invokeO) {
-                    CopyContext bldrCntxt = bldr.context();
-                    //Map compute method's first param (computeContext) value to transformed model
-                    Value cc = bldrCntxt.getValue(paramTable.list().getFirst().parameter);
-                    if (OpTk.isIfaceMutator(lookup,invokeO)) {                    // iface.v(newV)
-                        Value iface = bldrCntxt.getValue(invokeO.operands().getFirst());
-                        bldr.op(JavaOp.invoke(MUTATE.pre, cc, iface));  // cc->preMutate(iface);
-                        bldr.op(invokeO);                         // iface.v(newV);
-                        bldr.op(JavaOp.invoke(MUTATE.post, cc, iface)); // cc->postMutate(iface)
-                    } else if (OpTk.isIfaceAccessor(lookup,invokeO)) {            // iface.v()
-                        Value iface = bldrCntxt.getValue(invokeO.operands().getFirst());
-                        bldr.op(JavaOp.invoke(ACCESS.pre, cc, iface));  // cc->preAccess(iface);
-                        bldr.op(invokeO);                         // iface.v();
-                        bldr.op(JavaOp.invoke(ACCESS.post, cc, iface)); // cc->postAccess(iface) } else {
-                    } else if (OpTk.isComputeContextMethod(lookup,invokeO) || OpTk.isRawKernelCall(lookup,invokeO)) { //dispatchKernel
-                        bldr.op(invokeO);
-                    } else {
-                        invokeO.operands().stream()
-                                .filter(val -> val.type() instanceof JavaType javaType &&
-                                        OpTk.isAssignable(lookup, javaType, MappableIface.class))
-                                // isIfaceUsingLookup(prevFOW.lookup,javaType))
-                                .forEach(val ->
-                                        bldr.op(JavaOp.invoke(MUTATE.pre, cc, bldrCntxt.getValue(val)))
-                                );
-                        bldr.op(invokeO);
-                        invokeO.operands().stream()
-                                .filter(val -> val.type() instanceof JavaType javaType &&
-                                        OpTk.isAssignable(lookup, javaType, MappableIface.class))
-                                // isIfaceUsingLookup(prevFOW.lookup,javaType))
-
-                                .forEach(val -> bldr.op(
-                                        JavaOp.invoke(MUTATE.post, cc, bldrCntxt.getValue(val)))
-                                );
-                    }
-                    return bldr;
-                }else{
-                    bldr.op(op);
+        System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
+        System.out.println(computeMethod.funcOp().toText());
+        var lookup = computeMethod.callGraph.computeContext.accelerator.lookup;
+        var paramTable = new FuncOpParams(computeMethod.funcOp());
+        var transformedFuncOp = computeMethod.funcOp().transform((bldr, op) -> {
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
+                Value computeContext = bldr.context().getValue(paramTable.list().getFirst().parameter);
+                if (OpTk.isIfaceBufferMethod(lookup, invokeOp) && OpTk.javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
+                    Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
+                    bldr.op(JavaOp.invoke(MUTATE.pre, computeContext, iface));  // cc->preMutate(iface);
+                    bldr.op(invokeOp);                                          // iface.v(newV);
+                    bldr.op(JavaOp.invoke(MUTATE.post, computeContext, iface)); // cc->postMutate(iface)
+                } else if (OpTk.isIfaceBufferMethod(lookup, invokeOp)
+                        //&& !OpTk.javaReturnType(invokeOp).equals(JavaType.VOID) not sure we need this
+                        && OpTk.javaReturnType(invokeOp) instanceof ClassType returnClassType
+                        && OpTk.classTypeToTypeOrThrow(lookup, returnClassType) instanceof Class<?> type
+                        && Buffer.class.isAssignableFrom(type)
+                ) {            // iface.v()
+                    Value iface = bldr.context().getValue(invokeOp.operands().getFirst());
+                    bldr.op(JavaOp.invoke(ACCESS.pre, computeContext, iface));  // cc->preAccess(iface);
+                    bldr.op(invokeOp);                                          // iface.v();
+                    bldr.op(JavaOp.invoke(ACCESS.post, computeContext, iface)); // cc->postAccess(iface) } else {
+                } else if (OpTk.isComputeContextMethod(lookup, invokeOp) || OpTk.isKernelContextMethod(lookup, invokeOp)) { //dispatchKernel
+                    bldr.op(invokeOp);
+                } else {
+                    invokeOp.operands().stream()
+                            .filter(val -> val.type() instanceof JavaType javaType && OpTk.isAssignable(lookup, javaType, MappableIface.class))
+                            .forEach(val -> bldr.op(JavaOp.invoke(MUTATE.pre, computeContext, bldr.context().getValue(val))));
+                    bldr.op(invokeOp);
+                    invokeOp.operands().stream()
+                            .filter(val -> val.type() instanceof JavaType javaType && OpTk.isAssignable(lookup, javaType, MappableIface.class))
+                            .forEach(val -> bldr.op(JavaOp.invoke(MUTATE.post, computeContext, bldr.context().getValue(val))));
                 }
                 return bldr;
-            });
-            System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
-            System.out.println(returnFO.toText());
-        }
-        computeMethod.funcOp(returnFO);
-        return returnFO;
+            } else {
+                bldr.op(op);
+            }
+            return bldr;
+        });
+        System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
+        System.out.println(transformedFuncOp.toText());
+        computeMethod.funcOp(transformedFuncOp);
+        return transformedFuncOp;
     }
 }

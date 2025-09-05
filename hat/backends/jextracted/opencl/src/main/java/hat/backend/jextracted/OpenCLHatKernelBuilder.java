@@ -28,6 +28,7 @@ import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.HATCodeBuilderContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
@@ -78,13 +79,13 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder kernelDeclaration(String name) {
-        return keyword("__kernel").space().voidType().space().identifier(name);
+    public OpenCLHatKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return keyword("__kernel").space().voidType().space().identifier(funcOp.funcName());
     }
 
     @Override
-    public OpenCLHatKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, String name) {
-        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(name);
+    public OpenCLHatKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, CoreOp.FuncOp funcOp) {
+        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(funcOp.funcName());
     }
 
     @Override
@@ -99,4 +100,31 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
               rarrow().identifier(name);
           });
     }
+
+    @Override
+    public OpenCLHatKernelBuilder localPtrPrefix() {
+        return keyword("__local");
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder syncBlockThreads() {
+        return identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen().semicolon();
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder emitPrivateDeclaration(String typeStructName, String varName) {
+        return suffix_t(typeStructName)
+                .space()
+                .emitText(varName).nl();
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder emitLocalDeclaration(String typeName, String varName) {
+        return localPtrPrefix()
+                .space()
+                .suffix_t(typeName)
+                .space()
+                .identifier(varName);
+    }
+
 }

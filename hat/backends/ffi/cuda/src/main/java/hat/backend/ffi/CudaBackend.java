@@ -31,11 +31,13 @@ import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
+import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
 
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
@@ -401,9 +403,8 @@ public class CudaBackend extends C99FFIBackend {
         var builder = new PTXHATKernelBuilder();
         StringBuilder out = new StringBuilder();
         StringBuilder invokedMethods = new StringBuilder();
-       // FuncOpWrapper f = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp());
-        CoreOp.FuncOp lowered = OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,kernelCallGraph.entrypoint.funcOp());
-        var paramTable = new OpTk.ParamTable(kernelCallGraph.entrypoint.funcOp());
+        CoreOp.FuncOp lowered = OpTk.lower(kernelCallGraph.entrypoint.funcOp());
+        var paramTable = new FuncOpParams(kernelCallGraph.entrypoint.funcOp());
         HashMap<String, Object> argsMap = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
             argsMap.put(paramTable.list().get(i).varOp.varName(), args[i]);
@@ -414,18 +415,17 @@ public class CudaBackend extends C99FFIBackend {
         if (CallGraph.usingModuleOp) {
             System.out.println("Using ModuleOp for CudaBackend");
             kernelCallGraph.moduleOp.functionTable().forEach((_, funcOp) -> {
-              //  FuncOpWrapper calledFunc = new FuncOpWrapper(kernelCallGraph.computeContext.accelerator.lookup,funcOp);
-                CoreOp.FuncOp loweredFunc = OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,funcOp);
+                CoreOp.FuncOp loweredFunc = OpTk.lower(funcOp);
                 loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,loweredFunc, argsMap, usedMathFns);
-                invokedMethods.append(createFunction(kernelCallGraph.computeContext.accelerator.lookup,new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+                invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
             });
         } else {
             System.out.println("NOT using ModuleOp for CudaBackend");
             for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
                 CoreOp.FuncOp calledFunc = k.funcOp();
-                CoreOp.FuncOp loweredFunc = OpTk.lower(kernelCallGraph.computeContext.accelerator.lookup,calledFunc);
+                CoreOp.FuncOp loweredFunc = OpTk.lower(calledFunc);
                 loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,loweredFunc, argsMap, usedMathFns);
-                invokedMethods.append(createFunction(kernelCallGraph.computeContext.accelerator.lookup,new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+                invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
             }
         }
 
@@ -436,7 +436,7 @@ public class CudaBackend extends C99FFIBackend {
 
         out.append(invokedMethods);
 
-        out.append(createFunction(kernelCallGraph.computeContext.accelerator.lookup,builder.nl().nl(), lowered, true));
+        out.append(createFunction(builder.nl().nl(), lowered, true));
         if (config.isSHOW_KERNEL_MODEL()){
             System.out.println("ptx follows\n"+out);
         }
@@ -476,25 +476,25 @@ public class CudaBackend extends C99FFIBackend {
         });
     }
 
-    static public String createFunction(MethodHandles.Lookup lookup,PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
-        CoreOp.FuncOp ssa = OpTk.ssa(lookup,lowered);
-        String out, body;
+    static public String createFunction(PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
+        CoreOp.FuncOp ssa = SSA.transform(lowered);
+
 
         // building fn info (name, params)
         builder.functionHeader(lowered.funcName(), entry, lowered.body().yieldType());
-        var paramTable = new OpTk.ParamTable(lowered);
+        var paramTable = new FuncOpParams(lowered);
         // printing out params
         builder.parameters(paramTable.list());
 
         // building body of fn
         builder.functionPrologue();
 
-        out = builder.getTextAndReset();
+        String out = builder.getTextAndReset();
         ssa.bodies().getFirst().blocks().forEach(block ->
                 builder.blockBody(block, block.ops().stream()));
 
         builder.functionEpilogue();
-        body = builder.getTextAndReset();
+        String body = builder.getTextAndReset();
 
         builder.ptxRegisterDecl();
         out += builder.getText() + body;

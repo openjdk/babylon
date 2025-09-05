@@ -58,6 +58,7 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
         }
         return self();
     }
+
     @Override
     public T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (!invokeOp.operands().isEmpty() && invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
@@ -72,6 +73,24 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
         return self();
     }
 
+    @Override
+    public T emitPrivateDeclaration(String typeName, String varName) {
+        // TODO: What would emit a Java backend
+        return self();
+    }
+
+    @Override
+    public T emitLocalDeclaration(String typeName, String varName) {
+        // TODO: What would emit a Java backend
+        return self();
+    }
+
+    @Override
+    public T syncBlockThreads() {
+        // TODO: What would emit a Java backend?
+        return self();
+    }
+
     public T compute(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOp);
         typeName(funcOp.resultType().toString()).space().identifier(funcOp.funcName());
@@ -79,7 +98,7 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
                 commaSeparated(buildContext.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
         braceNlIndented(_ ->
-                OpTk.rootOpStream(buildContext.lookup,funcOp)
+                OpTk.rootOpStream(funcOp)
                         .forEach(root ->
                                 recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root)).nl()
                         )

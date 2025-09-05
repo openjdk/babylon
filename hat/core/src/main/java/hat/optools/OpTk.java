@@ -29,22 +29,17 @@ import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 import hat.callgraph.CallGraph;
 import hat.ifacemapper.MappableIface;
-import hat.util.BiMap;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
-import java.lang.foreign.GroupLayout;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -59,57 +54,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class OpTk {
-
-
-    public static Op lhsAsOp(Op op) {
-        return ((Op.Result) op.operands().getFirst()).op();
-    }
-
-    public static Op rhsAsOp(Op op) {
-        return ((Op.Result) op.operands().get(1)).op();
-    }
-
-   // public static Stream<OpWrapper<?>> lhsWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.JavaConditionalOp op) {
-     //   return op.bodies().get(0).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
-   // }
-    public static Stream<Op> lhsYieldOpStream(JavaOp.JavaConditionalOp op) {
-        return op.bodies().get(0).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
-    }
-
-   // public static Stream<OpWrapper<?>> rhsWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.JavaConditionalOp op) {
-     //   return op.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
-   // }
-    public static Stream<Op> rhsYieldOpStream( JavaOp.JavaConditionalOp op) {
-        return op.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
-    }
 
     public static boolean isKernelContextAccess(JavaOp.FieldAccessOp fieldAccessOp) {
         return fieldAccessOp.fieldDescriptor().refType() instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext");
     }
 
-    public static TypeElement fieldType(JavaOp.FieldAccessOp fieldAccessOp) {
-        return fieldAccessOp.fieldDescriptor().refType();
-    }
 
     public static String fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
         return fieldAccessOp.fieldDescriptor().name();
     }
 
-    public static JavaType javaType(CoreOp.VarOp op) {
-        return (JavaType) op.varValueType();
-    }
-
-    public static String varName(CoreOp.VarOp op) {
-        return op.varName();
-    }
-
     public static Object getStaticFinalPrimitiveValue(MethodHandles.Lookup lookup, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (fieldType(fieldLoadOp) instanceof ClassType classType) {
-            Class<?> clazz = (Class<?>) classTypeToType(lookup, classType);
+        if (fieldLoadOp.fieldDescriptor().refType() instanceof ClassType classType) {
+            Class<?> clazz = (Class<?>) classTypeToTypeOrThrow(lookup, classType);
             try {
                 Field field = clazz.getField(fieldName(fieldLoadOp));
                 field.setAccessible(true);
@@ -121,55 +83,14 @@ public class OpTk {
         throw new RuntimeException("Could not find field value" + fieldLoadOp);
     }
 
-   // public static Stream<OpWrapper<?>> initWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
-     //   return op.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
-   // }
 
-    public static Stream<Op> initYieldOpStream(JavaOp.ForOp op) {
-        return op.init().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
-    }
-    // Maybe instead of three of these we can add cond() to Op.Loop?
-  //  public static Stream<OpWrapper<?>> conditionWrappedYieldOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
-    //    return op.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).map(o -> OpWrapper.wrap(lookup, o));
-   // }
-    public static Stream<Op> conditionYieldOpStream(JavaOp.ForOp op) {
-        return op.cond().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
-    }
-    public static Stream<Op> conditionYieldOpStream( JavaOp.WhileOp op) {
-        // ADD op.cond() to JavaOp.WhileOp  match ForOp?
-        return op.bodies().getFirst().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
-    }
-    public static Stream<Op> conditionYieldOpStream( JavaOp.ConditionalExpressionOp op) {
-        // ADD op.cond() to JavaOp.WhileOp  match ForOp?
-        return op.bodies().getFirst().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
-    }
-    public static Stream<Op> loopRootOpStream(MethodHandles.Lookup lookup, Op.Loop op) {
+    public static Stream<Op> loopRootOpStream(Op.Loop op) {
         var list = new ArrayList<>(rootsExcludingVarFuncDeclarationsAndYields( op.loopBody().entryBlock()).toList());
         if (list.getLast() instanceof JavaOp.ContinueOp) {
             list.removeLast();
         }
         return list.stream();
     }
-
-
-    public static Stream<Op> mutateRootOpStream(MethodHandles.Lookup lookup, JavaOp.ForOp op) {
-        return rootsExcludingVarFuncDeclarationsAndYields( op.bodies().get(2).entryBlock());
-    }
-
-
-    public static Stream<Op> thenYieldOpStream( JavaOp.ConditionalExpressionOp op) {
-        return op.bodies().get(1).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
-    }
-
-    public static Stream<Op> elseYieldOpStream(JavaOp.ConditionalExpressionOp op) {
-        return op.bodies().get(2).entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp);
-    }
-
-
-    public static boolean hasElse(JavaOp.IfOp op, int idx) {
-        return op.bodies().size() > idx && op.bodies().get(idx).entryBlock().ops().size() > 1;
-    }
-
 
     public static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup l,
                                                                CoreOp.FuncOp entry, CallGraph<?> callGraph) {
@@ -181,17 +102,15 @@ public class OpTk {
         Deque<RefAndFunc> work = new ArrayDeque<>();
         entry.traverse(null, (map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-                MethodRef methodRef = methodRef(invokeOp);
-                Method method = null;
-                Class<?> javaRefTypeClass = javaRefClass(callGraph.computeContext.accelerator.lookup, invokeOp).orElseThrow();
+                Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
                 try {
-                    method = methodRef.resolveToMethod(l, invokeOp.invokeKind());
+                    var method = invokeOp.invokeDescriptor().resolveToMethod(l, invokeOp.invokeKind());
+                    CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
+                    if (f != null && !callGraph.filterCalls(f, invokeOp, method, invokeOp.invokeDescriptor(), javaRefTypeClass)) {
+                        work.push(new RefAndFunc(invokeOp.invokeDescriptor(),  f));
+                    }
                 } catch (ReflectiveOperationException _) {
                     throw new IllegalStateException("Could not resolve invokeWrapper to method");
-                }
-                Optional<CoreOp.FuncOp> f = Op.ofMethod(method);
-                if (f.isPresent() && !callGraph.filterCalls(f.get(), invokeOp, method, methodRef, javaRefTypeClass)) {
-                    work.push(new RefAndFunc(methodRef,  f.get()));
                 }
             }
             return map;
@@ -205,27 +124,23 @@ public class OpTk {
 
             CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
                 if (op instanceof JavaOp.InvokeOp iop) {
-                    //  InvokeOpWrapper iopWrapper = OpWrapper.wrap(entry.lookup, iop);
-                    MethodRef methodRef = methodRef(iop);
-                    Method invokeOpCalledMethod = null;
                     try {
-                        invokeOpCalledMethod = methodRef.resolveToMethod(l, iop.invokeKind());
+                        Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
+                        if (invokeOpCalledMethod instanceof Method m) {
+                            CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
+                            if (f!=null) {
+                                RefAndFunc call = new RefAndFunc(iop.invokeDescriptor(), f);
+                                work.push(call);
+                                Op.Result result = blockBuilder.op(CoreOp.funcCall(
+                                        call.r.name(),
+                                        call.f.invokableType(),
+                                        blockBuilder.context().getValues(iop.operands())));
+                                blockBuilder.context().mapValue(op.result(), result);
+                                return blockBuilder;
+                            }
+                        }
                     } catch (ReflectiveOperationException _) {
                         throw new IllegalStateException("Could not resolve invokeWrapper to method");
-                    }
-                    if (invokeOpCalledMethod instanceof Method m) {
-                        Optional<CoreOp.FuncOp> f = Op.ofMethod(m);
-                        if (f.isPresent()) {
-                            RefAndFunc call = new RefAndFunc(methodRef, f.get());
-                            work.push(call);
-
-                            Op.Result result = blockBuilder.op(CoreOp.funcCall(
-                                    call.r.name(),
-                                    call.f.invokableType(),
-                                    blockBuilder.context().getValues(iop.operands())));
-                            blockBuilder.context().mapValue(op.result(), result);
-                            return blockBuilder;
-                        }
                     }
                 }
                 blockBuilder.op(op);
@@ -237,20 +152,17 @@ public class OpTk {
         return CoreOp.module(funcs);
     }
 
-    public static Type classTypeToType(MethodHandles.Lookup lookup, ClassType classType) {
-        Type javaTypeClass = null;
+    public static Type classTypeToTypeOrThrow(MethodHandles.Lookup lookup, ClassType classType) {
         try {
-            javaTypeClass = classType.resolve(lookup);
+            return classType.resolve(lookup);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-        return javaTypeClass;
-
     }
 
     public static boolean isAssignable(MethodHandles.Lookup lookup, JavaType javaType, Class<?>... classes) {
         if (javaType instanceof ClassType classType) {
-            Type type = classTypeToType(lookup, classType);
+            Type type = classTypeToTypeOrThrow(lookup, classType);
             for (Class<?> clazz : classes) {
                 if (clazz.isAssignableFrom((Class<?>) type)) {
                     return true;
@@ -266,11 +178,7 @@ public class OpTk {
         return lambdaOp.body().entryBlock().ops().stream()
                 .filter(op -> op instanceof JavaOp.InvokeOp)
                 .map(op -> (JavaOp.InvokeOp) op)
-                .findFirst().get();
-    }
-
-    public static MethodRef getQuotableTargetMethodRef(JavaOp.LambdaOp lambdaOp) {
-        return methodRef(getQuotableTargetInvokeOpWrapper( lambdaOp));
+                .findFirst().orElseThrow();
     }
 
     public static Object[] getQuotableCapturedValues(JavaOp.LambdaOp lambdaOp, Quoted quoted, Method method) {
@@ -282,8 +190,6 @@ public class OpTk {
                 .map(varLoadOp -> (Op.Result) varLoadOp.operands().getFirst())
                 .map(varLoadOp -> (CoreOp.VarOp) varLoadOp.op())
                 .map(CoreOp.VarOp::varName).toArray();
-
-
         Map<String, Object> nameValueMap = new HashMap<>();
 
         quoted.capturedValues().forEach((k, v) -> {
@@ -306,72 +212,35 @@ public class OpTk {
         return args;
     }
 
-    public static CoreOp.FuncOp lower(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+    public static CoreOp.FuncOp lower( CoreOp.FuncOp funcOp) {
         return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
     }
 
-    public static CoreOp.FuncOp ssa(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        return SSA.transform(funcOp);
-    }
-/*
-    public static Stream<OpWrapper<?>> wrappedRootOpStream(MethodHandles.Lookup lookup, CoreOp.FuncOp op) {
-        return wrappedRootsExcludingVarFuncDeclarationsAndYields(lookup, op.bodies().getFirst().entryBlock());
-    } */
-    public static Stream<Op> rootOpStream(MethodHandles.Lookup lookup, CoreOp.FuncOp op) {
+    public static Stream<Op> rootOpStream( CoreOp.FuncOp op) {
         return rootsExcludingVarFuncDeclarationsAndYields(op.bodies().getFirst().entryBlock());
     }
 
 
-    static public Set<Op> roots(Block block) {
-        record Node<T extends Value>(T node, List<Node<T>> children) {
-        }
-        Set<Op> roots = new LinkedHashSet<>();
-        Map<Op, Node<Value>> trees = new LinkedHashMap<>();
-        Map<Value, Node<Value>> params = new HashMap<>();
-        block.ops().forEach(op -> {
-            List<Node<Value>> children = new ArrayList<>();
-
-            op.operands().forEach(operand -> {
-                if (operand instanceof Op.Result result) {
-                    children.add(trees.get(result.op()));
-                } else {
-                    children.add(params.computeIfAbsent(operand, _ -> new Node<>(operand, List.of())));
-                }
-            });
-            trees.put(op, new Node<>(op.result(), children));
-        });
-
-        trees.keySet().forEach(op -> {
-            if (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2) {
-                roots.add(op);
-            } else if (op instanceof CoreOp.VarOp || op.result().uses().isEmpty()) {
-                roots.add(op);
-            }
-        });
-        return roots;
-    }
+    static Predicate<Op> rootFilter = op->
+            (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
+              || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
+            )
+            && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
+            && !(op instanceof CoreOp.YieldOp);
 
     static public Stream<Op> rootsExcludingVarFuncDeclarationsAndYields(Block block) {
-        var roots = roots(block);
-        return block.ops().stream()
-                .filter(roots::contains)
-                .filter(w -> !(w instanceof CoreOp.VarOp varOp && paramVar(varOp) != null))
-                .filter(w -> !(w instanceof CoreOp.YieldOp));
-    }
-
-    public static MethodRef methodRef(JavaOp.InvokeOp op) {
-        return op.invokeDescriptor();
+        return block.ops().stream().filter(rootFilter);
     }
 
     public static JavaType javaRefType(JavaOp.InvokeOp op) {
-        return (JavaType) methodRef(op).refType();
+        return (JavaType) op.invokeDescriptor().refType();
     }
 
     public static boolean isIfaceBufferMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         return isAssignable(lookup, javaRefType(invokeOp), MappableIface.class);
     }
 
-    public static boolean isRawKernelCall(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
+    public static boolean isKernelContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         return (op.operands().size() > 1 && op.operands().getFirst() instanceof Value value
                 && value.type() instanceof JavaType javaType
                 && (isAssignable(lookup, javaType, hat.KernelContext.class) || isAssignable(lookup, javaType, KernelContext.class))
@@ -383,14 +252,22 @@ public class OpTk {
     }
 
     public static JavaType javaReturnType(JavaOp.InvokeOp op) {
-        return (JavaType) methodRef(op).type().returnType();
+        return (JavaType) op.invokeDescriptor().type().returnType();
     }
 
-    public static Method method(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
+    public static Method methodOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         try {
-            return methodRef(op).resolveToMethod(lookup, op.invokeKind());
+            return op.invokeDescriptor().resolveToMethod(lookup, op.invokeKind());
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
+        if (javaReturnType(op) instanceof ClassType classType) {
+            return Optional.of((Class<?>) classTypeToTypeOrThrow(lookup, classType));
+        } else {
+            return Optional.empty();
         }
     }
 
@@ -403,110 +280,15 @@ public class OpTk {
         }
     }
 
-    public static boolean isIfaceMutator(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
-        return isIfaceBufferMethod(lookup, invokeOp) && javaReturnType(invokeOp).equals(JavaType.VOID);
-    }
 
-    public static Optional<Class<?>> javaRefClass(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
+    public static Class<?> javaRefClassOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         if (javaRefType(op) instanceof ClassType classType) {
-            return Optional.of((Class<?>) classTypeToType(lookup, classType));
+            return (Class<?>) classTypeToTypeOrThrow(lookup, classType);
         } else {
-            return Optional.empty();
+            throw new IllegalStateException(" javaRef class is null");
         }
     }
 
-    public static Optional<Class<?>> javaReturnClass(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
-        if (javaReturnType(op) instanceof ClassType classType) {
-            return Optional.of((Class<?>) classTypeToType(lookup, classType));
-        } else {
-            return Optional.empty();
-        }
-    }
-
-
-    public static class ParamTable {
-        public static class Info {
-            public final int idx;
-            public final Block.Parameter parameter;
-            public final JavaType javaType;
-            public final CoreOp.VarOp varOp;
-            public GroupLayout layout = null;
-            public Class<?> clazz = null;
-
-            Info(int idx, Block.Parameter parameter, CoreOp.VarOp varOp) {
-                this.idx = idx;
-                this.parameter = parameter;
-                this.javaType = (JavaType) parameter.type();
-                this.varOp = varOp;
-            }
-
-            public boolean isPrimitive() {
-                return javaType instanceof PrimitiveType;
-            }
-
-            public void setLayout(GroupLayout layout) {
-                this.layout = layout;
-            }
-
-            public void setClass(Class<?> clazz) {
-                this.clazz = clazz;
-            }
-        }
-
-        final public BiMap<Block.Parameter, CoreOp.VarOp> parameterVarOpMap = new BiMap<>();
-        final public BiMap<Block.Parameter, JavaOp.InvokeOp> parameterInvokeOpMap = new BiMap<>();
-
-        final private Map<Block.Parameter, Info> parameterToInfo = new LinkedHashMap<>();
-        final private Map<CoreOp.VarOp, Info> varOpToInfo = new LinkedHashMap<>();
-
-        final private List<Info> list = new ArrayList<>();
-
-        public ParamTable.Info info(Block.Parameter parameter) {
-            return parameterToInfo.get(parameter);
-        }
-
-        void add(Map.Entry<Block.Parameter, CoreOp.VarOp> parameterToVarOp) {
-            //We add a new ParameterInfo to both maps using parameter and varOp as keys
-            varOpToInfo.put(parameterToVarOp.getValue(),
-                    // always called but convenient because computeIfAbsent returns what we added :)
-                    parameterToInfo.computeIfAbsent(parameterToVarOp.getKey(), (parameterKey) -> {
-                        var info = new ParamTable.Info(list.size(), parameterKey, parameterToVarOp.getValue());
-                        list.add(info);
-                        return info;
-                    })
-            );
-        }
-
-        public List<Info> list() {
-            return list;
-        }
-
-        public Stream<Info> stream() {
-            return list.stream();
-        }
-
-        final public CoreOp funcOp;
-
-        public ParamTable(CoreOp.FuncOp funcOp) {
-            this.funcOp = funcOp;
-            funcOp.parameters().forEach(parameter -> {
-                Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
-                optionalResult.ifPresentOrElse(result -> {
-                    var resultOp = result.op();
-                    if (resultOp instanceof CoreOp.VarOp varOp) {
-                        parameterVarOpMap.add(parameter, varOp);
-                        add(Map.entry(parameter, varOp));
-                    } else if (resultOp instanceof JavaOp.InvokeOp invokeOp) {
-                        parameterInvokeOpMap.add(parameter, invokeOp);
-                    } else {
-                        //System.out.println("neither varOp or an invokeOp "+resultOp.getClass().getName());
-                    }
-                }, () -> {
-                    throw new IllegalStateException("no use of param");
-                });
-            });
-        }
-    }
 
     public record ParamVar(CoreOp.VarOp varOp, Block.Parameter parameter, CoreOp.FuncOp funcOp) {
     }

@@ -71,7 +71,7 @@ public class ViolaJonesCoreCompute {
     }
 
     @CodeReflection
-    public static void rgbToGreyKernel(@RO KernelContext kc, @RO S08x3RGBImage rgbImage, @RW F32Array2D greyImage) {
+    public static void rgbToGreyKernel(@RO KernelContext kc, @RO S08x3RGBImage rgbImage, @WO F32Array2D greyImage) {
         if (kc.x < kc.maxX){
            rgbToGrey(kc.x, rgbImage, greyImage);
         }
@@ -170,8 +170,8 @@ public class ViolaJonesCoreCompute {
         int imageWidth = integralOrIntegralSqImage.width();
         float A = integralOrIntegralSqImage.array(xyToLong(imageWidth, x, y));
         float D = integralOrIntegralSqImage.array(xyToLong(imageWidth, x + w, y + h));   //  [A]-------[B]
-        float C = integralOrIntegralSqImage.array(xyToLong(imageWidth, x, y + h));       //   |         |
-        float B = integralOrIntegralSqImage.array(xyToLong(imageWidth, x + w, y));       //  [C]-------[D]
+        float C = integralOrIntegralSqImage.array(xyToLong(imageWidth, x, y + h));         //   |         |
+        float B = integralOrIntegralSqImage.array(xyToLong(imageWidth, x + w, y));         //  [C]-------[D]
         return D - B - C + A;
     }
 
