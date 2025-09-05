@@ -15,8 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BufferTagger {
     static HashMap<Value, AccessType> accessMap = new HashMap<>();
-    static HashMap<Value, Value> remappedVals = new HashMap<>();
-    static HashMap<Block, List<Block.Parameter>> blockParams = new HashMap<>();
+    static HashMap<Value, Value> remappedVals = new HashMap<>(); // maps values to their "root" parameter/value
+    static HashMap<Block, List<Block.Parameter>> blockParams = new HashMap<>(); // holds block parameters for easy lookup
 
     public enum AccessType {
         NA(1),
@@ -26,51 +26,35 @@ public class BufferTagger {
         NOT_BUFFER(0);
 
         public final int value;
-
         AccessType(int i) {
             value = i;
         }
     }
 
-    public static void main(String[] args) {
-        // Optional<Method> om = Stream.of(ViolaJonesCoreCompute.class.getDeclaredMethods())
-        //         .filter(m -> m.getName().equals("rgbToGreyKernel"))
-        //         .findFirst();
-        //
-        // Method m;
-        // if (om.isPresent()) {
-        //     m = om.get();
-        //     Optional<CoreOp.FuncOp> f = Op.ofMethod(m);
-        //     f.ifPresent(func -> {
-        //         SSA.transform(func.transform(OpTransformer.LOWERING_TRANSFORMER));
-        //         BufferTagging.buildAccessMap(accelerator.lookup, BufferTagging.inlineLoop(accelerator.lookup, func));
-        //     });
-        // }
-    }
-
+    // generates a list of AccessTypes matching the given FuncOp's parameter order
     public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup l, CoreOp.FuncOp f) {
         CoreOp.FuncOp inlinedFunc = inlineLoop(l, f);
         buildAccessMap(l, inlinedFunc);
         ArrayList<AccessType> accessList = new ArrayList<>();
         for (Block.Parameter p : inlinedFunc.body().entryBlock().parameters()) {
             if (accessMap.containsKey(p)) {
-                accessList.add(accessMap.get(p));
-            } else if (getClass(l, p.type()) instanceof Class<?> c &&
-                    MappableIface.class.isAssignableFrom(c)) {
-                accessList.add(AccessType.NA);
+                accessList.add(accessMap.get(p)); // is an accessed buffer
+            } else if (getClass(l, p.type()) instanceof Class<?> c && MappableIface.class.isAssignableFrom(c)) {
+                accessList.add(AccessType.NA); // is a buffer but not accessed
             } else {
-                accessList.add(AccessType.NOT_BUFFER);
+                accessList.add(AccessType.NOT_BUFFER); // is not a buffer
             }
         }
         return accessList;
     }
 
+    // inlines functions found in FuncOp f until no more inline-able functions are present
     public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup l, CoreOp.FuncOp f) {
-        CoreOp.FuncOp func = SSA.transform(f.transform(OpTransformer.LOWERING_TRANSFORMER));
+        CoreOp.FuncOp ssaFunc = SSA.transform(f.transform(OpTransformer.LOWERING_TRANSFORMER));
         AtomicBoolean changed = new AtomicBoolean(true);
-        while (changed.get()) {
+        while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
-            func = func.transform((bb, op) -> {
+            ssaFunc = ssaFunc.transform((bb, op) -> {
                 if (op instanceof JavaOp.InvokeOp iop) {
                     MethodRef methodRef = iop.invokeDescriptor();
                     Method invokeOpCalledMethod;
@@ -79,20 +63,20 @@ public class BufferTagger {
                     } catch (ReflectiveOperationException _) {
                         throw new IllegalStateException("Could not resolve invokeOp to method");
                     }
-                    if (invokeOpCalledMethod instanceof Method method) {
-                        // only works if method isn't a buffer access (is code reflected)
+                    if (invokeOpCalledMethod instanceof Method method) { // if method isn't a buffer access (is code reflected)
                         if (Op.ofMethod(method).isPresent()) {
-                            CoreOp.FuncOp inlineFunc = Op.ofMethod(method).get();
-                            CoreOp.FuncOp ssa = SSA.transform(inlineFunc.transform(OpTransformer.LOWERING_TRANSFORMER));
+                            CoreOp.FuncOp inline = Op.ofMethod(method).get(); // method to be inlined
+                            CoreOp.FuncOp ssaInline = SSA.transform(inline.transform(OpTransformer.LOWERING_TRANSFORMER));
 
-                            Block.Builder exit = Inliner.inline(bb, ssa, bb.context().getValues(iop.operands()), (builder, v) -> {
+                            Block.Builder exit = Inliner.inline(bb, ssaInline, bb.context().getValues(iop.operands()), (_, v) -> {
                                 if (v != null) bb.context().mapValue(iop.result(), v);
                             });
+
                             if (!exit.parameters().isEmpty()) {
                                 bb.context().mapValue(iop.result(), exit.parameters().getFirst());
                             }
                             changed.set(true);
-                            return exit.rebind(bb.context(), bb.transformer());
+                            return exit.rebind(bb.context(), bb.transformer()); // return exit in same context as block
                         }
                     }
                 }
@@ -100,11 +84,12 @@ public class BufferTagger {
                 return bb;
             });
         }
-        return func;
+        return ssaFunc;
     }
 
+    // creates the access map
     public static void buildAccessMap(MethodHandles.Lookup l, CoreOp.FuncOp f) {
-        // build blockParams so that we can map params to the root param later
+        // build blockParams so that we can map params to "root" params later
         for (Body b : f.bodies()) {
             for (Block block : b.blocks()) {
                 if (!block.parameters().isEmpty()) {
@@ -115,62 +100,60 @@ public class BufferTagger {
 
         f.traverse(null, (map, op) -> {
             if (op instanceof CoreOp.BranchOp b) {
-                List<Value> args = b.branch().arguments();
-                for (int i = 0; i < args.size(); i++) {
-                    Value key = blockParams.get(b.branch().targetBlock()).get(i);
-                    Value val = args.get(i);
-
-                    if (val instanceof Op.Result) {
-                        // either find root param or it doesnt exist (is a constant for example)
-                        Class<?> flopClass = getClass(l, val.type());
-                        if (flopClass != null && (MappableIface.class.isAssignableFrom(flopClass))) {
-                            val = getRootValue(l, ((Op.Result) val).op());
-                            if (val instanceof Block.Parameter p) {
-                                val = remappedVals.getOrDefault(val, val);
-                            }
-                        }
-                    }
-
-                    remappedVals.put(key, val);
-                }
-            } else if (op instanceof JavaOp.InvokeOp iop) {
-                // all the buffer accesses happen here
-                Class<?> iopClass = getClass(l, iop.invokeDescriptor().refType());
-                // if the VarOp is initialized by an InvokeOp, don't access - otherwise do
-                if (iopClass != null && MappableIface.class.isAssignableFrom(iopClass)) {
-                    if (Buffer.class.isAssignableFrom(iopClass)) {
-                        updateAccessType(getRootValue(l, iop), getAccessType(iop));
-                        if (iop.result() != null && !(iop.resultType() instanceof PrimitiveType)
-                                && MappableIface.class.isAssignableFrom(getClass(l, iop.resultType()))) {
-                            remappedVals.put(iop.result(), getRootValue(l, iop));
-                        }
-                    } else {
-                        Value val = iop.operands().getFirst();
-                        while (!(val instanceof Block.Parameter param)) {
-                            val = ((Op.Result) val).op().operands().getFirst();
-                        }
-                        updateAccessType(val, getAccessType(iop));
+                mapBranch(l, b.branch());
+            } else if (op instanceof  CoreOp.ConditionalBranchOp cb) {
+                mapBranch(l, cb.trueBranch()); // handle true branch
+                mapBranch(l, cb.falseBranch()); // handle false branch
+            } else if (op instanceof JavaOp.InvokeOp iop) { // (almost) all the buffer accesses happen here
+                if (isAssignable(l, iop.invokeDescriptor().refType(), MappableIface.class)) {
+                    updateAccessType(getRootValue(iop), getAccessType(iop)); // update buffer access
+                    if (isAssignable(l, iop.invokeDescriptor().refType(), Buffer.class)
+                            && iop.result() != null && !(iop.resultType() instanceof PrimitiveType)
+                            && isAssignable(l, iop.resultType(), MappableIface.class)) {
+                        // if we access a struct/union from a buffer, we map the struct/union to the buffer root
+                        remappedVals.put(iop.result(), getRootValue(iop));
                     }
                 }
-            } else if (op instanceof CoreOp.VarOp vop) {
-                try {
-                    if (vop.resultType().valueType() instanceof ClassType classType
-                            && Buffer.class.isAssignableFrom((Class<?>) classType.resolve(l))) {
-                        remappedVals.put(vop.initOperand(), getRootValue(l, vop));
-                    }
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
+            } else if (op instanceof CoreOp.VarOp vop) { // map the new VarOp to the "root" param
+                if (isAssignable(l, vop.resultType().valueType(), Buffer.class)) {
+                    remappedVals.put(vop.initOperand(), getRootValue(vop));
                 }
             } else if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flop) {
-                Class<?> flopClass = getClass(l, flop.fieldDescriptor().refType());
-                if (flopClass != null && (KernelContext.class.isAssignableFrom(flopClass))) {
-                    updateAccessType(getRootValue(l, flop), AccessType.RO);
+                if (isAssignable(l, flop.fieldDescriptor().refType(), KernelContext.class)) {
+                    updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
                 }
             }
             return map;
         });
     }
 
+    // maps the parameters of a block to the values passed to a branch
+    public static void mapBranch(MethodHandles.Lookup l, Block.Reference b) {
+        List<Value> args = b.arguments();
+        for (int i = 0; i < args.size(); i++) {
+            Value key = blockParams.get(b.targetBlock()).get(i);
+            Value val = args.get(i);
+
+            if (val instanceof Op.Result) {
+                // either find root param or it doesnt exist (is a constant for example)
+                if (isAssignable(l, val.type(), MappableIface.class)) {
+                    val = getRootValue(((Op.Result) val).op());
+                    if (val instanceof Block.Parameter) {
+                        val = remappedVals.getOrDefault(val, val);
+                    }
+                }
+            }
+            remappedVals.put(key, val);
+        }
+    }
+
+    // checks if a TypeElement is assignable to a certain class
+    public static boolean isAssignable(MethodHandles.Lookup l, TypeElement type, Class<?> clazz) {
+        Class<?> fopClass = getClass(l, type);
+        return (fopClass != null && (clazz.isAssignableFrom(fopClass)));
+    }
+
+    // retrieves the class of a TypeElement
     public static Class<?> getClass(MethodHandles.Lookup l, TypeElement type) {
         if (type instanceof ClassType classType) {
             try {
@@ -182,42 +165,31 @@ public class BufferTagger {
         return null;
     }
 
-    public static Value getRootValue(MethodHandles.Lookup l, Op op) {
-        // if the VarOp is already the root VarOp, return
+    // retrieves "root" value of an op, the origin of the parameter (or value) used by the op
+    public static Value getRootValue(Op op) {
         if (op.operands().isEmpty()) {
             return op.result();
         }
         if (op.operands().getFirst() instanceof Block.Parameter param) {
             return param;
         }
-        do {
-            Op tempOp = ((Op.Result) op.operands().getFirst()).op();
+        Value val = op.operands().getFirst();
+        while (!(val instanceof Block.Parameter)) {
             // or if the "root VarOp" is an invoke (not sure how to tell)
             // if (tempOp instanceof JavaOp.InvokeOp iop
             //        && ((TypeElement) iop.resultType()) instanceof ClassType classType
             //        && !hasOperandType(iop, classType)) return ((CoreOp.VarOp) op);
-            op = tempOp;
-        } while (!(op instanceof CoreOp.VarOp &&
-                        // we stop when we find the root VarOp
-                        (op.operands().getFirst() instanceof Block.Parameter)));
-        return ((CoreOp.VarOp) op).initOperand();
-    }
-
-    public static boolean hasOperandType(Op op, ClassType classType) {
-        for (Value v : op.operands()) {
-            if (v instanceof Op.Result r
-                    && ((TypeElement) r.op().resultType()) instanceof ClassType operandType
-                    && operandType.equals(classType)) {
-                return true;
-            }
+            val = ((Op.Result) val).op().operands().getFirst();
         }
-        return false;
+        return val;
     }
 
+    // retrieves accessType based on return value of InvokeOp
     public static AccessType getAccessType(JavaOp.InvokeOp iop) {
         return iop.invokeDescriptor().type().returnType().equals(JavaType.VOID) ? AccessType.WO : AccessType.RO;
     }
 
+    // updates accessMap
     public static void updateAccessType(Value val, AccessType curAccess) {
         Value remappedVal = remappedVals.getOrDefault(val, val);
         AccessType storedAccess = accessMap.get(remappedVal);
@@ -232,7 +204,8 @@ public class BufferTagger {
         System.out.println("access map output:");
         for (Value val : accessMap.keySet()) {
             if (val instanceof Block.Parameter param) {
-                System.out.println("\t" + ((CoreOp.FuncOp) param.declaringBlock().parent().parent()).funcName() + " " + param.toString() + " idx " + param.index() + ": " + accessMap.get(val));
+                System.out.println("\t" + ((CoreOp.FuncOp) param.declaringBlock().parent().parent()).funcName()
+                        + " param w/ idx " + param.index() + ": " + accessMap.get(val));
             } else {
                 System.out.println("\t" + val.toString() + ": " + accessMap.get(val));
             }
