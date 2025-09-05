@@ -14,7 +14,7 @@ transforms and executes code.
 2. [`MathOptimizer`](https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/MathOptimizer.java): First code transformations to optimize a math function.
 3. [`InlineExample`](https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/InliningExample.java): Simple example to illustrate the inlining.
 4. [`MathOptimizerWithInlining`](https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/MathOptimizerWithInlining.java): Follow up of the [`MathOptimizer`](https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/MathOptimizer.java) to inline optimize calls into the code model.
-5. [`DialectSample`][https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/DialectSample.java]: Example of how to extends the code reflection `Op` to create a new dialect. 
+5. [`DialectSample`][https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/DialectSample.java]: Example of how to extends the code reflection `Op` to create a new dialect.
 6. [`DynamicFunctionBuild`][https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/DynamicFunctionBuild.java]: Example of how to create a new function dynamically to compute the inverse of a square root. The code model is built dynamically for a new method and it is evaluated in the `Interpreter`.
 
 ### Resources
