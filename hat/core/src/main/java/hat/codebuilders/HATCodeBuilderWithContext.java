@@ -183,6 +183,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     private void varDeclarationWithInitialization(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         // if type is Buffer (iMappable), then we ignore it and pass it along to the methodCall
         if (isMappableIFace(buildContext, (JavaType) varOp.varValueType()) && (JavaType) varOp.varValueType() instanceof ClassType classType) {
+            type(buildContext, (JavaType) varOp.varValueType()).space().identifier(varOp.varName());
+            space().equals().space();
             annotateTypeAndName(buildContext, (JavaType) varOp.varValueType(), classType, varOp);
         } else {
             type(buildContext, (JavaType) varOp.varValueType()).space().identifier(varOp.varName());
@@ -650,7 +652,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     boolean isLocal = false;
                     if (instanceResult.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         CoreOp.VarOp resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
-                        if (privateAndLocalTypes.contains(resolve.varName())) {
+                        if (name.contains("create") && privateAndLocalTypes.contains(resolve.varName())) {
                             isLocal = true;
                         }
                     }
