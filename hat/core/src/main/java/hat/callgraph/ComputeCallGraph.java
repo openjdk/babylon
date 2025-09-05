@@ -216,10 +216,10 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     public void close() {
-        if (CallGraph.usingModuleOp) {
-            closeWithModuleOp(entrypoint);
-        } else {
+        if (CallGraph.noModuleOp) {
             updateDag(entrypoint);
+        } else {
+            closeWithModuleOp(entrypoint);
         }
     }
 

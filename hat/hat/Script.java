@@ -1284,7 +1284,7 @@ public class Script {
         public StringList args = new StringList();
         public StringList nativeAccessModules = new StringList();
         private boolean headless;
-        public boolean moduleOp;
+        public boolean noModuleOp;
 
 
         public JavaBuilder enable_native_access(String module) {
@@ -1344,8 +1344,8 @@ public class Script {
             this.headless = true;
         }
 
-        public void moduleOp() {
-            this.moduleOp = true;
+        public void noModuleOp() {
+            this.noModuleOp = true;
         }
     }
 
@@ -1378,8 +1378,8 @@ public class Script {
         if (javaBuilder.headless) {
             result.opts.add("-Dheadless=true");
         }
-        if (javaBuilder.moduleOp) {
-            result.opts.add("-DmoduleOp=true");
+        if (javaBuilder.noModuleOp) {
+            result.opts.add("-DnoModuleOp=true");
         }
         if (javaBuilder.startOnFirstThread) {
             result.opts.add("-XstartOnFirstThread");
