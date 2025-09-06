@@ -66,6 +66,7 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
         }
         dot().identifier(invokeOp.invokeDescriptor().name());
         paren(_ ->
+                // why the sublist? is this static vs instance?
             commaSeparated(  invokeOp.operands().subList(0,invokeOp.operands().size()-1), o->
                     recurse(buildContext,  ((Op.Result) o).op())
             )
@@ -74,20 +75,20 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
     }
 
     @Override
-    public T emitPrivateDeclaration(String typeName, String varName) {
-        // TODO: What would emit a Java backend
+    public T privateDeclaration(String typeName, CoreOp.VarOp varOp) {
+        blockComment("/* private declaration !! */");
         return self();
     }
 
     @Override
-    public T emitLocalDeclaration(String typeName, String varName) {
-        // TODO: What would emit a Java backend
+    public T localDeclaration(String typeName, CoreOp.VarOp varOp) {
+        blockComment("/* local declaration !! */");
         return self();
     }
 
     @Override
     public T syncBlockThreads() {
-        // TODO: What would emit a Java backend?
+        blockComment("/* group wide barrier!! */");
         return self();
     }
 

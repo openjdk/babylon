@@ -130,19 +130,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder emitPrivateDeclaration(String typeStructName, String varName) {
-        return suffix_t(typeStructName)
-                .space()
-                .emitText(varName).nl();
+    public CudaHATKernelBuilder privateDeclaration(String typeStructName, CoreOp.VarOp varOp) {
+        return suffix_t(typeStructName).space().identifier(varOp.varName()).nl();
     }
 
     @Override
-    public CudaHATKernelBuilder emitLocalDeclaration(String typeName, String varName) {
-        return localPtrPrefix()
-                .space()
-                .suffix_t(typeName)
-                .space()
-                .identifier(varName);
+    public CudaHATKernelBuilder localDeclaration(String typeName, CoreOp.VarOp varOp) {
+        return localPtrPrefix().space().suffix_t(typeName).space().identifier(varOp.varName());
     }
 
     @Override

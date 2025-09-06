@@ -292,11 +292,11 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         T unaryOperation(HATCodeBuilderContext buildContext, JavaOp.UnaryOp unaryOp);
 
 
-        T binaryOperation(HATCodeBuilderContext buildContext, Op binaryOp);
+        T binaryOperation(HATCodeBuilderContext buildContext, JavaOp.BinaryOp binaryOp);
 
         T logical(HATCodeBuilderContext buildContext, JavaOp.JavaConditionalOp logicalOp);
 
-        T binaryTest(HATCodeBuilderContext buildContext, Op binaryTestOp);
+        T binaryTest(HATCodeBuilderContext buildContext, JavaOp.BinaryTestOp binaryTestOp);
 
         T conv(HATCodeBuilderContext buildContext, JavaOp.ConvOp convOp);
 
@@ -328,7 +328,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
          T ternary(HATCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp);
 
-         T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
+         T parenthesisIfNeeded(HATCodeBuilderContext buildContext, Op parent, Op child);
 
        //  T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
 
@@ -375,5 +375,30 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
 
     }
-
+    T symbol(Op op) {
+        return switch (op) {
+            case JavaOp.ModOp o -> percent();
+            case JavaOp.MulOp o -> mul();
+            case JavaOp.DivOp o -> div();
+            case JavaOp.AddOp o -> plus();
+            case JavaOp.SubOp o -> minus();
+            case JavaOp.LtOp o -> lt();
+            case JavaOp.GtOp o -> gt();
+            case JavaOp.LeOp o -> lte();
+            case JavaOp.GeOp o -> gte();
+            case JavaOp.AshrOp o -> cchevron().cchevron();
+            case JavaOp.LshlOp o -> ochevron().ochevron();
+            case JavaOp.LshrOp o -> cchevron().cchevron();
+            case JavaOp.NeqOp o -> pling().equals();
+            case JavaOp.NegOp o -> minus();
+            case JavaOp.EqOp o -> equals().equals();
+            case JavaOp.NotOp o -> pling();
+            case JavaOp.AndOp o -> ampersand();
+            case JavaOp.OrOp o -> bar();
+            case JavaOp.XorOp o -> hat();
+            case JavaOp.ConditionalAndOp o -> condAnd();
+            case JavaOp.ConditionalOrOp o -> condOr();
+            default -> throw new IllegalStateException("Unexpected value: " + op);
+        };
+    }
 }

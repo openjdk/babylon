@@ -112,19 +112,13 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder emitPrivateDeclaration(String typeStructName, String varName) {
-        return suffix_t(typeStructName)
-                .space()
-                .emitText(varName).nl();
+    public OpenCLHatKernelBuilder privateDeclaration(String typeStructName, CoreOp.VarOp varOp) {
+        return suffix_t(typeStructName).space().identifier(varOp.varName()).nl();
     }
 
     @Override
-    public OpenCLHatKernelBuilder emitLocalDeclaration(String typeName, String varName) {
-        return localPtrPrefix()
-                .space()
-                .suffix_t(typeName)
-                .space()
-                .identifier(varName);
+    public OpenCLHatKernelBuilder localDeclaration(String typeName, CoreOp.VarOp varOp) {
+        return localPtrPrefix().space().suffix_t(typeName).space().identifier(varOp.varName());
     }
 
 }
