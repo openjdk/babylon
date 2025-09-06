@@ -275,7 +275,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return identifier(OpTk.fieldName(fieldAccessOp));
     }
     public T funcName(JavaOp.InvokeOp invokeOp){
-        return identifier(invokeOp.invokeDescriptor().name());
+        return identifier(OpTk.funcName(invokeOp));
     }
 
     /* this should not be too C99 specific */

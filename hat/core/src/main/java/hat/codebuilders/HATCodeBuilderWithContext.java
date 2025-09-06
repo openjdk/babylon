@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -177,41 +178,22 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
 
-    public static List<Op> ops(JavaOp.JavaConditionalOp javaConditionalOp, int idx){
-        return javaConditionalOp.bodies().get(idx).entryBlock().ops();
-    }
-    public static List<Op> lhsOps(JavaOp.JavaConditionalOp javaConditionalOp){
-        return ops(javaConditionalOp,0);
-    }
-    public static List<Op> rhsOps(JavaOp.JavaConditionalOp javaConditionalOp){
-        return ops(javaConditionalOp,1);
-    }
     @Override
     public T logical(HATCodeBuilderContext buildContext, JavaOp.JavaConditionalOp logicalOp) {
-        lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse(buildContext, o));
+        OpTk.lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse(buildContext, o));
         space().symbol(logicalOp).space();
-        rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse(buildContext, o));
+        OpTk.rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse(buildContext, o));
         return self();
     }
-    public static Op.Result result(JavaOp.BinaryTestOp binaryTestOp, int idx){
-        return (Op.Result)binaryTestOp.operands().get(idx);
-    }
-    public static Op.Result lhsResult(JavaOp.BinaryTestOp binaryTestOp){
-        return result(binaryTestOp,0);
-    }
-    public static Op.Result rhsResult(JavaOp.BinaryTestOp binaryTestOp){
-        return result(binaryTestOp,1);
-    }
+
     @Override
     public T binaryTest(HATCodeBuilderContext buildContext, JavaOp.BinaryTestOp binaryTestOp) {
-        parenthesisIfNeeded(buildContext, binaryTestOp, lhsResult(binaryTestOp).op());
+        parenthesisIfNeeded(buildContext, binaryTestOp, OpTk.lhsResult(binaryTestOp).op());
         symbol(binaryTestOp);
-        parenthesisIfNeeded(buildContext, binaryTestOp, rhsResult(binaryTestOp).op());
+        parenthesisIfNeeded(buildContext, binaryTestOp, OpTk.rhsResult(binaryTestOp).op());
         return self();
     }
-    public static Op.Result result(JavaOp.ConvOp convOp){
-        return (Op.Result)convOp.operands().getFirst();
-    }
+
     @Override
     public T conv(HATCodeBuilderContext buildContext, JavaOp.ConvOp convOp) {
         if (convOp.resultType() == JavaType.DOUBLE) {
@@ -219,7 +201,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         } else {
             paren(_ -> type(buildContext,(JavaType)convOp.resultType()));
         }
-        parenthesisIfNeeded(buildContext, convOp, result(convOp).op());
+        parenthesisIfNeeded(buildContext, convOp, OpTk.result(convOp).op());
         return self();
     }
 
@@ -349,12 +331,43 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
+    public T javaIfNew(HATCodeBuilderContext buildContext, JavaOp.IfOp ifOp) {
+        buildContext.scope(ifOp, () -> {
+            var lastWasBody = StreamMutable.of(false);
+            StreamCounter.of(ifOp.bodies(), (c, b) -> {
+                if (b.yieldType() instanceof JavaType javaType && javaType == JavaType.VOID) {
+                    if (OpTk.blockOrNull(ifOp,c.value()) instanceof Block block){
+                        if (lastWasBody.get()) {
+                            elseKeyword();
+                        }
+                        braceNlIndented(_ ->
+                                StreamCounter.of(OpTk.rootsExcludingVarFuncDeclarationsAndYields(block), (innerc, root) ->
+                                        nlIf(innerc.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
+                                )
+                        );
+                    }
+                    lastWasBody.set(true);
+                } else {
+                    if (c.isNotFirst()) {
+                        elseKeyword().space();
+                    }
+                    ifKeyword().paren(_ ->
+                            ifOp.bodies().get(c.value()).entryBlock()            // get the entryblock if bodies[c.value]
+                                    .ops().stream().filter(o->o instanceof CoreOp.YieldOp) // we want all the yields
+                                    .forEach((yield) -> recurse(buildContext, yield))
+                    );
+                    lastWasBody.set(false);
+                }
+            });
+        });
+        return self();
+    }
+
+
     @Override
     public T javaWhile(HATCodeBuilderContext buildContext, JavaOp.WhileOp whileOp) {
         whileKeyword().paren(_ ->
-                whileOp.bodies().getFirst().entryBlock().ops().stream() // cond
-                        .filter(o -> o instanceof CoreOp.YieldOp)
-                        .forEach(o -> recurse(buildContext, o))
+                OpTk.condBlock(whileOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o))
         ).braceNlIndented(_ ->
                 StreamCounter.of(OpTk.loopRootOpStream(whileOp), (c, root) ->
                         nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
@@ -367,17 +380,13 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T javaFor(HATCodeBuilderContext buildContext, JavaOp.ForOp forOp) {
         buildContext.scope(forOp, () ->
                 forKeyword().paren(_ -> {
-                    forOp.init().entryBlock().ops().stream()
-                            .filter(o -> o instanceof CoreOp.YieldOp)
-                            .forEach(o -> recurse(buildContext, o));
+                    OpTk.initBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
-                    forOp.cond().entryBlock().ops().stream()
-                            .filter(o -> o instanceof CoreOp.YieldOp)
-                            .forEach(o -> recurse(buildContext, o));
+                    OpTk.condBlock(forOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
                     semicolon().space();
                     StreamCounter.of(
-                            OpTk.rootsExcludingVarFuncDeclarationsAndYields( forOp.bodies().get(2).entryBlock()) //mutate block
-                            , (c, op) -> commaSpaceIf(c.isNotFirst()).recurse(buildContext, op)
+                            OpTk.rootsExcludingVarFuncDeclarationsAndYields(OpTk.mutateBlock(forOp)),
+                            (c, op) -> commaSpaceIf(c.isNotFirst()).recurse(buildContext, op)
                     );
                 }).braceNlIndented(_ ->
                         StreamCounter.of(OpTk.loopRootOpStream(forOp), (c, root) ->
@@ -474,18 +483,19 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (OpTk.isIfaceBufferMethod(buildContext.lookup, invokeOp)) {
-          //  var returnType = OpTk.javaReturnType(invokeOp);
-
-            if (invokeOp.operands().size() == 1 && invokeOp.invokeDescriptor().name().startsWith("atomic") && invokeOp.invokeDescriptor().name().endsWith("Inc")
-                    && OpTk.javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.equals(JavaType.INT)) {
+            if (invokeOp.operands().size() == 1
+                    && OpTk.funcName(invokeOp) instanceof String funcName
+                    && funcName.startsWith("atomic")
+                    && funcName.endsWith("Inc")
+                    && OpTk.javaReturnType(invokeOp).equals(JavaType.INT)) {
                 // this is a bit of a hack for atomics.
                 if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
-                    atomicInc(buildContext, instanceResult, invokeOp.invokeDescriptor().name().substring(0, invokeOp.invokeDescriptor().name().length() - 3));
+                    atomicInc(buildContext, instanceResult, funcName.substring(0, funcName.length() - "Inc".length()));
                 } else {
                     throw new IllegalStateException("bad atomic");
                 }
             } else {
-                if (invokeOp.invokeDescriptor().name().equals("create")) { // TODO:  only on iface buffers
+                if (OpTk.funcName(invokeOp).equals("create")) { // TODO:  only on iface buffers
                     // If we decide to keep the version in which we pass the enum with the memory space
                     // to allocate a particular data structure (E.g., shared, or private)
 
@@ -516,7 +526,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             }
                         }
                     }
-                } else if (invokeOp.invokeDescriptor().name().equals("createLocal")) { // TODO:  only on kernel iface buffers
+                } else if (OpTk.funcName(invokeOp).equals("createLocal")) { // TODO:  only on kernel iface buffers
                     LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                     localDeclaration(declaration);
                     localDataStructures.add(declaration.varOp);
@@ -557,7 +567,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                  of course we could return
                           cascade->tree + treeIdx;
                  */
-                    if (OpTk.javaReturnType(invokeOp) instanceof ClassType) {
+                    if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
                         ampersand();
                         /* This is way more complicated I think we need to determine the expression type.
                          * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
@@ -581,7 +591,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
                     funcName(invokeOp);
 
-                    if (OpTk.javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
+                    if (OpTk.javaReturnTypeIsVoid(invokeOp)) {
                         //   setter
                         switch (invokeOp.operands().size()) {
                             case 2: {
@@ -607,7 +617,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             }
                         }
                     } else {
-                        if (invokeOp.operands().size() > 1 && invokeOp.operands().get(1) instanceof Op.Result result1) {
+                        if (OpTk.resultOrNull(invokeOp,1) instanceof Op.Result result1) {
                             sbrace(_ -> recurse(buildContext, result1.op()));
                         } else {
                             // This is a simple usage.   So scaleTable->multiScaleAccumRange
@@ -619,14 +629,15 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             }
         } else {
             // Detect well-known constructs
-            if (invokeOp.invokeDescriptor().name().equals("barrier")) { // TODO:  only on kernel context?
-                List<Value> operands = invokeOp.operands();
+
+            if (OpTk.funcName(invokeOp).equals("barrier")) { // TODO:  only on kernel context?
+                List<Value> operands = invokeOp.operands(); // map to Result and use stream filter and  find
                 for (Value value : operands) {
                     if (value instanceof Op.Result instanceResult) {
                         FunctionType functionType = instanceResult.op().opType();
                         // if it is a barrier from the kernel context, then we generate
                         // a local barrier.
-                        if (functionType.returnType().toString().equals("hat.KernelContext")) {
+                        if (functionType.returnType().toString().equals("hat.KernelContext")) {  // OpTk.isAssignable?
                             syncBlockThreads();
                         }
                     }
@@ -634,7 +645,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             } else {
                 // General case
                 funcName(invokeOp).paren(_ ->
-                        commaSeparated(invokeOp.operands(), (op) -> {
+                        commaSeparated(invokeOp.operands()
+                                //.stream()
+                                //.filter(o->o instanceof Op.Result)
+                                //.map(o->(Op.Result)o)
+                                 , (op) -> {
                             if (op instanceof Op.Result result) {
                                 recurse(buildContext, result.op());
                             }
@@ -653,21 +668,13 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     public abstract T syncBlockThreads();
 
-
-
     @Override
     public T ternary(HATCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp) {
-        ternaryOp.bodies().get(0).entryBlock().ops().stream()
-                .filter(o -> o instanceof CoreOp.YieldOp) // cond
-                .forEach(o -> recurse(buildContext, o));
+        OpTk.condBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         questionMark();
-        ternaryOp.bodies().get(1).entryBlock().ops().stream()
-                .filter(o -> o instanceof CoreOp.YieldOp) // iff yield
-                .forEach(o -> recurse(buildContext, o));
+        OpTk.thenBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         colon();
-        ternaryOp.bodies().get(2).entryBlock().ops().stream()
-                 .filter(o -> o instanceof CoreOp.YieldOp) // else yield
-                 .forEach(o -> recurse(buildContext, o));
+        OpTk.elseBlock(ternaryOp).ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(buildContext, o));
         return self();
     }
 
@@ -683,14 +690,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return parenWhen(OpTk.needsParenthesis(parent,child), _ -> recurse(buildContext, child));
     }
 
-    public static Op.Result result( CoreOp.ReturnOp returnOp){
-       return (Op.Result)returnOp.operands().getFirst();
-    }
-
     @Override
     public T ret(HATCodeBuilderContext buildContext, CoreOp.ReturnOp returnOp) {
         returnKeyword().when(!returnOp.operands().isEmpty(),
-                        $-> $.space().parenthesisIfNeeded(buildContext, returnOp, result(returnOp).op())
+                        $-> $.space().parenthesisIfNeeded(buildContext, returnOp, OpTk.result(returnOp).op())
                 );
         return self();
     }
