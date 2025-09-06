@@ -94,8 +94,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
 
-    record IfaceStruct(ClassType classType){
-        String name(){
+    public record IfaceStruct(ClassType classType){
+       public  String name(){
             String name = classType.toClassName();
             int dotIdx = name.lastIndexOf('.');
             int dollarIdx = name.lastIndexOf('$');
@@ -106,7 +106,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             return name;
         }
     }
-    record LocalArrayDeclaration(IfaceStruct ifaceStruct, CoreOp.VarOp varOp) {}
+    public record LocalArrayDeclaration(IfaceStruct ifaceStruct, CoreOp.VarOp varOp) {}
     private final Stack<LocalArrayDeclaration> localArrayDeclarations = new Stack<>();
     private final Set<CoreOp.VarOp> localDataStructures = new HashSet<>();
 
@@ -120,7 +120,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     private void varDeclarationWithInitialization(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
-        type(buildContext, (JavaType) varOp.varValueType()).space().identifier(varOp.varName()).space().equals().space();
+        type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
         if (isMappableIFace(buildContext, (JavaType) varOp.varValueType()) && (JavaType) varOp.varValueType() instanceof ClassType classType) {
             annotateTypeAndName( classType, varOp);
         }
@@ -130,7 +130,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T varDeclaration(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         if (varOp.isUninitialized()) {
-            type(buildContext, (JavaType) varOp.varValueType()).space().identifier(varOp.varName());
+            type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp);
         } else {
             varDeclarationWithInitialization(buildContext, varOp);
         }
@@ -145,7 +145,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T fieldLoad(HATCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
         if (OpTk.isKernelContextAccess(fieldLoadOp)) {
-            identifier("kc").rarrow().identifier(OpTk.fieldName(fieldLoadOp));
+            identifier("kc").rarrow().fieldName(fieldLoadOp);
         } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
             Object value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
             literal(value.toString());
@@ -261,9 +261,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
+
+
     @Override
     public T funcCall(HATCodeBuilderContext buildContext, CoreOp.FuncCallOp funcCallOp) {
-          identifier(funcCallOp.funcName());
+        funcName(funcCallOp);
         paren(_ ->
             commaSeparated(funcCallOp.operands(), (e) -> {
                 if (e instanceof Op.Result result) {
@@ -508,15 +510,15 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             String spaceName = fieldLoadOp.fieldDescriptor().name();
                             LocalArrayDeclaration declaration = localArrayDeclarations.pop();
                             if (spaceName.equals(Space.PRIVATE.name())) {
-                                privateDeclaration(declaration.ifaceStruct.name(), declaration.varOp);
+                                privateDeclaration(declaration);
                             } else if (spaceName.equals(Space.SHARED.name())) {
-                                localDeclaration(declaration.ifaceStruct.name(), declaration.varOp);
+                                localDeclaration(declaration);
                             }
                         }
                     }
                 } else if (invokeOp.invokeDescriptor().name().equals("createLocal")) { // TODO:  only on kernel iface buffers
                     LocalArrayDeclaration declaration = localArrayDeclarations.pop();
-                    localDeclaration(declaration.ifaceStruct.name(), declaration.varOp);
+                    localDeclaration(declaration);
                     localDataStructures.add(declaration.varOp);
                 } else if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
                 /*
@@ -577,7 +579,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
                     either(isLocal, CodeBuilder::dot, CodeBuilder::rarrow);
 
-                    identifier(invokeOp.invokeDescriptor().name());
+                    funcName(invokeOp);
 
                     if (OpTk.javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
                         //   setter
@@ -631,7 +633,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 }
             } else {
                 // General case
-                identifier(invokeOp.invokeDescriptor().name()).paren(_ ->
+                funcName(invokeOp).paren(_ ->
                         commaSeparated(invokeOp.operands(), (op) -> {
                             if (op instanceof Op.Result result) {
                                 recurse(buildContext, result.op());
@@ -643,9 +645,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-    public abstract T privateDeclaration(String typeName, CoreOp.VarOp varOp);
 
-    public abstract T localDeclaration(String typeName, CoreOp.VarOp varOp);
+
+    public abstract T privateDeclaration(LocalArrayDeclaration localArrayDeclaration);
+
+    public abstract T localDeclaration(LocalArrayDeclaration localArrayDeclaration);
 
     public abstract T syncBlockThreads();
 

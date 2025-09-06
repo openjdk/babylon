@@ -131,12 +131,6 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     protected T hashIfndef(String value, Consumer<T> consumer) {
         return hashIfndef(value).accept(consumer).hashEndif();
     }
-  /*  public T defonce(String name, Runnable r) {
-        return ifndef(name+"_ONCE_DEF",()->{
-            define(name+"_ONCE_DEF").nl();
-            r.run();
-        });
-    }*/
   public T varName(CoreOp.VarOp varOp) {
       identifier(varOp.varName());
       return self();
@@ -270,6 +264,18 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
             doubleDeclaration(varName);
         }
         return self();
+    }
+    public T funcName(CoreOp.FuncCallOp funcCallOp){
+        return identifier(funcCallOp.funcName());
+    }
+    public T funcName(CoreOp.FuncOp funcOp) {
+        return identifier(funcOp.funcName());
+    }
+    public T fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
+        return identifier(OpTk.fieldName(fieldAccessOp));
+    }
+    public T funcName(JavaOp.InvokeOp invokeOp){
+        return identifier(invokeOp.invokeDescriptor().name());
     }
 
     /* this should not be too C99 specific */

@@ -39,9 +39,10 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
 
     @Override
     public OpenCLHatKernelBuilder defines() {
-        hashDefine("NDRANGE_OPENCL");
-        pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable");
-        pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
+        hashDefine("NDRANGE_OPENCL");  // dont' thnk we need this
+       // pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable");
+        //pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
+        pragmas();
         hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
         return self();
     }
@@ -78,14 +79,16 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
         return identifier("get_group_id").oparen().literal(id).cparen();
     }
 
+
+
     @Override
     public OpenCLHatKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
-        return keyword("__kernel").space().voidType().space().identifier(funcOp.funcName());
+        return keyword("__kernel").space().voidType().space().funcName(funcOp);
     }
 
     @Override
     public OpenCLHatKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, CoreOp.FuncOp funcOp) {
-        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(funcOp.funcName());
+        return keyword("inline").space().type(codeBuilderContext,type).space().funcName(funcOp);
     }
 
     @Override
@@ -111,14 +114,6 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
         return identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen().semicolon();
     }
 
-    @Override
-    public OpenCLHatKernelBuilder privateDeclaration(String typeStructName, CoreOp.VarOp varOp) {
-        return suffix_t(typeStructName).space().identifier(varOp.varName()).nl();
-    }
 
-    @Override
-    public OpenCLHatKernelBuilder localDeclaration(String typeName, CoreOp.VarOp varOp) {
-        return localPtrPrefix().space().suffix_t(typeName).space().identifier(varOp.varName());
-    }
 
 }
