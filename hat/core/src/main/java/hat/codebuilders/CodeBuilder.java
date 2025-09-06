@@ -320,7 +320,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T paren(Consumer<T> consumer) {
         return oparen().accept(consumer).cparen();
     }
-
+    public T ocparen() {
+        return oparen().cparen();
+    }
     public T parenWhen(boolean value, Consumer<T> consumer) {
         if (value) {
             oparen().accept(consumer).cparen();

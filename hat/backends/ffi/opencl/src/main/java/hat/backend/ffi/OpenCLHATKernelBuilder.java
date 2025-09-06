@@ -41,8 +41,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder defines() {
         hashDefine("NDRANGE_OPENCL");
-        pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable");
-        pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
         hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
         return self();
     }
@@ -109,22 +107,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
           return identifier("atomic_inc").paren(_ ->
               ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name)
           );
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder emitPrivateDeclaration(String typeStructName, String varName) {
-        return suffix_t(typeStructName)
-                .space()
-                .emitText(varName).nl();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder emitLocalDeclaration(String typeName, String varName) {
-        return localPtrPrefix()
-                .space()
-                .suffix_t(typeName)
-                .space()
-                .identifier(varName);
     }
 
 }

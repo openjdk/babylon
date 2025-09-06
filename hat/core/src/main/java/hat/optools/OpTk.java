@@ -39,6 +39,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
@@ -289,6 +290,74 @@ public class OpTk {
         }
     }
 
+    /*
+       0 =  ()[ ] . -> ++ --
+       1 = ++ --+ -! ~ (type) *(deref) &(addressof) sizeof
+       2 = * / %
+       3 = + -
+       4 = << >>
+       5 = < <= > >=
+       6 = == !=
+       7 = &
+       8 = ^
+       9 = |
+       10 = &&
+       11 = ||
+       12 = ()?:
+       13 = += -= *= /= %= &= ^= |= <<= >>=
+       14 = ,
+    */
+    private static int precedenceOf(Op op) {
+        return switch (op) {
+            case CoreOp.YieldOp o -> 0;
+            case JavaOp.InvokeOp o -> 0;
+            case CoreOp.FuncCallOp o -> 0;
+            case CoreOp.VarOp o -> 13;
+            case CoreOp.VarAccessOp.VarStoreOp o -> 13;
+            case JavaOp.FieldAccessOp o -> 0;
+            case CoreOp.VarAccessOp.VarLoadOp o -> 0;
+            case CoreOp.ConstantOp o -> 0;
+            case JavaOp.LambdaOp o -> 0;
+            case CoreOp.TupleOp o -> 0;
+            case JavaOp.WhileOp o -> 0;
+            case JavaOp.ConvOp o -> 1;
+            case JavaOp.NegOp  o-> 1;
+            case JavaOp.ModOp o -> 2;
+            case JavaOp.MulOp o -> 2;
+            case JavaOp.DivOp o -> 2;
+            case JavaOp.NotOp o -> 2;
+            case JavaOp.AddOp o -> 3;
+            case JavaOp.SubOp o -> 3;
+            case JavaOp.AshrOp o -> 4;
+            case JavaOp.LshlOp o -> 4;
+            case JavaOp.LshrOp o -> 4;
+            case JavaOp.LtOp o -> 5;
+            case JavaOp.GtOp o -> 5;
+            case JavaOp.LeOp o -> 5;
+            case JavaOp.GeOp o -> 5;
+            case JavaOp.EqOp o -> 6;
+            case JavaOp.NeqOp o -> 6;
+            case JavaOp.AndOp o -> 11;
+            case JavaOp.XorOp o -> 12;
+            case JavaOp.OrOp o -> 13;
+            case JavaOp.ConditionalAndOp o -> 14;
+            case JavaOp.ConditionalOrOp o -> 15;
+            case JavaOp.ConditionalExpressionOp o -> 18;
+            case CoreOp.ReturnOp o -> 19;
+            default -> throw new IllegalStateException("precedence ");
+        };
+    }
+    public static boolean needsParenthesis(Op parent, Op child) {
+        return OpTk.precedenceOf(parent) < OpTk.precedenceOf(child);
+    }
+
+    public static Op.Result lhsResult(JavaOp.BinaryOp binaryOp){
+        return (Op.Result)binaryOp.operands().get(0);
+    }
+
+    public static Op.Result rhsResult(JavaOp.BinaryOp binaryOp){
+        return (Op.Result)binaryOp.operands().get(1);
+    }
 
     public record ParamVar(CoreOp.VarOp varOp, Block.Parameter parameter, CoreOp.FuncOp funcOp) {
     }
@@ -309,5 +378,9 @@ public class OpTk {
             case CoreOp.TupleOp _ ->true;
             default -> false;
         };
+    }
+
+    public static boolean returnIsVoid(JavaOp.InvokeOp invokeOp){
+        return javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid();
     }
 }

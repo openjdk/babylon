@@ -33,13 +33,13 @@ import jdk.incubator.code.dialect.java.JavaType;
 import java.lang.invoke.MethodHandles;
 
 
-public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+public  abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
 
     public T computeDeclaration(TypeElement typeElement, String name) {
         return typeName(typeElement.toString()).space().identifier(name);
     }
 
-    public T compute(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+     public T compute(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOp);
         computeDeclaration(funcOp.resultType(), funcOp.funcName());
         parenNlIndented(_ ->
@@ -53,24 +53,6 @@ public  class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HA
                         )
         );
 
-        return self();
-    }
-
-    @Override
-    public T emitPrivateDeclaration(String typeName, String varName) {
-        // TODO: What would emit a Java backend
-        return self();
-    }
-
-    @Override
-    public T emitLocalDeclaration(String typeName, String varName) {
-        // TODO: What would emit a pure C99 backend?
-        return self();
-    }
-
-    @Override
-    public T syncBlockThreads() {
-        // TODO: What would emit a pure C99 backend?
         return self();
     }
 }

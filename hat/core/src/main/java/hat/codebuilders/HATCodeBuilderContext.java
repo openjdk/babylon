@@ -87,11 +87,6 @@ public class HATCodeBuilderContext {
 
     public static class ForScope extends LoopScope<JavaOp.ForOp> {
         Map<Block.Parameter, CoreOp.VarOp> blockParamToVarOpMap = new HashMap<>();
-
-        JavaOp.ForOp forOp() {
-            return op;
-        }
-
         ForScope(Scope<?> parent, JavaOp.ForOp forOp) {
             super(parent, forOp);
             var loopParams = forOp.loopBody().entryBlock().parameters().toArray(new Block.Parameter[0]);
@@ -218,6 +213,9 @@ public class HATCodeBuilderContext {
     }
 
     public Scope<?> scope = null;
+    final public MethodHandles.Lookup lookup;
+    final public CoreOp.FuncOp funcOp;
+    final public FuncOpParams paramTable;
 
     private void popScope() {
         scope = scope.parent;
@@ -238,13 +236,10 @@ public class HATCodeBuilderContext {
         r.run();
         popScope();
     }
-    final public MethodHandles.Lookup lookup;
-    final public CoreOp.FuncOp funcOp;
-    final public FuncOpParams paramTable;
+
     public HATCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         this.lookup = lookup;
         this.funcOp = funcOp;
         this.paramTable = new FuncOpParams(funcOp);
     }
-
 }
