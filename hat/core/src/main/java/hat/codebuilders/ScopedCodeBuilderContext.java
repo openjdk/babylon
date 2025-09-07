@@ -35,7 +35,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 
-public class HATCodeBuilderContext {
+public class ScopedCodeBuilderContext extends CodeBuilderContext {
     public static class Scope<O extends Op> {
         final Scope<?> parent;
         final O op;
@@ -77,15 +77,7 @@ public class HATCodeBuilderContext {
         }
     }
 
-    public static abstract class LoopScope<T extends Op> extends Scope<T> {
-
-        public LoopScope(Scope<?> parent, T opWrapper) {
-            super(parent, opWrapper);
-        }
-    }
-
-
-    public static class ForScope extends LoopScope<JavaOp.ForOp> {
+    public static class ForScope extends Scope<JavaOp.ForOp> {
         Map<Block.Parameter, CoreOp.VarOp> blockParamToVarOpMap = new HashMap<>();
         ForScope(Scope<?> parent, JavaOp.ForOp forOp) {
             super(parent, forOp);
@@ -95,7 +87,7 @@ public class HATCodeBuilderContext {
             var lastInitOp = forOp.init().entryBlock().ops().getLast();
             var lastInitOpOperand0Result = (Op.Result) lastInitOp.operands().getFirst();
             var lastInitOpOperand0ResultOp = lastInitOpOperand0Result.op();
-            CoreOp.VarOp varOps[];
+            CoreOp.VarOp[] varOps;
             if (lastInitOpOperand0ResultOp instanceof CoreOp.TupleOp tupleOp) {
                  /*
                  for (int j = 1, i=2, k=3; j < size; k+=1,i+=2,j+=3) {
@@ -205,41 +197,28 @@ public class HATCodeBuilderContext {
         }
     }
 
-    public static class WhileScope extends LoopScope<JavaOp.WhileOp> {
-        WhileScope(Scope<?> parent, JavaOp.WhileOp op) {
-            super(parent, op);
-        }
-
-    }
-
-    public Scope<?> scope = null;
-    final public MethodHandles.Lookup lookup;
-    final public CoreOp.FuncOp funcOp;
-    final public FuncOpParams paramTable;
-
     private void popScope() {
         scope = scope.parent;
     }
 
-    private void pushScope(Op op) {
-        scope = switch (op) {
-            case CoreOp.FuncOp $ -> new FuncScope(scope, $);
-            case JavaOp.ForOp $ -> new ForScope(scope, $);
-            case JavaOp.IfOp $ -> new IfScope(scope, $);
-            case JavaOp.WhileOp $ -> new WhileScope(scope, $);
-            default -> new Scope<>(scope, op);
-        };
+    public  void ifScope(JavaOp.IfOp ifOp, Runnable r) {
+        scope = new IfScope(scope, ifOp);
+        r.run();
+        popScope();
     }
-
-    public void scope(Op op, Runnable r) {
-        pushScope(op);
+    public  void funcScope(CoreOp.FuncOp funcOp, Runnable r) {
+       scope = new FuncScope(scope,funcOp);
+        r.run();
+        popScope();
+    }
+    public  void forScope(JavaOp.ForOp forOp, Runnable r) {
+        scope = new ForScope(scope,forOp);
         r.run();
         popScope();
     }
 
-    public HATCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        this.lookup = lookup;
-        this.funcOp = funcOp;
-        this.paramTable = new FuncOpParams(funcOp);
+    public Scope<?> scope = null;
+    public ScopedCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        super(lookup,funcOp);
     }
 }

@@ -252,8 +252,11 @@ public class OpTk {
         return isAssignable(lookup, javaRefType(invokeOp), ComputeContext.class);
     }
 
-    public static JavaType javaReturnType(JavaOp.InvokeOp op) {
-        return (JavaType) op.invokeDescriptor().type().returnType();
+    public static JavaType javaReturnType(JavaOp.InvokeOp invokeOp) {
+        return (JavaType) invokeOp.invokeDescriptor().type().returnType();
+    }
+    public static boolean javaReturnTypeIsVoid(JavaOp.InvokeOp invokeOp) {
+        return javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid();
     }
 
     public static Method methodOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
@@ -357,6 +360,100 @@ public class OpTk {
 
     public static Op.Result rhsResult(JavaOp.BinaryOp binaryOp){
         return (Op.Result)binaryOp.operands().get(1);
+    }
+
+    public static List<Op> ops(JavaOp.JavaConditionalOp javaConditionalOp, int idx){
+        return javaConditionalOp.bodies().get(idx).entryBlock().ops();
+    }
+
+    public static List<Op> lhsOps(JavaOp.JavaConditionalOp javaConditionalOp){
+        return ops(javaConditionalOp,0);
+    }
+
+    public static List<Op> rhsOps(JavaOp.JavaConditionalOp javaConditionalOp){
+        return ops(javaConditionalOp,1);
+    }
+
+    public static Op.Result result(JavaOp.BinaryTestOp binaryTestOp, int idx){
+        return (Op.Result)binaryTestOp.operands().get(idx);
+    }
+
+    public static Op.Result lhsResult(JavaOp.BinaryTestOp binaryTestOp){
+        return result(binaryTestOp,0);
+    }
+
+    public static Op.Result rhsResult(JavaOp.BinaryTestOp binaryTestOp){
+        return result(binaryTestOp,1);
+    }
+
+    public static Op.Result result(JavaOp.ConvOp convOp){
+        return (Op.Result)convOp.operands().getFirst();
+    }
+
+    public static Op.Result result(CoreOp.ReturnOp returnOp){
+       return (Op.Result)returnOp.operands().getFirst();
+    }
+
+    public static Block block(JavaOp.ConditionalExpressionOp ternaryOp, int idx){
+        return ternaryOp.bodies().get(idx).entryBlock();
+    }
+
+    public static Block condBlock(JavaOp.ConditionalExpressionOp ternaryOp){
+        return block(ternaryOp,0);
+    }
+
+    public static Block thenBlock(JavaOp.ConditionalExpressionOp ternaryOp){
+        return block(ternaryOp,1);
+    }
+
+    public static Block elseBlock(JavaOp.ConditionalExpressionOp ternaryOp){
+        return block(ternaryOp,2);
+    }
+
+    public static String funcName(JavaOp.InvokeOp invokeOp) {
+        return invokeOp.invokeDescriptor().name();
+    }
+    public static Value operandOrNull(Op op, int idx) {
+        return op.operands().size() > idx?op.operands().get(idx):null;
+    }
+    public static Op.Result resultOrNull(Op op, int idx) {
+        return (operandOrNull(op,idx) instanceof Op.Result result)?result:null;
+    }
+
+    public static Block block(JavaOp.ForOp forOp, int idx){
+        return forOp.bodies().get(idx).entryBlock();
+    }
+
+    public static Block mutateBlock(JavaOp.ForOp forOp){
+        return block(forOp,2);
+    }
+
+    public static Block loopBlock(JavaOp.ForOp forOp){
+        return block(forOp,3);
+    }
+
+    public static Block condBlock(JavaOp.ForOp forOp){
+        return  forOp.cond().entryBlock();
+    }
+
+    public static Block initBlock(JavaOp.ForOp forOp){
+        return  forOp.init().entryBlock();
+    }
+
+    public static Block block(JavaOp.WhileOp whileOp, int idx){
+        return  whileOp.bodies().get(idx).entryBlock();
+    }
+
+    public static Block condBlock(JavaOp.WhileOp whileOp){
+        return  block(whileOp,0);
+    }
+
+    public static Block loopBlock(JavaOp.WhileOp whileOp){
+        return  block(whileOp,1);
+    }
+
+    public static Block blockOrNull(JavaOp.IfOp ifOp, int idx ){
+        return ifOp.bodies().size() > idx?ifOp.bodies().get(idx).entryBlock():null;
     }
 
     public record ParamVar(CoreOp.VarOp varOp, Block.Parameter parameter, CoreOp.FuncOp funcOp) {
