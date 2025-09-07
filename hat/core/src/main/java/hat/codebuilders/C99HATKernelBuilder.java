@@ -33,12 +33,9 @@ import hat.callgraph.KernelEntrypoint;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
-import hat.util.StreamCounter;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
-
-import java.lang.foreign.GroupLayout;
 
 import java.lang.invoke.MethodHandles;
 import java.util.function.Consumer;
@@ -159,7 +156,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract T localPtrPrefix();
 
     @Override
-    public T type(HATCodeBuilderContext buildContext, JavaType javaType) {
+    public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
             //  .isIfaceUsingLookup(buildContext.lookup,javaType) && javaType instanceof ClassType classType) {
             globalPtrPrefix().space();
@@ -187,51 +184,52 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T kernelMethod(KernelCallGraph.KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
-        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup
+        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup
                 ,kernelReachableResolvedMethodCall.funcOp());
-        buildContext.scope(buildContext.funcOp, () -> {
+        buildContext.funcScope(buildContext.funcOp, () -> {
             nl();
             functionDeclaration(buildContext,(JavaType) buildContext.funcOp.body().yieldType(), buildContext.funcOp);
 
             var list = buildContext.paramTable.list();
             parenNlIndented(_ ->
-                    commaSeparated(list, (info) -> type(buildContext,info.javaType).space().varName(info.varOp))
+                    separated(list,(_)->comma().nl(), info ->
+                            type(buildContext,info.javaType).space().varName(info.varOp))
             );
-
-            braceNlIndented(_ -> {
-                StreamCounter.of(OpTk.rootOpStream(buildContext.funcOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
-                );
-            });
+            braceNlIndented(_ ->
+                separated(OpTk.rootOpStream(buildContext.funcOp),(_)->nl(),root ->
+                        recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
+                )
+            );
         });
         return self();
     }
 
     public T kernelMethod(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOp);
-        buildContext.scope(buildContext.funcOp, () -> {
+        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(lookup,funcOp);
+        buildContext.funcScope(buildContext.funcOp, () -> {
             nl();
             functionDeclaration(buildContext,(JavaType) buildContext.funcOp.body().yieldType(),
                     buildContext.funcOp);
 
             var list = buildContext.paramTable.list();
             parenNlIndented(_ ->
-                    commaSeparated(list, (info) -> type(buildContext,info.javaType).space().varName(info.varOp))
+                    separated(list,(_)->comma().nl(), info ->
+                            type(buildContext,info.javaType).space().varName(info.varOp))
             );
 
-            braceNlIndented(_ -> {
-                StreamCounter.of(OpTk.rootOpStream(buildContext.funcOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
-                );
-            });
+            braceNlIndented(_ ->
+                separated(OpTk.rootOpStream(buildContext.funcOp),(_)->nl(),root->
+                       recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
+                )
+            );
         });
         return self();
     }
 
     public T kernelEntrypoint(KernelEntrypoint kernelEntrypoint,Object... args) {
         nl();
-        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(kernelEntrypoint.callGraph.computeContext.accelerator.lookup,kernelEntrypoint.funcOp());
-        buildContext.scope(buildContext.funcOp, () -> {
+        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelEntrypoint.callGraph.computeContext.accelerator.lookup,kernelEntrypoint.funcOp());
+        buildContext.funcScope(buildContext.funcOp, () -> {
             kernelDeclaration(buildContext.funcOp);
             // We skip the first arg which was KernelContext.
             var list = buildContext.paramTable.list();
@@ -251,8 +249,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
             braceNlIndented(_ -> {
                 scope();
-                StreamCounter.of(OpTk.rootOpStream(buildContext.funcOp), (c, root) ->
-                        nlIf(c.isNotFirst()).recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
+                separated(OpTk.rootOpStream(buildContext.funcOp), (_)->nl(), root ->
+                        recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
                 );
             });
         });
@@ -266,7 +264,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T kernelDeclaration(CoreOp.FuncOp funcOp);
 
-    public abstract T functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp);
+    public abstract T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp);
 
     public abstract T globalId(int id);
 

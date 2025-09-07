@@ -26,7 +26,7 @@ package hat.backend.ffi;
 
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.codebuilders.HATCodeBuilderContext;
+import hat.codebuilders.ScopedCodeBuilderContext;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -90,7 +90,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
+    public CudaHATKernelBuilder functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
         return externC().space().keyword("__device__").space().keyword("inline").space().type(codeBuilderContext,javaType).space().funcName(funcOp);
     }
 
@@ -106,7 +106,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
 
     @Override
-    public CudaHATKernelBuilder atomicInc(HATCodeBuilderContext buildContext, Op.Result instanceResult, String name){
+    public CudaHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name){
         return identifier("atomicAdd").paren(_ -> {
              ampersand().recurse(buildContext, instanceResult.op());
              rarrow().identifier(name).comma().literal(1);

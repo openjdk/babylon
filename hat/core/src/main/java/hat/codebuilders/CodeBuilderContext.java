@@ -24,34 +24,24 @@
  */
 package hat.codebuilders;
 
-import hat.optools.OpTk;
-
-import jdk.incubator.code.TypeElement;
+import hat.optools.FuncOpParams;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashMap;
+import java.util.Map;
 
-
-public  abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
-
-    public T computeDeclaration(TypeElement typeElement, String name) {
-        return typeName(typeElement.toString()).space().identifier(name);
-    }
-
-     public T compute(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(lookup,funcOp);
-        computeDeclaration(funcOp.resultType(), funcOp.funcName());
-        parenNlIndented(_ ->
-                separated(buildContext.paramTable.list(), (_)->comma().space()
-                        , (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
-        );
-
-        braceNlIndented(_ -> OpTk.rootOpStream(funcOp).forEach(root ->
-                        recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root)).nl()
-                )
-        );
-
-        return self();
+public class CodeBuilderContext {
+    final public MethodHandles.Lookup lookup;
+    final public CoreOp.FuncOp funcOp;
+    final public FuncOpParams paramTable;
+    public CodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        this.lookup = lookup;
+        this.funcOp = funcOp;
+        this.paramTable = new FuncOpParams(funcOp);
     }
 }

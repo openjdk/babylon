@@ -26,7 +26,6 @@ package hat.codebuilders;
 
 
 import hat.optools.OpTk;
-//import hat.optools.UnaryArithmeticOrLogicOpWrapper;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -100,15 +99,15 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return externKeyword().space().dquote("C");
     }
 
-    T hashDefineKeyword() {
+    public T hashDefineKeyword() {
         return hash().keyword("define");
     }
 
-    T hashIfdefKeyword() {
+    public T hashIfdefKeyword() {
         return hash().keyword("ifdef");
     }
 
-    T hashIfndefKeyword() {
+    public T hashIfndefKeyword() {
         return hash().keyword("ifndef");
     }
 
@@ -131,15 +130,15 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     protected T hashIfndef(String value, Consumer<T> consumer) {
         return hashIfndef(value).accept(consumer).hashEndif();
     }
-  public T varName(CoreOp.VarOp varOp) {
-      identifier(varOp.varName());
-      return self();
-  }
-    T pragmaKeyword() {
+    public T varName(CoreOp.VarOp varOp) {
+        identifier(varOp.varName());
+        return self();
+    }
+    public T pragmaKeyword() {
         return keyword("pragma");
     }
 
-    T includeKeyword() {
+    public T includeKeyword() {
         return keyword("include");
     }
 
@@ -171,7 +170,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return nl();
     }
 
-    T externKeyword() {
+    public T externKeyword() {
         return keyword("extern");
     }
 
@@ -179,7 +178,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return identifier(Character.toString(Character.toLowerCase(value.charAt(0)))).identifier(value.substring(1));
     }
 
-    T camelJoin(String prefix, String suffix) {
+    public T camelJoin(String prefix, String suffix) {
         return camel(prefix).identifier(Character.toString(Character.toUpperCase(suffix.charAt(0)))).identifier(suffix.substring(1));
     }
 
@@ -238,7 +237,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     }
 
     private T typedef(Consumer<T> lhs, Consumer<T> rhs) {
-        return semicolonTerminatedLine(_ -> typedefKeyword().space().accept(lhs).space().accept(rhs));
+        return semicolonNlTerminated(_ -> typedefKeyword().space().accept(lhs).space().accept(rhs));
     }
 
     public final T unsignedIntType() {
@@ -253,6 +252,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return typeName("unsigned").space().shortType();
     }
 
+    //Unused?
     public T declareVarFromJavaType(JavaType type, String varName) {
         if (type.equals(JavaType.INT)) {
             intDeclaration(varName);
@@ -278,109 +278,6 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return identifier(OpTk.funcName(invokeOp));
     }
 
-    /* this should not be too C99 specific */
-    public  interface CodeBuilderInterface<T extends HATCodeBuilderWithContext<?>> {
-
-
-         T varLoad(HATCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp);
-
-         T varStore(HATCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp);
-
-
-         T varDeclaration(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp);
-
-         T varFuncDeclaration(HATCodeBuilderContext buildContext, CoreOp.VarOp varOp);
-
-         T fieldLoad(HATCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp);
-
-         T fieldStore(HATCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp);
-
-        T unaryOperation(HATCodeBuilderContext buildContext, JavaOp.UnaryOp unaryOp);
-
-
-        T binaryOperation(HATCodeBuilderContext buildContext, JavaOp.BinaryOp binaryOp);
-
-        T logical(HATCodeBuilderContext buildContext, JavaOp.JavaConditionalOp logicalOp);
-
-        T binaryTest(HATCodeBuilderContext buildContext, JavaOp.BinaryTestOp binaryTestOp);
-
-        T conv(HATCodeBuilderContext buildContext, JavaOp.ConvOp convOp);
-
-
-        T constant(HATCodeBuilderContext buildContext, CoreOp.ConstantOp constantOp);
-
-        T javaYield(HATCodeBuilderContext buildContext, CoreOp.YieldOp yieldOp);
-
-        T lambda(HATCodeBuilderContext buildContext, JavaOp.LambdaOp lambdaOp);
-
-        T tuple(HATCodeBuilderContext buildContext, CoreOp.TupleOp tupleOp);
-
-        T funcCall(HATCodeBuilderContext buildContext, CoreOp.FuncCallOp funcCallOp);
-
-        T javaIf(HATCodeBuilderContext buildContext, JavaOp.IfOp ifOp);
-
-        T javaWhile(HATCodeBuilderContext buildContext, JavaOp.WhileOp whileOp);
-
-        T javaLabeled(HATCodeBuilderContext buildContext, JavaOp.LabeledOp labeledOp);
-
-        T javaContinue(HATCodeBuilderContext buildContext, JavaOp.ContinueOp continueOp);
-
-        T javaBreak(HATCodeBuilderContext buildContext, JavaOp.BreakOp breakOp);
-
-        T javaFor(HATCodeBuilderContext buildContext, JavaOp.ForOp forOp);
-
-
-         T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp);
-
-         T ternary(HATCodeBuilderContext buildContext, JavaOp.ConditionalExpressionOp ternaryOp);
-
-         T parenthesisIfNeeded(HATCodeBuilderContext buildContext, Op parent, Op child);
-
-       //  T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
-
-        // T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
-
-        // T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
-
-         T ret(HATCodeBuilderContext buildContext, CoreOp.ReturnOp returnOp);
-
-        default T recurse(HATCodeBuilderContext buildContext, Op op) {
-            switch (op) {
-                case CoreOp.VarAccessOp.VarLoadOp $ -> varLoad(buildContext, $);
-                case CoreOp.VarAccessOp.VarStoreOp $ -> varStore(buildContext, $);
-                case JavaOp.FieldAccessOp.FieldLoadOp $ -> fieldLoad(buildContext, $);
-                case JavaOp.FieldAccessOp.FieldStoreOp $ -> fieldStore(buildContext, $);
-
-
-
-                case JavaOp.ConvOp $ -> conv(buildContext, $);
-                case CoreOp.ConstantOp $ -> constant(buildContext, $);
-                case CoreOp.YieldOp $ -> javaYield(buildContext, $);
-                case CoreOp.FuncCallOp $ -> funcCall(buildContext, $);
-                case JavaOp.InvokeOp $ -> methodCall(buildContext, $);
-                case JavaOp.ConditionalExpressionOp $ -> ternary(buildContext, $);
-                case CoreOp.VarOp $ when OpTk.paramVar($) != null -> varFuncDeclaration(buildContext, $);
-                case CoreOp.VarOp $ -> varDeclaration(buildContext, $);
-                case JavaOp.LambdaOp $ -> lambda(buildContext, $);
-                case CoreOp.TupleOp $ -> tuple(buildContext, $);
-                case JavaOp.WhileOp $ -> javaWhile(buildContext, $);
-                case JavaOp.IfOp $ -> javaIf(buildContext, $);
-                case JavaOp.ForOp $ -> javaFor(buildContext, $);
-                case CoreOp.ReturnOp $ -> ret(buildContext, $);
-                case JavaOp.LabeledOp $ -> javaLabeled(buildContext, $);
-                case JavaOp.BreakOp $ -> javaBreak(buildContext, $);
-                case JavaOp.ContinueOp $ -> javaContinue(buildContext, $);
-                case JavaOp.BinaryTestOp $ -> binaryTest(buildContext, $);
-                case JavaOp.BinaryOp $ -> binaryOperation(buildContext, $);
-                case JavaOp.JavaConditionalOp $ -> logical(buildContext, $);
-                case JavaOp.UnaryOp $ -> unaryOperation(buildContext, $);
-                default -> throw new IllegalStateException("handle nesting of op " + op);
-            }
-            return (T) this;
-        }
-
-
-    }
     T symbol(Op op) {
         return switch (op) {
             case JavaOp.ModOp o -> percent();
