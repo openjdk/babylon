@@ -31,7 +31,6 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
 import hat.util.StreamMutable;
-import hat.util.StreamCounter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -103,7 +102,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     private void annotateTypeAndName( ClassType classType, CoreOp.VarOp varOp) {
-
         localArrayDeclarations.push(new LocalArrayDeclaration(new IfaceStruct(classType), varOp));
     }
 
@@ -233,13 +231,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T funcCallOp(ScopedCodeBuilderContext buildContext, CoreOp.FuncCallOp funcCallOp) {
         funcName(funcCallOp);
         paren(_ ->
-            separated(funcCallOp.operands(),(_)->commaSpace(), (e) -> {
-                if (e instanceof Op.Result result) {
-                    parenthesisIfNeeded(buildContext, funcCallOp, result.op());
-                } else {
-                    throw new IllegalStateException("Value?");
-                }
-            })
+            separated(funcCallOp.operands().stream()
+                    .filter(e->e instanceof Op.Result ).map(e->(Op.Result)e),(_)->commaSpace(), result ->
+                     recurse(buildContext,result.op())
+            )
         );
         return self();
     }
@@ -359,9 +354,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
                 .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
                     int fieldCount = ifaceType.fields.size();
-                    StreamCounter.of(ifaceType.fields, (c, field) -> {
-                        nlIf(c.isNotFirst());
-                        boolean isLast = c.value() == fieldCount - 1;
+                    var fieldIdx = StreamMutable.of(0);
+                    separated(ifaceType.fields,(_)->nl(), field->{
+                        boolean isLast =fieldIdx.get() == fieldCount - 1;
                         if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
                             typeName(primitiveField.type.getSimpleName());
                             space().typeName(primitiveField.name);
@@ -425,9 +420,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                         } else {
                             throw new IllegalStateException("hmm");
                         }
-
-
                         semicolon();
+                        fieldIdx.set(fieldIdx.get()+1);
                     });
                 }).suffix_t(ifaceType.iface.getSimpleName()).semicolon().nl().nl();
         return self();
