@@ -547,6 +547,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
+    public T barrier(HATCodeBuilderContext buildContext, Op op) {
+        return syncBlockThreads();
+    }
+
+    @Override
     public T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         var name = invokeOp.invokeDescriptor().name();//OpTk.name(invokeOp);
 

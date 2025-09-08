@@ -25,6 +25,7 @@
 package hat.codebuilders;
 
 
+import hat.dialect.HatBarrierOp;
 import hat.optools.OpTk;
 //import hat.optools.UnaryArithmeticOrLogicOpWrapper;
 import jdk.incubator.code.Op;
@@ -330,6 +331,8 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
          T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
 
+         T barrier(HATCodeBuilderContext buildContext, Op op);
+
        //  T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
 
         // T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
@@ -367,6 +370,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
                 case JavaOp.BinaryTestOp $ -> binaryTest(buildContext, $);
                 case JavaOp.BinaryOp $ -> binaryOperation(buildContext, $);
                 case JavaOp.JavaConditionalOp $ -> logical(buildContext, $);
+                case HatBarrierOp $ -> barrier(buildContext, $);
                 // case UnaryArithmeticOrLogicOpWrapper $ -> unaryOperation(buildContext, $);
                 default -> throw new IllegalStateException("handle nesting of op " + op);
             }

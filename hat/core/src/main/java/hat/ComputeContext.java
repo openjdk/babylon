@@ -136,6 +136,43 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         dispatchKernelWithComputeRange(computeRange, quotableKernelContextConsumer);
     }
 
+    private boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
+        String kernelContextCanonicalName = hat.KernelContext.class.getName();
+        return invokeOp.invokeDescriptor().refType().toString().equals(kernelContextCanonicalName);
+    }
+
+    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
+        return invokeOp.invokeDescriptor().name().equals(methodName);
+    }
+
+    /**
+     * Analysis : dialect
+     * @param kernelCallGraph
+     */
+    private void dialectifyToHat(KernelCallGraph kernelCallGraph) {
+        CoreOp.FuncOp funcOp = kernelCallGraph.entrypoint.funcOp();
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
+                if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, "barrier")) {
+                    List<Value> inputOperands = invokeOp.operands();
+                    List<Value> outputOperands = context.getValues(inputOperands);
+                    HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
+                    Op.Result outputResult = blockBuilder.op(hatBarrierOp);
+                    Op.Result inputResult = invokeOp.result();
+                    context.mapValue(inputResult, outputResult);
+                } else {
+                    blockBuilder.op(op);
+                }
+            } else {
+                blockBuilder.op(op);
+            }
+            return blockBuilder;
+        });
+        System.out.println("[INFO] Code model: " + funcOp.toText());
+        kernelCallGraph.entrypoint.funcOp(funcOp);
+    }
+
     record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
     private CallGraph buildKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
@@ -143,30 +180,16 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
         MethodRef methodRef = OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-        CoreOp.FuncOp funcOp = kernelCallGraph.entrypoint.funcOp();
-        // Analysis : dialect
-//        funcOp = funcOp.transform((blockBuilder, op) -> {
-//            CopyContext context = blockBuilder.context();
-//            if (op instanceof JavaOp.InvokeOp invokeOp) {
-//                if (invokeOp.invokeDescriptor().name().equals("barrier")) {
-//                    List<Value> inputOperands = invokeOp.operands();
-//                    List<Value> outputOperands = context.getValues(inputOperands);
-//                    Op.Result inputResult = invokeOp.result();
-//                    HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
-//                    Op.Result outputResult = blockBuilder.op(hatBarrierOp);
-//                    context.mapValue(inputResult, outputResult);
-//                    blockBuilder.op(op);
-//                } else {
-//                    blockBuilder.op(op);
-//                }
-//            } else {
-//                blockBuilder.op(op);
-//            }
-//            return blockBuilder;
-//        });
-//        System.out.println("Code model: " + funcOp.toText());
 
-        kernelCallGraph.entrypoint.funcOp(funcOp);
+        // Analysis : dialect
+        // NOTE: Keep the following boolean until we have the config available/reachable
+        // from this class
+        boolean useDialect = true;
+        System.out.println("[INFO] Using Hat Dialect?: " + useDialect);
+        if (useDialect) {
+            dialectifyToHat(kernelCallGraph);
+        }
+
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 

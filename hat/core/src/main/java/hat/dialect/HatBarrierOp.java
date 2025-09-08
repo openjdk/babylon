@@ -42,7 +42,6 @@ public class HatBarrierOp extends HatOP {
     private TypeElement typeElement;
 
     public HatBarrierOp(List<Value> operands) {
-        // It does not have operands, so we pass an empty list
         super(NAME, operands);
         this.typeElement = JavaType.VOID;
     }
