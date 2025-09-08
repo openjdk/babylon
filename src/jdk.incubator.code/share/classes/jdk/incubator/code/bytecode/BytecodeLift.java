@@ -476,7 +476,7 @@ public final class BytecodeLift {
                                                                        lambdaFunc,
                                                                        JavaType.type(inst.typeSymbol().returnType()));
                         // if FLAG_QUOTABLE is set, the lambda is quotable
-                        if (inst.bootstrapArgs().get(inst.bootstrapArgs().size() - 3) instanceof Integer a
+                        if (inst.bootstrapArgs().size() > 3 && inst.bootstrapArgs().get(3) instanceof Integer a
                                 && (a & LambdaMetafactory.FLAG_QUOTABLE) != 0) {
                             lambda = lambda.quotable();
                         }
