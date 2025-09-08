@@ -35,6 +35,7 @@ import hat.buffer.Buffer;
 import hat.buffer.BufferTracker;
 import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
@@ -227,19 +228,29 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
         }
 
+        ScopedCodeBuilderContext buildContext =
+                new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
+                        kernelCallGraph.entrypoint.funcOp());
 
         // Sorting by rank ensures we don't need forward declarations
         if (CallGraph.usingModuleOp) {
             System.out.println("Using ModuleOp for C99FFIBackend");
             kernelCallGraph.moduleOp.functionTable()
-                    .forEach((_, funcOp) -> builder.nl().kernelMethod(kernelCallGraph.computeContext.accelerator.lookup, funcOp).nl());
+                    .forEach((_, funcOp) -> builder
+                            .nl()
+                            .kernelMethod(buildContext,funcOp)
+                            .nl());
         } else {
             System.out.println("NOT using ModuleOp for C99FFIBackend");
             kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
-                    .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(kernelReachableResolvedMethod).nl());
+                    .forEach(kernelReachableResolvedMethod ->
+                            builder
+                                    .nl()
+                                    .kernelMethod(buildContext,kernelReachableResolvedMethod.funcOp())
+                                    .nl());
         }
 
-        builder.nl().kernelEntrypoint(kernelCallGraph.entrypoint, args).nl();
+        builder.nl().kernelEntrypoint(buildContext, args).nl();
 
         if (config.isSHOW_KERNEL_MODEL()) {
             System.out.println("Original");

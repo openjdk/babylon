@@ -147,7 +147,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
     KernelCallGraph closeWithModuleOp() {
         moduleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this);
-       // moduleOpWrapper = OpWrapper.wrap(computeContext.accelerator.lookup, moduleOp);
         return this;
     }
 

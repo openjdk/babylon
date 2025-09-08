@@ -52,7 +52,7 @@ public class OpenCLBackend extends C99FFIBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createC99(kernelCallGraph,  ndRange, args);
+            String code = createC99(kernelCallGraph,  args);
             if (config.isSHOW_CODE()) {
                 System.out.println(code);
             }
@@ -67,8 +67,8 @@ public class OpenCLBackend extends C99FFIBackend {
         compiledKernel.dispatch(ndRange, args);
     }
 
-    String createC99(KernelCallGraph kernelCallGraph,  NDRange ndRange, Object[] args){
-        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(ndRange), args);
+    String createC99(KernelCallGraph kernelCallGraph,  Object[] args){
+        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(), args);
     }
 
 }

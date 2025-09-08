@@ -24,7 +24,9 @@
  */
 package hat.codebuilders;
 
+import hat.optools.OpTk;
 import hat.util.StreamMutable;
+import jdk.incubator.code.Op;
 
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -40,41 +42,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return symbol(";");
     }
 
-    public T semicolonIf(boolean c) {
-        if (c) {
-            return semicolon();
-        } else {
-            return self();
-        }
-    }
-
     public T semicolonNl() {
         return semicolon().nl();
     }
 
-    public T commaIf(boolean c) {
-        if (c) {
-            return comma();
-        } else {
-            return self();
-        }
-    }
-
-    public T commaSpaceIf(boolean c) {
-        if (c) {
-            return comma().space();
-        } else {
-            return self();
-        }
-    }
-
-    public T nlIf(boolean c) {
-        if (c) {
-            return nl();
-        } else {
-            return self();
-        }
-    }
 
     public T comma() {
         return symbol(",");
@@ -152,7 +123,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public T ifKeyword() {
         return keyword("if");
-
     }
 
     public T whileKeyword() {
@@ -162,12 +132,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public T breakKeyword() {
         return keyword("break");
-
     }
 
     public T gotoKeyword() {
         return keyword("goto");
-
     }
 
     public T continueKeyword() {
@@ -180,7 +148,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
 
-    public T nullKeyword() {
+    public T nullConst() {
         return symbol("NULL");
     }
 
@@ -442,41 +410,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
 
-    public T u08_t() {
-        return typeName("u08_t");
-    }
-
-    public T s08_t() {
-        return typeName("s08_t");
-    }
-
-    public T s32_t() {
-        return typeName("s32_t");
-    }
-
-    public T s16_t() {
-        return typeName("s16_t");
-    }
-
-    public T z8_t() {
-        return typeName("z8_t");
-    }
-
-    public T u32_t() {
-        return typeName("u32_t");
-    }
-
-    public T u16_t() {
-        return typeName("u16_t");
-    }
-
-    public T f32_t() {
-        return typeName("f32_t");
-    }
-
-    public T f64_t() {
-        return typeName("f64_t");
-    }
 
     public T questionMark() {
         return symbol("?");
@@ -530,7 +463,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return append("int");
     }
 
-    public final T intZero() {
+    public final T intConstZero() {
         return append("0");
     }
 

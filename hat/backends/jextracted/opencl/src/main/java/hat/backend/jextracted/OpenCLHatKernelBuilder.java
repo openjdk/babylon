@@ -33,18 +33,9 @@ import jdk.incubator.code.dialect.java.JavaType;
 
 public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
 
-    public OpenCLHatKernelBuilder(NDRange ndRange) {
-        super(ndRange);
-    }
-
     @Override
     public OpenCLHatKernelBuilder defines() {
-        hashDefine("NDRANGE_OPENCL");  // dont' thnk we need this
-       // pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable");
-        //pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
-        pragmas();
-        hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
-        return self();
+        return pragmas().hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
     }
 
     @Override
@@ -80,7 +71,6 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
 
-
     @Override
     public OpenCLHatKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
         return keyword("__kernel").space().voidType().space().funcName(funcOp);
@@ -113,7 +103,4 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     public OpenCLHatKernelBuilder syncBlockThreads() {
         return identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen().semicolon();
     }
-
-
-
 }
