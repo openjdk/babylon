@@ -1739,8 +1739,8 @@ public class JavaCompiler {
                 Optional.empty();
     }
 
-    static class CodeReflectionSupport {
-        static final ModuleLayer CODE_LAYER;
+    public static class CodeReflectionSupport {
+        public static final ModuleLayer CODE_LAYER;
 
         static {
             if (ModuleLayer.boot().findModule("jdk.incubator.code").isPresent()) {

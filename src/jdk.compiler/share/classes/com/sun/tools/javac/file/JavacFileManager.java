@@ -71,6 +71,8 @@ import javax.tools.StandardJavaFileManager;
 
 import com.sun.tools.javac.file.RelativePath.RelativeDirectory;
 import com.sun.tools.javac.file.RelativePath.RelativeFile;
+import com.sun.tools.javac.main.JavaCompiler;
+import com.sun.tools.javac.main.JavaCompiler.CodeReflectionSupport;
 import com.sun.tools.javac.main.Option;
 import com.sun.tools.javac.resources.CompilerProperties.Errors;
 import com.sun.tools.javac.util.Assert;
@@ -1169,6 +1171,8 @@ public class JavacFileManager extends BaseFileManager implements StandardJavaFil
             Configuration cf = bootLayer.configuration().resolveAndBind(ModuleFinder.of(), finder, Collections.emptySet());
             ModuleLayer layer = bootLayer.defineModulesWithOneLoader(cf, ClassLoader.getSystemClassLoader());
             return ServiceLoader.load(layer, service);
+        } else if (CodeReflectionSupport.CODE_LAYER != null) {
+            return ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, service);
         } else {
             return ServiceLoader.load(service, getClassLoader(location));
         }
