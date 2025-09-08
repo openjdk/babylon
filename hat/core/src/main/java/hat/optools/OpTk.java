@@ -39,6 +39,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
@@ -48,14 +49,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class OpTk {
@@ -84,8 +82,8 @@ public class OpTk {
     }
 
 
-    public static Stream<Op> loopRootOpStream(Op.Loop op) {
-        var list = new ArrayList<>(rootsExcludingVarFuncDeclarationsAndYields( op.loopBody().entryBlock()).toList());
+    public static Stream<Op> statements(Op.Loop op) {
+        var list = new ArrayList<>(statements( op.loopBody().entryBlock()).toList());
         if (list.getLast() instanceof JavaOp.ContinueOp) {
             list.removeLast();
         }
@@ -216,20 +214,17 @@ public class OpTk {
         return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
     }
 
-    public static Stream<Op> rootOpStream( CoreOp.FuncOp op) {
-        return rootsExcludingVarFuncDeclarationsAndYields(op.bodies().getFirst().entryBlock());
-    }
+   // public static Stream<Op> statements(CoreOp.FuncOp op) {
+     //   return statements(op.bodies().getFirst().entryBlock());
+   // }
 
-
-    static Predicate<Op> rootFilter = op->
-            (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
-              || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
-            )
-            && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
-            && !(op instanceof CoreOp.YieldOp);
-
-    static public Stream<Op> rootsExcludingVarFuncDeclarationsAndYields(Block block) {
-        return block.ops().stream().filter(rootFilter);
+    static public Stream<Op> statements(Block block) {
+        return block.ops().stream().filter(op->
+                (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
+                        || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
+                )
+                        && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
+                        && !(op instanceof CoreOp.YieldOp));
     }
 
     public static JavaType javaRefType(JavaOp.InvokeOp op) {
@@ -251,8 +246,11 @@ public class OpTk {
         return isAssignable(lookup, javaRefType(invokeOp), ComputeContext.class);
     }
 
-    public static JavaType javaReturnType(JavaOp.InvokeOp op) {
-        return (JavaType) op.invokeDescriptor().type().returnType();
+    public static JavaType javaReturnType(JavaOp.InvokeOp invokeOp) {
+        return (JavaType) invokeOp.invokeDescriptor().type().returnType();
+    }
+    public static boolean javaReturnTypeIsVoid(JavaOp.InvokeOp invokeOp) {
+        return javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid();
     }
 
     public static Method methodOrThrow(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
@@ -289,6 +287,168 @@ public class OpTk {
         }
     }
 
+    /*
+       0 =  ()[ ] . -> ++ --
+       1 = ++ --+ -! ~ (type) *(deref) &(addressof) sizeof
+       2 = * / %
+       3 = + -
+       4 = << >>
+       5 = < <= > >=
+       6 = == !=
+       7 = &
+       8 = ^
+       9 = |
+       10 = &&
+       11 = ||
+       12 = ()?:
+       13 = += -= *= /= %= &= ^= |= <<= >>=
+       14 = ,
+    */
+    private static int precedenceOf(Op op) {
+        return switch (op) {
+            case CoreOp.YieldOp o -> 0;
+            case JavaOp.InvokeOp o -> 0;
+            case CoreOp.FuncCallOp o -> 0;
+            case CoreOp.VarOp o -> 13;
+            case CoreOp.VarAccessOp.VarStoreOp o -> 13;
+            case JavaOp.FieldAccessOp o -> 0;
+            case CoreOp.VarAccessOp.VarLoadOp o -> 0;
+            case CoreOp.ConstantOp o -> 0;
+            case JavaOp.LambdaOp o -> 0;
+            case CoreOp.TupleOp o -> 0;
+            case JavaOp.WhileOp o -> 0;
+            case JavaOp.ConvOp o -> 1;
+            case JavaOp.NegOp  o-> 1;
+            case JavaOp.ModOp o -> 2;
+            case JavaOp.MulOp o -> 2;
+            case JavaOp.DivOp o -> 2;
+            case JavaOp.NotOp o -> 2;
+            case JavaOp.AddOp o -> 3;
+            case JavaOp.SubOp o -> 3;
+            case JavaOp.AshrOp o -> 4;
+            case JavaOp.LshlOp o -> 4;
+            case JavaOp.LshrOp o -> 4;
+            case JavaOp.LtOp o -> 5;
+            case JavaOp.GtOp o -> 5;
+            case JavaOp.LeOp o -> 5;
+            case JavaOp.GeOp o -> 5;
+            case JavaOp.EqOp o -> 6;
+            case JavaOp.NeqOp o -> 6;
+            case JavaOp.AndOp o -> 11;
+            case JavaOp.XorOp o -> 12;
+            case JavaOp.OrOp o -> 13;
+            case JavaOp.ConditionalAndOp o -> 14;
+            case JavaOp.ConditionalOrOp o -> 15;
+            case JavaOp.ConditionalExpressionOp o -> 18;
+            case CoreOp.ReturnOp o -> 19;
+            default -> throw new IllegalStateException("precedence ");
+        };
+    }
+    public static boolean needsParenthesis(Op parent, Op child) {
+        return OpTk.precedenceOf(parent) < OpTk.precedenceOf(child);
+    }
+
+    public static Op.Result lhsResult(JavaOp.BinaryOp binaryOp){
+        return (Op.Result)binaryOp.operands().get(0);
+    }
+
+    public static Op.Result rhsResult(JavaOp.BinaryOp binaryOp){
+        return (Op.Result)binaryOp.operands().get(1);
+    }
+
+    public static List<Op> ops(JavaOp.JavaConditionalOp javaConditionalOp, int idx){
+        return javaConditionalOp.bodies().get(idx).entryBlock().ops();
+    }
+
+    public static List<Op> lhsOps(JavaOp.JavaConditionalOp javaConditionalOp){
+        return ops(javaConditionalOp,0);
+    }
+
+    public static List<Op> rhsOps(JavaOp.JavaConditionalOp javaConditionalOp){
+        return ops(javaConditionalOp,1);
+    }
+
+    public static Op.Result result(JavaOp.BinaryTestOp binaryTestOp, int idx){
+        return (Op.Result)binaryTestOp.operands().get(idx);
+    }
+
+    public static Op.Result lhsResult(JavaOp.BinaryTestOp binaryTestOp){
+        return result(binaryTestOp,0);
+    }
+
+    public static Op.Result rhsResult(JavaOp.BinaryTestOp binaryTestOp){
+        return result(binaryTestOp,1);
+    }
+
+    public static Op.Result result(JavaOp.ConvOp convOp){
+        return (Op.Result)convOp.operands().getFirst();
+    }
+
+    public static Op.Result result(CoreOp.ReturnOp returnOp){
+       return (Op.Result)returnOp.operands().getFirst();
+    }
+
+    public static Block block(JavaOp.ConditionalExpressionOp ternaryOp, int idx){
+        return ternaryOp.bodies().get(idx).entryBlock();
+    }
+
+    public static Block condBlock(JavaOp.ConditionalExpressionOp ternaryOp){
+        return block(ternaryOp,0);
+    }
+
+    public static Block thenBlock(JavaOp.ConditionalExpressionOp ternaryOp){
+        return block(ternaryOp,1);
+    }
+
+    public static Block elseBlock(JavaOp.ConditionalExpressionOp ternaryOp){
+        return block(ternaryOp,2);
+    }
+
+    public static String funcName(JavaOp.InvokeOp invokeOp) {
+        return invokeOp.invokeDescriptor().name();
+    }
+    public static Value operandOrNull(Op op, int idx) {
+        return op.operands().size() > idx?op.operands().get(idx):null;
+    }
+    public static Op.Result resultOrNull(Op op, int idx) {
+        return (operandOrNull(op,idx) instanceof Op.Result result)?result:null;
+    }
+
+    public static Block block(JavaOp.ForOp forOp, int idx){
+        return forOp.bodies().get(idx).entryBlock();
+    }
+
+    public static Block mutateBlock(JavaOp.ForOp forOp){
+        return block(forOp,2);
+    }
+
+    public static Block loopBlock(JavaOp.ForOp forOp){
+        return block(forOp,3);
+    }
+
+    public static Block condBlock(JavaOp.ForOp forOp){
+        return  forOp.cond().entryBlock();
+    }
+
+    public static Block initBlock(JavaOp.ForOp forOp){
+        return  forOp.init().entryBlock();
+    }
+
+    public static Block block(JavaOp.WhileOp whileOp, int idx){
+        return  whileOp.bodies().get(idx).entryBlock();
+    }
+
+    public static Block condBlock(JavaOp.WhileOp whileOp){
+        return  block(whileOp,0);
+    }
+
+    public static Block loopBlock(JavaOp.WhileOp whileOp){
+        return  block(whileOp,1);
+    }
+
+    public static Block blockOrNull(JavaOp.IfOp ifOp, int idx ){
+        return ifOp.bodies().size() > idx?ifOp.bodies().get(idx).entryBlock():null;
+    }
 
     public record ParamVar(CoreOp.VarOp varOp, Block.Parameter parameter, CoreOp.FuncOp funcOp) {
     }
@@ -299,15 +459,7 @@ public class OpTk {
                 && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp ? new ParamVar(varOp, parameter, funcOp) : null;
     }
 
-    public static boolean isStructural(Op op){
-        return switch (op){
-            case JavaOp.ForOp _ -> true;
-            case JavaOp.WhileOp _ -> true;
-            case JavaOp.IfOp _ -> true;
-            case JavaOp.LabeledOp _ ->true;
-            case JavaOp.YieldOp _ ->true;
-            case CoreOp.TupleOp _ ->true;
-            default -> false;
-        };
+    public static boolean returnIsVoid(JavaOp.InvokeOp invokeOp){
+        return javaReturnType(invokeOp) instanceof PrimitiveType primitiveType && primitiveType.isVoid();
     }
 }

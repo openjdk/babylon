@@ -227,7 +227,7 @@ public interface ArgArray extends Buffer {
             .arrayLen("argc").pad(12).array("arg", arg->arg
                             .fields("idx", "variant")
                             .pad(11/*(int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize())*/)
-                            .field("value", value->value
+                            .field("value", val->val
                                             .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")
                                                     .field("buf", buf->buf
                                                             .fields("address","bytes",/*"vendorPtr",*/"access")
