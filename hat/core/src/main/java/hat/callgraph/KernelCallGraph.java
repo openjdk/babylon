@@ -24,6 +24,7 @@
  */
 package hat.callgraph;
 
+import hat.BufferTagger;
 import hat.buffer.Buffer;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
@@ -38,6 +39,7 @@ import java.util.stream.Stream;
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
+    public final ArrayList<BufferTagger.AccessType> bufferAccessList;
 
     public interface KernelReachable {
     }
@@ -77,6 +79,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         super(computeCallGraph.computeContext, new KernelEntrypoint(null, methodRef, method, funcOp));
         entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
+        bufferAccessList = BufferTagger.getAccessList(computeContext.accelerator.lookup, entrypoint.funcOp());
     }
 
     void updateDag(KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
