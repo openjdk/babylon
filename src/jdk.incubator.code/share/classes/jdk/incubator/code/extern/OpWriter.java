@@ -338,43 +338,12 @@ public final class OpWriter {
         }
     }
 
-    /**
-     * An option describing how to color the output.
-     */
-    public enum ColoringOption implements Option {
-        /** Performs no coloring. */
-        NONE((_, text) -> text),
-
-        /** Uses ANSI codes to color the output. */
-        ANSI((itemType, text) -> "\033[3" +
+    static BiFunction<Class<? extends CodeItem>, String, String> getDyer() {
+        return Boolean.getBoolean("jdk.incubator.code.extern.OpWriter.COLOR") ? (itemType, text) -> "\033[3" +
                 (itemType == Op.class ? '4' : // blue
                 itemType == Block.class ? '5': // purple
                 itemType == TypeElement.class ? '2': '1') // green : red
-                + "m" + text + "\033[0m"),
-
-        /** Uses ANSI high intensity codes to color the output. */
-        ANSI_HI((itemType, text) -> "\033[9" +
-                (itemType == Op.class ? '4' : // blue
-                itemType == Block.class ? '5': // purple
-                itemType == TypeElement.class ? '2': '1') // green : red
-                + "m" + text + "\033[0m"),
-
-        /** Uses HTML elements to color the output */
-        HTML((itemType, text) -> "<font color=\"" +
-                (itemType == Op.class ? "blue" :
-                itemType == Block.class ? "purple":
-                itemType == TypeElement.class ? "green" : "red")
-                + "\">" + text + "</font>");
-
-        public static ColoringOption defaultValue() {
-            return NONE;
-        }
-
-        final BiFunction<Class<? extends CodeItem>, String, String> dyer;
-
-        ColoringOption(BiFunction<Class<? extends CodeItem>, String, String> dyer) {
-            this.dyer = dyer;
-        }
+                + "m" + text + "\033[0m" : (_, text) -> text;
     }
 
     final Function<CodeItem, String> namer;
@@ -395,7 +364,7 @@ public final class OpWriter {
         this.dropLocation = false;
         this.dropOpDescendants = false;
         this.writeVoidOpResult = false;
-        this.dyer = ColoringOption.NONE.dyer;
+        this.dyer = getDyer();
     }
 
     /**
@@ -409,7 +378,6 @@ public final class OpWriter {
         boolean dropLocation = false;
         boolean dropOpDescendants = false;
         boolean writeVoidOpResult = false;
-        var dyer = ColoringOption.NONE.dyer;
         for (Option option : options) {
             switch (option) {
                 case CodeItemNamerOption namerOption -> {
@@ -426,9 +394,6 @@ public final class OpWriter {
                 case VoidOpResultOption voidOpResultOption -> {
                     writeVoidOpResult = voidOpResultOption == VoidOpResultOption.WRITE_VOID;
                 }
-                case ColoringOption colorSchemaOption -> {
-                    dyer = colorSchemaOption.dyer;
-                }
             }
         }
 
@@ -437,7 +402,7 @@ public final class OpWriter {
         this.dropLocation = dropLocation;
         this.dropOpDescendants = dropOpDescendants;
         this.writeVoidOpResult = writeVoidOpResult;
-        this.dyer = dyer;
+        this.dyer = getDyer();
     }
 
     /**
