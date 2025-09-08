@@ -24,50 +24,24 @@
  */
 package hat.codebuilders;
 
-
-import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.Buffer;
-import hat.callgraph.KernelCallGraph;
-import hat.callgraph.KernelEntrypoint;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaType;
-
-import java.lang.invoke.MethodHandles;
 import java.util.function.Consumer;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends HATCodeBuilderWithContext<T> {
-
-    protected final NDRange ndRange;
-
+    protected final NDRange ndRange; // Should be in the context ?
     public C99HATKernelBuilder(NDRange ndRange) {
         this.ndRange = ndRange;
     }
-
     public T types() {
         return this
-
                 .charTypeDefs("byte", "boolean")
-                /*
-                .unsignedCharTypeDefs("u8_t")
-                .shortTypeDefs("s16_t")
-                .unsignedShortTypeDefs("u16_t")
-                .unsignedIntTypeDefs("u32_t")
-                .intTypeDefs("s32_t")
-                .floatTypeDefs("f32_t")
-                .longTypeDefs("s64_t")
-                .unsignedLongTypeDefs("u64_t")
-                */
-                // Another generic way of declaring the kernelContext is as follows:
-                // // It is reasonable to use hat.codebuilders.HATCodeBuilderWithContext.typedef()
-                // // But note that we pass null as first arg which is normally expected to be a bound schema
-                // // Clearly this will fail if we ever make KernelContext a variant array.  But that seems unlikely.
-                // .typedef(null, hat.buffer.KernelContext.schema.rootIfaceType);
-
                 .typedefStructOrUnion(true, "KernelContext", _ -> {
 
                     intDeclaration("x").semicolonNl();
@@ -151,112 +125,80 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public abstract T globalPtrPrefix();
-
-    public abstract T localPtrPrefix();
 
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
-            //  .isIfaceUsingLookup(buildContext.lookup,javaType) && javaType instanceof ClassType classType) {
-            globalPtrPrefix().space();
-            String name = classType.toClassName();
-            int dotIdx = name.lastIndexOf('.');
-            int dollarIdx = name.lastIndexOf('$');
-            int idx = Math.max(dotIdx, dollarIdx);
-            if (idx > 0) {
-                name = name.substring(idx + 1);
-            }
-            suffix_t(name).asterisk();
+            globalPtrPrefix().space().suffix_t(classType).asterisk();
+        }else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")){
+            globalPtrPrefix().space().suffix_t("KernelContext").asterisk();
         } else {
-            // In the case we call a new invoke method and pass the kernel context around, t
-            // then we need to do the mapping between the Java type and its low level interface
-            // TODO: Check if there is a better way to obtain the type information using
-            // the code reflection APIs and avoid string comparisons.
-            String kernelContextFullClassName = KernelContext.class.getCanonicalName();
-            if (javaType.toString().equals(kernelContextFullClassName)) {
-                typeName("KernelContext_t *");
-            } else {
-                typeName(javaType.toString());
-            }
+            typeName(javaType.toString());
         }
         return self();
     }
+    public T kernelMethod(ScopedCodeBuilderContext buildContext,CoreOp.FuncOp funcOp) {
+          buildContext.funcScope(funcOp, () -> {
+              nl();
+              functionDeclaration(buildContext,(JavaType) funcOp.body().yieldType(), funcOp);
+              var paramTable = new FuncOpParams(funcOp);
 
-    public T kernelMethod(KernelCallGraph.KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup
-                ,kernelReachableResolvedMethodCall.funcOp());
-        buildContext.funcScope(buildContext.funcOp, () -> {
-            nl();
-            functionDeclaration(buildContext,(JavaType) buildContext.funcOp.body().yieldType(), buildContext.funcOp);
-
-            var list = buildContext.paramTable.list();
             parenNlIndented(_ ->
-                    separated(list,(_)->comma().nl(), info ->
-                            type(buildContext,info.javaType).space().varName(info.varOp))
+                    separated(paramTable.list(),(_)->comma().nl(), info -> {
+                        type(buildContext, info.javaType).space().varName(info.varOp);}
+                    )
             );
+
             braceNlIndented(_ ->
-                separated(OpTk.rootOpStream(buildContext.funcOp),(_)->nl(),root ->
-                        recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
+                separated(OpTk.statements(funcOp.bodies().getFirst().entryBlock()),(_)->nl(),
+                        statement->statement(buildContext,statement)
                 )
             );
         });
         return self();
     }
 
-    public T kernelMethod(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(lookup,funcOp);
-        buildContext.funcScope(buildContext.funcOp, () -> {
-            nl();
-            functionDeclaration(buildContext,(JavaType) buildContext.funcOp.body().yieldType(),
-                    buildContext.funcOp);
-
-            var list = buildContext.paramTable.list();
-            parenNlIndented(_ ->
-                    separated(list,(_)->comma().nl(), info ->
-                            type(buildContext,info.javaType).space().varName(info.varOp))
-            );
-
-            braceNlIndented(_ ->
-                separated(OpTk.rootOpStream(buildContext.funcOp),(_)->nl(),root->
-                       recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
-                )
-            );
-        });
-        return self();
-    }
-
-    public T kernelEntrypoint(KernelEntrypoint kernelEntrypoint,Object... args) {
+    public T kernelEntrypoint(ScopedCodeBuilderContext buildContext,Object... args) {
         nl();
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelEntrypoint.callGraph.computeContext.accelerator.lookup,kernelEntrypoint.funcOp());
-        buildContext.funcScope(buildContext.funcOp, () -> {
+             buildContext.funcScope(buildContext.funcOp, () -> {
             kernelDeclaration(buildContext.funcOp);
             // We skip the first arg which was KernelContext.
             var list = buildContext.paramTable.list();
             for (int arg = 1; arg < args.length; arg++) {
                 if (args[arg] instanceof Buffer) {
-                    FuncOpParams.Info info = list.get(arg);
-                    info.setClass(args[arg].getClass());
+                    list.get(arg).setClass(args[arg].getClass());
                 }
             }
             parenNlIndented(_ -> {
                         globalPtrPrefix().space().suffix_t("KernelContext").space().asterisk().identifier("global_kc");
                         list.stream().skip(1).forEach(info ->
-                                comma().space().type(buildContext,info.javaType).space().varName(info.varOp)
+                                comma().nl().type(buildContext,info.javaType).space().varName(info.varOp)
                         );
                     }
             );
 
             braceNlIndented(_ -> {
                 scope();
-                separated(OpTk.rootOpStream(buildContext.funcOp), (_)->nl(), root ->
-                        recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root))
+                separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_)->nl(),
+                        statement ->statement(buildContext,statement)
                 );
             });
         });
         return self();
     }
 
+    public T privateDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
+        return suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp()).nl();
+    }
+
+    public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
+        return localPtrPrefix().space() // we should be able to compose-call to privateDeclaration?
+                .suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
+    }
+
+    public abstract T globalPtrPrefix();
+
+    public abstract T localPtrPrefix();
 
     public abstract T defines();
 
@@ -275,12 +217,5 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract T localSize(int id);
 
     public abstract T blockId(int id);
-    final  public T privateDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
-        return suffix_t(localArrayDeclaration.ifaceStruct().name()).space().varName(localArrayDeclaration.varOp()).nl();
-    }
 
-    final public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
-        return localPtrPrefix().space() // we should be able to compose-call to privateDeclaration?
-                .suffix_t(localArrayDeclaration.ifaceStruct().name()).space().varName(localArrayDeclaration.varOp());
-    }
 }

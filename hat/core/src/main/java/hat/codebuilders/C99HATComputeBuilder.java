@@ -47,10 +47,8 @@ public  abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> e
                         , (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
 
-        braceNlIndented(_ -> OpTk.rootOpStream(funcOp).forEach(root ->
-                        recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root)).nl()
-                )
-        );
+        braceNlIndented(_ -> OpTk.statements(funcOp.bodies().getFirst().entryBlock())
+                .forEach(root ->statement(buildContext,root).nl()));
 
         return self();
     }
