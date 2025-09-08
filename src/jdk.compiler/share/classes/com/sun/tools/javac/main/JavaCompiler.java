@@ -27,6 +27,7 @@ package com.sun.tools.javac.main;
 
 import java.io.*;
 import java.lang.module.Configuration;
+import java.lang.reflect.Method;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.ReadOnlyFileSystemException;
@@ -1758,6 +1759,15 @@ public class JavaCompiler {
                 // We need to add exports all jdk.compiler packages so that the plugin can use them
                 for (String packageName : jdkCompilerModule.getPackages()) {
                     jdkCompilerModule.addExports(packageName, codeReflectionModule);
+                }
+                // We also need to add exports all java.base packages so that the plugin can use them
+                // But we need to do so by calling a method in java.base reflectively
+                try {
+                    Class<?> codeModuleLayerInit = Class.forName("jdk.internal.access.code.CodeModuleLayerInit");
+                    Method initLayerMethod = codeModuleLayerInit.getDeclaredMethod("initCodeModuleLayer", ModuleLayer.class);
+                    initLayerMethod.invoke(null, CODE_LAYER);
+                } catch (ReflectiveOperationException ex) {
+                    throw new AssertionError(ex);
                 }
             } else {
                 // if we run in bootstrap mode, there might be no jdk.incubator.code
