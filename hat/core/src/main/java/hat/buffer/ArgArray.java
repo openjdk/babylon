@@ -25,6 +25,7 @@
 package hat.buffer;
 
 import hat.Accelerator;
+import hat.BufferTagger;
 import hat.ComputeContext;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
@@ -34,6 +35,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 
 import static hat.buffer.ArgArray.Arg.Value.Buf.UNKNOWN_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
@@ -225,7 +227,7 @@ public interface ArgArray extends Buffer {
             .arrayLen("argc").pad(12).array("arg", arg->arg
                             .fields("idx", "variant")
                             .pad(11/*(int)(16 - JAVA_INT.byteSize() - JAVA_BYTE.byteSize())*/)
-                            .field("value", value->value
+                            .field("value", val->val
                                             .fields("z1","s8","u16","s16","s32","u32","f32","s64","u64","f64")
                                                     .field("buf", buf->buf
                                                             .fields("address","bytes",/*"vendorPtr",*/"access")
@@ -289,6 +291,8 @@ public interface ArgArray extends Buffer {
 
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
         Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.getMethod().getParameterAnnotations();
+        ArrayList<BufferTagger.AccessType> bufferAccessList = kernelCallGraph.bufferAccessList;
+
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i); // this should be invariant, but if we are called from create it will be 0 for all
@@ -324,6 +328,8 @@ public interface ArgArray extends Buffer {
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
                     buf.access(accessByte);
+
+                    assert bufferAccessList.get(i).value == accessByte;
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }

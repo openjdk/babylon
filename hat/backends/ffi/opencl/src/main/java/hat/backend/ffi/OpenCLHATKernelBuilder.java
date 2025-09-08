@@ -26,7 +26,7 @@ package hat.backend.ffi;
 
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.codebuilders.HATCodeBuilderContext;
+import hat.codebuilders.ScopedCodeBuilderContext;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -34,15 +34,9 @@ import jdk.incubator.code.dialect.java.JavaType;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
-    public OpenCLHATKernelBuilder(NDRange ndRange) {
-        super(ndRange);
-    }
 
     @Override
     public OpenCLHATKernelBuilder defines() {
-        hashDefine("NDRANGE_OPENCL");
-        pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable");
-        pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
         hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
         return self();
     }
@@ -90,7 +84,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, CoreOp.FuncOp funcOp) {
+    public OpenCLHATKernelBuilder functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType type, CoreOp.FuncOp funcOp) {
         return keyword("inline").space().type(codeBuilderContext,type).space().identifier(funcOp.funcName());
     }
 
@@ -105,26 +99,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder atomicInc(HATCodeBuilderContext buildContext, Op.Result instanceResult, String name){
+    public OpenCLHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ ->
               ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name)
           );
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder emitPrivateDeclaration(String typeStructName, String varName) {
-        return suffix_t(typeStructName)
-                .space()
-                .emitText(varName).nl();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder emitLocalDeclaration(String typeName, String varName) {
-        return localPtrPrefix()
-                .space()
-                .suffix_t(typeName)
-                .space()
-                .identifier(varName);
     }
 
 }

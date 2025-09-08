@@ -42,7 +42,7 @@ public abstract class CallGraph<E extends Entrypoint> {
     public final Set<MethodCall> calls = new HashSet<>();
     public final Map<MethodRef, MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
     public CoreOp.ModuleOp moduleOp;
-    public static boolean usingModuleOp = Boolean.getBoolean("moduleOp");
+    public static boolean noModuleOp = Boolean.getBoolean("noModuleOp");
     public Stream<MethodCall> callStream() {
         return methodRefToMethodCallMap.values().stream();
     }

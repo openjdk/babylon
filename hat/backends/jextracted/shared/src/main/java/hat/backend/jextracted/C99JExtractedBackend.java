@@ -31,6 +31,7 @@ import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
@@ -89,12 +90,13 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
                         }
                     });
                 });
-
+        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(kernelCallGraph.computeContext.accelerator.lookup
+                ,kernelCallGraph.entrypoint.funcOp());
         // Sorting by rank ensures we don't need forward declarations
         kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
-                .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(kernelReachableResolvedMethod).nl());
+                .forEach(kernelReachableResolvedMethod -> builder.nl().kernelMethod(buildContext,kernelReachableResolvedMethod.funcOp()).nl());
 
-        builder.nl().kernelEntrypoint(kernelCallGraph.entrypoint, args).nl();
+        builder.nl().kernelEntrypoint(buildContext, args).nl();
 
         System.out.println("Original");
         System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
