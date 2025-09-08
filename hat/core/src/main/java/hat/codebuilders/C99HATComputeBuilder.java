@@ -39,16 +39,17 @@ public  abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> e
         return typeName(typeElement.toString()).space().identifier(name);
     }
 
-     public T compute(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(lookup,funcOp);
-        computeDeclaration(funcOp.resultType(), funcOp.funcName());
+     public T compute(ScopedCodeBuilderContext buildContext) {
+
+        computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
         parenNlIndented(_ ->
                 separated(buildContext.paramTable.list(), (_)->comma().space()
-                        , (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
+                        , param -> declareParam(buildContext, param)
+                )
         );
 
-        braceNlIndented(_ -> OpTk.statements(funcOp.bodies().getFirst().entryBlock())
-                .forEach(root ->statement(buildContext,root).nl()));
+        braceNlIndented(_ -> separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_)->nl(),
+                statement ->statement(buildContext,statement).nl()));
 
         return self();
     }

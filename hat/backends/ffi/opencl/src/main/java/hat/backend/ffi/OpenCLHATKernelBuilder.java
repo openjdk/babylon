@@ -34,13 +34,9 @@ import jdk.incubator.code.dialect.java.JavaType;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
-    public OpenCLHATKernelBuilder(NDRange ndRange) {
-        super(ndRange);
-    }
 
     @Override
     public OpenCLHATKernelBuilder defines() {
-        hashDefine("NDRANGE_OPENCL");
         hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
         return self();
     }

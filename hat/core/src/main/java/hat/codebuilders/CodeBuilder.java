@@ -42,14 +42,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return symbol(";");
     }
 
-    public T semicolonIf(boolean c) {
-        if (c) {
-            return semicolon();
-        } else {
-            return self();
-        }
-    }
-
     public T semicolonNl() {
         return semicolon().nl();
     }
@@ -131,7 +123,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public T ifKeyword() {
         return keyword("if");
-
     }
 
     public T whileKeyword() {
@@ -141,12 +132,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public T breakKeyword() {
         return keyword("break");
-
     }
 
     public T gotoKeyword() {
         return keyword("goto");
-
     }
 
     public T continueKeyword() {
