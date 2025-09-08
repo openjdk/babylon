@@ -33,6 +33,7 @@ import hat.dialect.HatBarrierOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.OpTk;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
@@ -145,9 +146,18 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         return invokeOp.invokeDescriptor().name().equals(methodName);
     }
 
+    private void createBarrierNodeOp(CopyContext context, JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
+        List<Value> inputOperands = invokeOp.operands();
+        List<Value> outputOperands = context.getValues(inputOperands);
+        HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
+        Op.Result outputResult = blockBuilder.op(hatBarrierOp);
+        Op.Result inputResult = invokeOp.result();
+        context.mapValue(inputResult, outputResult);
+    }
+
     /**
      * Analysis : dialect
-     * @param kernelCallGraph
+     * @param kernelCallGraph {@link KernelCallGraph}
      */
     private void dialectifyToHat(KernelCallGraph kernelCallGraph) {
         CoreOp.FuncOp funcOp = kernelCallGraph.entrypoint.funcOp();
@@ -155,12 +165,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
             CopyContext context = blockBuilder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, "barrier")) {
-                    List<Value> inputOperands = invokeOp.operands();
-                    List<Value> outputOperands = context.getValues(inputOperands);
-                    HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
-                    Op.Result outputResult = blockBuilder.op(hatBarrierOp);
-                    Op.Result inputResult = invokeOp.result();
-                    context.mapValue(inputResult, outputResult);
+                    createBarrierNodeOp(context, invokeOp, blockBuilder);
                 } else {
                     blockBuilder.op(op);
                 }
