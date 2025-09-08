@@ -111,7 +111,8 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public PTXHATKernelBuilder parameters(List<FuncOpParams.Info> infoList) {
-        paren(_ -> nl().commaNlSeparated(infoList, (info) -> {
+        paren(_ ->
+                nl().separated(infoList,(t)->t.comma().nl(), (info) -> {
             ptxIndent().dot().param().space().paramType(info.javaType);
             space().regName(info.varOp.varName());
             paramNames.add(info.varOp.varName());
@@ -209,7 +210,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             case CoreOp.VarOp $ -> varDeclaration($);
             case CoreOp.ReturnOp $ -> ret($);
             case JavaOp.BreakOp $ -> javaBreak($);
-            default -> {
+            default -> { // Why are  these switch ops not just inlined above?
                 switch (op){
                     case CoreOp.BranchOp $ -> branch($);
                     case CoreOp.ConditionalBranchOp $ -> condBranch($);
@@ -507,7 +508,10 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                 dot().param().space().paramType(op.resultType()).space().retVal().ptxNl();
                 call().uni().space().oparen().retVal().cparen().commaSpace().append(OpTk.methodOrThrow(MethodHandles.lookup(),op).getName()).commaSpace();
                 final int[] counter = {0};
-                paren(_ -> commaSeparated(op.operands(), _ -> param().intVal(counter[0]++))).ptxNl();
+                paren(_ ->
+                        separated(op.operands(),(_)->commaSpace(),
+                        //commaSeparated(op.operands(),
+                                _ -> param().intVal(counter[0]++))).ptxNl();
                 ld().dot().param().paramType(op.resultType()).space().resultReg(op, getResultType(op.resultType())).commaSpace().osbrace().retVal().csbrace();
                 ptxNl().cbrace();
             }
@@ -730,9 +734,6 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         return semicolon().nl().ptxIndent();
     }
 
-    public PTXHATKernelBuilder commaSpace() {
-        return comma().space();
-    }
 
     public PTXHATKernelBuilder param() {
         return append("param");

@@ -24,7 +24,7 @@
  */
 package hat.tools.text;
 
-import hat.codebuilders.HATCodeBuilderContext;
+import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
@@ -37,7 +37,7 @@ import java.lang.invoke.MethodHandles;
 
 public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCodeBuilderWithContext<T> {
     @Override
-    public T type(HATCodeBuilderContext buildContext, JavaType javaType) {
+    public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
             try {
                 typeName(javaType.resolve(buildContext.lookup).getTypeName());
             } catch (ReflectiveOperationException e) {
@@ -46,10 +46,11 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
         return self();
     }
 
+
     @Override
-    public T fieldLoad(HATCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+    public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
         if (OpTk.isKernelContextAccess(fieldLoadOp)) {
-            identifier("kc").dot().identifier(OpTk.fieldName(fieldLoadOp));
+            identifier("kc").dot().fieldName(fieldLoadOp);
         } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) { // only primitve fields
             var value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
             literal(value.toString());
@@ -60,13 +61,14 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
     }
 
     @Override
-    public T methodCall(HATCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
+    public T invokeOp(ScopedCodeBuilderContext buildContext, JavaOp.InvokeOp invokeOp) {
         if (!invokeOp.operands().isEmpty() && invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
             recurse(buildContext, instanceResult.op());
         }
         dot().identifier(invokeOp.invokeDescriptor().name());
         paren(_ ->
-            commaSeparated(  invokeOp.operands().subList(0,invokeOp.operands().size()-1), o->
+                // why the sublist? is this static vs instance?
+            separated(  invokeOp.operands().subList(0,invokeOp.operands().size()-1), (_)->commaSpace(),o->
                     recurse(buildContext,  ((Op.Result) o).op())
             )
         );
@@ -74,28 +76,28 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
     }
 
     @Override
-    public T emitPrivateDeclaration(String typeName, String varName) {
-        // TODO: What would emit a Java backend
+    public T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
+        blockComment("/* private declaration !! */");
         return self();
     }
 
     @Override
-    public T emitLocalDeclaration(String typeName, String varName) {
-        // TODO: What would emit a Java backend
+    public T localDeclaration(LocalArrayDeclaration localArrayDeclaration) {
+        blockComment("/* local declaration !! */");
         return self();
     }
 
     @Override
     public T syncBlockThreads() {
-        // TODO: What would emit a Java backend?
+        blockComment("/* group wide barrier!! */");
         return self();
     }
 
     public T compute(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        HATCodeBuilderContext buildContext = new HATCodeBuilderContext(lookup,funcOp);
-        typeName(funcOp.resultType().toString()).space().identifier(funcOp.funcName());
+        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(lookup,funcOp);
+        typeName(funcOp.resultType().toString()).space().funcName(funcOp);
         parenNlIndented(_ ->
-                commaSeparated(buildContext.paramTable.list(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
+                separated(buildContext.paramTable.list(),(_)->commaSpace(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
         );
         braceNlIndented(_ ->
                 OpTk.rootOpStream(funcOp)
