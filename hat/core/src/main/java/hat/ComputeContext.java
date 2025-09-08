@@ -174,7 +174,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
             }
             return blockBuilder;
         });
-        System.out.println("[INFO] Code model: " + funcOp.toText());
+        // System.out.println("[INFO] Code model: " + funcOp.toText());
         kernelCallGraph.entrypoint.funcOp(funcOp);
     }
 
@@ -190,7 +190,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         // NOTE: Keep the following boolean until we have the config available/reachable
         // from this class
         boolean useDialect = true;
-        System.out.println("[INFO] Using Hat Dialect?: " + useDialect);
+        //System.out.println("[INFO] Using Hat Dialect?: " + useDialect);
         if (useDialect) {
             dialectifyToHat(kernelCallGraph);
         }
