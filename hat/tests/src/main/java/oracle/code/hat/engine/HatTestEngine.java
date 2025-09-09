@@ -30,6 +30,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class HatTestEngine {
@@ -57,6 +58,34 @@ public class HatTestEngine {
         }
     }
 
+    private static void testMethod(StringBuilder builder, Method method, Stats stats, Object instance) {
+        try {
+            HatTestFormatter.testing(builder, method.getName());
+            method.invoke(instance);
+            HatTestFormatter.ok(builder);
+            stats.incrementPassed();
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (HatAssertionError e) {
+            HatTestFormatter.fail(builder);
+            stats.incrementFailed();
+        }
+    }
+
+    private static void filterIfNeeded(String filterMethod, List<Method> methodsToTest) {
+        // Filter the methodToTest if filterMethod is enabled
+        List<Method> replaceMethods = new ArrayList<>();
+        if (filterMethod != null) {
+            for (Method declaredMethod : methodsToTest) {
+                if (declaredMethod.getName().equals(filterMethod)) {
+                    replaceMethods.add(declaredMethod);
+                }
+            }
+            methodsToTest.clear();
+            methodsToTest.addAll(replaceMethods);
+        }
+    }
+
     static void main(String[] args) {
         System.out.println("HAT Engine Testing Framework");
 
@@ -66,6 +95,13 @@ public class HatTestEngine {
         }
         String classNameToTest = args[0];
         System.out.println("Testing class " + classNameToTest);
+
+        String filterMethod = null;
+        if (classNameToTest.contains("#")) {
+            String[] split = classNameToTest.split("#");
+            classNameToTest = split[0];
+            filterMethod = split[1];
+        }
 
         try {
             Class<?> testClass = Class.forName(classNameToTest);
@@ -84,25 +120,16 @@ public class HatTestEngine {
                 throw new RuntimeException("No test methods found for class " + classNameToTest);
             }
 
+           filterIfNeeded(filterMethod, methodToTest);
+
             Object instance = testClass.getDeclaredConstructor().newInstance();
 
             StringBuilder builder = new StringBuilder();
             HatTestFormatter.appendClass(builder, classNameToTest);
-
             Stats stats = new Stats();
 
             for (Method method : methodToTest) {
-                try {
-                    HatTestFormatter.testing(builder, method.getName());
-                    method.invoke(instance);
-                    HatTestFormatter.ok(builder);
-                    stats.incrementPassed();
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    e.printStackTrace();
-                } catch (HatAssertionError e) {
-                    HatTestFormatter.fail(builder);
-                    stats.incrementFailed();
-                }
+                testMethod(builder, method, stats, instance);
             }
             System.out.println("");
             System.out.println(builder);
