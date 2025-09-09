@@ -476,10 +476,16 @@ public final class BytecodeLift {
                                                                        lambdaFunc,
                                                                        JavaType.type(inst.typeSymbol().returnType()));
                         // if FLAG_QUOTABLE is set, the lambda is quotable
-                        if (inst.bootstrapArgs().size() > 3 && inst.bootstrapArgs().get(3) instanceof Integer a
-                                && (a & LambdaMetafactory.FLAG_QUOTABLE) != 0) {
-                            lambda = lambda.quotable();
+                        if (bsm.methodName().equals("altMetafactory")) {
+                            assert inst.bootstrapArgs().size() > 3;
+                            assert inst.bootstrapArgs().get(3) instanceof Integer;
+
+                            if (inst.bootstrapArgs().get(3) instanceof Integer flags
+                                    && (flags & LambdaMetafactory.FLAG_QUOTABLE) != 0) {
+                                lambda = lambda.quotable();
+                            }
                         }
+
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
                             // inline lambda impl method
                             MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();
