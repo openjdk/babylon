@@ -178,13 +178,15 @@ public class DialectSample {
 
 
     // Part B: Create a new Op for specializing the invoke Op.
-    private static int myIntrinsic(int a, int b) {
-        return a + b;
+    // We replace an invoke node with a specific function name ("intrinsicFMA") with another function
+    // that performs an FMA.
+    private static float intrinsicsFMA(float a, float b, float c) {
+        return Math.fma(a, b, c);
     }
 
     @CodeReflection
-    public static int myFunction(int a, int b) {
-        return myIntrinsic(a, b);
+    public static float myFunction(float a, float b, float c) {
+        return intrinsicsFMA(a, b, c);
     }
 
     public static class MyInvoke extends Op { // externalized
@@ -218,7 +220,7 @@ public class DialectSample {
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("", this.typeDescriptor);
+            return Map.of("", "dialect." + this.opName());
         }
     }
 
@@ -236,13 +238,13 @@ public class DialectSample {
 
         CoreOp.FuncOp dialectModel = functionModel.transform((blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
+            if (op instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeDescriptor().name().equals("intrinsicsFMA")) {
                 List<Value> inputOperands = invokeOp.operands();
                 List<Value> outputOperands = context.getValues(inputOperands);
 
                 // Create new node
                 Op.Result inputResult = invokeOp.result();
-                MyInvoke myCustomFunction = new MyInvoke("myCustomFunction", JavaType.INT, outputOperands);
+                MyInvoke myCustomFunction = new MyInvoke("intrinsicsFMA", invokeOp.resultType(), outputOperands);
                 Op.Result outputResult = blockBuilder.op(myCustomFunction);
 
                 // Preserve the location from the original invoke
@@ -272,6 +274,8 @@ public class DialectSample {
     }
 
     static void main() {
+        System.out.println("Testing Dialects in Code-Reflection");
+
         System.out.println("Create new Integer Add Op: ");
         customAdd();
 
