@@ -38,10 +38,6 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 import java.util.function.Consumer;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends HATCodeBuilderWithContext<T> {
-   // protected final NDRange ndRange; // Should be in the context ?
-   // public C99HATKernelBuilder(NDRange ndRange) {
-       // this.ndRange = ndRange;
-   // }
     public T types() {
         return this
                 .charTypeDefs("byte", "boolean")
