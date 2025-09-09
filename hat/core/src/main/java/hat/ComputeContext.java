@@ -164,7 +164,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         funcOp = funcOp.transform((blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-                if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, "barrier")) {
+                if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, HatBarrierOp.INTRINSIC_NAME)) {
                     createBarrierNodeOp(context, invokeOp, blockBuilder);
                 } else {
                     blockBuilder.op(op);

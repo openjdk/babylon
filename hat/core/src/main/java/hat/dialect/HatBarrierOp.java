@@ -35,10 +35,10 @@ import jdk.incubator.code.dialect.java.JavaType;
 import java.util.List;
 import java.util.Map;
 
-
 public class HatBarrierOp extends HatOP {
 
-    public static final String NAME = "hat.sync.barrier";
+    private static final String NAME = "hat.sync.barrier";
+    public static final String INTRINSIC_NAME = "barrier";
     private TypeElement typeElement;
 
     public HatBarrierOp(List<Value> operands) {

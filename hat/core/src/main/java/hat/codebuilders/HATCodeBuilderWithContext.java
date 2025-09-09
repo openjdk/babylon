@@ -107,9 +107,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
-        type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
+        //type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
         if (isMappableIFace(buildContext, (JavaType) varOp.varValueType()) && (JavaType) varOp.varValueType() instanceof ClassType classType) {
-            annotateTypeAndName( classType, varOp);
+            annotateTypeAndName(classType, varOp);
+        } else {
+            type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
         }
         parenthesisIfNeeded(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
     }
