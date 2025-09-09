@@ -56,7 +56,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder globalId(int id) {
-        return blockId(id).asterisk().localSize(id).plus().localId(id);
+        return paren(_->blockId(id).asterisk().localSize(id).plus().localId(id));
     }
 
     @Override
