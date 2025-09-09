@@ -51,6 +51,11 @@ public final class OpWriter {
      */
     static final String ATTRIBUTE_LOCATION = "loc";
 
+    /**
+     * Boolean property to provide ANSI-colored output.
+     */
+    static final boolean COLOR = Boolean.getBoolean("jdk.incubator.code.extern.OpWriter.COLOR");
+
     static final class GlobalValueBlockNaming implements Function<CodeItem, String> {
         final Map<CodeItem, String> gn;
         int valueOrdinal = 0;
@@ -339,11 +344,14 @@ public final class OpWriter {
     }
 
     static BiFunction<Class<? extends CodeItem>, String, String> getDyer() {
-        return Boolean.getBoolean("jdk.incubator.code.extern.OpWriter.COLOR") ? (itemType, text) -> "\033[3" +
-                (itemType == Op.class ? '4' : // blue
-                itemType == Block.class ? '5': // purple
-                itemType == TypeElement.class ? '2': '1') // green : red
-                + "m" + text + "\033[0m" : (_, text) -> text;
+        return COLOR
+                ? (itemType, text) ->
+                        (itemType == Op.class ? "\033[34m" : // blue
+                         itemType == Block.class ? "\033[35m": // purple
+                         itemType == TypeElement.class ? "\033[32m": "\033[31m") // green : red
+                        + text
+                        + "\033[0m" // reset
+                : (_, text) -> text;
     }
 
     final Function<CodeItem, String> namer;
