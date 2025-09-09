@@ -2008,4 +2008,32 @@ public class SwitchStatementTest {
         }
         return r;
     }
+
+    @IR("""
+            func @"f" (%0 : java.type:"int")java.type:"int" -> {
+                  %1 : Var<java.type:"int"> = var %0 @"i";
+                  %2 : java.type:"int" = var.load %1;
+                  java.switch.statement %2
+                      (%3 : java.type:"int")java.type:"boolean" -> {
+                          %4 : java.type:"int" = constant @0;
+                          %5 : java.type:"boolean" = eq %3 %4;
+                          yield %5;
+                      }
+                      ()java.type:"void" -> {
+                          %6 : java.type:"int" = constant @0;
+                          return %6;
+                      };
+                  %7 : java.type:"int" = constant @0;
+                  return %7;
+              };
+            """)
+    @CodeReflection
+    static int f(int i) {
+        switch (i) {
+            case 0 -> {
+                return 0;
+            }
+        }
+        return 0;
+    }
 }
