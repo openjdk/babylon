@@ -32,4 +32,22 @@ public class HatAsserts {
         }
     }
 
+    public static void assertEquals(long expected, long actual) {
+        if (expected != actual) {
+            throw new HatAssertionError("Expected != actual");
+        }
+    }
+
+    public static void assertEquals(float expected, float actual, float delta) {
+        if (Math.abs(expected - actual) > delta) {
+            throw new HatAssertionError("Expected != actual");
+        }
+    }
+
+    public static void assertEquals(double expected, double actual, double delta) {
+        if (Math.abs(expected - actual) > delta) {
+            throw new HatAssertionError("Expected != actual");
+        }
+    }
+
 }
