@@ -186,6 +186,7 @@ public final class OpParser {
     }
 
     static List<Op> parse(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
+        in = in.replaceAll("\\033\\[\\d+m", ""); // remove ANSI coloring
         Lexer lexer = Scanner.factory().newScanner(in);
         lexer.nextToken();
 
