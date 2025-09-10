@@ -50,4 +50,9 @@ public class HatAsserts {
         }
     }
 
+    public static void assertTrue(boolean isCorrect) {
+        if (!isCorrect) {
+            throw new HatAssertionError("Expected: " + isCorrect);
+        }
+    }
 }

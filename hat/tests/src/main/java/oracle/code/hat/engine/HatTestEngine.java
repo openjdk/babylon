@@ -34,6 +34,8 @@ import java.util.List;
 
 public class HatTestEngine {
 
+    public static boolean DETAIL_ERROR_STACK_TRACE = false;
+
     private static class Stats {
         int passed = 0;
         int failed = 0;
@@ -71,7 +73,9 @@ public class HatTestEngine {
                 HatTestFormatter.failWithReason(builder, hatAssertionError.getMessage());
             }  else {
                 HatTestFormatter.fail(builder);
-                e.printStackTrace();
+                if (DETAIL_ERROR_STACK_TRACE) {
+                    e.printStackTrace();
+                }
             }
             stats.incrementFailed();
         }

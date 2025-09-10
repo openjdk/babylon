@@ -133,7 +133,9 @@ void main(String[] argv) {
         String[] suite = new String[] {
                 "oracle.code.hat.TestArrays",
                 "oracle.code.hat.TestMatMul",
-                "oracle.code.hat.TestMandel"
+                "oracle.code.hat.TestMandel",
+                "oracle.code.hat.TestLocal",
+                "oracle.code.hat.TestReductions"
         };
 
         // Test the whole suite
