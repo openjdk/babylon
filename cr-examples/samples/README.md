@@ -79,5 +79,5 @@ java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar orac
 ##### Compile with CodeReflectionProcessor
 
 ```bash
-java --processor-path target/crsamples-1.0-SNAPSHOT.jar -processor oracle.code.samples.CodeReflectionProcessor <.java files to compile>
+javac --add-modules jdk.incubator.code --processor-path target/crsamples-1.0-SNAPSHOT.jar -processor oracle.code.samples.CodeReflectionProcessor <.java files to compile>
 ```
