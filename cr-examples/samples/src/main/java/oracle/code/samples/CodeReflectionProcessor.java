@@ -26,6 +26,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * This annotation processor can be used to inspect methods annotated with {@code CodeReflection},
+ * and check if they conform to specific programming model restrictions. This provides an example on how
+ * clients might control the contents of a code model via compile-time checks, which can be useful e.g. if said
+ * models are meant for an <em>foreign</em> execution environment that might not support all the features of
+ * a full-blown JVM.
+ * <p>
+ * More specifically,this annotation processor issues error messages when it detects calls to <em>complex</em>
+ * system methods (such as {@link System#gc()}, or {@link Runtime#loadLibrary(String)}). It also issues errors
+ * when encountering <em>unsupported</em> languages features, such as {@code try/catch} or {@code throw}.
+ */
 @SupportedAnnotationTypes("jdk.incubator.code.CodeReflection")
 @SupportedSourceVersion(SourceVersion.RELEASE_26)
 public class CodeReflectionProcessor extends AbstractProcessor {
