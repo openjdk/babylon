@@ -32,8 +32,8 @@ public class HatTestFormatter {
 
     public static void testing(StringBuilder builder, String methodName) {
         builder.append(Colours.BLUE)
-                .append(String.format("Testing: #%-20s", methodName))
-                .append(String.format("%-15s", "..................... "))
+                .append(String.format("Testing: #%-30s", methodName))
+                .append(String.format("%-20s", "..................... "))
                 .append(Colours.RESET);
     }
 
