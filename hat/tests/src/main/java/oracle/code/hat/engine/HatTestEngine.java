@@ -63,10 +63,16 @@ public class HatTestEngine {
             method.invoke(instance);
             HatTestFormatter.ok(builder);
             stats.incrementPassed();
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
         } catch (HatAssertionError e) {
-            HatTestFormatter.fail(builder);
+                HatTestFormatter.fail(builder);
+                stats.incrementFailed();
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            if (e.getCause() instanceof HatAssertionError hatAssertionError) {
+                HatTestFormatter.failWithReason(builder, hatAssertionError.getMessage());
+            }  else {
+                HatTestFormatter.fail(builder);
+                e.printStackTrace();
+            }
             stats.incrementFailed();
         }
     }
@@ -85,16 +91,14 @@ public class HatTestEngine {
         }
     }
 
-    static void main(String[] args) {
-        System.out.println("HAT Engine Testing Framework");
+    public static void printStats(StringBuilder builder, Stats stats) {
+        System.out.println();
+        System.out.println(builder.toString());
+        System.out.println(stats.toString());
+        System.out.println();
+    }
 
-        // We get a set of classes from the arguments
-        if (args.length < 1) {
-            throw new RuntimeException("No test classes provided");
-        }
-        String classNameToTest = args[0];
-        System.out.println("Testing class " + classNameToTest);
-
+    public static void testClassEngine(String classNameToTest) {
         String filterMethod = null;
         if (classNameToTest.contains("#")) {
             String[] split = classNameToTest.split("#");
@@ -119,7 +123,7 @@ public class HatTestEngine {
                 throw new RuntimeException("No test methods found for class " + classNameToTest);
             }
 
-           filterIfNeeded(filterMethod, methodToTest);
+            filterIfNeeded(filterMethod, methodToTest);
 
             Object instance = testClass.getDeclaredConstructor().newInstance();
 
@@ -130,13 +134,20 @@ public class HatTestEngine {
             for (Method method : methodToTest) {
                 testMethod(builder, method, stats, instance);
             }
-            System.out.println("");
-            System.out.println(builder);
-            System.out.println(stats);
+            printStats(builder, stats);
 
         } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException |
                  NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    static void main(String[] args) {
+        System.out.println(Colours.BLUE + "HAT Engine Testing Framework" + Colours.RESET);
+        // We get a set of classes from the arguments
+        if (args.length < 1) {
+            throw new RuntimeException("No test classes provided");
+        }
+        testClassEngine(args[0]);
     }
 }

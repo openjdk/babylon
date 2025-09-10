@@ -26,15 +26,20 @@ package oracle.code.hat;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
+import hat.GlobalMesh1D;
 import hat.KernelContext;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.buffer.S32Array;
-import hat.ifacemapper.MappableIface;
+import hat.ifacemapper.MappableIface.RO;
+import hat.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.CodeReflection;
 import oracle.code.hat.annotation.HatTest;
 import oracle.code.hat.engine.HatAsserts;
 
 import java.lang.invoke.MethodHandles;
+import java.util.Random;
 
 public class TestArrays {
 
@@ -45,23 +50,58 @@ public class TestArrays {
     }
 
     @CodeReflection
-    public static void squareKernel(@MappableIface.RO KernelContext kc, @MappableIface.RW S32Array s32Array) {
+    public static void squareKernel(@RO KernelContext kc, @RW S32Array array) {
         if (kc.x < kc.gsx){
-            int value = s32Array.array(kc.x);       // arr[cc.x]
-            s32Array.array(kc.x, squareit(value));  // arr[cc.x]=value*value
+            int value = array.array(kc.x);
+            array.array(kc.x, squareit(value));
         }
     }
 
     @CodeReflection
-    public static void square(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array s32Array) {
-        cc.dispatchKernel(s32Array.length(),
-                kc -> squareKernel(kc, s32Array)
+    public static void square(@RO ComputeContext cc, @RW S32Array array) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(array.length()));
+        cc.dispatchKernel(computeRange,
+                kc -> squareKernel(kc, array)
+        );
+    }
+
+    @CodeReflection
+    public static void vectorAddition(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
+        if (kc.x < kc.gsx) {
+            int valueA = arrayA.array(kc.x);
+            int valueB = arrayB.array(kc.x);
+            arrayC.array(kc.x, (valueA + valueB));
+        }
+    }
+
+    @CodeReflection
+    public static void vectorAdd(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(arrayA.length()));
+        cc.dispatchKernel(computeRange,
+                kc -> vectorAddition(kc, arrayA, arrayB, arrayC)
+        );
+    }
+
+    @CodeReflection
+    public static void saxpy(@RO KernelContext kc, @RO F32Array arrayA, @RO F32Array arrayB, @RW F32Array arrayC, float alpha) {
+        if (kc.x < kc.gsx) {
+            float valueA = arrayA.array(kc.x);
+            float valueB = arrayB.array(kc.x);
+            float result = alpha * valueA + valueB;
+            arrayC.array(kc.x, result);
+        }
+    }
+
+    @CodeReflection
+    public static void computeSaxpy(@RO ComputeContext cc, @RO F32Array arrayA, @RO F32Array arrayB, @RW F32Array arrayC, float alpha) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(arrayA.length()));
+        cc.dispatchKernel(computeRange,
+                kc -> saxpy(kc, arrayA, arrayB, arrayC, alpha)
         );
     }
 
     @HatTest
     public static void testHelloHat() {
-
         final int size = 64;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var array = S32Array.create(accelerator, size);
@@ -87,27 +127,57 @@ public class TestArrays {
 
     @HatTest
     public static void testVectorAddition() {
-
-        final int size = 64;
+        final int size = 8192;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var array = S32Array.create(accelerator, size);
+        var arrayA = S32Array.create(accelerator, size);
+        var arrayB = S32Array.create(accelerator, size);
+        var arrayC = S32Array.create(accelerator, size);
 
         // Initialize array
-        for (int i = 0; i < array.length(); i++) {
-            array.array(i, i);
-        }
+        arrayA.fill(i -> i);
+        arrayB.fill(i -> 100 + i);
 
-        // Blocking call
-        accelerator.compute(cc -> TestArrays.square(cc, array));
+        accelerator.compute(cc ->
+                TestArrays.vectorAdd(cc, arrayA, arrayB, arrayC));
 
         S32Array test = S32Array.create(accelerator, size);
 
         for (int i = 0; i < test.length(); i++) {
-            test.array(i, squareit(i));
+            test.array(i, arrayA.array(i) + arrayB.array(i));
         }
 
         for (int i = 0; i < test.length(); i++) {
-            HatAsserts.assertEquals(test.array(i), array.array(i));
+            HatAsserts.assertEquals(test.array(i), arrayC.array(i));
+        }
+    }
+
+    @HatTest
+    public static void testVectorSaxpy() {
+        final int size = 8192;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var arrayA = F32Array.create(accelerator, size);
+        var arrayB = F32Array.create(accelerator, size);
+        var arrayC = F32Array.create(accelerator, size);
+
+        // Initialize array
+        Random r = new Random(71);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i, r.nextFloat());
+            arrayB.array(i, r.nextFloat());
+        }
+
+        var alpha = 0.2f;
+        accelerator.compute(cc ->
+                TestArrays.computeSaxpy(cc, arrayA, arrayB, arrayC, alpha));
+
+        F32Array test = F32Array.create(accelerator, size);
+
+        for (int i = 0; i < test.length(); i++) {
+            test.array(i, alpha * arrayA.array(i) + arrayB.array(i));
+        }
+
+        for (int i = 0; i < test.length(); i++) {
+            HatAsserts.assertEquals(test.array(i), arrayC.array(i), 0.01f);
         }
     }
 

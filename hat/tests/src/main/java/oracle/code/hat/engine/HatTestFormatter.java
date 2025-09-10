@@ -32,9 +32,8 @@ public class HatTestFormatter {
 
     public static void testing(StringBuilder builder, String methodName) {
         builder.append(Colours.BLUE)
-                .append("Testing: #")
-                .append(methodName)
-                .append("\t ................... ")
+                .append(String.format("Testing: #%-20s", methodName))
+                .append(String.format("%-15s", "..................... "))
                 .append(Colours.RESET);
     }
 
@@ -48,6 +47,23 @@ public class HatTestFormatter {
     public static void fail(StringBuilder builder) {
         builder.append(Colours.RED)
                 .append("[fail]")
+                .append(Colours.RESET)
+                .append("\n");;
+    }
+
+    public static void failWithReason(StringBuilder builder, String reason) {
+        builder.append(Colours.RED)
+                .append("[fail]")
+                .append(Colours.YELLOW)
+                .append(" Reason: ")
+                .append(reason)
+                .append(Colours.RESET)
+                .append("\n");;
+    }
+
+    public static void illegal(StringBuilder builder) {
+        builder.append(Colours.YELLOW)
+                .append("[illegal]")
                 .append(Colours.RESET)
                 .append("\n");;
     }

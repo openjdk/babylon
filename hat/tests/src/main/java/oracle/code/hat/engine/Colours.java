@@ -25,7 +25,6 @@
 package oracle.code.hat.engine;
 
 public class Colours {
-
     public static String RED = "\u001b[31m";
     public static String GREEN = "\u001b[32m";
     public static String BLUE = "\u001b[34m";
