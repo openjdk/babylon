@@ -197,15 +197,13 @@ public class BufferTagger {
         } else if (op.operands().getFirst() instanceof Block.Parameter param) {
             return param;
         }
-        Value val = op.operands().getFirst();
-        while (!(val instanceof Block.Parameter)) {
-            Op root = ((Op.Result) val).op();
-            if (root.operands().isEmpty()) { // if the "root op" is an invoke
-                return root.result();
+        while (op.operands().getFirst() instanceof Op.Result r) {
+            op = r.op();
+            if (op.operands().isEmpty()) { // if the "root op" is an invoke
+                return op.result();
             }
-            val = root.operands().getFirst();
         }
-        return val;
+        return op.operands().getFirst();
     }
 
     // retrieves accessType based on return value of InvokeOp

@@ -36,6 +36,7 @@ import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.List;
 
 import static hat.buffer.ArgArray.Arg.Value.Buf.UNKNOWN_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
@@ -291,7 +292,8 @@ public interface ArgArray extends Buffer {
 
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
         Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.getMethod().getParameterAnnotations();
-        ArrayList<BufferTagger.AccessType> bufferAccessList = kernelCallGraph.bufferAccessList;
+        List<BufferTagger.AccessType> bufferAccessList = kernelCallGraph.bufferAccessList;
+        boolean bufferTagging = Boolean.getBoolean("bufferTagging");
 
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
@@ -329,7 +331,7 @@ public interface ArgArray extends Buffer {
                     buf.bytes(segment.byteSize());
                     buf.access(accessByte);
 
-                    assert bufferAccessList.get(i).value == accessByte;
+                    if (bufferTagging) assert bufferAccessList.get(i).value == accessByte;
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }
