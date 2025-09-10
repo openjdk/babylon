@@ -43,7 +43,9 @@ import oracle.code.hat.engine.HatAsserts;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-public class TestMatrices {
+public class TestMatMul {
+
+    private static final int SIZE = 256;
 
     @CodeReflection
     public static void matrixMultiplyKernel2D(@MappableIface.RO KernelContext kc, @MappableIface.RO F32Array matrixA, @MappableIface.RO F32Array matrixB, @MappableIface.RW F32Array matrixC, int size) {
@@ -230,7 +232,7 @@ public class TestMatrices {
         var accelerator = new Accelerator(lookup, Backend.FIRST);
         System.out.println(accelerator);
 
-        final int size = 1024;
+        final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);
         var matrixB = F32Array.create(accelerator, size * size);
 
@@ -247,7 +249,7 @@ public class TestMatrices {
         }
 
         accelerator.compute(cc ->
-                TestMatrices.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
+                TestMatMul.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
 
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
@@ -265,7 +267,7 @@ public class TestMatrices {
         var accelerator = new Accelerator(lookup, Backend.FIRST);
         System.out.println(accelerator);
 
-        final int size = 1024;
+        final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);
         var matrixB = F32Array.create(accelerator, size * size);
 
@@ -282,7 +284,7 @@ public class TestMatrices {
         }
 
         accelerator.compute(cc ->
-                TestMatrices.matrixMultiply1DWithFunctionCalls(cc, matrixA, matrixB, matrixC, size));
+                TestMatMul.matrixMultiply1DWithFunctionCalls(cc, matrixA, matrixB, matrixC, size));
 
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
@@ -301,7 +303,7 @@ public class TestMatrices {
         var accelerator = new Accelerator(lookup, Backend.FIRST);
         System.out.println(accelerator);
 
-        final int size = 1024;
+        final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);
         var matrixB = F32Array.create(accelerator, size * size);
 
@@ -318,7 +320,7 @@ public class TestMatrices {
         }
 
         accelerator.compute(cc ->
-                TestMatrices.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
+                TestMatMul.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
 
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
@@ -336,7 +338,7 @@ public class TestMatrices {
         var accelerator = new Accelerator(lookup, Backend.FIRST);
         System.out.println(accelerator);
 
-        final int size = 1024;
+        final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);
         var matrixB = F32Array.create(accelerator, size * size);
 
@@ -353,7 +355,7 @@ public class TestMatrices {
         }
 
         accelerator.compute(cc ->
-                TestMatrices.matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
+                TestMatMul.matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
 
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
@@ -371,7 +373,7 @@ public class TestMatrices {
         var accelerator = new Accelerator(lookup, Backend.FIRST);
         System.out.println(accelerator);
 
-        final int size = 1024;
+        final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);
         var matrixB = F32Array.create(accelerator, size * size);
 
@@ -388,7 +390,7 @@ public class TestMatrices {
         }
 
         accelerator.compute(cc ->
-                TestMatrices.matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
+                TestMatMul.matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
 
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
