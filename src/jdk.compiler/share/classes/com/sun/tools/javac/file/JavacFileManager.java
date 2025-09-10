@@ -1168,11 +1168,20 @@ public class JavacFileManager extends BaseFileManager implements StandardJavaFil
             Collection<Path> paths = locations.getLocation(location);
             ModuleFinder finder = ModuleFinder.of(paths.toArray(new Path[paths.size()]));
             ModuleLayer bootLayer = ModuleLayer.boot();
-            Configuration cf = bootLayer.configuration().resolveAndBind(ModuleFinder.of(), finder, Collections.emptySet());
-            ModuleLayer layer = bootLayer.defineModulesWithOneLoader(cf, ClassLoader.getSystemClassLoader());
+            ModuleLayer augmentedModuleLayer;
+            ClassLoader parentCL;
+            if (CodeReflectionSupport.CODE_LAYER != null) {
+                // create a layer whose parent is Babylon's code layer
+                augmentedModuleLayer = CodeReflectionSupport.CODE_LAYER;
+                parentCL = CodeReflectionSupport.CODE_LAYER.findLoader("jdk.incubator.code");
+            } else {
+                augmentedModuleLayer = bootLayer;
+                parentCL = ClassLoader.getSystemClassLoader();
+            }
+            Configuration cf = augmentedModuleLayer.configuration()
+                    .resolveAndBind(ModuleFinder.of(), finder, Collections.emptySet());
+            ModuleLayer layer = augmentedModuleLayer.defineModulesWithOneLoader(cf, parentCL);
             return ServiceLoader.load(layer, service);
-        } else if (CodeReflectionSupport.CODE_LAYER != null) {
-            return ServiceLoader.load(CodeReflectionSupport.CODE_LAYER, service);
         } else {
             return ServiceLoader.load(service, getClassLoader(location));
         }

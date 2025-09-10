@@ -63,10 +63,10 @@ public class CodeReflectionProcessor extends AbstractProcessor {
         }
 
         void processMethodModel(ExecutableElement element, FuncOp funcOp) {
-            funcOp.traverse(null, (acc, ce) -> processOp(element, ce));
+            funcOp.elements().forEach(ce -> processOp(element, ce));
         }
 
-        Void processOp(Element element, CodeElement<?, ?> codeElement) {
+        void processOp(Element element, CodeElement<?, ?> codeElement) {
             switch (codeElement) {
                 case InvokeOp invokeOp -> {
                     var desc = invokeOp.invokeDescriptor();
@@ -91,7 +91,6 @@ public class CodeReflectionProcessor extends AbstractProcessor {
                     // do nothing
                 }
             }
-            return null;
         }
     }
 

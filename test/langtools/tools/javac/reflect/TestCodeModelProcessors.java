@@ -77,11 +77,8 @@ public class TestCodeModelProcessors extends TestRunner {
                                     var processorClass = TestProcessor.class;
                                     var testMethod = processorClass.getDeclaredMethod("test");
                                     var op = Op.ofMethod(testMethod);
-                                    if (!op.isPresent()) {
-                                        throw new AssertionError("BAD");
-                                    } else {
-                                        test();
-                                    }
+                                    op.get(); // make sure that works
+                                    test();
                                 } catch (Throwable ex) {
                                     throw new AssertionError(ex);
                                 }
@@ -106,6 +103,7 @@ public class TestCodeModelProcessors extends TestRunner {
                               requires jdk.compiler;
                               requires jdk.incubator.code;
                               provides javax.annotation.processing.Processor with p.TestProcessor;
+                              opens p to jdk.incubator.code;
                           }
                           """);
 
@@ -146,29 +144,36 @@ public class TestCodeModelProcessors extends TestRunner {
                         }
                         """);
 
-        runTests(m -> new Object[] { Path.of(m.getName()) });
+        runTests(m -> new Object[] { Path.of(m.getName()), ProcessorOptions.EXPLICIT });
+        runTests(m -> new Object[] { Path.of(m.getName()), ProcessorOptions.IMPLICIT });
+    }
+
+    record ProcessorOptions(String first, String second) {
+        static final ProcessorOptions IMPLICIT = new ProcessorOptions("-proc:full", "-proc:full");
+        static final ProcessorOptions EXPLICIT = new ProcessorOptions("-processor", "p.TestProcessor");
     }
 
     @Test
-    public void testClassPath(Path base) throws Exception {
-        List<String> stdout = new JavacTask(tb)
+    public void testClassPath(Path base, ProcessorOptions processorOptions) throws Exception {
+        var task = new JavacTask(tb)
                 .classpath(classes)
-                .options("--processor-path", classes.toString())
-                .options("-processor", "p.TestProcessor")
-                .options("--add-modules", "jdk.incubator.code")
+                .options("--processor-path", classes.toString(),
+                         processorOptions.first, processorOptions.second,
+                         "--add-modules", "jdk.incubator.code")
                 .outdir(Files.createDirectories(base.resolve("out")))
                 .files(tb.findJavaFiles(Path.of("hw")))
                 .run()
-                .writeAll()
-                .getOutputLines(OutputKind.STDOUT);
+                .writeAll();
+        var stdout = task.getOutputLines(OutputKind.STDOUT);
         tb.checkEqual(stdout, List.of("SUCCESS"));
     }
 
     @Test
-    public void testClassPathJar(Path base) throws Exception {
+    public void testClassPathJar(Path base, ProcessorOptions processorOptions) throws Exception {
         List<String> stdout = new JavacTask(tb)
                 .classpath(pluginJar)
-                .options("--add-modules", "jdk.incubator.code")
+                .options(processorOptions.first, processorOptions.second,
+                        "--add-modules", "jdk.incubator.code")
                 .outdir(Files.createDirectories(base.resolve("out")))
                 .files(tb.findJavaFiles(Path.of("hw")))
                 .run()
@@ -178,10 +183,11 @@ public class TestCodeModelProcessors extends TestRunner {
     }
 
     @Test
-    public void testModulePath(Path base) throws IOException {
+    public void testModulePath(Path base, ProcessorOptions processorOptions) throws IOException {
         List<String> stdout = new JavacTask(tb)
-                .options("--processor-module-path", mclasses.toString())
-                .options("--add-modules", "jdk.incubator.code")
+                .options("--processor-module-path", mclasses.toString(),
+                        processorOptions.first, processorOptions.second,
+                        "--add-modules", "jdk.incubator.code")
                 .outdir(Files.createDirectories(base.resolve("out")))
                 .files(tb.findJavaFiles(Path.of("hw")))
                 .run()
