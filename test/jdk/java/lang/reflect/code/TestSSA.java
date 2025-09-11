@@ -236,6 +236,29 @@ public class TestSSA {
     }
 
     @CodeReflection
+    static int violaJonesTwo(int x, int maxX, int length, int integral) {
+        int scale = 0, scale_extra = 1;
+        scale++;
+        int j = 9;
+        while (x > scale && scale < length) {
+            j = 1;
+        }
+        for (int i = 0; i < integral; i++) {
+            scale--;
+        }
+        return scale + scale_extra + j;
+    }
+
+    @Test
+    public void testViolaJonesTwo() {
+        CoreOp.FuncOp f = getFuncOp("violaJonesTwo");
+
+        CoreOp.FuncOp lf = generate(f);
+
+        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 1, 0, 0), violaJonesTwo(0, 1, 0, 0));
+    }
+
+    @CodeReflection
     static boolean binarySearch(int[] arr, int target) {
         int l = 0;
         int r = arr.length - 1;

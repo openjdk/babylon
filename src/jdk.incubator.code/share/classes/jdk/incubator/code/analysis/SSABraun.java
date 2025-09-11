@@ -197,7 +197,7 @@ final class SSABraun implements OpTransformer {
         }
         for (Phi user : phiUsers) {
             Val res = tryRemoveTrivialPhi(user);
-            if (same.equals(user)) {
+            if (same == user) {
                 same = res;
             }
         }
