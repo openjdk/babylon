@@ -1410,7 +1410,7 @@ public class Script {
         if (javaBuilder.justShowCommandline) {
             println(result.opts.spaceSeparated());
             result.ok = false;
-        }else {
+        } else {
             try {
                 var processBuilder = new ProcessBuilder().inheritIO().command(result.opts.strings);
                 var process = processBuilder.start();
