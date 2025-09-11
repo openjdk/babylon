@@ -203,6 +203,9 @@ public class DialectFMAOp {
         System.out.println("Model with new OpNodes for Dialect: ");
         System.out.println(dialectModel.toText());
 
+        // 12. This fails with a NPE due to "Cannot invoke "jdk.incubator.code.TypeElement.equals(Object)" because the return value of "jdk.incubator.code.Op$Result.type()" is null"
+        System.out.println(SSA.transform(dialectModel).toText());
+
         // Currently, we can't interpreter a code model with dialect ops
         //var result = Interpreter.invoke(MethodHandles.lookup(), dialectModel,  10, 20);
         //System.out.println("Result: ");
