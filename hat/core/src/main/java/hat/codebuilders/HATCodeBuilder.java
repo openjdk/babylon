@@ -116,11 +116,11 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     }
 
     protected T hashIfdef(String value) {
-        return hashIfdefKeyword().space().append(value).nl();
+        return hashIfdefKeyword().space().constant(value).nl();
     }
 
     protected T hashIfndef(String value) {
-        return hashIfndefKeyword().space().append(value).nl();
+        return hashIfndefKeyword().space().constant(value).nl();
     }
 
     public T hashIfdef(String value, Consumer<T> consumer) {
@@ -145,7 +145,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     public T hashDefine(String name, String... values) {
         hashDefineKeyword().space().identifier(name);
         for (String value : values) {
-            space().append(value);
+            space().constant(value);
         }
         return nl();
     }
@@ -153,7 +153,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     public T pragma(String name, String... values) {
         hash().pragmaKeyword().space().identifier(name);
         for (String value : values) {
-            space().append(value);
+            space().constant(value);
         }
         return nl();
     }
