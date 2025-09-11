@@ -49,14 +49,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class OpTk {
@@ -85,8 +82,8 @@ public class OpTk {
     }
 
 
-    public static Stream<Op> loopRootOpStream(Op.Loop op) {
-        var list = new ArrayList<>(rootsExcludingVarFuncDeclarationsAndYields( op.loopBody().entryBlock()).toList());
+    public static Stream<Op> statements(Op.Loop op) {
+        var list = new ArrayList<>(statements( op.loopBody().entryBlock()).toList());
         if (list.getLast() instanceof JavaOp.ContinueOp) {
             list.removeLast();
         }
@@ -220,20 +217,17 @@ public class OpTk {
         return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
     }
 
-    public static Stream<Op> rootOpStream( CoreOp.FuncOp op) {
-        return rootsExcludingVarFuncDeclarationsAndYields(op.bodies().getFirst().entryBlock());
-    }
+   // public static Stream<Op> statements(CoreOp.FuncOp op) {
+     //   return statements(op.bodies().getFirst().entryBlock());
+   // }
 
-
-    static Predicate<Op> rootFilter = op->
-            (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
-              || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
-            )
-            && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
-            && !(op instanceof CoreOp.YieldOp);
-
-    static public Stream<Op> rootsExcludingVarFuncDeclarationsAndYields(Block block) {
-        return block.ops().stream().filter(rootFilter);
+    static public Stream<Op> statements(Block block) {
+        return block.ops().stream().filter(op->
+                (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
+                        || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
+                )
+                        && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
+                        && !(op instanceof CoreOp.YieldOp));
     }
 
     public static JavaType javaRefType(JavaOp.InvokeOp op) {
@@ -466,18 +460,6 @@ public class OpTk {
         return !varOp.isUninitialized()
                 && varOp.operands().getFirst() instanceof Block.Parameter parameter
                 && parameter.invokableOperation() instanceof CoreOp.FuncOp funcOp ? new ParamVar(varOp, parameter, funcOp) : null;
-    }
-
-    public static boolean isStructural(Op op){
-        return switch (op){
-            case JavaOp.ForOp _ -> true;
-            case JavaOp.WhileOp _ -> true;
-            case JavaOp.IfOp _ -> true;
-            case JavaOp.LabeledOp _ ->true;
-            case JavaOp.YieldOp _ ->true;
-            case CoreOp.TupleOp _ ->true;
-            default -> false;
-        };
     }
 
     public static boolean returnIsVoid(JavaOp.InvokeOp invokeOp){

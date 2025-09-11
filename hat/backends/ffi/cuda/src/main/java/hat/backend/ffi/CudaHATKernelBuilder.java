@@ -34,15 +34,10 @@ import jdk.incubator.code.dialect.java.JavaType;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
-    public CudaHATKernelBuilder(NDRange ndRange) {
-        super(ndRange);
-    }
 
     @Override
     public CudaHATKernelBuilder defines() {
-        return
-               // .hashDefine("NDRANGE_CUDA") // I dont think we need this
-               hashDefine("__global");  // nor this
+        return hashDefine("__global");  // nor this
     }
 
     @Override
@@ -61,7 +56,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder globalId(int id) {
-        return blockId(id).asterisk().localSize(id).plus().localId(id);
+        return paren(_->blockId(id).asterisk().localSize(id).plus().localId(id));
     }
 
     @Override

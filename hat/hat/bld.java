@@ -143,6 +143,7 @@ void main(String[] args) {
     class Artifacts{
         static Script.MavenStyleProject core;
         static Script.MavenStyleProject tools;
+        static Script.MavenStyleProject tests;
         static Script.MavenStyleProject example_shared;
         static Script.MavenStyleProject example_nbody;
         static Script.MavenStyleProject backend_ffi_shared;
@@ -173,6 +174,9 @@ void main(String[] args) {
             dir.existingDir("tools"), "hat-tools-1.0.jar", Artifacts.core
     );
 
+    Artifacts.tests = buildDir.mavenStyleBuild(
+            dir.existingDir("tests"), "hat-tests-1.0.jar", Artifacts.core
+    );
 
     var extractionsDir = dir.existingDir("extractions");
 

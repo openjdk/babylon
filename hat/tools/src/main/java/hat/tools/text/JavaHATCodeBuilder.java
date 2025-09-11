@@ -28,12 +28,9 @@ import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-
-import java.lang.invoke.MethodHandles;
 
 public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCodeBuilderWithContext<T> {
     @Override
@@ -93,18 +90,16 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
         return self();
     }
 
-    public T compute(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        ScopedCodeBuilderContext buildContext = new ScopedCodeBuilderContext(lookup,funcOp);
-        typeName(funcOp.resultType().toString()).space().funcName(funcOp);
-        parenNlIndented(_ ->
-                separated(buildContext.paramTable.list(),(_)->commaSpace(), (info) -> type(buildContext,(JavaType) info.parameter.type()).space().varName(info.varOp))
-        );
-        braceNlIndented(_ ->
-                OpTk.rootOpStream(funcOp)
-                        .forEach(root ->
-                                recurse(buildContext, root).semicolonIf(!OpTk.isStructural(root)).nl()
-                        )
-        );
+
+    public T createJava(ScopedCodeBuilderContext buildContext) {
+        buildContext.funcScope(buildContext.funcOp, () -> {
+            typeName(buildContext.funcOp.resultType().toString()).space().funcName(buildContext.funcOp);
+            parenNlIndented(_ -> separated(buildContext.paramTable.list(), (_) -> comma().nl(),
+                    param -> declareParam(buildContext, param)));
+            braceNlIndented(_ -> separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_) -> nl(),
+                    statement -> statement(buildContext, statement))
+            );
+        });
         return self();
     }
 
