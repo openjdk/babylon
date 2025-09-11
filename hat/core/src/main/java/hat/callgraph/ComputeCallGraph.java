@@ -229,7 +229,6 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
-        System.out.println("Filtering calls for method " + f.funcName() + " in " + methodRef);
         if (entrypoint.method.getDeclaringClass().equals(OpTk.javaRefClassOrThrow(computeContext.accelerator.lookup,invokeOp))
                 && isKernelDispatch(computeContext.accelerator.lookup,method, f)) {
             kernelCallGraphMap.computeIfAbsent(methodRef, _ ->

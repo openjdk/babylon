@@ -587,30 +587,14 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                 }
             }
         } else {
-            // Detect well-known constructs
-
-            if (OpTk.funcName(invokeOp).equals("barrier")) { // TODO:  only on kernel context?
-                List<Value> operands = invokeOp.operands(); // map to Result and use stream filter and  find
-                for (Value value : operands) {
-                    if (value instanceof Op.Result instanceResult) {
-                        FunctionType functionType = instanceResult.op().opType();
-                        // if it is a barrier from the kernel context, then we generate
-                        // a local barrier.
-                        if (functionType.returnType().toString().equals("hat.KernelContext")) {  // OpTk.isAssignable?
-                            syncBlockThreads();
+            // General case
+            funcName(invokeOp).paren(_ ->
+                    separated(invokeOp.operands(), ($) -> $.comma().space(), (op) -> {
+                        if (op instanceof Op.Result result) {
+                            recurse(buildContext, result.op());
                         }
-                    }
-                }
-            } else {
-                // General case
-                funcName(invokeOp).paren(_ ->
-                        separated(invokeOp.operands(), ($)->$.comma().space(), (op) -> {
-                            if (op instanceof Op.Result result) {
-                                recurse(buildContext, result.op());
-                            }
-                        })
-                );
-            }
+                    })
+            );
         }
         return self();
     }

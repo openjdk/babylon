@@ -32,9 +32,7 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public class HatOP extends Op {
-
-    private TypeElement typeElement;
+public abstract class HatOP extends Op {
 
     public HatOP(String name, List<Value> operands) {
         super(name, operands);
@@ -42,20 +40,5 @@ public class HatOP extends Op {
 
     protected HatOP(Op that, CopyContext cc) {
         super(that, cc);
-    }
-
-    protected HatOP(Op that, CopyContext cc, TypeElement typeElement) {
-        super(that, cc);
-        this.typeElement = typeElement;
-    }
-
-    @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new  HatOP(this, copyContext);
-    }
-
-    @Override
-    public TypeElement resultType() {
-        return typeElement;
     }
 }

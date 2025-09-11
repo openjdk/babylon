@@ -153,7 +153,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
-        System.out.println(">>>>>> Filtering calls for " + f.funcName());
         if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
             bufferAccessToMethodCallMap.computeIfAbsent(methodRef, _ ->
                     new KernelReachableUnresolvedIfaceMappedMethodCall(this, methodRef, method)

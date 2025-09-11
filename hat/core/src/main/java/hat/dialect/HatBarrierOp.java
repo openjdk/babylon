@@ -39,15 +39,13 @@ public class HatBarrierOp extends HatOP {
 
     private static final String NAME = "hat.sync.barrier";
     public static final String INTRINSIC_NAME = "barrier";
-    private TypeElement typeElement;
 
     public HatBarrierOp(List<Value> operands) {
         super(NAME, operands);
-        this.typeElement = JavaType.VOID;
     }
 
-    public HatBarrierOp(Op that, CopyContext cc) {
-        super(that, cc);
+    public HatBarrierOp(HatBarrierOp hatBarrierOp, CopyContext copyContext) {
+        super(hatBarrierOp, copyContext);
     }
 
     @Override
@@ -57,7 +55,7 @@ public class HatBarrierOp extends HatOP {
 
     @Override
     public TypeElement resultType() {
-        return typeElement;
+        return JavaType.VOID;
     }
 
     public Map<String, Object> externalize() {
