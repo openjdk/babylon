@@ -45,7 +45,7 @@ package hat.codebuilders;
  */
 
 
-public abstract class TextBuilder<T extends TextBuilder<T>> implements TextRenderer<T> {
+public abstract class TextBuilder<T extends TextBuilder<T>> {
 
 
     public static class State {
@@ -85,9 +85,9 @@ public abstract class TextBuilder<T extends TextBuilder<T>> implements TextRende
         }
     }
 
-    State state = new State();
+    private State state = new State();
 
-    public T reset() {
+    public T clear() {
         state = new State();
         return self();
     }
@@ -96,11 +96,7 @@ public abstract class TextBuilder<T extends TextBuilder<T>> implements TextRende
         return toString();
     }
 
-    public String getTextAndReset() {
-        String text = getText();
-        reset();
-        return text;
-    }
+
 
     @SuppressWarnings("unchecked")
     public T self() {
@@ -129,61 +125,22 @@ public abstract class TextBuilder<T extends TextBuilder<T>> implements TextRende
         return emitText(text);
     }
 
-    public T indent() {
-        state.indentation();
-        return self();
-    }
-
      T emitText(String text) {
         state.indentIfNeededAndAppend(text);
         return self();
     }
 
-    @Override
-    public final T comment(String text) {
-        return emitText(text);
-    }
-    @Override
-    public T identifier(String text) {
-        return emitText(text);
-    }
-
-    @Override
-    public T reserved(String text) {
-        return emitText(text);
-    }
-
-    @Override
-    public T label(String text) {
-        return emitText(text);
-    }
 
     public T identifier(String text, int  padWidth) {
         return emitText(text).emitText(" ".repeat(padWidth-text.length()));
     }
+
+
     public T intValue(int i) {
         return emitText(Integer.toString(i));
     }
     public T intHexValue(int i) {
         return emitText("0x").emitText(Integer.toHexString(i));
-    }
-
-    @Override
-    public final T symbol(String text) {
-        return emitText(text);
-    }
-    @Override
-    public final T typeName(String text) {
-        return emitText(text);
-    }
-    @Override
-    public final T keyword(String text) {
-        return emitText(text);
-    }
-
-    @Override
-    public final T literal(String text) {
-        return emitText(text);
     }
 
     public final T literal(int i) {
@@ -203,23 +160,17 @@ public abstract class TextBuilder<T extends TextBuilder<T>> implements TextRende
         state.decIndent();
         return self();
     }
-
-    @Override
     public T nl() {
         emitText("\n");
         state.nl();
-
         return self();
     }
-
-    @Override
-    public T space() {
-         return emitText(" ");
-    }
-
     @Override
     public final String toString() {
         return state.toString();
     }
+
+
+
 
 }

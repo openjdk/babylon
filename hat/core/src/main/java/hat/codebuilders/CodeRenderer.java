@@ -24,7 +24,7 @@
  */
 package hat.codebuilders;
 
-public interface TextRenderer<T extends TextBuilder<T>>{
+public interface CodeRenderer<T extends CodeBuilder<T>>{
     T identifier(String text);
     T symbol(String text);
     T typeName(String text);
