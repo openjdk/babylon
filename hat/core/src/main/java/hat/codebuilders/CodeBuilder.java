@@ -24,15 +24,13 @@
  */
 package hat.codebuilders;
 
-import hat.optools.OpTk;
 import hat.util.StreamMutable;
-import jdk.incubator.code.Op;
 
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
- * Extends the base TextBuilder to add common constructs/keywords for generating code.
+ * Extends the base TextBuilder to add common constructs/keywords for generating C99/Java style code.
  *
  * @author Gary Frost
  */
@@ -41,11 +39,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public T semicolon() {
         return symbol(";");
     }
-
-    public T semicolonNl() {
-        return semicolon().nl();
-    }
-
 
     public T comma() {
         return symbol(",");
@@ -86,16 +79,21 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public T lineComment(String line) {
-        return symbol("//").space().commented(line).nl();
+        return comment("//").space().comment(line).nl();
+    }
+
+    @Override
+    public T constant(String text ){
+       return emitText(text);
     }
 
 
     public T blockComment(String block) {
-        return symbol("/*").nl().commented(block).nl().symbol("*/").nl();
+        return comment("/*").nl().comment(block).nl().symbol("*/").nl();
     }
 
     public T blockInlineComment(String block) {
-        return symbol("/*").space().commented(block).space().symbol("*/").space();
+        return comment("/*").space().comment(block).space().comment("*/");
     }
 
     public T newKeyword() {
@@ -398,7 +396,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public T squote(String txt) {
-        return osquote().append(txt).csquote();
+        return osquote().escaped(txt).csquote();
     }
 
     public T rarrow() {
@@ -460,11 +458,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return self();
     }
     public final T intType() {
-        return append("int");
+        return typeName("int");
     }
 
     public final T intConstZero() {
-        return append("0");
+        return constant("0");
     }
 
 

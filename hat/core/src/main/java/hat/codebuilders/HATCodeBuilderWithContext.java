@@ -193,7 +193,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T lambdaOp(ScopedCodeBuilderContext buildContext, JavaOp.LambdaOp lambdaOp) {
-        return commented("/*LAMBDA*/");
+        return comment("/*LAMBDA*/");
     }
 
     @Override
@@ -202,7 +202,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             if (operand instanceof Op.Result result) {
                 recurse(buildContext, result.op());
             } else {
-                commented("/*nothing to tuple*/");
+                comment("/*nothing to tuple*/");
             }
         });
         return self();

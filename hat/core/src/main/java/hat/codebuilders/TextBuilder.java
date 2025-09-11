@@ -45,13 +45,44 @@ package hat.codebuilders;
  */
 
 
-public abstract class TextBuilder<T extends TextBuilder<T>> {
+public abstract class TextBuilder<T extends TextBuilder<T>> implements TextRenderer<T> {
+
+
     public static class State {
         private final StringBuilder stringBuilder = new StringBuilder();
         final public boolean indenting = true;
         private int indent = 0;
         private final String indentation = "    ";
         private boolean newLined = true;
+        public void indentation() {
+            for (int i = 0; i < indent; i++) {
+                stringBuilder.append(indentation);
+            }
+        }
+
+        public void indentIfNeededAndAppend(String text) {
+            if (indenting && newLined) {
+                indentation();
+            }
+            newLined = false;
+            stringBuilder.append(text);
+        }
+
+        public void incIndent() {
+            indent++;
+        }
+        public void decIndent() {
+            indent--;
+        }
+
+        public void nl() {
+            newLined = true;
+        }
+
+        @Override
+        public String toString(){
+            return stringBuilder.toString();
+        }
     }
 
     State state = new State();
@@ -95,32 +126,38 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
         for (int i = 0; i < text.length(); i++) {
             buf.append(escape(text.charAt(i)));
         }
-        return append(text);
+        return emitText(text);
     }
 
     public T indent() {
-        for (int i = 0; i < state.indent; i++) {
-            state.stringBuilder.append(state.indentation);
-        }
+        state.indentation();
         return self();
     }
 
-    final protected T emitText(String text) {
-        if (state.indenting && state.newLined) {
-            indent();
-        }
-        state.newLined = false;
-        state.stringBuilder.append(text);
+     T emitText(String text) {
+        state.indentIfNeededAndAppend(text);
         return self();
     }
 
-    public final T commented(String text) {
+    @Override
+    public final T comment(String text) {
         return emitText(text);
     }
-
+    @Override
     public T identifier(String text) {
         return emitText(text);
     }
+
+    @Override
+    public T reserved(String text) {
+        return emitText(text);
+    }
+
+    @Override
+    public T label(String text) {
+        return emitText(text);
+    }
+
     public T identifier(String text, int  padWidth) {
         return emitText(text).emitText(" ".repeat(padWidth-text.length()));
     }
@@ -131,22 +168,20 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
         return emitText("0x").emitText(Integer.toHexString(i));
     }
 
-    public T append(String text) {
-        return emitText(text);
-    }
-
+    @Override
     public final T symbol(String text) {
         return emitText(text);
     }
-
+    @Override
     public final T typeName(String text) {
         return emitText(text);
     }
-
+    @Override
     public final T keyword(String text) {
         return emitText(text);
     }
 
+    @Override
     public final T literal(String text) {
         return emitText(text);
     }
@@ -160,43 +195,31 @@ public abstract class TextBuilder<T extends TextBuilder<T>> {
     }
 
     public T in() {
-        state.indent++;
+        state.incIndent();
         return self();
     }
 
     public T out() {
-        state.indent--;
+        state.decIndent();
         return self();
     }
 
-    final protected T emitNl() {
-        state.stringBuilder.append("\n");
-        state.newLined = true;
-        return self();
-    }
-
+    @Override
     public T nl() {
-        return emitNl();
+        emitText("\n");
+        state.nl();
+
+        return self();
     }
 
-
+    @Override
     public T space() {
-        return emitSpace();
-    }
-
-    final protected T emitSpace() {
-        return emitText(" ");
+         return emitText(" ");
     }
 
     @Override
     public final String toString() {
-        return state.stringBuilder.toString();
+        return state.toString();
     }
 
-    public static class ConcreteTextBuilder extends TextBuilder<ConcreteTextBuilder> {
-    }
-
-    public static ConcreteTextBuilder concreteTextBuilder() {
-        return new ConcreteTextBuilder();
-    }
 }
