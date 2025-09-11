@@ -34,7 +34,7 @@ import java.util.stream.Stream;
  *
  * @author Gary Frost
  */
-public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<T> {
+public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<T>  implements CodeRenderer<T> {
 
     public T semicolon() {
         return symbol(";");
@@ -495,4 +495,53 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T shortType() {
         return typeName("short");
     }
+
+
+    @Override
+    public final T comment(String text) {
+        return emitText(text);
+    }
+    @Override
+    public T identifier(String text) {
+        return emitText(text);
+    }
+
+    @Override
+    public T reserved(String text) {
+        return emitText(text);
+    }
+
+    @Override
+    public T label(String text) {
+        return emitText(text);
+    }
+
+    @Override
+    public final T symbol(String text) {
+        return emitText(text);
+    }
+    @Override
+    public final T typeName(String text) {
+        return emitText(text);
+    }
+    @Override
+    public final T keyword(String text) {
+        return emitText(text);
+    }
+
+    @Override
+    public final T literal(String text) {
+        return emitText(text);
+    }
+    @Override
+    public T nl() {
+      return super.nl();
+    }
+
+    @Override
+    public T space() {
+        return emitText(" ");
+    }
+
+
 }

@@ -32,9 +32,9 @@ import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 
 public class TestJavaHATCodeBuilder {
     public static class Compute {
@@ -75,12 +75,20 @@ public class TestJavaHATCodeBuilder {
     }
    public static void main(String[] args) throws NoSuchMethodException {
            var builder=  new JavaHATCodeBuilder();
-           builder.createJava(new ScopedCodeBuilderContext( MethodHandles.lookup(),Op.ofMethod(
-                Compute.class.getDeclaredMethod("mandel", KernelContext.class, S32Array.class,  S32Array2D.class, float.class, float.class,float.class)).get()
-           ));
-           builder.createJava(new ScopedCodeBuilderContext( MethodHandles.lookup(),Op.ofMethod(
-               Compute.class.getDeclaredMethod("compute", ComputeContext.class,  S32Array.class, S32Array2D.class,float.class, float.class,float.class)).get()
-          ));
+           CoreOp.FuncOp mandel =  Op.ofMethod(Compute.class.getDeclaredMethod("mandel",
+                       KernelContext.class, S32Array.class,  S32Array2D.class, float.class, float.class,float.class)).get();
+            CoreOp.FuncOp compute =  Op.ofMethod(Compute.class.getDeclaredMethod("compute",
+                    ComputeContext.class,  S32Array.class, S32Array2D.class,float.class, float.class,float.class)).get();
+
+            OpCodeBuilder.writeTo(System.out,mandel);
+            System.out.println();
+            System.out.println("----");
+            System.out.println(mandel.toText());
+
+       System.out.println();
+       System.out.println("----");
+           builder.createJava(new ScopedCodeBuilderContext( MethodHandles.lookup(),mandel));
+           builder.createJava(new ScopedCodeBuilderContext( MethodHandles.lookup(),compute));
            System.out.println(builder);
 
     }
