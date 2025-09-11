@@ -187,6 +187,33 @@ void main(String[] argv) {
                     .args(testClass)
                     .justShowCommandline(config.justShowCommandline));
         }
+
+        // Final report
+        String regex = "passed: (\\d+), failed: (\\d+)";
+        Pattern pattern = Pattern.compile(regex);
+        Stats stats = new Stats();
+
+        System.out.println("\n\n************************************************");
+        System.out.println("                 HAT Test Report ");
+        System.out.println("************************************************");
+        try {
+            List<String> lines = Files.readAllLines(file);
+            for (String line : lines) {
+                System.out.println(line);
+
+                Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) {
+                    int passed = Integer.parseInt(matcher.group(1));
+                    int fail = Integer.parseInt(matcher.group(2));
+                    stats.incrementPassed(passed);
+                    stats.incrementFailed(fail);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println(stats);
+
     } else {
         // A single command for a specific class/method
         Script.java(java -> java
@@ -203,30 +230,5 @@ void main(String[] argv) {
                 .args(config.appargs)
                 .justShowCommandline(config.justShowCommandline));
     }
-
-    String regex = "passed: (\\d+), failed: (\\d+)";
-    Pattern pattern = Pattern.compile(regex);
-    Stats stats = new Stats();
-
-    System.out.println("\n\n************************************************");
-    System.out.println("                 HAT Test Report ");
-    System.out.println("************************************************");
-    try {
-        List<String> lines = Files.readAllLines(file);
-        for (String line : lines) {
-            System.out.println(line);
-
-            Matcher matcher = pattern.matcher(line);
-            if (matcher.find()) {
-                int passed = Integer.parseInt(matcher.group(1));
-                int fail = Integer.parseInt(matcher.group(2));
-                stats.incrementPassed(passed);
-                stats.incrementFailed(fail);
-            }
-        }
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-    System.out.println(stats);
 
 }
