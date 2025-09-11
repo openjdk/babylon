@@ -29,6 +29,7 @@ import static java.lang.IO.println;
 class Config{
      boolean headless=false;
      boolean noModuleOp = false;
+     boolean bufferTagging = false;
      boolean verbose = false;
      boolean startOnFirstThread = false;
      boolean justShowCommandline = false;
@@ -73,6 +74,7 @@ class Config{
                 switch (args[arg]) {
                    case "headless" -> headless = true;
                    case "noModuleOp" -> noModuleOp = true;
+                   case "bufferTagging" -> bufferTagging = true;
                    case "verbose" -> verbose = true;
                    case "justShowCommandLine" -> justShowCommandline = true;
                    case "startOnFirstThread" -> startOnFirstThread = true;
@@ -181,6 +183,7 @@ void main(String[] argv) {
               .library_path(buildDir)
               .when(config.headless, Script.JavaBuilder::headless)
               .when(config.noModuleOp, Script.JavaBuilder::noModuleOp)
+              .when(config.bufferTagging, Script.JavaBuilder::bufferTagging)
               .when(config.startOnFirstThread, Script.JavaBuilder::start_on_first_thread)
               .class_path(config.classpath)
               .vmargs(config.vmargs)
