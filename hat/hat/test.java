@@ -25,6 +25,8 @@
 
 import static java.lang.IO.print;
 import static java.lang.IO.println;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class Config {
     boolean headless = false;
@@ -89,6 +91,29 @@ class Config {
     }
 }
 
+class Stats {
+    int passed = 0;
+    int failed = 0;
+    public void incrementPassed(int val) {
+        passed += val;
+    }
+    public void incrementFailed(int fail) {
+        failed += fail;
+    }
+
+    public int getPassed() {
+        return passed;
+    }
+    public int getFailed() {
+        return failed;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Global passed: %d, failed: %d, pass-rate: %.2f%%", passed, failed, ((float)(passed * 100 / (passed + failed))));
+    }
+}
+
 void main(String[] argv) {
     var usage = """
               usage:
@@ -128,6 +153,14 @@ void main(String[] argv) {
         }
     }
 
+    // Remove the previous report file:
+    Path file = Paths.get("test_report.txt");
+    try {
+        Files.deleteIfExists(file);
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+
     if (config.runSuite) {
 
         String[] suite = new String[] {
@@ -154,6 +187,33 @@ void main(String[] argv) {
                     .args(testClass)
                     .justShowCommandline(config.justShowCommandline));
         }
+
+        // Final report
+        String regex = "passed: (\\d+), failed: (\\d+)";
+        Pattern pattern = Pattern.compile(regex);
+        Stats stats = new Stats();
+
+        System.out.println("\n\n************************************************");
+        System.out.println("                 HAT Test Report ");
+        System.out.println("************************************************");
+        try {
+            List<String> lines = Files.readAllLines(file);
+            for (String line : lines) {
+                System.out.println(line);
+
+                Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) {
+                    int passed = Integer.parseInt(matcher.group(1));
+                    int fail = Integer.parseInt(matcher.group(2));
+                    stats.incrementPassed(passed);
+                    stats.incrementFailed(fail);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println(stats);
+
     } else {
         // A single command for a specific class/method
         Script.java(java -> java

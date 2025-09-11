@@ -26,6 +26,9 @@ package oracle.code.hat.engine;
 
 import oracle.code.hat.annotation.HatTest;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -35,6 +38,8 @@ import java.util.List;
 public class HatTestEngine {
 
     public static boolean DETAIL_ERROR_STACK_TRACE = false;
+
+    public static final String TEST_REPORT_FILE_NAME = "test_report.txt";
 
     private static class Stats {
         int passed = 0;
@@ -102,6 +107,17 @@ public class HatTestEngine {
         System.out.println();
     }
 
+    public static void dumpStats(StringBuilder builder, Stats stats) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(TEST_REPORT_FILE_NAME, true))){
+            writer.write(builder.toString());
+            writer.write(stats.toString());
+            writer.newLine();
+            writer.newLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void testClassEngine(String classNameToTest) {
         String filterMethod = null;
         if (classNameToTest.contains("#")) {
@@ -139,6 +155,7 @@ public class HatTestEngine {
                 testMethod(builder, method, stats, instance);
             }
             printStats(builder, stats);
+            dumpStats(builder, stats);
 
         } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException |
                  NoSuchMethodException e) {
