@@ -457,7 +457,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                 floatVal(Integer.toHexString(Float.floatToIntBits(Float.parseFloat(op.value().toString()))).toUpperCase());
             }
         } else {
-            append(op.value().toString());
+            constant(op.value().toString());
         }
     }
 
@@ -505,7 +505,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
                     st().dot().param().paramType(op.operands().get(i).type()).space().osbrace().param().intVal(i).csbrace().commaSpace().reg(op.operands().get(i)).ptxNl();
                 }
                 dot().param().space().paramType(op.resultType()).space().retVal().ptxNl();
-                call().uni().space().oparen().retVal().cparen().commaSpace().append(OpTk.methodOrThrow(MethodHandles.lookup(),op).getName()).commaSpace();
+                call().uni().space().oparen().retVal().cparen().commaSpace().identifier(OpTk.methodOrThrow(MethodHandles.lookup(),op).getName()).commaSpace();
                 final int[] counter = {0};
                 paren(_ ->
                         separated(op.operands(),(_)->commaSpace(),
@@ -574,7 +574,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public PTXHATKernelBuilder block(Block block) {
-        return append("block_").intVal(block.index());
+        return typeName("block_").intVal(block.index());
     }
 
     public PTXHATKernelBuilder fieldReg(Field ref) {
@@ -610,14 +610,14 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public PTXHATKernelBuilder resultReg(Op op, PTXRegister.Type type) {
-        return append(addReg(op.result(), type));
+        return identifier(addReg(op.result(), type));
     }
 
     public PTXHATKernelBuilder reg(Value val, PTXRegister.Type type) {
         if (varToRegMap.containsKey(val)) {
             return regName(getReg(val));
         } else {
-            return append(addReg(val, type));
+            return identifier(addReg(val, type));
         }
     }
 
@@ -667,14 +667,14 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     public PTXHATKernelBuilder resultType(TypeElement type, boolean signedResult) {
         PTXRegister.Type res = getResultType(type);
         if (signedResult && (res == PTXRegister.Type.U32)) return s32();
-        return dot().append(getResultType(type).getName());
+        return dot().typeName(getResultType(type).getName());
     }
 
     public PTXHATKernelBuilder paramType(TypeElement type) {
         PTXRegister.Type res = getResultType(type);
         if (res == PTXRegister.Type.U32) return b32();
         if (res == PTXRegister.Type.U64) return b64();
-        return dot().append(getResultType(type).getName());
+        return dot().typeName(getResultType(type).getName());
     }
 
     public PTXRegister.Type getResultType(TypeElement type) {
@@ -716,11 +716,11 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 */
     public PTXHATKernelBuilder address(String address) {
-        return osbrace().append(address).csbrace();
+        return osbrace().constant(address).csbrace();
     }
 
     public PTXHATKernelBuilder address(String address, int offset) {
-        osbrace().append(address);
+        osbrace().constant(address);
         if (offset == 0) {
             return csbrace();
         } else if (offset > 0) {
@@ -735,243 +735,243 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
 
 
     public PTXHATKernelBuilder param() {
-        return append("param");
+        return keyword("param");
     }
 
     public PTXHATKernelBuilder global() {
-        return dot().append("global");
+        return dot().keyword("global");
     }
 
     public PTXHATKernelBuilder rn() {
-        return dot().append("rn");
+        return dot().keyword("rn");
     }
 
     public PTXHATKernelBuilder rm() {
-        return dot().append("rm");
+        return dot().keyword("rm");
     }
 
     public PTXHATKernelBuilder rzi() {
-        return dot().append("rzi");
+        return dot().keyword("rzi");
     }
 
     public PTXHATKernelBuilder to() {
-        return dot().append("to");
+        return dot().keyword("to");
     }
 
     public PTXHATKernelBuilder lo() {
-        return dot().append("lo");
+        return dot().keyword("lo");
     }
 
     public PTXHATKernelBuilder wide() {
-        return dot().append("wide");
+        return dot().keyword("wide");
     }
 
     public PTXHATKernelBuilder uni() {
-        return dot().append("uni");
+        return dot().keyword("uni");
     }
 
     public PTXHATKernelBuilder sat() {
-        return dot().append("sat");
+        return dot().keyword("sat");
     }
 
     public PTXHATKernelBuilder ftz() {
-        return dot().append("ftz");
+        return dot().keyword("ftz");
     }
 
     public PTXHATKernelBuilder approx() {
-        return dot().append("approx");
+        return dot().keyword("approx");
     }
 
     public PTXHATKernelBuilder mov() {
-        return append("mov");
+        return keyword("mov");
     }
 
     public PTXHATKernelBuilder setp() {
-        return append("setp");
+        return keyword("setp");
     }
 
     public PTXHATKernelBuilder selp() {
-        return append("selp");
+        return keyword("selp");
     }
 
     public PTXHATKernelBuilder ld() {
-        return append("ld");
+        return keyword("ld");
     }
 
     public PTXHATKernelBuilder st() {
-        return append("st");
+        return keyword("st");
     }
 
     public PTXHATKernelBuilder cvt() {
-        return append("cvt");
+        return keyword("cvt");
     }
 
     public PTXHATKernelBuilder bra() {
-        return append("bra");
+        return keyword("bra");
     }
 
     public PTXHATKernelBuilder ret() {
-        return append("ret");
+        return keyword("ret");
     }
 
     public PTXHATKernelBuilder rem() {
-        return append("rem");
+        return keyword("rem");
     }
 
     public PTXHATKernelBuilder mul() {
-        return append("mul");
+        return keyword("mul");
     }
 
     public PTXHATKernelBuilder div() {
-        return append("div");
+        return keyword("div");
     }
 
     public PTXHATKernelBuilder rcp() {
-        return append("rcp");
+        return keyword("rcp");
     }
 
     public PTXHATKernelBuilder add() {
-        return append("add");
+        return keyword("add");
     }
 
     public PTXHATKernelBuilder sub() {
-        return append("sub");
+        return keyword("sub");
     }
 
     public PTXHATKernelBuilder lt() {
-        return append("lt");
+        return keyword("lt");
     }
 
     public PTXHATKernelBuilder gt() {
-        return append("gt");
+        return keyword("gt");
     }
 
     public PTXHATKernelBuilder le() {
-        return append("le");
+        return keyword("le");
     }
 
     public PTXHATKernelBuilder ge() {
-        return append("ge");
+        return keyword("ge");
     }
 
     public PTXHATKernelBuilder geu() {
-        return append("geu");
+        return keyword("geu");
     }
 
     public PTXHATKernelBuilder ne() {
-        return append("ne");
+        return keyword("ne");
     }
 
     public PTXHATKernelBuilder eq() {
-        return append("eq");
+        return keyword("eq");
     }
 
     public PTXHATKernelBuilder xor() {
-        return append("xor");
+        return keyword("xor");
     }
 
     public PTXHATKernelBuilder or() {
-        return append("or");
+        return keyword("or");
     }
 
     public PTXHATKernelBuilder and() {
-        return append("and");
+        return keyword("and");
     }
 
     public PTXHATKernelBuilder cvta() {
-        return append("cvta");
+        return keyword("cvta");
     }
 
     public PTXHATKernelBuilder mad() {
-        return append("mad");
+        return keyword("mad");
     }
 
     public PTXHATKernelBuilder fma() {
-        return append("fma");
+        return keyword("fma");
     }
 
     public PTXHATKernelBuilder sqrt() {
-        return append("sqrt");
+        return keyword("sqrt");
     }
 
     public PTXHATKernelBuilder abs() {
-        return append("abs");
+        return keyword("abs");
     }
 
     public PTXHATKernelBuilder ex2() {
-        return append("ex2");
+        return keyword("ex2");
     }
 
     public PTXHATKernelBuilder shl() {
-        return append("shl");
+        return keyword("shl");
     }
 
     public PTXHATKernelBuilder shr() {
-        return append("shr");
+        return keyword("shr");
     }
 
     public PTXHATKernelBuilder neg() {
-        return append("neg");
+        return keyword("neg");
     }
 
     public PTXHATKernelBuilder call() {
-        return append("call");
+        return keyword("call");
     }
 
     public PTXHATKernelBuilder exit() {
-        return append("exit");
+        return keyword("exit");
     }
 
     public PTXHATKernelBuilder brkpt() {
-        return append("brkpt");
+        return keyword("brkpt");
     }
 
     public PTXHATKernelBuilder ptxIndent() {
-        return append("    ");
+        return space().space().space().space();
     }
 
     public PTXHATKernelBuilder u32() {
-        return dot().append(PTXRegister.Type.U32.getName());
+        return dot().typeName(PTXRegister.Type.U32.getName());
     }
 
     public PTXHATKernelBuilder s32() {
-        return dot().append(PTXRegister.Type.S32.getName());
+        return dot().typeName(PTXRegister.Type.S32.getName());
     }
 
     public PTXHATKernelBuilder f32() {
-        return dot().append(PTXRegister.Type.F32.getName());
+        return dot().typeName(PTXRegister.Type.F32.getName());
     }
 
     public PTXHATKernelBuilder b32() {
-        return dot().append(PTXRegister.Type.B32.getName());
+        return dot().typeName(PTXRegister.Type.B32.getName());
     }
 
     public PTXHATKernelBuilder u64() {
-        return dot().append(PTXRegister.Type.U64.getName());
+        return dot().typeName(PTXRegister.Type.U64.getName());
     }
 
     public PTXHATKernelBuilder s64() {
-        return dot().append(PTXRegister.Type.S64.getName());
+        return dot().typeName(PTXRegister.Type.S64.getName());
     }
 
     public PTXHATKernelBuilder f64() {
-        return dot().append(PTXRegister.Type.F64.getName());
+        return dot().typeName(PTXRegister.Type.F64.getName());
     }
 
     public PTXHATKernelBuilder b64() {
-        return dot().append(PTXRegister.Type.B64.getName());
+        return dot().typeName(PTXRegister.Type.B64.getName());
     }
 
     public PTXHATKernelBuilder version() {
-        return dot().append("version");
+        return dot().keyword("version");
     }
 
     public PTXHATKernelBuilder target() {
-        return dot().append("target");
+        return dot().keyword("target");
     }
 
     public PTXHATKernelBuilder addressSize() {
-        return dot().append("address_size");
+        return dot().keyword("address_size");
     }
 
     public PTXHATKernelBuilder major(int major) {
@@ -983,7 +983,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public PTXHATKernelBuilder target(String target) {
-        return append(target);
+        return keyword(target);
     }
 
     public PTXHATKernelBuilder size(int addressSize) {
@@ -991,70 +991,66 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
     }
 
     public PTXHATKernelBuilder funcName(String funcName) {
-        return append(funcName);
+        return identifier(funcName);
     }
 
     public PTXHATKernelBuilder visible() {
-        return dot().append("visible");
+        return dot().keyword("visible");
     }
 
     public PTXHATKernelBuilder entry() {
-        return dot().append("entry");
+        return dot().keyword("entry");
     }
 
     public PTXHATKernelBuilder func() {
-        return dot().append("func");
+        return dot().keyword("func");
     }
 
     public PTXHATKernelBuilder oabrace() {
-        return append("<");
+        return symbol("<");
     }
 
     public PTXHATKernelBuilder cabrace() {
-        return append(">");
+        return symbol(">");
     }
 
     public PTXHATKernelBuilder regName(PTXRegister reg) {
-        return append(reg.name());
+        return identifier(reg.name());
     }
 
     public PTXHATKernelBuilder regName(String regName) {
-        return append(regName);
+        return identifier(regName);
     }
 
     public PTXHATKernelBuilder regType(Value val) {
-        return append(getReg(val).type().getName());
+        return keyword(getReg(val).type().getName());
     }
 
     public PTXHATKernelBuilder regType(PTXRegister.Type t) {
-        return append(t.getName());
+        return keyword(t.getName());
     }
 
     public PTXHATKernelBuilder regTypePrefix(PTXRegister.Type t) {
-        return append(t.getRegPrefix());
+        return keyword(t.getRegPrefix());
     }
 
     public PTXHATKernelBuilder reg() {
-        return dot().append("reg");
+        return dot().keyword("reg");
     }
 
     public PTXHATKernelBuilder retVal() {
-        return append("retval");
-    }
-
-    public PTXHATKernelBuilder temp() {
-        return append("temp");
+        return keyword("retval");
     }
 
     public PTXHATKernelBuilder intVal(int i) {
-        return append(String.valueOf(i));
+        return constant(String.valueOf(i));
     }
 
     public PTXHATKernelBuilder floatVal(String s) {
-        return append("0f").append(s);
+        return constant("0f").constant(s);
     }
 
     public PTXHATKernelBuilder doubleVal(String s) {
-        return append("0d").append(s);
+        return constant("0d").constant(s);
     }
 }

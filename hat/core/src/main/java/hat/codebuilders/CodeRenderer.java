@@ -24,33 +24,16 @@
  */
 package hat.codebuilders;
 
-import hat.optools.OpTk;
-
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
-
-import java.lang.invoke.MethodHandles;
-
-
-public  abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
-
-    public T computeDeclaration(TypeElement typeElement, String name) {
-        return typeName(typeElement.toString()).space().identifier(name);
-    }
-
-     public T compute(ScopedCodeBuilderContext buildContext) {
-
-        computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
-        parenNlIndented(_ ->
-                separated(buildContext.paramTable.list(), (_)->comma().space()
-                        , param -> declareParam(buildContext, param)
-                )
-        );
-
-        braceNlIndented(_ -> separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_)->nl(),
-                statement ->statement(buildContext,statement).nl()));
-
-        return self();
-    }
+public interface CodeRenderer<T extends CodeBuilder<T>>{
+    T identifier(String text);
+    T symbol(String text);
+    T typeName(String text);
+    T label(String text);
+    T keyword(String text);
+    T constant(String text);
+    T literal(String text);
+    T reserved(String text);
+    T nl();
+    T space();
+    T comment(String text);
 }

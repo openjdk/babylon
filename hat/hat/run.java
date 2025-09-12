@@ -28,7 +28,8 @@ import static java.lang.IO.println;
 
 class Config{
      boolean headless=false;
-     boolean moduleOp = false;
+     boolean noModuleOp = false;
+     boolean bufferTagging = false;
      boolean verbose = false;
      boolean startOnFirstThread = false;
      boolean justShowCommandline = false;
@@ -72,7 +73,8 @@ class Config{
             }else{
                 switch (args[arg]) {
                    case "headless" -> headless = true;
-                   case "moduleOp" -> moduleOp = true;
+                   case "noModuleOp" -> noModuleOp = true;
+                   case "bufferTagging" -> bufferTagging = true;
                    case "verbose" -> verbose = true;
                    case "justShowCommandLine" -> justShowCommandline = true;
                    case "startOnFirstThread" -> startOnFirstThread = true;
@@ -172,7 +174,7 @@ void main(String[] argv) {
               }
               default -> {}
           }
-          if (config.moduleOp) System.out.println("Using ModuleOp for CallGraphs");
+          if (config.noModuleOp) System.out.println("NOT using ModuleOp for CallGraphs");
       }
       Script.java(java -> java
               .enable_preview()
@@ -180,7 +182,8 @@ void main(String[] argv) {
               .enable_native_access("ALL-UNNAMED")
               .library_path(buildDir)
               .when(config.headless, Script.JavaBuilder::headless)
-              .when(config.moduleOp, Script.JavaBuilder::moduleOp)
+              .when(config.noModuleOp, Script.JavaBuilder::noModuleOp)
+              .when(config.bufferTagging, Script.JavaBuilder::bufferTagging)
               .when(config.startOnFirstThread, Script.JavaBuilder::start_on_first_thread)
               .class_path(config.classpath)
               .vmargs(config.vmargs)
