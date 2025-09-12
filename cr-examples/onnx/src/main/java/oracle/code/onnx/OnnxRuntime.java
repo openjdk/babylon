@@ -260,6 +260,10 @@ public final class OnnxRuntime {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             OrtApi.ReleaseEnv(runtimeAddress, envAddress);
         }));
+        try {
+            // workaround to avoid CNFE when the ReleaseEnv class is attempted to load in the above shutdown hook from already closed classloader
+            Class.forName("oracle.code.onnx.foreign.OrtApi$ReleaseEnv");
+        } catch (ClassNotFoundException _) {}
     }
 
     public List<Tensor> runOp(Arena arena, String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
