@@ -24,6 +24,7 @@
  */
 package hat.codebuilders;
 
+import hat.dialect.HatBarrierOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -84,6 +85,8 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T returnOp(ScopedCodeBuilderContext buildContext, CoreOp.ReturnOp returnOp);
 
+    T barrier(ScopedCodeBuilderContext buildContext, HatBarrierOp barrierOp);
+
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -111,6 +114,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case JavaOp.BinaryOp $ -> binaryOp(buildContext, $);
             case JavaOp.JavaConditionalOp $ -> conditionalOp(buildContext, $);
             case JavaOp.UnaryOp $ -> unaryOp(buildContext, $);
+            case HatBarrierOp $ -> barrier(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

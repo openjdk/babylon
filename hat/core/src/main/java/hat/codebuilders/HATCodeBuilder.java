@@ -25,6 +25,7 @@
 package hat.codebuilders;
 
 
+import hat.dialect.HatBarrierOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;

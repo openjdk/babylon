@@ -104,6 +104,9 @@ public class OpTk {
                 try {
                     var method = invokeOp.invokeDescriptor().resolveToMethod(l, invokeOp.invokeKind());
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
+                    if (f != null) {
+                        System.out.println("Analysing function? " + f.funcName());
+                    }
                     if (f != null && !callGraph.filterCalls(f, invokeOp, method, invokeOp.invokeDescriptor(), javaRefTypeClass)) {
                         work.push(new RefAndFunc(invokeOp.invokeDescriptor(),  f));
                     }
@@ -116,6 +119,7 @@ public class OpTk {
 
         while (!work.isEmpty()) {
             RefAndFunc rf = work.pop();
+            System.out.println("Processing Function? : " + rf.r);
             if (!funcsVisited.add(rf.r)) {
                 continue;
             }
@@ -171,8 +175,7 @@ public class OpTk {
 
     }
 
-
-    public static JavaOp.InvokeOp getQuotableTargetInvokeOpWrapper( JavaOp.LambdaOp lambdaOp) {
+    public static JavaOp.InvokeOp getQuotableTargetInvokeOpWrapper(JavaOp.LambdaOp lambdaOp) {
         return lambdaOp.body().entryBlock().ops().stream()
                 .filter(op -> op instanceof JavaOp.InvokeOp)
                 .map(op -> (JavaOp.InvokeOp) op)
