@@ -25,25 +25,30 @@
  * @test
  * @summary Smoke test for captured values in quoted lambdas.
  * @modules jdk.incubator.code
- * @run testng TestCaptureQuoted
+ * @run junit TestCaptureQuoted
  */
 
 import jdk.incubator.code.dialect.core.CoreOp.Var;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import org.testng.annotations.*;
-import static org.testng.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 public class TestCaptureQuoted {
 
-    @Test(dataProvider = "ints")
+    @ParameterizedTest
+    @MethodSource("ints")
     public void testCaptureIntParam(int x) {
         Quoted quoted = (int y) -> x + y;
         assertEquals(quoted.capturedValues().size(), 1);
@@ -68,7 +73,8 @@ public class TestCaptureQuoted {
         }
     }
 
-    @Test(dataProvider = "ints")
+    @ParameterizedTest
+    @MethodSource("ints")
     public void testCaptureIntField(int x) {
         Context context = new Context(x);
         Quoted quoted = context.quoted();
@@ -131,8 +137,7 @@ public class TestCaptureQuoted {
     }
 
 
-    @DataProvider(name = "ints")
-    public Object[][] ints() {
+    public static Object[][] ints() {
         return IntStream.range(0, 50)
                 .mapToObj(i -> new Object[] { i })
                 .toArray(Object[][]::new);

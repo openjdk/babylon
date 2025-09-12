@@ -25,20 +25,21 @@
  * @test
  * @summary Smoke test for captured values in local classes.
  * @modules jdk.incubator.code
- * @run testng TestLocalCapture
+ * @run junit TestLocalCapture
  */
 
 import jdk.incubator.code.Op;
-import org.testng.annotations.*;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.CodeReflection;
-import java.util.stream.IntStream;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import static org.testng.Assert.*;
+import java.util.stream.IntStream;
 
 public class TestLocalCapture {
 
@@ -54,17 +55,17 @@ public class TestLocalCapture {
         return new Foo().sum(z);
     }
 
-    @Test(dataProvider = "ints")
+    @ParameterizedTest
+    @MethodSource("ints")
     public void testLocalCapture(int y) throws ReflectiveOperationException {
         Method sum = TestLocalCapture.class.getDeclaredMethod("sum", int.class, int.class);
         FuncOp model = Op.ofMethod(sum).get();
         int found = (int)Interpreter.invoke(MethodHandles.lookup(), model, this, y, 17);
         int expected = sum(y, 17);
-        assertEquals(found, expected);
+        Assertions.assertEquals(found, expected);
     }
 
-    @DataProvider(name = "ints")
-    public Object[][] ints() {
+    public static Object[][] ints() {
         return IntStream.range(0, 50)
                 .mapToObj(i -> new Object[] { i })
                 .toArray(Object[][]::new);
