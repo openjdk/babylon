@@ -43,7 +43,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                %0 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
                     return;
                 };
                 return;
@@ -55,7 +55,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"QuotableSubtypeTest$QuotableIntSupplier" = lambda ()java.type:"int" -> {
+                %0 : java.type:"QuotableSubtypeTest$QuotableIntSupplier" = lambda @lambda.isQuotable=true ()java.type:"int" -> {
                     %1 : java.type:"int" = constant @1;
                     return %1;
                 };
@@ -68,7 +68,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%1 : java.type:"int")java.type:"int" -> {
+                %0 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda @lambda.isQuotable=true (%1 : java.type:"int")java.type:"int" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x";
                     %3 : java.type:"int" = var.load %2;
                     return %3;
@@ -82,7 +82,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"QuotableSubtypeTest$QuotableIntBinaryOperator" = lambda (%1 : java.type:"int", %2 : java.type:"int")java.type:"int" -> {
+                %0 : java.type:"QuotableSubtypeTest$QuotableIntBinaryOperator" = lambda @lambda.isQuotable=true (%1 : java.type:"int", %2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %1 @"x";
                     %4 : Var<java.type:"int"> = var %2 @"y";
                     %5 : java.type:"int" = var.load %3;
@@ -96,7 +96,7 @@ public class QuotableSubtypeTest {
     static final QuotableIntBinaryOperator QUOTED_PLUS = (x, y) -> x + y;
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                %0 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
                     %1 : java.type:"java.lang.AssertionError" = new @java.ref:"java.lang.AssertionError::()";
                     throw %1;
                 };
@@ -107,7 +107,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" (%0 : Var<java.type:"int">)java.type:"void" -> {
-                %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%2 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"y";
                     %4 : java.type:"int" = var.load %0;
                     %5 : java.type:"int" = var.load %3;
@@ -133,7 +133,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" (%0 : java.type:"QuotableSubtypeTest$Context")java.type:"void" -> {
-                %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%2 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
                     %4 : java.type:"int" = field.load %0 @java.ref:"QuotableSubtypeTest$Context::x:int";
                     %5 : java.type:"int" = field.load %0 @java.ref:"QuotableSubtypeTest$Context::y:int";
@@ -151,7 +151,7 @@ public class QuotableSubtypeTest {
     @IR("""
             func @"captureParam" (%0 : java.type:"int")java.type:"void" -> {
                 %1 : Var<java.type:"int"> = var %0 @"x";
-                %2 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%3 : java.type:"int")java.type:"int" -> {
+                %2 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda @lambda.isQuotable=true (%3 : java.type:"int")java.type:"int" -> {
                     %4 : Var<java.type:"int"> = var %3 @"y";
                     %5 : java.type:"int" = var.load %1;
                     %6 : java.type:"int" = var.load %4;
@@ -171,7 +171,7 @@ public class QuotableSubtypeTest {
     @CodeReflection
     @IR("""
             func @"captureField" (%0 : java.type:"QuotableSubtypeTest")java.type:"void" -> {
-                %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%2 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"z";
                     %4 : java.type:"int" = field.load %0 @java.ref:"QuotableSubtypeTest::x:int";
                     %5 : java.type:"int" = field.load %0 @java.ref:"QuotableSubtypeTest::y:int";
@@ -192,7 +192,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                %0 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
                     invoke @java.ref:"QuotableSubtypeTest::m():void";
                     return;
                 };
@@ -205,7 +205,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%1 : java.type:"int")java.type:"int" -> {
+                %0 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda @lambda.isQuotable=true (%1 : java.type:"int")java.type:"int" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x$0";
                     %3 : java.type:"int" = var.load %2;
                     %4 : java.type:"int" = invoke %3 @java.ref:"QuotableSubtypeTest::g(int):int";
@@ -220,7 +220,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"QuotableSubtypeTest$QuotableIntFunction<int[]>" = lambda (%1 : java.type:"int")java.type:"int[]" -> {
+                %0 : java.type:"QuotableSubtypeTest$QuotableIntFunction<int[]>" = lambda @lambda.isQuotable=true (%1 : java.type:"int")java.type:"int[]" -> {
                     %2 : Var<java.type:"int"> = var %1 @"x$0";
                     %3 : java.type:"int" = var.load %2;
                     %4 : java.type:"int[]" = new %3 @java.ref:"int[]::(int)";
@@ -241,7 +241,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" (%0 : java.type:"QuotableSubtypeTest$ContextRef")java.type:"void" -> {
-                %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda (%2 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"QuotableSubtypeTest$QuotableIntUnaryOperator" = lambda @lambda.isQuotable=true (%2 : java.type:"int")java.type:"int" -> {
                     %3 : Var<java.type:"int"> = var %2 @"x$0";
                     %4 : java.type:"int" = var.load %3;
                     %5 : java.type:"int" = invoke %0 %4 @java.ref:"QuotableSubtypeTest$ContextRef::g(int):int";
@@ -255,7 +255,7 @@ public class QuotableSubtypeTest {
     static final int Z = 42;
     @IR("""
             func @"f" (%0 : Var<java.type:"int">)java.type:"void" -> {
-                %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
                     %2 : java.type:"int" = var.load %0;
                     %3 : Var<java.type:"int"> = var %2 @"x";
                     return;
@@ -269,7 +269,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
                       %2 : java.type:"int" = constant @1;
                       %3 : java.type:"int" = invoke %2 @java.ref:"QuotableSubtypeTest::n(int):int";
                       return;
@@ -287,7 +287,7 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
                       %2 : java.type:"java.lang.Object" = new @java.ref:"java.lang.Object::()";
                       return;
                   };
@@ -299,8 +299,8 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
-                      %2 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
+                      %2 : java.type:"java.lang.Runnable" = lambda @lambda.isQuotable=false ()java.type:"void" -> {
                           return;
                       };
                       %3 : Var<java.type:"java.lang.Runnable"> = var %2 @"r";
@@ -315,8 +315,8 @@ public class QuotableSubtypeTest {
 
     @IR("""
             func @"f" ()java.type:"void" -> {
-                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
-                      %2 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda ()java.type:"void" -> {
+                  %1 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
+                      %2 : java.type:"QuotableSubtypeTest$QuotableRunnable" = lambda @lambda.isQuotable=true ()java.type:"void" -> {
                           return;
                       };
                       %3 : Var<java.type:"QuotableSubtypeTest$QuotableRunnable"> = var %2 @"r";

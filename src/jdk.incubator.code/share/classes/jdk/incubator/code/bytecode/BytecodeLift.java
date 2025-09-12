@@ -51,6 +51,7 @@ import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
+import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AccessFlag;
 import jdk.incubator.code.Block;
@@ -474,6 +475,17 @@ public final class BytecodeLift {
                         JavaOp.LambdaOp.Builder lambda = JavaOp.lambda(currentBlock.parentBody(),
                                                                        lambdaFunc,
                                                                        JavaType.type(inst.typeSymbol().returnType()));
+                        // if FLAG_QUOTABLE is set, the lambda is quotable
+                        if (bsm.methodName().equals("altMetafactory")) {
+                            assert inst.bootstrapArgs().size() > 3;
+                            assert inst.bootstrapArgs().get(3) instanceof Integer;
+
+                            if (inst.bootstrapArgs().get(3) instanceof Integer flags
+                                    && (flags & LambdaMetafactory.FLAG_QUOTABLE) != 0) {
+                                lambda = lambda.quotable();
+                            }
+                        }
+
                         if (dmhd.methodName().startsWith("lambda$") && dmhd.owner().equals(classModel.thisClass().asSymbol())) {
                             // inline lambda impl method
                             MethodModel implMethod = classModel.methods().stream().filter(m -> m.methodName().equalsString(dmhd.methodName())).findFirst().orElseThrow();

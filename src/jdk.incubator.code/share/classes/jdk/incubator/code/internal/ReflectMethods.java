@@ -1520,7 +1520,7 @@ public class ReflectMethods extends TreeTranslator {
                     // Get the functional interface type
                     JavaType fiType = typeToTypeElement(tree.target);
                     // build functional lambda
-                    yield JavaOp.lambda(fiType, stack.body);
+                    yield JavaOp.lambda(fiType, stack.body, kind == FunctionalExpressionKind.QUOTABLE);
                 }
             };
 
