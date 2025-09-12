@@ -25,10 +25,12 @@
  * @test
  * @summary Smoke test for captured values in quotable lambdas.
  * @modules jdk.incubator.code
- * @run testng TestCaptureQuotable
+ * @run junit TestCaptureQuotable
  */
 
-import org.testng.annotations.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import jdk.incubator.code.dialect.core.CoreOp.Var;
 import jdk.incubator.code.Op;
@@ -44,11 +46,12 @@ import java.util.function.IntUnaryOperator;
 import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 
-import static org.testng.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestCaptureQuotable {
 
-    @Test(dataProvider = "ints")
+    @ParameterizedTest
+    @MethodSource("ints")
     public void testCaptureIntParam(int x) {
         Quotable quotable = (Quotable & IntUnaryOperator)y -> x + y;
         Quoted quoted = Op.ofQuotable(quotable).get();
@@ -149,7 +152,8 @@ public class TestCaptureQuotable {
         }
     }
 
-    @Test(dataProvider = "ints")
+    @ParameterizedTest
+    @MethodSource("ints")
     public void testCaptureIntField(int x) {
         Context context = new Context(x);
         Quotable quotable = context.quotable();
@@ -164,14 +168,14 @@ public class TestCaptureQuotable {
         assertEquals(res, x + 1);
     }
 
-    @DataProvider(name = "ints")
-    public Object[][] ints() {
+    public static Object[][] ints() {
         return IntStream.range(0, 50)
                 .mapToObj(i -> new Object[] { i })
                 .toArray(Object[][]::new);
     }
 
-    @Test(dataProvider = "ints")
+    @ParameterizedTest
+    @MethodSource("ints")
     public void testCaptureReferenceReceiver(int i) {
         int prevCount = Box.count;
         Quotable quotable = (Quotable & IntUnaryOperator)new Box(i)::add;

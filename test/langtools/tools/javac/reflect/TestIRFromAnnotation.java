@@ -65,11 +65,11 @@ public class TestIRFromAnnotation {
             "SuperTest.java",                   // @@@ Might be issue referencing auxiliary interface
                                                 // in method superInterfaceMethodInvocation
             "LocalClassTest.java",              // name of local classes is not stable at annotation processing time
-            "TestLocalCapture.java",            // plain testng test
-            "TestCaptureQuoted.java",           // plain testng test
-            "TestCaptureQuotable.java",         // plain testng test
-            "QuotedSameInstanceTest.java",      // plain testng test
-            "CodeModelSameInstanceTest.java"    // plain testng test
+            "TestLocalCapture.java",            // plain junit test
+            "TestCaptureQuoted.java",           // plain junit test
+            "TestCaptureQuotable.java",         // plain junit test
+            "QuotedSameInstanceTest.java",      // plain junit test
+            "CodeModelSameInstanceTest.java"    // plain junit test
     );
 
     public static void main(String... args) throws Exception {
