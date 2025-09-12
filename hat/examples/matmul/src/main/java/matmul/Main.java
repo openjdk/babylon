@@ -305,6 +305,7 @@ public class Main {
                 case "MT" -> Configuration._MT;
                 case "1D" -> Configuration._1D;
                 case "1DFC" -> Configuration._1DFC;
+                case "2D" -> Configuration._2D;
                 case "2DLI" -> Configuration._2DLI;
                 case "2DTILING" -> Configuration._2DTILING;
                 default -> configuration;
