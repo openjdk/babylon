@@ -4,7 +4,8 @@
 
 Running the MNIST demo:
 ```
-mvn process-test-classes exec:exec -Dexec.executable=<path to the Babylon JDK home>/bin/java -Dexec.mainClass=oracle.code.onnx.mnist.MNISTDemo
+JAVA_HOME=<path to the Babylon JDK home>
+mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.mnist.MNISTDemo
 ```
 
 ### ONNX GenAI running large language model from Java source.
@@ -15,6 +16,7 @@ Setup:
 
 Running the Llama demo:
 ```
-mvn process-test-classes exec:exec -Dexec.executable=<path to the Babylon JDK home>/bin/java -Dexec.mainClass=oracle.code.onnx.llm.LlamaDemo
+JAVA_HOME=<path to the Babylon JDK home>
+mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.llm.LlamaDemo
 ```
 

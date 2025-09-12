@@ -479,7 +479,6 @@ public final class OnnxTransformer {
                         if (mv == null && bb.context().getProperty(skipVars(v)) instanceof List list) {
                             mv = bb.op(CoreOp.tuple(bb.context().getValues((List<Value>) list)));
                         }
-                        if (mv == null) System.out.println(no.toText());
                         return mv;
                     }).toList()));
                     bb.context().mapValue(no.result(), result);
@@ -514,7 +513,7 @@ public final class OnnxTransformer {
                     while (index >= list.size()) list.add(null);
                     list.set(index, aso.operands().get(2));
                 }
-                case CoreOp.ReturnOp ro when bb.context().getProperty(ro.operands().getFirst()) instanceof List list -> {
+                case CoreOp.ReturnOp ro when bb.context().getProperty(skipVars(ro.operands().getFirst())) instanceof List list -> {
                     bb.op(CoreOp.return_(bb.op(CoreOp.tuple(bb.context().getValues(list)))));
                 }
                 // Copy remaining operations, which may be removed later transformations
