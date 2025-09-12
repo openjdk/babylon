@@ -377,7 +377,7 @@ public class CudaBackend extends C99FFIBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = config.isPTX() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph,  ndRange, args);
+            String code = config.isPTX() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph, args);
             if (config.isSHOW_CODE()) {
                 System.out.println(code);
             }
@@ -410,7 +410,8 @@ public class CudaBackend extends C99FFIBackend {
             argsMap.put(paramTable.list().get(i).varOp.varName(), args[i]);
         }
         builder.ptxHeader(major, minor, target, addressSize);
-        out.append(builder.getTextAndReset());
+        out.append(builder.getText());
+        builder.clear();
 
         if (CallGraph.noModuleOp) {
             System.out.println("NOT using ModuleOp for CudaBackend");
@@ -449,7 +450,6 @@ public class CudaBackend extends C99FFIBackend {
             CopyContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (op instanceof JavaOp.InvokeOp invokeOp){
-                   // && OpWrapper.wrap(func.lookup,invokeOp) instanceof InvokeOpWrapper invokeOpWrapper) {
                 if (OpTk.isIfaceBufferMethod(lookup,invokeOp)
                         && invokeOp.operands().getFirst() instanceof Op.Result invokeResult
                         && invokeResult.op().operands().getFirst() instanceof Op.Result varLoadResult
@@ -489,12 +489,14 @@ public class CudaBackend extends C99FFIBackend {
         // building body of fn
         builder.functionPrologue();
 
-        String out = builder.getTextAndReset();
+        String out = builder.getText();
+        builder.clear();
         ssa.bodies().getFirst().blocks().forEach(block ->
                 builder.blockBody(block, block.ops().stream()));
 
         builder.functionEpilogue();
-        String body = builder.getTextAndReset();
+        String body = builder.getText();
+        builder.clear();
 
         builder.ptxRegisterDecl();
         out += builder.getText() + body;

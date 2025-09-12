@@ -299,7 +299,7 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("[INFO] Running Matrix Multiplication: ");
 
-        Configuration configuration = Configuration._2D;
+        Configuration configuration = Configuration._2DTILING;
         if (args.length > 0) {
             configuration = switch (args[0]) {
                 case "MT" -> Configuration._MT;

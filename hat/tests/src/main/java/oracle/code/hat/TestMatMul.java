@@ -230,7 +230,6 @@ public class TestMatMul {
     public void testMatrixMultiply1D() {
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
-        System.out.println(accelerator);
 
         final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);
@@ -265,7 +264,6 @@ public class TestMatMul {
     public void testMatrixMultiply1DWithFunctionCalls() {
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
-        System.out.println(accelerator);
 
         final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);
@@ -301,7 +299,6 @@ public class TestMatMul {
     public void testMatrixMultiply2D() {
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
-        System.out.println(accelerator);
 
         final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);
@@ -336,7 +333,6 @@ public class TestMatMul {
     public void testMatrixMultiply2DLI() {
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
-        System.out.println(accelerator);
 
         final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);
@@ -371,7 +367,6 @@ public class TestMatMul {
     public void testMatrixMultiply2DTiling() {
         var lookup = java.lang.invoke.MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
-        System.out.println(accelerator);
 
         final int size = SIZE;
         var matrixA = F32Array.create(accelerator, size * size);

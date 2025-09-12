@@ -341,7 +341,7 @@ public record Config(int bits) {
             }
 
             ConfigBuilder stdCout(String s) {
-                return std("cout").space().leftShift().space().dquote().emitText(s).dquote();
+                return std("cout").space().leftShift().space().dquote().literal(s).dquote();
             }
         }
 

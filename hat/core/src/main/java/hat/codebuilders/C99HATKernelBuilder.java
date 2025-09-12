@@ -42,7 +42,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return this
                 .charTypeDefs("byte", "boolean")
                 .typedefStructOrUnion(true, "KernelContext", _ -> {
-                    intDeclaration("dimensions").semicolonNl();
+                    intDeclaration("dimensions").semicolon().nl();
                 });
     }
     @Override
