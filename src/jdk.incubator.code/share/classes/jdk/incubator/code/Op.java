@@ -591,8 +591,15 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             JavacScope scope = javacTrees.getScope(javacTrees.getPath(e));
             ClassSymbol enclosingClass = (ClassSymbol) scope.getEnclosingClass();
             FuncOp op = attr.runWithAttributedMethod(scope.getEnv(), methodTree,
-                    attribBlock -> reflectMethods.getMethodBody(enclosingClass, methodTree, attribBlock, make));
-            return Optional.of(op);
+                    attribBlock -> {
+                        try {
+                            return reflectMethods.getMethodBody(enclosingClass, methodTree, attribBlock, make);
+                        } catch (Throwable ex) {
+                            // this might happen if the source code contains errors
+                            return null;
+                        }
+                    });
+            return Optional.ofNullable(op);
         } catch (RuntimeException ex) {  // ReflectMethods.UnsupportedASTException
             // some other error occurred when attempting to attribute the method
             // @@@ better report of error

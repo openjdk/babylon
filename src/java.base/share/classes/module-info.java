@@ -177,6 +177,8 @@ module java.base {
         jdk.sctp,
         jdk.crypto.cryptoki,
         jdk.incubator.code;
+    exports jdk.internal.access.code to
+        jdk.compiler;
     exports jdk.internal.classfile.components to
         jdk.jfr;
     exports jdk.internal.foreign to
