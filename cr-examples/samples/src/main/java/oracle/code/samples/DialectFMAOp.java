@@ -74,7 +74,7 @@ public class DialectFMAOp {
     // Custom Node inherits from Op
     private static class FMA extends Op {
 
-        private TypeElement typeElement;
+        private final TypeElement typeElement;
         private static final String NAME = "fma";
 
         FMA(List<Value> operands, TypeElement typeElement) {
@@ -84,6 +84,7 @@ public class DialectFMAOp {
 
         FMA(Op that, CopyContext cc) {
             super(that, cc);
+            this.typeElement = that.resultType();
         }
 
         @Override
