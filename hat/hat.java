@@ -41,15 +41,15 @@ static String help = """
         Usage  bld|clean|run ...
              bld:
                    Compile all buildable (based on capabilities) available jars and native code.
-        
+
              dot:
                    Create dot graph  (bld.dot) of buildable dependencies (based on capabilities)
                       dot bld.dot -Tsvg > bld.svg  && chrome bld.svg
            clean:
                    Removes build directory entirely
                    conf dir and jextracted artifacts (opencl/cuda/opengl) remain
-        
-        
+
+
              run:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] runnable  args
                       run ffi-opencl mandel
                       run ffi-opencl nbody 4096
@@ -57,10 +57,10 @@ static String help = """
 
              exp:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] experimentClassName  args
                       exp ffi-opencl QuotedConstantArgs
-             
+
              test:  [ffi|my|seq]-[opencl|java|cuda|mock|hip]
                       test ffi-opencl
-                      
+
           sanity:  Check source files for copyright and WS issues (tabs and trailing EOL WS)
         """;
 
@@ -160,7 +160,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                             .map(hatDir::resolve)
                             .forEach(dir-> {
                                 Util.recurse(dir,
-                                        (d)-> true, // we do this foir all subdirs 
+                                        (d)-> true, // we do this foir all subdirs
                                         (f)-> textSuffix.matcher(f.getFileName().toString()).matches() && Util.grepLines(tabOrEolWsPattern, f),
                                         (c)-> System.out.println("File contains WS issue (TAB or EOLWs) " + c)
                                 );
