@@ -18,6 +18,7 @@ transforms and executes code.
 Example of creating a dialect that replaces `Invoke` `Op` with a specific signature with a new `Op`. The dialect is handled as an intrinsic replacement.
 6. [`DialectFMAOp`][https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/DialectFMAOp.java]: Example of how to extend the code reflection `Op` to create a new dialect. It analysis the code for substitution of Add(Mult) to create a new `FMA` Op.
 7. [`DynamicFunctionBuild`][https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/DynamicFunctionBuild.java]: Example of how to create a new function dynamically to compute the inverse of a square root. The code model is built dynamically for a new method and it is evaluated in the `Interpreter`.
+8. [`CodeReflectionProcessor`](https://github.com/openjdk/babylon/blob/code-reflection/cr-examples/samples/src/main/java/oracle/code/samples/CodeReflectionProcessor.java): A simple code model-based annotation processor
 
 ### Resources
 
@@ -57,41 +58,47 @@ mvn clean package
 ##### Run HelloCodeReflection
 
 ```bash
-java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.HelloCodeReflection
+java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.HelloCodeReflection
 ```
 
 ##### Run MathOptimizer
 
 ```bash
-java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.MathOptimizer
+java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.MathOptimizer
 ```
 
 ##### Run InlineExample
 
 ```bash
-java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.InlineExample
+java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.InlineExample
 ```
 
 ##### Run MathOptimizerWithInlining
 
 ```bash
-java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.MathOptimizerWithInlining
+java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.MathOptimizerWithInlining
 ```
 
 ##### Run DialectWithInvoke
 
 ```bash
-java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DialectWithInvoke
+java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DialectWithInvoke
 ```
 
 ##### Run DialectFMAOp
 
 ```bash
-java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DialectFMAOp
+java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DialectFMAOp
 ```
 
 ##### Run DynamicFunctionBuild
 
 ```bash
-java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DynamicFunctionBuild
+java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DynamicFunctionBuild
+```
+
+##### Compile with CodeReflectionProcessor
+
+```bash
+javac --add-modules jdk.incubator.code --processor-path target/crsamples-1.0-SNAPSHOT.jar -processor oracle.code.samples.CodeReflectionProcessor <.java files to compile>
 ```

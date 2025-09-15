@@ -148,8 +148,8 @@ void main(String[] argv) {
       }else if (!config.exampleJar.exists()){
           println("No example !");
       }else{
-          var extraction_opencl_jar = buildDir.jarFile("hat-extraction-opencl-1.0.jar");
-          var extraction_opengl_jar = buildDir.jarFile("hat-extraction-opengl-1.0.jar");
+          var extraction_opencl_jar = buildDir.jarFile("hat-extracted-opencl-1.0.jar");
+          var extraction_opengl_jar = buildDir.jarFile("hat-extracted-opengl-1.0.jar");
           var wrap_shared_jar = buildDir.jarFile("hat-wrap-shared-1.0.jar");
           var wrap_opencl_jar = buildDir.jarFile("hat-wrap-opencl-1.0.jar");
           var wrap_opengl_jar = buildDir.jarFile("hat-wrap-opengl-1.0.jar");
