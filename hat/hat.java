@@ -139,54 +139,53 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                 case "help" -> System.out.println(logo + "\n" + help);
                 case "clean" -> project.clean();
                 case "dot" -> {
-                    Dag dag = project.all();
-                    Dag available = dag.available();
+                    var dag = project.all();
+                    var available = dag.available();
                     Files.writeString(Path.of("bld.dot") , available.toDot());
                     System.out.println("Consider...\n    dot bld.dot -Tsvg > bld.svg");
                 }
                 case "bld" -> {
-                    Dag dag = project.all();
-                    Dag available = dag.available();
+                    var dag = project.all();
+                    var available = dag.available();
                     project.build(available);
                 }
                 case "sanity" -> {
-                    final  Pattern copyrightPattern = Pattern.compile("^.*Copyright.*202[0-9].*(Intel|Oracle).*$");
-                    final  Pattern copyrightExemptPattern = Pattern.compile("^(robertograham|CMakeFiles|hip)");
-                    final  Pattern tabOrEolWsPattern = Pattern.compile("^(.*\\t.*|.* )$");
-                    final  Pattern textSuffix  = Pattern.compile("^(.*\\.(java|cpp|h|hpp|md)|pom.xml)$");
-                    final  Pattern sourceSuffix  = Pattern.compile("^(.*\\.(java|cpp|h|hpp)|pom.xml)$");
+                    final  var copyrightPattern = Pattern.compile("^.*Copyright.*202[0-9].*(Intel|Oracle).*$");
+                    final  var copyrightExemptPattern = Pattern.compile("^(robertograham|CMakeFiles|hip)");
+                    final  var tabOrEolWsPattern = Pattern.compile("^(.*\\t.*|.* )$");
+                    final  var textSuffix  = Pattern.compile("^(.*\\.(java|cpp|h|hpp|md)|pom.xml)$");
+                    final  var sourceSuffix  = Pattern.compile("^(.*\\.(java|cpp|h|hpp)|pom.xml)$");
 
                     Stream.of("core","tools","examples","backends","docs","wraps")
                             .map(hatDir::resolve)
                             .forEach(dir-> {
                                 Util.recurse(dir,
-                                        (d)-> true, // we do this foir all subdirs
-                                        (f)-> textSuffix.matcher(f.getFileName().toString()).matches() && Util.grepLines(tabOrEolWsPattern, f),
-                                        (c)-> System.out.println("File contains WS issue (TAB or EOLWs) " + c)
+                                   (d)-> true, // we do this for all subdirs
+                                   (f)-> textSuffix.matcher(f.getFileName().toString()).matches() && Util.grepLines(tabOrEolWsPattern, f),
+                                   (c)-> System.out.println("File contains WS issue (TAB or EOLWs) " + c)
                                 );
                                 Util.recurse(dir,
-                                        (d)-> !copyrightExemptPattern.matcher(d.getFileName().toString()).matches(), // we skip these subdirs
-                                        (f)-> sourceSuffix.matcher(f.getFileName().toString()).matches() && !Util.grepLines(copyrightPattern, f),
-                                        (c)-> System.out.println("File does not contain copyright " + c)
+                                   (d)-> !copyrightExemptPattern.matcher(d.getFileName().toString()).matches(), // we skip these subdirs
+                                   (f)-> sourceSuffix.matcher(f.getFileName().toString()).matches() && !Util.grepLines(copyrightPattern, f),
+                                   (c)-> System.out.println("File does not contain copyright " + c)
                                 );
                             });
                     args.clear();
                 }
-
                 case "run" -> {
                     if (args.size() > 1) {
-                        String backendName = args.removeFirst();
-                        String runnableName = args.removeFirst();
+                        var backendName = args.removeFirst();
+                        var runnableName = args.removeFirst();
                         if (project.get(backendName) instanceof Jar backend) {
                             if (project.get(runnableName) instanceof Jar runnable) {
-                                List<String> vmOpts = new ArrayList<>();
-                                //vmOpts.add("-DnoModuleOp=true");
-                                //vmOpts.add("-DbufferTracking=true");
-                                var dag = new job.Dag(runnable, backend);
-                                if (runnableName.equals("nbody") && mac.isAvailable()) {  // nbody (or anything using OpenGL on mac) needs this
+                                var vmOpts = new ArrayList<String>(List.of(
+                                  // "-DnoModuleOp=true",
+                                  // "-DbufferTagging=true"
+                                ));
+                                if (runnableName.equals("nbody") && mac.isAvailable()) {  // nbody (anything on mac using OpenGL
                                     vmOpts.add("-XstartOnFirstThread");
                                 }
-                                runnable.run(runnableName + ".Main", dag.ordered(), vmOpts,args);
+                                runnable.run(runnableName + ".Main", new job.Dag(runnable, backend).ordered(), vmOpts,args);
                             } else {
                                 System.err.println("Failed to find runnable " + runnableName);
                             }
@@ -200,77 +199,33 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                 }
                 case "test" -> {
                     if (args.size() > 0) {
-                        String backendName = args.removeFirst();
+                        var backendName = args.removeFirst();
                         if (project.get(backendName) instanceof Jar backend) {
-                           Path file = Paths.get("test_report.txt");
                            class Stats {
                                int passed = 0;
                                int failed = 0;
-                               public void incrementPassed(int val) {
-                                   passed += val;
-                               }
-                               public void incrementFailed(int fail) {
-                                   failed += fail;
-                               }
-
-                               public int getPassed() {
-                                   return passed;
-                               }
-                               public int getFailed() {
-                                   return failed;
-                               }
-
-                               @Override
-                               public String toString() {
-                                   return String.format("Global passed: %d, failed: %d, pass-rate: %.2f%%",
-                                       passed, failed, ((float)(passed * 100 / (passed + failed))));
-                               }
                            }
-
-                           try {
-                              Files.deleteIfExists(file);
-                           } catch (IOException e) {
-                              e.printStackTrace();
-                           }
-                           var suite = new String[] {
-                               "oracle.code.hat.TestArrays",
-                               "oracle.code.hat.TestMatMul",
-                               "oracle.code.hat.TestMandel",
-                               "oracle.code.hat.TestLocal",
-                               "oracle.code.hat.TestReductions"
-                           };
-                           for(var s:suite){
-                              List<String> vmOpts = new ArrayList<>();
-                              var dag = new job.Dag(tests, backend);
-                              args.add(s);
-                              tests.run("oracle.code.hat.engine.HatTestEngine", dag.ordered(), vmOpts,args);
-                              args.remove(args.size()-1);
-                           }
-                           String regex = "passed: (\\d+), failed: (\\d+)";
-                           Pattern pattern = Pattern.compile(regex);
-                           Stats stats = new Stats();
-
-                           System.out.println("\n\n************************************************");
-                           System.out.println("                 HAT Test Report ");
+                           var test_reports_txt = Paths.get("test_report.txt");
+                           Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
+                           Stream.of( "Arrays", "MatMul", "Mandel", "Local", "Reductions")
+                              .map(s->"oracle.code.hat.Test"+s)
+                              .forEach(suite->{
+                                 tests.run("oracle.code.hat.engine.HatTestEngine",
+                                    new job.Dag(tests, backend).ordered(), List.of(),List.of(suite));
+                              });
+                           System.out.println("\n\n"+logo+"                 HAT Test Report ");
                            System.out.println("************************************************");
-                           try {
-                              List<String> lines = Files.readAllLines(file);
-                              for (String line : lines) {
-                                 System.out.println(line);
-
-                                 Matcher matcher = pattern.matcher(line);
-                                 if (matcher.find()) {
-                                    int passed = Integer.parseInt(matcher.group(1));
-                                    int fail = Integer.parseInt(matcher.group(2));
-                                    stats.incrementPassed(passed);
-                                    stats.incrementFailed(fail);
-                                 }
+                           var pattern = Pattern.compile( "passed: (\\d+), failed: (\\d+)");
+                           var stats = new Stats();
+                           Files.readAllLines(test_reports_txt).forEach(line->{
+                              System.out.println(line);
+                              if (pattern.matcher(line) instanceof Matcher matcher && matcher.find()){
+                                 stats.passed+=Integer.parseInt(matcher.group(1));
+                                 stats.failed+=Integer.parseInt(matcher.group(2));
                               }
-                          } catch (IOException e) {
-                              e.printStackTrace();
-                          }
-                          System.out.println(stats);
-
+                          });
+                          System.out.printf("Global passed: %d, failed: %d, pass-rate: %.2f%%",
+                                stats.passed, stats.failed, ((float)(stats.passed * 100 / (stats.passed + stats.failed))));
                         } else {
                            System.err.println("Failed to find backend   " + backendName);
                         }
@@ -281,14 +236,15 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                 }
                 case "exp" -> {
                     if (args.size() > 1) {
-                        String backendName = args.removeFirst();
-                        String runnableName = "experiments";
-                        String className = args.removeFirst();
+                        var backendName = args.removeFirst();
+                        var runnableName = "experiments";
+                        var className = args.removeFirst();
                         if (project.get(backendName) instanceof Jar backend) {
                             if (project.get(runnableName) instanceof Jar runnable) {
-                                List<String> vmOpts = new ArrayList<>();
-                                //vmOpts.add("-DnoModuleOp=true");
-                                //vmOpts.add("-DbufferTracking=true");
+                                var vmOpts = new ArrayList<String>(List.of(
+                                  // "-DnoModuleOp=true",
+                                  // "-DbufferTagging=true"
+                                ));
                                 runnable.run(runnableName + "."+className, new job.Dag(runnable, backend).ordered(), vmOpts,args);
                             } else {
                                 System.err.println("Failed to find runnable " + runnableName);
