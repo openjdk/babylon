@@ -25,13 +25,10 @@
 package hat.callgraph;
 
 import hat.ComputeContext;
-import hat.optools.FuncOpWrapper;
-import hat.optools.InvokeOpWrapper;
-import hat.optools.ModuleOpWrapper;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -44,18 +41,18 @@ public abstract class CallGraph<E extends Entrypoint> {
     public final E entrypoint;
     public final Set<MethodCall> calls = new HashSet<>();
     public final Map<MethodRef, MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
-    public ModuleOpWrapper moduleOpWrapper;
-
+    public CoreOp.ModuleOp moduleOp;
+    public static boolean noModuleOp = Boolean.getBoolean("noModuleOp");
+    public static boolean bufferTagging = Boolean.getBoolean("bufferTagging");
     public Stream<MethodCall> callStream() {
         return methodRefToMethodCallMap.values().stream();
     }
 
-    public abstract boolean filterCalls(CoreOp.FuncOp f, InvokeOpWrapper invokeOpWrapper, Method method, MethodRef methodRef, Class<?> javaRefTypeClass);
+    public abstract boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass);
 
     public interface Resolved {
-        FuncOpWrapper funcOpWrapper();
-
-        void funcOpWrapper(FuncOpWrapper funcOpWrapper);
+        CoreOp.FuncOp funcOp();
+        void funcOp(CoreOp.FuncOp funcOp);
     }
 
     public interface Unresolved {
@@ -65,7 +62,6 @@ public abstract class CallGraph<E extends Entrypoint> {
         public CallGraph<?> callGraph;
         public final Method method;
         public final Class<?> declaringClass;
-        private final Annotation[][] annotatedParameters;
         public final Set<MethodCall> calls = new HashSet<>();
         public final Set<MethodCall> callers = new HashSet<>();
         public final MethodRef targetMethodRef;
@@ -77,16 +73,6 @@ public abstract class CallGraph<E extends Entrypoint> {
             this.targetMethodRef = targetMethodRef;
             this.method = method;
             this.declaringClass = method.getDeclaringClass();
-            this.annotatedParameters= method.getParameterAnnotations();
-            for (int i = 0; i < annotatedParameters.length; i++) {
-                Annotation[] annotations = annotatedParameters[i];
-                if (annotations.length != 0) {
-                    for (int a = 0; a < annotations.length; a++) {
-                        Annotation annotation = annotations[a];
-                        //System.out.println("annotation: " + annotation);
-                    }
-                }
-            }
         }
 
 
@@ -115,21 +101,21 @@ public abstract class CallGraph<E extends Entrypoint> {
     }
 
     public abstract static class ResolvedMethodCall extends MethodCall implements Resolved {
-        private FuncOpWrapper funcOpWrapper;
+        private CoreOp.FuncOp funcOp;
 
-        ResolvedMethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method, FuncOpWrapper funcOpWrapper) {
+        ResolvedMethodCall(CallGraph<?> callGraph, MethodRef targetMethodRef, Method method,  CoreOp.FuncOp funcOp) {
             super(callGraph, targetMethodRef, method);
-            this.funcOpWrapper = funcOpWrapper;
+            this.funcOp = funcOp;
         }
 
         @Override
-        public FuncOpWrapper funcOpWrapper() {
-            return funcOpWrapper;
+        public CoreOp.FuncOp funcOp() {
+            return funcOp;
         }
 
         @Override
-        public void funcOpWrapper(FuncOpWrapper funcOpWrapper) {
-            this.funcOpWrapper = funcOpWrapper;
+        public void funcOp(CoreOp.FuncOp funcOp) {
+            this.funcOp = funcOp;
         }
     }
 

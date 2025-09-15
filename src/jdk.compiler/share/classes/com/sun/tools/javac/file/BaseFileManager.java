@@ -55,6 +55,8 @@ import javax.tools.JavaFileObject.Kind;
 
 import com.sun.tools.javac.code.Lint;
 import com.sun.tools.javac.code.Lint.LintCategory;
+import com.sun.tools.javac.main.JavaCompiler;
+import com.sun.tools.javac.main.JavaCompiler.CodeReflectionSupport;
 import com.sun.tools.javac.main.Option;
 import com.sun.tools.javac.main.OptionHelper;
 import com.sun.tools.javac.main.OptionHelper.GrumpyHelper;
@@ -191,7 +193,9 @@ public abstract class BaseFileManager implements JavaFileManager {
     }
 
     protected ClassLoader getClassLoader(URL[] urls) {
-        ClassLoader thisClassLoader = getClass().getClassLoader();
+        ClassLoader thisClassLoader = CodeReflectionSupport.CODE_LAYER != null ?
+                CodeReflectionSupport.CODE_LAYER.findLoader("jdk.incubator.code") :
+                getClass().getClassLoader();
 
         // Allow the following to specify a closeable classloader
         // other than URLClassLoader.

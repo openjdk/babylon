@@ -26,15 +26,11 @@
 package hat.ifacemapper.accessor;
 
 import hat.ifacemapper.MapperUtil;
-import hat.ifacemapper.Schema;
-import hat.util.Result;
+import hat.util.StreamOptionalMutable;
 
 import java.lang.foreign.GroupLayout;
-import java.lang.foreign.MemorySegment;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.Set;
 
 import static hat.ifacemapper.accessor.AccessorInfo.AccessorType.GETTER;
 import static hat.ifacemapper.accessor.AccessorInfo.AccessorType.GETTER_AND_SETTER;
@@ -151,23 +147,24 @@ public record AccessorInfo(Key key,
 
         public static Key of(Class<?> iface, String name) {
             var methods = iface.getDeclaredMethods();
-            Result<Key> keyResult = new Result<>();
+            //TODO : Swap for StreamMutable. This is the last use... but I need to think about this.
+            StreamOptionalMutable<Key> keyStreamMutable = new StreamOptionalMutable<>();
             Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
                 var key = Key.of(matchingMethod);
-                if (!keyResult.isPresent()) {
-                    keyResult.of(key);
-                } else if ((keyResult.get().equals(ARRAY_VALUE_GETTER) && key.equals(ARRAY_VALUE_SETTER))
-                        || (keyResult.get().equals(ARRAY_VALUE_SETTER) && key.equals(ARRAY_VALUE_GETTER))) {
-                    keyResult.of(ARRAY_VALUE_GETTER_AND_SETTER);
-                } else if ((keyResult.get().equals(SCALAR_VALUE_GETTER) && key.equals(SCALAR_VALUE_SETTER))
-                        || (keyResult.get().equals(SCALAR_VALUE_SETTER) && key.equals(SCALAR_VALUE_GETTER))) {
-                    keyResult.of(SCALAR_VALUE_GETTER_AND_SETTER);
+                if (!keyStreamMutable.isPresent()) {
+                    keyStreamMutable.of(key);
+                } else if ((keyStreamMutable.get().equals(ARRAY_VALUE_GETTER) && key.equals(ARRAY_VALUE_SETTER))
+                        || (keyStreamMutable.get().equals(ARRAY_VALUE_SETTER) && key.equals(ARRAY_VALUE_GETTER))) {
+                    keyStreamMutable.of(ARRAY_VALUE_GETTER_AND_SETTER);
+                } else if ((keyStreamMutable.get().equals(SCALAR_VALUE_GETTER) && key.equals(SCALAR_VALUE_SETTER))
+                        || (keyStreamMutable.get().equals(SCALAR_VALUE_SETTER) && key.equals(SCALAR_VALUE_GETTER))) {
+                    keyStreamMutable.of(SCALAR_VALUE_GETTER_AND_SETTER);
                 }
             });
-            if (!keyResult.isPresent()) {
+            if (!keyStreamMutable.isPresent()) {
                 throw new IllegalStateException("no possible key for " + iface + " " + name);
             }
-            return keyResult.get();
+            return keyStreamMutable.get();
         }
     }
 

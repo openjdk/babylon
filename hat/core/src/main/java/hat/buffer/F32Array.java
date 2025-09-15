@@ -39,20 +39,21 @@ public interface F32Array extends Buffer {
     float array(long idx);
     void array(long idx, float f);
 
-    Schema<F32Array> schema = Schema.of(F32Array.class, s32Array->s32Array
-            .arrayLen("length").array("array"));
+    Schema<F32Array> schema = Schema.of(F32Array.class, s32Array ->
+            s32Array.arrayLen("length").array("array"));
 
     static F32Array create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
     }
+
     default F32Array copyFrom(float[] floats) {
         MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, 4, length());
         return this;
     }
+
     static F32Array createFrom(Accelerator accelerator, float[] arr){
         return create( accelerator, arr.length).copyFrom(arr);
     }
-
 
     default F32Array copyTo(float[] floats) {
         MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, 4, floats, 0, length());

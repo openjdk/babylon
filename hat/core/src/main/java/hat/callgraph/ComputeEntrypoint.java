@@ -24,17 +24,17 @@
  */
 package hat.callgraph;
 
-import hat.optools.FuncOpWrapper;
+import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Method;
 
 public class ComputeEntrypoint extends ComputeCallGraph.ComputeReachableResolvedMethodCall implements Entrypoint {
-    public FuncOpWrapper lowered;
+    public CoreOp.FuncOp lowered;
     public MethodHandle mh;
 
-    public ComputeEntrypoint(CallGraph<ComputeEntrypoint> callGraph, Method method, FuncOpWrapper funcOpWrapper) {
-        super(callGraph, null, method, funcOpWrapper);
+    public ComputeEntrypoint(CallGraph<ComputeEntrypoint> callGraph, Method method, CoreOp.FuncOp funcOp) {
+        super(callGraph, null, method, funcOp);
     }
     @Override
     public Method getMethod() {

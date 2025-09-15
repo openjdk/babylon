@@ -25,34 +25,11 @@
 package hat.codebuilders;
 
 
-import hat.optools.BinaryArithmeticOrLogicOperation;
-import hat.optools.BinaryTestOpWrapper;
-import hat.optools.ConstantOpWrapper;
-import hat.optools.ConvOpWrapper;
-import hat.optools.FieldLoadOpWrapper;
-import hat.optools.FieldStoreOpWrapper;
-import hat.optools.ForOpWrapper;
-import hat.optools.FuncCallOpWrapper;
-import hat.optools.IfOpWrapper;
-import hat.optools.InvokeOpWrapper;
-import hat.optools.JavaBreakOpWrapper;
-import hat.optools.JavaContinueOpWrapper;
-import hat.optools.JavaLabeledOpWrapper;
-import hat.optools.LambdaOpWrapper;
-import hat.optools.LogicalOpWrapper;
-import hat.optools.OpWrapper;
-import hat.optools.ReturnOpWrapper;
-import hat.optools.TernaryOpWrapper;
-import hat.optools.TupleOpWrapper;
-import hat.optools.UnaryArithmeticOrLogicOpWrapper;
-import hat.optools.VarDeclarationOpWrapper;
-import hat.optools.VarFuncDeclarationOpWrapper;
-import hat.optools.VarLoadOpWrapper;
-import hat.optools.VarStoreOpWrapper;
-import hat.optools.WhileOpWrapper;
-import hat.optools.YieldOpWrapper;
+import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -77,6 +54,14 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
     public T floatDeclaration(String name) {
         return floatType().space().identifier(name);
+    }
+
+    public T doubleDeclaration(String name) {
+        return doubleType().space().identifier(name);
+    }
+
+    public T longDeclaration(String name) {
+        return longType().space().identifier(name);
     }
 
     public T booleanDeclaration(String name) {
@@ -114,15 +99,15 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return externKeyword().space().dquote("C");
     }
 
-    T hashDefineKeyword() {
+    public T hashDefineKeyword() {
         return hash().keyword("define");
     }
 
-    T hashIfdefKeyword() {
+    public T hashIfdefKeyword() {
         return hash().keyword("ifdef");
     }
 
-    T hashIfndefKeyword() {
+    public T hashIfndefKeyword() {
         return hash().keyword("ifndef");
     }
 
@@ -131,11 +116,11 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     }
 
     protected T hashIfdef(String value) {
-        return hashIfdefKeyword().space().append(value).nl();
+        return hashIfdefKeyword().space().constant(value).nl();
     }
 
     protected T hashIfndef(String value) {
-        return hashIfndefKeyword().space().append(value).nl();
+        return hashIfndefKeyword().space().constant(value).nl();
     }
 
     public T hashIfdef(String value, Consumer<T> consumer) {
@@ -145,28 +130,22 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     protected T hashIfndef(String value, Consumer<T> consumer) {
         return hashIfndef(value).accept(consumer).hashEndif();
     }
-  /*  public T defonce(String name, Runnable r) {
-        return ifndef(name+"_ONCE_DEF",()->{
-            define(name+"_ONCE_DEF").nl();
-            r.run();
-        });
-    }*/
-  public T varName(CoreOp.VarOp varOp) {
-      identifier(varOp.varName());
-      return self();
-  }
-    T pragmaKeyword() {
+    public T varName(CoreOp.VarOp varOp) {
+        identifier(varOp.varName());
+        return self();
+    }
+    public T pragmaKeyword() {
         return keyword("pragma");
     }
 
-    T includeKeyword() {
+    public T includeKeyword() {
         return keyword("include");
     }
 
     public T hashDefine(String name, String... values) {
         hashDefineKeyword().space().identifier(name);
         for (String value : values) {
-            space().append(value);
+            space().constant(value);
         }
         return nl();
     }
@@ -174,7 +153,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     public T pragma(String name, String... values) {
         hash().pragmaKeyword().space().identifier(name);
         for (String value : values) {
-            space().append(value);
+            space().constant(value);
         }
         return nl();
     }
@@ -191,7 +170,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return nl();
     }
 
-    T externKeyword() {
+    public T externKeyword() {
         return keyword("extern");
     }
 
@@ -199,7 +178,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return identifier(Character.toString(Character.toLowerCase(value.charAt(0)))).identifier(value.substring(1));
     }
 
-    T camelJoin(String prefix, String suffix) {
+    public T camelJoin(String prefix, String suffix) {
         return camel(prefix).identifier(Character.toString(Character.toUpperCase(suffix.charAt(0)))).identifier(suffix.substring(1));
     }
 
@@ -258,7 +237,7 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     }
 
     private T typedef(Consumer<T> lhs, Consumer<T> rhs) {
-        return semicolonTerminatedLine(_ -> typedefKeyword().space().accept(lhs).space().accept(rhs));
+        return semicolonNlTerminated(_ -> typedefKeyword().space().accept(lhs).space().accept(rhs));
     }
 
     public final T unsignedIntType() {
@@ -273,107 +252,56 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return typeName("unsigned").space().shortType();
     }
 
-
-    /* this should not be too C99 specific */
-    public  interface CodeBuilderInterface<T extends HATCodeBuilderWithContext<?>> {
-
-
-         T varLoad(HATCodeBuilderContext buildContext, VarLoadOpWrapper varAccessOpWrapper);
-
-         T varStore(HATCodeBuilderContext buildContext, VarStoreOpWrapper varAccessOpWrapper);
-
-        // public T var(BuildContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper) ;
-
-         T varDeclaration(HATCodeBuilderContext buildContext, VarDeclarationOpWrapper varDeclarationOpWrapper);
-
-         T varFuncDeclaration(HATCodeBuilderContext buildContext, VarFuncDeclarationOpWrapper varFuncDeclarationOpWrapper);
-
-         T fieldLoad(HATCodeBuilderContext buildContext, FieldLoadOpWrapper fieldLoadOpWrapper);
-
-         T fieldStore(HATCodeBuilderContext buildContext, FieldStoreOpWrapper fieldStoreOpWrapper);
-
-        T unaryOperation(HATCodeBuilderContext buildContext, UnaryArithmeticOrLogicOpWrapper unaryOperatorOpWrapper);
-
-
-        T binaryOperation(HATCodeBuilderContext buildContext, BinaryArithmeticOrLogicOperation binaryOperatorOpWrapper);
-
-        T logical(HATCodeBuilderContext buildContext, LogicalOpWrapper logicalOpWrapper);
-
-        T binaryTest(HATCodeBuilderContext buildContext, BinaryTestOpWrapper binaryTestOpWrapper);
-
-        T conv(HATCodeBuilderContext buildContext, ConvOpWrapper convOpWrapper);
-
-
-        T constant(HATCodeBuilderContext buildContext, ConstantOpWrapper constantOpWrapper);
-
-        T javaYield(HATCodeBuilderContext buildContext, YieldOpWrapper yieldOpWrapper);
-
-        T lambda(HATCodeBuilderContext buildContext, LambdaOpWrapper lambdaOpWrapper);
-
-        T tuple(HATCodeBuilderContext buildContext, TupleOpWrapper lambdaOpWrapper);
-
-        T funcCall(HATCodeBuilderContext buildContext, FuncCallOpWrapper funcCallOpWrapper);
-
-        T javaIf(HATCodeBuilderContext buildContext, IfOpWrapper ifOpWrapper);
-
-        T javaWhile(HATCodeBuilderContext buildContext, WhileOpWrapper whileOpWrapper);
-
-        T javaLabeled(HATCodeBuilderContext buildContext, JavaLabeledOpWrapper javaLabeledOpWrapperOp);
-
-        T javaContinue(HATCodeBuilderContext buildContext, JavaContinueOpWrapper javaContinueOpWrapper);
-
-        T javaBreak(HATCodeBuilderContext buildContext, JavaBreakOpWrapper javaBreakOpWrapper);
-
-        T javaFor(HATCodeBuilderContext buildContext, ForOpWrapper forOpWrapper);
-
-
-         T methodCall(HATCodeBuilderContext buildContext, InvokeOpWrapper invokeOpWrapper);
-
-         T ternary(HATCodeBuilderContext buildContext, TernaryOpWrapper ternaryOpWrapper);
-
-         T parencedence(HATCodeBuilderContext buildContext, Op parent, OpWrapper<?> child);
-
-         T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, OpWrapper<?> child);
-
-         T parencedence(HATCodeBuilderContext buildContext, Op parent, Op child);
-
-         T parencedence(HATCodeBuilderContext buildContext, OpWrapper<?> parent, Op child);
-
-         T ret(HATCodeBuilderContext buildContext, ReturnOpWrapper returnOpWrapper);
-
-        default T recurse(HATCodeBuilderContext buildContext, OpWrapper<?> wrappedOp) {
-            switch (wrappedOp) {
-                case VarLoadOpWrapper $ -> varLoad(buildContext, $);
-                case VarStoreOpWrapper $ -> varStore(buildContext, $);
-                case FieldLoadOpWrapper $ -> fieldLoad(buildContext, $);
-                case FieldStoreOpWrapper $ -> fieldStore(buildContext, $);
-                case BinaryArithmeticOrLogicOperation $ -> binaryOperation(buildContext, $);
-                case UnaryArithmeticOrLogicOpWrapper $ -> unaryOperation(buildContext, $);
-                case BinaryTestOpWrapper $ -> binaryTest(buildContext, $);
-                case ConvOpWrapper $ -> conv(buildContext, $);
-                case ConstantOpWrapper $ -> constant(buildContext, $);
-                case YieldOpWrapper $ -> javaYield(buildContext, $);
-                case FuncCallOpWrapper $ -> funcCall(buildContext, $);
-                case LogicalOpWrapper $ -> logical(buildContext, $);
-                case InvokeOpWrapper $ -> methodCall(buildContext, $);
-                case TernaryOpWrapper $ -> ternary(buildContext, $);
-                case VarDeclarationOpWrapper $ -> varDeclaration(buildContext, $);
-                case VarFuncDeclarationOpWrapper $ -> varFuncDeclaration(buildContext, $);
-                case LambdaOpWrapper $ -> lambda(buildContext, $);
-                case TupleOpWrapper $ -> tuple(buildContext, $);
-                case WhileOpWrapper $ -> javaWhile(buildContext, $);
-                case IfOpWrapper $ -> javaIf(buildContext, $);
-                case ForOpWrapper $ -> javaFor(buildContext, $);
-                case ReturnOpWrapper $ -> ret(buildContext, $);
-                case JavaLabeledOpWrapper $ -> javaLabeled(buildContext, $);
-                case JavaBreakOpWrapper $ -> javaBreak(buildContext, $);
-                case JavaContinueOpWrapper $ -> javaContinue(buildContext, $);
-                default -> throw new IllegalStateException("handle nesting of op " + wrappedOp.op);
-            }
-            return (T) this;
+    //Unused?
+    public T declareVarFromJavaType(JavaType type, String varName) {
+        if (type.equals(JavaType.INT)) {
+            intDeclaration(varName);
+        } else if (type.equals(JavaType.LONG)) {
+            longDeclaration(varName);
+        } else  if (type.equals(JavaType.FLOAT)) {
+            floatDeclaration(varName);
+        } else if (type.equals(JavaType.DOUBLE)) {
+            doubleDeclaration(varName);
         }
-
-
+        return self();
+    }
+    public T funcName(CoreOp.FuncCallOp funcCallOp){
+        return identifier(funcCallOp.funcName());
+    }
+    public T funcName(CoreOp.FuncOp funcOp) {
+        return identifier(funcOp.funcName());
+    }
+    public T fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
+        return identifier(OpTk.fieldName(fieldAccessOp));
+    }
+    public T funcName(JavaOp.InvokeOp invokeOp){
+        return identifier(OpTk.funcName(invokeOp));
     }
 
+    T symbol(Op op) {
+        return switch (op) {
+            case JavaOp.ModOp o -> percent();
+            case JavaOp.MulOp o -> mul();
+            case JavaOp.DivOp o -> div();
+            case JavaOp.AddOp o -> plus();
+            case JavaOp.SubOp o -> minus();
+            case JavaOp.LtOp o -> lt();
+            case JavaOp.GtOp o -> gt();
+            case JavaOp.LeOp o -> lte();
+            case JavaOp.GeOp o -> gte();
+            case JavaOp.AshrOp o -> cchevron().cchevron();
+            case JavaOp.LshlOp o -> ochevron().ochevron();
+            case JavaOp.LshrOp o -> cchevron().cchevron();
+            case JavaOp.NeqOp o -> pling().equals();
+            case JavaOp.NegOp o -> minus();
+            case JavaOp.EqOp o -> equals().equals();
+            case JavaOp.NotOp o -> pling();
+            case JavaOp.AndOp o -> ampersand();
+            case JavaOp.OrOp o -> bar();
+            case JavaOp.XorOp o -> hat();
+            case JavaOp.ConditionalAndOp o -> condAnd();
+            case JavaOp.ConditionalOrOp o -> condOr();
+            default -> throw new IllegalStateException("Unexpected value: " + op);
+        };
+    }
 }

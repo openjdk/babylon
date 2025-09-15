@@ -38,10 +38,10 @@ void main(String[] args) {
            │    └──Script                          //  Contains all the tools for building
            ├──build/                               // All jars, native libs and executables
            │    ├── cmake-build-debug/             // All intermediate cmake artifacts
-           │    ├── hat-wrap-*-1.0.jar              // Wrapper jars around extracted * (opencl, glwrap, opencl)
+           │    ├── hat-wrap-*-1.0.jar             // Wrapper jars around extracted * (opencl, glwrap, opencl)
            │    ├── core-1.0.jar                   // Base hat jar
            │    ├── hat-example-*-1.0.jar          // Example jars (hat-example-nbody-1.0.jar, hat-example-life-1.0.jar)
-           │    ├── hat-extraction-opencl-1.0.jar  // Raw extraction jars (hat-extraction-opencl-1.0.jar ....)
+           │    ├── hat-extracted-opencl-1.0.jar   // Raw extraction jars (hat-extracted-opencl-1.0.jar ....)
            │    ├── lib*_backend.[dylib|so]        // ffi library backends
            │    └── *(no suffix)                   // various generated executables (opencl_info, cuda_info, cuda_squares)
            ├──extractions/
@@ -143,6 +143,7 @@ void main(String[] args) {
     class Artifacts{
         static Script.MavenStyleProject core;
         static Script.MavenStyleProject tools;
+        static Script.MavenStyleProject tests;
         static Script.MavenStyleProject example_shared;
         static Script.MavenStyleProject example_nbody;
         static Script.MavenStyleProject backend_ffi_shared;
@@ -173,6 +174,9 @@ void main(String[] args) {
             dir.existingDir("tools"), "hat-tools-1.0.jar", Artifacts.core
     );
 
+    Artifacts.tests = buildDir.mavenStyleBuild(
+            dir.existingDir("tests"), "hat-tests-1.0.jar", Artifacts.core
+    );
 
     var extractionsDir = dir.existingDir("extractions");
 
@@ -185,7 +189,7 @@ void main(String[] args) {
     var extraction_opencl_dir = extractionsDir.dir("opencl");
     if (extraction_opencl_dir.dir("src").exists()) {
         Artifacts.extraction_opencl = buildDir.mavenStyleBuild(
-                extraction_opencl_dir, "hat-extraction-opencl-1.0.jar"
+                extraction_opencl_dir, "hat-extracted-opencl-1.0.jar"
         );
     }else{
         print("no src for extraction_opencl");
@@ -194,7 +198,7 @@ void main(String[] args) {
     var extraction_opengl_dir = extractionsDir.dir("opengl");
     if (extraction_opengl_dir.dir("src").exists()) {
         Artifacts.extraction_opengl = buildDir.mavenStyleBuild(
-                extraction_opengl_dir, "hat-extraction-opengl-1.0.jar"
+                extraction_opengl_dir, "hat-extracted-opengl-1.0.jar"
         );
     }else{
         print("no src for extraction_opengl");
@@ -203,7 +207,7 @@ void main(String[] args) {
     var extraction_cuda_dir = extractionsDir.dir("cuda");
     if (extraction_cuda_dir.dir("src").exists()) {
         Artifacts.extraction_cuda = buildDir.mavenStyleBuild(
-                extraction_cuda_dir, "hat-extraction-cuda-1.0.jar"
+                extraction_cuda_dir, "hat-extracted-cuda-1.0.jar"
         );
     }
 

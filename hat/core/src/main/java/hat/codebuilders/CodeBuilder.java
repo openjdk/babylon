@@ -24,61 +24,27 @@
  */
 package hat.codebuilders;
 
+import hat.util.StreamMutable;
 
-import hat.util.StreamCounter;
-
-import java.util.Collection;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
- * Extends the base TextBuilder to add common constructs/keywords for generating code.
+ * Extends the base TextBuilder to add common constructs/keywords for generating C99/Java style code.
  *
  * @author Gary Frost
  */
-public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<T> {
+public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<T>  implements CodeRenderer<T> {
 
     public T semicolon() {
         return symbol(";");
     }
 
-    public T semicolonIf(boolean c) {
-        if (c) {
-            return semicolon();
-        } else {
-            return self();
-        }
-    }
-
-    public T semicolonNl() {
-        return semicolon().nl();
-    }
-
-    public T commaIf(boolean c) {
-        if (c) {
-            return comma();
-        } else {
-            return self();
-        }
-    }
-
-    public T commaSpaceIf(boolean c) {
-        if (c) {
-            return comma().space();
-        } else {
-            return self();
-        }
-    }
-
-    public T nlIf(boolean c) {
-        if (c) {
-            return nl();
-        } else {
-            return self();
-        }
-    }
-
     public T comma() {
         return symbol(",");
+    }
+    final public T commaSpace() {
+        return comma().space();
     }
     public T tilde() {
         return symbol("~");
@@ -113,16 +79,21 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public T lineComment(String line) {
-        return symbol("//").space().commented(line).nl();
+        return comment("//").space().comment(line).nl();
+    }
+
+    @Override
+    public T constant(String text ){
+       return emitText(text);
     }
 
 
     public T blockComment(String block) {
-        return symbol("/*").nl().commented(block).nl().symbol("*/").nl();
+        return comment("/*").nl().comment(block).nl().symbol("*/").nl();
     }
 
     public T blockInlineComment(String block) {
-        return symbol("/*").space().commented(block).space().symbol("*/").space();
+        return comment("/*").space().comment(block).space().comment("*/");
     }
 
     public T newKeyword() {
@@ -150,7 +121,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public T ifKeyword() {
         return keyword("if");
-
     }
 
     public T whileKeyword() {
@@ -160,12 +130,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
 
     public T breakKeyword() {
         return keyword("break");
-
     }
 
     public T gotoKeyword() {
         return keyword("goto");
-
     }
 
     public T continueKeyword() {
@@ -178,7 +146,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
 
-    public T nullKeyword() {
+    public T nullConst() {
         return symbol("NULL");
     }
 
@@ -290,28 +258,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return symbol("||");
     }
 
-    public T dqattr(String name, String value) {
-        return append(name).equals().dquote(value);
-
-    }
-
-    public T sqattr(String name, String value) {
-        return append(name).equals().squote(value);
-
-    }
-
-    public T attr(String name, String value) {
-        return append(name).equals().append(value);
-    }
-
-    public T attr(String name, Integer value) {
-        return append(name).equals().append(value.toString());
-    }
-
-    public T attr(String name, Float value) {
-        return append(name).equals().append(value.toString());
-    }
-
     public T oparen() {
         return symbol("(");
     }
@@ -319,7 +265,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T paren(Consumer<T> consumer) {
         return oparen().accept(consumer).cparen();
     }
-
+    public T ocparen() {
+        return oparen().cparen();
+    }
     public T parenWhen(boolean value, Consumer<T> consumer) {
         if (value) {
             oparen().accept(consumer).cparen();
@@ -329,28 +277,29 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return self();
     }
 
-    public T line(Consumer<T> consumer) {
-        return accept(consumer).nl();
-    }
-
-    public T semicolonTerminatedLine(Consumer<T> consumer) {
-        return semicolonTerminatedLineNoNl(consumer).nl();
-    }
-
-    public T semicolonTerminatedLineNoNl(Consumer<T> consumer) {
+    public T semicolonTerminated(Consumer<T> consumer) {
         return accept(consumer).semicolon();
+    }
+    public T semicolonNlTerminated(Consumer<T> consumer) {
+        return semicolonTerminated(consumer).nl();
     }
 
     public T obrace() {
         return symbol("{");
     }
 
+    public T indent(Consumer<T> ct) {
+        return in().accept(ct).out();
+    }
+    public T nlIndentNl(Consumer<T> ct) {
+        return nl().indent(ct).nl();
+    }
     public T braceNlIndented(Consumer<T> ct) {
-        return obrace().nl().indent(ct).nl().cbrace();
+        return obrace().nlIndentNl(ct).cbrace();
     }
 
     public T parenNlIndented(Consumer<T> ct) {
-        return oparen().nl().indent(ct).nl().cparen();
+        return oparen().nlIndentNl(ct).cparen();
     }
 
     public T brace(Consumer<T> ct) {
@@ -366,9 +315,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return self();
     }
 
-    public T indent(Consumer<T> ct) {
-        return in().accept(ct).out();
-    }
 
     public T ochevron() {
         return rawochevron();
@@ -396,11 +342,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return symbol("[");
     }
 
-
     public T cparen() {
         return symbol(")");
     }
-
 
     public T cbrace() {
         return symbol("}");
@@ -452,7 +396,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
     public T squote(String txt) {
-        return osquote().append(txt).csquote();
+        return osquote().escaped(txt).csquote();
     }
 
     public T rarrow() {
@@ -464,41 +408,6 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     }
 
 
-    public T u08_t() {
-        return typeName("u08_t");
-    }
-
-    public T s08_t() {
-        return typeName("s08_t");
-    }
-
-    public T s32_t() {
-        return typeName("s32_t");
-    }
-
-    public T s16_t() {
-        return typeName("s16_t");
-    }
-
-    public T z8_t() {
-        return typeName("z8_t");
-    }
-
-    public T u32_t() {
-        return typeName("u32_t");
-    }
-
-    public T u16_t() {
-        return typeName("u16_t");
-    }
-
-    public T f32_t() {
-        return typeName("f32_t");
-    }
-
-    public T f64_t() {
-        return typeName("f64_t");
-    }
 
     public T questionMark() {
         return symbol("?");
@@ -524,61 +433,36 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return self();
     }
 
-
-    public <I> T zeroOrOneOrMore(Collection<I> collection, Consumer<T> zero, Consumer<I> one, Consumer<Iterable<I>> more) {
-        if (collection == null || collection.isEmpty()) {
-            zero.accept(self());
-        } else if (collection.size() == 1) {
-            one.accept(collection.iterator().next());
-        } else {
-            more.accept(collection);
-        }
-        return self();
-    }
-
-
-    public <I> T commaSeparated(Iterable<I> iterable, Consumer<I> c) {
-        StreamCounter.of(iterable, (counter, t) -> {
-            if (counter.isNotFirst()) {
-                comma().space();
+    public <I> T separated(Iterable<I> iterable, Consumer<T> separator, Consumer<I> consumer) {
+        var first  =StreamMutable.of(true);
+        iterable.forEach(  t -> {
+            if (first.get()){
+                first.set(false);
+            }else{
+                separator.accept(self());
             }
-            c.accept(t);
+            consumer.accept(t);
         });
         return self();
     }
-    public <I> T commaNlSeparated(Iterable<I> iterable, Consumer<I> c) {
-        StreamCounter.of(iterable, (counter, t) -> {
-            if (counter.isNotFirst()) {
-                comma().nl();
+    public <I> T separated(Stream<I> stream, Consumer<T> separator, Consumer<I> consumer) {
+        var first  =StreamMutable.of(true);
+        stream.forEach(  t -> {
+            if (first.get()){
+                first.set(false);
+            }else{
+                separator.accept(self());
             }
-            c.accept(t);
+            consumer.accept(t);
         });
         return self();
     }
-
-    public <I> T nlSeparated(Iterable<I> iterable, Consumer<I> c) {
-        StreamCounter.of(iterable, (countStream, t) -> {
-            if (countStream.isNotFirst()) {
-                nl();
-            }
-            c.accept(t);
-        });
-        return self();
-    }
-
-    public static class ConcreteCodeBuilder extends CodeBuilder<ConcreteCodeBuilder> {
-    }
-
-    public static ConcreteCodeBuilder concreteCodeBuilder() {
-        return new ConcreteCodeBuilder();
-    }
-
     public final T intType() {
-        return append("int");
+        return typeName("int");
     }
 
-    public final T intZero() {
-        return append("0");
+    public final T intConstZero() {
+        return constant("0");
     }
 
 
@@ -611,4 +495,53 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T shortType() {
         return typeName("short");
     }
+
+
+    @Override
+    public final T comment(String text) {
+        return emitText(text);
+    }
+    @Override
+    public T identifier(String text) {
+        return emitText(text);
+    }
+
+    @Override
+    public T reserved(String text) {
+        return emitText(text);
+    }
+
+    @Override
+    public T label(String text) {
+        return emitText(text);
+    }
+
+    @Override
+    public final T symbol(String text) {
+        return emitText(text);
+    }
+    @Override
+    public final T typeName(String text) {
+        return emitText(text);
+    }
+    @Override
+    public final T keyword(String text) {
+        return emitText(text);
+    }
+
+    @Override
+    public final T literal(String text) {
+        return emitText(text);
+    }
+    @Override
+    public T nl() {
+      return super.nl();
+    }
+
+    @Override
+    public T space() {
+        return emitText(" ");
+    }
+
+
 }

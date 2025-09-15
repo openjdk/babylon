@@ -26,24 +26,16 @@ package hat.backend.jextracted;
 
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.codebuilders.HATCodeBuilderContext;
-import hat.optools.OpWrapper;
+import hat.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
 
-    public OpenCLHatKernelBuilder(NDRange ndRange) {
-        super(ndRange);
-    }
-
     @Override
     public OpenCLHatKernelBuilder defines() {
-        hashDefine("NDRANGE_OPENCL");
-        pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable");
-        pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
-        hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
-        return self();
+        return pragmas().hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
     }
 
     @Override
@@ -78,14 +70,15 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
         return identifier("get_group_id").oparen().literal(id).cparen();
     }
 
+
     @Override
-    public OpenCLHatKernelBuilder kernelDeclaration(String name) {
-        return keyword("__kernel").space().voidType().space().identifier(name);
+    public OpenCLHatKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return keyword("__kernel").space().voidType().space().funcName(funcOp);
     }
 
     @Override
-    public OpenCLHatKernelBuilder functionDeclaration(HATCodeBuilderContext codeBuilderContext, JavaType type, String name) {
-        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(name);
+    public OpenCLHatKernelBuilder functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType type, CoreOp.FuncOp funcOp) {
+        return keyword("inline").space().type(codeBuilderContext,type).space().funcName(funcOp);
     }
 
     @Override
@@ -94,10 +87,20 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder atomicInc(HATCodeBuilderContext buildContext, Op.Result instanceResult, String name){
+    public OpenCLHatKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name){
           return identifier("atomic_inc").paren(_ -> {
-              ampersand().recurse(buildContext, OpWrapper.wrap(buildContext.lookup,instanceResult.op()));
+              ampersand().recurse(buildContext, instanceResult.op());
               rarrow().identifier(name);
           });
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder localPtrPrefix() {
+        return keyword("__local");
+    }
+
+    @Override
+    public OpenCLHatKernelBuilder syncBlockThreads() {
+        return identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen().semicolon();
     }
 }

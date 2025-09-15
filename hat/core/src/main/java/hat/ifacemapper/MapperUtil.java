@@ -28,7 +28,7 @@ package hat.ifacemapper;
 import hat.buffer.Buffer;
 import hat.ifacemapper.accessor.AccessorInfo;
 import hat.ifacemapper.accessor.Accessors;
-import hat.util.Result;
+import hat.util.StreamMutable;
 
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.GroupLayout;
@@ -221,7 +221,7 @@ public final class MapperUtil {
      */
     static Class<?> typeOf(Class<?> iface, String name) {
         var methods = iface.getDeclaredMethods();
-        Result<Class<?>> typeResult = new Result<>();
+        var typeStreamMutable = StreamMutable.of(null);
         Arrays.stream(methods).filter(method -> method.getName().equals(name)).forEach(matchingMethod -> {
             Class<?> returnType = matchingMethod.getReturnType();
             Class<?>[] paramTypes = matchingMethod.getParameterTypes();
@@ -240,16 +240,15 @@ public final class MapperUtil {
             } else {
                 throw new IllegalStateException("Can't determine iface mapping type for " + matchingMethod);
             }
-            if (!typeResult.isPresent() || typeResult.get().equals(thisType)) {
-                typeResult.of(thisType);
-            } else {
+            if (typeStreamMutable.get()== null ) {
+                typeStreamMutable.set(thisType);
+            }else if (!typeStreamMutable.get().equals(thisType)) {
                 throw new IllegalStateException("type mismatch for " + name);
             }
         });
-        if (!typeResult.isPresent()) {
+        if (typeStreamMutable.get()==null) {
             throw new IllegalStateException("No type mapping for " + iface + " " + name);
-
         }
-        return typeResult.get();
+        return (Class<?>)typeStreamMutable.get();
     }
 }

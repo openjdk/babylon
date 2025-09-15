@@ -34,8 +34,4 @@ public interface BufferTracker {
 
      void postAccess(Buffer b);
 
-   //  void preEscape(Buffer b);
-
-    // void postEscape(Buffer b) ;
-
 }
