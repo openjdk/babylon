@@ -53,7 +53,7 @@ public class QuotedSameInstanceTest {
         Quotable quotable = (Quotable) Interpreter.invoke(MethodHandles.lookup(), q);
         Object[] quotedObjects = IntStream.range(0, 1024).parallel().mapToObj(__ -> Op.ofQuotable(quotable).get()).toArray();
         for (int i = 1; i < quotedObjects.length; i++) {
-            Assertions.assertSame(quotedObjects[i], quotedObjects[i - 1]);
+            Assertions.assertSame(quotedObjects[i-1], quotedObjects[i]);
         }
     }
 }

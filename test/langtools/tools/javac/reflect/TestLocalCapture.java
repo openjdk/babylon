@@ -62,7 +62,7 @@ public class TestLocalCapture {
         FuncOp model = Op.ofMethod(sum).get();
         int found = (int)Interpreter.invoke(MethodHandles.lookup(), model, this, y, 17);
         int expected = sum(y, 17);
-        Assertions.assertEquals(found, expected);
+        Assertions.assertEquals(expected, found);
     }
 
     public static IntStream ints() {

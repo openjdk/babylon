@@ -29,7 +29,7 @@ public class CodeModelSameInstanceTest {
         Method m = om.get();
         Object[] codeModels = IntStream.range(0, 1024).mapToObj(_ -> Op.ofMethod(m)).toArray();
         for (int i = 1; i < codeModels.length; i++) {
-            Assertions.assertSame(codeModels[i], codeModels[i-1]);
+            Assertions.assertSame(codeModels[i-1], codeModels[i]);
         }
     }
 }
