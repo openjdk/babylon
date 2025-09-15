@@ -168,10 +168,8 @@ public class TestCaptureQuotable {
         assertEquals(res, x + 1);
     }
 
-    public static Object[][] ints() {
-        return IntStream.range(0, 50)
-                .mapToObj(i -> new Object[] { i })
-                .toArray(Object[][]::new);
+    public static IntStream ints() {
+        return IntStream.range(0, 50);
     }
 
     @ParameterizedTest

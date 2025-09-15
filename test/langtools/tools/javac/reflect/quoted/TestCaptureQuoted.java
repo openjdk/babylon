@@ -137,9 +137,7 @@ public class TestCaptureQuoted {
     }
 
 
-    public static Object[][] ints() {
-        return IntStream.range(0, 50)
-                .mapToObj(i -> new Object[] { i })
-                .toArray(Object[][]::new);
+    public static IntStream ints() {
+        return IntStream.range(0, 50);
     }
 }
