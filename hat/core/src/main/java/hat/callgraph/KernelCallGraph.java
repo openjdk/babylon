@@ -51,15 +51,29 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
         elements.forEach(codeElement -> {
             if (codeElement instanceof CoreOp.VarOp varOp) {
-                // obtain the result of the varOp
                 Op.Result varResult = varOp.result();
-                finalVars.put(varResult, varOp);
-            } else if (codeElement instanceof CoreOp.VarAccessOp.VarStoreOp storeOp) {
-                List<Value> operands = storeOp.operands();
-                operands.stream().filter(finalVars::containsKey).forEach(finalVars::remove);
-            } else if (codeElement instanceof CoreOp.YieldOp yieldOp) {
-                List<Value> operands = yieldOp.operands();
-                operands.stream().filter(finalVars::containsKey).forEach(finalVars::remove);
+                Set<Op.Result> uses = varResult.uses();
+                boolean isFinalVarOp = true;
+                for (Op.Result use : uses) {
+                    Op op = use.op();
+                    switch (op) {
+                        case CoreOp.VarAccessOp.VarStoreOp storeOp -> {
+                            if (storeOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
+                                isFinalVarOp = false;
+                            }
+                        }
+                        case CoreOp.YieldOp yieldOp -> {
+                            if (yieldOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
+                                isFinalVarOp = false;
+                            }
+                        }
+                        case null, default -> {
+                        }
+                    }
+                }
+                if (isFinalVarOp) {
+                    finalVars.put(varResult, varOp);
+                }
             }
         });
         finalVarOps = new HashMap<>(finalVars);
