@@ -88,7 +88,14 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         localArrayDeclarations.push(new LocalArrayDeclaration(classType, varOp));
     }
 
+    private boolean isConstantDeclaration(CoreOp.VarOp varOp) {
+        return (((Op.Result)varOp.operands().getFirst()).op() instanceof CoreOp.ConstantOp);
+    }
+
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
+        if (isConstantDeclaration(varOp)) {
+            constKeyword().space();
+        }
         type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
         if (isMappableIFace(buildContext, (JavaType) varOp.varValueType()) && (JavaType) varOp.varValueType() instanceof ClassType classType) {
             annotateTypeAndName( classType, varOp);
