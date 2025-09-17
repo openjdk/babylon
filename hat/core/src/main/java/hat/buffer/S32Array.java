@@ -66,4 +66,12 @@ public interface S32Array extends Buffer {
         }
         return this;
     }
+
+    default int[] arrayView() {
+        int[] arr = new int[this.length()];
+        for (int i = 0; i < this.length(); i++) {
+            arr[i] = this.array(i);
+        }
+        return arr;
+    }
 }
