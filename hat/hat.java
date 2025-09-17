@@ -50,12 +50,14 @@ static String help = """
                    conf dir and jextracted artifacts (opencl/cuda/opengl) remain
 
 
-             run:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] runnable  args
+             run:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] [-DXXX ...] runnable  args
                       run ffi-opencl mandel
                       run ffi-opencl nbody 4096
-                      run ffi-opencl heal 4096
+                      run ffi-opencl -DHAT=SHOW_CODE nbody 4096
+                      run ffi-opencl -DHAT=SHOW_KERNEL_MODEL heal
+                      run ffi-opencl -DHAT=MINIMIZE_BUFFERS life
 
-             exp:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] experimentClassName  args
+             exp:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] [-DXXX ... ] experimentClassName  args
                       exp ffi-opencl QuotedConstantArgs
 
              test:  [ffi|my|seq]-[opencl|java|cuda|mock|hip]
@@ -176,13 +178,15 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                 case "run" -> {
                     if (args.size() > 1) {
                         var backendName = args.removeFirst();
+                        var vmOpts = new ArrayList<String>(List.of(
+                            "-DbufferTagging=true"
+                        ));
+                        while (args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
+                            vmOpts.add(args.removeFirst());
+                        }
                         var runnableName = args.removeFirst();
                         if (project.get(backendName) instanceof Jar backend) {
                             if (project.get(runnableName) instanceof Jar runnable) {
-                                var vmOpts = new ArrayList<String>(List.of(
-                                  // "-DnoModuleOp=true",
-                                   "-DbufferTagging=true"
-                                ));
                                 if (runnableName.equals("nbody") && mac.isAvailable()) {  // nbody (anything on mac using OpenGL
                                     vmOpts.add("-XstartOnFirstThread");
                                 }
@@ -239,13 +243,15 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     if (args.size() > 1) {
                         var backendName = args.removeFirst();
                         var runnableName = "experiments";
+                        var vmOpts = new ArrayList<String>(List.of(
+                            "-DbufferTagging=true"
+                        ));
+                        while (args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
+                            vmOpts.add(args.removeFirst());
+                        }
                         var className = args.removeFirst();
                         if (project.get(backendName) instanceof Jar backend) {
                             if (project.get(runnableName) instanceof Jar runnable) {
-                                var vmOpts = new ArrayList<String>(List.of(
-                                  // "-DnoModuleOp=true",
-                                  // "-DbufferTagging=true"
-                                ));
                                 runnable.run(runnableName + "."+className, new job.Dag(runnable, backend).ordered(), vmOpts,args);
                             } else {
                                 System.err.println("Failed to find runnable " + runnableName);
@@ -254,7 +260,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                             System.err.println("Failed to find " + backendName);
                         }
                     } else {
-                        System.err.println("For run we expect 'run backend runnable' ");
+                        System.err.println("For exp we expect 'exp backend [-DXXX ...] testclass' ");
                     }
                     args.clear(); //!! :)
                 }
