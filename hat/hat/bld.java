@@ -133,10 +133,13 @@ void main(String[] args) {
                 ├──experiments
                 │    ├──src/main/java
                 │    └──src/main/resources
-                └──violajones
+                ├──violajones
                 │    ├──src/main/java
                 │    └──src/main/resources
-                └──matmul
+                ├──matmul
+                │    ├──src/main/java
+                │    └──src/main/resources
+                └──arrayview
                      ├──src/main/java
                      └──src/main/resources
        """;
@@ -327,7 +330,7 @@ void main(String[] args) {
                     Artifacts.core, Artifacts.backend_ffi_shared, Artifacts.backend_ffi_opencl
             ));
 
-    Stream.of( "heal", "life", "mandel", "violajones")   // these require example_shared ui stuff
+    Stream.of( "heal", "life", "mandel", "violajones", "arrayview")   // these require example_shared ui stuff
             .parallel()
             .map(examplesDir::existingDir)
             .forEach(exampleDir->buildDir.mavenStyleBuild(
