@@ -153,11 +153,11 @@ public class DialectFMAOp {
         }
 
         // 5. Transform the code model to include the FMA op
-        final Op[] pending = new Op[1];
         CoreOp.FuncOp dialectModel = functionModel.transform((builder, op) -> {
             CopyContext context = builder.context();
-            if (op instanceof JavaOp.MulOp mulOp && nodesInvolved.contains(mulOp)) {
-
+            if (!nodesInvolved.contains(op)) {
+                builder.op(op);
+            } else if (op instanceof JavaOp.MulOp  mulOp) {
                 // If it is only used by one operation, we know it is the one we are replacing.
                 // In this case, we can eliminate the node (we don't insert it into the builder)
                 if (mulOp.result().uses().size() == 1) {
@@ -168,7 +168,6 @@ public class DialectFMAOp {
                     builder.op(op);
                 }
             } else if (op instanceof JavaOp.AddOp addOp) {
-
                 // 6. Obtain the operands for the node
                 List<Value> inputOperandsAdd = addOp.operands();
 
@@ -200,12 +199,7 @@ public class DialectFMAOp {
 
                     // 10. Map the values from input -> output for the new Op
                     context.mapValue(addOp.result(), resultFMA);
-                } else {
-                    pending[0] = null;
-                    builder.op(op);
                 }
-            } else {
-                builder.op(op);
             }
             return builder;
         });
@@ -214,7 +208,7 @@ public class DialectFMAOp {
         System.out.println("Model with new OpNodes for Dialect: ");
         System.out.println(dialectModel.toText());
 
-        // 12. This fails with a NPE due to "Cannot invoke "jdk.incubator.code.TypeElement.equals(Object)" because the return value of "jdk.incubator.code.Op$Result.type()" is null"
+        // 12. Transform to SSA and print the code model
         System.out.println(SSA.transform(dialectModel).toText());
 
         // Currently, we can't interpreter a code model with dialect ops
