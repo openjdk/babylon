@@ -169,7 +169,7 @@ void main(String[] argv) {
                 "oracle.code.hat.TestMandel",
                 "oracle.code.hat.TestLocal",
                 "oracle.code.hat.TestReductions",
-                "oracle.code.hat.TestFinals"
+                "oracle.code.hat.TestConstants"
         };
 
         // Test the whole suite

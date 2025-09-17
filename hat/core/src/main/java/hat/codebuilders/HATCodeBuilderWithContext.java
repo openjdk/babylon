@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -94,7 +96,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         if (isConstantDeclaration(varOp)) {
-            constKeyword().space();
+            // We should also detect that varOp is not an induction variable.
+            // But it seems the wrong place to do so.
+            // If is is not an induction-variable, then we can generate the following:
+            //constKeyword().space();
         }
         type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
         if (isMappableIFace(buildContext, (JavaType) varOp.varValueType()) && (JavaType) varOp.varValueType() instanceof ClassType classType) {
