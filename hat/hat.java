@@ -116,6 +116,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var example_squares = Jar.of(project.id("example{s}-squares"), core);
         var example_matmul = Jar.of(project.id("example{s}-matmul"), core);
         var example_heal = Jar.of(project.id("example{s}-heal"), example_shared);
+        var example_normmap = Jar.of(project.id("example{s}-normmap"), example_shared);
         var example_violajones = Jar.of(project.id("example{s}-violajones"), example_shared);
         var example_experiments = Jar.of(project.id("example{s}-experiments"), backend_ffi_opencl); //experiments have some code that expect opencl backend
 
@@ -180,7 +181,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                             if (project.get(runnableName) instanceof Jar runnable) {
                                 var vmOpts = new ArrayList<String>(List.of(
                                   // "-DnoModuleOp=true",
-                                  // "-DbufferTagging=true"
+                                   "-DbufferTagging=true"
                                 ));
                                 if (runnableName.equals("nbody") && mac.isAvailable()) {  // nbody (anything on mac using OpenGL
                                     vmOpts.add("-XstartOnFirstThread");
