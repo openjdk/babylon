@@ -27,7 +27,9 @@ package hat.callgraph;
 import hat.BufferTagger;
 import hat.buffer.Buffer;
 import hat.optools.OpTk;
+import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -40,6 +42,32 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
     public final List<BufferTagger.AccessType> bufferAccessList;
+
+    public Map<Op.Result, CoreOp.VarOp> finalVarOps;
+
+    public void analyseFinalValues() {
+        CoreOp.FuncOp kernelEntry = entrypoint.funcOp();
+        Stream<CodeElement<?, ?>> elements = kernelEntry.elements();
+        Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
+        elements.forEach(codeElement -> {
+            if (codeElement instanceof CoreOp.VarOp varOp) {
+                // obtain the result of the varOp
+                Op.Result varResult = varOp.result();
+                finalVars.put(varResult, varOp);
+            } else if (codeElement instanceof CoreOp.VarAccessOp.VarStoreOp storeOp) {
+                List<Value> operands = storeOp.operands();
+                operands.stream().filter(finalVars::containsKey).forEach(finalVars::remove);
+            } else if (codeElement instanceof CoreOp.YieldOp yieldOp) {
+                List<Value> operands = yieldOp.operands();
+                operands.stream().filter(finalVars::containsKey).forEach(finalVars::remove);
+            }
+        });
+        finalVarOps = new HashMap<>(finalVars);
+    }
+
+    public Map<Op.Result, CoreOp.VarOp> finalVarOps() {
+        return finalVarOps;
+    }
 
     public interface KernelReachable {
     }

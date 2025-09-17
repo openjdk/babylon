@@ -76,8 +76,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-
-
     public record LocalArrayDeclaration(ClassType classType, CoreOp.VarOp varOp) {}
     private final Stack<LocalArrayDeclaration> localArrayDeclarations = new Stack<>();
     private final Set<CoreOp.VarOp> localDataStructures = new HashSet<>();
@@ -90,16 +88,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         localArrayDeclarations.push(new LocalArrayDeclaration(classType, varOp));
     }
 
-    private boolean isConstantDeclaration(CoreOp.VarOp varOp) {
-        return (((Op.Result)varOp.operands().getFirst()).op() instanceof CoreOp.ConstantOp);
-    }
-
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
-        if (isConstantDeclaration(varOp)) {
-            // We should also detect that varOp is not an induction variable.
-            // But it seems the wrong place to do so.
-            // If is is not an induction-variable, then we can generate the following:
-            //constKeyword().space();
+        if (buildContext.isVarOpFinal(varOp)) {
+            constKeyword().space();
         }
         type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
         if (isMappableIFace(buildContext, (JavaType) varOp.varValueType()) && (JavaType) varOp.varValueType() instanceof ClassType classType) {
