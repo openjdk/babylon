@@ -27,7 +27,9 @@ package hat.callgraph;
 import hat.BufferTagger;
 import hat.buffer.Buffer;
 import hat.optools.OpTk;
+import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -40,6 +42,46 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
     public final List<BufferTagger.AccessType> bufferAccessList;
+
+    public Map<Op.Result, CoreOp.VarOp> finalVarOps;
+
+    public void analyseFinalValues() {
+        CoreOp.FuncOp kernelEntry = entrypoint.funcOp();
+        Stream<CodeElement<?, ?>> elements = kernelEntry.elements();
+        Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
+        elements.forEach(codeElement -> {
+            if (codeElement instanceof CoreOp.VarOp varOp) {
+                Op.Result varResult = varOp.result();
+                Set<Op.Result> uses = varResult.uses();
+                boolean isFinalVarOp = true;
+                for (Op.Result use : uses) {
+                    Op op = use.op();
+                    switch (op) {
+                        case CoreOp.VarAccessOp.VarStoreOp storeOp -> {
+                            if (storeOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
+                                isFinalVarOp = false;
+                            }
+                        }
+                        case CoreOp.YieldOp yieldOp -> {
+                            if (yieldOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
+                                isFinalVarOp = false;
+                            }
+                        }
+                        case null, default -> {
+                        }
+                    }
+                }
+                if (isFinalVarOp) {
+                    finalVars.put(varResult, varOp);
+                }
+            }
+        });
+        finalVarOps = new HashMap<>(finalVars);
+    }
+
+    public Map<Op.Result, CoreOp.VarOp> finalVarOps() {
+        return finalVarOps;
+    }
 
     public interface KernelReachable {
     }

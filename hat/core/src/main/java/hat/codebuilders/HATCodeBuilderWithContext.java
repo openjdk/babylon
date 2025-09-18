@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
@@ -74,8 +76,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-
-
     public record LocalArrayDeclaration(ClassType classType, CoreOp.VarOp varOp) {}
     private final Stack<LocalArrayDeclaration> localArrayDeclarations = new Stack<>();
     private final Set<CoreOp.VarOp> localDataStructures = new HashSet<>();
@@ -89,6 +89,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
+        if (buildContext.isVarOpFinal(varOp)) {
+            constKeyword().space();
+        }
         type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
         if (isMappableIFace(buildContext, (JavaType) varOp.varValueType()) && (JavaType) varOp.varValueType() instanceof ClassType classType) {
             annotateTypeAndName( classType, varOp);

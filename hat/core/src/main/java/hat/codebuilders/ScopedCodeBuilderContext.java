@@ -24,6 +24,7 @@
  */
 package hat.codebuilders;
 
+import com.sun.jdi.event.ClassPrepareEvent;
 import hat.optools.FuncOpParams;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -218,7 +219,18 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
     }
 
     public Scope<?> scope = null;
+
     public ScopedCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         super(lookup,funcOp);
+    }
+
+    private Map<Op.Result, CoreOp.VarOp> finalVarOps = new HashMap<>();
+    public ScopedCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Map<Op.Result, CoreOp.VarOp> varOpFinals) {
+        super(lookup,funcOp);
+        this.finalVarOps = varOpFinals;
+    }
+
+    public boolean isVarOpFinal(CoreOp.VarOp varOp) {
+        return finalVarOps.containsKey(varOp.result());
     }
 }

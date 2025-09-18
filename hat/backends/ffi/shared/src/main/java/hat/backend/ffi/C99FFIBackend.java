@@ -228,9 +228,11 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
         }
 
+        kernelCallGraph.analyseFinalValues();
+
         ScopedCodeBuilderContext buildContext =
                 new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
-                        kernelCallGraph.entrypoint.funcOp());
+                        kernelCallGraph.entrypoint.funcOp(), kernelCallGraph.finalVarOps());
 
         // Sorting by rank ensures we don't need forward declarations
         if (CallGraph.noModuleOp) {
