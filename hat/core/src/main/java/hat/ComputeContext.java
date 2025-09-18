@@ -167,11 +167,10 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         // NOTE: Keep the following boolean until we have the config available/reachable
         // from this class
         boolean useDialect = true;
-        //System.out.println("[INFO] Using Hat Dialect?: " + useDialect);
         if (useDialect) {
+            //System.out.println("[INFO] Using Hat Dialect?: " + useDialect);
             kernelCallGraph.dialectifyToHat();
         }
-
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
