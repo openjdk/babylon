@@ -179,7 +179,8 @@ public class OpBuilder {
         builder.op(invoke(MethodRef.method(Op.class, "seal", void.class), result));
         builder.op(return_(result));
 
-        return func("builder." + op.opName(), builder.parentBody());
+        // @@@ avoid use of opName
+        return func("builder." + op.getClass().getName(), builder.parentBody());
     }
 
 

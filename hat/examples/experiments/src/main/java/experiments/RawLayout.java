@@ -307,7 +307,7 @@ public class RawLayout {
         }
 
         public PtrToMember(Value ptr, String simpleMemberName) {
-            super(NAME, List.of(ptr));
+            super(List.of(ptr));
             this.simpleMemberName = simpleMemberName;
 
             if (!(ptr.type() instanceof PtrType ptrType)) {
@@ -361,6 +361,11 @@ public class RawLayout {
         }
 
         @Override
+        public String opName() {
+            return NAME;
+        }
+
+        @Override
         public Map<String, Object> externalize() {
             return Map.of(
                     "", simpleMemberName,
@@ -395,7 +400,7 @@ public class RawLayout {
         }
 
         public PtrAddOffset(Value ptr, Value offset) {
-            super(NAME, List.of(ptr, offset));
+            super(List.of(ptr, offset));
 
             if (!(ptr.type() instanceof PtrType)) {
                 throw new IllegalArgumentException("Pointer value is not of pointer type: " + ptr.type());
@@ -417,6 +422,11 @@ public class RawLayout {
         public Value offsetValue() {
             return operands().get(1);
         }
+
+        @Override
+        public String opName() {
+            return NAME;
+        }
     }
 
   //  @OpFactory.OpDeclaration(PtrToMember.NAME)
@@ -436,7 +446,7 @@ public class RawLayout {
         }
 
         public PtrLoadValue(Value ptr) {
-            super(NAME, List.of(ptr));
+            super(List.of(ptr));
 
             if (!(ptr.type() instanceof PtrType ptrType)) {
                 throw new IllegalArgumentException("Pointer value is not of pointer type: " + ptr.type());
@@ -450,6 +460,11 @@ public class RawLayout {
         @Override
         public TypeElement resultType() {
             return resultType;
+        }
+
+        @Override
+        public String opName() {
+            return NAME;
         }
 
         public Value ptrValue() {
@@ -471,7 +486,7 @@ public class RawLayout {
         }
 
         public PtrStoreValue(Value ptr, Value v) {
-            super(NAME, List.of(ptr));
+            super(List.of(ptr));
 
             if (!(ptr.type() instanceof PtrType ptrType)) {
                 throw new IllegalArgumentException("Pointer value is not of pointer type: " + ptr.type());
@@ -488,6 +503,11 @@ public class RawLayout {
         @Override
         public TypeElement resultType() {
             return JavaType.VOID;
+        }
+
+        @Override
+        public String opName() {
+            return NAME;
         }
 
         public Value ptrValue() {

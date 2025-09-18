@@ -42,7 +42,7 @@ public class TritonOps {
         final TypeElement resultType;
 
         public TritonOp(ExternalizedOp def) {
-            super(def.name(), def.operands());
+            super(def.operands());
 
             this.resultType = def.resultType();
         }
@@ -53,8 +53,8 @@ public class TritonOps {
             this.resultType = that.resultType;
         }
 
-        TritonOp(String name, TypeElement resultType, List<? extends Value> operands) {
-            super(name, operands);
+        TritonOp(TypeElement resultType, List<? extends Value> operands) {
+            super(operands);
 
             this.resultType = resultType;
         }
@@ -62,6 +62,13 @@ public class TritonOps {
         @Override
         public TypeElement resultType() {
             return resultType;
+        }
+
+        @Override
+        public String opName() {
+            OpFactoryHelper.OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpFactoryHelper.OpDeclaration.class);
+            assert opDecl != null : this.getClass().getName();
+            return opDecl.value();
         }
     }
 
@@ -110,7 +117,7 @@ public class TritonOps {
         }
 
         ModuleOp(List<FuncOp> functions) {
-            super(NAME, JavaType.VOID,
+            super(JavaType.VOID,
                     List.of());
 
             Body.Builder bodyC = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
@@ -207,7 +214,7 @@ public class TritonOps {
         }
 
         FuncOp(String funcName, Body.Builder bodyBuilder) {
-            super(NAME, JavaType.VOID,
+            super(JavaType.VOID,
                     List.of());
 
             this.funcName = funcName;
@@ -282,7 +289,7 @@ public class TritonOps {
         }
 
         CallOp(String funcName, TypeElement resultType, List<Value> args) {
-            super(NAME, resultType, args);
+            super(resultType, args);
 
             this.funcName = funcName;
         }
@@ -357,7 +364,7 @@ public class TritonOps {
         }
 
         ReduceOp(int axis, Value tensor, Body.Builder reducerBuilder) {
-            super(NAME, reducerBuilder.bodyType().returnType(), List.of(tensor));
+            super(reducerBuilder.bodyType().returnType(), List.of(tensor));
 
             this.axis = axis;
             this.reducer = reducerBuilder.build(this);
@@ -400,7 +407,7 @@ public class TritonOps {
         }
 
         ReduceReturnOp(Value r) {
-            super(NAME, JavaType.VOID, List.of(r));
+            super(JavaType.VOID, List.of(r));
         }
     }
 
@@ -438,7 +445,7 @@ public class TritonOps {
         }
 
         GetProgramIdOp(int axis) {
-            super(NAME, JavaType.INT, List.of());
+            super(JavaType.INT, List.of());
 
             this.axis = axis;
         }
@@ -496,7 +503,7 @@ public class TritonOps {
         }
 
         MakeRangeOp(int start, int end) {
-            super(NAME, tensorType(start, end), List.of());
+            super(tensorType(start, end), List.of());
 
             this.start = start;
             this.end = end;
@@ -548,7 +555,7 @@ public class TritonOps {
         }
 
         ExpandOp(int axis, TypeElement tensorType, Value v) {
-            super(NAME, tensorType, List.of(v));
+            super(tensorType, List.of(v));
 
             this.axis = axis;
         }
@@ -581,7 +588,7 @@ public class TritonOps {
         }
 
         SplatOp(TypeElement tensorType, Value v) {
-            super(NAME, tensorType, List.of(v));
+            super(tensorType, List.of(v));
         }
     }
 
@@ -603,7 +610,7 @@ public class TritonOps {
         }
 
         BroadcastOp(TypeElement tensorType, Value v) {
-            super(NAME, tensorType, List.of(v));
+            super(tensorType, List.of(v));
         }
     }
 
@@ -625,7 +632,7 @@ public class TritonOps {
         }
 
         AddPtrOp(Value ptr, Value offset) {
-            super(NAME, ptr.type(), List.of(ptr, offset));
+            super(ptr.type(), List.of(ptr, offset));
         }
     }
 
@@ -647,11 +654,11 @@ public class TritonOps {
         }
 
         LoadOp(TypeElement tensorType, Value ptr, Value mask) {
-            super(NAME, tensorType, List.of(ptr, mask));
+            super(tensorType, List.of(ptr, mask));
         }
 
         LoadOp(TypeElement tensorType, Value ptr, Value mask, Value other) {
-            super(NAME, tensorType, List.of(ptr, mask, other));
+            super(tensorType, List.of(ptr, mask, other));
         }
     }
 
@@ -673,7 +680,7 @@ public class TritonOps {
         }
 
         StoreOp(Value ptr, Value v, Value mask) {
-            super(NAME, JavaType.VOID, List.of(ptr, v, mask));
+            super(JavaType.VOID, List.of(ptr, v, mask));
         }
     }
 
@@ -695,11 +702,11 @@ public class TritonOps {
         }
 
         ReturnOp() {
-            super(NAME, JavaType.VOID, List.of());
+            super(JavaType.VOID, List.of());
         }
 
         ReturnOp(Value v) {
-            super(NAME, JavaType.VOID, List.of(v));
+            super(JavaType.VOID, List.of(v));
         }
     }
 
@@ -721,7 +728,7 @@ public class TritonOps {
         }
 
         DotOp(TypeElement tensorType, Value a, Value b, Value c) {
-            super(NAME, tensorType, List.of(a, b, c));
+            super(tensorType, List.of(a, b, c));
         }
     }
 

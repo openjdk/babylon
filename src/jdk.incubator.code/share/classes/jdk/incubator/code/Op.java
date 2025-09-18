@@ -269,12 +269,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     // Set when op is bound to block, otherwise null when unbound
+    // @@@ stable value?
     Result result;
 
     // null if not specified
+    // @@@ stable value?
     Location location;
-
-    final String name;
 
     final List<Value> operands;
 
@@ -287,7 +287,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * values computed, in order, by mapping the operation's operands using the copy context.
      */
     protected Op(Op that, CopyContext cc) {
-        this(that.name, cc.getValues(that.operands));
+        this(cc.getValues(that.operands));
         this.location = that.location;
     }
 
@@ -331,11 +331,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Constructs an operation with a name and list of operands.
      *
-     * @param name       the operation name.
-     * @param operands   the list of operands, a copy of the list is performed if required.
+     * @param operands the list of operands, a copy of the list is performed if required.
      */
-    protected Op(String name, List<? extends Value> operands) {
-        this.name = name;
+    protected Op(List<? extends Value> operands) {
         this.operands = List.copyOf(operands);
     }
 
@@ -402,21 +400,15 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * {@return the operation name}
-     */
-    public String opName() {
-        return name;
-    }
-
-    /**
      * {@return the operation's operands, as an unmodifiable list}
      */
-    public List<Value> operands() {
+    public final List<Value> operands() {
         return operands;
     }
 
     /**
      * {@return the operation's successors, as an unmodifiable list}
+     * @implSpec this implementation returns an unmodifiable empty list.
      */
     public List<Block.Reference> successors() {
         return List.of();
@@ -435,9 +427,17 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * @return the function type
      */
-    public FunctionType opType() {
+    public final FunctionType opType() {
         List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
         return CoreType.functionType(resultType(), operandTypes);
+    }
+
+    /**
+     * {@return the operation name}
+     * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
+     */
+    public String opName() {
+        return this.getClass().getName();
     }
 
     /**
@@ -445,6 +445,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * <p>A null attribute value is represented by the constant
      * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
+     * @implSpec this implementation returns an unmodifiable empty map.
      *
      * @return the operation's externalized state, as an unmodifiable map
      */
@@ -462,7 +463,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the list of captured values, modifiable
      * @see Body#capturedValues()
      */
-    public List<Value> capturedValues() {
+    public final List<Value> capturedValues() {
         Set<Value> cvs = new LinkedHashSet<>();
 
         capturedValues(cvs, new ArrayDeque<>(), this);
@@ -480,7 +481,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * @return the textual form of this operation.
      */
-    public String toText() {
+    public final String toText() {
         return OpWriter.toText(this);
     }
 

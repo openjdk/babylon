@@ -298,7 +298,7 @@ final class PartialEvaluator {
                 }
                 case CoreOp.ReturnOp _ -> outBlock.op(to);
                 default -> throw evaluationException(
-                        new UnsupportedOperationException("Unsupported terminating operation: " + to.opName()));
+                        new UnsupportedOperationException("Unsupported terminating operation: " + to));
             }
         }
     }
@@ -455,16 +455,19 @@ final class PartialEvaluator {
                 return null;
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
+                // @@@ TODO avoid use of opName
                 MethodHandle mh = opHandle(l, o.opName(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.TestOperation testOperation -> {
+                // @@@ TODO avoid use of opName
                 MethodHandle mh = opHandle(l, o.opName(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
+                // @@@ TODO avoid use of opName
                 MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
@@ -487,7 +490,7 @@ final class PartialEvaluator {
 //                return null;
 //            }
             case null, default -> throw evaluationException(
-                    new UnsupportedOperationException("Unsupported operation: " + o.opName()));
+                    new UnsupportedOperationException("Unsupported operation: " + o));
         }
     }
 

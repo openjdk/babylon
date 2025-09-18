@@ -75,12 +75,12 @@ public class DialectFMAOp {
 
     // Custom Node inherits from Op
     private static class FMA extends Op {
-
-        private final TypeElement typeElement;
         private static final String NAME = "fma";
 
+        private final TypeElement typeElement;
+
         FMA(List<Value> operands, TypeElement typeElement) {
-            super(NAME, operands);
+            super(operands);
             this.typeElement = typeElement;
         }
 
@@ -100,8 +100,8 @@ public class DialectFMAOp {
         }
 
         @Override
-        public Map<String, Object> externalize() {
-            return Map.of("", this.typeElement);
+        public String opName() {
+            return NAME;
         }
     }
 

@@ -48,8 +48,15 @@ public sealed abstract class CoreOp extends Op {
         super(that, cc);
     }
 
-    protected CoreOp(String name, List<? extends Value> operands) {
-        super(name, operands);
+    protected CoreOp(List<? extends Value> operands) {
+        super(operands);
+    }
+
+    @Override
+    public String opName() {
+        OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
+        assert opDecl != null : this.getClass().getName();
+        return opDecl.value();
     }
 
     /**
@@ -121,7 +128,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         FuncOp(String funcName, Body.Builder bodyBuilder) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.funcName = funcName;
             this.body = bodyBuilder.build(this);
@@ -200,7 +207,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         FuncCallOp(String funcName, TypeElement resultType, List<Value> args) {
-            super(NAME, args);
+            super(args);
 
             this.funcName = funcName;
             this.resultType = resultType;
@@ -271,7 +278,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         ModuleOp(Body.Builder bodyBuilder) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.body = bodyBuilder.build(this);
             this.table = createTable(body);
@@ -340,7 +347,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         QuotedOp(Body.Builder bodyC) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.quotedBody = bodyC.build(this);
             if (quotedBody.blocks().size() > 1) {
@@ -362,11 +369,6 @@ public sealed abstract class CoreOp extends Op {
 
         public Op quotedOp() {
             return quotedOp;
-        }
-
-        @Override
-        public List<Value> capturedValues() {
-            return quotedBody.capturedValues();
         }
 
         @Override
@@ -427,7 +429,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         ClosureOp(Body.Builder bodyC) {
-            super(NAME,
+            super(
                     List.of());
 
             this.body = bodyC.build(this);
@@ -446,11 +448,6 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Body body() {
             return body;
-        }
-
-        @Override
-        public List<Value> capturedValues() {
-            return body.capturedValues();
         }
 
         @Override
@@ -489,7 +486,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         ClosureCallOp(List<Value> args) {
-            super(NAME, args);
+            super(args);
         }
 
         @Override
@@ -527,7 +524,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         ReturnOp(Value operand) {
-            super(NAME, operand == null ? List.of() : List.of(operand));
+            super(operand == null ? List.of() : List.of(operand));
         }
 
         public Value returnValue() {
@@ -573,7 +570,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         UnreachableOp() {
-            super(NAME, List.of());
+            super(List.of());
         }
 
         @Override
@@ -611,11 +608,11 @@ public sealed abstract class CoreOp extends Op {
         }
 
         YieldOp() {
-            super(NAME, List.of());
+            super(List.of());
         }
 
         YieldOp(List<Value> operands) {
-            super(NAME, operands);
+            super(operands);
         }
 
         public Value yieldValue() {
@@ -665,7 +662,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         BranchOp(Block.Reference successor) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.b = successor;
         }
@@ -721,7 +718,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         ConditionalBranchOp(Value p, Block.Reference t, Block.Reference f) {
-            super(NAME, List.of(p));
+            super(List.of(p));
 
             this.t = t;
             this.f = f;
@@ -816,7 +813,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         ConstantOp(TypeElement type, Object value) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.type = type;
             this.value = value;
@@ -891,7 +888,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         VarOp(ExternalizedOp def, String varName) {
-            super(NAME, def.operands());
+            super(def.operands());
 
             this.varName = varName;
             this.resultType = (VarType) def.resultType();
@@ -915,7 +912,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         VarOp(String varName, TypeElement type, Value init) {
-            super(NAME, init == null ? List.of() : List.of(init));
+            super(init == null ? List.of() : List.of(init));
 
             this.varName =  varName == null ? "" : varName;
             this.resultType = CoreType.varType(type);
@@ -965,8 +962,8 @@ public sealed abstract class CoreOp extends Op {
             super(that, cc);
         }
 
-        VarAccessOp(String name, List<Value> operands) {
-            super(name, operands);
+        VarAccessOp(List<Value> operands) {
+            super(operands);
         }
 
         public Value varOperand() {
@@ -1022,7 +1019,7 @@ public sealed abstract class CoreOp extends Op {
 
             // (Variable)VarType
             VarLoadOp(Value varValue) {
-                super(NAME, List.of(varValue));
+                super(List.of(varValue));
             }
 
             @Override
@@ -1053,8 +1050,7 @@ public sealed abstract class CoreOp extends Op {
             }
 
             VarStoreOp(List<Value> values) {
-                super(NAME,
-                        values);
+                super(values);
             }
 
             @Override
@@ -1064,7 +1060,7 @@ public sealed abstract class CoreOp extends Op {
 
             // (Variable, VarType)void
             VarStoreOp(Value varValue, Value v) {
-                super(NAME, List.of(varValue, v));
+                super(List.of(varValue, v));
             }
 
             public Value storeOperand() {
@@ -1092,7 +1088,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleOp(TupleOp that, CopyContext cc) {
-            this(cc.getValues(that.operands()));
+            super(that, cc);
         }
 
         @Override
@@ -1101,7 +1097,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleOp(List<? extends Value> componentValues) {
-            super(NAME, componentValues);
+            super(componentValues);
         }
 
         @Override
@@ -1134,11 +1130,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleLoadOp(TupleLoadOp that, CopyContext cc) {
-            this(that, cc.getValues(that.operands()));
-        }
-
-        TupleLoadOp(TupleLoadOp that, List<Value> values) {
-            super(NAME, values);
+            super(that, cc);
 
             this.index = that.index;
         }
@@ -1149,7 +1141,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleLoadOp(Value tupleValue, int index) {
-            super(NAME, List.of(tupleValue));
+            super(List.of(tupleValue));
 
             this.index = index;
         }
@@ -1195,11 +1187,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleWithOp(TupleWithOp that, CopyContext cc) {
-            this(that, cc.getValues(that.operands()));
-        }
-
-        TupleWithOp(TupleWithOp that, List<Value> values) {
-            super(NAME, values);
+            super(that, cc);
 
             this.index = that.index;
         }
@@ -1210,7 +1198,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleWithOp(Value tupleValue, int index, Value value) {
-            super(NAME, List.of(tupleValue, value));
+            super(List.of(tupleValue, value));
 
             // @@@ Validate tuple type and index
             this.index = index;

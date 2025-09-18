@@ -71,8 +71,8 @@ public class DialectWithInvoke {
 
         private final TypeElement typeDescriptor;
 
-        FMAIntrinsicOp(String opName, TypeElement typeDescriptor, List<Value> operands) {
-            super(opName, operands);
+        FMAIntrinsicOp(TypeElement typeDescriptor, List<Value> operands) {
+            super(operands);
             this.typeDescriptor = typeDescriptor;
         }
 
@@ -92,8 +92,8 @@ public class DialectWithInvoke {
         }
 
         @Override
-        public Map<String, Object> externalize() {
-            return Map.of("", "dialect." + this.opName());
+        public String opName() {
+            return "intrinsicsFMA";
         }
     }
 
@@ -120,7 +120,7 @@ public class DialectWithInvoke {
                 List<Value> outputOperands = context.getValues(inputOperands);
 
                 // Create new node
-                FMAIntrinsicOp myCustomFunction = new FMAIntrinsicOp("intrinsicsFMA", invokeOp.resultType(), outputOperands);
+                FMAIntrinsicOp myCustomFunction = new FMAIntrinsicOp(invokeOp.resultType(), outputOperands);
 
                 // Add the new node to the code builder
                 Op.Result outputResult = blockBuilder.op(myCustomFunction);
