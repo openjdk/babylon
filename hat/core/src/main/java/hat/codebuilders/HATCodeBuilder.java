@@ -25,7 +25,7 @@
 package hat.codebuilders;
 
 
-import hat.dialect.HatBarrierOp;
+import hat.dialect.HatMemoryOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -133,6 +133,11 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
     }
     public T varName(CoreOp.VarOp varOp) {
         identifier(varOp.varName());
+        return self();
+    }
+
+    public T varName(HatMemoryOp hatLocalVarOp) {
+        identifier(hatLocalVarOp.varName());
         return self();
     }
     public T pragmaKeyword() {

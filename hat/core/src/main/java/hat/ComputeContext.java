@@ -155,29 +155,6 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         context.mapValue(inputResult, outputResult);
     }
 
-    /**
-     * Analysis : dialect
-     * @param kernelCallGraph {@link KernelCallGraph}
-     */
-    private void dialectifyToHat(KernelCallGraph kernelCallGraph) {
-        CoreOp.FuncOp funcOp = kernelCallGraph.entrypoint.funcOp();
-        funcOp = funcOp.transform((blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, HatBarrierOp.INTRINSIC_NAME)) {
-                    createBarrierNodeOp(context, invokeOp, blockBuilder);
-                } else {
-                    blockBuilder.op(op);
-                }
-            } else {
-                blockBuilder.op(op);
-            }
-            return blockBuilder;
-        });
-        // System.out.println("[INFO] Code model: " + funcOp.toText());
-        kernelCallGraph.entrypoint.funcOp(funcOp);
-    }
-
     record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
     private CallGraph buildKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
@@ -192,7 +169,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         boolean useDialect = true;
         //System.out.println("[INFO] Using Hat Dialect?: " + useDialect);
         if (useDialect) {
-            dialectifyToHat(kernelCallGraph);
+            kernelCallGraph.dialectifyToHat();
         }
 
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);

@@ -26,14 +26,28 @@ package hat.callgraph;
 
 import hat.BufferTagger;
 import hat.buffer.Buffer;
+import hat.dialect.HatBarrierOp;
+import hat.dialect.HatLocalVarOp;
+import hat.dialect.HatMemoryOp;
+import hat.dialect.HatPrivateVarOp;
 import hat.optools.OpTk;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
@@ -166,4 +180,120 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         }
         return true;
     }
+
+    private boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
+        String kernelContextCanonicalName = hat.KernelContext.class.getName();
+        return invokeOp.invokeDescriptor().refType().toString().equals(kernelContextCanonicalName);
+    }
+
+    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
+        return invokeOp.invokeDescriptor().name().equals(methodName);
+    }
+
+    private void createBarrierNodeOp(CopyContext context, JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
+        List<Value> inputOperands = invokeOp.operands();
+        List<Value> outputOperands = context.getValues(inputOperands);
+        HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
+        Op.Result outputResult = blockBuilder.op(hatBarrierOp);
+        Op.Result inputResult = invokeOp.result();
+        context.mapValue(inputResult, outputResult);
+    }
+
+    public void dialectifyToHatBarriers() {
+        CoreOp.FuncOp funcOp = entrypoint.funcOp();
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (op instanceof JavaOp.InvokeOp invokeOp) {
+                if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, HatBarrierOp.INTRINSIC_NAME)) {
+                    createBarrierNodeOp(context, invokeOp, blockBuilder);
+                } else {
+                    blockBuilder.op(op);
+                }
+            } else {
+                blockBuilder.op(op);
+            }
+            return blockBuilder;
+        });
+        // System.out.println("[INFO] Code model: " + funcOp.toText());
+        entrypoint.funcOp(funcOp);
+    }
+
+    public void dialectifyToHatMemorySpace(Space memorySpace) {
+
+        String nameNode = switch (memorySpace) {
+            case PRIVATE -> HatPrivateVarOp.INTRINSIC_NAME;
+            case SHARED -> HatLocalVarOp.INTRINSIC_NAME;
+        };
+
+        CoreOp.FuncOp funcOp = entrypoint.funcOp();
+        //IO.println("ORIGINAL: " + funcOp.toText());
+        Stream<CodeElement<?, ?>> elements = entrypoint.funcOp().elements()
+                .mapMulti((codeElement, consumer) -> {
+                    if (codeElement instanceof CoreOp.VarOp varOp) {
+                        List<Value> inputOperandsAdd = varOp.operands();
+                        for (Value inputOperand : inputOperandsAdd) {
+                            if (inputOperand instanceof Op.Result result) {
+                                if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
+                                    if (OpTk.isIfaceBufferMethod(computeContext.accelerator.lookup, invokeOp) && isMethod(invokeOp, nameNode)) {
+                                        // It is the node we are looking for
+                                        consumer.accept(invokeOp);
+                                        consumer.accept(varOp);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
+        if (nodesInvolved.isEmpty()) {
+            // No memory nodes involved
+            return;
+        }
+
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (!nodesInvolved.contains(op)) {
+                blockBuilder.op(op);
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                // Don't insert the invoke node
+                Op.Result result = invokeOp.result();
+                List<Op.Result> collect = result.uses().stream().toList();
+                for (Op.Result r : collect) {
+                    if (r.op() instanceof CoreOp.VarOp varOp) {
+                        // That's the node we want
+                        List<Value> inputOperandsAdd = invokeOp.operands();
+                        List<Value> outputOperandsAdd = context.getValues(inputOperandsAdd);
+                        HatMemoryOp memoryOp;
+                        if (memorySpace == Space.SHARED) {
+                            memoryOp = new HatLocalVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsAdd);
+                        } else {
+                            memoryOp = new HatPrivateVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsAdd);
+                        }
+                        Op.Result hatLocalResult = blockBuilder.op(memoryOp);
+                        context.mapValue(invokeOp.result(), hatLocalResult);
+                    }
+                }
+            } else if (op instanceof CoreOp.VarOp varOp) {
+                // pass value
+                context.mapValue(varOp.result(), context.getValue(varOp.operands().getFirst()));
+            }
+            return blockBuilder;
+        });
+        // IO.println("[INFO] Code model: " + funcOp.toText());
+        entrypoint.funcOp(funcOp);
+    }
+
+    private enum Space {
+        PRIVATE,
+        SHARED,
+    }
+
+    public void dialectifyToHat() {
+        // Phases
+        dialectifyToHatBarriers();
+        dialectifyToHatMemorySpace(Space.SHARED);
+        dialectifyToHatMemorySpace(Space.PRIVATE);
+    }
+
 }
