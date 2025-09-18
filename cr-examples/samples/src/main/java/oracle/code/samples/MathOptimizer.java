@@ -68,7 +68,7 @@ import java.util.stream.Stream;
  * <p>
  *     How to run?
  *     <code>
- *         java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.MathOptimizer
+ *         java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.MathOptimizer
  *     </code>
  * </p>:
  */

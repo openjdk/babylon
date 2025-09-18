@@ -82,8 +82,13 @@ CudaBackend::CudaBackend(int configBits)
         CUDA_CHECK(cuDeviceGetCount(&deviceCount), "cuDeviceGetCount");
         std::cout << "CudaBackend device count = " << deviceCount << std::endl;
         CUDA_CHECK(cuDeviceGet(&device, 0), "cuDeviceGet");
-        CUctxCreateParams ctxCreateParams = {};
-        CUDA_CHECK(cuCtxCreate_v4(&context, &ctxCreateParams, 0, device), "cuCtxCreate");
+        #if defined(CUDA_VERSION) && CUDA_VERSION >= 12080
+            CUctxCreateParams ctxCreateParams = {};
+            CUDA_CHECK(cuCtxCreate_v4(&context, &ctxCreateParams, 0, device), "cuCtxCreate");
+        #else
+            // Invoke previous implementation with 3 parameters
+            CUDA_CHECK(cuCtxCreate(&context, 0, device), "cuCtxCreate");
+        #endif
         std::cout << "CudaBackend context created ok (id=" << context << ")" << std::endl;
         dynamic_cast<CudaQueue *>(queue)->init();
     } else {
