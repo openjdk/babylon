@@ -57,7 +57,7 @@ public class TestAttributeSerialization {
         }
 
         TestOp(Object attributeValue) {
-            super("test-op", List.of());
+            super(List.of());
             this.attributeValue = attributeValue;
         }
 

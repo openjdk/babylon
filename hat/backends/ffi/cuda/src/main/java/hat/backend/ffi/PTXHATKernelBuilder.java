@@ -170,7 +170,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         public BoundSchema<?> boundSchema;
 
         PTXPtrOp(TypeElement resultType, String fieldName, List<Value> operands, BoundSchema<?> boundSchema) {
-            super(NAME, operands);
+            super(operands);
             this.resultType = resultType;
             this.fieldName = fieldName;
             this.boundSchema = boundSchema;
@@ -191,6 +191,11 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         @Override
         public TypeElement resultType() {
             return resultType;
+        }
+
+        @Override
+        public String externalizeOpName() {
+            return NAME;
         }
     }
 

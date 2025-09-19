@@ -180,7 +180,7 @@ public class AnfTransformer {
                     } else if (o instanceof CoreOp.YieldOp yo) {
                         return yo.yieldValue().type();
                     } else {
-                        throw new UnsupportedOperationException("Unsupported terminator encountered: " + o.opName());
+                        throw new UnsupportedOperationException("Unsupported terminator encountered: " + o);
                     }
                 } else {
                     visitedBlocks.add(block);
@@ -191,7 +191,7 @@ public class AnfTransformer {
 
         }
 
-        throw new RuntimeException("Encountered Block with no return " + op.opName());
+        throw new RuntimeException("Encountered Block with no return " + op);
     }
 
     private Block.Builder transformEndOp(Block.Builder b, Op op) {

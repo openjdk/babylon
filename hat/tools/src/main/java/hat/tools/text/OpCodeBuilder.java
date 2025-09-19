@@ -605,7 +605,7 @@ static class JavaTypeUtils{
                 writeValueDeclaration(opr).space().equal().space();
             }
         }
-        write(op.opName());
+        write(op.externalizeOpName());
 
         if (!op.operands().isEmpty()) {
             space().writeSpaceSeparatedList(op.operands(), this::writeValueUse);

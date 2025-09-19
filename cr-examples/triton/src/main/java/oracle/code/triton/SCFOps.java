@@ -70,7 +70,7 @@ public class SCFOps {
         final Body body;
 
         public ForOp(ExternalizedOp def) {
-            super(def.name(), def.operands());;
+            super(def.operands());
 
             this.body = def.bodyDefinitions().get(0).build(this);
         }
@@ -87,7 +87,7 @@ public class SCFOps {
         }
 
         ForOp(List<Value> range, Body.Builder bodyBuilder) {
-            super(NAME, range);
+            super(range);
 
             this.body = bodyBuilder.build(this);
         }
@@ -95,6 +95,11 @@ public class SCFOps {
         @Override
         public TypeElement resultType() {
             return body.yieldType();
+        }
+
+        @Override
+        public String externalizeOpName() {
+            return NAME;
         }
 
         @Override
@@ -113,7 +118,7 @@ public class SCFOps {
         public static final String NAME = "scf.yield";
 
         public YieldOp(ExternalizedOp def) {
-            super(def.name(), def.operands());
+            super(def.operands());
         }
 
         YieldOp(YieldOp that, CopyContext cc) {
@@ -126,12 +131,17 @@ public class SCFOps {
         }
 
         YieldOp(List<Value> values) {
-            super(NAME, values);
+            super(values);
         }
 
         @Override
         public TypeElement resultType() {
             return JavaType.VOID;
+        }
+
+        @Override
+        public String externalizeOpName() {
+            return NAME;
         }
 
         static TypeElement yieldType(List<Value> values) {

@@ -299,7 +299,7 @@ public final class PartialEvaluator {
                 }
                 case CoreOp.ReturnOp _ -> outBlock.op(to);
                 default -> throw evaluationException(
-                        new UnsupportedOperationException("Unsupported terminating operation: " + to.opName()));
+                        new UnsupportedOperationException("Unsupported terminating operation: " + to));
             }
         }
     }
@@ -456,17 +456,17 @@ public final class PartialEvaluator {
                 return null;
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
-                MethodHandle mh = opHandle(l, o.opName(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.TestOperation testOperation -> {
-                MethodHandle mh = opHandle(l, o.opName(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
-                MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
@@ -488,7 +488,7 @@ public final class PartialEvaluator {
 //                return null;
 //            }
             case null, default -> throw evaluationException(
-                    new UnsupportedOperationException("Unsupported operation: " + o.opName()));
+                    new UnsupportedOperationException("Unsupported operation: " + o));
         }
     }
 

@@ -39,7 +39,7 @@ public class TritonTestOps {
         public static final String NAME = "tt.consume";
 
         public ConsumeOp(ExternalizedOp def) {
-            super(def.name(), def.operands());
+            super(def.operands());
         }
 
         ConsumeOp(ConsumeOp that, CopyContext cc) {
@@ -52,12 +52,17 @@ public class TritonTestOps {
         }
 
         ConsumeOp(List<Value> values) {
-            super(NAME, values);
+            super(values);
         }
 
         @Override
         public TypeElement resultType() {
             return JavaType.VOID;
+        }
+
+        @Override
+        public String externalizeOpName() {
+            return NAME;
         }
     }
 

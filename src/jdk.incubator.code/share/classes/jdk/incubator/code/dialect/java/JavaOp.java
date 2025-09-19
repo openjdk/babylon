@@ -69,8 +69,15 @@ public sealed abstract class JavaOp extends Op {
         super(that, cc);
     }
 
-    protected JavaOp(String name, List<? extends Value> operands) {
-        super(name, operands);
+    protected JavaOp(List<? extends Value> operands) {
+        super(operands);
+    }
+
+    @Override
+    public String externalizeOpName() {
+        OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
+        assert opDecl != null : this.getClass().getName();
+        return opDecl.value();
     }
 
     /**
@@ -216,8 +223,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         LambdaOp(TypeElement functionalInterface, Body.Builder bodyC, boolean isQuotable) {
-            super(NAME,
-                    List.of());
+            super(List.of());
 
             this.functionalInterface = functionalInterface;
             this.body = bodyC.build(this);
@@ -241,11 +247,6 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Body body() {
             return body;
-        }
-
-        @Override
-        public List<Value> capturedValues() {
-            return body.capturedValues();
         }
 
         @Override
@@ -429,7 +430,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ThrowOp(Value e) {
-            super(NAME, List.of(e));
+            super(List.of(e));
         }
 
         public Value argument() {
@@ -456,7 +457,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         public AssertOp(List<Body.Builder> bodies) {
-            super(NAME, List.of());
+            super(List.of());
 
             if (bodies.size() != 1 && bodies.size() != 2) {
                 throw new IllegalArgumentException("Assert must have one or two bodies.");
@@ -493,8 +494,8 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
-        MonitorOp(String name, Value monitor) {
-            super(name, List.of(monitor));
+        MonitorOp(Value monitor) {
+            super(List.of(monitor));
         }
 
         public Value monitorValue() {
@@ -531,7 +532,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             MonitorEnterOp(Value monitor) {
-                super(NAME, monitor);
+                super(monitor);
             }
         }
 
@@ -560,7 +561,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             MonitorExitOp(Value monitor) {
-                super(NAME, monitor);
+                super(monitor);
             }
         }
     }
@@ -654,7 +655,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         InvokeOp(InvokeKind invokeKind, boolean isVarArgs, TypeElement resultType, MethodRef invokeDescriptor, List<Value> args) {
-            super(NAME, args);
+            super(args);
 
             validateArgCount(invokeKind, isVarArgs, invokeDescriptor, args);
 
@@ -761,7 +762,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConvOp(TypeElement resultType, Value arg) {
-            super(NAME, List.of(arg));
+            super(List.of(arg));
 
             this.resultType = resultType;
         }
@@ -820,7 +821,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         NewOp(boolean isVarargs, TypeElement resultType, ConstructorRef constructorDescriptor, List<Value> args) {
-            super(NAME, args);
+            super(args);
 
             validateArgCount(isVarargs, constructorDescriptor, args);
 
@@ -881,9 +882,9 @@ public sealed abstract class JavaOp extends Op {
             this.fieldDescriptor = that.fieldDescriptor;
         }
 
-        FieldAccessOp(String name, List<Value> operands,
+        FieldAccessOp(List<Value> operands,
                       FieldRef fieldDescriptor) {
-            super(name, operands);
+            super(operands);
 
             this.fieldDescriptor = fieldDescriptor;
         }
@@ -939,14 +940,14 @@ public sealed abstract class JavaOp extends Op {
 
             // instance
             FieldLoadOp(TypeElement resultType, FieldRef descriptor, Value receiver) {
-                super(NAME, List.of(receiver), descriptor);
+                super(List.of(receiver), descriptor);
 
                 this.resultType = resultType;
             }
 
             // static
             FieldLoadOp(TypeElement resultType, FieldRef descriptor) {
-                super(NAME, List.of(), descriptor);
+                super(List.of(), descriptor);
 
                 this.resultType = resultType;
             }
@@ -995,12 +996,12 @@ public sealed abstract class JavaOp extends Op {
 
             // instance
             FieldStoreOp(FieldRef descriptor, Value receiver, Value v) {
-                super(NAME, List.of(receiver, v), descriptor);
+                super(List.of(receiver, v), descriptor);
             }
 
             // static
             FieldStoreOp(FieldRef descriptor, Value v) {
-                super(NAME, List.of(v), descriptor);
+                super(List.of(v), descriptor);
             }
 
             @Override
@@ -1033,7 +1034,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ArrayLengthOp(Value array) {
-            super(NAME, List.of(array));
+            super(List.of(array));
         }
 
         @Override
@@ -1049,16 +1050,11 @@ public sealed abstract class JavaOp extends Op {
             implements AccessOp, ReflectiveOp {
 
         ArrayAccessOp(ArrayAccessOp that, CopyContext cc) {
-            this(that, cc.getValues(that.operands()));
+            super(that, cc);
         }
 
-        ArrayAccessOp(ArrayAccessOp that, List<Value> operands) {
-            super(that.opName(), operands);
-        }
-
-        ArrayAccessOp(String name,
-                      Value array, Value index, Value v) {
-            super(name, operands(array, index, v));
+        ArrayAccessOp(Value array, Value index, Value v) {
+            super(operands(array, index, v));
         }
 
         static List<Value> operands(Value array, Value index, Value v) {
@@ -1101,7 +1097,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             ArrayLoadOp(Value array, Value index, TypeElement componentType) {
-                super(NAME, array, index, null);
+                super(array, index, null);
                 this.componentType = componentType;
             }
 
@@ -1138,7 +1134,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             ArrayStoreOp(Value array, Value index, Value v) {
-                super(NAME, array, index, v);
+                super(array, index, v);
             }
 
             @Override
@@ -1185,7 +1181,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         InstanceOfOp(TypeElement t, Value v) {
-            super(NAME, List.of(v));
+            super(List.of(v));
 
             this.typeDescriptor = t;
         }
@@ -1243,7 +1239,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         CastOp(TypeElement resultType, TypeElement t, Value v) {
-            super(NAME, List.of(v));
+            super(List.of(v));
 
             this.resultType = resultType;
             this.typeDescriptor = t;
@@ -1294,10 +1290,10 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ExceptionRegionEnter(List<Block.Reference> s) {
-            super(NAME, List.of());
+            super(List.of());
 
             if (s.size() < 2) {
-                throw new IllegalArgumentException("Operation must have two or more successors" + opName());
+                throw new IllegalArgumentException("Operation must have two or more successors " + this);
             }
 
             this.s = List.copyOf(s);
@@ -1350,10 +1346,10 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ExceptionRegionExit(List<Block.Reference> s) {
-            super(NAME, List.of());
+            super(List.of());
 
             if (s.size() < 2) {
-                throw new IllegalArgumentException("Operation must have two or more successors" + opName());
+                throw new IllegalArgumentException("Operation must have two or more successors " + this);
             }
 
             this.s = List.copyOf(s);
@@ -1400,7 +1396,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         public ConcatOp(Value lhs, Value rhs) {
-            super(ConcatOp.NAME, List.of(lhs, rhs));
+            super(List.of(lhs, rhs));
         }
 
         @Override
@@ -1423,8 +1419,8 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
-        protected ArithmeticOperation(String name, List<Value> operands) {
-            super(name, operands);
+        protected ArithmeticOperation(List<Value> operands) {
+            super(operands);
         }
     }
 
@@ -1437,8 +1433,8 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
-        protected TestOperation(String name, List<Value> operands) {
-            super(name, operands);
+        protected TestOperation(List<Value> operands) {
+            super(operands);
         }
     }
 
@@ -1450,8 +1446,8 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
-        protected BinaryOp(String name, Value lhs, Value rhs) {
-            super(name, List.of(lhs, rhs));
+        protected BinaryOp(Value lhs, Value rhs) {
+            super(List.of(lhs, rhs));
         }
 
         @Override
@@ -1468,8 +1464,8 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
-        protected UnaryOp(String name, Value v) {
-            super(name, List.of(v));
+        protected UnaryOp(Value v) {
+            super(List.of(v));
         }
 
         @Override
@@ -1486,8 +1482,8 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
-        protected BinaryTestOp(String name, Value lhs, Value rhs) {
-            super(name, List.of(lhs, rhs));
+        protected BinaryTestOp(Value lhs, Value rhs) {
+            super(List.of(lhs, rhs));
         }
 
         @Override
@@ -1517,7 +1513,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         AddOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1542,7 +1538,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         SubOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1567,7 +1563,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         MulOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1592,7 +1588,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         DivOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1617,7 +1613,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ModOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1643,7 +1639,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         OrOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1669,7 +1665,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         AndOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1695,7 +1691,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         XorOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1720,7 +1716,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         LshlOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1745,7 +1741,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         AshrOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1770,7 +1766,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         LshrOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1795,7 +1791,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         NegOp(Value v) {
-            super(NAME, v);
+            super(v);
         }
     }
 
@@ -1820,7 +1816,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ComplOp(Value v) {
-            super(NAME, v);
+            super(v);
         }
     }
 
@@ -1845,7 +1841,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         NotOp(Value v) {
-            super(NAME, v);
+            super(v);
         }
     }
 
@@ -1871,7 +1867,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         EqOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1897,7 +1893,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         NeqOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1922,7 +1918,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         GtOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1948,7 +1944,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         GeOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -1974,7 +1970,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         LtOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -2000,7 +1996,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         LeOp(Value lhs, Value rhs) {
-            super(NAME, lhs, rhs);
+            super(lhs, rhs);
         }
     }
 
@@ -2013,8 +2009,8 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
-        JavaLabelOp(String name, Value label) {
-            super(name, checkLabel(label));
+        JavaLabelOp(Value label) {
+            super(checkLabel(label));
         }
 
         static List<Value> checkLabel(Value label) {
@@ -2109,7 +2105,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         BreakOp(Value label) {
-            super(NAME, label);
+            super(label);
         }
 
         @Override
@@ -2139,7 +2135,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ContinueOp(Value label) {
-            super(NAME, label);
+            super(label);
         }
 
         @Override
@@ -2195,7 +2191,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         YieldOp(Value operand) {
-            super(NAME, operand == null ? List.of() : List.of(operand));
+            super(operand == null ? List.of() : List.of(operand));
         }
 
         public Value yieldValue() {
@@ -2278,7 +2274,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         BlockOp(Body.Builder bodyC) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.body = bodyC.build(this);
             if (!body.bodyType().returnType().equals(VOID)) {
@@ -2350,7 +2346,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         SynchronizedOp(Body.Builder exprC, Body.Builder bodyC) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.expr = exprC.build(this);
             if (expr.bodyType().returnType().equals(VOID)) {
@@ -2500,7 +2496,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         LabeledOp(Body.Builder bodyC) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.body = bodyC.build(this);
             if (!body.bodyType().returnType().equals(VOID)) {
@@ -2669,7 +2665,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         IfOp(List<Body.Builder> bodyCs) {
-            super(NAME, List.of());
+            super(List.of());
 
             // Normalize by adding an empty else action
             // @@@ Is this needed?
@@ -2781,8 +2777,8 @@ public sealed abstract class JavaOp extends Op {
                     .map(b -> b.transform(cc, ot).build(this)).toList();
         }
 
-        JavaSwitchOp(String name, Value target, List<Body.Builder> bodyCs) {
-            super(name, List.of(target));
+        JavaSwitchOp(Value target, List<Body.Builder> bodyCs) {
+            super(List.of(target));
 
             // Each case is modelled as a contiguous pair of bodies
             // The first body models the case labels, and the second models the case statements
@@ -2938,7 +2934,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         SwitchExpressionOp(TypeElement resultType, Value target, List<Body.Builder> bodyCs) {
-            super(NAME, target, bodyCs);
+            super(target, bodyCs);
 
             this.resultType = resultType == null ? bodies.get(1).yieldType() : resultType;
         }
@@ -2971,7 +2967,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         SwitchStatementOp(Value target, List<Body.Builder> bodyCs) {
-            super(NAME, target, bodyCs);
+            super(target, bodyCs);
         }
 
         @Override
@@ -3003,7 +2999,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         SwitchFallthroughOp() {
-            super(NAME, List.of());
+            super(List.of());
         }
 
         @Override
@@ -3162,7 +3158,7 @@ public sealed abstract class JavaOp extends Op {
               Body.Builder condC,
               Body.Builder updateC,
               Body.Builder bodyC) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.init = initC.build(this);
 
@@ -3378,7 +3374,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         EnhancedForOp(Body.Builder expressionC, Body.Builder initC, Body.Builder bodyC) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.expression = expressionC.build(this);
             if (expression.bodyType().returnType().equals(VOID)) {
@@ -3559,13 +3555,13 @@ public sealed abstract class JavaOp extends Op {
         }
 
         WhileOp(List<Body.Builder> bodyCs) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
         WhileOp(Body.Builder predicate, Body.Builder body) {
-            super(NAME, List.of());
+            super(List.of());
 
             Objects.requireNonNull(body);
 
@@ -3691,13 +3687,13 @@ public sealed abstract class JavaOp extends Op {
         }
 
         DoWhileOp(List<Body.Builder> bodyCs) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
         DoWhileOp(Body.Builder body, Body.Builder predicate) {
-            super(NAME, List.of());
+            super(List.of());
 
             Objects.requireNonNull(body);
 
@@ -3787,8 +3783,8 @@ public sealed abstract class JavaOp extends Op {
             this.bodies = that.bodies.stream().map(b -> b.transform(cc, ot).build(this)).toList();
         }
 
-        JavaConditionalOp(String name, List<Body.Builder> bodyCs) {
-            super(name, List.of());
+        JavaConditionalOp(List<Body.Builder> bodyCs) {
+            super(List.of());
 
             if (bodyCs.isEmpty()) {
                 throw new IllegalArgumentException();
@@ -3912,7 +3908,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConditionalAndOp(List<Body.Builder> bodyCs) {
-            super(NAME, bodyCs);
+            super(bodyCs);
         }
 
         @Override
@@ -3967,7 +3963,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConditionalOrOp(List<Body.Builder> bodyCs) {
-            super(NAME, bodyCs);
+            super(bodyCs);
         }
 
         @Override
@@ -4012,7 +4008,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConditionalExpressionOp(TypeElement expressionType, List<Body.Builder> bodyCs) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             // @@@ when expressionType is null, we assume truepart and falsepart have the same yieldType
@@ -4199,7 +4195,7 @@ public sealed abstract class JavaOp extends Op {
               Body.Builder bodyC,
               List<Body.Builder> catchersC,
               Body.Builder finalizerC) {
-            super(NAME, List.of());
+            super(List.of());
 
             if (resourcesC != null) {
                 this.resources = resourcesC.build(this);
@@ -4550,8 +4546,8 @@ public sealed abstract class JavaOp extends Op {
                 super(that, cc);
             }
 
-            PatternOp(String name, List<Value> operands) {
-                super(name, operands);
+            PatternOp(List<Value> operands) {
+                super(operands);
             }
         }
 
@@ -4568,7 +4564,7 @@ public sealed abstract class JavaOp extends Op {
             final String bindingName;
 
             TypePatternOp(ExternalizedOp def) {
-                super(NAME, List.of());
+                super(List.of());
 
                 this.bindingName = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
                         v -> switch (v) {
@@ -4593,7 +4589,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             TypePatternOp(TypeElement targetType, String bindingName) {
-                super(NAME, List.of());
+                super(List.of());
 
                 this.bindingName = bindingName;
                 this.resultType = Pattern.bindingType(targetType);
@@ -4654,7 +4650,7 @@ public sealed abstract class JavaOp extends Op {
             RecordPatternOp(RecordTypeRef recordDescriptor, List<Value> nestedPatterns) {
                 // The type of each value is a subtype of Pattern
                 // The number of values corresponds to the number of components of the record
-                super(NAME, List.copyOf(nestedPatterns));
+                super(List.copyOf(nestedPatterns));
 
                 this.recordDescriptor = recordDescriptor;
             }
@@ -4695,7 +4691,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             MatchAllPatternOp() {
-                super(NAME, List.of());
+                super(List.of());
             }
 
             @Override
@@ -4737,8 +4733,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             MatchOp(Value target, Body.Builder patternC, Body.Builder matchC) {
-                super(NAME,
-                        List.of(target));
+                super(List.of(target));
 
                 this.pattern = patternC.build(this);
                 this.match = matchC.build(this);

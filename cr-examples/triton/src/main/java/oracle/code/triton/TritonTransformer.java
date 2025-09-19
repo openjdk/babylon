@@ -134,7 +134,7 @@ public final class TritonTransformer {
                     valueTypeMap.put(op.result(), new ConstantType(op.result().type(), cop.value()));
                 }
                 case ArithmeticOperation _ -> {
-                    TypeElement t = checkWithTypeInterpreter(op, op.opName(), valueTypeMap);
+                    TypeElement t = checkWithTypeInterpreter(op, op.externalizeOpName(), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
                 case FieldAccessOp.FieldLoadOp flop -> {
@@ -607,7 +607,7 @@ public final class TritonTransformer {
                 }
             }
             case ArithmeticOperation _ -> {
-                Value result = tbi.build(op, op.opName(), valueTypeMap);
+                Value result = tbi.build(op, op.externalizeOpName(), valueTypeMap);
                 if (result != null) {
                     cc.mapValue(op.result(), result);
                 }

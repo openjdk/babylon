@@ -191,7 +191,7 @@ public final class ForwardDifferentiation {
                     Op.Result cosx = block.op(JavaOp.invoke(J_L_MATH_COS, outputA));
                     yield block.op(JavaOp.mul(cosx, da));
                 } else {
-                    throw new UnsupportedOperationException("Operation not supported: " + op.opName());
+                    throw new UnsupportedOperationException("Operation not supported: " + op);
                 }
             }
             case CoreOp.ReturnOp _ -> {
@@ -205,7 +205,7 @@ public final class ForwardDifferentiation {
                 op.successors().forEach(s -> adaptSuccessor(block.context(), s));
                 yield block.op(op);
             }
-            default -> throw new UnsupportedOperationException("Operation not supported: " + op.opName());
+            default -> throw new UnsupportedOperationException("Operation not supported: " + op);
         };
     }
 

@@ -341,7 +341,7 @@ public final class Interpreter {
             try {
                 for (int i = 0; i < nops - 1; i++) {
                     Op op = bc.b.ops().get(i);
-                    assert !(op instanceof Op.Terminating) : op.opName();
+                    assert !(op instanceof Op.Terminating) : op;
 
                     Object result = interpretOp(l, oc, op);
                     oc.setValue(op.result(), result);
@@ -404,7 +404,7 @@ public final class Interpreter {
                 oc.successor(ere.end());
             } else {
                 throw interpreterException(
-                        new UnsupportedOperationException("Unsupported terminating operation: " + to.opName()));
+                        new UnsupportedOperationException("Unsupported terminating operation: " + to));
             }
         }
     }
@@ -599,11 +599,13 @@ public final class Interpreter {
             Array.set(a, (int) index, v);
             return null;
         } else if (o instanceof JavaOp.ArithmeticOperation || o instanceof JavaOp.TestOperation) {
-            MethodHandle mh = opHandle(l, o.opName(), o.opType());
+            // @@@ avoid use of opName
+            MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.ConvOp) {
-            MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
+            // @@@ avoid use of opName
+            MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.AssertOp _assert) {
@@ -645,7 +647,7 @@ public final class Interpreter {
             return null;
         } else {
             throw interpreterException(
-                    new UnsupportedOperationException("Unsupported operation: " + o.opName()));
+                    new UnsupportedOperationException("Unsupported operation: " + o));
         }
     }
 
