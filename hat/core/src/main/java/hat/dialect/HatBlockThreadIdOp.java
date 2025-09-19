@@ -33,24 +33,24 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HatGlobalThreadSizeOp extends HatThreadOP {
+public class HatBlockThreadIdOp extends HatThreadOP {
 
     private final TypeElement resultType;
-    private static final String NAME = "GlobalThreadSize";
+    private static final String NAME = "BlockThreadId";
 
-    public HatGlobalThreadSizeOp(int dimension, TypeElement resultType, List<Value> operands) {
+    public HatBlockThreadIdOp(int dimension, TypeElement resultType, List<Value> operands) {
         super(NAME, dimension, operands);
         this.resultType = resultType;
     }
 
-    public HatGlobalThreadSizeOp(HatGlobalThreadSizeOp op, CopyContext copyContext) {
+    public HatBlockThreadIdOp(HatBlockThreadIdOp op, CopyContext copyContext) {
         super(op, copyContext);
         this.resultType = op.resultType;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HatGlobalThreadSizeOp(this, copyContext);
+        return new HatBlockThreadIdOp(this, copyContext);
     }
 
     @Override

@@ -25,8 +25,11 @@
 package hat.codebuilders;
 
 import hat.dialect.HatBarrierOp;
+import hat.dialect.HatBlockThreadIdOp;
 import hat.dialect.HatGlobalThreadIdOp;
-import hat.dialect.HatGlobalThreadSizeOp;
+import hat.dialect.HatGlobalSizeOp;
+import hat.dialect.HatLocalSizeOp;
+import hat.dialect.HatLocalThreadIdOp;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatPrivateVarOp;
 import hat.optools.OpTk;
@@ -97,7 +100,13 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadIdOp hatGlobalThreadIdOp);
 
-    T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadSizeOp hatGlobalThreadIdOp);
+    T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalSizeOp hatGlobalSizeOp);
+
+    T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HatLocalThreadIdOp hatLocalThreadIdOp);
+
+    T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HatLocalSizeOp hatLocalSizeOp);
+
+    T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp);
 
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
@@ -130,7 +139,10 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HatLocalVarOp $ -> hatLocalVarOp(buildContext, $);
             case HatPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
             case HatGlobalThreadIdOp $ -> hatGlobalThreadOp(buildContext, $);
-            case HatGlobalThreadSizeOp $ -> hatGlobalSizeOp(buildContext, $);
+            case HatGlobalSizeOp $ -> hatGlobalSizeOp(buildContext, $);
+            case HatLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);
+            case HatLocalSizeOp $ -> hatLocalSizeOp(buildContext, $);
+            case HatBlockThreadIdOp $ -> hatBlockThreadIdOp(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

@@ -25,8 +25,11 @@
 package hat.codebuilders;
 
 import hat.buffer.Buffer;
+import hat.dialect.HatBlockThreadIdOp;
 import hat.dialect.HatGlobalThreadIdOp;
-import hat.dialect.HatGlobalThreadSizeOp;
+import hat.dialect.HatGlobalSizeOp;
+import hat.dialect.HatLocalSizeOp;
+import hat.dialect.HatLocalThreadIdOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
@@ -158,8 +161,26 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadSizeOp globalSizeOp) {
+    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalSizeOp globalSizeOp) {
         globalSize(globalSizeOp.getDimension());
+        return self();
+    }
+
+    @Override
+    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HatLocalThreadIdOp localThreadIdOp) {
+        localId(localThreadIdOp.getDimension());
+        return self();
+    }
+
+    @Override
+    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HatLocalSizeOp hatLocalSizeOp) {
+        localSize(hatLocalSizeOp.getDimension());
+        return self();
+    }
+
+    @Override
+    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp) {
+        blockId(hatBlockThreadIdOp.getDimension());
         return self();
     }
 

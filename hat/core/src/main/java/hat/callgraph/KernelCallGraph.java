@@ -27,8 +27,11 @@ package hat.callgraph;
 import hat.BufferTagger;
 import hat.buffer.Buffer;
 import hat.dialect.HatBarrierOp;
+import hat.dialect.HatBlockThreadIdOp;
 import hat.dialect.HatGlobalThreadIdOp;
-import hat.dialect.HatGlobalThreadSizeOp;
+import hat.dialect.HatGlobalSizeOp;
+import hat.dialect.HatLocalSizeOp;
+import hat.dialect.HatLocalThreadIdOp;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatPrivateVarOp;
@@ -45,6 +48,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -201,13 +205,37 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     private boolean isFieldLoadGlobalThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
         return fieldLoadOp.fieldDescriptor().name().equals("x")
                 || fieldLoadOp.fieldDescriptor().name().equals("y")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("z");
+                ||  fieldLoadOp.fieldDescriptor().name().equals("z")
+                || fieldLoadOp.fieldDescriptor().name().equals("gix")
+                || fieldLoadOp.fieldDescriptor().name().equals("giy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("giz");
     }
 
     private boolean isFieldLoadGlobalSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
         return fieldLoadOp.fieldDescriptor().name().equals("gsx")
                 || fieldLoadOp.fieldDescriptor().name().equals("gsy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("gsz");
+                ||  fieldLoadOp.fieldDescriptor().name().equals("gsz")
+                || fieldLoadOp.fieldDescriptor().name().equals("maxX")
+                || fieldLoadOp.fieldDescriptor().name().equals("maxY")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("maxZ");
+    }
+
+    private boolean isFieldLoadThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("lix")
+                || fieldLoadOp.fieldDescriptor().name().equals("liy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("liz");
+    }
+
+    private boolean isFieldLoadThreadSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("lsx")
+                || fieldLoadOp.fieldDescriptor().name().equals("lsy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("lsz");
+    }
+
+    private boolean isFieldLoadBlockId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("bix")
+                || fieldLoadOp.fieldDescriptor().name().equals("biy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("biz");
     }
 
     private void createBarrierNodeOp(CopyContext context, JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
@@ -310,25 +338,50 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     }
 
     private int getDimension(ThreadAccess threadAccess, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        String fieldName = fieldLoadOp.fieldDescriptor().name();
         switch (threadAccess) {
             case GLOBAL_ID -> {
-                if (fieldLoadOp.fieldDescriptor().name().equals("y")) {
+                if (fieldName.equals("y")) {
                     return 1;
-                } else if (fieldLoadOp.fieldDescriptor().name().equals("z")) {
+                } else if (fieldName.equals("z")) {
                     return 2;
                 }
                 return 0;
             }
             case GLOBAL_SIZE -> {
-                if (fieldLoadOp.fieldDescriptor().name().equals("gsy")) {
+                if (fieldName.equals("gsy")) {
                     return 1;
-                } else if (fieldLoadOp.fieldDescriptor().name().equals("gsz")) {
+                } else if (fieldName.equals("gsz")) {
+                    return 2;
+                }
+                return 0;
+            }
+            case LOCAL_ID -> {
+                if (fieldName.equals("liy")) {
+                    return 1;
+                } else if (fieldName.equals("lyz")) {
+                    return 2;
+                }
+                return 0;
+            }
+            case LOCAL_SIZE -> {
+                if (fieldName.equals("lsy")) {
+                    return 1;
+                } else if (fieldName.equals("lsz")) {
+                    return 2;
+                }
+                return 0;
+            }
+            case BLOCK_ID ->  {
+                if (fieldName.equals("biy")) {
+                    return 1;
+                } else if (fieldName.equals("biz")) {
                     return 2;
                 }
                 return 0;
             }
         }
-        return 0;
+        return -1;
     }
 
     public void dialectifyToHatThreadIds(ThreadAccess threadAccess) {
@@ -343,6 +396,9 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                                     boolean isThreadIntrinsic = switch (threadAccess) {
                                         case GLOBAL_ID -> isFieldLoadGlobalThreadId(fieldLoadOp);
                                         case GLOBAL_SIZE -> isFieldLoadGlobalSize(fieldLoadOp);
+                                        case LOCAL_ID -> isFieldLoadThreadId(fieldLoadOp);
+                                        case LOCAL_SIZE -> isFieldLoadThreadSize(fieldLoadOp);
+                                        case BLOCK_ID ->  isFieldLoadBlockId(fieldLoadOp);
                                     };
                                     if (isMethodFromHatKernelContext(varLoadOp) && isThreadIntrinsic) {
                                         consumer.accept(fieldLoadOp);
@@ -374,9 +430,15 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                         List<Value> varLoadOperands = varLoadOp.operands();
                         List<Value> outputOperands = context.getValues(varLoadOperands);
                         int dim = getDimension(threadAccess, fieldLoadOp);
+                        if (dim < 0) {
+                            throw new IllegalStateException("Thread Access can't be below 0!");
+                        }
                         HatThreadOP threadOP = switch (threadAccess) {
                             case GLOBAL_ID -> new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case GLOBAL_SIZE -> new HatGlobalThreadSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case GLOBAL_SIZE -> new HatGlobalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case LOCAL_ID -> new HatLocalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case LOCAL_SIZE -> new HatLocalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case BLOCK_ID -> new HatBlockThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
                         };
                         Op.Result threadResult = blockBuilder.op(threadOP);
                         context.mapValue(fieldLoadOp.result(), threadResult);
@@ -391,16 +453,17 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
     private enum ThreadAccess {
         GLOBAL_ID,
-        GLOBAL_SIZE;
+        GLOBAL_SIZE,
+        LOCAL_ID,
+        LOCAL_SIZE,
+        BLOCK_ID,
     }
 
     public void dialectifyToHat() {
         // Phases
         dialectifyToHatBarriers();
-        dialectifyToHatMemorySpace(Space.SHARED);
-        dialectifyToHatMemorySpace(Space.PRIVATE);
-        dialectifyToHatThreadIds(ThreadAccess.GLOBAL_ID);
-        dialectifyToHatThreadIds(ThreadAccess.GLOBAL_SIZE);
+        Arrays.stream(Space.values()).forEach(this::dialectifyToHatMemorySpace);
+        Arrays.stream(ThreadAccess.values()).forEach(this::dialectifyToHatThreadIds);
     }
 
 }
