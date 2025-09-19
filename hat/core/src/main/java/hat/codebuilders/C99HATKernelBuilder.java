@@ -51,26 +51,27 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (OpTk.isKernelContextAccess(fieldLoadOp)) {
-            switch (fieldLoadOp.fieldDescriptor().name()){
-                case "x","gix"->globalId(0);
-                case "y","giy"->globalId(1);
-                case "z","giz"->globalId(3);
-                case "maxX","gsx"->globalSize(0);
-                case "maxY","gsy"->globalSize(1);
-                case "maxZ","gsz"->globalSize(2);
-                case "lix"->localId(0);
-                case "liy"->localId(1);
-                case "liz"->localId(2);
-                case "lsx"->localSize(0);
-                case "lsy"->localSize(1);
-                case "lsz"->localSize(2);
-                case "bix"->blockId(0);
-                case "biy"->blockId(1);
-                case "biz"->blockId(2);
-                default ->  throw new IllegalStateException("handle ? kc."+fieldLoadOp.fieldDescriptor().name());
-            }
-        } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
+//        if (OpTk.isKernelContextAccess(fieldLoadOp)) {
+//            switch (fieldLoadOp.fieldDescriptor().name()){
+//                case "x","gix"->globalId(0);
+//                case "y","giy"->globalId(1);
+//                case "z","giz"->globalId(3);
+//                case "maxX","gsx"->globalSize(0);
+//                case "maxY","gsy"->globalSize(1);
+//                case "maxZ","gsz"->globalSize(2);
+//                case "lix"->localId(0);
+//                case "liy"->localId(1);
+//                case "liz"->localId(2);
+//                case "lsx"->localSize(0);
+//                case "lsy"->localSize(1);
+//                case "lsz"->localSize(2);
+//                case "bix"->blockId(0);
+//                case "biy"->blockId(1);
+//                case "biz"->blockId(2);
+//                default ->  throw new IllegalStateException("handle ? kc."+fieldLoadOp.fieldDescriptor().name());
+//            }
+//        } else
+        if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
             Object value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
             literal(value.toString());
         } else {

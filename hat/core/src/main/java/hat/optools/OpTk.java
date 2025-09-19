@@ -116,7 +116,6 @@ public class OpTk {
 
         while (!work.isEmpty()) {
             RefAndFunc rf = work.pop();
-            System.out.println("Processing Function? : " + rf.r);
             if (!funcsVisited.add(rf.r)) {
                 continue;
             }

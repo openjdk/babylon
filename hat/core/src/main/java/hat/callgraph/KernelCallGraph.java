@@ -49,6 +49,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -457,7 +458,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             }
             return blockBuilder;
         });
-        IO.println("[INFO] Code model: " + funcOp.toText());
+        //IO.println("[INFO] Code model: " + funcOp.toText());
         //entrypoint.funcOp(funcOp);
         return funcOp;
     }
@@ -491,17 +492,20 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         }
 
 //        // Reachable functions
-//        if (moduleOp != null) {
-//            moduleOp.functionTable().forEach((entryPoint, kernelOp) -> {
-//                CoreOp.FuncOp f = dialectifyToHat(kernelOp);
-//                moduleOp.functionTable().put(entryPoint, f);
-//            });
-//        }
-//        } else {
-//            kernelReachableResolvedStream().forEach((kernel) -> {
-//                CoreOp.FuncOp f = dialectifyToHat(kernel.funcOp());
-//                kernel.funcOp(f);
-//            });
-//        }
+        if (moduleOp != null) {
+            List<CoreOp.FuncOp> funcs = new ArrayList<>();
+            moduleOp.functionTable().forEach((_, kernelOp) -> {
+                // ModuleOp is an Immutable Collection, thus, we need to create a new one from a
+                // new list of methods
+                CoreOp.FuncOp f = dialectifyToHat(kernelOp);
+                funcs.add(f);
+            });
+            moduleOp = CoreOp.module(funcs);
+        } else {
+            kernelReachableResolvedStream().forEach((kernel) -> {
+                CoreOp.FuncOp f = dialectifyToHat(kernel.funcOp());
+                kernel.funcOp(f);
+            });
+        }
     }
 }
