@@ -21,18 +21,18 @@
  * questions.
  */
 
-import java.lang.classfile.ClassFile;
-import java.lang.classfile.Instruction;
-import java.lang.classfile.Label;
-import java.lang.classfile.MethodModel;
-import java.lang.classfile.Opcode;
-import java.lang.classfile.attribute.CodeAttribute;
-import jdk.internal.classfile.components.ClassPrinter;
-import java.lang.classfile.instruction.*;
-import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.bytecode.BytecodeLift;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.internal.classfile.components.ClassPrinter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import java.lang.classfile.*;
+import java.lang.classfile.attribute.CodeAttribute;
+import java.lang.classfile.instruction.*;
+import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -41,9 +41,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.testng.Assert;
-import org.testng.annotations.Ignore;
-import org.testng.annotations.Test;
 
 /*
  * @test
@@ -51,7 +48,7 @@ import org.testng.annotations.Test;
  * @modules java.base/java.lang.invoke:open
  * @modules java.base/jdk.internal.classfile.components
  * @enablePreview
- * @run testng TestSmallCorpus
+ * @run junit TestSmallCorpus
  */
 public class TestSmallCorpus {
 
@@ -79,7 +76,7 @@ public class TestSmallCorpus {
     private int stable, unstable;
     private Long[] stats = new Long[6];
 
-    @Ignore
+    @Disabled
     @Test
     public void testRoundTripStability() throws Exception {
         stable = 0;
@@ -99,7 +96,7 @@ public class TestSmallCorpus {
         """.formatted((Object[])stats));
 
         // Roundtrip is 100% stable after 3 rounds, no exceptions, no verification errors
-        Assert.assertTrue(stable > 54500 && unstable == 0, String.format("stable: %d unstable: %d", stable, unstable));
+        Assertions.assertTrue(stable > 54500 && unstable == 0, String.format("stable: %d unstable: %d", stable, unstable));
     }
 
     private void testRoundTripStability(Path path) throws Exception {

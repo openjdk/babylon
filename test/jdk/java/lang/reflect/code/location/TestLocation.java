@@ -24,14 +24,10 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestLocation
+ * @run junit TestLocation
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.io.StringWriter;
-import java.lang.reflect.Method;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
@@ -39,7 +35,11 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.extern.OpWriter;
-import jdk.incubator.code.CodeReflection;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.io.StringWriter;
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -50,11 +50,11 @@ public class TestLocation {
         f.traverse(null, (o, ce) -> {
             if (ce instanceof CoreOp.ConstantOp cop) {
                 Location loc = cop.location();
-                Assert.assertNotNull(loc);
+                Assertions.assertNotNull(loc);
 
                 int actualLine = loc.line();
                 int expectedLine = Integer.parseInt((String) cop.value());
-                Assert.assertEquals(actualLine, expectedLine);
+                Assertions.assertEquals(expectedLine, actualLine);
             }
             return null;
         });
@@ -102,7 +102,7 @@ public class TestLocation {
     static void testNoLocations(Op op) {
         boolean noLocations = op.elements().filter(ce -> ce instanceof Op)
                 .allMatch(ce -> ((Op) ce).location() == Location.NO_LOCATION);
-        Assert.assertTrue(noLocations);
+        Assertions.assertTrue(noLocations);
     }
 
 

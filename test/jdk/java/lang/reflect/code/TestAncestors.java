@@ -24,13 +24,13 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestAncestors
+ * @run junit TestAncestors
  */
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -95,25 +95,25 @@ public class TestAncestors {
     static void testTopElements(CodeElement<?, ?> a) {
         switch (a) {
             case Op op -> {
-                Assert.assertNull(op.ancestorOp());
-                Assert.assertNull(op.ancestorBody());
-                Assert.assertNull(op.ancestorBlock());
+                Assertions.assertNull(op.ancestorOp());
+                Assertions.assertNull(op.ancestorBody());
+                Assertions.assertNull(op.ancestorBlock());
             }
             case Body body -> {
-                Assert.assertNotNull(body.ancestorOp());
-                Assert.assertNull(body.ancestorBody());
-                Assert.assertNull(body.ancestorBlock());
+                Assertions.assertNotNull(body.ancestorOp());
+                Assertions.assertNull(body.ancestorBody());
+                Assertions.assertNull(body.ancestorBlock());
             }
             case Block block -> {
-                Assert.assertNotNull(block.ancestorOp());
-                Assert.assertNotNull(block.ancestorBody());
-                Assert.assertNull(block.ancestorBlock());
+                Assertions.assertNotNull(block.ancestorOp());
+                Assertions.assertNotNull(block.ancestorBody());
+                Assertions.assertNull(block.ancestorBlock());
             }
         }
     }
 
     static void testPathAncestors(List<CodeElement<?, ?>> path) {
-        Assert.assertTrue(path.size() > 3);
+        Assertions.assertTrue(path.size() > 3);
         for (int i = 0; i < 3; i++) {
             CodeElement<?, ?> a = path.get(i);
             int size = path.size() - 1;
@@ -129,20 +129,20 @@ public class TestAncestors {
     }
 
     static void testAncestors(CodeElement<?, ?> a, CodeElement<?, ?> e) {
-        Assert.assertTrue(isSameOrAncestorUsingParent(e, a));
+        Assertions.assertTrue(isSameOrAncestorUsingParent(e, a));
         if (a != e) {
-            Assert.assertTrue(a.isAncestorOf(e));
+            Assertions.assertTrue(a.isAncestorOf(e));
         }
 
         switch (a) {
             case Op op -> {
-                Assert.assertTrue(isSameOrAncestorOfOp(op, e));
+                Assertions.assertTrue(isSameOrAncestorOfOp(op, e));
             }
             case Body body -> {
-                Assert.assertTrue(isSameOrAncestorOfBody(body, e));
+                Assertions.assertTrue(isSameOrAncestorOfBody(body, e));
             }
             case Block block -> {
-                Assert.assertTrue(isSameOrAncestorOfBlock(block, e));
+                Assertions.assertTrue(isSameOrAncestorOfBlock(block, e));
             }
         }
     }
