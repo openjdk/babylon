@@ -336,7 +336,7 @@ public abstract class OnnxOp extends Op {
     }
 
     @Override
-    public String opName() {
+    public String externalizeOpName() {
         return schema.name();
     }
 
@@ -350,6 +350,10 @@ public abstract class OnnxOp extends Op {
             m.put(ATTRIBUTE_OPTIONAL_OUTPUTS, optionalOutputParameters);
         }
         return Collections.unmodifiableMap(m);
+    }
+
+    public OnnxSchema schema() {
+        return schema;
     }
 
     // @@@ Change to Map<OnnxAttribute, Object>

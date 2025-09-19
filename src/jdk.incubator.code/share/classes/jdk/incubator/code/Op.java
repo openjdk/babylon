@@ -437,7 +437,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
      * @return the operation name
      */
-    public String opName() {
+    public String externalizeOpName() {
         return this.getClass().getName();
     }
 

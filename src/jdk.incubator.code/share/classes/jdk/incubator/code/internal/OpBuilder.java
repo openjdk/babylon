@@ -218,7 +218,7 @@ public class OpBuilder {
 
         Value opDef = buildOpDefinition(
                 inputOp,
-                inputOp.opName(),
+                inputOp.externalizeOpName(),
                 inputOp.location(),
                 operands,
                 successors,

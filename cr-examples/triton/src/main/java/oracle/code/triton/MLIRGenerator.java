@@ -503,7 +503,7 @@ public final class MLIRGenerator {
      * @return the updated attributes
      */
     Map<String, Object> addAditionalAttributes(Op op, Map<String, Object> attributes) {
-        if (op.opName().equals("tt.func")) {
+        if (op.externalizeOpName().equals("tt.func")) {
             String retType = op.bodies().get(0).bodyType().returnType().toString();
             List<Block.Parameter> parameters = op.bodies().get(0).entryBlock().parameters();
             attributes = new HashMap<>(attributes);
@@ -523,10 +523,10 @@ public final class MLIRGenerator {
             sb.append(") -> ");
             sb.append(TypeConverter.mapType(retType));
             attributes.put("function_type", sb.toString());
-        } else if (op.opName().equals("tt.load")) {
+        } else if (op.externalizeOpName().equals("tt.load")) {
             attributes = new HashMap<>(attributes);
             attributes.put("operandSegmentSizes", "array<i32: " + (op.operands().size() < 3 ? "1, 1, 0" : "1, 1, 1") + ">");
-        } else if (op.opName().equals("arith.constant")) {
+        } else if (op.externalizeOpName().equals("arith.constant")) {
             if (op.result().type() instanceof TensorType) {
                 attributes = new HashMap<>(attributes);
                 String val = attributes.get("value")
@@ -546,19 +546,19 @@ public final class MLIRGenerator {
      */
     public void writeOp(Op op) {
         // We use var#number instead of tuple.load
-        if (op.opName().equals("tuple.load")) {
+        if (op.externalizeOpName().equals("tuple.load")) {
             write("// ");
         }
-        if (op.opName() == "unreachable") {
+        if (op.externalizeOpName() == "unreachable") {
             return;
         }
         if (op.parent() != null) {
             Op.Result opr = op.result();
             if (writeVoidOpResult || !opr.type().equals(JavaType.VOID)) {
                 String number = writeValueDeclaration(opr);
-                if (op.opName().equals("scf.for")) {
+                if (op.externalizeOpName().equals("scf.for")) {
                     write(":" + String.valueOf(op.operands().size() - 3));
-                } else if (op.opName().equals("tuple.load")) {
+                } else if (op.externalizeOpName().equals("tuple.load")) {
                     Object value = op.externalize().isEmpty() ? 0 : op.externalize().values().toArray()[0];
                     m.put(number, namer.apply(op.operands().get(0)) + "#" + String.valueOf((int) value));
                 }
@@ -566,9 +566,9 @@ public final class MLIRGenerator {
             }
         }
         write("\"");
-        if (op.opName().equals("module"))
+        if (op.externalizeOpName().equals("module"))
             write("builtin.");
-        write(op.opName());
+        write(op.externalizeOpName());
         write("\"");
 
         write(" ");
@@ -617,7 +617,7 @@ public final class MLIRGenerator {
             write(" ");
             write("{");
             writeCommaSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
-            if (op.opName().equals("arith.constant")) {
+            if (op.externalizeOpName().equals("arith.constant")) {
                 // arith.constant verifier needs type information
                 write(":");
                 writeType(op.resultType());

@@ -98,7 +98,7 @@ public class SCFOps {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 
@@ -140,7 +140,7 @@ public class SCFOps {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 

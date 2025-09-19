@@ -456,19 +456,19 @@ final class PartialEvaluator {
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
                 // @@@ TODO avoid use of opName
-                MethodHandle mh = opHandle(l, o.opName(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.TestOperation testOperation -> {
                 // @@@ TODO avoid use of opName
-                MethodHandle mh = opHandle(l, o.opName(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
                 // @@@ TODO avoid use of opName
-                MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }

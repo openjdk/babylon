@@ -74,7 +74,7 @@ public sealed abstract class JavaOp extends Op {
     }
 
     @Override
-    public String opName() {
+    public String externalizeOpName() {
         OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
         assert opDecl != null : this.getClass().getName();
         return opDecl.value();

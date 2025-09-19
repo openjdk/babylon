@@ -600,12 +600,12 @@ public final class Interpreter {
             return null;
         } else if (o instanceof JavaOp.ArithmeticOperation || o instanceof JavaOp.TestOperation) {
             // @@@ avoid use of opName
-            MethodHandle mh = opHandle(l, o.opName(), o.opType());
+            MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.ConvOp) {
             // @@@ avoid use of opName
-            MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
+            MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.AssertOp _assert) {

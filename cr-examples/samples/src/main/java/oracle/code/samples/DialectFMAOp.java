@@ -100,7 +100,7 @@ public class DialectFMAOp {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
     }

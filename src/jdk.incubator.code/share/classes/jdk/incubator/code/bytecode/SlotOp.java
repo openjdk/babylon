@@ -81,7 +81,7 @@ sealed abstract class SlotOp extends Op {
         public static final String NAME = "slot.load";
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 
@@ -133,7 +133,7 @@ sealed abstract class SlotOp extends Op {
         public static final String NAME = "slot.store";
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 

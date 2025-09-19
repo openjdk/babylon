@@ -67,7 +67,7 @@ public class ArithMathOps {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return opName;
         }
     }

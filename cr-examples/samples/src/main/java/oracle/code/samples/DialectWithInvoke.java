@@ -92,7 +92,7 @@ public class DialectWithInvoke {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return "intrinsicsFMA";
         }
     }

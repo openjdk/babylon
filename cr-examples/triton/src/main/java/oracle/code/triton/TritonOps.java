@@ -65,7 +65,7 @@ public class TritonOps {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             OpFactoryHelper.OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpFactoryHelper.OpDeclaration.class);
             assert opDecl != null : this.getClass().getName();
             return opDecl.value();

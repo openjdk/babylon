@@ -61,7 +61,7 @@ public class TritonTestOps {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
     }

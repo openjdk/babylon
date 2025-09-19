@@ -361,7 +361,7 @@ public class RawLayout {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 
@@ -424,7 +424,7 @@ public class RawLayout {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
     }
@@ -463,7 +463,7 @@ public class RawLayout {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 
@@ -506,7 +506,7 @@ public class RawLayout {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 

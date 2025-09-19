@@ -343,7 +343,7 @@ public class LayoutExample {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 
@@ -397,7 +397,7 @@ public class LayoutExample {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 
@@ -443,7 +443,7 @@ public class LayoutExample {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 
@@ -485,7 +485,7 @@ public class LayoutExample {
         }
 
         @Override
-        public String opName() {
+        public String externalizeOpName() {
             return NAME;
         }
 
