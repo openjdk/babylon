@@ -21,17 +21,19 @@
  * questions.
  */
 
+import jdk.incubator.code.bytecode.impl.BranchCompactor;
+import jdk.internal.classfile.components.ClassPrinter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Instruction;
-import jdk.internal.classfile.components.ClassPrinter;
-import static java.lang.classfile.Opcode.*;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
-import jdk.incubator.code.bytecode.impl.BranchCompactor;
 import java.util.List;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+
+import static java.lang.classfile.Opcode.*;
 
 /*
  * @test
@@ -39,7 +41,7 @@ import org.testng.annotations.Test;
  * @modules java.base/jdk.internal.classfile.components
  * @modules jdk.incubator.code/jdk.incubator.code.bytecode.impl
  * @enablePreview
- * @run testng TestBranchCompactor
+ * @run junit TestBranchCompactor
  */
 public class TestBranchCompactor {
 
@@ -76,9 +78,9 @@ public class TestBranchCompactor {
                 }))));
         var code = clm.methods().get(0).code().get();
         ClassPrinter.toYaml(code, ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
-        Assert.assertEquals(
-                code.elementList().stream().mapMulti((e, ec) -> {if (e instanceof Instruction i) ec.accept(i.opcode());}).toList(),
-                List.of(NOP, ICONST_0, IFEQ, GOTO, NOP, RETURN));
-        Assert.assertEquals(code.findAttribute(Attributes.lineNumberTable()).get().lineNumbers().size(), 2);
+        Assertions.assertEquals(
+                List.of(NOP, ICONST_0, IFEQ, GOTO, NOP, RETURN), code.elementList().stream().mapMulti((e, ec) -> {if (e instanceof Instruction i) ec.accept(i.opcode());}).toList()
+        );
+        Assertions.assertEquals(2, code.findAttribute(Attributes.lineNumberTable()).get().lineNumbers().size());
     }
 }

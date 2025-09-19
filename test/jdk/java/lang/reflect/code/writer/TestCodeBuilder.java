@@ -21,21 +21,21 @@
  * questions.
  */
 
-import jdk.incubator.code.extern.DialectFactory;
-import jdk.incubator.code.dialect.java.JavaType;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.interpreter.Interpreter;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.internal.OpBuilder;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -43,7 +43,7 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @modules jdk.incubator.code/jdk.incubator.code.internal
- * @run testng TestCodeBuilder
+ * @run junit TestCodeBuilder
  */
 
 public class TestCodeBuilder {
@@ -127,7 +127,7 @@ public class TestCodeBuilder {
                 b -> b.parameter(JavaType.type(DialectFactory.class)));
         CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
                 fb, JavaOp.JAVA_DIALECT_FACTORY);
-        Assert.assertEquals(fActual.toText(), fExpected.toText());
+        Assertions.assertEquals(fExpected.toText(), fActual.toText());
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

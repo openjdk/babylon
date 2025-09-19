@@ -24,17 +24,17 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestOptions
+ * @run junit TestOptions
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.reflect.Method;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
-import jdk.incubator.code.CodeReflection;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -49,18 +49,18 @@ public class TestOptions {
     public void testDropWriteVoid() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        Assert.assertFalse(OpWriter.toText(f).contains("void"));
-        Assert.assertFalse(OpWriter.toText(f, OpWriter.VoidOpResultOption.DROP_VOID).contains("void"));
-        Assert.assertTrue(OpWriter.toText(f, OpWriter.VoidOpResultOption.WRITE_VOID).contains("void"));
+        Assertions.assertFalse(OpWriter.toText(f).contains("void"));
+        Assertions.assertFalse(OpWriter.toText(f, OpWriter.VoidOpResultOption.DROP_VOID).contains("void"));
+        Assertions.assertTrue(OpWriter.toText(f, OpWriter.VoidOpResultOption.WRITE_VOID).contains("void"));
     }
 
     @Test
     public void testDropWriteDescendants() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        Assert.assertTrue(OpWriter.toText(f).lines().count() > 1);
-        Assert.assertTrue(OpWriter.toText(f, OpWriter.OpDescendantsOption.WRITE_DESCENDANTS).lines().count() > 1);
-        Assert.assertTrue(OpWriter.toText(f, OpWriter.OpDescendantsOption.DROP_DESCENDANTS).lines().count() == 1);
+        Assertions.assertTrue(OpWriter.toText(f).lines().count() > 1);
+        Assertions.assertTrue(OpWriter.toText(f, OpWriter.OpDescendantsOption.WRITE_DESCENDANTS).lines().count() > 1);
+        Assertions.assertTrue(OpWriter.toText(f, OpWriter.OpDescendantsOption.DROP_DESCENDANTS).lines().count() == 1);
     }
 
 

@@ -21,25 +21,24 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestSlots
+ * @run junit TestSlots
  */
 
 public class TestSlots {
@@ -58,7 +57,7 @@ public class TestSlots {
 
         MethodHandle mh = generate(f);
 
-        Assert.assertEquals(f(1.0d, 2.0d), (double) mh.invoke(1.0d, 2.0d));
+        Assertions.assertEquals((double) mh.invoke(1.0d, 2.0d), f(1.0d, 2.0d));
     }
 
     @CodeReflection
@@ -72,7 +71,7 @@ public class TestSlots {
 
         MethodHandle mh = generate(f);
 
-        Assert.assertEquals(f2(1.0d, 2.0d), (double) mh.invoke(1.0d, 2.0d));
+        Assertions.assertEquals((double) mh.invoke(1.0d, 2.0d), f2(1.0d, 2.0d));
     }
 
     @CodeReflection
@@ -96,7 +95,7 @@ public class TestSlots {
         MethodHandle mh = generate(f);
 
         for (int i = 0; i < 7; i++) {
-            Assert.assertEquals(f3(2.0d, i), (double) mh.invoke(2.0d, i));
+            Assertions.assertEquals((double) mh.invoke(2.0d, i), f3(2.0d, i));
         }
     }
 
@@ -113,11 +112,11 @@ public class TestSlots {
         try {
             mh = generate(f);
         } catch (VerifyError e) {
-            Assert.fail("invalid class file generated", e);
+            Assertions.fail("invalid class file generated", e);
             return;
         }
 
-        Assert.assertEquals(f4(1, 2), (int) mh.invoke(1, 2));
+        Assertions.assertEquals((int) mh.invoke(1, 2), f4(1, 2));
     }
 
     @CodeReflection
@@ -133,11 +132,11 @@ public class TestSlots {
         try {
             mh = generate(f);
         } catch (VerifyError e) {
-            Assert.fail("invalid class file generated", e);
+            Assertions.fail("invalid class file generated", e);
             return;
         }
 
-        Assert.assertEquals(f5(1.0, 2.0), (double) mh.invoke(1.0, 2.0));
+        Assertions.assertEquals((double) mh.invoke(1.0, 2.0), f5(1.0, 2.0));
     }
 
     static MethodHandle generate(CoreOp.FuncOp f) {

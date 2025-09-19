@@ -24,20 +24,21 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestConstants
+ * @run junit TestConstants
  */
 
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
-
-import java.lang.invoke.MethodHandles;
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -136,7 +137,6 @@ public class TestConstants {
         return float.class;
     }
 
-    @DataProvider
     static Object[][] provider() {
         return new Object[][] {
                 { boolean.class },
@@ -152,7 +152,8 @@ public class TestConstants {
         };
     }
 
-    @Test(dataProvider = "provider")
+    @ParameterizedTest
+    @MethodSource("provider")
     public void testString(Class<?> c) throws Exception {
         String name = "c_" + c.getSimpleName();
         List<Method> ms = Stream.of(TestConstants.class.getDeclaredMethods())
@@ -164,7 +165,7 @@ public class TestConstants {
 
             System.out.println(f.toText());
 
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), m.invoke(null));
+            Assertions.assertEquals(m.invoke(null), Interpreter.invoke(MethodHandles.lookup(), f));
         }
     }
 
@@ -187,7 +188,7 @@ public class TestConstants {
 
         System.out.println(lf.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, (Object) null), compareNull(null));
+        Assertions.assertEquals(compareNull(null), Interpreter.invoke(MethodHandles.lookup(), lf, (Object) null));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

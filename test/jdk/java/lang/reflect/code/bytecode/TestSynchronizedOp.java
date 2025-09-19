@@ -25,12 +25,16 @@
  * @test
  * @modules jdk.incubator.code
  * @enablePreview
- * @run testng TestSynchronizedOp
+ * @run junit TestSynchronizedOp
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.CodeModel;
@@ -40,10 +44,6 @@ import java.lang.classfile.instruction.MonitorInstruction;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -76,9 +76,9 @@ public class TestSynchronizedOp {
                 c.accept(mi.opcode());
             }
         }).collect(Collectors.groupingBy(oc -> oc, Collectors.counting()));
-        Assert.assertEquals(monitorCount, Map.of(
+        Assertions.assertEquals(Map.of(
                 Opcode.MONITORENTER, 1L,
-                Opcode.MONITOREXIT, 2L));
+                Opcode.MONITOREXIT, 2L), monitorCount);
     }
 
     @Test
@@ -90,12 +90,12 @@ public class TestSynchronizedOp {
 
         Object monitor = new Object();
         int[] a = new int[1];
-        Assert.assertEquals((int) mf.invoke(monitor, 0, a), 1);
+        Assertions.assertEquals(1, (int) mf.invoke(monitor, 0, a));
         a[0] = 0;
-        Assert.assertThrows(RuntimeException.class, () -> {
+        Assertions.assertThrows(RuntimeException.class, () -> {
             int i = (int) mf.invoke(monitor, -1, a);
         });
-        Assert.assertEquals(a[0], 0);
+        Assertions.assertEquals(0, a[0]);
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

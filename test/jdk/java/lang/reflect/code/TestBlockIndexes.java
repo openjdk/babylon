@@ -21,15 +21,15 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.reflect.Method;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestBlockIndexes
+ * @run junit TestBlockIndexes
  */
 
 public class TestBlockIndexes {
@@ -74,7 +74,7 @@ public class TestBlockIndexes {
 
     static void assertBlockIndexes(CoreOp.FuncOp f) {
         for (Block b : f.body().blocks()) {
-            Assert.assertEquals(b.index(), b.ancestorBody().blocks().indexOf(b));
+            Assertions.assertEquals(b.ancestorBody().blocks().indexOf(b), b.index());
         }
     }
 

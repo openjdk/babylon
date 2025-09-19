@@ -24,21 +24,21 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestNestedCapturingLambda
+ * @run junit TestNestedCapturingLambda
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.IntSupplier;
 import java.util.stream.Stream;
@@ -63,7 +63,7 @@ public class TestNestedCapturingLambda {
     static void test(QIntSupplier s, int a) {
         @SuppressWarnings("unchecked")
         CoreOp.Var<Integer> capture = (CoreOp.Var<Integer>) Op.ofQuotable(s).get().capturedValues().values().iterator().next();
-        Assert.assertEquals(capture.value().intValue(), a);
+        Assertions.assertEquals(a, capture.value().intValue());
     }
 
     @Test
@@ -72,8 +72,8 @@ public class TestNestedCapturingLambda {
 
         MethodHandle mh = generate(f);
 
-        Assert.assertEquals((int) mh.invoke(42), f(42));
-        Assert.assertEquals((int) mh.invoke(-1), f(-1));
+        Assertions.assertEquals(f(42), (int) mh.invoke(42));
+        Assertions.assertEquals(f(-1), (int) mh.invoke(-1));
     }
 
     static MethodHandle generate(CoreOp.FuncOp f) {

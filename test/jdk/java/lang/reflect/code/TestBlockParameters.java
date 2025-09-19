@@ -24,18 +24,17 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestBlockParameters
+ * @run junit TestBlockParameters
  */
-
-import jdk.incubator.code.dialect.java.JavaOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
@@ -70,14 +69,14 @@ public class TestBlockParameters {
     }
 
     void testBlockParameter(Block.Parameter p) {
-        Assert.assertEquals(p.index(), p.declaringBlock().parameters().indexOf(p));
+        Assertions.assertEquals(p.declaringBlock().parameters().indexOf(p), p.index());
 
         if (p.invokableOperation() instanceof Op.Invokable iop) {
-            Assert.assertTrue(p.declaringBlock().isEntryBlock());
-            Assert.assertEquals(p.index(), iop.parameters().indexOf(p));
+            Assertions.assertTrue(p.declaringBlock().isEntryBlock());
+            Assertions.assertEquals(iop.parameters().indexOf(p), p.index());
         } else {
             // There are no non-invokable operations with bodies in the model
-            Assert.assertFalse(p.declaringBlock().isEntryBlock());
+            Assertions.assertFalse(p.declaringBlock().isEntryBlock());
         }
     }
 }

@@ -21,17 +21,16 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +39,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestConditionalOp
+ * @run junit TestConditionalOp
  */
 
 public class TestConditionalOp {
@@ -96,8 +95,8 @@ public class TestConditionalOp {
             List<String> le = new ArrayList<>();
             boolean re = f(a, b, c, le);
 
-            Assert.assertEquals(ra, re);
-            Assert.assertEquals(la, le);
+            Assertions.assertEquals(re, ra);
+            Assertions.assertEquals(le, la);
         }
     }
 }

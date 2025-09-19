@@ -24,19 +24,19 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestInvokeSuper
+ * @run junit TestInvokeSuper
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -70,7 +70,7 @@ public class TestInvokeSuper {
 
         for (boolean invokeClass : new boolean[] {true, false}) {
             B b = new B(invokeClass);
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, b), b.f());
+            Assertions.assertEquals(b.f(), Interpreter.invoke(MethodHandles.lookup(), f, b));
         }
     }
 

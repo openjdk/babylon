@@ -3,11 +3,11 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import jdk.internal.classfile.components.ClassPrinter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.classfile.ClassFile;
-import jdk.internal.classfile.components.ClassPrinter;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -20,7 +20,7 @@ import java.util.stream.Stream;
  * @enablePreview
  * @modules jdk.incubator.code
  * @modules java.base/jdk.internal.classfile.components
- * @run testng TestVarArg
+ * @run junit TestVarArg
  *
  */
 public class TestVarArg {
@@ -38,7 +38,7 @@ public class TestVarArg {
         ClassPrinter.toYaml(classModel, ClassPrinter.Verbosity.TRACE_ALL, System.out::print);
 
         MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lf);
-        Assert.assertEquals(mh.invoke(), f());
+        Assertions.assertEquals(f(), mh.invoke());
     }
 
     @CodeReflection

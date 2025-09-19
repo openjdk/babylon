@@ -25,8 +25,8 @@ import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -34,7 +34,7 @@ import java.lang.reflect.Method;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestArgsTypesValidationWhenInterpreting
+ * @run junit TestArgsTypesValidationWhenInterpreting
  */
 public class TestArgsTypesValidationWhenInterpreting {
 
@@ -50,14 +50,14 @@ public class TestArgsTypesValidationWhenInterpreting {
         System.out.println(funcOp.toText());
 
         double res = (double) Interpreter.invoke(MethodHandles.lookup(), funcOp, this, 2);
-        Assert.assertEquals(res, 4d);
+        Assertions.assertEquals(4d, res);
 
         res = (double) Interpreter.invoke(MethodHandles.lookup(), funcOp,
                 new TestArgsTypesValidationWhenInterpreting(), 2);
-        Assert.assertEquals(res, 4d);
+        Assertions.assertEquals(4d, res);
 
-        Assert.assertThrows(() -> Interpreter.invoke(MethodHandles.lookup(), funcOp, new Object(), 2));
+        Assertions.assertThrows(Throwable.class, () -> Interpreter.invoke(MethodHandles.lookup(), funcOp, new Object(), 2));
 
-        Assert.assertThrows(() -> Interpreter.invoke(MethodHandles.lookup(), funcOp, this, 2d));
+        Assertions.assertThrows(Throwable.class, () -> Interpreter.invoke(MethodHandles.lookup(), funcOp, this, 2d));
     }
 }

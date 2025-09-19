@@ -2,8 +2,8 @@ import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestInvokeOp
+ * @run junit TestInvokeOp
  */
 public class TestInvokeOp {
 
@@ -22,20 +22,20 @@ public class TestInvokeOp {
         var f = getFuncOp(this.getClass(), "f");
         var invokeOps = f.elements().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> ((JavaOp.InvokeOp) ce)).toList();
 
-        Assert.assertEquals(invokeOps.get(0).argOperands(), invokeOps.get(0).operands());
+        Assertions.assertEquals(invokeOps.get(0).operands(), invokeOps.get(0).argOperands());
 
-        Assert.assertEquals(invokeOps.get(1).argOperands(), invokeOps.get(1).operands().subList(0, 1));
+        Assertions.assertEquals(invokeOps.get(1).operands().subList(0, 1), invokeOps.get(1).argOperands());
 
-        Assert.assertEquals(invokeOps.get(2).argOperands(), invokeOps.get(2).operands());
+        Assertions.assertEquals(invokeOps.get(2).operands(), invokeOps.get(2).argOperands());
 
-        Assert.assertEquals(invokeOps.get(3).argOperands(), invokeOps.get(3).operands().subList(0, 1));
+        Assertions.assertEquals(invokeOps.get(3).operands().subList(0, 1), invokeOps.get(3).argOperands());
 
         for (JavaOp.InvokeOp invokeOp : invokeOps) {
             var l = new ArrayList<>(invokeOp.argOperands());
             if (invokeOp.isVarArgs()) {
                 l.addAll(invokeOp.varArgOperands());
             }
-            Assert.assertEquals(l, invokeOp.operands());
+            Assertions.assertEquals(invokeOp.operands(), l);
         }
     }
 

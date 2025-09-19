@@ -21,12 +21,11 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.bytecode.BytecodeLift;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
@@ -37,7 +36,7 @@ import java.util.function.Function;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestLiftExample
+ * @run junit TestLiftExample
  */
 
 public class TestLiftExample {
@@ -75,6 +74,6 @@ public class TestLiftExample {
         Function<Integer, Integer> pf = (Function<Integer, Integer>) Interpreter.invoke(MethodHandles.lookup(),
                 flift, f);
 
-        Assert.assertEquals((int) pf.apply(1), 2);
+        Assertions.assertEquals(2, (int) pf.apply(1));
     }
 }

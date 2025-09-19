@@ -24,19 +24,18 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestBinops
+ * @run junit TestBinops
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -53,8 +52,8 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, true), not(true));
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, false), not(false));
+        Assertions.assertEquals(not(true), Interpreter.invoke(MethodHandles.lookup(), f, true));
+        Assertions.assertEquals(not(false), Interpreter.invoke(MethodHandles.lookup(), f, false));
     }
 
     @CodeReflection
@@ -68,7 +67,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 42), neg(42));
+        Assertions.assertEquals(neg(42), Interpreter.invoke(MethodHandles.lookup(), f, 42));
     }
 
     @CodeReflection
@@ -82,7 +81,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 42), compl(42));
+        Assertions.assertEquals(compl(42), Interpreter.invoke(MethodHandles.lookup(), f, 42));
     }
 
     @CodeReflection
@@ -96,7 +95,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 10, 3), mod(10, 3));
+        Assertions.assertEquals(mod(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
     @CodeReflection
@@ -110,7 +109,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 10, 3), bitand(10, 3));
+        Assertions.assertEquals(bitand(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
     @CodeReflection
@@ -124,7 +123,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 10, 3), bitor(10, 3));
+        Assertions.assertEquals(bitor(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
     @CodeReflection
@@ -138,7 +137,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 10, 3), bitxor(10, 3));
+        Assertions.assertEquals(bitxor(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
     @CodeReflection
@@ -152,7 +151,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, true, false), booland(true, false));
+        Assertions.assertEquals(booland(true, false), Interpreter.invoke(MethodHandles.lookup(), f, true, false));
     }
 
     @CodeReflection
@@ -166,7 +165,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, false, true), boolor(false, true));
+        Assertions.assertEquals(boolor(false, true), Interpreter.invoke(MethodHandles.lookup(), f, false, true));
     }
 
     @CodeReflection
@@ -180,7 +179,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, true, true), boolxor(true, true));
+        Assertions.assertEquals(boolxor(true, true), Interpreter.invoke(MethodHandles.lookup(), f, true, true));
     }
 
     @CodeReflection
@@ -194,7 +193,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, 15.6, 2.1), doublemod(15.6, 2.1));
+        Assertions.assertEquals(doublemod(15.6, 2.1), Interpreter.invoke(MethodHandles.lookup(), f, 15.6, 2.1));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

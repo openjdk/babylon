@@ -21,16 +21,15 @@
  * questions.
  */
 
-import jdk.incubator.code.Body;
-import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.extern.OpParser;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import jdk.incubator.code.Block;
-import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.OpParser;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,16 +38,12 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static jdk.incubator.code.dialect.core.CoreOp.return_;
-import static jdk.incubator.code.dialect.core.CoreOp.branch;
-import static jdk.incubator.code.dialect.core.CoreOp.conditionalBranch;
-import static jdk.incubator.code.dialect.core.CoreOp.constant;
-import static jdk.incubator.code.dialect.core.CoreOp.func;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestDominate
+ * @run junit TestDominate
  */
 
 public class TestDominate {
@@ -71,15 +66,15 @@ public class TestDominate {
         });
 
         Map<Block, Block> idoms = f.body().immediateDominators();
-        Assert.assertThrows(UnsupportedOperationException.class,
+        Assertions.assertThrows(UnsupportedOperationException.class,
                 () -> idoms.put(f.body().entryBlock(), f.body().entryBlock()));
-        Assert.assertThrows(UnsupportedOperationException.class,
+        Assertions.assertThrows(UnsupportedOperationException.class,
                 idoms::clear);
 
         Map<Block, Block> ipdoms = f.body().immediatePostDominators();
-        Assert.assertThrows(UnsupportedOperationException.class,
+        Assertions.assertThrows(UnsupportedOperationException.class,
                 () -> ipdoms.put(f.body().entryBlock(), f.body().entryBlock()));
-        Assert.assertThrows(UnsupportedOperationException.class,
+        Assertions.assertThrows(UnsupportedOperationException.class,
                 ipdoms::clear);
     }
 
@@ -183,7 +178,7 @@ public class TestDominate {
             for (int j = 0; j < bs.length; j++) {
                 Block x = bs[i];
                 Block y = bs[j];
-                Assert.assertEquals(y.isDominatedBy(x), bvs[j][i]);
+                Assertions.assertEquals(bvs[j][i], y.isDominatedBy(x));
             }
         }
     }
@@ -223,9 +218,9 @@ public class TestDominate {
 
         for (Block b : f.body().blocks()) {
             if (b == entry || b == b6) {
-                Assert.assertEquals(idoms.get(b), entry);
+                Assertions.assertEquals(entry, idoms.get(b));
             } else {
-                Assert.assertEquals(idoms.get(b), b6);
+                Assertions.assertEquals(b6, idoms.get(b));
             }
         }
     }
@@ -295,7 +290,7 @@ public class TestDominate {
                                         node("3",
                                                 node("4"), node("5"), node("6")))),
                         node("13"));
-        Assert.assertEquals(domTree, domTreeExpected);
+        Assertions.assertEquals(domTreeExpected, domTree);
 
 
         Map<String, Set<String>> df = f.body().dominanceFrontier().entrySet().stream()
@@ -317,7 +312,7 @@ public class TestDominate {
                 Map.entry("11", Set.of("13", "2", "9")),
                 Map.entry("12", Set.of("13", "2"))
         );
-        Assert.assertEquals(df, dfExpected);
+        Assertions.assertEquals(dfExpected, df);
     }
 
     @Test
@@ -351,7 +346,7 @@ public class TestDominate {
         CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
 
         Map<Block, Block> ipdoms = f.body().immediatePostDominators();
-        Assert.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));
+        Assertions.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));
 
         Block exit = ipdoms.containsKey(Body.IPDOM_EXIT) ? Body.IPDOM_EXIT : f.body().blocks().getLast();
         Node<String> domTree = buildDomTree(exit, ipdoms).transform(b -> Integer.toString(b.index()));
@@ -364,7 +359,7 @@ public class TestDominate {
                                                 node("3"),
                                                 node("1",
                                                         node("0"))))));
-        Assert.assertEquals(domTree, domTreeExpected);
+        Assertions.assertEquals(domTreeExpected, domTree);
     }
 
     @Test
@@ -392,7 +387,7 @@ public class TestDominate {
         CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(m);
 
         Map<Block, Block> ipdoms = f.body().immediatePostDominators();
-        Assert.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));
+        Assertions.assertFalse(ipdoms.containsKey(Body.IPDOM_EXIT));
 
         Block exit = ipdoms.containsKey(Body.IPDOM_EXIT) ? Body.IPDOM_EXIT : f.body().blocks().getLast();
         Node<String> domTree = buildDomTree(exit, ipdoms).transform(b -> Integer.toString(b.index()));
@@ -403,7 +398,7 @@ public class TestDominate {
                                 node("2"),
                                 node("3")),
                         node("0"));
-        Assert.assertEquals(domTree, domTreeExpected);
+        Assertions.assertEquals(domTreeExpected, domTree);
 
         Map<String, Set<String>> df = f.body().postDominanceFrontier().entrySet().stream()
                 .map(e -> Map.entry(Integer.toString(e.getKey().index()),
@@ -416,7 +411,7 @@ public class TestDominate {
                 Map.entry("3", Set.of("1")),
                 Map.entry("4", Set.of("0"))
         );
-        Assert.assertEquals(df, dfExpected);
+        Assertions.assertEquals(dfExpected, df);
     }
 
 

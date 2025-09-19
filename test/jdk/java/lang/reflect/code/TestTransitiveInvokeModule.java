@@ -24,23 +24,23 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestTransitiveInvokeModule
- * @run testng/othervm -Dbabylon.ssa=cytron TestTransitiveInvokeModule
+ * @run junit TestTransitiveInvokeModule
+ * @run junit/othervm -Dbabylon.ssa=cytron TestTransitiveInvokeModule
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -80,8 +80,8 @@ public class TestTransitiveInvokeModule {
 
         List<Integer> r = new ArrayList<>();
         Object result = Interpreter.invoke(MethodHandles.lookup(), module.functionTable().firstEntry().getValue(), 10, r);
-        Assert.assertEquals(r, List.of(9, 7, 5, 3, 1, -1));
-        Assert.assertEquals(result, -2);
+        Assertions.assertEquals(List.of(9, 7, 5, 3, 1, -1), r);
+        Assertions.assertEquals(-2, result);
     }
 
     static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup l,

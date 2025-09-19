@@ -21,18 +21,18 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.interpreter.Interpreter;
 import java.util.stream.Stream;
 
 /*
  * @test
  * @modules jdk.incubator.code
  * @enablePreview
- * @run testng TestLinq
+ * @run junit TestLinq
  */
 
 public class TestLinq {
@@ -58,6 +58,6 @@ public class TestLinq {
                 qr.expression(), qp.query(Customer.class));
         System.out.println(qr2.expression().toText());
 
-        Assert.assertEquals(qr.expression().toText(), qr2.expression().toText());
+        Assertions.assertEquals(qr2.expression().toText(), qr.expression().toText());
     }
 }

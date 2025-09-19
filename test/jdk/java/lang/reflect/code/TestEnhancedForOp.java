@@ -21,16 +21,16 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.invoke.MethodHandles;
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestEnhancedForOp
+ * @run junit TestEnhancedForOp
  */
 
 public class TestEnhancedForOp {
@@ -71,7 +71,7 @@ public class TestEnhancedForOp {
 
         System.out.println(lf.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f());
+        Assertions.assertEquals(f(), Interpreter.invoke(MethodHandles.lookup(), lf));
     }
 
 
@@ -95,6 +95,6 @@ public class TestEnhancedForOp {
         System.out.println(lf.toText());
 
         int[] ia = new int[] {1, 2, 3, 4};
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, ia), array(ia));
+        Assertions.assertEquals(array(ia), Interpreter.invoke(MethodHandles.lookup(), lf, ia));
     }
 }

@@ -20,22 +20,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
-import java.util.List;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
-
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import java.util.List;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng/othervm -ea TestAssert
+ * @run junit/othervm -ea TestAssert
  */
 public class TestAssert {
 
@@ -64,7 +65,7 @@ public class TestAssert {
     public void testAssertString(){
         AssertionError ae = testThrows("assertThrowWithMessage");
         if (ae.getMessage() == null || !ae.getMessage().equals(FAILURESTRING)) {
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -72,7 +73,7 @@ public class TestAssert {
     public void testAssertChar() {
         AssertionError ae = testThrows("assertChar");
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILURECHAR))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -80,7 +81,7 @@ public class TestAssert {
     public void testAssertFloat() {
         AssertionError ae = testThrows("assertFloat");
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREFLOAT))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -88,7 +89,7 @@ public class TestAssert {
     public void testAssertDouble() {
         AssertionError ae = testThrows("assertDouble");
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREDOUBLE))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -96,7 +97,7 @@ public class TestAssert {
     public void testAssertByte() {
         AssertionError ae = testThrows("assertByte");
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREBYTE))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -104,7 +105,7 @@ public class TestAssert {
     public void testAssertShort() {
         AssertionError ae = testThrows("assertShort");
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILURESHORT))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -112,7 +113,7 @@ public class TestAssert {
     public void testAssertInt() {
         AssertionError ae = testThrows("assertInt");
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREINT))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -120,7 +121,7 @@ public class TestAssert {
     public void testAssertLong() {
         AssertionError ae = testThrows("assertLong");
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILURELONG))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -128,7 +129,7 @@ public class TestAssert {
     public void testAssertObject() {
         AssertionError ae = testThrows("assertObject");
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREOBJECT))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -136,7 +137,7 @@ public class TestAssert {
     public void testAssertExpr1() {
         AssertionError ae = testThrows("assertExpr1");
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREINT + FAILURELONG))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -144,7 +145,7 @@ public class TestAssert {
     public void testAssertExpr2() {
         AssertionError ae = testThrows("assertExpr2", List.of(int.class), 52);
         if (ae.getMessage() == null || !ae.getMessage().equals(String.valueOf(FAILUREINT))){
-            Assert.fail("Assertion failure messages do not match.");
+            Assertions.fail("Assertion failure messages do not match.");
         }
     }
 
@@ -182,7 +183,7 @@ public class TestAssert {
 
 
             AssertionError ae = (AssertionError) retCatch(() -> Interpreter.invoke(MethodHandles.lookup(), fz ,args));
-            Assert.assertNotNull(ae);
+            Assertions.assertNotNull(ae);
             return ae;
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);

@@ -24,18 +24,17 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestExpressionGraphs
+ * @run junit TestExpressionGraphs
  */
 
-import org.testng.annotations.Test;
-
-import java.io.Writer;
-import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
-import jdk.incubator.code.CodeReflection;
+import org.junit.jupiter.api.Test;
+
+import java.io.Writer;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.IntStream;

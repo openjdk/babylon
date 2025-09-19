@@ -21,40 +21,36 @@
  * questions.
  */
 
-import jdk.incubator.code.dialect.java.JavaOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.io.PrintStream;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.FieldRef;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.io.PrintStream;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.dialect.java.JavaOp.arrayStoreOp;
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
-import static jdk.incubator.code.dialect.java.JavaOp.fieldLoad;
-import static jdk.incubator.code.dialect.java.JavaOp.newArray;
-import static jdk.incubator.code.dialect.java.MethodRef.method;
+import static jdk.incubator.code.dialect.java.JavaOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
+import static jdk.incubator.code.dialect.java.MethodRef.method;
 
 /*
  * @test
  * @modules jdk.incubator.code
  * @enablePreview
- * @run testng TestLocalTransformationsAdaption
+ * @run junit TestLocalTransformationsAdaption
  */
 
 public class TestLocalTransformationsAdaption {
@@ -99,13 +95,13 @@ public class TestLocalTransformationsAdaption {
         System.out.println(f.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), f, 2);
-        Assert.assertEquals(x, f(2));
+        Assertions.assertEquals(f(2), x);
 
         try {
             Interpreter.invoke(MethodHandles.lookup(), f, -10);
-            Assert.fail();
+            Assertions.fail();
         } catch (Throwable e) {
-            Assert.assertEquals(IndexOutOfBoundsException.class, e.getClass());
+            Assertions.assertEquals(e.getClass(), IndexOutOfBoundsException.class);
         }
     }
 
@@ -143,13 +139,13 @@ public class TestLocalTransformationsAdaption {
         System.out.println(fc.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
-        Assert.assertEquals(x, f(2));
+        Assertions.assertEquals(f(2), x);
 
         try {
             Interpreter.invoke(MethodHandles.lookup(), fc, -10);
-            Assert.fail();
+            Assertions.fail();
         } catch (Throwable e) {
-            Assert.assertEquals(IndexOutOfBoundsException.class, e.getClass());
+            Assertions.assertEquals(e.getClass(), IndexOutOfBoundsException.class);
         }
     }
 
@@ -195,7 +191,7 @@ public class TestLocalTransformationsAdaption {
         System.out.println(fc.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
-        Assert.assertEquals(x, f(2));
+        Assertions.assertEquals(f(2), x);
     }
 
 
@@ -222,7 +218,7 @@ public class TestLocalTransformationsAdaption {
         System.out.println(fc.toText());
 
         int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
-        Assert.assertEquals(x, f(2));
+        Assertions.assertEquals(f(2), x);
     }
 
     static void printCall(CopyContext cc, JavaOp.InvokeOp invokeOp, Block.Builder opBuilder) {

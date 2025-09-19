@@ -24,20 +24,20 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestLiveness
+ * @run junit TestLiveness
  */
-
-import jdk.incubator.code.dialect.java.JavaOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.Liveness;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.OpParser;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +61,7 @@ public class TestLiveness {
         var actual = liveness(op);
         var expected = Map.of(
                 0, List.of(Set.of(), Set.of()));
-        Assert.assertEquals(actual, expected);
+        Assertions.assertEquals(expected, actual);
     }
 
     static final String IF_ELSE = """
@@ -97,7 +97,7 @@ public class TestLiveness {
                 2, List.of(Set.of(0, 1), Set.of()),
                 3, List.of(Set.of(), Set.of())
         );
-        Assert.assertEquals(actual, expected);
+        Assertions.assertEquals(expected, actual);
     }
 
     static final String LOOP = """
@@ -136,7 +136,7 @@ public class TestLiveness {
                 3, List.of(Set.of(3), Set.of()),
                 4, List.of(Set.of(0, 4, 6), Set.of(0))
         );
-        Assert.assertEquals(actual, expected);
+        Assertions.assertEquals(expected, actual);
     }
 
     static final String IF_ELSE_NESTED = """
@@ -210,7 +210,7 @@ public class TestLiveness {
                 8, List.of(Set.of(0, 1, 2, 3), Set.of(2, 3)),
                 9, List.of(Set.of(2, 3), Set.of())
         );
-        Assert.assertEquals(actual, expected);
+        Assertions.assertEquals(expected, actual);
     }
 
     static final String LOOP_NESTED = """
@@ -270,7 +270,7 @@ public class TestLiveness {
                 7, List.of(Set.of(0, 4, 8, 11), Set.of(0, 4)),
                 8, List.of(Set.of(0, 4, 7), Set.of(0))
         );
-        Assert.assertEquals(actual, expected);
+        Assertions.assertEquals(expected, actual);
     }
 
     static Map<Integer, List<Set<Integer>>> liveness(Op op) {

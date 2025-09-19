@@ -21,15 +21,14 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -37,7 +36,7 @@ import java.lang.invoke.MethodHandles;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestQuoted
+ * @run junit TestQuoted
  */
 
 public class TestQuoted {
@@ -52,7 +51,7 @@ public class TestQuoted {
 
         MethodHandle mh = generate(cop);
 
-        Assert.assertEquals(3, (int) mh.invoke(1, 2));
+        Assertions.assertEquals((int) mh.invoke(1, 2), 3);
     }
 
     static <O extends Op & Op.Invokable> MethodHandle generate(O f) {

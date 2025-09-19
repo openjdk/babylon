@@ -24,20 +24,19 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestTry
+ * @run junit TestTry
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -271,10 +270,10 @@ public class TestTry {
                 expectedT = t;
             }
 
-            Assert.assertEquals(
-                    actualT != null ? actualT.getClass() : null,
-                    expectedT != null ? expectedT.getClass() : null);
-            Assert.assertEquals(actual, expected);
+            Assertions.assertEquals(
+                    expectedT != null ? expectedT.getClass() : null, actualT != null ? actualT.getClass() : null
+            );
+            Assertions.assertEquals(expected, actual);
         };
     }
 }

@@ -24,18 +24,18 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestCopy
+ * @run junit TestCopy
  */
 
-import jdk.incubator.code.extern.ExternalizedOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.reflect.Method;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.extern.ExternalizedOp;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.Stream;
@@ -54,7 +54,7 @@ public class TestCopy {
 
         Op copy = f.copy();
 
-        Assert.assertEquals(f.toText(), copy.toText());
+        Assertions.assertEquals(copy.toText(), f.toText());
     }
 
     @Test
@@ -64,7 +64,7 @@ public class TestCopy {
         ExternalizedOp odef = ExternalizedOp.externalizeOp(CopyContext.create(), f);
         Op copy = CoreOp.CORE_OP_FACTORY.constructOp(odef);
 
-        Assert.assertEquals(f.toText(), copy.toText());
+        Assertions.assertEquals(copy.toText(), f.toText());
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

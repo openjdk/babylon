@@ -2,8 +2,8 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaType;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ import java.util.function.IntUnaryOperator;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestSealOp
+ * @run junit TestSealOp
  */
 public class TestSealOp {
 
@@ -61,7 +61,7 @@ public class TestSealOp {
         };
         CoreOp.QuotedOp quotedOp = (CoreOp.QuotedOp) q.op().ancestorBody().ancestorOp();
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) quotedOp.ancestorBody().ancestorOp();
-        Assert.assertTrue(funcOp.isSealed());
+        Assertions.assertTrue(funcOp.isSealed());
         assertOpIsCopiedWhenAddedToBlock(funcOp);
     }
 
@@ -69,7 +69,7 @@ public class TestSealOp {
     void test5() { // freezing an already bound op should throw
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
         Op.Result r = body.entryBlock().op(CoreOp.constant(JavaType.DOUBLE, 1d));
-        Assert.assertThrows(() -> r.op().seal());
+        Assertions.assertThrows(IllegalStateException.class, () -> r.op().seal());
     }
 
     @Test
@@ -77,7 +77,7 @@ public class TestSealOp {
         CoreOp.ConstantOp cop = CoreOp.constant(JavaType.LONG, 1L);
         cop.setLocation(Location.NO_LOCATION);
         cop.seal();
-        Assert.assertThrows(() -> cop.setLocation(Location.NO_LOCATION));
+        Assertions.assertThrows(IllegalStateException.class, () -> cop.setLocation(Location.NO_LOCATION));
     }
 
     void assertOpIsCopiedWhenAddedToBlock(Op op) {
@@ -86,6 +86,6 @@ public class TestSealOp {
         body.entryBlock().op(CoreOp.return_());
         CoreOp.FuncOp funcOp = CoreOp.func("t", body);
         boolean b = funcOp.body().entryBlock().ops().stream().allMatch(o -> o != op);
-        Assert.assertTrue(b);
+        Assertions.assertTrue(b);
     }
 }

@@ -23,16 +23,16 @@
 
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,13 +42,12 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.dialect.java.impl
- * @run testng TestJavaType
+ * @run junit TestJavaType
  */
 
 public class TestJavaType {
 
-    @DataProvider
-    public Object[][] JavaTypes() {
+    public static Object[][] JavaTypes() {
         return new Object[][]{
                 {"boolean", "Z"},
                 {"byte", "B"},
@@ -67,31 +66,30 @@ public class TestJavaType {
         };
     }
 
-    @Test(dataProvider = "JavaTypes")
+    @ParameterizedTest
+    @MethodSource("JavaTypes")
     public void testJavaType(String tds, String bcd) {
         JavaType jt = typeFromFlatString(tds);
-        Assert.assertEquals(jt.toString(), tds);
-        Assert.assertEquals(jt.toNominalDescriptor().descriptorString(), bcd);
-        Assert.assertEquals(jt, JavaType.type(ClassDesc.ofDescriptor(bcd)));
+        Assertions.assertEquals(tds, jt.toString());
+        Assertions.assertEquals(bcd, jt.toNominalDescriptor().descriptorString());
+        Assertions.assertEquals(JavaType.type(ClassDesc.ofDescriptor(bcd)), jt);
     }
 
-    @DataProvider
     public Object[][] classDescriptors() {
         return new Object[][]{
                 {"java.lang.String", "java.lang.String"},
         };
     }
 
-    @Test(dataProvider = "classDescriptors")
+    @ParameterizedTest
+    @MethodSource("classDescriptors")
     public void classDescriptor(String tds, String bcd) {
         ClassType jt = (ClassType) typeFromFlatString(tds);
-        Assert.assertEquals(jt.toString(), tds);
-        Assert.assertEquals(jt.toClassName(), bcd);
+        Assertions.assertEquals(tds, jt.toString());
+        Assertions.assertEquals(bcd, jt.toClassName());
     }
 
-
-    @DataProvider
-    public Object[][] basicJavaTypes() {
+    public static Object[][] basicJavaTypes() {
         return new Object[][]{
                 {"boolean", "int"},
                 {"byte", "int"},
@@ -112,16 +110,16 @@ public class TestJavaType {
         };
     }
 
-    @Test(dataProvider = "basicJavaTypes")
+    @ParameterizedTest
+    @MethodSource("basicJavaTypes")
     public void testBasicJavaType(String tds, String btds) {
         JavaType jt = typeFromFlatString(tds);
-        Assert.assertEquals(jt.toString(), tds);
-        Assert.assertEquals(jt.toBasicType().toString(), btds);
+        Assertions.assertEquals(tds, jt.toString());
+        Assertions.assertEquals(btds, jt.toBasicType().toString());
     }
 
 
-    @DataProvider
-    public Object[][] argumentJavaTypes() {
+    public static Object[][] argumentJavaTypes() {
         return new Object[][]{
                 {"java.util.List<T>", "T"},
                 {"java.util.List<T>[]", "T"},
@@ -133,28 +131,29 @@ public class TestJavaType {
         };
     }
 
-    @Test(dataProvider = "argumentJavaTypes")
+    @ParameterizedTest
+    @MethodSource("argumentJavaTypes")
     public void testArgumentJavaType(String tds, String... argTypes) {
         JavaType jt = typeFromFlatString(tds);
-        Assert.assertEquals(jt.toString(), tds);
+        Assertions.assertEquals(tds, jt.toString());
 
         while (jt instanceof ArrayType) {
             jt = ((ArrayType)jt).componentType();
         }
         ClassType ct = (ClassType)jt;
 
-        Assert.assertEquals(argTypes.length, ct.typeArguments().size());
+        Assertions.assertEquals(ct.typeArguments().size(), argTypes.length);
 
-        Assert.assertEquals(ct.typeArguments(), Stream.of(argTypes).map(TestJavaType::typeFromFlatString).toList());
+        Assertions.assertEquals(Stream.of(argTypes).map(TestJavaType::typeFromFlatString).toList(), ct.typeArguments());
     }
 
-    @Test(dataProvider = "classDescs")
+    @ParameterizedTest
+    @MethodSource("classDescs")
     public void testClassDescRoundTrip(ClassDesc classDesc) {
-        Assert.assertEquals(classDesc, JavaType.type(classDesc).toNominalDescriptor());
+        Assertions.assertEquals(JavaType.type(classDesc).toNominalDescriptor(), classDesc);
     }
 
-    @DataProvider
-    public Object[][] classDescs() throws ReflectiveOperationException {
+    public static Object[][] classDescs() throws ReflectiveOperationException {
         List<Object[]> classDescs = new ArrayList<>();
         for (Field f : ConstantDescs.class.getDeclaredFields()) {
             if (f.getName().startsWith("CD_")) {
@@ -169,19 +168,21 @@ public class TestJavaType {
         return classDescs.stream().toArray(Object[][]::new);
     }
 
-    @Test(dataProvider = "types")
+    @ParameterizedTest
+    @MethodSource("types")
     public void testTypeRoundTrip(Type type) throws ReflectiveOperationException {
         JavaType javaType = JavaType.type(type);
-        Assert.assertEquals(type, javaType.resolve(MethodHandles.lookup()));
-        Assert.assertEquals(javaType, JavaType.JAVA_ONLY_TYPE_FACTORY.constructType(javaType.externalize()));
+        Assertions.assertEquals(javaType.resolve(MethodHandles.lookup()), type);
+        Assertions.assertEquals(JavaType.JAVA_ONLY_TYPE_FACTORY.constructType(javaType.externalize()), javaType);
     }
 
-    @Test(dataProvider = "types")
+    @ParameterizedTest
+    @MethodSource("types")
     public void testTypeString(Type type) throws ReflectiveOperationException {
         JavaType javaType = JavaType.type(type);
-        Assert.assertEquals(type.getTypeName(),
-                replaceTypeVariables(javaType).toString()
-                        .replaceAll("::", "\\$"));
+        Assertions.assertEquals(replaceTypeVariables(javaType).toString()
+                .replaceAll("::", "\\$"), type.getTypeName()
+        );
     }
 
     JavaType replaceTypeVariables(JavaType type) {
@@ -208,8 +209,7 @@ public class TestJavaType {
         };
     }
 
-    @DataProvider
-    public Object[][] types() throws ReflectiveOperationException {
+    public static Object[][] types() throws ReflectiveOperationException {
         List<Object[]> types = new ArrayList<>();
         for (Field f : TypeHolder.class.getDeclaredFields()) {
             types.add(new Object[] { f.getGenericType() });
@@ -424,30 +424,30 @@ public class TestJavaType {
     public void testInnerTypes() throws ReflectiveOperationException {
         var innertypes = JavaType.type(InnerTypes.class);
         var member = (ClassType)JavaType.type(InnerTypes.Member.class);
-        Assert.assertEquals(member.enclosingType().get(), innertypes);
+        Assertions.assertEquals(innertypes, member.enclosingType().get());
 
         var memberOne = (ClassType)JavaType.type(InnerTypes.Member.One.class);
-        Assert.assertEquals(memberOne.enclosingType().get(), member);
-        Assert.assertEquals(memberOne.toClassName(), InnerTypes.Member.One.class.getName());
+        Assertions.assertEquals(member, memberOne.enclosingType().get());
+        Assertions.assertEquals(InnerTypes.Member.One.class.getName(), memberOne.toClassName());
 
         var memberTwo = (ClassType)JavaType.type(InnerTypes.Member.One.Two.class);
-        Assert.assertEquals(memberTwo.enclosingType().get(), memberOne);
-        Assert.assertEquals(memberTwo.toClassName(), InnerTypes.Member.One.Two.class.getName());
+        Assertions.assertEquals(memberOne, memberTwo.enclosingType().get());
+        Assertions.assertEquals(InnerTypes.Member.One.Two.class.getName(), memberTwo.toClassName());
 
         var memberThree = (ClassType)JavaType.type(InnerTypes.Member.One.Two.Three.class);
-        Assert.assertEquals(memberThree.enclosingType().get(), memberTwo);
-        Assert.assertEquals(memberThree.toClassName(), InnerTypes.Member.One.Two.Three.class.getName());
+        Assertions.assertEquals(memberTwo, memberThree.enclosingType().get());
+        Assertions.assertEquals(InnerTypes.Member.One.Two.Three.class.getName(), memberThree.toClassName());
 
         var nested = (ClassType)JavaType.type(InnerTypes.Nested.class);
-        Assert.assertTrue(nested.enclosingType().isEmpty());
+        Assertions.assertTrue(nested.enclosingType().isEmpty());
 
         var local_s_m = (ClassType)JavaType.type(Class.forName("TestJavaType$InnerTypes$1Local_S_M"));
-        Assert.assertTrue(local_s_m.enclosingType().isEmpty());
+        Assertions.assertTrue(local_s_m.enclosingType().isEmpty());
 
         var local_i_m = (ClassType)JavaType.type(Class.forName("TestJavaType$InnerTypes$1Local_I_M"));
-        Assert.assertEquals(local_i_m.enclosingType().get(), innertypes);
+        Assertions.assertEquals(innertypes, local_i_m.enclosingType().get());
 
         var local_c = (ClassType)JavaType.type(Class.forName("TestJavaType$InnerTypes$1Local_C"));
-        Assert.assertEquals(local_c.enclosingType().get(), innertypes);
+        Assertions.assertEquals(innertypes, local_c.enclosingType().get());
     }
 }

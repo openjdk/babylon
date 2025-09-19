@@ -24,33 +24,27 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestClosureOps
+ * @run junit TestClosureOps
  */
 
-import jdk.incubator.code.dialect.java.JavaOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import jdk.incubator.code.Block;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 
-import static jdk.incubator.code.dialect.core.CoreOp.return_;
-import static jdk.incubator.code.dialect.java.JavaOp.add;
-import static jdk.incubator.code.dialect.core.CoreOp.closure;
-import static jdk.incubator.code.dialect.core.CoreOp.closureCall;
-import static jdk.incubator.code.dialect.core.CoreOp.constant;
-import static jdk.incubator.code.dialect.core.CoreOp.func;
-import static jdk.incubator.code.dialect.core.CoreOp.quoted;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
+import static jdk.incubator.code.dialect.java.JavaOp.add;
 import static jdk.incubator.code.dialect.java.JavaType.INT;
 import static jdk.incubator.code.dialect.java.JavaType.type;
 
@@ -61,8 +55,8 @@ public class TestClosureOps {
                 INT, CoreOp.QuotedOp.QUOTED_TYPE);
 
         static int accept(Quoted c) {
-            Assert.assertEquals(1, c.capturedValues().size());
-            Assert.assertEquals(1, c.capturedValues().values().iterator().next());
+            Assertions.assertEquals(c.capturedValues().size(), 1);
+            Assertions.assertEquals(c.capturedValues().values().iterator().next(), 1);
 
             List<Object> arguments = new ArrayList<>();
             arguments.add(42);
@@ -102,7 +96,7 @@ public class TestClosureOps {
         System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
-        Assert.assertEquals(ir, 43);
+        Assertions.assertEquals(43, ir);
     }
 
     @Test
@@ -132,7 +126,7 @@ public class TestClosureOps {
         System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
-        Assert.assertEquals(ir, 43);
+        Assertions.assertEquals(43, ir);
     }
 
     @Test
@@ -140,9 +134,9 @@ public class TestClosureOps {
         Quoted quoted = () -> {};
         Op qop = quoted.op();
         Op top = qop.ancestorOp().ancestorOp();
-        Assert.assertTrue(top instanceof CoreOp.FuncOp);
+        Assertions.assertTrue(top instanceof CoreOp.FuncOp);
 
         CoreOp.FuncOp fop = (CoreOp.FuncOp) top;
-        Assert.assertEquals(JavaType.type(Quoted.class), fop.invokableType().returnType());
+        Assertions.assertEquals(fop.invokableType().returnType(), JavaType.type(Quoted.class));
     }
 }

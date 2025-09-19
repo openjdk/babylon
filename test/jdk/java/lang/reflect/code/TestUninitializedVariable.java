@@ -24,21 +24,21 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestUninitializedVariable
+ * @run junit TestUninitializedVariable
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -63,28 +63,26 @@ public class TestUninitializedVariable {
         return x;
     }
 
-    @DataProvider
-    Object[][] methods() {
-        return new Object[][] {
-                { "simple" },
-                { "controlFlow" }
-        };
+    static Stream<String> methods() {
+        return Stream.of("simple", "controlFlow");
     }
 
-    @Test(dataProvider = "methods")
+    @ParameterizedTest
+    @MethodSource("methods")
     public void testInterpret(String method) {
         CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(OpTransformer.LOWERING_TRANSFORMER));
         System.out.println(f.toText());
 
-        Assert.assertThrows(Interpreter.InterpreterException.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, 1));
+        Assertions.assertThrows(Interpreter.InterpreterException.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, 1));
     }
 
-    @Test(dataProvider = "methods")
+    @ParameterizedTest
+    @MethodSource("methods")
     public void testSSA(String method) {
         CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(OpTransformer.LOWERING_TRANSFORMER));
         System.out.println(f.toText());
 
-        Assert.assertThrows(IllegalStateException.class, () -> SSA.transform(f));
+        Assertions.assertThrows(IllegalStateException.class, () -> SSA.transform(f));
     }
 
     static CoreOp.FuncOp removeFirstStore(CoreOp.FuncOp f) {

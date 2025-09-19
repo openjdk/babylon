@@ -21,33 +21,32 @@
  * questions.
  */
 
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
-
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.CodeReflection;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestThrowing
+ * @run junit TestThrowing
  */
 
 public class TestThrowing {
 
-    @Test(dataProvider = "methods-exceptions")
+    @ParameterizedTest
+    @MethodSource("testData")
     public void testThrowsCorrectException(String methodName, Class<? extends Throwable> expectedExceptionType) throws NoSuchMethodException {
         Method method = TestThrowing.class.getDeclaredMethod(methodName);
-        Assert.assertThrows(expectedExceptionType, () -> Interpreter.invoke(MethodHandles.lookup(), Op.ofMethod(method).orElseThrow()));
+        Assertions.assertThrows(expectedExceptionType, () -> Interpreter.invoke(MethodHandles.lookup(), Op.ofMethod(method).orElseThrow()));
     }
 
-    @DataProvider(name = "methods-exceptions")
-    static Object[][] testData() throws NoSuchMethodException {
+    static Object[][] testData() {
         return new Object[][]{
                 {"throwsError", TestError.class},
                 {"throwsRuntimeException", TestRuntimeException.class},

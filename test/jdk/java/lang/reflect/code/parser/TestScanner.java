@@ -21,12 +21,12 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
-
 import jdk.incubator.code.extern.impl.Scanner;
 import jdk.incubator.code.extern.impl.Tokens;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,13 +35,12 @@ import static jdk.incubator.code.extern.impl.Tokens.TokenKind.*;
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.extern.impl
- * @run testng TestScanner
+ * @run junit TestScanner
  */
 
 public class TestScanner {
 
-    @DataProvider
-    Object[][] data() {
+    static Object[][] data() {
         return new Object[][] {
                 {"java.lang.Integer", List.of(IDENTIFIER, DOT, IDENTIFIER, DOT, IDENTIFIER)},
                 {"java.lang.Integer", List.of("java", DOT, "lang", DOT, "Integer")},
@@ -80,7 +79,8 @@ public class TestScanner {
         };
     }
 
-    @Test(dataProvider = "data")
+    @ParameterizedTest
+    @MethodSource("data")
     public void test(String content, List<Object> expectedTokens) {
         Scanner.Factory factory = Scanner.factory();
 
@@ -92,19 +92,19 @@ public class TestScanner {
             s.nextToken();
         }
 
-        Assert.assertEquals(actualTokens.size(), expectedTokens.size());
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size());
         for (int i = 0; i < expectedTokens.size(); i++) {
             Object e = expectedTokens.get(i);
             Tokens.Token a = actualTokens.get(i);
             if (e instanceof Tokens.TokenKind t) {
-                Assert.assertEquals(a.kind, t);
+                Assertions.assertEquals(t, a.kind);
             } else if (e instanceof String v) {
                 String as = switch (a.kind.tag) {
                     case NAMED -> a.name();
                     case STRING, NUMERIC -> a.stringVal();
                     case DEFAULT -> a.kind.name;
                 };
-                Assert.assertEquals(as, v);
+                Assertions.assertEquals(v, as);
             } else {
                 assert false;
             }
