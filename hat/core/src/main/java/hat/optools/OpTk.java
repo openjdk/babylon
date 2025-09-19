@@ -104,9 +104,6 @@ public class OpTk {
                 try {
                     var method = invokeOp.invokeDescriptor().resolveToMethod(l, invokeOp.invokeKind());
                     CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
-                    if (f != null) {
-                        System.out.println("Analysing function? " + f.funcName());
-                    }
                     if (f != null && !callGraph.filterCalls(f, invokeOp, method, invokeOp.invokeDescriptor(), javaRefTypeClass)) {
                         work.push(new RefAndFunc(invokeOp.invokeDescriptor(),  f));
                     }

@@ -43,6 +43,7 @@ import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -247,35 +248,44 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         context.mapValue(inputResult, outputResult);
     }
 
-    public void dialectifyToHatBarriers() {
-        CoreOp.FuncOp funcOp = entrypoint.funcOp();
+    public CoreOp.FuncOp dialectifyToHatBarriers(CoreOp.FuncOp funcOp) {
+        Stream<CodeElement<?, ?>> elements = funcOp
+                .elements()
+                .mapMulti((element, consumer) -> {
+                    if (element instanceof JavaOp.InvokeOp invokeOp) {
+                        if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, HatBarrierOp.INTRINSIC_NAME)) {
+                            consumer.accept(invokeOp);
+                        }
+                    }
+                });
+        Set<CodeElement<?, ?>> collect = elements.collect(Collectors.toSet());
+        if (collect.isEmpty()) {
+            // Return the function with no modifications
+            return funcOp;
+        }
         funcOp = funcOp.transform((blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, HatBarrierOp.INTRINSIC_NAME)) {
-                    createBarrierNodeOp(context, invokeOp, blockBuilder);
-                } else {
-                    blockBuilder.op(op);
-                }
-            } else {
+            if (!collect.contains(op)) {
                 blockBuilder.op(op);
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                createBarrierNodeOp(context, invokeOp, blockBuilder);
             }
             return blockBuilder;
         });
         // System.out.println("[INFO] Code model: " + funcOp.toText());
-        entrypoint.funcOp(funcOp);
+        //entrypoint.funcOp(funcOp);
+        return funcOp;
     }
 
-    public void dialectifyToHatMemorySpace(Space memorySpace) {
+    public CoreOp.FuncOp dialectifyToHatMemorySpace(CoreOp.FuncOp funcOp, Space memorySpace) {
 
         String nameNode = switch (memorySpace) {
             case PRIVATE -> HatPrivateVarOp.INTRINSIC_NAME;
             case SHARED -> HatLocalVarOp.INTRINSIC_NAME;
         };
 
-        CoreOp.FuncOp funcOp = entrypoint.funcOp();
         //IO.println("ORIGINAL: " + funcOp.toText());
-        Stream<CodeElement<?, ?>> elements = entrypoint.funcOp().elements()
+        Stream<CodeElement<?, ?>> elements = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof CoreOp.VarOp varOp) {
                         List<Value> inputOperandsVarOp = varOp.operands();
@@ -296,7 +306,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
         if (nodesInvolved.isEmpty()) {
             // No memory nodes involved
-            return;
+            return funcOp;
         }
 
         funcOp = funcOp.transform((blockBuilder, op) -> {
@@ -329,7 +339,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             return blockBuilder;
         });
         // IO.println("[INFO] Code model: " + funcOp.toText());
-        entrypoint.funcOp(funcOp);
+        //entrypoint.funcOp(funcOp);
+        return funcOp;
     }
 
     private enum Space {
@@ -384,9 +395,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         return -1;
     }
 
-    public void dialectifyToHatThreadIds(ThreadAccess threadAccess) {
-        CoreOp.FuncOp funcOp = entrypoint.funcOp();
-        Stream<CodeElement<?, ?>> elements = entrypoint.funcOp().elements()
+    public CoreOp.FuncOp dialectifyToHatThreadIds(CoreOp.FuncOp funcOp, ThreadAccess threadAccess) {
+        Stream<CodeElement<?, ?>> elements = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
                         List<Value> operands = fieldLoadOp.operands();
@@ -413,7 +423,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
         if (nodesInvolved.isEmpty()) {
             // No memory nodes involved
-            return;
+            return funcOp;
         }
 
         funcOp = funcOp.transform((blockBuilder, op) -> {
@@ -448,7 +458,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             return blockBuilder;
         });
         IO.println("[INFO] Code model: " + funcOp.toText());
-        entrypoint.funcOp(funcOp);
+        //entrypoint.funcOp(funcOp);
+        return funcOp;
     }
 
     private enum ThreadAccess {
@@ -459,11 +470,38 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         BLOCK_ID,
     }
 
-    public void dialectifyToHat() {
-        // Phases
-        dialectifyToHatBarriers();
-        Arrays.stream(Space.values()).forEach(this::dialectifyToHatMemorySpace);
-        Arrays.stream(ThreadAccess.values()).forEach(this::dialectifyToHatThreadIds);
+    private CoreOp.FuncOp dialectifyToHat(CoreOp.FuncOp funcOp) {
+        CoreOp.FuncOp f = dialectifyToHatBarriers(funcOp);
+        for (Space space : Space.values()) {
+            f = dialectifyToHatMemorySpace(f, space);
+        }
+        for (ThreadAccess threadAccess : ThreadAccess.values()) {
+            f = dialectifyToHatThreadIds(f, threadAccess);
+        }
+        return f;
     }
 
+    public void dialectifyToHat() {
+        // Analysis Phases to transform the Java Code Model to a HAT Code Model
+
+        // Main kernel
+        {
+            CoreOp.FuncOp f = dialectifyToHat(entrypoint.funcOp());
+            entrypoint.funcOp(f);
+        }
+
+//        // Reachable functions
+//        if (moduleOp != null) {
+//            moduleOp.functionTable().forEach((entryPoint, kernelOp) -> {
+//                CoreOp.FuncOp f = dialectifyToHat(kernelOp);
+//                moduleOp.functionTable().put(entryPoint, f);
+//            });
+//        }
+//        } else {
+//            kernelReachableResolvedStream().forEach((kernel) -> {
+//                CoreOp.FuncOp f = dialectifyToHat(kernel.funcOp());
+//                kernel.funcOp(f);
+//            });
+//        }
+    }
 }

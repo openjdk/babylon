@@ -70,7 +70,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 case "biz"->blockId(2);
                 default ->  throw new IllegalStateException("handle ? kc."+fieldLoadOp.fieldDescriptor().name());
             }
-
         } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
             Object value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
             literal(value.toString());

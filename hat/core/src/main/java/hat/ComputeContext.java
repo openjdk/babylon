@@ -162,7 +162,6 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
         MethodRef methodRef = OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-
         // Analysis : dialect
         // NOTE: Keep the following boolean until we have the config available/reachable
         // from this class

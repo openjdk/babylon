@@ -140,7 +140,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    private void updateListOfSchemas(Op op, MethodHandles.Lookup lookup, List<String> localIfaceList) {
+    private void updateListOfSchemas(Op op, List<String> localIfaceList) {
         if (Objects.requireNonNull(op) instanceof HatMemoryOp hatMemoryOp) {
             String klassName = hatMemoryOp.invokeType().toString();
             localIfaceList.add(klassName);
@@ -148,6 +148,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
     }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
+
         builder.defines().pragmas().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -167,9 +168,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         // Traverse the list of reachable functions and append the intrinsics functions found for each of the functions
         if (kernelCallGraph.moduleOp != null) {
             kernelCallGraph.moduleOp.functionTable()
-                    .forEach((_, funcOp) -> {
-                        funcOp.transform(CopyContext.create(), (blockBuilder, op) -> {
-                            updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    .forEach((entryName, f) -> {
+                        f.transform(CopyContext.create(), (blockBuilder, op) -> {
+                            updateListOfSchemas(op, localIFaceList);
                             blockBuilder.op(op);
                             return blockBuilder;
                         });
@@ -179,7 +180,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             // this else-branch will be deleted.
             kernelCallGraph.kernelReachableResolvedStream().forEach((kernel) -> {
                 kernel.funcOp().transform(CopyContext.create(), (blockBuilder, op) -> {
-                    updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    updateListOfSchemas(op, localIFaceList);
                     blockBuilder.op(op);
                     return blockBuilder;
                 });
@@ -189,7 +190,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         // Traverse the main kernel and append the intrinsics functions found in the main kernel
         kernelCallGraph.entrypoint.funcOp()
                 .transform(CopyContext.create(), (blockBuilder, op) -> {
-                    updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    updateListOfSchemas(op, localIFaceList);
                     blockBuilder.op(op);
                     return blockBuilder;
                 });
