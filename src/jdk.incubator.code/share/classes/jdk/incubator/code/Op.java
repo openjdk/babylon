@@ -391,6 +391,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
+     * {@return the operation's result type}
+     */
+    public abstract TypeElement resultType();
+
+    /**
      * Returns the operation's result, otherwise {@code null} if the operation is unbound or sealed.
      *
      * @return the operation's result, or {@code null} if unbound or sealed.
@@ -415,11 +420,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * {@return the operation's result type}
-     */
-    public abstract TypeElement resultType();
-
-    /**
      * Returns the operation's function type.
      * <p>
      * The function type's result type is the operation's result type and the function type's parameter types are the
@@ -430,6 +430,55 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public final FunctionType opType() {
         List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
         return CoreType.functionType(resultType(), operandTypes);
+    }
+
+    /**
+     * Computes values captured by this operation. A captured value is a value that dominates
+     * this operation and is used by a descendant operation.
+     * <p>
+     * The order of the captured values is first use encountered in depth
+     * first search of this operation's descendant operations.
+     *
+     * @return the list of captured values, modifiable
+     * @see Body#capturedValues()
+     */
+    public final List<Value> capturedValues() {
+        Set<Value> cvs = new LinkedHashSet<>();
+
+        Deque<Body> bodyStack = new ArrayDeque<>();
+        for (Body childBody : bodies()) {
+            Body.capturedValues(cvs, bodyStack, childBody);
+        }
+        return new ArrayList<>(cvs);
+    }
+
+    /**
+     * Seals this operation. After this operation is sealed its {@link #result result} and {@link #parent parent} are guaranteed to always be {@code null}.
+     * <p>
+     * If a sealed operation is {@link Block.Builder#op appended} to a {@link Block.Builder} then it is
+     * treated as if the operation is bound, and therefore the sealed operation will be transformed.
+     * <p>
+     * Sealing is idempotent if the operation is already sealed.
+     *
+     * @throws IllegalStateException if this operation is bound.
+     */
+    public final void seal() {
+        if (result == Result.SEALED_RESULT) {
+            return;
+        }
+        if (result != null) {
+            throw new IllegalStateException("Operation cannot be sealed since it bound to a parent block");
+        }
+        result = Result.SEALED_RESULT;
+    }
+
+    /**
+     * Returns {@code true} if this operation is sealed.
+     * @return {@code true} if this operation is sealed.
+     * @see #seal()
+     * */
+    public final boolean isSealed() {
+        return result == Result.SEALED_RESULT;
     }
 
     /**
@@ -452,29 +501,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public Map<String, Object> externalize() {
         return Map.of();
-    }
-
-    /**
-     * Computes values captured by this operation. A captured value is a value that dominates
-     * this operation and is used by a descendant operation.
-     * <p>
-     * The order of the captured values is first use encountered in depth
-     * first search of this operation's descendant operations.
-     *
-     * @return the list of captured values, modifiable
-     * @see Body#capturedValues()
-     */
-    public final List<Value> capturedValues() {
-        Set<Value> cvs = new LinkedHashSet<>();
-
-        capturedValues(cvs, new ArrayDeque<>(), this);
-        return new ArrayList<>(cvs);
-    }
-
-    static void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Op op) {
-        for (Body childBody : op.bodies()) {
-            Body.capturedValues(capturedValues, bodyStack, childBody);
-        }
     }
 
     /**
@@ -608,34 +634,5 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             ex.printStackTrace();
             return Optional.empty();
         }
-    }
-
-    /**
-     * Seals this operation. After this operation is sealed its {@link #result result} and {@link #parent parent} are guaranteed to always be {@code null}.
-     * <p>
-     * If a sealed operation is {@link Block.Builder#op appended} to a {@link Block.Builder} then it is
-     * treated as if the operation is bound, and therefore the sealed operation will be transformed.
-     * <p>
-     * Sealing is idempotent if the operation is already sealed.
-     *
-     * @throws IllegalStateException if this operation is bound.
-     */
-    public void seal() {
-        if (result == Result.SEALED_RESULT) {
-            return;
-        }
-        if (result != null) {
-            throw new IllegalStateException("Operation cannot be sealed since it bound to a parent block");
-        }
-        result = Result.SEALED_RESULT;
-    }
-
-    /**
-     * Returns {@code true} if this operation is sealed.
-     * @return {@code true} if this operation is sealed.
-     * @see #seal()
-    * */
-    public boolean isSealed() {
-        return result == Result.SEALED_RESULT;
     }
 }

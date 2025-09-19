@@ -65,4 +65,9 @@ public abstract class SpirvOp extends Op {
     public TypeElement resultType() {
         return type;
     }
+
+    @Override
+    public String externalizeOpName() {
+        return opName;
+    }
 }
