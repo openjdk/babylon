@@ -24,6 +24,14 @@
  */
 package hat.codebuilders;
 
+import hat.dialect.HatBarrierOp;
+import hat.dialect.HatBlockThreadIdOp;
+import hat.dialect.HatGlobalThreadIdOp;
+import hat.dialect.HatGlobalSizeOp;
+import hat.dialect.HatLocalSizeOp;
+import hat.dialect.HatLocalThreadIdOp;
+import hat.dialect.HatLocalVarOp;
+import hat.dialect.HatPrivateVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -84,6 +92,22 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T returnOp(ScopedCodeBuilderContext buildContext, CoreOp.ReturnOp returnOp);
 
+    T barrier(ScopedCodeBuilderContext buildContext, HatBarrierOp barrierOp);
+
+    T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HatLocalVarOp barrierOp);
+
+    T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HatPrivateVarOp hatLocalVarOp);
+
+    T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadIdOp hatGlobalThreadIdOp);
+
+    T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalSizeOp hatGlobalSizeOp);
+
+    T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HatLocalThreadIdOp hatLocalThreadIdOp);
+
+    T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HatLocalSizeOp hatLocalSizeOp);
+
+    T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp);
+
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -111,6 +135,14 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case JavaOp.BinaryOp $ -> binaryOp(buildContext, $);
             case JavaOp.JavaConditionalOp $ -> conditionalOp(buildContext, $);
             case JavaOp.UnaryOp $ -> unaryOp(buildContext, $);
+            case HatBarrierOp $ -> barrier(buildContext, $);
+            case HatLocalVarOp $ -> hatLocalVarOp(buildContext, $);
+            case HatPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
+            case HatGlobalThreadIdOp $ -> hatGlobalThreadOp(buildContext, $);
+            case HatGlobalSizeOp $ -> hatGlobalSizeOp(buildContext, $);
+            case HatLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);
+            case HatLocalSizeOp $ -> hatLocalSizeOp(buildContext, $);
+            case HatBlockThreadIdOp $ -> hatBlockThreadIdOp(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

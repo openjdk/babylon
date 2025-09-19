@@ -22,9 +22,44 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat;
+package hat.dialect;
 
-public enum Space {
-    PRIVATE,
-    SHARED
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+
+import java.util.List;
+import java.util.Map;
+
+public class HatBlockThreadIdOp extends HatThreadOP {
+
+    private final TypeElement resultType;
+    private static final String NAME = "BlockThreadId";
+
+    public HatBlockThreadIdOp(int dimension, TypeElement resultType, List<Value> operands) {
+        super(NAME, dimension, operands);
+        this.resultType = resultType;
+    }
+
+    public HatBlockThreadIdOp(HatBlockThreadIdOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.resultType = op.resultType;
+    }
+
+    @Override
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HatBlockThreadIdOp(this, copyContext);
+    }
+
+    @Override
+    public TypeElement resultType() {
+        return resultType;
+    }
+
+    @Override
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect." + NAME, this.getDimension());
+    }
 }

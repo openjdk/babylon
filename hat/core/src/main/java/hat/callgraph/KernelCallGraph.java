@@ -26,14 +26,36 @@ package hat.callgraph;
 
 import hat.BufferTagger;
 import hat.buffer.Buffer;
+import hat.dialect.HatBarrierOp;
+import hat.dialect.HatBlockThreadIdOp;
+import hat.dialect.HatGlobalThreadIdOp;
+import hat.dialect.HatGlobalSizeOp;
+import hat.dialect.HatLocalSizeOp;
+import hat.dialect.HatLocalThreadIdOp;
+import hat.dialect.HatLocalVarOp;
+import hat.dialect.HatMemoryOp;
+import hat.dialect.HatPrivateVarOp;
+import hat.dialect.HatThreadOP;
 import hat.optools.OpTk;
+import hat.phases.HatDialectifyTier;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
@@ -165,5 +187,331 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             return false;
         }
         return true;
+    }
+
+    private boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
+        String kernelContextCanonicalName = hat.KernelContext.class.getName();
+        return invokeOp.invokeDescriptor().refType().toString().equals(kernelContextCanonicalName);
+    }
+
+    private boolean isMethodFromHatKernelContext(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        String kernelContextCanonicalName = hat.KernelContext.class.getName();
+        return varLoadOp.resultType().toString().equals(kernelContextCanonicalName);
+    }
+
+    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
+        return invokeOp.invokeDescriptor().name().equals(methodName);
+    }
+
+    private boolean isFieldLoadGlobalThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("x")
+                || fieldLoadOp.fieldDescriptor().name().equals("y")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("z")
+                || fieldLoadOp.fieldDescriptor().name().equals("gix")
+                || fieldLoadOp.fieldDescriptor().name().equals("giy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("giz");
+    }
+
+    private boolean isFieldLoadGlobalSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("gsx")
+                || fieldLoadOp.fieldDescriptor().name().equals("gsy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("gsz")
+                || fieldLoadOp.fieldDescriptor().name().equals("maxX")
+                || fieldLoadOp.fieldDescriptor().name().equals("maxY")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("maxZ");
+    }
+
+    private boolean isFieldLoadThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("lix")
+                || fieldLoadOp.fieldDescriptor().name().equals("liy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("liz");
+    }
+
+    private boolean isFieldLoadThreadSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("lsx")
+                || fieldLoadOp.fieldDescriptor().name().equals("lsy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("lsz");
+    }
+
+    private boolean isFieldLoadBlockId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("bix")
+                || fieldLoadOp.fieldDescriptor().name().equals("biy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("biz");
+    }
+
+    private void createBarrierNodeOp(CopyContext context, JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
+        List<Value> inputOperands = invokeOp.operands();
+        List<Value> outputOperands = context.getValues(inputOperands);
+        HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
+        Op.Result outputResult = blockBuilder.op(hatBarrierOp);
+        Op.Result inputResult = invokeOp.result();
+        context.mapValue(inputResult, outputResult);
+    }
+
+    public CoreOp.FuncOp dialectifyToHatBarriers(CoreOp.FuncOp funcOp) {
+        Stream<CodeElement<?, ?>> elements = funcOp
+                .elements()
+                .mapMulti((element, consumer) -> {
+                    if (element instanceof JavaOp.InvokeOp invokeOp) {
+                        if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, HatBarrierOp.INTRINSIC_NAME)) {
+                            consumer.accept(invokeOp);
+                        }
+                    }
+                });
+        Set<CodeElement<?, ?>> collect = elements.collect(Collectors.toSet());
+        if (collect.isEmpty()) {
+            // Return the function with no modifications
+            return funcOp;
+        }
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (!collect.contains(op)) {
+                blockBuilder.op(op);
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                createBarrierNodeOp(context, invokeOp, blockBuilder);
+            }
+            return blockBuilder;
+        });
+        // System.out.println("[INFO] Code model: " + funcOp.toText());
+        //entrypoint.funcOp(funcOp);
+        return funcOp;
+    }
+
+    public CoreOp.FuncOp dialectifyToHatMemorySpace(CoreOp.FuncOp funcOp, Space memorySpace) {
+
+        String nameNode = switch (memorySpace) {
+            case PRIVATE -> HatPrivateVarOp.INTRINSIC_NAME;
+            case SHARED -> HatLocalVarOp.INTRINSIC_NAME;
+        };
+
+        //IO.println("ORIGINAL: " + funcOp.toText());
+        Stream<CodeElement<?, ?>> elements = funcOp.elements()
+                .mapMulti((codeElement, consumer) -> {
+                    if (codeElement instanceof CoreOp.VarOp varOp) {
+                        List<Value> inputOperandsVarOp = varOp.operands();
+                        for (Value inputOperand : inputOperandsVarOp) {
+                            if (inputOperand instanceof Op.Result result) {
+                                if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
+                                    if (OpTk.isIfaceBufferMethod(computeContext.accelerator.lookup, invokeOp) && isMethod(invokeOp, nameNode)) {
+                                        // It is the node we are looking for
+                                        consumer.accept(invokeOp);
+                                        consumer.accept(varOp);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
+        if (nodesInvolved.isEmpty()) {
+            // No memory nodes involved
+            return funcOp;
+        }
+
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (!nodesInvolved.contains(op)) {
+                blockBuilder.op(op);
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                // Don't insert the invoke node
+                Op.Result result = invokeOp.result();
+                List<Op.Result> collect = result.uses().stream().toList();
+                for (Op.Result r : collect) {
+                    if (r.op() instanceof CoreOp.VarOp varOp) {
+                        // That's the node we want
+                        List<Value> inputOperandsVarOp = invokeOp.operands();
+                        List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
+                        HatMemoryOp memoryOp = switch (memorySpace) {
+                            case SHARED ->
+                                    new HatLocalVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
+                            default ->
+                                    new HatPrivateVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
+                        };
+                        Op.Result hatLocalResult = blockBuilder.op(memoryOp);
+                        context.mapValue(invokeOp.result(), hatLocalResult);
+                    }
+                }
+            } else if (op instanceof CoreOp.VarOp varOp) {
+                // pass value
+                context.mapValue(varOp.result(), context.getValue(varOp.operands().getFirst()));
+            }
+            return blockBuilder;
+        });
+        // IO.println("[INFO] Code model: " + funcOp.toText());
+        //entrypoint.funcOp(funcOp);
+        return funcOp;
+    }
+
+    private enum Space {
+        PRIVATE,
+        SHARED,
+    }
+
+    private int getDimension(ThreadAccess threadAccess, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        String fieldName = fieldLoadOp.fieldDescriptor().name();
+        switch (threadAccess) {
+            case GLOBAL_ID -> {
+                if (fieldName.equals("y")) {
+                    return 1;
+                } else if (fieldName.equals("z")) {
+                    return 2;
+                }
+                return 0;
+            }
+            case GLOBAL_SIZE -> {
+                if (fieldName.equals("gsy")) {
+                    return 1;
+                } else if (fieldName.equals("gsz")) {
+                    return 2;
+                }
+                return 0;
+            }
+            case LOCAL_ID -> {
+                if (fieldName.equals("liy")) {
+                    return 1;
+                } else if (fieldName.equals("lyz")) {
+                    return 2;
+                }
+                return 0;
+            }
+            case LOCAL_SIZE -> {
+                if (fieldName.equals("lsy")) {
+                    return 1;
+                } else if (fieldName.equals("lsz")) {
+                    return 2;
+                }
+                return 0;
+            }
+            case BLOCK_ID ->  {
+                if (fieldName.equals("biy")) {
+                    return 1;
+                } else if (fieldName.equals("biz")) {
+                    return 2;
+                }
+                return 0;
+            }
+        }
+        return -1;
+    }
+
+    public CoreOp.FuncOp dialectifyToHatThreadIds(CoreOp.FuncOp funcOp, ThreadAccess threadAccess) {
+        Stream<CodeElement<?, ?>> elements = funcOp.elements()
+                .mapMulti((codeElement, consumer) -> {
+                    if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+                        List<Value> operands = fieldLoadOp.operands();
+                        for (Value inputOperand : operands) {
+                            if (inputOperand instanceof Op.Result result) {
+                                if (result.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                                    boolean isThreadIntrinsic = switch (threadAccess) {
+                                        case GLOBAL_ID -> isFieldLoadGlobalThreadId(fieldLoadOp);
+                                        case GLOBAL_SIZE -> isFieldLoadGlobalSize(fieldLoadOp);
+                                        case LOCAL_ID -> isFieldLoadThreadId(fieldLoadOp);
+                                        case LOCAL_SIZE -> isFieldLoadThreadSize(fieldLoadOp);
+                                        case BLOCK_ID ->  isFieldLoadBlockId(fieldLoadOp);
+                                    };
+                                    if (isMethodFromHatKernelContext(varLoadOp) && isThreadIntrinsic) {
+                                        consumer.accept(fieldLoadOp);
+                                        consumer.accept(varLoadOp);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
+        if (nodesInvolved.isEmpty()) {
+            // No memory nodes involved
+            return funcOp;
+        }
+
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (!nodesInvolved.contains(op)) {
+                blockBuilder.op(op);
+            } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                // pass value
+                context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
+            } else if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+                List<Value> operands = fieldLoadOp.operands();
+                for (Value operand : operands) {
+                    if (operand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                        List<Value> varLoadOperands = varLoadOp.operands();
+                        List<Value> outputOperands = context.getValues(varLoadOperands);
+                        int dim = getDimension(threadAccess, fieldLoadOp);
+                        if (dim < 0) {
+                            throw new IllegalStateException("Thread Access can't be below 0!");
+                        }
+                        HatThreadOP threadOP = switch (threadAccess) {
+                            case GLOBAL_ID -> new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case GLOBAL_SIZE -> new HatGlobalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case LOCAL_ID -> new HatLocalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case LOCAL_SIZE -> new HatLocalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case BLOCK_ID -> new HatBlockThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
+                        };
+                        Op.Result threadResult = blockBuilder.op(threadOP);
+                        context.mapValue(fieldLoadOp.result(), threadResult);
+                    }
+                }
+            }
+            return blockBuilder;
+        });
+        //IO.println("[INFO] Code model: " + funcOp.toText());
+        //entrypoint.funcOp(funcOp);
+        return funcOp;
+    }
+
+    private enum ThreadAccess {
+        GLOBAL_ID,
+        GLOBAL_SIZE,
+        LOCAL_ID,
+        LOCAL_SIZE,
+        BLOCK_ID,
+    }
+
+    private CoreOp.FuncOp dialectifyToHat(CoreOp.FuncOp funcOp) {
+        CoreOp.FuncOp f = dialectifyToHatBarriers(funcOp);
+        for (Space space : Space.values()) {
+            f = dialectifyToHatMemorySpace(f, space);
+        }
+        for (ThreadAccess threadAccess : ThreadAccess.values()) {
+            f = dialectifyToHatThreadIds(f, threadAccess);
+        }
+        return f;
+    }
+
+    public void dialectifyToHat() {
+        // Analysis Phases to transform the Java Code Model to a HAT Code Model
+
+
+        // Main kernel
+        {
+            HatDialectifyTier tier = new HatDialectifyTier(entrypoint.funcOp(), computeContext.accelerator.lookup);
+            CoreOp.FuncOp f = tier.run();
+            //CoreOp.FuncOp f = dialectifyToHat(entrypoint.funcOp());
+            entrypoint.funcOp(f);
+        }
+
+//        // Reachable functions
+        if (moduleOp != null) {
+            List<CoreOp.FuncOp> funcs = new ArrayList<>();
+            moduleOp.functionTable().forEach((_, kernelOp) -> {
+                // ModuleOp is an Immutable Collection, thus, we need to create a new one from a
+                // new list of methods
+                //CoreOp.FuncOp f = dialectifyToHat(kernelOp);
+                HatDialectifyTier tier = new HatDialectifyTier(kernelOp, computeContext.accelerator.lookup);
+                CoreOp.FuncOp f = tier.run();
+                funcs.add(f);
+            });
+            moduleOp = CoreOp.module(funcs);
+        } else {
+            kernelReachableResolvedStream().forEach((kernel) -> {
+                //CoreOp.FuncOp f = dialectifyToHat(kernel.funcOp());
+                HatDialectifyTier tier = new HatDialectifyTier(kernel.funcOp(), computeContext.accelerator.lookup);
+                CoreOp.FuncOp f = tier.run();
+                kernel.funcOp(f);
+            });
+        }
     }
 }

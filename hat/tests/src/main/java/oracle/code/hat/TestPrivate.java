@@ -22,106 +22,82 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
-package experiments;
+package oracle.code.hat;
 
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
 import hat.KernelContext;
-import hat.LocalMesh1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
 import hat.ifacemapper.MappableIface.RO;
-import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
+import oracle.code.hat.annotation.HatTest;
+import oracle.code.hat.engine.HatAsserts;
 
 import java.lang.invoke.MethodHandles;
 
-/**
- * Example of how to declare and use a custom data type in a method kernel on the GPU.
- * This is just a proof of concept.
- * <p>
- *     How to run?
- *     <code>
- *         HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-opencl LocalArray
- *         HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-cuda LocalArray
- *     </code>
- * </p>
- */
-public class LocalArray {
+import static hat.ifacemapper.MappableIface.RW;
 
-    private interface MyArray extends Buffer {
+public class TestPrivate {
+
+    private interface PrivateArray extends Buffer {
         void array(long index, float value);
         float array(long index);
 
-        Schema<MyArray> schema = Schema.of(MyArray.class,
+        Schema<PrivateArray> schema = Schema.of(PrivateArray.class,
                 myPrivateArray -> myPrivateArray
-                        .array("array", 16));
+                        .array("array", 1));
 
-        static MyArray create(Accelerator accelerator) {
+        static PrivateArray create(Accelerator accelerator) {
             return schema.allocate(accelerator, 1);
         }
 
-        static MyArray createLocal() {
+        static PrivateArray createPrivate() {
             return create(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
     }
 
-
     @CodeReflection
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-        MyArray mySharedArray = MyArray.createLocal();
+        PrivateArray privateArray = PrivateArray.createPrivate();
         int lix = kernelContext.lix;
         int blockId = kernelContext.bix;
         int blockSize = kernelContext.lsx;
-        mySharedArray.array(lix, lix);
-        kernelContext.barrier();
-        data.array(lix + (long) blockId * blockSize, mySharedArray.array(lix));
+        privateArray.array(0, lix);
+        data.array(lix + (long) blockId * blockSize, privateArray.array(0));
     }
 
     @CodeReflection
     private static void myCompute(@RO ComputeContext computeContext, @RW F32Array data) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32), new LocalMesh1D(16));
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32));
         computeContext.dispatchKernel(computeRange,
                 kernelContext -> compute(kernelContext, data)
         );
     }
 
-    static void main(String[] args) {
-        System.out.println("Testing Shared Data Structures Mapping");
-        System.out.println("Schema description");
-        MyArray.schema.toText(System.out::print);
-        System.out.println(" ==================");
-
+    @HatTest
+    public void testPrivate() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);
         accelerator.compute(computeContext -> {
-            LocalArray.myCompute(computeContext, data);
+            TestPrivate.myCompute(computeContext, data);
         });
 
         // Check result
         boolean isCorrect = true;
         int jIndex = 0;
         for (int i = 0; i < data.length(); i++) {
-            System.out.println(data.array(i));
-            if (data.array(i) != jIndex) {
+            if (data.array(i) != jIndex++) {
+                IO.println(data.array(i) + " != " + jIndex);
                 isCorrect = false;
-                break;
-            }
-            jIndex++;
-            if (jIndex == 16) {
-                jIndex = 0;
+                //break;
             }
         }
-        if (isCorrect) {
-            System.out.println("Correct result");
-        } else {
-            System.out.println("Wrong result");
-        }
+        HatAsserts.assertTrue(isCorrect);
     }
 
 }

@@ -168,7 +168,8 @@ void main(String[] argv) {
                 "oracle.code.hat.TestMatMul",
                 "oracle.code.hat.TestMandel",
                 "oracle.code.hat.TestLocal",
-                "oracle.code.hat.TestReductions"
+                "oracle.code.hat.TestReductions",
+                "oracle.code.hat.TestPrivate"
         };
 
         // Test the whole suite
