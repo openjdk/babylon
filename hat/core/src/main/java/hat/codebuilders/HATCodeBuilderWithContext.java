@@ -35,9 +35,6 @@ import hat.ifacemapper.Schema;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
 import hat.util.StreamMutable;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Stack;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -131,7 +128,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T fieldStoreOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldStoreOp fieldStoreOp) {
         return self();
     }
-
 
 
     @Override

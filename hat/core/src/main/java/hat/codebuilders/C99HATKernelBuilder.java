@@ -24,8 +24,8 @@
  */
 package hat.codebuilders;
 
-import hat.NDRange;
 import hat.buffer.Buffer;
+import hat.dialect.HatGlobalThreadIdOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
@@ -75,6 +75,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
+
     T typedefStructOrUnion(boolean isStruct, String name, Consumer<T> consumer) {
         return typedefKeyword()
                 .space()
@@ -147,6 +148,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
         return localPtrPrefix().space() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
+    }
+
+    @Override
+    public T hatGlobalThreadOp (ScopedCodeBuilderContext buildContext, HatGlobalThreadIdOp globalThreadIdOp) {
+        globalId(globalThreadIdOp.getDimension());
+        return self();
     }
 
     public abstract T globalPtrPrefix();

@@ -189,6 +189,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
             accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);
         } catch (Throwable t) {
             System.out.print("what?" + cg.methodRef + " " + t);
+            t.printStackTrace();
             throw t;
         }
     }
@@ -202,6 +203,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
             accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);
         } catch (Throwable t) {
             System.out.print("what?" + cg.methodRef + " " + t);
+            t.printStackTrace();
             throw t;
         }
     }

@@ -26,6 +26,7 @@ package hat.tools.text;
 
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
+import hat.dialect.HatGlobalThreadIdOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -90,6 +91,11 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
         return self();
     }
 
+    @Override
+    public T hatGlobalThreadOp (ScopedCodeBuilderContext buildContext, HatGlobalThreadIdOp globalThreadIdOp) {
+        blockInlineComment("Thread ID access");
+        return self();
+    }
 
     public T createJava(ScopedCodeBuilderContext buildContext) {
         buildContext.funcScope(buildContext.funcOp, () -> {

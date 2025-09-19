@@ -27,9 +27,11 @@ package hat.callgraph;
 import hat.BufferTagger;
 import hat.buffer.Buffer;
 import hat.dialect.HatBarrierOp;
+import hat.dialect.HatGlobalThreadIdOp;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatPrivateVarOp;
+import hat.dialect.HatThreadOP;
 import hat.optools.OpTk;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -186,8 +188,17 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         return invokeOp.invokeDescriptor().refType().toString().equals(kernelContextCanonicalName);
     }
 
+    private boolean isMethodFromHatKernelContext(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        String kernelContextCanonicalName = hat.KernelContext.class.getName();
+        return varLoadOp.resultType().toString().equals(kernelContextCanonicalName);
+    }
+
     private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
         return invokeOp.invokeDescriptor().name().equals(methodName);
+    }
+
+    private boolean isFieldLoadThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("x") || fieldLoadOp.fieldDescriptor().name().equals("y") ||  fieldLoadOp.fieldDescriptor().name().equals("z");
     }
 
     private void createBarrierNodeOp(CopyContext context, JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
@@ -230,8 +241,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         Stream<CodeElement<?, ?>> elements = entrypoint.funcOp().elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof CoreOp.VarOp varOp) {
-                        List<Value> inputOperandsAdd = varOp.operands();
-                        for (Value inputOperand : inputOperandsAdd) {
+                        List<Value> inputOperandsVarOp = varOp.operands();
+                        for (Value inputOperand : inputOperandsVarOp) {
                             if (inputOperand instanceof Op.Result result) {
                                 if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
                                     if (OpTk.isIfaceBufferMethod(computeContext.accelerator.lookup, invokeOp) && isMethod(invokeOp, nameNode)) {
@@ -262,13 +273,13 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 for (Op.Result r : collect) {
                     if (r.op() instanceof CoreOp.VarOp varOp) {
                         // That's the node we want
-                        List<Value> inputOperandsAdd = invokeOp.operands();
-                        List<Value> outputOperandsAdd = context.getValues(inputOperandsAdd);
+                        List<Value> inputOperandsVarOp = invokeOp.operands();
+                        List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
                         HatMemoryOp memoryOp;
                         if (memorySpace == Space.SHARED) {
-                            memoryOp = new HatLocalVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsAdd);
+                            memoryOp = new HatLocalVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
                         } else {
-                            memoryOp = new HatPrivateVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsAdd);
+                            memoryOp = new HatPrivateVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
                         }
                         Op.Result hatLocalResult = blockBuilder.op(memoryOp);
                         context.mapValue(invokeOp.result(), hatLocalResult);
@@ -289,11 +300,70 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         SHARED,
     }
 
+    public void dialectifyToHatThreadIds() {
+
+        CoreOp.FuncOp funcOp = entrypoint.funcOp();
+        Stream<CodeElement<?, ?>> elements = entrypoint.funcOp().elements()
+                .mapMulti((codeElement, consumer) -> {
+                    if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+                        List<Value> operands = fieldLoadOp.operands();
+                        for (Value inputOperand : operands) {
+                            if (inputOperand instanceof Op.Result result) {
+                                if (result.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                                    if (isMethodFromHatKernelContext(varLoadOp) && isFieldLoadThreadId(fieldLoadOp)) {
+                                        consumer.accept(fieldLoadOp);
+                                        consumer.accept(varLoadOp);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
+        if (nodesInvolved.isEmpty()) {
+            // No memory nodes involved
+            return;
+        }
+
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (!nodesInvolved.contains(op)) {
+                blockBuilder.op(op);
+            } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                // pass value
+                context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
+            } else if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+                List<Value> operands = fieldLoadOp.operands();
+                for (Value operand : operands) {
+                    if (operand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                        List<Value> varLoadOperands = varLoadOp.operands();
+                        List<Value> outputOperands = context.getValues(varLoadOperands);
+
+                        int dim = 0;
+                        if (fieldLoadOp.fieldDescriptor().name().equals("y")) {
+                            dim = 1;
+                        } else if (fieldLoadOp.fieldDescriptor().name().equals("z")) {
+                            dim = 2;
+                        }
+                        HatThreadOP threadOP = new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
+                        Op.Result threadResult = blockBuilder.op(threadOP);
+                        context.mapValue(fieldLoadOp.result(), threadResult);
+                    }
+                }
+            }
+            return blockBuilder;
+        });
+        //IO.println("[INFO] Code model: " + funcOp.toText());
+        entrypoint.funcOp(funcOp);
+    }
+
     public void dialectifyToHat() {
         // Phases
         dialectifyToHatBarriers();
         dialectifyToHatMemorySpace(Space.SHARED);
         dialectifyToHatMemorySpace(Space.PRIVATE);
+        dialectifyToHatThreadIds();
     }
 
 }
