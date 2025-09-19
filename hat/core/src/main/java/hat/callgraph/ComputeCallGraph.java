@@ -236,10 +236,8 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                             .closeWithModuleOp()
             );
         } else if (ComputeContext.class.isAssignableFrom(javaRefTypeClass)) {
-            System.out.println("B");
             computeContextMethodCall = new ComputeContextMethodCall(this, methodRef, method);
         } else if (Buffer.class.isAssignableFrom(javaRefTypeClass)) {
-            System.out.println("C");
             bufferAccessToMethodCallMap.computeIfAbsent(methodRef, _ ->
                     new ComputeReachableIfaceMappedMethodCall(this, methodRef, method)
             );
