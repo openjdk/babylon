@@ -429,8 +429,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         ClosureOp(Body.Builder bodyC) {
-            super(
-                    List.of());
+            super(List.of());
 
             this.body = bodyC.build(this);
         }

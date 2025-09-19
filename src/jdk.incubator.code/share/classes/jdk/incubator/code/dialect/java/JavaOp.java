@@ -223,8 +223,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         LambdaOp(TypeElement functionalInterface, Body.Builder bodyC, boolean isQuotable) {
-            super(
-                    List.of());
+            super(List.of());
 
             this.functionalInterface = functionalInterface;
             this.body = bodyC.build(this);

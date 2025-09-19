@@ -70,7 +70,7 @@ public class SCFOps {
         final Body body;
 
         public ForOp(ExternalizedOp def) {
-            super(def.operands());;
+            super(def.operands());
 
             this.body = def.bodyDefinitions().get(0).build(this);
         }
@@ -95,6 +95,11 @@ public class SCFOps {
         @Override
         public TypeElement resultType() {
             return body.yieldType();
+        }
+
+        @Override
+        public String opName() {
+            return NAME;
         }
 
         @Override
@@ -132,6 +137,11 @@ public class SCFOps {
         @Override
         public TypeElement resultType() {
             return JavaType.VOID;
+        }
+
+        @Override
+        public String opName() {
+            return NAME;
         }
 
         static TypeElement yieldType(List<Value> values) {
