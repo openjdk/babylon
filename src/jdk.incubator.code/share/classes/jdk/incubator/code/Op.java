@@ -433,15 +433,16 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * {@return the operation name}
+     * Externalizes this operation's name as a string.
      * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
+     * @return the operation name
      */
     public String opName() {
         return this.getClass().getName();
     }
 
     /**
-     * Externalizes the operation's state as a map of attributes.
+     * Externalizes this operation's specific state as a map of attributes.
      *
      * <p>A null attribute value is represented by the constant
      * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
