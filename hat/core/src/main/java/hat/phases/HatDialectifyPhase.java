@@ -22,9 +22,12 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat;
+package hat.phases;
 
-public enum Space {
-    PRIVATE,
-    SHARED
+import jdk.incubator.code.dialect.core.CoreOp;
+
+public interface HatDialectifyPhase {
+
+    CoreOp.FuncOp run(CoreOp.FuncOp funcOp);
+
 }

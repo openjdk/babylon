@@ -31,7 +31,6 @@ import hat.GlobalMesh1D;
 import hat.GlobalMesh2D;
 import hat.KernelContext;
 import hat.LocalMesh2D;
-import hat.Space;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;

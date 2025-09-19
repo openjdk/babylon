@@ -37,20 +37,19 @@ import hat.dialect.HatMemoryOp;
 import hat.dialect.HatPrivateVarOp;
 import hat.dialect.HatThreadOP;
 import hat.optools.OpTk;
+import hat.phases.HatDialectifyTier;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -485,9 +484,12 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public void dialectifyToHat() {
         // Analysis Phases to transform the Java Code Model to a HAT Code Model
 
+
         // Main kernel
         {
-            CoreOp.FuncOp f = dialectifyToHat(entrypoint.funcOp());
+            HatDialectifyTier tier = new HatDialectifyTier(entrypoint.funcOp(), computeContext.accelerator.lookup);
+            CoreOp.FuncOp f = tier.run();
+            //CoreOp.FuncOp f = dialectifyToHat(entrypoint.funcOp());
             entrypoint.funcOp(f);
         }
 
@@ -497,13 +499,17 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             moduleOp.functionTable().forEach((_, kernelOp) -> {
                 // ModuleOp is an Immutable Collection, thus, we need to create a new one from a
                 // new list of methods
-                CoreOp.FuncOp f = dialectifyToHat(kernelOp);
+                //CoreOp.FuncOp f = dialectifyToHat(kernelOp);
+                HatDialectifyTier tier = new HatDialectifyTier(kernelOp, computeContext.accelerator.lookup);
+                CoreOp.FuncOp f = tier.run();
                 funcs.add(f);
             });
             moduleOp = CoreOp.module(funcs);
         } else {
             kernelReachableResolvedStream().forEach((kernel) -> {
-                CoreOp.FuncOp f = dialectifyToHat(kernel.funcOp());
+                //CoreOp.FuncOp f = dialectifyToHat(kernel.funcOp());
+                HatDialectifyTier tier = new HatDialectifyTier(kernel.funcOp(), computeContext.accelerator.lookup);
+                CoreOp.FuncOp f = tier.run();
                 kernel.funcOp(f);
             });
         }
