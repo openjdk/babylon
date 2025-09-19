@@ -28,6 +28,7 @@ import hat.BufferTagger;
 import hat.buffer.Buffer;
 import hat.dialect.HatBarrierOp;
 import hat.dialect.HatGlobalThreadIdOp;
+import hat.dialect.HatGlobalThreadSizeOp;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatPrivateVarOp;
@@ -197,8 +198,16 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         return invokeOp.invokeDescriptor().name().equals(methodName);
     }
 
-    private boolean isFieldLoadThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("x") || fieldLoadOp.fieldDescriptor().name().equals("y") ||  fieldLoadOp.fieldDescriptor().name().equals("z");
+    private boolean isFieldLoadGlobalThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("x")
+                || fieldLoadOp.fieldDescriptor().name().equals("y")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("z");
+    }
+
+    private boolean isFieldLoadGlobalSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        return fieldLoadOp.fieldDescriptor().name().equals("gsx")
+                || fieldLoadOp.fieldDescriptor().name().equals("gsy")
+                ||  fieldLoadOp.fieldDescriptor().name().equals("gsz");
     }
 
     private void createBarrierNodeOp(CopyContext context, JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
@@ -275,12 +284,12 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                         // That's the node we want
                         List<Value> inputOperandsVarOp = invokeOp.operands();
                         List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                        HatMemoryOp memoryOp;
-                        if (memorySpace == Space.SHARED) {
-                            memoryOp = new HatLocalVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
-                        } else {
-                            memoryOp = new HatPrivateVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
-                        }
+                        HatMemoryOp memoryOp = switch (memorySpace) {
+                            case SHARED ->
+                                    new HatLocalVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
+                            default ->
+                                    new HatPrivateVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
+                        };
                         Op.Result hatLocalResult = blockBuilder.op(memoryOp);
                         context.mapValue(invokeOp.result(), hatLocalResult);
                     }
@@ -300,8 +309,29 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         SHARED,
     }
 
-    public void dialectifyToHatThreadIds() {
+    private int getDimension(ThreadAccess threadAccess, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        switch (threadAccess) {
+            case GLOBAL_ID -> {
+                if (fieldLoadOp.fieldDescriptor().name().equals("y")) {
+                    return 1;
+                } else if (fieldLoadOp.fieldDescriptor().name().equals("z")) {
+                    return 2;
+                }
+                return 0;
+            }
+            case GLOBAL_SIZE -> {
+                if (fieldLoadOp.fieldDescriptor().name().equals("gsy")) {
+                    return 1;
+                } else if (fieldLoadOp.fieldDescriptor().name().equals("gsz")) {
+                    return 2;
+                }
+                return 0;
+            }
+        }
+        return 0;
+    }
 
+    public void dialectifyToHatThreadIds(ThreadAccess threadAccess) {
         CoreOp.FuncOp funcOp = entrypoint.funcOp();
         Stream<CodeElement<?, ?>> elements = entrypoint.funcOp().elements()
                 .mapMulti((codeElement, consumer) -> {
@@ -310,7 +340,11 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                         for (Value inputOperand : operands) {
                             if (inputOperand instanceof Op.Result result) {
                                 if (result.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                                    if (isMethodFromHatKernelContext(varLoadOp) && isFieldLoadThreadId(fieldLoadOp)) {
+                                    boolean isThreadIntrinsic = switch (threadAccess) {
+                                        case GLOBAL_ID -> isFieldLoadGlobalThreadId(fieldLoadOp);
+                                        case GLOBAL_SIZE -> isFieldLoadGlobalSize(fieldLoadOp);
+                                    };
+                                    if (isMethodFromHatKernelContext(varLoadOp) && isThreadIntrinsic) {
                                         consumer.accept(fieldLoadOp);
                                         consumer.accept(varLoadOp);
                                     }
@@ -339,14 +373,11 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                     if (operand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         List<Value> varLoadOperands = varLoadOp.operands();
                         List<Value> outputOperands = context.getValues(varLoadOperands);
-
-                        int dim = 0;
-                        if (fieldLoadOp.fieldDescriptor().name().equals("y")) {
-                            dim = 1;
-                        } else if (fieldLoadOp.fieldDescriptor().name().equals("z")) {
-                            dim = 2;
-                        }
-                        HatThreadOP threadOP = new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
+                        int dim = getDimension(threadAccess, fieldLoadOp);
+                        HatThreadOP threadOP = switch (threadAccess) {
+                            case GLOBAL_ID -> new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case GLOBAL_SIZE -> new HatGlobalThreadSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
+                        };
                         Op.Result threadResult = blockBuilder.op(threadOP);
                         context.mapValue(fieldLoadOp.result(), threadResult);
                     }
@@ -354,8 +385,13 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             }
             return blockBuilder;
         });
-        //IO.println("[INFO] Code model: " + funcOp.toText());
+        IO.println("[INFO] Code model: " + funcOp.toText());
         entrypoint.funcOp(funcOp);
+    }
+
+    private enum ThreadAccess {
+        GLOBAL_ID,
+        GLOBAL_SIZE;
     }
 
     public void dialectifyToHat() {
@@ -363,7 +399,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         dialectifyToHatBarriers();
         dialectifyToHatMemorySpace(Space.SHARED);
         dialectifyToHatMemorySpace(Space.PRIVATE);
-        dialectifyToHatThreadIds();
+        dialectifyToHatThreadIds(ThreadAccess.GLOBAL_ID);
+        dialectifyToHatThreadIds(ThreadAccess.GLOBAL_SIZE);
     }
 
 }

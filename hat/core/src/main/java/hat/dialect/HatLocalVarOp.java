@@ -68,9 +68,8 @@ public class HatLocalVarOp extends HatMemoryOp {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hatSharedVarOp." + opName(), typeElement);
+        return Map.of("hat.dialect.hatSharedVarOp." + opName(), typeElement);
     }
-
 
     public String varName() {
         return opName();

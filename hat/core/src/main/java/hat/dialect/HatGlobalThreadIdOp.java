@@ -31,10 +31,9 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
 import java.util.List;
+import java.util.Map;
 
 public class HatGlobalThreadIdOp extends HatThreadOP {
-
-    public static final String INTRINSIC_NAME = "gix";
 
     private final TypeElement resultType;
     private static final String NAME = "GlobalThreadId";
@@ -57,5 +56,10 @@ public class HatGlobalThreadIdOp extends HatThreadOP {
     @Override
     public TypeElement resultType() {
         return resultType;
+    }
+
+    @Override
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect." + NAME, this.getDimension());
     }
 }

@@ -29,36 +29,37 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.List;
 import java.util.Map;
 
-public class HatBarrierOp extends HatOP {
+public class HatGlobalThreadSizeOp extends HatThreadOP {
 
-    private static final String NAME = "hat.dialect.sync.barrier";
-    public static final String INTRINSIC_NAME = "barrier";
+    private final TypeElement resultType;
+    private static final String NAME = "GlobalThreadSize";
 
-    public HatBarrierOp(List<Value> operands) {
-        super(NAME, operands);
+    public HatGlobalThreadSizeOp(int dimension, TypeElement resultType, List<Value> operands) {
+        super(NAME, dimension, operands);
+        this.resultType = resultType;
     }
 
-    public HatBarrierOp(HatBarrierOp hatBarrierOp, CopyContext copyContext) {
-        super(hatBarrierOp, copyContext);
+    public HatGlobalThreadSizeOp(HatGlobalThreadSizeOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.resultType = op.resultType;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HatBarrierOp(this, copyContext);
+        return new HatGlobalThreadSizeOp(this, copyContext);
     }
 
     @Override
     public TypeElement resultType() {
-        return JavaType.VOID;
+        return resultType;
     }
 
-    public Map<String, Object> externalize() {return Map.of(NAME, JavaOp.InvokeOp.InvokeKind.INSTANCE);
+    @Override
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect." + NAME, this.getDimension());
     }
-
 }

@@ -68,7 +68,7 @@ public class HatPrivateVarOp extends HatMemoryOp {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hatPrivateVarOp." + opName(), typeElement);
+        return Map.of("hat.dialect.hatPrivateVarOp." + opName(), typeElement);
     }
 
 

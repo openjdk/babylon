@@ -26,6 +26,7 @@ package hat.codebuilders;
 
 import hat.dialect.HatBarrierOp;
 import hat.dialect.HatGlobalThreadIdOp;
+import hat.dialect.HatGlobalThreadSizeOp;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatPrivateVarOp;
 import hat.optools.OpTk;
@@ -96,6 +97,8 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadIdOp hatGlobalThreadIdOp);
 
+    T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadSizeOp hatGlobalThreadIdOp);
+
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -127,6 +130,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HatLocalVarOp $ -> hatLocalVarOp(buildContext, $);
             case HatPrivateVarOp $ -> hatPrivateVarOp(buildContext, $);
             case HatGlobalThreadIdOp $ -> hatGlobalThreadOp(buildContext, $);
+            case HatGlobalThreadSizeOp $ -> hatGlobalSizeOp(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;
