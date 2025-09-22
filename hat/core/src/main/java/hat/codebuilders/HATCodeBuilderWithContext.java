@@ -139,9 +139,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T binaryOp(ScopedCodeBuilderContext buildContext, JavaOp.BinaryOp binaryOp) {
+        oparen();
         parenthesisIfNeeded(buildContext, binaryOp, OpTk.lhsResult(binaryOp).op());
         symbol(binaryOp);
         parenthesisIfNeeded(buildContext, binaryOp, OpTk.rhsResult(binaryOp).op());
+        cparen();
         return self();
     }
 
@@ -156,9 +158,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T binaryTestOp(ScopedCodeBuilderContext buildContext, JavaOp.BinaryTestOp binaryTestOp) {
+        oparen();
         parenthesisIfNeeded(buildContext, binaryTestOp, OpTk.lhsResult(binaryTestOp).op());
         symbol(binaryTestOp);
         parenthesisIfNeeded(buildContext, binaryTestOp, OpTk.rhsResult(binaryTestOp).op());
+        cparen();
         return self();
     }
 
