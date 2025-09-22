@@ -25,35 +25,40 @@
  * @test
  * @summary Smoke test for captured values in quoted lambdas.
  * @modules jdk.incubator.code
- * @run testng TestCaptureQuoted
+ * @run junit TestCaptureQuoted
  */
 
 import jdk.incubator.code.dialect.core.CoreOp.Var;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import org.testng.annotations.*;
-import static org.testng.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 public class TestCaptureQuoted {
 
-    @Test(dataProvider = "ints")
+    @ParameterizedTest
+    @MethodSource("ints")
     public void testCaptureIntParam(int x) {
         Quoted quoted = (int y) -> x + y;
-        assertEquals(quoted.capturedValues().size(), 1);
-        assertEquals(((Var)quoted.capturedValues().values().iterator().next()).value(), x);
+        assertEquals(1, quoted.capturedValues().size());
+        assertEquals(x, ((Var)quoted.capturedValues().values().iterator().next()).value());
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
-        assertEquals(res, x + 1);
+        assertEquals(x + 1, res);
     }
 
     static class Context {
@@ -68,18 +73,19 @@ public class TestCaptureQuoted {
         }
     }
 
-    @Test(dataProvider = "ints")
+    @ParameterizedTest
+    @MethodSource("ints")
     public void testCaptureIntField(int x) {
         Context context = new Context(x);
         Quoted quoted = context.quoted();
-        assertEquals(quoted.capturedValues().size(), 1);
-        assertEquals(quoted.capturedValues().values().iterator().next(), context);
+        assertEquals(1, quoted.capturedValues().size());
+        assertEquals(context, quoted.capturedValues().values().iterator().next());
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
-        assertEquals(res, x + 1);
+        assertEquals(x + 1, res);
     }
 
     @Test
@@ -87,31 +93,31 @@ public class TestCaptureQuoted {
         final int x = 100;
         String hello = "hello";
         Quoted quoted = (Integer y) -> y.intValue() + hashCode() + hello.length() + x;
-        assertEquals(quoted.capturedValues().size(), 3);
+        assertEquals(3, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
-        assertEquals(it.next(), this);
-        assertEquals(((Var)it.next()).value(), hello);
-        assertEquals(((Var)it.next()).value(), x);
+        assertEquals(this, it.next());
+        assertEquals(hello, ((Var)it.next()).value());
+        assertEquals(x, ((Var)it.next()).value());
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
-        assertEquals(res, x + 1 + hashCode() + hello.length());
+        assertEquals(x + 1 + hashCode() + hello.length(), res);
     }
 
     @Test
     public void testCaptureThisInInvocationArg() {
         Quoted quoted = (Number y) -> y.intValue() + Integer.valueOf(hashCode());
-        assertEquals(quoted.capturedValues().size(), 1);
+        assertEquals(1, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
-        assertEquals(it.next(), this);
+        assertEquals(this, it.next());
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
-        assertEquals(res, 1 + hashCode());
+        assertEquals(1 + hashCode(), res);
     }
 
     record R(int i) {}
@@ -119,22 +125,19 @@ public class TestCaptureQuoted {
     @Test
     public void testCaptureThisInNewArg() {
         Quoted quoted = (Number y) -> y.intValue() + new R(hashCode()).i;
-        assertEquals(quoted.capturedValues().size(), 1);
+        assertEquals(1, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
-        assertEquals(it.next(), this);
+        assertEquals(this, it.next());
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
         int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
-        assertEquals(res, 1 + hashCode());
+        assertEquals(1 + hashCode(), res);
     }
 
 
-    @DataProvider(name = "ints")
-    public Object[][] ints() {
-        return IntStream.range(0, 50)
-                .mapToObj(i -> new Object[] { i })
-                .toArray(Object[][]::new);
+    public static IntStream ints() {
+        return IntStream.range(0, 50);
     }
 }
