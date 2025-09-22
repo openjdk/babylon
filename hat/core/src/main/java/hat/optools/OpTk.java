@@ -352,9 +352,9 @@ public class OpTk {
         } else if (parentValue == childValue) {
             // Check there is no dependency with another operation
             // If so, we need to generate a parenthesis
-            Set<Value> values = parent.result().dependsOn();
-            Op.Result result1 = child.result();
-            return values.contains(result1);
+            Set<Value> dependencies = parent.result().dependsOn();
+            Op.Result childResult = child.result();
+            return dependencies.contains(childResult);
         }
         return false;
     }
