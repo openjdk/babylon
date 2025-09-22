@@ -41,9 +41,11 @@ public class HatPrivateVarOp extends HatMemoryOp {
     private final TypeElement typeElement;
     private final ClassType klassType;
     private final TypeElement invokeResultType;
+    private final String varName;
 
     public HatPrivateVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
-        super(varName, operands);
+        super("hat.memory.private", varName, operands);
+        this.varName = varName;
         this.typeElement = typeElement;
         this.klassType = javaType;
         this.invokeResultType = invokeResultType;
@@ -51,6 +53,7 @@ public class HatPrivateVarOp extends HatMemoryOp {
 
     public HatPrivateVarOp(HatPrivateVarOp op, CopyContext copyContext) {
         super(op, copyContext);
+        this.varName = op.varName;
         this.typeElement = op.resultType();
         this.klassType = op.klassType;
         this.invokeResultType = op.invokeResultType;
@@ -68,13 +71,7 @@ public class HatPrivateVarOp extends HatMemoryOp {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.hatPrivateVarOp." + opName(), typeElement);
-    }
-
-
-    @Override
-    public String varName() {
-        return opName();
+        return Map.of("hat.dialect.hatPrivateVarOp." + varName, typeElement);
     }
 
     @Override

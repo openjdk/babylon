@@ -126,7 +126,6 @@ public class HatDilectifyThreadsPhase implements HatDialectifyPhase {
         BLOCK_ID,
     }
 
-
     private int getDimension(ThreadAccess threadAccess, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
         String fieldName = fieldLoadOp.fieldDescriptor().name();
         switch (threadAccess) {

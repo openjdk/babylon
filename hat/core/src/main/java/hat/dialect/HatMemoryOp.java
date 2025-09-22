@@ -25,7 +25,6 @@
 package hat.dialect;
 
 import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -34,16 +33,20 @@ import java.util.List;
 
 public abstract class HatMemoryOp extends HatOP {
 
-    public HatMemoryOp(String name, List<Value> operands) {
+    private final String varName;
+
+    public HatMemoryOp(String name, String varName, List<Value> operands) {
         super(name, operands);
+        this.varName = varName;
     }
 
-    protected HatMemoryOp(Op that, CopyContext cc) {
+    protected HatMemoryOp(HatMemoryOp that, CopyContext cc) {
         super(that, cc);
+        this.varName = that.varName;
     }
 
     public String varName() {
-        return opName();
+        return varName;
     }
 
     public abstract ClassType classType();
