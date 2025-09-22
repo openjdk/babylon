@@ -66,7 +66,7 @@ public class TestReferences {
     }
 
 
-    public Object[][] externalizedMethodRefs() {
+    public static Object[][] externalizedMethodRefs() {
         return new Object[][]{
                 {"java.ref:\"a::b():void\"", "a", "b"},
                 {"java.ref:\"a.b::c(int):int\"", "a.b", "c"},
@@ -79,7 +79,7 @@ public class TestReferences {
     }
 
     @ParameterizedTest
-    @MethodSource("methodRefs")
+    @MethodSource("externalizedMethodRefs")
     public void testExternalizedMethodRef(String mds, String refType, String name) {
         ExternalizedTypeElement emr = ExternalizedTypeElement.ofString(mds);
         MethodRef mr = (MethodRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(emr));
