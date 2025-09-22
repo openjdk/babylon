@@ -657,7 +657,7 @@ public class TestBytecode {
                 receiver2 = new TestBytecode();
             }
             permutateAllArgs(d.testMethod.getParameterTypes(), args ->
-                Assert.assertEquals(invokeAndConvert(flift, receiver1, args), d.testMethod.invoke(receiver2, args)));
+                    assertEquals(d.testMethod.invoke(receiver2, args), invokeAndConvert(flift, receiver1, args)));
         } catch (Throwable e) {
             System.out.println("Compiled model:");
             Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
@@ -710,10 +710,10 @@ public class TestBytecode {
                 receiver2 = new TestBytecode();
             }
             permutateAllArgs(d.testMethod.getParameterTypes(), args -> {
-                    List argl = new ArrayList(args.length + 1);
-                    if (receiver1 != null) argl.add(receiver1);
-                    argl.addAll(Arrays.asList(args));
-                    Assertions.assertEquals(d.testMethod.invoke(receiver2, args), mh.invokeWithArguments(argl));
+                List argl = new ArrayList(args.length + 1);
+                if (receiver1 != null) argl.add(receiver1);
+                argl.addAll(Arrays.asList(args));
+                assertEquals(d.testMethod.invoke(receiver2, args), mh.invokeWithArguments(argl));
             });
         } catch (Throwable e) {
             System.out.println(func.toText());
@@ -735,6 +735,14 @@ public class TestBytecode {
                 } catch (IOException ignore) {}
             });
             throw e;
+        }
+    }
+
+    private static void assertEquals(Object expected, Object actual) {
+        switch (expected) {
+            case int[] expArr when actual instanceof int[] actArr -> Assertions.assertArrayEquals(expArr, actArr);
+            case Object[] expArr when actual instanceof Object[] actArr -> Assertions.assertArrayEquals(expArr, actArr);
+            case null, default -> Assertions.assertEquals(expected, actual);
         }
     }
 }
