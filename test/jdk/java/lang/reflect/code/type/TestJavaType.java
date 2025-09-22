@@ -75,7 +75,7 @@ public class TestJavaType {
         Assertions.assertEquals(JavaType.type(ClassDesc.ofDescriptor(bcd)), jt);
     }
 
-    public Object[][] classDescriptors() {
+    public static Object[][] classDescriptors() {
         return new Object[][]{
                 {"java.lang.String", "java.lang.String"},
         };
@@ -121,13 +121,13 @@ public class TestJavaType {
 
     public static Object[][] argumentJavaTypes() {
         return new Object[][]{
-                {"java.util.List<T>", "T"},
-                {"java.util.List<T>[]", "T"},
-                {"java.util.List<java.util.function.Supplier<T>>", "java.util.function.Supplier<T>"},
-                {"java.util.List<java.util.function.Supplier<T>>[][]", "java.util.function.Supplier<T>"},
-                {"java.util.Map<K, V>", "K", "V"},
-                {"ab<cd<S<T, V>, N>>", "cd<S<T, V>, N>"},
-                {"java.util.Consumer<java.util.Function<String, Number>>", "java.util.Function<String, Number>"},
+                {"java.util.List<T>", new String[] {"T"}},
+                {"java.util.List<T>[]", new String[] {"T"}},
+                {"java.util.List<java.util.function.Supplier<T>>", new String[] {"java.util.function.Supplier<T>"}},
+                {"java.util.List<java.util.function.Supplier<T>>[][]", new String[] {"java.util.function.Supplier<T>"}},
+                {"java.util.Map<K, V>", new String[] {"K", "V"}},
+                {"ab<cd<S<T, V>, N>>", new String[] {"cd<S<T, V>, N>"}},
+                {"java.util.Consumer<java.util.Function<String, Number>>", new String[] {"java.util.Function<String, Number>"}},
         };
     }
 
