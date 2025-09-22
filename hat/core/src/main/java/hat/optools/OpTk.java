@@ -53,7 +53,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class OpTk {
@@ -345,7 +345,18 @@ public class OpTk {
         };
     }
     public static boolean needsParenthesis(Op parent, Op child) {
-        return OpTk.precedenceOf(parent) < OpTk.precedenceOf(child);
+        int parentValue = OpTk.precedenceOf(parent);
+        int childValue = OpTk.precedenceOf(child);
+        if (parentValue < childValue) {
+            return true;
+        } else if (parentValue == childValue) {
+            // Check there is no dependency with another operation
+            // If so, we need to generate a parenthesis
+            Set<Value> values = parent.result().dependsOn();
+            Op.Result result1 = child.result();
+            return values.contains(result1);
+        }
+        return false;
     }
 
     public static Op.Result lhsResult(JavaOp.BinaryOp binaryOp){

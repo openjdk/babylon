@@ -61,6 +61,15 @@ public class TestParenthesis {
     }
 
     @CodeReflection
+    public static void compute3(@RO KernelContext context, @RW S32Array data) {
+        final int TN = 2;
+        final int TF = 128;
+        final int MAX = 1024;
+        int c = MAX * (TF + 2) / ((TN * TF) / (TN * TN));
+        data.array(context.x, c);
+    }
+
+    @CodeReflection
     public static void compute(@RO ComputeContext cc, @RW S32Array data) {
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(data.length()));
         cc.dispatchKernel(computeRange,kc -> compute(kc, data));
@@ -70,6 +79,12 @@ public class TestParenthesis {
     public static void compute2(@RO ComputeContext cc, @RW S32Array data) {
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(data.length()));
         cc.dispatchKernel(computeRange,kc -> compute2(kc, data));
+    }
+
+    @CodeReflection
+    public static void compute3(@RO ComputeContext cc, @RW S32Array data) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(data.length()));
+        cc.dispatchKernel(computeRange,kc -> compute3(kc, data));
     }
 
     @HatTest
@@ -105,6 +120,24 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / ((TN * TF) / (TN * TN));
+        HatAsserts.assertEquals(c, data.array(0));
+    }
+
+    @HatTest
+    public static void testParenthesis03() {
+        final int size = 1;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var data = S32Array.create(accelerator, size);
+
+        // Initialize array
+        data.fill(_ -> 0);
+
+        accelerator.compute(cc -> TestParenthesis.compute3(cc, data));
+
+        final int TN = 2;
+        final int TF = 128;
+        final int MAX = 1024;
+        int c = MAX * (TF + 2) / ((TN * TF) / (TN * TN));
         HatAsserts.assertEquals(c, data.array(0));
     }
 
