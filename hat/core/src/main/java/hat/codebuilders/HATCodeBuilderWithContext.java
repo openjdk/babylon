@@ -158,7 +158,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T binaryTestOp(ScopedCodeBuilderContext buildContext, JavaOp.BinaryTestOp binaryTestOp) {
         parenthesisIfNeeded(buildContext, binaryTestOp, OpTk.lhsResult(binaryTestOp).op());
         symbol(binaryTestOp);
-        parenthesisIfNeeded(buildContext, binaryTestOp, OpTk.rhsResult(binaryTestOp).op());1
+        parenthesisIfNeeded(buildContext, binaryTestOp, OpTk.rhsResult(binaryTestOp).op());
         return self();
     }
 
