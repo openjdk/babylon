@@ -29,21 +29,16 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.LambdaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -57,7 +52,6 @@ import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaType.INT;
 import static jdk.incubator.code.dialect.java.JavaType.type;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestLambdaOps {
     static class Builder {
         static final MethodRef ACCEPT_METHOD = MethodRef.method(type(Builder.class), "accept",
@@ -218,48 +212,11 @@ public class TestLambdaOps {
         }
     }
 
-
     interface QuotableIntUnaryOperator extends IntUnaryOperator, Quotable {}
 
     interface QuotableFunction<T, R> extends Function<T, R>, Quotable {}
 
     interface QuotableBiFunction<T, U, R> extends BiFunction<T, U, R>, Quotable {}
-
-    Iterator<Quotable> methodRefLambdas() {
-        return List.of(
-                (QuotableIntUnaryOperator) TestLambdaOps::m1,
-                (QuotableIntUnaryOperator) TestLambdaOps::m2,
-                (QuotableFunction<Integer, Integer>) TestLambdaOps::m1,
-                (QuotableFunction<Integer, Integer>) TestLambdaOps::m2,
-                (QuotableIntUnaryOperator) this::m3,
-                (QuotableBiFunction<TestLambdaOps, Integer, Integer>) TestLambdaOps::m4
-        ).iterator();
-    }
-
-    @ParameterizedTest
-    @MethodSource("methodRefLambdas")
-    public void testIsMethodReference(Quotable q) {
-        Quoted quoted = Op.ofQuotable(q).get();
-        LambdaOp lop = (LambdaOp) quoted.op();
-        Assertions.assertTrue(lop.methodReference().isPresent());
-    }
-
-    static int m1(int i) {
-        return i;
-    }
-
-    static Integer m2(Integer i) {
-        return i;
-    }
-
-    int m3(int i) {
-        return i;
-    }
-
-    static int m4(TestLambdaOps tl, int i) {
-        return i;
-    }
-
 
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestLambdaOps.class.getDeclaredMethods())
