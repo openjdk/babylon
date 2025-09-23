@@ -38,6 +38,7 @@ display_help() {
   echo "Options:"
   echo "  --help                  Display this help message and exit."
   echo "  --generate-config-file  Generate a default configuration file and exit."
+  echo "  --build-babylon         Build Babylon and HAT for all remote servers"
   echo
   echo "How to use it?"
   echo "   1. Run this script with --generate-config-file "
@@ -57,6 +58,8 @@ REMOTE_USERS=user1 user2 ...
 #BACKENDS=ffi-opencl
 # We can also test multiple backends
 BACKENDS=ffi-cuda ffi-opencl
+# Specify the Babylon fork to test
+FORK=https://github.com/openjdk/babylon
 
 ## Remote path. It assumes all servers use the same path
 REMOTE_PATH=repos/babylon/hat
@@ -67,91 +70,140 @@ EOF
   exit 0
 }
 
-while [[ $# -gt 0 ]]; do
-  key="$1"
-  case $key in
-    --help)
-      display_help
-      ;;
-    --generate-config-file)
-      generate_config_file
-      ;;
-    *)
-      # Unknown option
-      echo "Error: Unknown option '$key'"
-      echo "Use --help for a list of available options."
-      exit 1
-      ;;
-  esac
-done
+read_config_file() {
+  CONFIG_FILE="remoteTesting.conf"
 
-CONFIG_FILE="remoteTesting.conf"
-
-# Check if the config file exists
-if [ ! -f "$CONFIG_FILE" ]; then
+  # Check if the config file exists
+  if [ ! -f "$CONFIG_FILE" ]; then
     echo "Error: $CONFIG_FILE not found."
     echo "Run this script with --generate-config-file to generate a template."
     exit 1
-fi
-
-## Process the config file
-while IFS='=' read -r key value
-do
-  if [[ -z "$key" || "$key" =~ ^# ]]; then
-    continue
   fi
 
-  case "$key" in
-    "SERVERS") SERVERS="$value" ;;
-    "REMOTE_USERS") REMOTE_USERS="$value" ;;
-    "BACKENDS") BACKENDS=$value ;;
-    "REMOTE_PATH") REMOTE_PATH="$value" ;;
-    "BRANCH") BRANCH="$value" ;;
-  esac
-done < "$CONFIG_FILE"
+  ## Process the config file
+  while IFS='=' read -r key value
+  do
+    if [[ -z "$key" || "$key" =~ ^# ]]; then
+      continue
+    fi
 
-isSet=1
-if [[ -z $SERVERS ]]; then
-  echo "❌ SERVERS is not set."
-  isSet=0
-fi
-if [[ -z $REMOTE_USERS ]]; then
-  echo "❌ REMOTE_USERS is not set."
-  isSet=0
-fi
-if [[ -z $BACKENDS ]]; then
-  echo "❌ BACKENDS is not set."
-  isSet=0
-fi
-if [[ -z $REMOTE_PATH ]]; then
-  echo "❌ REMOTE_PATH is not set."
-  isSet=0
-fi
-if [[ -z $BRANCH ]]; then
-  echo "❌ BRANCH is not set."
-  isSet=0
+    case "$key" in
+      "SERVERS") SERVERS="$value" ;;
+      "REMOTE_USERS") REMOTE_USERS="$value" ;;
+      "BACKENDS") BACKENDS=$value ;;
+      "REMOTE_PATH") REMOTE_PATH="$value" ;;
+      "BRANCH") BRANCH="$value" ;;
+      "FORK") FORK="$value" ;;
+    esac
+  done < "$CONFIG_FILE"
+
+  isSet=1
+  if [[ -z $SERVERS ]]; then
+    echo "❌ SERVERS is not set."
+    isSet=0
+  fi
+  if [[ -z $REMOTE_USERS ]]; then
+    echo "❌ REMOTE_USERS is not set."
+    isSet=0
+  fi
+  if [[ -z $BACKENDS ]]; then
+    echo "❌ BACKENDS is not set."
+    isSet=0
+  fi
+  if [[ -z $REMOTE_PATH ]]; then
+    echo "❌ REMOTE_PATH is not set."
+    isSet=0
+  fi
+  if [[ -z $BRANCH ]]; then
+    echo "❌ BRANCH is not set."
+    isSet=0
+  fi
+  if [[ -z $FORK ]]; then
+    echo "❌ FORK is not set."
+    isSet=0
+  fi
+
+  if [[ "$isSet" -eq 0 ]]; then
+	  exit
+  fi
+
+  echo
+  echo "Servers    : $SERVERS"
+  echo "Users      : $REMOTE_USERS"
+  echo "Backends   : $BACKENDS"
+  echo "Remote Path: $REMOTE_PATH"
+  echo "Fork       : $FORK"
+  echo "Branch     : $BRANCH"
+  echo
+
+  read -ra listOfServers <<< $SERVERS
+  read -ra listOfUsers <<< $REMOTE_USERS
+
+  for backend in $BACKENDS
+  do
+    echo $backend > /dev/null
+  done
+
+}
+
+build_babylon() {
+
+  echo "Build Babylon and HAT"
+  
+  read_config_file
+
+  for index in "${!listOfServers[@]}"
+  do
+    server=${listOfServers[$index]}
+    user=${listOfUsers[$index]}
+
+    echo "ssh $user@$server"
+    ssh -T $user@$server << EOF
+if [ ! -d $REMOTE_PATH ]; 
+then 
+  mkdir -p \$(dirname $REMOTE_PATH)
+  cd \$(dirname $REMOTE_PATH)
+  git clone $FORK babylon
 fi
 
-if [[ "$isSet" -eq 0 ]]; then
-	exit
+#Assuming the remote path ends with babylon
+cd "$REMOTE_PATH"
+git checkout $BRANCH
+git pull
+
+echo "bash configure --with-boot-jdk=\$HOME/.sdkman/candidates/java/current"
+bash configure --with-boot-jdk="\$HOME/.sdkman/candidates/java/current" > jvmconfig.log
+make clean
+make images > jvmbuild.log
+
+## Build HAT
+cd hat 
+if [ ! -d jextract-22 ];
+then
+  echo "ARCHITECTIRE \$(uname -m)"
+  if [[ "\$(uname -m)" == "x86_64" ]]; then
+      wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
+      tar xvzf openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
+  elif [[ "\$(uname -m)" == "arm64" ]]; then
+      wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz
+      tar xvzf openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz
+  fi
+  echo "export PATH=\$(pwd)/jextract-22/bin:\$PATH" >> setup.sh
+  echo "source env.bash" >> setup.sh
 fi
 
-echo
-echo "Servers    : $SERVERS"
-echo "Users      : $REMOTE_USERS"
-echo "Backends   : $BACKENDS"
-echo "Remote Path: $REMOTE_PATH"
-echo "Branch     : $BRANCH"
-echo
-
-read -ra listOfServers <<< $SERVERS
-read -ra listOfUsers <<< $REMOTE_USERS
-
-for backend in $BACKENDS
-do
-echo $backend > /dev/null
+source setup.sh
+java @hat/clean 
+java @hat/bld > hatCompilation.log
+echo "✅ Babylon/HAT Built"
+EOF
 done
 
+}
+
+run_tests_hat() {
+
+read_config_file
 
 for index in "${!listOfServers[@]}"
 do
@@ -162,6 +214,7 @@ user=${listOfUsers[$index]}
 echo "ssh $user@$server"
 ssh $user@$server << EOF
 cd "$REMOTE_PATH"
+cd hat/
 git checkout $BRANCH
 git pull
 
@@ -184,3 +237,32 @@ cat $backend.txt
 done
 EOF
 done
+
+}
+
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    --help)
+      display_help
+      exit
+      ;;
+    --generate-config-file)
+      generate_config_file
+      exit 
+      ;;
+    --build-babylon)
+      build_babylon
+      exit 0
+      ;;
+    *)
+      # Unknown option
+      echo "Error: Unknown option '$key'"
+      echo "Use --help for a list of available options."
+      exit 1
+      ;;
+  esac
+done
+
+run_tests_hat
+
