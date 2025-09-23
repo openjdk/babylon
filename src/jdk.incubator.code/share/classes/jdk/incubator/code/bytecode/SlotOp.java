@@ -60,8 +60,8 @@ sealed abstract class SlotOp extends Op {
         this.slot = that.slot;
     }
 
-    protected SlotOp(String name, List<? extends Value> operands, int slot) {
-        super(name, operands);
+    protected SlotOp(List<? extends Value> operands, int slot) {
+        super(operands);
         this.slot = slot;
     }
 
@@ -79,6 +79,11 @@ sealed abstract class SlotOp extends Op {
     @OpDeclaration(SlotLoadOp.NAME)
     public static final class SlotLoadOp extends SlotOp {
         public static final String NAME = "slot.load";
+
+        @Override
+        public String externalizeOpName() {
+            return NAME;
+        }
 
         final TypeElement resultType;
 
@@ -103,7 +108,7 @@ sealed abstract class SlotOp extends Op {
         }
 
         SlotLoadOp(int slot, TypeElement resultType) {
-            super(NAME, List.of(), slot);
+            super(List.of(), slot);
             this.resultType = resultType;
         }
 
@@ -127,6 +132,11 @@ sealed abstract class SlotOp extends Op {
     public static final class SlotStoreOp extends SlotOp {
         public static final String NAME = "slot.store";
 
+        @Override
+        public String externalizeOpName() {
+            return NAME;
+        }
+
         public SlotStoreOp(ExternalizedOp def) {
             int slot = def.extractAttributeValue(ATTRIBUTE_SLOT, true,
                     v -> switch (v) {
@@ -147,7 +157,7 @@ sealed abstract class SlotOp extends Op {
         }
 
         SlotStoreOp(int slot, Value v) {
-            super(NAME, List.of(v), slot);
+            super(List.of(v), slot);
         }
 
         @Override

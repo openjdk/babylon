@@ -34,30 +34,40 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
 
 public abstract class SpirvOp extends Op {
+    private final String opName;
     private final TypeElement type;
 
     SpirvOp(String opName) {
-        super(opName, List.of());
+        super(List.of());
+        this.opName = opName;
         this.type = JavaType.VOID;
     }
 
     SpirvOp(String opName, TypeElement type, List<Value> operands) {
-        super(opName, operands);
+        super(operands);
+        this.opName = opName;
         this.type = type;
     }
 
     SpirvOp(String opName, TypeElement type, List<Value> operands, Map<String, Object> attributes) {
-        super(opName, operands);
+        super(operands);
+        this.opName = opName;
         this.type = type;
     }
 
     SpirvOp(SpirvOp that, CopyContext cc) {
         super(that, cc);
+        this.opName = that.opName;
         this.type = that.type;
     }
 
     @Override
     public TypeElement resultType() {
         return type;
+    }
+
+    @Override
+    public String externalizeOpName() {
+        return opName;
     }
 }
