@@ -24,3 +24,4 @@ extractions/opencl/target
 extractions/opengl/target
 stage/
 compile_flags.txt
+remoteTesting.conf
