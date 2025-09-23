@@ -884,7 +884,7 @@ public final class BytecodeGenerator {
                             ClassDesc[] captureTypes = op.capturedValues().stream()
                                     .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
                             int lambdaIndex = lambdaSink.size();
-                            if (Quotable.class.isAssignableFrom(intfClass)) {
+                            if (op.isQuotable()) {
                                 cob.invokedynamic(DynamicCallSiteDesc.of(
                                         DMHD_LAMBDA_ALT_METAFACTORY,
                                         funcIntfMethodName(intfClass),

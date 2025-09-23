@@ -67,7 +67,7 @@ import java.util.List;
  * <p>
  * <b>How to run:</b><br>
  * <code>
- * java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DynamicFunctionBuild
+ * java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DynamicFunctionBuild
  * </code>
  * </p>
  */

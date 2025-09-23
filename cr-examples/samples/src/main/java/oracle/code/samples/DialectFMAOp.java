@@ -37,12 +37,14 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -60,7 +62,7 @@ import java.util.stream.Stream;
  * <p>
  *     How to run from the terminal?
  *     <code>
- *         $ java --enable-preview -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DialectFMAOp
+ *         $ java --add-modules jdk.incubator.code -cp target/crsamples-1.0-SNAPSHOT.jar oracle.code.samples.DialectFMAOp
  *     </code>
  * </p>
  */
@@ -122,59 +124,66 @@ public class DialectFMAOp {
         // To do so, we traverse the original code model and find
         // all AddOp(MultOp)) patterns.
 
-        // Flag to indicate FMA operations can be placed
-        AtomicBoolean isFMADetected = new AtomicBoolean(false);
-
         // data structure used to store all Ops involved, so it will be easier later
         // to transform/replace/eliminate pending the nodes involved in this transformation.
-        Set<Op> nodesInvolved = new HashSet<>();
-
-        Stream<CodeElement<?, ?>> elements = functionModel.elements();
-        elements.forEach(codeElement -> {
-            if (codeElement instanceof JavaOp.AddOp addOp) {
-
-                // Obtain dependency list of dependencies and check if any of the
-                // input parameters comes from a multiply operation
-                List<Value> inputOperandsAdd = addOp.operands();
-                Value addDep = inputOperandsAdd.getFirst();
-                if (addDep instanceof Op.Result result) {
-                    if (result.op() instanceof JavaOp.MulOp multOp) {
-                        // At this point, we know AddOp uses a value from a
-                        // result from a multiplication
-                        isFMADetected.set(true);
-                        nodesInvolved.add(multOp);
-                        nodesInvolved.add(addOp);
-
-                        // we don't stop the traversal to take the opportunity
-                        // to annotate all possible FMA operations
+        Stream<CodeElement<?, ?>> elements = functionModel.elements()
+                .mapMulti( (codeElement, consumer) -> {
+                        // Obtain dependency list of dependencies and check if any of the
+                        // input parameters comes from a multiply operation
+                    if (codeElement instanceof JavaOp.AddOp addOp) {
+                        List<Value> inputOperandsAdd = addOp.operands();
+                        Value addDep = inputOperandsAdd.getFirst();
+                        if (addDep instanceof Op.Result result) {
+                            if (result.op() instanceof JavaOp.MulOp multOp) {
+                                // At this point, we know AddOp uses a value from a
+                                // result from a multiplication. Thus, we add them
+                                // in the processing list
+                                consumer.accept(multOp);
+                                consumer.accept(addOp);
+                            }
+                        }
                     }
-                }
-            }
-        });
+                });
 
-        if (!isFMADetected.get()) {
+        // Collect the stream to a HashSet
+        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
+        if (nodesInvolved.isEmpty()) {
             System.out.println("No fma found");
             return;
         }
 
         // 5. Transform the code model to include the FMA op
-        final Op[] pending = new Op[1];
         CoreOp.FuncOp dialectModel = functionModel.transform((builder, op) -> {
             CopyContext context = builder.context();
-            if (op instanceof JavaOp.MulOp mulOp && nodesInvolved.contains(mulOp)) {
-                pending[0] = mulOp;
-                context.mapValue(mulOp.result(), context.getValue(mulOp.operands().getFirst()));
+            if (!nodesInvolved.contains(op)) {
+                builder.op(op);
+            } else if (op instanceof JavaOp.MulOp  mulOp) {
+                // If it is only used by one operation, we know it is the one we are replacing.
+                // In this case, we can eliminate the node (we don't insert it into the builder)
+                if (mulOp.result().uses().size() == 1) {
+                    context.mapValue(mulOp.result(), context.getValue(mulOp.operands().getFirst()));
+                } else {
+                    // We need to insert it into the tree because another non-FMA operation also uses this
+                    // operand
+                    builder.op(op);
+                }
             } else if (op instanceof JavaOp.AddOp addOp) {
-
                 // 6. Obtain the operands for the node
                 List<Value> inputOperandsAdd = addOp.operands();
-                if (nodesInvolved.contains(addOp)) {
+
+                // Obtain the fist operand and check if the value comes from an Mult Op.
+                // In that case, we check if the mult node is contained in the set of
+                // involved nodes. If all of this is true, then we replace it with an
+                // FMA operation.
+                if (addOp.operands().get(0) instanceof Op.Result r &&
+                        r.op() instanceof JavaOp.MulOp mulOp
+                        && nodesInvolved.contains(mulOp)) {
+
                     // 7. Create a new Op with the new operation
-                    List<Value> inputOperandsMult = pending[0].operands();
+                    List<Value> inputOperandsMult = mulOp.operands();
                     List<Value> outputAdd = context.getValues(inputOperandsAdd);
                     List<Value> outputMul = context.getValues(inputOperandsMult);
                     List<Value> outFMA = new ArrayList<>();
-
 
                     // Build the new parameters list
                     outFMA.addAll(outputMul);      // First two parameters comes from the multiplication.
@@ -190,12 +199,7 @@ public class DialectFMAOp {
 
                     // 10. Map the values from input -> output for the new Op
                     context.mapValue(addOp.result(), resultFMA);
-                } else {
-                    pending[0] = null;
-                    builder.op(op);
                 }
-            } else {
-                builder.op(op);
             }
             return builder;
         });
@@ -204,7 +208,7 @@ public class DialectFMAOp {
         System.out.println("Model with new OpNodes for Dialect: ");
         System.out.println(dialectModel.toText());
 
-        // 12. This fails with a NPE due to "Cannot invoke "jdk.incubator.code.TypeElement.equals(Object)" because the return value of "jdk.incubator.code.Op$Result.type()" is null"
+        // 12. Transform to SSA and print the code model
         System.out.println(SSA.transform(dialectModel).toText());
 
         // Currently, we can't interpreter a code model with dialect ops

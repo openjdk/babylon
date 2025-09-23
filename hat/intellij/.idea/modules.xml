@@ -15,6 +15,7 @@
       <module fileurl="file://$PROJECT_DIR$/example_blackscholes.iml" filepath="$PROJECT_DIR$/example_blackscholes.iml" />
       <module fileurl="file://$PROJECT_DIR$/example_experiments.iml" filepath="$PROJECT_DIR$/example_experiments.iml" />
       <module fileurl="file://$PROJECT_DIR$/example_heal.iml" filepath="$PROJECT_DIR$/example_heal.iml" />
+      <module fileurl="file://$PROJECT_DIR$/example_normmap.iml" filepath="$PROJECT_DIR$/example_normmap.iml" />
       <module fileurl="file://$PROJECT_DIR$/example_life.iml" filepath="$PROJECT_DIR$/example_life.iml" />
       <module fileurl="file://$PROJECT_DIR$/example_mandel.iml" filepath="$PROJECT_DIR$/example_mandel.iml" />
       <module fileurl="file://$PROJECT_DIR$/example_nbody.iml" filepath="$PROJECT_DIR$/example_nbody.iml" />
