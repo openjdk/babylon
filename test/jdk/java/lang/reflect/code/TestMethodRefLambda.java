@@ -41,7 +41,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntUnaryOperator;
 
-// The comment allow us to use non-static method source
+// Declare a per-class lifecycle, so we can declare an instance factory method
+// as the source of arguments for parameterized tests
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestMethodRefLambda {
 
