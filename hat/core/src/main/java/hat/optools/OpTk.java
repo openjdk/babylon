@@ -28,6 +28,8 @@ import hat.ComputeContext;
 import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 import hat.callgraph.CallGraph;
+import hat.dialect.HatMemoryOp;
+import hat.dialect.HatThreadOP;
 import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -60,7 +62,6 @@ public class OpTk {
     public static boolean isKernelContextAccess(JavaOp.FieldAccessOp fieldAccessOp) {
         return fieldAccessOp.fieldDescriptor().refType() instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext");
     }
-
 
     public static String fieldName(JavaOp.FieldAccessOp fieldAccessOp) {
         return fieldAccessOp.fieldDescriptor().name();
@@ -170,8 +171,7 @@ public class OpTk {
 
     }
 
-
-    public static JavaOp.InvokeOp getQuotableTargetInvokeOpWrapper( JavaOp.LambdaOp lambdaOp) {
+    public static JavaOp.InvokeOp getQuotableTargetInvokeOpWrapper(JavaOp.LambdaOp lambdaOp) {
         return lambdaOp.body().entryBlock().ops().stream()
                 .filter(op -> op instanceof JavaOp.InvokeOp)
                 .map(op -> (JavaOp.InvokeOp) op)
@@ -221,6 +221,7 @@ public class OpTk {
         return block.ops().stream().filter(op->
                 (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
                         || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
+                        || (op instanceof HatMemoryOp)
                 )
                         && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
                         && !(op instanceof CoreOp.YieldOp));
@@ -311,6 +312,7 @@ public class OpTk {
             case CoreOp.VarOp o -> 13;
             case CoreOp.VarAccessOp.VarStoreOp o -> 13;
             case JavaOp.FieldAccessOp o -> 0;
+            case HatThreadOP o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
@@ -340,7 +342,7 @@ public class OpTk {
             case JavaOp.ConditionalOrOp o -> 15;
             case JavaOp.ConditionalExpressionOp o -> 18;
             case CoreOp.ReturnOp o -> 19;
-            default -> throw new IllegalStateException("precedence ");
+            default -> throw new IllegalStateException("[Illegal] Precedence Op not registered: " + op.getClass().getSimpleName());
         };
     }
     public static boolean needsParenthesis(Op parent, Op child) {
@@ -406,9 +408,11 @@ public class OpTk {
     public static String funcName(JavaOp.InvokeOp invokeOp) {
         return invokeOp.invokeDescriptor().name();
     }
+
     public static Value operandOrNull(Op op, int idx) {
         return op.operands().size() > idx?op.operands().get(idx):null;
     }
+
     public static Op.Result resultOrNull(Op op, int idx) {
         return (operandOrNull(op,idx) instanceof Op.Result result)?result:null;
     }
