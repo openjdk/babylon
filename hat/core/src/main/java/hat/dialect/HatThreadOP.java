@@ -22,9 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat;
+package hat.dialect;
 
-public enum Space {
-    PRIVATE,
-    SHARED
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Value;
+
+import java.util.List;
+
+public abstract class HatThreadOP extends HatOP {
+
+    private final int dimension;
+
+    public HatThreadOP(int dimension, List<Value> operands) {
+        super(operands);
+        this.dimension = dimension;
+    }
+
+    protected HatThreadOP(HatThreadOP that, CopyContext cc) {
+        super(that, cc);
+        this.dimension = that.dimension;
+    }
+
+    public int getDimension() {
+        return dimension;
+    }
 }

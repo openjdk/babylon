@@ -48,10 +48,12 @@ public class DNA {
     }
 
     public static class DNAOp extends Op { // externalized
+        private final String opName;
         private final TypeElement type;
 
         DNAOp(String opName, TypeElement type, List<Value> operands) {
-            super(opName, operands);
+            super(operands);
+            this.opName = opName;
             this.type = type;
         }
 

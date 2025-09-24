@@ -54,19 +54,19 @@ import java.lang.invoke.MethodHandles;
  */
 public class LocalArray {
 
-    private interface MySharedArray extends Buffer {
+    private interface MyArray extends Buffer {
         void array(long index, float value);
         float array(long index);
 
-        Schema<MySharedArray> schema = Schema.of(MySharedArray.class,
+        Schema<MyArray> schema = Schema.of(MyArray.class,
                 myPrivateArray -> myPrivateArray
                         .array("array", 16));
 
-        static MySharedArray create(Accelerator accelerator) {
+        static MyArray create(Accelerator accelerator) {
             return schema.allocate(accelerator, 1);
         }
 
-        static MySharedArray createLocal() {
+        static MyArray createLocal() {
             return create(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
     }
@@ -74,7 +74,7 @@ public class LocalArray {
 
     @CodeReflection
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-        MySharedArray mySharedArray = MySharedArray.createLocal();
+        MyArray mySharedArray = MyArray.createLocal();
         int lix = kernelContext.lix;
         int blockId = kernelContext.bix;
         int blockSize = kernelContext.lsx;
@@ -94,7 +94,7 @@ public class LocalArray {
     static void main(String[] args) {
         System.out.println("Testing Shared Data Structures Mapping");
         System.out.println("Schema description");
-        MySharedArray.schema.toText(System.out::print);
+        MyArray.schema.toText(System.out::print);
         System.out.println(" ==================");
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);

@@ -24,6 +24,7 @@
  */
 package hat.backend.ffi;
 
+import hat.dialect.HatOP;
 import hat.ifacemapper.BoundSchema;
 import hat.optools.*;
 import hat.codebuilders.CodeBuilder;
@@ -163,14 +164,14 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         cbrace();
     }
 
-    public static class PTXPtrOp extends Op {
+    public static class PTXPtrOp extends HatOP {
         public String fieldName;
         public static final String NAME = "ptxPtr";
         final TypeElement resultType;
         public BoundSchema<?> boundSchema;
 
         PTXPtrOp(TypeElement resultType, String fieldName, List<Value> operands, BoundSchema<?> boundSchema) {
-            super(NAME, operands);
+            super(operands);
             this.resultType = resultType;
             this.fieldName = fieldName;
             this.boundSchema = boundSchema;
@@ -191,6 +192,11 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         @Override
         public TypeElement resultType() {
             return resultType;
+        }
+
+        @Override
+        public String externalizeOpName() {
+            return NAME;
         }
     }
 

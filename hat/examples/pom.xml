@@ -45,6 +45,7 @@ questions.
         <module>blackscholes</module>
         <module>mandel</module>
         <module>heal</module>
+        <module>normmap</module>
         <module>violajones</module>
         <module>squares</module>
         <module>matmul</module>
