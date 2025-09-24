@@ -76,7 +76,7 @@ public final class AnfDialect {
         }
 
         public AnfLetOp(Body.Builder bodyBuilder) {
-            super(NAME, List.of());
+            super(List.of());
 
             this.bindings = bodyBuilder.build(this);
         }
@@ -133,7 +133,7 @@ public final class AnfDialect {
         }
 
         public AnfLetRecOp(Body.Builder bodyBuilder) {
-            super(AnfLetRecOp.NAME, List.of());
+            super(List.of());
 
             this.bindings = bodyBuilder.build(this);
         }
@@ -221,7 +221,7 @@ public final class AnfDialect {
         }
 
         AnfIfOp(Value test, Body.Builder thenBodyBuilder, Body.Builder elseBodyBuilder) {
-            super(NAME, List.of(test));
+            super(List.of(test));
 
             this.then_ = thenBodyBuilder.build(this);
             this.else_ = elseBodyBuilder.build(this);
@@ -306,7 +306,7 @@ public final class AnfDialect {
         }
 
         AnfFuncOp(String funcName, Body.Builder bodyBuilder) {
-            super(NAME,
+            super(
                     List.of());
 
             this.funcName = funcName;
@@ -364,7 +364,7 @@ public final class AnfDialect {
         }
 
         public AnfApply(List<Value> arguments) {
-            super(AnfApply.NAME, arguments);
+            super(arguments);
 
             // First argument is func value
             // Subsequent arguments are func arguments
@@ -414,7 +414,7 @@ public final class AnfDialect {
         }
 
         public AnfApplyStub(String callSiteName, List<Value> arguments, TypeElement resultType) {
-            super(AnfApplyStub.NAME, arguments);
+            super(arguments);
             this.resultType = resultType;
             this.callSiteName = callSiteName;
 

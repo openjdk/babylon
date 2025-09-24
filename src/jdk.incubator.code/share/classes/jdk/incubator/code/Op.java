@@ -269,12 +269,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     // Set when op is bound to block, otherwise null when unbound
+    // @@@ stable value?
     Result result;
 
     // null if not specified
+    // @@@ stable value?
     Location location;
-
-    final String name;
 
     final List<Value> operands;
 
@@ -287,7 +287,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * values computed, in order, by mapping the operation's operands using the copy context.
      */
     protected Op(Op that, CopyContext cc) {
-        this(that.name, cc.getValues(that.operands));
+        this(cc.getValues(that.operands));
         this.location = that.location;
     }
 
@@ -331,11 +331,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Constructs an operation with a name and list of operands.
      *
-     * @param name       the operation name.
-     * @param operands   the list of operands, a copy of the list is performed if required.
+     * @param operands the list of operands, a copy of the list is performed if required.
      */
-    protected Op(String name, List<? extends Value> operands) {
-        this.name = name;
+    protected Op(List<? extends Value> operands) {
         this.operands = List.copyOf(operands);
     }
 
@@ -393,6 +391,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
+     * {@return the operation's result type}
+     */
+    public abstract TypeElement resultType();
+
+    /**
      * Returns the operation's result, otherwise {@code null} if the operation is unbound or sealed.
      *
      * @return the operation's result, or {@code null} if unbound or sealed.
@@ -402,30 +405,19 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * {@return the operation name}
-     */
-    public String opName() {
-        return name;
-    }
-
-    /**
      * {@return the operation's operands, as an unmodifiable list}
      */
-    public List<Value> operands() {
+    public final List<Value> operands() {
         return operands;
     }
 
     /**
      * {@return the operation's successors, as an unmodifiable list}
+     * @implSpec this implementation returns an unmodifiable empty list.
      */
     public List<Block.Reference> successors() {
         return List.of();
     }
-
-    /**
-     * {@return the operation's result type}
-     */
-    public abstract TypeElement resultType();
 
     /**
      * Returns the operation's function type.
@@ -435,21 +427,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * @return the function type
      */
-    public FunctionType opType() {
+    public final FunctionType opType() {
         List<TypeElement> operandTypes = operands.stream().map(Value::type).toList();
         return CoreType.functionType(resultType(), operandTypes);
-    }
-
-    /**
-     * Externalizes the operation's state as a map of attributes.
-     *
-     * <p>A null attribute value is represented by the constant
-     * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
-     *
-     * @return the operation's externalized state, as an unmodifiable map
-     */
-    public Map<String, Object> externalize() {
-        return Map.of();
     }
 
     /**
@@ -462,17 +442,65 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the list of captured values, modifiable
      * @see Body#capturedValues()
      */
-    public List<Value> capturedValues() {
+    public final List<Value> capturedValues() {
         Set<Value> cvs = new LinkedHashSet<>();
 
-        capturedValues(cvs, new ArrayDeque<>(), this);
+        Deque<Body> bodyStack = new ArrayDeque<>();
+        for (Body childBody : bodies()) {
+            Body.capturedValues(cvs, bodyStack, childBody);
+        }
         return new ArrayList<>(cvs);
     }
 
-    static void capturedValues(Set<Value> capturedValues, Deque<Body> bodyStack, Op op) {
-        for (Body childBody : op.bodies()) {
-            Body.capturedValues(capturedValues, bodyStack, childBody);
+    /**
+     * Seals this operation. After this operation is sealed its {@link #result result} and {@link #parent parent} are guaranteed to always be {@code null}.
+     * <p>
+     * If a sealed operation is {@link Block.Builder#op appended} to a {@link Block.Builder} then it is
+     * treated as if the operation is bound, and therefore the sealed operation will be transformed.
+     * <p>
+     * Sealing is idempotent if the operation is already sealed.
+     *
+     * @throws IllegalStateException if this operation is bound.
+     */
+    public final void seal() {
+        if (result == Result.SEALED_RESULT) {
+            return;
         }
+        if (result != null) {
+            throw new IllegalStateException("Operation cannot be sealed since it bound to a parent block");
+        }
+        result = Result.SEALED_RESULT;
+    }
+
+    /**
+     * Returns {@code true} if this operation is sealed.
+     * @return {@code true} if this operation is sealed.
+     * @see #seal()
+     * */
+    public final boolean isSealed() {
+        return result == Result.SEALED_RESULT;
+    }
+
+    /**
+     * Externalizes this operation's name as a string.
+     * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
+     * @return the operation name
+     */
+    public String externalizeOpName() {
+        return this.getClass().getName();
+    }
+
+    /**
+     * Externalizes this operation's specific state as a map of attributes.
+     *
+     * <p>A null attribute value is represented by the constant
+     * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
+     * @implSpec this implementation returns an unmodifiable empty map.
+     *
+     * @return the operation's externalized state, as an unmodifiable map
+     */
+    public Map<String, Object> externalize() {
+        return Map.of();
     }
 
     /**
@@ -480,7 +508,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * @return the textual form of this operation.
      */
-    public String toText() {
+    public final String toText() {
         return OpWriter.toText(this);
     }
 
@@ -606,34 +634,5 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             ex.printStackTrace();
             return Optional.empty();
         }
-    }
-
-    /**
-     * Seals this operation. After this operation is sealed its {@link #result result} and {@link #parent parent} are guaranteed to always be {@code null}.
-     * <p>
-     * If a sealed operation is {@link Block.Builder#op appended} to a {@link Block.Builder} then it is
-     * treated as if the operation is bound, and therefore the sealed operation will be transformed.
-     * <p>
-     * Sealing is idempotent if the operation is already sealed.
-     *
-     * @throws IllegalStateException if this operation is bound.
-     */
-    public void seal() {
-        if (result == Result.SEALED_RESULT) {
-            return;
-        }
-        if (result != null) {
-            throw new IllegalStateException("Operation cannot be sealed since it bound to a parent block");
-        }
-        result = Result.SEALED_RESULT;
-    }
-
-    /**
-     * Returns {@code true} if this operation is sealed.
-     * @return {@code true} if this operation is sealed.
-     * @see #seal()
-    * */
-    public boolean isSealed() {
-        return result == Result.SEALED_RESULT;
     }
 }
