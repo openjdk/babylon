@@ -223,6 +223,7 @@ public abstract class OnnxOp extends Op {
     static final String ATTRIBUTE_OPTIONAL_INPUTS = "optional_inputs";
     static final String ATTRIBUTE_OPTIONAL_OUTPUTS = "optional_outputs";
 
+    final OnnxSchema schema;
     final Map<String, Object> onnxAttributes;
     final TypeElement resultType;
     final List<OnnxParameter> optionalInputArguments;
@@ -230,8 +231,9 @@ public abstract class OnnxOp extends Op {
 
     @SuppressWarnings("unchecked")
     OnnxOp(OnnxSchema schema, ExternalizedOp def) {
-        super(def.name(), def.operands());
+        super(def.operands());
 
+        this.schema = schema;
         this.onnxAttributes = schema.attributes().isEmpty()
                 ? Map.of()
                 : OnnxAttribute.process(def, schema.attributes());
@@ -257,6 +259,7 @@ public abstract class OnnxOp extends Op {
     OnnxOp(OnnxOp that, CopyContext cc) {
         super(that, cc);
 
+        this.schema = that.schema;
         this.onnxAttributes = Map.copyOf(that.onnxAttributes);
         this.resultType = that.resultType;
         this.optionalInputArguments = List.copyOf(that.optionalInputArguments);
@@ -267,8 +270,9 @@ public abstract class OnnxOp extends Op {
            Set<? extends OnnxParameter> optionalOutputParameters,
            List<Object> inputArguments,
            List<Object> attributeValues) {
-        super(schema.name(), concatValues(inputArguments));
+        super(concatValues(inputArguments));
 
+        this.schema = schema;
         this.resultType = resultType;
 
         // Optional output parameters
@@ -332,6 +336,11 @@ public abstract class OnnxOp extends Op {
     }
 
     @Override
+    public String externalizeOpName() {
+        return schema.name();
+    }
+
+    @Override
     public Map<String, Object> externalize() {
         HashMap<String, Object> m = new HashMap<>(onnxAttributes);
         if (!optionalInputArguments.isEmpty()) {
@@ -341,6 +350,10 @@ public abstract class OnnxOp extends Op {
             m.put(ATTRIBUTE_OPTIONAL_OUTPUTS, optionalOutputParameters);
         }
         return Collections.unmodifiableMap(m);
+    }
+
+    public OnnxSchema schema() {
+        return schema;
     }
 
     // @@@ Change to Map<OnnxAttribute, Object>

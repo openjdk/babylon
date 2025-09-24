@@ -137,10 +137,11 @@ public final class OnnxProtoBuilder {
         if (functions.size() > 1) imports.add(domain); // self domain import if additional functions
         for (var f : functions) {
             for (var op : f.body().entryBlock().ops()) { // auto import of op domains
-                if (op instanceof OnnxOp) {
-                    int di = op.opName().lastIndexOf('.');
+                if (op instanceof OnnxOp oop) {
+                    String name = oop.schema().name();
+                    int di = name.lastIndexOf('.');
                     if (di > 0) {
-                        String dn = op.opName().substring(0, di);
+                        String dn = name.substring(0, di);
                         if (!imports.contains(dn)) imports.add(dn);
                     }
                 }
@@ -263,14 +264,14 @@ public final class OnnxProtoBuilder {
             switch (op) {
                 case OnnxOps.If ifOp ->
                     opNodes.accept(node(
-                            ifOp.opName(),
+                            ifOp.schema().name(),
                             List.of(indexer.nameOf(ifOp.operands().getFirst())),
                             IntStream.range(0, ifOp.resultType() instanceof TupleType tt ? tt.componentTypes().size() : 1).mapToObj(o -> indexer.nameOf(ifOp.result(), o)).toList(),
                             java.util.Map.of(
                                     "then_branch", graph(domain, null, indexer, ifOp.thenBranch().entryBlock(), List.of(), 0),
                                     "else_branch", graph(domain, null, indexer, ifOp.elseBranch().entryBlock(), List.of(), 0))));
                 case OnnxOps.Loop loopOp -> {
-                    opNodes.accept(node(loopOp.opName(),
+                    opNodes.accept(node(loopOp.schema().name(),
                             expandTuples(indexer, loopOp.operands()),
                             IntStream.range(0, loopOp.resultType() instanceof TupleType tt ? tt.componentTypes().size() : 1).mapToObj(o -> indexer.nameOf(loopOp.result(), o)).toList(),
                             java.util.Map.of(
@@ -278,7 +279,7 @@ public final class OnnxProtoBuilder {
                 }
                 case OnnxOp onnxOp ->
                     opNodes.accept(node(
-                            onnxOp.opName(),
+                            onnxOp.schema().name(),
                             opInputNames(indexer, onnxOp.onnxInputs()),
                             IntStream.range(0, onnxOp.onnxOutputs().size()).mapToObj(o -> indexer.nameOf(onnxOp.result(), o)).toList(),
                             onnxOp.onnxAttributes()));

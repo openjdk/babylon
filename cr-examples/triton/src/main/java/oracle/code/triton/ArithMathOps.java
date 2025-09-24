@@ -37,29 +37,38 @@ import java.util.Map;
 public class ArithMathOps {
 
     static abstract class ArithMathOp extends Op {
+        final String opName;
         final TypeElement resultType;
 
         public ArithMathOp(ExternalizedOp def) {
-            super(def.name(), def.operands());;
+            super(def.operands());
 
+            this.opName = def.name();
             this.resultType = def.resultType();
         }
 
         ArithMathOp(ArithMathOp that, CopyContext cc) {
             super(that, cc);
 
+            this.opName = that.opName;
             this.resultType = that.resultType;
         }
 
         ArithMathOp(String name, TypeElement resultType, List<? extends Value> operands) {
-            super(name, operands);
+            super(operands);
 
+            this.opName = name;
             this.resultType = resultType;
         }
 
         @Override
         public TypeElement resultType() {
             return resultType;
+        }
+
+        @Override
+        public String externalizeOpName() {
+            return opName;
         }
     }
 
