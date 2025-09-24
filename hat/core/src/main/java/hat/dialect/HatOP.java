@@ -34,8 +34,8 @@ import java.util.List;
 
 public abstract class HatOP extends Op {
 
-    public HatOP(String name, List<Value> operands) {
-        super(name, operands);
+    public HatOP(List<Value> operands) {
+        super(operands);
     }
 
     protected HatOP(Op that, CopyContext cc) {

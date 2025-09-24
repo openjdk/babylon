@@ -33,8 +33,8 @@ public abstract class HatThreadOP extends HatOP {
 
     private final int dimension;
 
-    public HatThreadOP(String name, int dimension, List<Value> operands) {
-        super(name, operands);
+    public HatThreadOP(int dimension, List<Value> operands) {
+        super(operands);
         this.dimension = dimension;
     }
 

@@ -39,7 +39,7 @@ public class HatLocalSizeOp extends HatThreadOP {
     private static final String NAME = "GlobalThreadSize";
 
     public HatLocalSizeOp(int dimension, TypeElement resultType, List<Value> operands) {
-        super(NAME, dimension, operands);
+        super(dimension, operands);
         this.resultType = resultType;
     }
 

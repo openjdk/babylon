@@ -41,7 +41,7 @@ public class HatBarrierOp extends HatOP {
     public static final String INTRINSIC_NAME = "barrier";
 
     public HatBarrierOp(List<Value> operands) {
-        super(NAME, operands);
+        super(operands);
     }
 
     public HatBarrierOp(HatBarrierOp hatBarrierOp, CopyContext copyContext) {

@@ -43,7 +43,7 @@ public class HatLocalVarOp extends HatMemoryOp {
     private final TypeElement invokeResultType;
 
     public HatLocalVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType,  List<Value> operands) {
-        super("hat.memory.shared", varName, operands);
+        super(varName, operands);
         this.typeElement = typeElement;
         this.klassType = javaType;
         this.invokeResultType = invokeResultType;

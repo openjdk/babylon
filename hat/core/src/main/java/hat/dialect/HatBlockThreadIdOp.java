@@ -39,7 +39,7 @@ public class HatBlockThreadIdOp extends HatThreadOP {
     private static final String NAME = "BlockThreadId";
 
     public HatBlockThreadIdOp(int dimension, TypeElement resultType, List<Value> operands) {
-        super(NAME, dimension, operands);
+        super(dimension, operands);
         this.resultType = resultType;
     }
 

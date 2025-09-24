@@ -35,8 +35,8 @@ public abstract class HatMemoryOp extends HatOP {
 
     private final String varName;
 
-    public HatMemoryOp(String name, String varName, List<Value> operands) {
-        super(name, operands);
+    public HatMemoryOp(String varName, List<Value> operands) {
+        super(operands);
         this.varName = varName;
     }
 

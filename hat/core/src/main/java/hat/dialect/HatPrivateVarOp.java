@@ -44,7 +44,7 @@ public class HatPrivateVarOp extends HatMemoryOp {
     private final String varName;
 
     public HatPrivateVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
-        super("hat.memory.private", varName, operands);
+        super(varName, operands);
         this.varName = varName;
         this.typeElement = typeElement;
         this.klassType = javaType;
