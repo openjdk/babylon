@@ -30,6 +30,8 @@ import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
+import hat.optools.OpTk;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 
 import java.lang.foreign.Arena;
 import java.lang.reflect.InvocationTargetException;
@@ -51,8 +53,16 @@ public abstract class JavaBackend implements Backend {
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         try {
-            computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
-        } catch (IllegalAccessException | InvocationTargetException e) {
+            if (computeContext.computeCallGraph.entrypoint.lowered == null) {
+                computeContext.computeCallGraph.entrypoint.lowered =
+                        OpTk.lower(computeContext.computeCallGraph.entrypoint.funcOp());
+            }
+            if (computeContext.computeCallGraph.entrypoint.mh == null) {
+                computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered);
+            }
+            computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
+            // computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
+        } catch (Throwable e) {
             throw new RuntimeException(e);
         }
     }

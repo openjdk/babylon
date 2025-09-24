@@ -29,7 +29,10 @@ package hat.backend.java;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
+import hat.optools.OpTk;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
 
 
@@ -37,13 +40,19 @@ public class JavaSequentialBackend extends JavaBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
+        MethodHandle mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, OpTk.lower(kernelCallGraph.entrypoint.funcOp()));
         for (ndRange.kid.x = 0; ndRange.kid.x < ndRange.kid.maxX; ndRange.kid.x++) {
             try {
                 args[0] = ndRange.kid;
-                kernelEntrypoint.method.invoke(null, args);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
-            } catch (InvocationTargetException e) {
+                // System.out.println(kernelEntrypoint.method);
+                // System.out.println(kernelEntrypoint.funcOp());
+                // kernelEntrypoint.method.invoke(null, args);
+
+                // System.out.println(kernelCallGraph.entrypoint.funcOp());
+                // System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
+                mh.invokeWithArguments(args);
+
+            } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
 

@@ -35,6 +35,7 @@ import hat.dialect.HatThreadOP;
 import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 
 import java.lang.invoke.CallSite;
@@ -43,6 +44,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -84,78 +86,67 @@ public class OpTk {
         return op.operands().getFirst();
     }
 
-    // TODO: fix and add to all switch cases
-    public static boolean isBufferArray(Op op) {
-        // if (op.operands().isEmpty()) return false;
-        // while (!(op instanceof JavaOp.InvokeOp iop && iop.resultType() instanceof ArrayType)) {
-        //     if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
-        //         op = r.op();
-        //     } else {
-        //         return false;
-        //     }
-        // }
-        return (op instanceof CoreOp.VarOp) ? ((CoreOp.VarOp) op).varValueType() instanceof ArrayType : op.resultType() instanceof ArrayType;
+    public static boolean isBufferArray(MethodHandles.Lookup l, Op op) {
+        // first check if the return is an array type
+        if (op instanceof CoreOp.VarOp vop) {
+            if (!(vop.varValueType() instanceof ArrayType)) return false;
+        } else if (!(op instanceof JavaOp.ArrayAccessOp)){
+            if (!(op.resultType() instanceof ArrayType)) return false;
+        }
+
+        // then check if returned array is from a buffer access
+        while (!(op instanceof JavaOp.InvokeOp iop)) {
+            if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
+                op = r.op();
+            } else {
+                return false;
+            }
+        }
+
+        if (iop.invokeDescriptor().refType() instanceof JavaType javaType) {
+            return isAssignable(l, javaType, MappableIface.class);
+        }
+
+        return false;
     }
 
     public static CoreOp.FuncOp convertArrayView(MethodHandles.Lookup l, CoreOp.FuncOp entry) {
-        // gather vars created by all arrayView() calls
-        // replace everything that used to be ^^ with the buffer
-        // replacements/insertions/deletions:
-        // - delete arrayView() invokeOp and subsequent (two?) varOp/varLoadOps
-        // - replace arrayLoad/Store with convOp and array(long) invokeOp
-        //      - (need to remap(?) params for invoke)
-        // - replace subsequent varLoadOps on the array with the varLoadOp of the buffer param
-        //      - would be easier if we just used ssa,,,,,,,
-
         // maps a replaced result to the result it should be replaced by
-        // applies for .arrayView() iop and the subsequent varOp/varLoadOps
-        // i think everything else should just get remapped (????)
         Map<Op.Result, Op.Result> replaced = new HashMap<>();
-        // TODO: this is so hack-y i need a better way of doing it but this will suffice for now
         Map<CoreOp.VarOp, CoreOp.VarAccessOp.VarLoadOp> rVlops = new HashMap<>();
-
-
 
         return entry.transform(entry.funcName(), (bb, op) -> {
             switch (op) {
-                // only appears when we call .arrayView()
-                // in which case we delete the iop and remember to replace it with the param varLoad
                 case JavaOp.InvokeOp iop -> {
-                    if (isBufferArray(iop) && firstOperand(iop) instanceof Op.Result r) {
+                    if (isBufferArray(l, iop) &&
+                        firstOperand(iop) instanceof Op.Result r) { // ensures we can use iop as key for replaced vvv
                         replaced.put(iop.result(), r);
                         if (firstOperand(r.op()) instanceof Op.Result res &&
                             res.op() instanceof CoreOp.VarOp vop &&
                             r.op() instanceof CoreOp.VarAccessOp.VarLoadOp vlop) {
-                            rVlops.put(vop, vlop);
+                            rVlops.put(vop, vlop); // map buffer VarOp to its corresponding VarLoadOp
                         }
                         return bb;
-
                     }
                 }
-                // only appears after .arrayView()????
-                // same case as above but im not entirely sure
                 case CoreOp.VarOp vop -> {
-                    if (isBufferArray(vop) &&
+                    if (isBufferArray(l, vop) &&
                         firstOperand(vop) instanceof Op.Result r &&
-                        !(r.op() instanceof JavaOp.NewOp)) {
-                        Value replacement = firstOperand(replaced.get(r).op());
-                        if (replacement instanceof Op.Result res) {
-                            replaced.put(vop.result(), res);
-                            return bb;
-                        }
+                        !(r.op() instanceof JavaOp.NewOp) && // makes sure we don't process a new int[] for example
+                        replaced.get(r) instanceof Op.Result res && // gets the VarLoadOp associated w/ og buffer
+                        firstOperand(res.op()) instanceof Op.Result result) { // gets VarOp associated w/ og buffer
+                        replaced.put(vop.result(), result);
+                        return bb;
                     }
                 }
-                // also appears after .arrayView() but also before later array uses
-                // need to differentiate the two cases
-                // i.e. for .arrayView() vlop, need to track vlop to replace this vlop
-                // also track the vop that is the root of this vlop?
                 case CoreOp.VarAccessOp.VarLoadOp vlop -> {
-                    if (isBufferArray(vlop) &&
+                    if (isBufferArray(l, vlop) &&
                         firstOperand(vlop) instanceof Op.Result r) {
+                        // if this is the VarLoadOp after the .arrayView() InvokeOp
                         if (r.op() instanceof CoreOp.VarOp &&
                             replaced.get(r).op() instanceof CoreOp.VarOp rVop) {
                             replaced.put(vlop.result(), rVlops.get(rVop).result());
-                        } else {
+                        } else { // if this is a VarLoadOp loading in the buffer
                             Value loaded = bb.context().getValue(replaced.get(r));
                             CoreOp.VarAccessOp.VarLoadOp newVlop = CoreOp.VarAccessOp.varLoad(loaded);
                             replaced.put(vlop.result(), replaced.get(r));
@@ -164,60 +155,118 @@ public class OpTk {
                         return bb;
                     }
                 }
-                // use varLoadOp instead of arrayLoadOp for buffer access (first arg)
-                // make conv for idx (second arg)
-                // turn into .array(long) call
+                // handles only 1D and 2D arrays
                 case JavaOp.ArrayAccessOp.ArrayLoadOp alop -> {
-                    if (firstOperand(alop) instanceof Op.Result res) {
-                        Op.Result buffer = replaced.getOrDefault(res, res);
-                        JavaOp.ConvOp conv = JavaOp.conv(JavaType.LONG, bb.context().getValue(alop.operands().get(1)));
-                        Op.Result convRes = bb.op(conv);
-                        if (buffer.type() instanceof ClassType classType && alop.result() != null) {
-                            Class<?> c = (Class<?>) classTypeToTypeOrThrow(l, classType);
-                            Class<?> storedClass = primitiveTypeToClass(alop.result().type());
-                            MethodRef m = MethodRef.method(c, "array", storedClass, long.class);
-                            Op.Result invokeRes = bb.op(JavaOp.invoke(m, bb.context().getValue(buffer), convRes));
-                            bb.context().mapValue(alop.result(), invokeRes);
+                    if (isBufferArray(l, alop) &&
+                        firstOperand(alop) instanceof Op.Result r) {
+                        Op.Result buffer = replaced.getOrDefault(r, r);
+                        if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // TODO: why did i do this
+                            if (r.op() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp rowOp) {
+                                if (((ArrayType) rowOp.resultType()).dimensions() == 1) {
+                                    // idea: we want to calculate the idx for the buffer access
+                                    // idx = (long) (((long) rowOp.idx * (long) buffer.width()) + alop.idx)
+                                    Op.Result x = (Op.Result) rowOp.operands().getLast();
+                                    Op.Result y = (Op.Result) alop.operands().getLast();
+                                    Op.Result ogBufferLoad = replaced.get((Op.Result) firstOperand(rowOp));
+                                    Op.Result ogBuffer = replaced.getOrDefault((Op.Result) firstOperand(ogBufferLoad.op()), (Op.Result) firstOperand(ogBufferLoad.op()));
+                                    Op.Result bufferLoad = bb.op(CoreOp.VarAccessOp.varLoad(bb.context().getValue(ogBuffer)));
+                                    Class<?> c = (Class<?>) classTypeToTypeOrThrow(l, (ClassType) ((VarType) ogBuffer.type()).valueType());
+                                    MethodRef m = MethodRef.method(c, "width", int.class);
+                                    Op.Result width = bb.op(JavaOp.invoke(m, bb.context().getValueOrDefault(bufferLoad, bufferLoad)));
+                                    Op.Result longX = bb.op(JavaOp.conv(JavaType.LONG, bb.context().getValueOrDefault(x, x)));
+                                    Op.Result longY = bb.op(JavaOp.conv(JavaType.LONG, bb.context().getValueOrDefault(y, y)));
+                                    Op.Result longWidth = bb.op(JavaOp.conv(JavaType.LONG, bb.context().getValueOrDefault(width, width)));
+                                    Op.Result mul = bb.op(JavaOp.mul(bb.context().getValueOrDefault(longY, longY), bb.context().getValueOrDefault(longWidth, longWidth)));
+                                    Op.Result idx = bb.op(JavaOp.add(bb.context().getValueOrDefault(longX, longX), bb.context().getValueOrDefault(mul, mul)));
+
+                                    Class<?> storedClass = primitiveTypeToClass(alop.result().type());
+                                    MethodRef arrayMethod = MethodRef.method(c, "array", storedClass, long.class);
+                                    Op.Result invokeRes = bb.op(JavaOp.invoke(arrayMethod, bb.context().getValueOrDefault(ogBufferLoad, ogBufferLoad), bb.context().getValueOrDefault(idx, idx)));
+                                    bb.context().mapValue(alop.result(), invokeRes);
+                                }
+                            } else {
+                                JavaOp.ConvOp conv = JavaOp.conv(JavaType.LONG, bb.context().getValue(alop.operands().get(1)));
+                                Op.Result convRes = bb.op(conv);
+                                if (buffer.type() instanceof ClassType classType && alop.result() != null) {
+                                    Class<?> c = (Class<?>) classTypeToTypeOrThrow(l, classType);
+                                    Class<?> storedClass = primitiveTypeToClass(alop.result().type());
+                                    MethodRef m = MethodRef.method(c, "array", storedClass, long.class);
+                                    Op.Result invokeRes = bb.op(JavaOp.invoke(m, bb.context().getValue(buffer), convRes));
+                                    bb.context().mapValue(alop.result(), invokeRes);
+                                }
+                            }
                         }
+                        return bb;
                     }
-                    return bb;
                 }
-                // use varLoadOp instead of arrayLoadOp for buffer access (first arg)
-                // make conv for idx (second arg)
-                // third arg doesnt need to change
-                // turn into .array(long, int) call
+                // handles only 1D and 2D arrays
                 case JavaOp.ArrayAccessOp.ArrayStoreOp asop -> {
-                    if (firstOperand(asop) instanceof Op.Result res) {
-                        Op.Result buffer = replaced.getOrDefault(res, res);
-                        Op.Result idx = bb.op(JavaOp.conv(JavaType.LONG, bb.context().getValue(asop.operands().get(1))));
-                        Value val = bb.context().getValue(asop.operands().getLast());
+                    if (isBufferArray(l, asop) &&
+                        firstOperand(asop) instanceof Op.Result r) {
+                        Op.Result buffer = replaced.getOrDefault(r, r);
+                        if (((ArrayType) firstOperand(op).type()).dimensions() == 1) { // TODO: why did i do this
+                            if (r.op() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp rowOp) {
+                                if (((ArrayType) rowOp.resultType()).dimensions() == 1) {
+                                    Op.Result x = (Op.Result) rowOp.operands().getLast();
+                                    Op.Result y = (Op.Result) asop.operands().get(1);
+                                    Op.Result ogBufferLoad = replaced.get((Op.Result) firstOperand(rowOp));
+                                    Op.Result ogBuffer = replaced.getOrDefault((Op.Result) firstOperand(ogBufferLoad.op()), (Op.Result) firstOperand(ogBufferLoad.op()));
+                                    Op.Result bufferLoad = bb.op(CoreOp.VarAccessOp.varLoad(bb.context().getValue(ogBuffer)));
+                                    Op.Result computed = (Op.Result) asop.operands().getLast();
 
-                        TypeElement type;
-                        boolean noRootVlop = false;
-                        if (buffer.op() instanceof CoreOp.VarOp vop) {
-                            type = vop.varValueType();
-                            noRootVlop = true;
-                        } else {
-                            type = buffer.type();
-                        }
+                                    Class<?> c = (Class<?>) classTypeToTypeOrThrow(l, (ClassType) ((VarType) ogBuffer.type()).valueType());
+                                    MethodRef m = MethodRef.method(c, "width", int.class);
+                                    Op.Result width = bb.op(JavaOp.invoke(m, bb.context().getValueOrDefault(bufferLoad, bufferLoad)));
+                                    Op.Result longX = bb.op(JavaOp.conv(JavaType.LONG, bb.context().getValueOrDefault(x, x)));
+                                    Op.Result longY = bb.op(JavaOp.conv(JavaType.LONG, bb.context().getValueOrDefault(y, y)));
+                                    Op.Result longWidth = bb.op(JavaOp.conv(JavaType.LONG, bb.context().getValueOrDefault(width, width)));
+                                    Op.Result mul = bb.op(JavaOp.mul(bb.context().getValueOrDefault(longY, longY), bb.context().getValueOrDefault(longWidth, longWidth)));
+                                    Op.Result idx = bb.op(JavaOp.add(bb.context().getValueOrDefault(longX, longX), bb.context().getValueOrDefault(mul, mul)));
 
-                        if (type instanceof ClassType classType) {
-                            Class<?> c = (Class<?>) classTypeToTypeOrThrow(l, classType);
-                            Class<?> storedClass = primitiveTypeToClass(val.type());
-                            MethodRef m = MethodRef.method(c, "array", void.class, long.class, storedClass);
-                            Op.Result invokeRes = (noRootVlop) ?
-                                    bb.op(JavaOp.invoke(m, bb.context().getValue(res), idx, val)) :
-                                    bb.op(JavaOp.invoke(m, bb.context().getValue(buffer), idx, val));
-                            bb.context().mapValue(asop.result(), invokeRes);
+                                    MethodRef arrayMethod = MethodRef.method(c, "array", void.class, long.class, int.class);
+                                    Op.Result invokeRes = bb.op(JavaOp.invoke(arrayMethod, bb.context().getValueOrDefault(ogBufferLoad, ogBufferLoad), bb.context().getValueOrDefault(idx, idx), bb.context().getValueOrDefault(computed, computed)));
+                                    bb.context().mapValue(asop.result(), invokeRes);
+                                }
+                            } else {
+                                Op.Result idx = bb.op(JavaOp.conv(JavaType.LONG, bb.context().getValue(asop.operands().get(1))));
+                                Value val = bb.context().getValue(asop.operands().getLast());
+
+                                TypeElement type;
+                                boolean noRootVlop = false;
+                                if (buffer.op() instanceof CoreOp.VarOp vop) {
+                                    type = vop.varValueType();
+                                    noRootVlop = true;
+                                } else {
+                                    type = buffer.type();
+                                }
+
+                                if (type instanceof ClassType classType) {
+                                    Class<?> c = (Class<?>) classTypeToTypeOrThrow(l, classType);
+                                    Class<?> storedClass = primitiveTypeToClass(val.type());
+                                    MethodRef m = MethodRef.method(c, "array", void.class, long.class, storedClass);
+                                    Op.Result invokeRes = (noRootVlop) ?
+                                            bb.op(JavaOp.invoke(m, bb.context().getValue(r), idx, val)) :
+                                            bb.op(JavaOp.invoke(m, bb.context().getValue(buffer), idx, val));
+                                    bb.context().mapValue(asop.result(), invokeRes);
+                                }
+                            }
                         }
+                        return bb;
                     }
-                    return bb;
                 }
                 default -> {}
             }
             bb.op(op);
             return bb;
         });
+    }
+
+    public static boolean isArrayView(MethodHandles.Lookup l, CoreOp.FuncOp entry) {
+        return entry.elements().anyMatch((element) -> (
+                element instanceof JavaOp.InvokeOp iop &&
+                iop.resultType() instanceof ArrayType &&
+                iop.invokeDescriptor().refType() instanceof JavaType javaType &&
+                isAssignable(l, javaType, MappableIface.class)));
     }
 
     public static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup l,
@@ -234,6 +283,16 @@ public class OpTk {
             ke.funcOp(modEntry);
         }
 
+        // TODO: figure out why no worky
+        // CoreOp.FuncOp modEntry = entry;
+        // if (isArrayView(l, entry)) {
+        //     System.out.println("arrayview used!");
+        //     modEntry = convertArrayView(l, entry);
+        //     if (callGraph.entrypoint instanceof KernelEntrypoint ke && entry.equals(ke.funcOp())) {
+        //         ke.funcOp(modEntry);
+        //     }
+        // }
+
         modEntry.traverse(null, (map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
@@ -249,6 +308,21 @@ public class OpTk {
             }
             return map;
         });
+
+        // modEntry.elements().filter(elem -> elem instanceof JavaOp.InvokeOp)
+        //         .forEach(elem -> {
+        //             JavaOp.InvokeOp iop = (JavaOp.InvokeOp) elem;
+        //             Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, iop);
+        //             try {
+        //                 var method = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
+        //                 CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
+        //                 if (f != null && !callGraph.filterCalls(f, iop, method, iop.invokeDescriptor(), javaRefTypeClass)) {
+        //                     work.push(new RefAndFunc(iop.invokeDescriptor(), f));
+        //                 }
+        //             } catch (ReflectiveOperationException _) {
+        //                 throw new IllegalStateException("Could not resolve invokeWrapper to method");
+        //             }
+        //         });
 
         while (!work.isEmpty()) {
             RefAndFunc rf = work.pop();
@@ -280,10 +354,20 @@ public class OpTk {
                 blockBuilder.op(op);
                 return blockBuilder;
             });
+
             CoreOp.FuncOp modded = convertArrayView(l, tf);
             if (callGraph.entrypoint instanceof KernelEntrypoint ke && entry.equals(ke.funcOp())) {
                 ke.funcOp(modded);
             }
+
+            // CoreOp.FuncOp modded = tf;
+            // if (isArrayView(l, modded)) {
+            //     System.out.println("arrayview used!");
+            //     modded = convertArrayView(l, tf);
+            //     if (callGraph.entrypoint instanceof KernelEntrypoint ke && entry.equals(ke.funcOp())) {
+            //         ke.funcOp(modded);
+            //     }
+            // }
             funcs.addFirst(modded);
         }
 

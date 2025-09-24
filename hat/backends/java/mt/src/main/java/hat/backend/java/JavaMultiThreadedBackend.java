@@ -30,7 +30,10 @@ import hat.KernelContext;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
+import hat.optools.OpTk;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
@@ -40,15 +43,16 @@ public class JavaMultiThreadedBackend extends JavaBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
+        MethodHandle mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, OpTk.lower(kernelCallGraph.entrypoint.funcOp()));
         instance(ndRange.accelerator).forEachInRange(ndRange, (range) -> {
             Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
             try {
                 KernelContext c = range.kid;
                 a[0] = c;
-                kernelEntrypoint.method.invoke(null, a);
+                mh.invokeWithArguments(a);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
-            } catch (InvocationTargetException e) {
+            } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
 
