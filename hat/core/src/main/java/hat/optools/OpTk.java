@@ -47,6 +47,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -345,18 +346,7 @@ public class OpTk {
         };
     }
     public static boolean needsParenthesis(Op parent, Op child) {
-        int parentValue = OpTk.precedenceOf(parent);
-        int childValue = OpTk.precedenceOf(child);
-        if (parentValue < childValue) {
-            return true;
-        } else if (parentValue == childValue) {
-            // Check there is no dependency with another operation
-            // If so, we need to generate a parenthesis
-            Set<Value> dependencies = parent.result().dependsOn();
-            Op.Result childResult = child.result();
-            return dependencies.contains(childResult);
-        }
-        return false;
+        return OpTk.precedenceOf(parent) <= OpTk.precedenceOf(child);
     }
 
     public static Op.Result lhsResult(JavaOp.BinaryOp binaryOp){
