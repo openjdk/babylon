@@ -24,7 +24,7 @@
  */
 package hat.codebuilders;
 
-import com.sun.jdi.event.ClassPrepareEvent;
+import hat.dialect.HatMemoryOp;
 import hat.optools.FuncOpParams;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -46,10 +46,15 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
             this.op = op;
         }
 
-        public CoreOp.VarOp resolve(Value value) {
+        public Op resolve(Value value) {
             if (value instanceof Op.Result result && result.op() instanceof CoreOp.VarOp varOp) {
                 return varOp;
             }
+
+            if (value instanceof Op.Result result && result.op() instanceof HatMemoryOp hatMemoryOp) {
+                return hatMemoryOp;
+            }
+
             if (parent != null) {
                 return parent.resolve(value);
             }
@@ -65,7 +70,7 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
         }
 
         @Override
-        public CoreOp.VarOp resolve(Value value) {
+        public Op resolve(Value value) {
             if (value instanceof Block.Parameter blockParameter) {
                 if (paramTable.parameterVarOpMap.containsKey(blockParameter)) {
                     return paramTable.parameterVarOpMap.get(blockParameter);
@@ -179,9 +184,8 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
             }
         }
 
-
         @Override
-        public CoreOp.VarOp resolve(Value value) {
+        public Op resolve(Value value) {
             if (value instanceof Block.Parameter blockParameter) {
                 CoreOp.VarOp varOp = this.blockParamToVarOpMap.get(blockParameter);
                 if (varOp != null) {

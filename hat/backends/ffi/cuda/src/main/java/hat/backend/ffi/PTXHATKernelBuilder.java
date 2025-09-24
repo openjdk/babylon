@@ -24,6 +24,7 @@
  */
 package hat.backend.ffi;
 
+import hat.dialect.HatOP;
 import hat.ifacemapper.BoundSchema;
 import hat.optools.*;
 import hat.codebuilders.CodeBuilder;
@@ -163,7 +164,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         cbrace();
     }
 
-    public static class PTXPtrOp extends Op {
+    public static class PTXPtrOp extends HatOP {
         public String fieldName;
         public static final String NAME = "ptxPtr";
         final TypeElement resultType;
