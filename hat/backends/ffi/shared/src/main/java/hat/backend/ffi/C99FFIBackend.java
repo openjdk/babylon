@@ -41,6 +41,7 @@ import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
+import hat.phases.HatFinalDetectionPhase;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 
@@ -225,11 +226,13 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
         }
 
-        kernelCallGraph.analyseFinalValues();
+        // Phase to detect finals
+        HatFinalDetectionPhase hatFinalDetectionPhase = new HatFinalDetectionPhase();
+        hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
 
         ScopedCodeBuilderContext buildContext =
                 new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
-                        kernelCallGraph.entrypoint.funcOp(), kernelCallGraph.finalVarOps());
+                        kernelCallGraph.entrypoint.funcOp(), hatFinalDetectionPhase.getFinalVars());
 
         // Sorting by rank ensures we don't need forward declarations
         if (CallGraph.noModuleOp) {
