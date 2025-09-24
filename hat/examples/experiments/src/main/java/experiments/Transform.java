@@ -65,25 +65,30 @@ public class Transform {
         }
 
         public static abstract class MyOp extends Op {
+            private final String opName;
             private final TypeElement type;
 
             MyOp(String opName) {
-                super(opName, List.of());
+                super(List.of());
+                this.opName = opName;
                 this.type = FUNCTION_TYPE_VOID;
             }
 
             MyOp(String opName, TypeElement type, List<Value> operands) {
-                super(opName, operands);
+                super(operands);
+                this.opName = opName;
                 this.type = type;
             }
 
             MyOp(String opName, TypeElement type, List<Value> operands, Map<String, Object> attributes) {
-                super(opName, operands);
+                super(operands);
+                this.opName = opName;
                 this.type = type;
             }
 
             MyOp(MyOp that, CopyContext cc) {
                 super(that, cc);
+                this.opName = that.opName;
                 this.type = that.type;
             }
 

@@ -85,7 +85,7 @@ public record ExternalizedOp(String name,
      */
     public static ExternalizedOp externalizeOp(CopyContext cc, Op op) {
         return new ExternalizedOp(
-                op.opName(),
+                op.externalizeOpName(),
                 op.location(),
                 cc.getValues(op.operands()),
                 op.successors().stream().map(cc::getSuccessorOrCreate).toList(),

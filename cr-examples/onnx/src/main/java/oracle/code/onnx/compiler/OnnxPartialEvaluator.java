@@ -218,7 +218,7 @@ final class OnnxPartialEvaluator {
             try {
                 for (int i = 0; i < nops - 1; i++) {
                     Op op = bc.b.ops().get(i);
-                    assert !(op instanceof Op.Terminating) : op.opName();
+                    assert !(op instanceof Op.Terminating) : op;
 
                     Object result = interpretOp(l, oc, op);
                     if (result != null) {
@@ -262,7 +262,7 @@ final class OnnxPartialEvaluator {
                 return;
             } else {
                 throw interpreterException(
-                        new UnsupportedOperationException("Unsupported terminating operation: " + to.opName()));
+                        new UnsupportedOperationException("Unsupported terminating operation: " + to));
             }
         }
     }
@@ -460,17 +460,17 @@ final class OnnxPartialEvaluator {
                 return null;
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
-                MethodHandle mh = opHandle(l, o.opName(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.TestOperation testOperation -> {
-                MethodHandle mh = opHandle(l, o.opName(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
-                MethodHandle mh = opHandle(l, o.opName() + "_" + o.opType().returnType(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();
                 return invoke(mh, values);
             }
@@ -491,7 +491,7 @@ final class OnnxPartialEvaluator {
                 return null;
             }
             case null, default -> throw interpreterException(
-                    new UnsupportedOperationException("Unsupported operation: " + o.opName()));
+                    new UnsupportedOperationException("Unsupported operation: " + o));
         }
     }
 

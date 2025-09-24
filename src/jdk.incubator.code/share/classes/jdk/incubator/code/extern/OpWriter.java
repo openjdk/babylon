@@ -413,7 +413,7 @@ public final class OpWriter {
                 write(" = ");
             }
         }
-        write(op.opName());
+        write(op.externalizeOpName());
 
         if (!op.operands().isEmpty()) {
             write(" ");
