@@ -90,7 +90,7 @@ read_config_file() {
     case "$key" in
       "SERVERS") SERVERS="$value" ;;
       "REMOTE_USERS") REMOTE_USERS="$value" ;;
-      "BACKENDS") BACKENDS=$value ;;
+      "BACKENDS") BACKENDS=($value) ;;
       "REMOTE_PATH") REMOTE_PATH="$value" ;;
       "BRANCH") BRANCH="$value" ;;
       "FORK") FORK="$value" ;;
@@ -130,7 +130,7 @@ read_config_file() {
   echo
   echo "Servers    : $SERVERS"
   echo "Users      : $REMOTE_USERS"
-  echo "Backends   : $BACKENDS"
+  echo "Backends   : ${BACKENDS[@]}"
   echo "Remote Path: $REMOTE_PATH"
   echo "Fork       : $FORK"
   echo "Branch     : $BRANCH"
@@ -138,12 +138,6 @@ read_config_file() {
 
   read -ra listOfServers <<< $SERVERS
   read -ra listOfUsers <<< $REMOTE_USERS
-
-  for backend in $BACKENDS
-  do
-    echo $backend > /dev/null
-  done
-
 }
 
 build_babylon() {
@@ -163,11 +157,11 @@ if [ ! -d $REMOTE_PATH ];
 then 
   mkdir -p \$(dirname $REMOTE_PATH)
   cd \$(dirname $REMOTE_PATH)
-  git clone $FORK babylon
+  git clone $FORK \$(basename $REMOTE_PATH)
 fi
 
 #Assuming the remote path ends with babylon
-cd "$REMOTE_PATH"
+cd $REMOTE_PATH
 git checkout $BRANCH
 git pull
 
@@ -176,7 +170,7 @@ bash configure --with-boot-jdk="\$HOME/.sdkman/candidates/java/current" > jvmcon
 make clean
 make images > jvmbuild.log
 
-## Build HAT
+## Build HAT 
 cd hat 
 if [ ! -d jextract-22 ];
 then
@@ -195,7 +189,6 @@ fi
 source setup.sh
 java @hat/clean 
 java @hat/bld > hatCompilation.log
-echo "✅ Babylon/HAT Built"
 EOF
 done
 
@@ -212,7 +205,9 @@ server=${listOfServers[$index]}
 user=${listOfUsers[$index]}
 
 echo "ssh $user@$server"
-ssh $user@$server << EOF
+backend_definition=$(typeset -p BACKENDS)
+ssh $user@$server bash << EOF
+$backend_definition
 cd "$REMOTE_PATH"
 cd hat/
 git checkout $BRANCH
@@ -224,20 +219,19 @@ java @hat/clean
 java @hat/bld > compilation.log
 
 # run the test suite per backend
-for backend in $BACKENDS
+for backend in "\${BACKENDS[@]}"
 do
-echo "[running] java @hat/test suite $backend  > $backend.txt"
-java @hat/test suite $backend  > $backend.txt
+echo "[running] java @hat/test suite "\$backend"  > "\$backend".txt"
+java @hat/test suite "\$backend"  > "\$backend".txt
 done
 
 # Print logs
-for backend in $BACKENDS
+for backend in "\${BACKENDS[@]}"
 do
-cat $backend.txt
+cat "\$backend".txt
 done
 EOF
 done
-
 }
 
 while [[ $# -gt 0 ]]; do
