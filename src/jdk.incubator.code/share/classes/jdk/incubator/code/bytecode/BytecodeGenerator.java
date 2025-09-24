@@ -1149,17 +1149,17 @@ public final class BytecodeGenerator {
                         case LtOp _ -> Opcode.IFGE;
                         case LeOp _ -> Opcode.IFGT;
                         default ->
-                            throw new UnsupportedOperationException(op.opName() + " on int");
+                            throw new UnsupportedOperationException(op + " on int");
                     };
                 case REFERENCE ->
                     switch (op) {
                         case EqOp _ -> Opcode.IFNONNULL;
                         case NeqOp _ -> Opcode.IFNULL;
                         default ->
-                            throw new UnsupportedOperationException(op.opName() + " on Object");
+                            throw new UnsupportedOperationException(op + " on Object");
                     };
                 default ->
-                    throw new UnsupportedOperationException(op.opName() + " on " + op.operands().get(0).type());
+                    throw new UnsupportedOperationException(op + " on " + op.operands().get(0).type());
             };
         }
         processOperand(secondOperand);
@@ -1173,14 +1173,14 @@ public final class BytecodeGenerator {
                     case LtOp _ -> Opcode.IF_ICMPGE;
                     case LeOp _ -> Opcode.IF_ICMPGT;
                     default ->
-                        throw new UnsupportedOperationException(op.opName() + " on int");
+                        throw new UnsupportedOperationException(op + " on int");
                 };
             case REFERENCE ->
                 switch (op) {
                     case EqOp _ -> Opcode.IF_ACMPNE;
                     case NeqOp _ -> Opcode.IF_ACMPEQ;
                     default ->
-                        throw new UnsupportedOperationException(op.opName() + " on Object");
+                        throw new UnsupportedOperationException(op + " on Object");
                 };
             case FLOAT -> {
                 cob.fcmpg(); // FCMPL?
@@ -1195,7 +1195,7 @@ public final class BytecodeGenerator {
                 yield reverseIfOpcode(op);
             }
             default ->
-                throw new UnsupportedOperationException(op.opName() + " on " + op.operands().get(0).type());
+                throw new UnsupportedOperationException(op + " on " + op.operands().get(0).type());
         };
     }
 
@@ -1222,7 +1222,7 @@ public final class BytecodeGenerator {
             case LtOp _ -> Opcode.IFGE;
             case LeOp _ -> Opcode.IFGT;
             default ->
-                throw new UnsupportedOperationException(op.opName());
+                throw new UnsupportedOperationException(op.toString());
         };
     }
 
