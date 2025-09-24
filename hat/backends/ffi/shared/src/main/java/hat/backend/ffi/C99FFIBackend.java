@@ -44,6 +44,7 @@ import hat.optools.OpTk;
 import hat.phases.HatFinalDetectionPhase;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
@@ -226,39 +227,46 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
         }
 
-        // Phase to detect finals
-        HatFinalDetectionPhase hatFinalDetectionPhase = new HatFinalDetectionPhase();
-        hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
-
         ScopedCodeBuilderContext buildContext =
                 new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
-                        kernelCallGraph.entrypoint.funcOp(), hatFinalDetectionPhase.getFinalVars());
+                        kernelCallGraph.entrypoint.funcOp());
 
         // Sorting by rank ensures we don't need forward declarations
         if (CallGraph.noModuleOp) {
-            System.out.println("NOT using ModuleOp for C99FFIBackend");
+            IO.println("NOT using ModuleOp for C99FFIBackend");
             kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
-                    .forEach(kernelReachableResolvedMethod ->
-                            builder
-                                    .nl()
-                                    .kernelMethod(buildContext,kernelReachableResolvedMethod.funcOp())
-                                    .nl());
+                    .forEach(kernelReachableResolvedMethod -> {
+                                HatFinalDetectionPhase finals = new HatFinalDetectionPhase();
+                                finals.apply(kernelReachableResolvedMethod.funcOp());
+                                // Update the build context for this method to use the right constants-map
+                                buildContext.setFinals(finals.getFinalVars());
+                                builder.nl().kernelMethod(buildContext, kernelReachableResolvedMethod.funcOp()).nl();
+                    });
         } else {
-          System.out.println("Using ModuleOp for C99FFIBackend");
+            IO.println("Using ModuleOp for C99FFIBackend");
             kernelCallGraph.moduleOp.functionTable()
-                    .forEach((_, funcOp) -> builder
-                            .nl()
-                            .kernelMethod(buildContext,funcOp)
-                            .nl());
+                    .forEach((_, funcOp) -> {
+
+                        HatFinalDetectionPhase finals = new HatFinalDetectionPhase();
+                        finals.apply(funcOp);
+
+                        // Update the build context for this method to use the right constants-map
+                        buildContext.setFinals(finals.getFinalVars());
+                        builder.nl().kernelMethod(buildContext, funcOp).nl();
+                    });
         }
 
+        // Update the constants-map for the main kernel
+        HatFinalDetectionPhase hatFinalDetectionPhase = new HatFinalDetectionPhase();
+        hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
+        buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
         builder.nl().kernelEntrypoint(buildContext, args).nl();
 
         if (config.isSHOW_KERNEL_MODEL()) {
-            System.out.println("Original");
-            System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
-            System.out.println("Lowered");
-            System.out.println(OpTk.lower(kernelCallGraph.entrypoint.funcOp()).toText());
+            IO.println("Original");
+            IO.println(kernelCallGraph.entrypoint.funcOp().toText());
+            IO.println("Lowered");
+            IO.println(OpTk.lower(kernelCallGraph.entrypoint.funcOp()).toText());
         }
         return builder.toString();
     }
