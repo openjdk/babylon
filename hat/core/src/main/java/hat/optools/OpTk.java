@@ -53,7 +53,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class OpTk {
@@ -345,7 +344,7 @@ public class OpTk {
         };
     }
     public static boolean needsParenthesis(Op parent, Op child) {
-        return OpTk.precedenceOf(parent) < OpTk.precedenceOf(child);
+        return OpTk.precedenceOf(parent) <= OpTk.precedenceOf(child);
     }
 
     public static Op.Result lhsResult(JavaOp.BinaryOp binaryOp){
