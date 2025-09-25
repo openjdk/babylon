@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,28 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package hat.phases;
 
-import hat.optools.FuncOpParams;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.invoke.MethodHandles;
-import java.util.HashMap;
-import java.util.Map;
-
-public class CodeBuilderContext {
-
-    final public MethodHandles.Lookup lookup;
-    final public CoreOp.FuncOp funcOp;
-    final public FuncOpParams paramTable;
-
-    public CodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        this.lookup = lookup;
-        this.funcOp = funcOp;
-        this.paramTable = new FuncOpParams(funcOp);
-    }
+public interface HatPhase {
+    CoreOp.FuncOp apply(CoreOp.FuncOp funcOp);
 }

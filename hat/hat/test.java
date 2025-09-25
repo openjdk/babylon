@@ -170,7 +170,8 @@ void main(String[] argv) {
                 "oracle.code.hat.TestLocal",
                 "oracle.code.hat.TestReductions",
                 "oracle.code.hat.TestPrivate",
-                "oracle.code.hat.TestParenthesis"
+                "oracle.code.hat.TestParenthesis",
+                "oracle.code.hat.TestConstants"
         };
 
         // Test the whole suite
