@@ -52,6 +52,7 @@ public class HatDilectifyThreadsPhase implements HatDialectifyPhase {
 
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
+        // IO.println("[INFO] Code model before HatDilectifyThreadsPhase: " + funcOp.toText());
         Stream<CodeElement<?, ?>> elements = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
@@ -107,14 +108,17 @@ public class HatDilectifyThreadsPhase implements HatDialectifyPhase {
                             case BLOCK_ID -> new HatBlockThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
                         };
                         Op.Result threadResult = blockBuilder.op(threadOP);
+
+                        // update location
+                        threadOP.setLocation(fieldLoadOp.location());
+
                         context.mapValue(fieldLoadOp.result(), threadResult);
                     }
                 }
             }
             return blockBuilder;
         });
-        //IO.println("[INFO] Code model: " + funcOp.toText());
-        //entrypoint.funcOp(funcOp);
+        // IO.println("[INFO] Code model after HatDilectifyThreadsPhase: " + funcOp.toText());
         return funcOp;
     }
 
