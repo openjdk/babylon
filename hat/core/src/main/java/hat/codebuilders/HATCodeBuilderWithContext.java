@@ -36,6 +36,8 @@ import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
 import hat.util.StreamMutable;
 
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -78,6 +80,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public record LocalArrayDeclaration(ClassType classType, HatMemoryOp varOp) {}
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
+        if (buildContext.isVarOpFinal(varOp)) {
+            constKeyword().space();
+        }
         type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
         parenthesisIfNeeded(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
     }
