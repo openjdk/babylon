@@ -38,8 +38,8 @@ public class HatBlockThreadIdOp extends HatThreadOP {
     private final TypeElement resultType;
     private static final String NAME = "BlockThreadId";
 
-    public HatBlockThreadIdOp(int dimension, TypeElement resultType, List<Value> operands) {
-        super(dimension, operands);
+    public HatBlockThreadIdOp(int dimension, TypeElement resultType) {
+        super(dimension, List.of());
         this.resultType = resultType;
     }
 

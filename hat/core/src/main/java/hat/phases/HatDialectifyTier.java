@@ -44,8 +44,8 @@ public class HatDialectifyTier {
             hatPhases.add(new HatDialectifyMemoryPhase(space, lookup));
             hatPhases.add(new HatDialectifyMemoryPhase(space, lookup));
         }
-        for (HatDilectifyThreadsPhase.ThreadAccess threadAccess: HatDilectifyThreadsPhase.ThreadAccess.values()) {
-            hatPhases.add(new HatDilectifyThreadsPhase(threadAccess));
+        for (HatDialectifyThreadsPhase.ThreadAccess threadAccess: HatDialectifyThreadsPhase.ThreadAccess.values()) {
+            hatPhases.add(new HatDialectifyThreadsPhase(threadAccess));
         }
     }
 

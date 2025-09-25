@@ -171,6 +171,7 @@ void main(String[] argv) {
                 "oracle.code.hat.TestReductions",
                 "oracle.code.hat.TestPrivate",
                 "oracle.code.hat.TestParenthesis",
+                "oracle.code.hat.TestConstants",
                 "oracle.code.hat.TestArrayView"
         };
 

@@ -42,16 +42,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HatDilectifyThreadsPhase implements HatDialectifyPhase {
+public class HatDialectifyThreadsPhase implements HatDialectifyPhase {
 
     private final ThreadAccess threadAccess;
 
-    public HatDilectifyThreadsPhase(ThreadAccess threadAccess) {
+    public HatDialectifyThreadsPhase(ThreadAccess threadAccess) {
         this.threadAccess =  threadAccess;
     }
 
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
+        // IO.println("[INFO] Code model before HatDialectifyThreadsPhase: " + funcOp.toText());
         Stream<CodeElement<?, ?>> elements = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
@@ -100,21 +101,24 @@ public class HatDilectifyThreadsPhase implements HatDialectifyPhase {
                             throw new IllegalStateException("Thread Access can't be below 0!");
                         }
                         HatThreadOP threadOP = switch (threadAccess) {
-                            case GLOBAL_ID -> new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case GLOBAL_SIZE -> new HatGlobalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case LOCAL_ID -> new HatLocalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case LOCAL_SIZE -> new HatLocalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case BLOCK_ID -> new HatBlockThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case GLOBAL_ID -> new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType());
+                            case GLOBAL_SIZE -> new HatGlobalSizeOp(dim, fieldLoadOp.resultType());
+                            case LOCAL_ID -> new HatLocalThreadIdOp(dim, fieldLoadOp.resultType());
+                            case LOCAL_SIZE -> new HatLocalSizeOp(dim, fieldLoadOp.resultType());
+                            case BLOCK_ID -> new HatBlockThreadIdOp(dim, fieldLoadOp.resultType());
                         };
                         Op.Result threadResult = blockBuilder.op(threadOP);
+
+                        // update location
+                        threadOP.setLocation(fieldLoadOp.location());
+
                         context.mapValue(fieldLoadOp.result(), threadResult);
                     }
                 }
             }
             return blockBuilder;
         });
-        //IO.println("[INFO] Code model: " + funcOp.toText());
-        //entrypoint.funcOp(funcOp);
+        // IO.println("[INFO] Code model after HatDialectifyThreadsPhase: " + funcOp.toText());
         return funcOp;
     }
 
