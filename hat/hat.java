@@ -215,7 +215,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                            Stream.of( "Arrays", "MatMul", "Mandel",
                                            "Local", "Reductions",
                                            "Private", "Parenthesis",
-                                           "Constants", "Blackscholes")
+                                           "Constants", "Blackscholes",
+                                           "Nbody")
                               .map(s->"oracle.code.hat.Test" + s)
                               .forEach(suite->{
                                  tests.run("oracle.code.hat.engine.HatTestEngine",

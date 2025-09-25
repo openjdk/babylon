@@ -172,7 +172,8 @@ void main(String[] argv) {
                 "oracle.code.hat.TestPrivate",
                 "oracle.code.hat.TestParenthesis",
                 "oracle.code.hat.TestConstants",
-                "oracle.code.hat.TestBlackscholes"
+                "oracle.code.hat.TestBlackscholes",
+                "oracle.code.hat.TestNbody"
         };
 
         // Test the whole suite
