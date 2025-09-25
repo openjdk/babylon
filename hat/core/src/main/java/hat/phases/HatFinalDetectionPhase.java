@@ -24,10 +24,15 @@
  */
 package hat.phases;
 
+import hat.ifacemapper.MappableIface;
+import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 
+import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -44,26 +49,40 @@ public class HatFinalDetectionPhase implements HatPhase {
             if (codeElement instanceof CoreOp.VarOp varOp) {
                 Op.Result varResult = varOp.result();
                 Set<Op.Result> uses = varResult.uses();
-                boolean isFinalVarOp = true;
-                for (Op.Result use : uses) {
-                    Op op = use.op();
-                    switch (op) {
-                        case CoreOp.VarAccessOp.VarStoreOp storeOp -> {
-                            if (storeOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
-                                isFinalVarOp = false;
+
+                // Obtain if the varOp comes from a declaration of
+                // a var with MappableIface type. If so, we can't
+                // generate the constant, because at this point of the analysis
+                // after the dialectify, the only accesses left are accesses
+                // to global memory.
+                TypeElement typeElement = varOp.resultType().valueType();
+                boolean isMappableType = false;
+                if (typeElement instanceof JavaType javaType) {
+                    isMappableType = OpTk.isAssignable(MethodHandles.lookup(), javaType, MappableIface.class);
+                }
+
+                if (!isMappableType) {
+                    boolean isFinalVarOp = true;
+                    for (Op.Result use : uses) {
+                        Op op = use.op();
+                        switch (op) {
+                            case CoreOp.VarAccessOp.VarStoreOp storeOp -> {
+                                if (storeOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
+                                    isFinalVarOp = false;
+                                }
                             }
-                        }
-                        case CoreOp.YieldOp yieldOp -> {
-                            if (yieldOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
-                                isFinalVarOp = false;
+                            case CoreOp.YieldOp yieldOp -> {
+                                if (yieldOp.operands().stream().anyMatch(operand -> operand.equals(varResult))) {
+                                    isFinalVarOp = false;
+                                }
                             }
-                        }
-                        case null, default -> {
+                            case null, default -> {
+                            }
                         }
                     }
-                }
-                if (isFinalVarOp) {
-                    finalVars.put(varResult, varOp);
+                    if (isFinalVarOp) {
+                        finalVars.put(varResult, varOp);
+                    }
                 }
             }
         });
