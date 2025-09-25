@@ -42,17 +42,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HatDilectifyThreadsPhase implements HatDialectifyPhase {
+public class HatDialectifyThreadsPhase implements HatDialectifyPhase {
 
     private final ThreadAccess threadAccess;
 
-    public HatDilectifyThreadsPhase(ThreadAccess threadAccess) {
+    public HatDialectifyThreadsPhase(ThreadAccess threadAccess) {
         this.threadAccess =  threadAccess;
     }
 
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-        // IO.println("[INFO] Code model before HatDilectifyThreadsPhase: " + funcOp.toText());
+        // IO.println("[INFO] Code model before HatDialectifyThreadsPhase: " + funcOp.toText());
         Stream<CodeElement<?, ?>> elements = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
@@ -118,7 +118,7 @@ public class HatDilectifyThreadsPhase implements HatDialectifyPhase {
             }
             return blockBuilder;
         });
-        // IO.println("[INFO] Code model after HatDilectifyThreadsPhase: " + funcOp.toText());
+        // IO.println("[INFO] Code model after HatDialectifyThreadsPhase: " + funcOp.toText());
         return funcOp;
     }
 
