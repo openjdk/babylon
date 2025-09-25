@@ -101,11 +101,11 @@ public class HatDilectifyThreadsPhase implements HatDialectifyPhase {
                             throw new IllegalStateException("Thread Access can't be below 0!");
                         }
                         HatThreadOP threadOP = switch (threadAccess) {
-                            case GLOBAL_ID -> new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case GLOBAL_SIZE -> new HatGlobalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case LOCAL_ID -> new HatLocalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case LOCAL_SIZE -> new HatLocalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case BLOCK_ID -> new HatBlockThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
+                            case GLOBAL_ID -> new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType());
+                            case GLOBAL_SIZE -> new HatGlobalSizeOp(dim, fieldLoadOp.resultType());
+                            case LOCAL_ID -> new HatLocalThreadIdOp(dim, fieldLoadOp.resultType());
+                            case LOCAL_SIZE -> new HatLocalSizeOp(dim, fieldLoadOp.resultType());
+                            case BLOCK_ID -> new HatBlockThreadIdOp(dim, fieldLoadOp.resultType());
                         };
                         Op.Result threadResult = blockBuilder.op(threadOP);
 
