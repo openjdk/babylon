@@ -40,16 +40,11 @@ public class JavaSequentialBackend extends JavaBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        MethodHandle mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, OpTk.lower(kernelCallGraph.entrypoint.funcOp()));
+        MethodHandle mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, OpTk.lower(kernelEntrypoint.funcOp()));
         for (ndRange.kid.x = 0; ndRange.kid.x < ndRange.kid.maxX; ndRange.kid.x++) {
             try {
                 args[0] = ndRange.kid;
-                // System.out.println(kernelEntrypoint.method);
-                // System.out.println(kernelEntrypoint.funcOp());
                 // kernelEntrypoint.method.invoke(null, args);
-
-                // System.out.println(kernelCallGraph.entrypoint.funcOp());
-                // System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
                 mh.invokeWithArguments(args);
 
             } catch (Throwable e) {

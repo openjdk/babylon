@@ -43,15 +43,14 @@ public class JavaMultiThreadedBackend extends JavaBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        MethodHandle mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, OpTk.lower(kernelCallGraph.entrypoint.funcOp()));
+        MethodHandle mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, OpTk.lower(kernelEntrypoint.funcOp()));
         instance(ndRange.accelerator).forEachInRange(ndRange, (range) -> {
             Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
             try {
                 KernelContext c = range.kid;
                 a[0] = c;
                 mh.invokeWithArguments(a);
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException(e);
+                // kernelEntrypoint.method.invoke(null, a);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
