@@ -55,11 +55,13 @@ public class HatDialectifyBarrierPhase implements HatDialectifyPhase {
         HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
         Op.Result outputResult = blockBuilder.op(hatBarrierOp);
         Op.Result inputResult = invokeOp.result();
+        hatBarrierOp.setLocation(invokeOp.location());
         context.mapValue(inputResult, outputResult);
     }
 
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
+        //System.out.println("[INFO] Code model before HatDialectifyBarrierPhase: " + funcOp.toText());
         Stream<CodeElement<?, ?>> elements = funcOp
                 .elements()
                 .mapMulti((element, consumer) -> {
@@ -83,8 +85,7 @@ public class HatDialectifyBarrierPhase implements HatDialectifyPhase {
             }
             return blockBuilder;
         });
-        // System.out.println("[INFO] Code model: " + funcOp.toText());
-        //entrypoint.funcOp(funcOp);
+        //System.out.println("[INFO] Code model after HatDialectifyBarrierPhase: " + funcOp.toText());
         return funcOp;
     }
 

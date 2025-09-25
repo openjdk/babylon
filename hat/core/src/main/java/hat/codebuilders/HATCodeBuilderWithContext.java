@@ -24,7 +24,6 @@
  */
 package hat.codebuilders;
 
-
 import hat.dialect.HatBarrierOp;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatMemoryOp;
@@ -36,8 +35,6 @@ import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
 import hat.util.StreamMutable;
 
-import jdk.incubator.code.Block;
-import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -61,8 +58,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
-            case CoreOp.VarOp varOp -> varName(varOp);
-            case HatMemoryOp hatMemoryOp -> varName(hatMemoryOp);
+            case CoreOp.VarOp $ -> varName($);
+            case HatMemoryOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -118,9 +115,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (OpTk.isKernelContextAccess(fieldLoadOp)) {
-            identifier("kc").rarrow().fieldName(fieldLoadOp);
-        } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
+        if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
             Object value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
             literal(value.toString());
         } else {

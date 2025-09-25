@@ -38,8 +38,8 @@ public class HatLocalThreadIdOp extends HatThreadOP {
     private final TypeElement resultType;
     private static final String NAME = "LocalThreadId";
 
-    public HatLocalThreadIdOp(int dimension, TypeElement resultType, List<Value> operands) {
-        super(dimension, operands);
+    public HatLocalThreadIdOp(int dimension, TypeElement resultType) {
+        super(dimension, List.of());
         this.resultType = resultType;
     }
 
