@@ -59,8 +59,11 @@ public class TestConstants {
         cc.dispatchKernel(computeRange, kc -> vectorWithConstants(kc, arrayA, arrayB, arrayC));
     }
 
+    /**
+     * Test to check if final values are represented in the generated code.
+     */
     @HatTest
-    public static void testConstants() {
+    public static void testConstants01() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var arrayA = S32Array.create(accelerator, size);
@@ -72,6 +75,58 @@ public class TestConstants {
 
         accelerator.compute(cc ->
                 TestConstants.vectorWithConstants(cc, arrayA, arrayB, arrayC));
+
+        S32Array test = S32Array.create(accelerator, size);
+
+        for (int i = 0; i < test.length(); i++) {
+            test.array(i, CONSTANT + arrayA.array(i) + arrayB.array(i));
+        }
+
+        for (int i = 0; i < test.length(); i++) {
+            HatAsserts.assertEquals(test.array(i), arrayC.array(i));
+        }
+    }
+
+    @CodeReflection
+    public static int compute(final int valueA, final int valueB) {
+        final int BM = 100;
+        return BM + valueA + valueB;
+    }
+
+    @CodeReflection
+    public static void vectorWithConstants2(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
+        if (kc.x < kc.gsx) {
+            final int valueA = arrayA.array(kc.x);
+            final int valueB = arrayB.array(kc.x);
+            final int result = compute(valueA, valueB);
+            arrayC.array(kc.x, result);
+        }
+    }
+
+    @CodeReflection
+    public static void vectorWithConstants2(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(arrayA.length()));
+        cc.dispatchKernel(computeRange, kc -> vectorWithConstants2(kc, arrayA, arrayB, arrayC));
+    }
+
+    /**
+     * Test to check multiple method calls that contains constants.
+     * This triggers the code model analysis for each of the reachable method before the
+     * final code gen.
+     */
+    @HatTest
+    public static void testConstants02() {
+        final int size = 1024;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var arrayA = S32Array.create(accelerator, size);
+        var arrayB = S32Array.create(accelerator, size);
+        var arrayC = S32Array.create(accelerator, size);
+
+        arrayA.fill(i -> i);
+        arrayB.fill(i -> 100 + i);
+
+        accelerator.compute(cc ->
+                TestConstants.vectorWithConstants2(cc, arrayA, arrayB, arrayC));
 
         S32Array test = S32Array.create(accelerator, size);
 
