@@ -346,7 +346,7 @@ public class OpTk {
         };
     }
     public static boolean needsParenthesis(Op parent, Op child) {
-        return OpTk.precedenceOf(parent) <= OpTk.precedenceOf(child);
+        return OpTk.precedenceOf(parent) < OpTk.precedenceOf(child);
     }
 
     public static Op.Result lhsResult(JavaOp.BinaryOp binaryOp){
