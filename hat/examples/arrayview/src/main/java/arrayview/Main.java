@@ -22,58 +22,54 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package arrayview;
 
 import hat.Accelerator;
+import hat.ComputeContext;
+import hat.KernelContext;
+import hat.backend.Backend;
+import hat.buffer.Buffer;
+import hat.buffer.S32Array;
+import hat.buffer.S32Array2D;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.StructLayout;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static hat.ifacemapper.MappableIface.RO;
+import static hat.ifacemapper.MappableIface.RW;
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
-public interface S32Array2D extends Buffer {
-
-    int width();
-    int height();
-    int array(long idx);
-    void array(long idx, int i);
+public class Main {
 
     @CodeReflection
-    default int get(int x, int y) {
-        return array((long) y * width() + x);
-    }
-
-    @CodeReflection
-    default void set(int x, int y, int v) {
-        array((long) y * width() + x, v);
-    }
-
-    Schema<S32Array2D> schema = Schema.of(S32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").array("array"));
-
-    static S32Array2D create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator, width,height);
-    }
-    default S32Array2D copyFrom(int[] ints) {
-        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(), width()*height());
-        return this;
-    }
-    default S32Array2D copyTo(int[] ints) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 2* JAVA_INT.byteSize(),  ints, 0, width()*height());
-        return this;
-    }
-
-    default int[][] arrayView() {
-        int[][] arr = new int[this.height()][this.width()];
-        for (int i = 0; i < this.height(); i++) {
-            for (int j = 0; j < this.width(); j++) {
-                arr[i][j] = this.get(i, j);
-            }
+    public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
+        if (kc.x<kc.maxX){
+            int[] arr = s32Array.arrayView();
+            arr[kc.x] *= arr[kc.x];
         }
-        return arr;
+    }
+
+    @CodeReflection
+    public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
+        cc.dispatchKernel(s32Array.length(),
+                kc -> squareKernel(kc, s32Array)
+        );
+    }
+
+    public static void main(String[] args) {
+
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var arr = S32Array.create(accelerator, 32);
+        for (int i = 0; i < arr.length(); i++) {
+            arr.array(i, i);
+        }
+        accelerator.compute(
+                cc -> square(cc, arr)  //QuotableComputeContextConsumer
+        );                                     //   extends Quotable, Consumer<ComputeContext>
+        for (int i = 0; i < arr.length(); i++) {
+            System.out.println(i + " " + arr.array(i));
+        }
     }
 }
