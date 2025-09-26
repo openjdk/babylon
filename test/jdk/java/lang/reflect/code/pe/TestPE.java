@@ -21,7 +21,8 @@
  * questions.
  */
 
-import jdk.incubator.code.*;
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 

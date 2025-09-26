@@ -21,22 +21,22 @@
  * questions.
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestArrayCreation
+ * @run junit TestArrayCreation
  */
 
 public class TestArrayCreation {
@@ -51,7 +51,7 @@ public class TestArrayCreation {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), f());
+        Assertions.assertArrayEquals(f(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     @CodeReflection
@@ -65,7 +65,7 @@ public class TestArrayCreation {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), f2());
+        Assertions.assertArrayEquals(f2(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     @CodeReflection
@@ -79,7 +79,7 @@ public class TestArrayCreation {
 
         System.out.println(f.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f), f3());
+        Assertions.assertArrayEquals(f3(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {
