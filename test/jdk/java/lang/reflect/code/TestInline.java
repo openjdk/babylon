@@ -21,16 +21,15 @@
  * questions.
  */
 
-import jdk.incubator.code.analysis.Inliner;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import jdk.incubator.code.*;
+import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.dialect.java.JavaType;
 import java.util.List;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -40,7 +39,7 @@ import static jdk.incubator.code.dialect.java.JavaType.INT;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestInline
+ * @run junit TestInline
  */
 
 public class TestInline {
@@ -58,13 +57,13 @@ public class TestInline {
                     Op.Result fortyTwo = fblock.op(constant(INT, 42));
 
                     var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
-                    Assert.assertEquals(fblock, cb);
+                    Assertions.assertEquals(cb, fblock);
                 });
 
         System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
-        Assert.assertEquals(ir, 43);
+        Assertions.assertEquals(43, ir);
     }
 
     @Test
@@ -84,7 +83,7 @@ public class TestInline {
                     var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), (b, value) -> {
                         b.op(varStore(v, value));
                     });
-                    Assert.assertEquals(fblock, cb);
+                    Assertions.assertEquals(cb, fblock);
 
                     fblock.op(return_(fblock.op(varLoad(v))));
                 });
@@ -92,7 +91,7 @@ public class TestInline {
         System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
-        Assert.assertEquals(ir, 43);
+        Assertions.assertEquals(43, ir);
     }
 
 
@@ -117,12 +116,12 @@ public class TestInline {
                     Op.Result fortyTwo = fblock.op(constant(INT, 42));
 
                     var cb = Inliner.inline(fblock, lcop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
-                    Assert.assertNotEquals(fblock, cb);
+                    Assertions.assertNotEquals(fblock, cb);
                 });
         System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
-        Assert.assertEquals(ir, 43);
+        Assertions.assertEquals(43, ir);
     }
 
     @Test
@@ -150,14 +149,14 @@ public class TestInline {
                     var cb = Inliner.inline(fblock, lcop, List.of(i, fortyTwo), (b, value) -> {
                         b.op(varStore(v, value));
                     });
-                    Assert.assertNotEquals(fblock, cb);
+                    Assertions.assertNotEquals(fblock, cb);
 
                     cb.op(return_(cb.op(varLoad(v))));
                 });
         System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
-        Assert.assertEquals(ir, 43);
+        Assertions.assertEquals(43, ir);
     }
 
     @Test
@@ -178,7 +177,7 @@ public class TestInline {
                     Op.Result fortyTwo = fblock.op(constant(INT, 42));
 
                     var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
-                    Assert.assertEquals(fblock, cb);
+                    Assertions.assertEquals(cb, fblock);
                 });
         System.out.println(f.toText());
 
@@ -186,7 +185,7 @@ public class TestInline {
         System.out.println(f.toText());
 
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
-        Assert.assertEquals(ir, 43);
+        Assertions.assertEquals(43, ir);
     }
 
     @Test
@@ -203,14 +202,14 @@ public class TestInline {
                     Block.Parameter a = fblock.parameters().get(0);
 
                     var cb = Inliner.inline(fblock, cop, List.of(a), Inliner.INLINE_RETURN);
-                    Assert.assertEquals(fblock, cb);
+                    Assertions.assertEquals(cb, fblock);
                 });
 
         System.out.println(f.toText());
 
         int[] a = new int[1];
         Interpreter.invoke(MethodHandles.lookup(), f, a);
-        Assert.assertEquals(a[0], 42);
+        Assertions.assertEquals(42, a[0]);
     }
 
 }

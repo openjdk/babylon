@@ -24,26 +24,25 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestStringConcatTransform
- * @run testng/othervm -Dbabylon.ssa=cytron TestStringConcatTransform
+ * @run junit TestStringConcatTransform
+ * @run junit/othervm -Dbabylon.ssa=cytron TestStringConcatTransform
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.NoInjection;
-import org.testng.annotations.Test;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.analysis.StringConcatTransformer;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.analysis.StringConcatTransformer;
-
 import java.lang.reflect.Method;
-import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -95,8 +94,9 @@ public class TestStringConcatTransform {
         }
     }
 
-    @Test(dataProvider = "getClassMethods")
-    public void testModelTransform(@NoInjection Method method) {
+    @ParameterizedTest
+    @MethodSource("getClassMethods")
+    public void testModelTransform(Method method) {
         CoreOp.FuncOp model = Op.ofMethod(method).orElseThrow();
         CoreOp.FuncOp f_transformed = model.transform(new StringConcatTransformer());
         Object[] args = prepArgs(method);
@@ -107,12 +107,13 @@ public class TestStringConcatTransform {
         var interpreted = Interpreter.invoke(MethodHandles.lookup(), model, args);
         var transformed_interpreted = Interpreter.invoke(MethodHandles.lookup(), f_transformed, args);
 
-        Assert.assertEquals(interpreted, transformed_interpreted);
+        Assertions.assertEquals(transformed_interpreted, interpreted);
 
     }
 
-    @Test(dataProvider = "getClassMethods")
-    public void testSSAModelTransform(@NoInjection Method method) {
+    @ParameterizedTest
+    @MethodSource("getClassMethods")
+    public void testSSAModelTransform(Method method) {
         Object[] args = prepArgs(method);
         testStringConcat(method, args);
     }
@@ -130,7 +131,7 @@ public class TestStringConcatTransform {
         Object[] args = {"Foo", "Bar", new StringBuilder("test")};
         testStringConcat(method, args);
 
-        Assert.assertEquals("test", args[2].toString());
+        Assertions.assertEquals(args[2].toString(), "test");
     }
 
     private void testStringConcat(Method method, Object[] args) {
@@ -149,10 +150,10 @@ public class TestStringConcatTransform {
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
-        Assert.assertEquals(model_interpreted, transformed_model_interpreted);
-        Assert.assertEquals(transformed_model_interpreted, ssa_interpreted);
-        Assert.assertEquals(ssa_interpreted, ssa_transformed_interpreted);
-        Assert.assertEquals(ssa_transformed_interpreted, jvm_interpreted);
+        Assertions.assertEquals(transformed_model_interpreted, model_interpreted);
+        Assertions.assertEquals(ssa_interpreted, transformed_model_interpreted);
+        Assertions.assertEquals(ssa_transformed_interpreted, ssa_interpreted);
+        Assertions.assertEquals(jvm_interpreted, ssa_transformed_interpreted);
 
     }
 
@@ -165,7 +166,6 @@ public class TestStringConcatTransform {
         return args;
     }
 
-    @DataProvider(name = "getClassMethods")
     public static Object[][] getClassMethods() {
         return getTestMethods(TestStringConcatTransform.class);
     }

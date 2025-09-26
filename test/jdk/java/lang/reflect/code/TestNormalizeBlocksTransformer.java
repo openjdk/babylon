@@ -24,17 +24,17 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestNormalizeBlocksTransformer
+ * @run junit TestNormalizeBlocksTransformer
  */
-
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.analysis.NormalizeBlocksTransformer;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.util.stream.Stream;
 
 public class TestNormalizeBlocksTransformer {
@@ -252,7 +252,6 @@ public class TestNormalizeBlocksTransformer {
             };
             """;
 
-    @DataProvider
     static Object[][] testModels() {
         return new Object[][]{
                 parse(TEST1_INPUT, TEST1_EXPECTED),
@@ -268,9 +267,10 @@ public class TestNormalizeBlocksTransformer {
                 .toArray(Object[]::new);
     }
 
-    @Test(dataProvider = "testModels")
+    @ParameterizedTest
+    @MethodSource("testModels")
     public void test(Op input, Op expected) {
         Op actual = NormalizeBlocksTransformer.transform(input);
-        Assert.assertEquals(actual.toText(), expected.toText());
+        Assertions.assertEquals(expected.toText(), actual.toText());
     }
 }
