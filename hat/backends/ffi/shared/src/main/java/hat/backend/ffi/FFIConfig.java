@@ -61,7 +61,7 @@ public class FFIConfig implements Config {
     public static final Bit MINIMIZE_COPIES =  Bit.of(16, "MINIMIZE_COPIES");
     public static final Bit TRACE = Bit.nextBit(MINIMIZE_COPIES,"TRACE");
     public static final Bit PROFILE = Bit.nextBit(TRACE, "PROFILE");
-    public static final  Bit SHOW_CODE = Bit.nextBit(PROFILE,"SHOW_CODE");
+    public static final Bit SHOW_CODE = Bit.nextBit(PROFILE,"SHOW_CODE");
     public static final Bit SHOW_KERNEL_MODEL = Bit.nextBit(SHOW_CODE,"SHOW_KERNEL_MODEL");
     public static final Bit SHOW_COMPUTE_MODEL = Bit.nextBit(SHOW_KERNEL_MODEL,"SHOW_COMPUTE_MODEL");
     public static final Bit INFO = Bit.nextBit(SHOW_COMPUTE_MODEL, "INFO");
