@@ -354,7 +354,7 @@ final class UnresolvedTypesTransformer {
             changed = true;
         }
         if (changed) {
-            block.context().mapValue(op.result(), block.op(op.copy(cc)));
+            block.context().mapValue(op.result(), block.op(op.transform(cc, OpTransformer.COPYING_TRANSFORMER)));
         } else {
             block.op(op);
         }

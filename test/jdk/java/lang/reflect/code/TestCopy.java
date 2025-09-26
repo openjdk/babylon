@@ -27,6 +27,7 @@
  * @run testng TestCopy
  */
 
+import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.extern.ExternalizedOp;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -52,7 +53,7 @@ public class TestCopy {
     public void testCopy() {
         CoreOp.FuncOp f = getFuncOp("f");
 
-        Op copy = f.copy();
+        Op copy = f.transform(CopyContext.create(), OpTransformer.COPYING_TRANSFORMER);
 
         Assert.assertEquals(f.toText(), copy.toText());
     }
