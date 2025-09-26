@@ -97,14 +97,10 @@ public sealed abstract class CoreOp extends Op {
             this(funcName, def.bodyDefinitions().get(0));
         }
 
-        FuncOp(FuncOp that, CopyContext cc, OpTransformer oa) {
-            this(that, that.funcName, cc, oa);
-        }
-
-        FuncOp(FuncOp that, String funcName, CopyContext cc, OpTransformer ot) {
+        FuncOp(FuncOp that, CopyContext cc, OpTransformer ot) {
             super(that, cc);
 
-            this.funcName = funcName;
+            this.funcName = that.funcName;
             this.body = that.body.transform(cc, ot).build(this);
         }
 
@@ -115,10 +111,6 @@ public sealed abstract class CoreOp extends Op {
 
         public FuncOp transform(OpTransformer ot) {
             return new FuncOp(this, CopyContext.create(), ot);
-        }
-
-        public FuncOp transform(String funcName, OpTransformer ot) {
-            return new FuncOp(this, funcName, CopyContext.create(), ot);
         }
 
         FuncOp(String funcName, Body.Builder bodyBuilder) {
@@ -1134,11 +1126,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleLoadOp(TupleLoadOp that, CopyContext cc) {
-            this(that, cc.getValues(that.operands()));
-        }
-
-        TupleLoadOp(TupleLoadOp that, List<Value> values) {
-            super(NAME, values);
+            super(that, cc);
 
             this.index = that.index;
         }
@@ -1196,11 +1184,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleWithOp(TupleWithOp that, CopyContext cc) {
-            this(that, cc.getValues(that.operands()));
-        }
-
-        TupleWithOp(TupleWithOp that, List<Value> values) {
-            super(NAME, values);
+            super(that, cc);
 
             this.index = that.index;
         }
