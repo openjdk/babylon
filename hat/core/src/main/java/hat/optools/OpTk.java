@@ -131,15 +131,6 @@ public class OpTk {
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
 
-        // CoreOp.FuncOp modEntry = entry;
-        // if (isArrayView(l, entry)) {
-        //     System.out.println("arrayview used!");
-        //     modEntry = convertArrayView(l, entry);
-        //     if (callGraph.entrypoint instanceof KernelEntrypoint ke && entry.equals(ke.funcOp())) {
-        //         ke.funcOp(modEntry);
-        //     }
-        // }
-
         entry.traverse(null, (map, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
@@ -202,11 +193,6 @@ public class OpTk {
                 return blockBuilder;
             });
 
-            // CoreOp.FuncOp modded = tf;
-            // if (isArrayView(l, modded)) {
-            //     System.out.println("arrayview used!");
-            //     modded = convertArrayView(l, tf);
-            // }
             funcs.addFirst(tf);
         }
 

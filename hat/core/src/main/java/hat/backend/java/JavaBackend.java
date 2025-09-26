@@ -30,8 +30,6 @@ import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
-import hat.optools.OpTk;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
 
 import java.lang.foreign.Arena;
 import java.lang.reflect.InvocationTargetException;
