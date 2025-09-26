@@ -32,6 +32,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import hat.optools.OpTk;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
@@ -42,16 +43,19 @@ public class JavaMultiThreadedBackend extends JavaBackend {
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+        if (kernelCallGraph.usesArrayView) {
+            throw new RuntimeException("Java support for ArrayView not implemented");
+        }
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        MethodHandle mh = BytecodeGenerator.generate(kernelCallGraph.computeContext.accelerator.lookup, OpTk.lower(kernelEntrypoint.funcOp()));
         instance(ndRange.accelerator).forEachInRange(ndRange, (range) -> {
             Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
             try {
                 KernelContext c = range.kid;
                 a[0] = c;
-                mh.invokeWithArguments(a);
-                // kernelEntrypoint.method.invoke(null, a);
-            } catch (Throwable e) {
+                kernelEntrypoint.method.invoke(null, a);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } catch (InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
 

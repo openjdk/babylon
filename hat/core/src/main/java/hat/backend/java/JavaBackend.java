@@ -53,16 +53,8 @@ public abstract class JavaBackend implements Backend {
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         try {
-            if (computeContext.computeCallGraph.entrypoint.lowered == null) {
-                computeContext.computeCallGraph.entrypoint.lowered =
-                        OpTk.lower(computeContext.computeCallGraph.entrypoint.funcOp());
-            }
-            if (computeContext.computeCallGraph.entrypoint.mh == null) {
-                computeContext.computeCallGraph.entrypoint.mh = BytecodeGenerator.generate(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered);
-            }
-            computeContext.computeCallGraph.entrypoint.mh.invokeWithArguments(args);
-            // computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
-        } catch (Throwable e) {
+            computeContext.computeCallGraph.entrypoint.method.invoke(null, args);
+        } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
     }
