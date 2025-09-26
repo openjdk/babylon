@@ -212,8 +212,12 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                            }
                            var test_reports_txt = Paths.get("test_report.txt");
                            Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
-                           Stream.of( "Arrays", "MatMul", "Mandel", "Local", "Reductions", "Private", "Parenthesis", "Costants")
-                              .map(s->"oracle.code.hat.Test"+s)
+                           Stream.of( "Arrays", "MatMul", "Mandel",
+                                           "Local", "Reductions",
+                                           "Private", "Parenthesis",
+                                           "Constants", "Blackscholes",
+                                           "Nbody")
+                              .map(s->"oracle.code.hat.Test" + s)
                               .forEach(suite->{
                                  tests.run("oracle.code.hat.engine.HatTestEngine",
                                     new job.Dag(tests, backend).ordered(), List.of(),List.of(suite));
