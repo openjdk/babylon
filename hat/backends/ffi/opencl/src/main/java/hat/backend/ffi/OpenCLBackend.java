@@ -32,14 +32,14 @@ import hat.callgraph.KernelCallGraph;
 public class OpenCLBackend extends C99FFIBackend {
 
     public OpenCLBackend(String configSpec) {
-        this(Config.of(configSpec));
+        this(FFIConfig.of(configSpec));
     }
 
     public OpenCLBackend() {
-        this(Config.of());
+        this(FFIConfig.of());
     }
 
-    public OpenCLBackend(Config config) {
+    public OpenCLBackend(FFIConfig config) {
         super("opencl_backend", config);
     }
 
@@ -53,7 +53,7 @@ public class OpenCLBackend extends C99FFIBackend {
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createC99(kernelCallGraph,  args);
-            if (config.isSHOW_CODE()) {
+            if (FFIConfig.SHOW_CODE.isSet(config.bits())) {
                 System.out.println(code);
             }
             var compilationUnit = backendBridge.compile(code);

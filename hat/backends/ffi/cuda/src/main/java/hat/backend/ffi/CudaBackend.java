@@ -358,14 +358,14 @@ public class CudaBackend extends C99FFIBackend {
 
 
     public CudaBackend(String configSpec) {
-        this(Config.of(configSpec));
+        this(FFIConfig.of(configSpec));
     }
 
     public CudaBackend() {
-        this(Config.of());
+        this(FFIConfig.of());
     }
 
-    public CudaBackend(Config config) {
+    public CudaBackend(FFIConfig config) {
         super("cuda_backend", config);
     }
 
@@ -377,8 +377,8 @@ public class CudaBackend extends C99FFIBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = config.isPTX() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph, args);
-            if (config.isSHOW_CODE()) {
+            String code = FFIConfig.PTX.isSet(config.bits()) ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph, args);
+            if (FFIConfig.SHOW_CODE.isSet(config.bits())) {
                 System.out.println(code);
             }
             var compilationUnit = backendBridge.compile(code);
@@ -438,7 +438,7 @@ public class CudaBackend extends C99FFIBackend {
         out.append(invokedMethods);
 
         out.append(createFunction(builder.nl().nl(), lowered, true));
-        if (config.isSHOW_KERNEL_MODEL()){
+        if (FFIConfig.SHOW_KERNEL_MODEL.isSet(config.bits())){
             System.out.println("ptx follows\n"+out);
         }
 
