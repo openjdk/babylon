@@ -24,17 +24,16 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestStreamUsingQuotable
+ * @run junit TestStreamUsingQuotable
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
-
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -91,6 +90,6 @@ public class TestStreamUsingQuotable {
         List<String> actual = (List<String>) Interpreter.invoke(MethodHandles.lookup(), lf,
                 List.of(source));
 
-        Assert.assertEquals(expected, actual);
+        Assertions.assertEquals(actual, expected);
     }
 }

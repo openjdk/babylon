@@ -29,17 +29,22 @@ import hat.buffer.BufferAllocator;
 import hat.buffer.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
+import hat.dialect.HatBarrierOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.OpTk;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -132,13 +137,40 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         dispatchKernelWithComputeRange(computeRange, quotableKernelContextConsumer);
     }
 
+    private boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
+        String kernelContextCanonicalName = hat.KernelContext.class.getName();
+        return invokeOp.invokeDescriptor().refType().toString().equals(kernelContextCanonicalName);
+    }
+
+    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
+        return invokeOp.invokeDescriptor().name().equals(methodName);
+    }
+
+    private void createBarrierNodeOp(CopyContext context, JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
+        List<Value> inputOperands = invokeOp.operands();
+        List<Value> outputOperands = context.getValues(inputOperands);
+        HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
+        Op.Result outputResult = blockBuilder.op(hatBarrierOp);
+        Op.Result inputResult = invokeOp.result();
+        context.mapValue(inputResult, outputResult);
+    }
+
     record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
     private CallGraph buildKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
-        MethodRef methodRef =OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
+        MethodRef methodRef = OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+        // Analysis : dialect
+        // NOTE: Keep the following boolean until we have the config available/reachable
+        // from this class
+        boolean useDialect = true;
+        if (useDialect) {
+            //System.out.println("[INFO] Using Hat Dialect?: " + useDialect);
+            kernelCallGraph.dialectifyToHat();
+        }
+        kernelCallGraph.convertArrayView();
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
@@ -157,6 +189,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
             accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);
         } catch (Throwable t) {
             System.out.print("what?" + cg.methodRef + " " + t);
+            t.printStackTrace();
             throw t;
         }
     }
@@ -170,6 +203,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
             accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);
         } catch (Throwable t) {
             System.out.print("what?" + cg.methodRef + " " + t);
+            t.printStackTrace();
             throw t;
         }
     }

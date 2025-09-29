@@ -109,23 +109,32 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var backend_ffi_cuda = Jar.of(project.id("backend{s}-ffi-cuda"), ffiSharedBackend);
         var backend_ffi_opencl = Jar.of(project.id("backend{s}-ffi-opencl"), ffiSharedBackend);
         var backend_ffi_mock = Jar.of(project.id("backend{s}-ffi-mock"), ffiSharedBackend);
+
+        // These examples just rely on core
         var backend_mt_java = Jar.of(project.id("backend{s}-java-mt"), core);
         var backend_seq_java = Jar.of(project.id("backend{s}-java-seq"), core);
-        var example_shared = Jar.of(project.id("example{s}-shared"), ui, core);
-        var example_blackscholes = Jar.of(project.id("example{s}-blackscholes"), example_shared);
-        var example_mandel = Jar.of(project.id("example{s}-mandel"), example_shared);
-        var example_life = Jar.of(project.id("example{s}-life"), example_shared);
         var example_squares = Jar.of(project.id("example{s}-squares"), core);
         var example_matmul = Jar.of(project.id("example{s}-matmul"), core);
-        var example_heal = Jar.of(project.id("example{s}-heal"), example_shared);
-        var example_normmap = Jar.of(project.id("example{s}-normmap"), example_shared);
-        var example_violajones = Jar.of(project.id("example{s}-violajones"), example_shared);
-        var example_experiments = Jar.of(project.id("example{s}-experiments"), backend_ffi_opencl); //experiments have some code that expect opencl backend
+        var example_arrayview = Jar.of(project.id("example{s}-arrayview"), core);
+        var example_blackscholes = Jar.of(project.id("example{s}-blackscholes"), core);
+        var example_normmap = Jar.of(project.id("example{s}-normmap"), core); // will probabvly need shared when we hatify
 
+        // example_shared allows us to break out common UI functions, views, even loops etc
+        var example_shared = Jar.of(project.id("example{s}-shared"), ui, core);
+
+        // These examples use example_shared, so they are UI based
+        var example_mandel = Jar.of(project.id("example{s}-mandel"), example_shared);
+        var example_life = Jar.of(project.id("example{s}-life"), example_shared);
+        var example_heal = Jar.of(project.id("example{s}-heal"), example_shared);
+        var example_violajones = Jar.of(project.id("example{s}-violajones"), example_shared);
+
+        // experiments include code that expects an opencl backend, this is not idea, but we can accomodate
+        var example_experiments = Jar.of(project.id("example{s}-experiments"), backend_ffi_opencl);
+
+        // Now we have the more complex nonsense for nbody (which needs opengl and opencl extracted)
         var wrapped_shared = Jar.of(project.id("wrap{s}-shared"));
         var jextracted_opencl = JExtract.extract(project.id("extract{ions|ed}-opencl"), jextract, openclCmakeInfo, core);
         var wrapped_jextracted_opencl = Jar.of(project.id("wrap{s}-opencl"), jextracted_opencl, wrapped_shared);
-
         var jextracted_opengl = JExtract.extract(project.id("extract{ions|ed}-opengl"), jextract, ui, openglCmakeInfo, core);
 
         // Sigh... We have different src exclusions for wrapped opengl depending on the OS
@@ -134,6 +143,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
 
         var wrapped_jextracted_opengl = Jar.of(project.id("wrap{s}-opengl"), Set.of(excludedOpenGLWrapSrc), jextracted_opengl, wrapped_shared);
 
+        // Finally we have everything needed for nbody
         var example_nbody = Jar.of(project.id("example{s}-nbody"), ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
 
         while (!args.isEmpty()) {
@@ -212,8 +222,12 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                            }
                            var test_reports_txt = Paths.get("test_report.txt");
                            Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
-                           Stream.of( "Arrays", "MatMul", "Mandel", "Local", "Reductions")
-                              .map(s->"oracle.code.hat.Test"+s)
+                           Stream.of( "Arrays", "MatMul", "Mandel",
+                                           "Local", "Reductions",
+                                           "Private", "Parenthesis",
+                                           "Constants", "Blackscholes",
+                                           "Nbody")
+                              .map(s->"oracle.code.hat.Test" + s)
                               .forEach(suite->{
                                  tests.run("oracle.code.hat.engine.HatTestEngine",
                                     new job.Dag(tests, backend).ordered(), List.of(),List.of(suite));

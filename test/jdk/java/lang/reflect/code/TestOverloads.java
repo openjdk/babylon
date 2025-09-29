@@ -21,23 +21,23 @@
  * questions.
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-import org.testng.annotations.DataProvider;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
-import java.util.*;
+import java.util.List;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestOverloads
+ * @run junit TestOverloads
  */
 
 public class TestOverloads {
@@ -72,7 +72,6 @@ public class TestOverloads {
        return 5;
     }
 
-    @DataProvider(name = "testData")
     public static Object[][]  testData() {
         return new Object[][]{
             new Object[] {new Class[]{}, new Object[]{}},
@@ -84,7 +83,8 @@ public class TestOverloads {
         };
     }
 
-    @Test(dataProvider = "testData")
+    @ParameterizedTest
+    @MethodSource("testData")
     public static void testOverloads(Class<?>[] paramTypes, Object[] params) {
         try {
             Class<TestOverloads> clazz = TestOverloads.class;
@@ -93,7 +93,7 @@ public class TestOverloads {
             var res1 = Interpreter.invoke(MethodHandles.lookup(), f, params);
             var res2 = method.invoke(null, params);
 
-            Assert.assertEquals(res1, res2);
+            Assertions.assertEquals(res2, res1);
 
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);

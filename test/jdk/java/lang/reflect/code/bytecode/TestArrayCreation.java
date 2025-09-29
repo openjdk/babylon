@@ -21,25 +21,24 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestArrayCreation
+ * @run junit TestArrayCreation
  */
 
 public class TestArrayCreation {
@@ -54,7 +53,7 @@ public class TestArrayCreation {
 
         MethodHandle mh = generate(f);
 
-        Assert.assertEquals((String[]) mh.invoke(), f());
+        Assertions.assertArrayEquals(f(), (String[]) mh.invoke());
     }
 
     @CodeReflection
@@ -68,7 +67,7 @@ public class TestArrayCreation {
 
         MethodHandle mh = generate(f);
 
-        Assert.assertEquals((String[][]) mh.invoke(), f2());
+        Assertions.assertArrayEquals(f2(), (String[][]) mh.invoke());
     }
 
     @CodeReflection
@@ -82,7 +81,7 @@ public class TestArrayCreation {
 
         MethodHandle mh = generate(f);
 
-        Assert.assertEquals((String[][]) mh.invoke(), f3());
+        Assertions.assertArrayEquals(f3(), (String[][]) mh.invoke());
     }
 
     @CodeReflection
@@ -96,7 +95,7 @@ public class TestArrayCreation {
 
         MethodHandle mh = generate(f);
 
-        Assert.assertEquals((String[][]) mh.invoke(), f4());
+        Assertions.assertArrayEquals(f4(), (String[][]) mh.invoke());
     }
 
     static MethodHandle generate(CoreOp.FuncOp f) {

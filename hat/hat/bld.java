@@ -133,10 +133,13 @@ void main(String[] args) {
                 ├──experiments
                 │    ├──src/main/java
                 │    └──src/main/resources
-                └──violajones
+                ├──violajones
                 │    ├──src/main/java
                 │    └──src/main/resources
-                └──matmul
+                ├──matmul
+                │    ├──src/main/java
+                │    └──src/main/resources
+                └──arrayview
                      ├──src/main/java
                      └──src/main/resources
        """;
@@ -308,11 +311,8 @@ void main(String[] args) {
 
     var examplesDir = dir.existingDir("examples");
 
-    Artifacts.example_shared = buildDir.mavenStyleBuild(
-            examplesDir.existingDir("shared"), "hat-example-shared-1.0.jar", Artifacts.core
-    );
 
-    Stream.of( "blackscholes", "squares", "matmul")
+    Stream.of( "blackscholes", "squares", "matmul", "arrayview")
             .parallel()
             .map(examplesDir::existingDir)
             .forEach(exampleDir->buildDir.mavenStyleBuild(
@@ -326,6 +326,10 @@ void main(String[] args) {
                     exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar",
                     Artifacts.core, Artifacts.backend_ffi_shared, Artifacts.backend_ffi_opencl
             ));
+
+    Artifacts.example_shared = buildDir.mavenStyleBuild(
+            examplesDir.existingDir("shared"), "hat-example-shared-1.0.jar", Artifacts.core
+    );
 
     Stream.of( "heal", "life", "mandel", "violajones")   // these require example_shared ui stuff
             .parallel()

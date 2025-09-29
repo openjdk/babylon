@@ -59,4 +59,14 @@ public interface F32Array2D extends Buffer {
         return schema.allocate(accelerator, width,height);
     }
 
+    default float[][] arrayView() {
+        float[][] arr = new float[this.height()][this.width()];
+        for (int i = 0; i < this.height(); i++) {
+            for (int j = 0; j < this.width(); j++) {
+                arr[i][j] = this.get(i, j);
+            }
+        }
+        return arr;
+    }
+
 }

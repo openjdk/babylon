@@ -24,21 +24,21 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestVarArgsInvoke
+ * @run junit TestVarArgsInvoke
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -98,15 +98,15 @@ public class TestVarArgsInvoke {
         f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         invokes(f).forEach(iop -> {
-            Assert.assertFalse(iop.isVarArgs());
-            Assert.assertNull(iop.varArgOperands());
+            Assertions.assertFalse(iop.isVarArgs());
+            Assertions.assertNull(iop.varArgOperands());
         });
 
         String[] array = new String[]{"second", "third"};
         for (MethodKind mk : MethodKind.values()) {
-            Assert.assertEquals(
-                    Interpreter.invoke(MethodHandles.lookup(), f, this, array, mk),
-                    fArray(array, mk));
+            Assertions.assertEquals(
+                    fArray(array, mk), Interpreter.invoke(MethodHandles.lookup(), f, this, array, mk)
+            );
         }
     }
 
@@ -126,15 +126,15 @@ public class TestVarArgsInvoke {
         f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         invokes(f).forEach(iop -> {
-            Assert.assertTrue(iop.isVarArgs());
-            Assert.assertTrue(iop.varArgOperands().isEmpty());
+            Assertions.assertTrue(iop.isVarArgs());
+            Assertions.assertTrue(iop.varArgOperands().isEmpty());
         });
 
         String[] array = new String[]{"second", "third"};
         for (MethodKind mk : MethodKind.values()) {
-            Assert.assertEquals(
-                    Interpreter.invoke(MethodHandles.lookup(), f, this, mk),
-                    fEmpty(mk));
+            Assertions.assertEquals(
+                    fEmpty(mk), Interpreter.invoke(MethodHandles.lookup(), f, this, mk)
+            );
         }
     }
 
@@ -154,14 +154,14 @@ public class TestVarArgsInvoke {
         f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         invokes(f).forEach(iop -> {
-            Assert.assertTrue(iop.isVarArgs());
-            Assert.assertEquals(iop.varArgOperands().size(), 1);
+            Assertions.assertTrue(iop.isVarArgs());
+            Assertions.assertEquals(1, iop.varArgOperands().size());
         });
 
         for (MethodKind mk : MethodKind.values()) {
-            Assert.assertEquals(
-                    Interpreter.invoke(MethodHandles.lookup(), f, this, "one", mk),
-                    fOne("one", mk));
+            Assertions.assertEquals(
+                    fOne("one", mk), Interpreter.invoke(MethodHandles.lookup(), f, this, "one", mk)
+            );
         }
     }
 
@@ -181,14 +181,14 @@ public class TestVarArgsInvoke {
         f = f.transform(OpTransformer.LOWERING_TRANSFORMER);
 
         invokes(f).forEach(iop -> {
-            Assert.assertTrue(iop.isVarArgs());
-            Assert.assertEquals(iop.varArgOperands().size(), 2);
+            Assertions.assertTrue(iop.isVarArgs());
+            Assertions.assertEquals(2, iop.varArgOperands().size());
         });
 
         for (MethodKind mk : MethodKind.values()) {
-            Assert.assertEquals(
-                    Interpreter.invoke(MethodHandles.lookup(), f, this, "one", "two", mk),
-                    fMany("one", "two", mk));
+            Assertions.assertEquals(
+                    fMany("one", "two", mk), Interpreter.invoke(MethodHandles.lookup(), f, this, "one", "two", mk)
+            );
         }
     }
 

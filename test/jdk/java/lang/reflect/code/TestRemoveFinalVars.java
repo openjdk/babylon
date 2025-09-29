@@ -1,12 +1,11 @@
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.CodeReflection;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -19,7 +18,7 @@ import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestRemoveFinalVars
+ * @run junit TestRemoveFinalVars
  */
 
 public class TestRemoveFinalVars {
@@ -45,7 +44,7 @@ public class TestRemoveFinalVars {
         FuncOp lf2 = lower(f2);
         System.out.println(lf2.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), Interpreter.invoke(MethodHandles.lookup(), lf2));
+        Assertions.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf2), Interpreter.invoke(MethodHandles.lookup(), lf));
 
         Op op = SSA.transform(lower(f));
         System.out.println(op.toText());
