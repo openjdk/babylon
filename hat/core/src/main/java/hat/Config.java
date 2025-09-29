@@ -1,7 +1,5 @@
 package hat;
 
-import java.util.Map;
-
 public interface Config {
     int bits();
     void bits(int bits);
@@ -13,7 +11,6 @@ public interface Config {
             return new Bit(index,1,name);
         }
         public static Bit nextBit(Bit bit, String name){
-            //System.out.println(name+ " = 1<<"+ bit.index);
             return new Bit(bit.index+1,1,name);
         }
 
