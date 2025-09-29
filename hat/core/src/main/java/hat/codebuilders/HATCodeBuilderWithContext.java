@@ -294,9 +294,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-
-
-
     @Override
     public T whileOp(ScopedCodeBuilderContext buildContext, JavaOp.WhileOp whileOp) {
         whileKeyword().paren(_ ->

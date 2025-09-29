@@ -1,23 +1,23 @@
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.extern.OpWriter;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.extern.OpWriter;
-import jdk.incubator.code.CodeReflection;
 import java.util.*;
 import java.util.stream.Stream;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestSwitchExpressionOp
+ * @run junit TestSwitchExpressionOp
  */
 public class TestSwitchExpressionOp {
 
@@ -26,7 +26,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("casePatternGuard");
         Object[] args = {"c++", "java", new R(8), new R(2L), new R(3f), new R(4.0)};
         for (Object arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), casePatternGuard(arg));
+            Assertions.assertEquals(casePatternGuard(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
     @CodeReflection
@@ -45,7 +45,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("caseRecordPattern");
         Object[] args = {new R(8), new R(1.0), new R(2L), "abc"};
         for (Object arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseRecordPattern(arg));
+            Assertions.assertEquals(caseRecordPattern(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
     record R(Number n) {}
@@ -61,7 +61,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("caseTypePattern");
         Object[] args = {"str", new ArrayList<>(), new int[]{}, new Stack[][]{}, new Collection[][][]{}, 8, 'x'};
         for (Object arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseTypePattern(arg));
+            Assertions.assertEquals(caseTypePattern(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
     @CodeReflection
@@ -82,7 +82,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("casePatternWithCaseConstant");
         int[] args = {42, 43, -44, 0};
         for (int arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), casePatternWithCaseConstant(arg));
+            Assertions.assertEquals(casePatternWithCaseConstant(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 
@@ -102,7 +102,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("casePatternMultiLabel");
         Object[] args = {(byte) 1, (short) 2, 'A', 3, 4L, 5f, 6d, true, "str"};
         for (Object arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), casePatternMultiLabel(arg));
+            Assertions.assertEquals(casePatternMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
     // @CodeReflection
@@ -121,12 +121,12 @@ public class TestSwitchExpressionOp {
 
         Object[] args = {Byte.MAX_VALUE, Short.MIN_VALUE, 0, 1L, 11f, 22d};
         for (Object arg : args) {
-            Assert.assertThrows(IllegalArgumentException.class, () -> Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+            Assertions.assertThrows(IllegalArgumentException.class, () -> Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
 
         Object[] args2 = {"abc", List.of()};
         for (Object arg : args2) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), casePatternThrow(arg));
+            Assertions.assertEquals(casePatternThrow(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 
@@ -148,8 +148,8 @@ public class TestSwitchExpressionOp {
         Object[] args = {1, "2", 3L};
 
         for (Object arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), ruleExpression, arg), Interpreter.invoke(MethodHandles.lookup(), ruleBlock, arg));
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), ruleExpression, arg), Interpreter.invoke(MethodHandles.lookup(), statement, arg));
+            Assertions.assertEquals(Interpreter.invoke(MethodHandles.lookup(), ruleBlock, arg), Interpreter.invoke(MethodHandles.lookup(), ruleExpression, arg));
+            Assertions.assertEquals(Interpreter.invoke(MethodHandles.lookup(), statement, arg), Interpreter.invoke(MethodHandles.lookup(), ruleExpression, arg));
         }
     }
 
@@ -190,7 +190,7 @@ public class TestSwitchExpressionOp {
     void testCaseConstantOtherKindsOfExpr() {
         CoreOp.FuncOp lmodel = lower("caseConstantOtherKindsOfExpr");
         for (int i = 0; i < 14; i++) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, i), caseConstantOtherKindsOfExpr(i));
+            Assertions.assertEquals(caseConstantOtherKindsOfExpr(i), Interpreter.invoke(MethodHandles.lookup(), lmodel, i));
         }
     }
 
@@ -223,7 +223,7 @@ public class TestSwitchExpressionOp {
     void testCaseConstantEnum() {
         CoreOp.FuncOp lmodel = lower("caseConstantEnum");
         for (Day day : Day.values()) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, day), caseConstantEnum(day));
+            Assertions.assertEquals(caseConstantEnum(day), Interpreter.invoke(MethodHandles.lookup(), lmodel, day));
         }
     }
 
@@ -246,7 +246,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("caseConstantFallThrough");
         char[] args = {'A', 'B', 'C'};
         for (char arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseConstantFallThrough(arg));
+            Assertions.assertEquals(caseConstantFallThrough(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 
@@ -276,7 +276,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("caseConstantNullLabel");
         String[] args = {null, "non null"};
         for (String arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseConstantNullLabel(arg));
+            Assertions.assertEquals(caseConstantNullLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 
@@ -291,10 +291,10 @@ public class TestSwitchExpressionOp {
     @Test
     void testCaseConstantThrow() {
         CoreOp.FuncOp lmodel = lower("caseConstantThrow");
-        Assert.assertThrows(IllegalArgumentException.class, () -> Interpreter.invoke(MethodHandles.lookup(), lmodel, 8));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> Interpreter.invoke(MethodHandles.lookup(), lmodel, 8));
         int[] args = {9, 10};
         for (int arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseConstantThrow(arg));
+            Assertions.assertEquals(caseConstantThrow(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 
@@ -312,7 +312,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("caseConstantMultiLabels");
         char[] args = {'a', 'e', 'i', 'o', 'u', 'j', 'p', 'g'};
         for (char arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseConstantMultiLabels(arg));
+            Assertions.assertEquals(caseConstantMultiLabels(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 
@@ -333,8 +333,8 @@ public class TestSwitchExpressionOp {
         String[] args = {"FOO", "BAR", "BAZ", "OTHER"};
 
         for (String arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), ruleExpression, arg), Interpreter.invoke(MethodHandles.lookup(), ruleBlock, arg));
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), ruleExpression, arg), Interpreter.invoke(MethodHandles.lookup(), statement, arg));
+            Assertions.assertEquals(Interpreter.invoke(MethodHandles.lookup(), ruleBlock, arg), Interpreter.invoke(MethodHandles.lookup(), ruleExpression, arg));
+            Assertions.assertEquals(Interpreter.invoke(MethodHandles.lookup(), statement, arg), Interpreter.invoke(MethodHandles.lookup(), ruleExpression, arg));
         }
     }
 
@@ -381,7 +381,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("caseConstantConv");
         short[] args = {1, 2, 3, 4};
         for (short arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseConstantConv(arg));
+            Assertions.assertEquals(caseConstantConv(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 
@@ -402,7 +402,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("caseConstantConv2");
         Byte[] args = {1, 2, 3};
         for (Byte arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), caseConstantConv2(arg));
+            Assertions.assertEquals(caseConstantConv2(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 
@@ -421,7 +421,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("unconditionalPattern");
         String[] args = {"A", "X"};
         for (String arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), unconditionalPattern(arg));
+            Assertions.assertEquals(unconditionalPattern(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 
@@ -439,7 +439,7 @@ public class TestSwitchExpressionOp {
         CoreOp.FuncOp lmodel = lower("defaultCaseNotTheLast");
         String[] args = {"something", "M", "A"};
         for (String arg : args) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lmodel, arg), defaultCaseNotTheLast(arg));
+            Assertions.assertEquals(defaultCaseNotTheLast(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
 

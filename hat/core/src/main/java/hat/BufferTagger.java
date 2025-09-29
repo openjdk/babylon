@@ -27,6 +27,7 @@ package hat;
 
 import hat.buffer.Buffer;
 import hat.ifacemapper.MappableIface;
+import hat.optools.OpTk;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.Inliner;
 import jdk.incubator.code.analysis.SSA;
@@ -64,7 +65,7 @@ public class BufferTagger {
         for (Block.Parameter p : inlinedFunc.body().entryBlock().parameters()) {
             if (accessMap.containsKey(p)) {
                 accessList.add(accessMap.get(p)); // is an accessed buffer
-            } else if (getClass(l, p.type()) instanceof Class<?> c && MappableIface.class.isAssignableFrom(c)) {
+            } else if (OpTk.isAssignable(l, (JavaType) p.type(), MappableIface.class)) {
                 accessList.add(AccessType.NA); // is a buffer but not accessed
             } else {
                 accessList.add(AccessType.NOT_BUFFER); // is not a buffer
@@ -115,13 +116,8 @@ public class BufferTagger {
     // creates the access map
     public static void buildAccessMap(MethodHandles.Lookup l, CoreOp.FuncOp f) {
         // build blockParams so that we can map params to "root" params later
-        for (Body b : f.bodies()) {
-            for (Block block : b.blocks()) {
-                if (!block.parameters().isEmpty()) {
-                    blockParams.put(block, block.parameters());
-                }
-            }
-        }
+        f.elements().filter(elem -> elem instanceof Block)
+                .forEach(b -> blockParams.put((Block) b, ((Block) b).parameters()));
 
         f.traverse(null, (map, op) -> {
             if (op instanceof CoreOp.BranchOp b) {
@@ -130,21 +126,21 @@ public class BufferTagger {
                 mapBranch(l, cb.trueBranch()); // handle true branch
                 mapBranch(l, cb.falseBranch()); // handle false branch
             } else if (op instanceof JavaOp.InvokeOp iop) { // (almost) all the buffer accesses happen here
-                if (isAssignable(l, iop.invokeDescriptor().refType(), MappableIface.class)) {
+                if (OpTk.isAssignable(l, (JavaType) iop.invokeDescriptor().refType(), MappableIface.class)) {
                     updateAccessType(getRootValue(iop), getAccessType(iop)); // update buffer access
-                    if (isAssignable(l, iop.invokeDescriptor().refType(), Buffer.class)
+                    if (OpTk.isAssignable(l, (JavaType) iop.invokeDescriptor().refType(), Buffer.class)
                             && iop.result() != null && !(iop.resultType() instanceof PrimitiveType)
-                            && isAssignable(l, iop.resultType(), MappableIface.class)) {
+                            && OpTk.isAssignable(l, (JavaType) iop.resultType(), MappableIface.class)) {
                         // if we access a struct/union from a buffer, we map the struct/union to the buffer root
                         remappedVals.put(iop.result(), getRootValue(iop));
                     }
                 }
             } else if (op instanceof CoreOp.VarOp vop) { // map the new VarOp to the "root" param
-                if (isAssignable(l, vop.resultType().valueType(), Buffer.class)) {
+                if (OpTk.isAssignable(l, (JavaType) vop.resultType().valueType(), Buffer.class)) {
                     remappedVals.put(vop.initOperand(), getRootValue(vop));
                 }
             } else if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flop) {
-                if (isAssignable(l, flop.fieldDescriptor().refType(), KernelContext.class)) {
+                if (OpTk.isAssignable(l, (JavaType) flop.fieldDescriptor().refType(), KernelContext.class)) {
                     updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
                 }
             }
@@ -161,7 +157,7 @@ public class BufferTagger {
 
             if (val instanceof Op.Result) {
                 // either find root param or it doesnt exist (is a constant for example)
-                if (isAssignable(l, val.type(), MappableIface.class)) {
+                if (OpTk.isAssignable(l, (JavaType) val.type(), MappableIface.class)) {
                     val = getRootValue(((Op.Result) val).op());
                     if (val instanceof Block.Parameter) {
                         val = remappedVals.getOrDefault(val, val);
@@ -170,24 +166,6 @@ public class BufferTagger {
             }
             remappedVals.put(key, val);
         }
-    }
-
-    // checks if a TypeElement is assignable to a certain class
-    public static boolean isAssignable(MethodHandles.Lookup l, TypeElement type, Class<?> clazz) {
-        Class<?> fopClass = getClass(l, type);
-        return (fopClass != null && (clazz.isAssignableFrom(fopClass)));
-    }
-
-    // retrieves the class of a TypeElement
-    public static Class<?> getClass(MethodHandles.Lookup l, TypeElement type) {
-        if (type instanceof ClassType classType) {
-            try {
-                return (Class<?>) classType.resolve(l);
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return null;
     }
 
     // retrieves "root" value of an op, the origin of the parameter (or value) used by the op
@@ -219,18 +197,6 @@ public class BufferTagger {
             accessMap.put(remappedVal, curAccess);
         } else if (curAccess != storedAccess && storedAccess != AccessType.RW) {
             accessMap.put(remappedVal, AccessType.RW);
-        }
-    }
-
-    public static void printAccessMap() {
-        System.out.println("access map output:");
-        for (Value val : accessMap.keySet()) {
-            if (val instanceof Block.Parameter param) {
-                System.out.println("\t" + ((CoreOp.FuncOp) param.declaringBlock().parent().parent()).funcName()
-                        + " param w/ idx " + param.index() + ": " + accessMap.get(val));
-            } else {
-                System.out.println("\t" + val.toString() + ": " + accessMap.get(val));
-            }
         }
     }
 }

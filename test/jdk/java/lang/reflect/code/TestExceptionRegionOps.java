@@ -24,34 +24,27 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestExceptionRegionOps
+ * @run junit TestExceptionRegionOps
  */
 
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.dialect.java.JavaType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-import static jdk.incubator.code.dialect.core.CoreOp.return_;
-import static jdk.incubator.code.dialect.java.JavaOp.throw_;
-import static jdk.incubator.code.dialect.core.CoreOp.branch;
-import static jdk.incubator.code.dialect.core.CoreOp.constant;
-import static jdk.incubator.code.dialect.java.JavaOp.exceptionRegionEnter;
-import static jdk.incubator.code.dialect.java.JavaOp.exceptionRegionExit;
-import static jdk.incubator.code.dialect.core.CoreOp.func;
+import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.java.JavaOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
-import static jdk.incubator.code.dialect.java.JavaType.VOID;
 
 public class TestExceptionRegionOps {
 
@@ -459,10 +452,10 @@ public class TestExceptionRegionOps {
                 expectedT = t;
             }
 
-            Assert.assertEquals(
-                    actualT != null ? actualT.getClass() : null,
-                    expectedT != null ? expectedT.getClass() : null);
-            Assert.assertEquals(actual, expected);
+            Assertions.assertEquals(
+                    expectedT != null ? expectedT.getClass() : null, actualT != null ? actualT.getClass() : null
+            );
+            Assertions.assertEquals(expected, actual);
         };
     }
 }

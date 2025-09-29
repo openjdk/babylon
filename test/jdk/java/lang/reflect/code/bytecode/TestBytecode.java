@@ -21,30 +21,28 @@
  * questions.
  */
 
+import jdk.incubator.code.*;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.bytecode.BytecodeLift;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.interpreter.Interpreter;
+import jdk.internal.classfile.components.ClassPrinter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.opentest4j.TestSkippedException;
+
 import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
-
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.internal.classfile.components.ClassPrinter;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessFlag;
-import org.testng.Assert;
-import org.testng.SkipException;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
-
-import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.bytecode.BytecodeLift;
-import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.CodeReflection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -58,7 +56,7 @@ import java.util.stream.Stream;
  * @modules jdk.incubator.code
  * @modules java.base/jdk.internal.classfile.components
  * @enablePreview
- * @run testng/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecode
+ * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecode
  */
 
 public class TestBytecode {
@@ -389,9 +387,9 @@ public class TestBytecode {
     }
 
     static int consumeQuotable(int i, QuotableFunc f) {
-        Assert.assertNotNull(Op.ofQuotable(f).get());
-        Assert.assertNotNull(Op.ofQuotable(f).get().op());
-        Assert.assertTrue(Op.ofQuotable(f).get().op() instanceof JavaOp.LambdaOp);
+        Assertions.assertNotNull(Op.ofQuotable(f).get());
+        Assertions.assertNotNull(Op.ofQuotable(f).get().op());
+        Assertions.assertTrue(Op.ofQuotable(f).get().op() instanceof JavaOp.LambdaOp);
         return f.apply(i + 1);
     }
 
@@ -568,17 +566,16 @@ public class TestBytecode {
         }
     }
 
-    @DataProvider(name = "testMethods")
-    public static TestData[]testMethods() {
+    public static Stream<TestData> testMethods() {
         return Stream.of(TestBytecode.class.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(CodeReflection.class))
-                .map(TestData::new).toArray(TestData[]::new);
+                .map(TestData::new);
     }
 
     private static byte[] CLASS_DATA;
     private static ClassModel CLASS_MODEL;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         CLASS_DATA = TestBytecode.class.getResourceAsStream("TestBytecode.class").readAllBytes();
         CLASS_MODEL = ClassFile.of().parse(CLASS_DATA);
@@ -636,7 +633,8 @@ public class TestBytecode {
         }
     }
 
-    @Test(dataProvider = "testMethods")
+    @ParameterizedTest
+    @MethodSource("testMethods")
     public void testLift(TestData d) throws Throwable {
         CoreOp.FuncOp flift;
         try {
@@ -659,7 +657,7 @@ public class TestBytecode {
                 receiver2 = new TestBytecode();
             }
             permutateAllArgs(d.testMethod.getParameterTypes(), args ->
-                Assert.assertEquals(invokeAndConvert(flift, receiver1, args), d.testMethod.invoke(receiver2, args)));
+                    assertEquals(d.testMethod.invoke(receiver2, args), invokeAndConvert(flift, receiver1, args)));
         } catch (Throwable e) {
             System.out.println("Compiled model:");
             Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
@@ -689,7 +687,8 @@ public class TestBytecode {
         return ret;
     }
 
-    @Test(dataProvider = "testMethods")
+    @ParameterizedTest
+    @MethodSource("testMethods")
     public void testGenerate(TestData d) throws Throwable {
         CoreOp.FuncOp func = Op.ofMethod(d.testMethod).get();
 
@@ -697,7 +696,7 @@ public class TestBytecode {
         try {
             lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
         } catch (UnsupportedOperationException uoe) {
-            throw new SkipException("lowering caused:", uoe);
+            throw new TestSkippedException("lowering caused:", uoe);
         }
 
         try {
@@ -711,10 +710,10 @@ public class TestBytecode {
                 receiver2 = new TestBytecode();
             }
             permutateAllArgs(d.testMethod.getParameterTypes(), args -> {
-                    List argl = new ArrayList(args.length + 1);
-                    if (receiver1 != null) argl.add(receiver1);
-                    argl.addAll(Arrays.asList(args));
-                    Assert.assertEquals(mh.invokeWithArguments(argl), d.testMethod.invoke(receiver2, args));
+                List argl = new ArrayList(args.length + 1);
+                if (receiver1 != null) argl.add(receiver1);
+                argl.addAll(Arrays.asList(args));
+                assertEquals(d.testMethod.invoke(receiver2, args), mh.invokeWithArguments(argl));
             });
         } catch (Throwable e) {
             System.out.println(func.toText());
@@ -736,6 +735,14 @@ public class TestBytecode {
                 } catch (IOException ignore) {}
             });
             throw e;
+        }
+    }
+
+    private static void assertEquals(Object expected, Object actual) {
+        switch (expected) {
+            case int[] expArr when actual instanceof int[] actArr -> Assertions.assertArrayEquals(expArr, actArr);
+            case Object[] expArr when actual instanceof Object[] actArr -> Assertions.assertArrayEquals(expArr, actArr);
+            case null, default -> Assertions.assertEquals(expected, actual);
         }
     }
 }

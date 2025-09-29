@@ -24,21 +24,20 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestNaming
+ * @run junit TestNaming
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.reflect.Method;
 import jdk.incubator.code.CodeItem;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
-import jdk.incubator.code.CodeReflection;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -81,7 +80,7 @@ public class TestNaming {
         String actual = OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(cNamer));
         String expected = op.toText();
 
-        Assert.assertEquals(actual, expected);
+        Assertions.assertEquals(expected, actual);
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

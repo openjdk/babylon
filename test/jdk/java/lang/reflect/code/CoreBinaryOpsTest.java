@@ -28,8 +28,17 @@
  * @run junit/othervm -Dbabylon.ssa=cytron CoreBinaryOpsTest
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.function.ThrowingSupplier;
@@ -48,16 +57,10 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.CodeReflection;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;

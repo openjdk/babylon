@@ -29,13 +29,20 @@ package hat.backend.java;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
+import hat.optools.OpTk;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.java.JavaOp;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
 
 
 public class JavaSequentialBackend extends JavaBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+        if (kernelCallGraph.usesArrayView) {
+            throw new RuntimeException("Java support for ArrayView not implemented");
+        }
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         for (ndRange.kid.x = 0; ndRange.kid.x < ndRange.kid.maxX; ndRange.kid.x++) {
             try {
