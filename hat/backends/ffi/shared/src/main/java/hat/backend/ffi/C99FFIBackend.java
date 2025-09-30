@@ -44,9 +44,7 @@ import hat.optools.OpTk;
 import hat.phases.HatFinalDetectionPhase;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -60,7 +58,7 @@ import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
 
-    public C99FFIBackend(String libName, Config config) {
+    public C99FFIBackend(String libName, FFIConfig config) {
         super(libName, config);
     }
 
@@ -262,7 +260,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
         builder.nl().kernelEntrypoint(buildContext, args).nl();
 
-        if (config.isSHOW_KERNEL_MODEL()) {
+        if (FFIConfig.SHOW_KERNEL_MODEL.isSet(config.bits())) {
             IO.println("Original");
             IO.println(kernelCallGraph.entrypoint.funcOp().toText());
             IO.println("Lowered");
@@ -279,18 +277,18 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             case BufferState.NEW_STATE:
             case BufferState.HOST_OWNED:
             case BufferState.DEVICE_VALID_HOST_HAS_COPY: {
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.println("in preMutate state = " + b.getStateString() + " no action to take");
                 }
                 break;
             }
             case BufferState.DEVICE_OWNED: {
                 backendBridge.getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.print("in preMutate state = " + b.getStateString() + " we pulled from device ");
                 }
                 b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.println("and switched to " + b.getStateString());
                 }
                 break;
@@ -302,13 +300,13 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     @Override
     public void postMutate(Buffer b) {
-        if (config.isSHOW_STATE()) {
+        if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
             System.out.print("in postMutate state = " + b.getStateString() + " no action to take ");
         }
         if (b.getState() != BufferState.NEW_STATE) {
             b.setState(BufferState.HOST_OWNED);
         }
-        if (config.isSHOW_STATE()) {
+        if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
             System.out.println("and switched to (or stayed on) " + b.getStateString());
         }
     }
@@ -320,7 +318,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             case BufferState.NEW_STATE:
             case BufferState.HOST_OWNED:
             case BufferState.DEVICE_VALID_HOST_HAS_COPY: {
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.println("in preAccess state = " + b.getStateString() + " no action to take");
                 }
                 break;
@@ -328,11 +326,11 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             case BufferState.DEVICE_OWNED: {
                 backendBridge.getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
 
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.print("in preAccess state = " + b.getStateString() + " we pulled from device ");
                 }
                 b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.println("and switched to " + b.getStateString());
                 }
                 break;
@@ -345,7 +343,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     @Override
     public void postAccess(Buffer b) {
-        if (config.isSHOW_STATE()) {
+        if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
             System.out.println("in postAccess state = " + b.getStateString());
         }
     }

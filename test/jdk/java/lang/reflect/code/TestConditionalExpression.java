@@ -24,19 +24,19 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestConditionalExpression
+ * @run junit TestConditionalExpression
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.invoke.MethodHandles;
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -56,8 +56,8 @@ public class TestConditionalExpression {
 
         System.out.println(lf.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, true, 1, 2), simpleExpression(true, 1, 2));
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, false, 1, 2), simpleExpression(false, 1, 2));
+        Assertions.assertEquals(simpleExpression(true, 1, 2), Interpreter.invoke(MethodHandles.lookup(), lf, true, 1, 2));
+        Assertions.assertEquals(simpleExpression(false, 1, 2), Interpreter.invoke(MethodHandles.lookup(), lf, false, 1, 2));
     }
 
 

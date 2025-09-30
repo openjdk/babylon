@@ -38,7 +38,7 @@ public abstract class FFIBackendDriver implements Backend {
     public boolean isAvailable() {
         return ffiLib.available;
     }
-    protected final Config config;
+    protected final FFIConfig config;
 
     public static class BackendBridge {
         // CUDA this combines Device+Stream+Context
@@ -110,7 +110,7 @@ public abstract class FFIBackendDriver implements Backend {
 
         final FFILib.VoidHandleMethodPtr info_MPtr;
         final FFILib.BooleanHandleAddressLongMethodPtr getBufferFromDeviceIfDirty_MPtr;
-        BackendBridge(FFILib ffiLib, Config config) {
+        BackendBridge(FFILib ffiLib, FFIConfig config) {
             this.ffiLib = ffiLib;
             this.getBackend_MPtr = ffiLib.longHandleIntFunc("getBackend");
             if (this.getBackend_MPtr.mh == null) {
@@ -164,7 +164,7 @@ public abstract class FFIBackendDriver implements Backend {
     public final FFILib ffiLib;
     public final BackendBridge backendBridge;
 
-    public FFIBackendDriver(String libName, Config config) {
+    public FFIBackendDriver(String libName, FFIConfig config) {
         this.ffiLib = new FFILib(libName);
         this.config = config;
         this.backendBridge = new BackendBridge(ffiLib, config);

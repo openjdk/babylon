@@ -24,14 +24,15 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestUsesDependsOn
+ * @run junit TestUsesDependsOn
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import jdk.incubator.code.*;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.extern.OpParser;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
@@ -77,7 +78,7 @@ public class TestUsesDependsOn {
                 Map.entry("10", List.of("8"))
         );
 
-        Assert.assertEquals(dependsUpon, expected);
+        Assertions.assertEquals(expected, dependsUpon);
     }
 
 
@@ -104,7 +105,7 @@ public class TestUsesDependsOn {
         System.out.println(uses.toString());
         System.out.println(expected);
 
-        Assert.assertEquals(uses, expected);
+        Assertions.assertEquals(expected, uses);
     }
 
     static Map<String, List<String>> computeValueMap(Op op, Function<Value, Set<? extends Value>> f) {

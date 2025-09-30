@@ -26,34 +26,31 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestErasure
+ * @run junit TestErasure
  */
 
-import static org.testng.Assert.*;
-
-import org.testng.annotations.*;
-
-import jdk.incubator.code.dialect.java.ArrayType;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.PrimitiveType;
-import jdk.incubator.code.dialect.java.TypeVariableType;
+import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
-@Test
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class TestErasure {
 
-    @Test(dataProvider = "typesAndErasures")
+    @ParameterizedTest
+    @MethodSource("typesAndErasures")
     public void testErasure(String testName, TypeAndErasure<?> typeAndErasure) {
         assertEquals(typeAndErasure.type.erasure(), typeAndErasure.erasure);
         assertEquals(typeAndErasure.type.toBasicType(), typeAndErasure.erasure.toBasicType());
         assertEquals(typeAndErasure.type.toNominalDescriptor(), typeAndErasure.erasure.toNominalDescriptor());
     }
 
-    @DataProvider
-    public static Object[][] typesAndErasures() {
+    public static Stream<Object[]> typesAndErasures() {
         List<TypeAndErasure<?>> typeAndErasures = new ArrayList<>();
         typeAndErasures.addAll(primitives());
         typeAndErasures.addAll(references());
@@ -62,8 +59,7 @@ public class TestErasure {
         typeAndErasures.addAll(arrays());
         typeAndErasures.addAll(typeVars());
         return typeAndErasures.stream()
-                .map(t -> new Object[] { t.type.toString(), t })
-                .toArray(Object[][]::new);
+                .map(t -> new Object[] { t.type.toString(), t });
     }
 
     static List<TypeAndErasure<PrimitiveType>> primitives() {

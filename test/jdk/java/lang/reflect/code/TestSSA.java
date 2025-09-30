@@ -21,17 +21,17 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.analysis.SSA;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.analysis.SSA;
-import jdk.incubator.code.interpreter.Interpreter;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.function.IntSupplier;
 import java.util.stream.Stream;
@@ -39,8 +39,8 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestSSA
- * @run testng/othervm -Dbabylon.ssa=cytron TestSSA
+ * @run junit TestSSA
+ * @run junit/othervm -Dbabylon.ssa=cytron TestSSA
  */
 
 public class TestSSA {
@@ -61,8 +61,8 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 1), ifelse(0, 0, 1));
-        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 11), ifelse(0, 0, 11));
+        Assertions.assertEquals(ifelse(0, 0, 1), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 1));
+        Assertions.assertEquals(ifelse(0, 0, 11), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 11));
     }
 
     @CodeReflection
@@ -92,7 +92,7 @@ public class TestSSA {
         CoreOp.FuncOp lf = generate(f);
 
         for (int i : new int[]{1, 11, 20, 21}) {
-            Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 0, 0, i), ifelseNested(0, 0, 0, 0, i));
+            Assertions.assertEquals(ifelseNested(0, 0, 0, 0, i), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 0, 0, i));
         }
     }
 
@@ -111,7 +111,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 10), loop(10));
+        Assertions.assertEquals(loop(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @CodeReflection
@@ -131,7 +131,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 10), nestedLoop(10));
+        Assertions.assertEquals(nestedLoop(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @CodeReflection
@@ -150,7 +150,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 10), nestedLambdaCapture(10));
+        Assertions.assertEquals(nestedLambdaCapture(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @CodeReflection
@@ -178,7 +178,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 10), deadCode(10));
+        Assertions.assertEquals(deadCode(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @CodeReflection
@@ -211,7 +211,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 10), ifelseLoopNested(10));
+        Assertions.assertEquals(ifelseLoopNested(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @CodeReflection
@@ -232,7 +232,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 1, 0, 0), violaJones(0, 1, 0, 0));
+        Assertions.assertEquals(violaJones(0, 1, 0, 0), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 1, 0, 0));
     }
 
     @CodeReflection
@@ -255,7 +255,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assert.assertEquals((int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 1, 0, 0), violaJonesTwo(0, 1, 0, 0));
+        Assertions.assertEquals(violaJonesTwo(0, 1, 0, 0), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 1, 0, 0));
     }
 
     @CodeReflection
@@ -284,7 +284,7 @@ public class TestSSA {
 
         int[] arr = new int[]{1, 2, 4, 7, 11, 19, 21, 29, 30, 36};
 
-        Assert.assertEquals((boolean) Interpreter.invoke(MethodHandles.lookup(), lf, arr, 4), binarySearch(arr, 4));
+        Assertions.assertEquals(binarySearch(arr, 4), (boolean) Interpreter.invoke(MethodHandles.lookup(), lf, arr, 4));
     }
 
     @CodeReflection
@@ -322,7 +322,7 @@ public class TestSSA {
 
         Interpreter.invoke(MethodHandles.lookup(), lf, arr1, 0, arr1.length - 1);
         quicksort(arr2, 0, arr2.length - 1);
-        Assert.assertEquals(arr1, arr2);
+        Assertions.assertArrayEquals(arr2, arr1);
     }
 
     static CoreOp.FuncOp generate(CoreOp.FuncOp f) {
