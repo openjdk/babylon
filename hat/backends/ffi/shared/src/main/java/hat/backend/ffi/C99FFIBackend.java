@@ -36,17 +36,15 @@ import hat.buffer.BufferTracker;
 import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.HatMemoryOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
+import hat.phases.HatFinalDetectionPhase;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -60,7 +58,7 @@ import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker {
 
-    public C99FFIBackend(String libName, Config config) {
+    public C99FFIBackend(String libName, FFIConfig config) {
         super(libName, config);
     }
 
@@ -98,7 +96,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             kernelContext.lsx(threadMesh.getX());
             kernelContext.lsy(threadMesh.getY());
             kernelContext.lsz(threadMesh.getZ());
-            //kernelContext.dimensions(threadMesh.getDims());
         }
 
         private void setDefaultLocalMesh() {
@@ -118,6 +115,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             if (isComputeRangeDefined) {
                 globalMesh = computeRange.getGlobalMesh();
                 localMesh = computeRange.getLocalMesh();
+                kernelContext.isSpecific(computeRange.isSpecificRange());
             }
 
             if (!isComputeRangeDefined) {
@@ -130,6 +128,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             } else {
                 setDefaultLocalMesh();
             }
+
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
@@ -142,16 +141,15 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    private void updateListOfSchemas(Op op, MethodHandles.Lookup lookup, List<String> localIfaceList) {
-        if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
-            if (OpTk.isIfaceAccessor(lookup, invokeOp)) {
-                String klassName = invokeOp.resultType().toString();
-                localIfaceList.add(klassName);
-            }
+    private void updateListOfSchemas(Op op, List<String> localIfaceList) {
+        if (Objects.requireNonNull(op) instanceof HatMemoryOp hatMemoryOp) {
+            String klassName = hatMemoryOp.invokeType().toString();
+            localIfaceList.add(klassName);
         }
     }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
+
         builder.defines().pragmas().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -171,9 +169,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         // Traverse the list of reachable functions and append the intrinsics functions found for each of the functions
         if (kernelCallGraph.moduleOp != null) {
             kernelCallGraph.moduleOp.functionTable()
-                    .forEach((_, funcOp) -> {
-                        funcOp.transform(CopyContext.create(), (blockBuilder, op) -> {
-                            updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    .forEach((entryName, f) -> {
+                        f.transform(CopyContext.create(), (blockBuilder, op) -> {
+                            updateListOfSchemas(op, localIFaceList);
                             blockBuilder.op(op);
                             return blockBuilder;
                         });
@@ -183,7 +181,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             // this else-branch will be deleted.
             kernelCallGraph.kernelReachableResolvedStream().forEach((kernel) -> {
                 kernel.funcOp().transform(CopyContext.create(), (blockBuilder, op) -> {
-                    updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    updateListOfSchemas(op, localIFaceList);
                     blockBuilder.op(op);
                     return blockBuilder;
                 });
@@ -193,7 +191,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         // Traverse the main kernel and append the intrinsics functions found in the main kernel
         kernelCallGraph.entrypoint.funcOp()
                 .transform(CopyContext.create(), (blockBuilder, op) -> {
-                    updateListOfSchemas(op, kernelCallGraph.computeContext.accelerator.lookup, localIFaceList);
+                    updateListOfSchemas(op, localIFaceList);
                     blockBuilder.op(op);
                     return blockBuilder;
                 });
@@ -234,29 +232,40 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
         // Sorting by rank ensures we don't need forward declarations
         if (CallGraph.noModuleOp) {
-            System.out.println("NOT using ModuleOp for C99FFIBackend");
+            IO.println("NOT using ModuleOp for C99FFIBackend");
             kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
-                    .forEach(kernelReachableResolvedMethod ->
-                            builder
-                                    .nl()
-                                    .kernelMethod(buildContext,kernelReachableResolvedMethod.funcOp())
-                                    .nl());
+                    .forEach(kernelReachableResolvedMethod -> {
+                                HatFinalDetectionPhase finals = new HatFinalDetectionPhase();
+                                finals.apply(kernelReachableResolvedMethod.funcOp());
+                                // Update the build context for this method to use the right constants-map
+                                buildContext.setFinals(finals.getFinalVars());
+                                builder.nl().kernelMethod(buildContext, kernelReachableResolvedMethod.funcOp()).nl();
+                    });
         } else {
-          System.out.println("Using ModuleOp for C99FFIBackend");
+            IO.println("Using ModuleOp for C99FFIBackend");
             kernelCallGraph.moduleOp.functionTable()
-                    .forEach((_, funcOp) -> builder
-                            .nl()
-                            .kernelMethod(buildContext,funcOp)
-                            .nl());
+                    .forEach((_, funcOp) -> {
+
+                        HatFinalDetectionPhase finals = new HatFinalDetectionPhase();
+                        finals.apply(funcOp);
+
+                        // Update the build context for this method to use the right constants-map
+                        buildContext.setFinals(finals.getFinalVars());
+                        builder.nl().kernelMethod(buildContext, funcOp).nl();
+                    });
         }
 
+        // Update the constants-map for the main kernel
+        HatFinalDetectionPhase hatFinalDetectionPhase = new HatFinalDetectionPhase();
+        hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
+        buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
         builder.nl().kernelEntrypoint(buildContext, args).nl();
 
-        if (config.isSHOW_KERNEL_MODEL()) {
-            System.out.println("Original");
-            System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
-            System.out.println("Lowered");
-            System.out.println(OpTk.lower(kernelCallGraph.entrypoint.funcOp()).toText());
+        if (FFIConfig.SHOW_KERNEL_MODEL.isSet(config.bits())) {
+            IO.println("Original");
+            IO.println(kernelCallGraph.entrypoint.funcOp().toText());
+            IO.println("Lowered");
+            IO.println(OpTk.lower(kernelCallGraph.entrypoint.funcOp()).toText());
         }
         return builder.toString();
     }
@@ -269,18 +278,18 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             case BufferState.NEW_STATE:
             case BufferState.HOST_OWNED:
             case BufferState.DEVICE_VALID_HOST_HAS_COPY: {
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.println("in preMutate state = " + b.getStateString() + " no action to take");
                 }
                 break;
             }
             case BufferState.DEVICE_OWNED: {
                 backendBridge.getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.print("in preMutate state = " + b.getStateString() + " we pulled from device ");
                 }
                 b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.println("and switched to " + b.getStateString());
                 }
                 break;
@@ -292,13 +301,13 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     @Override
     public void postMutate(Buffer b) {
-        if (config.isSHOW_STATE()) {
+        if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
             System.out.print("in postMutate state = " + b.getStateString() + " no action to take ");
         }
         if (b.getState() != BufferState.NEW_STATE) {
             b.setState(BufferState.HOST_OWNED);
         }
-        if (config.isSHOW_STATE()) {
+        if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
             System.out.println("and switched to (or stayed on) " + b.getStateString());
         }
     }
@@ -310,7 +319,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             case BufferState.NEW_STATE:
             case BufferState.HOST_OWNED:
             case BufferState.DEVICE_VALID_HOST_HAS_COPY: {
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.println("in preAccess state = " + b.getStateString() + " no action to take");
                 }
                 break;
@@ -318,11 +327,11 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             case BufferState.DEVICE_OWNED: {
                 backendBridge.getBufferFromDeviceIfDirty(b);// calls through FFI and might block when fetching from device
 
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.print("in preAccess state = " + b.getStateString() + " we pulled from device ");
                 }
                 b.setState(BufferState.DEVICE_VALID_HOST_HAS_COPY);
-                if (config.isSHOW_STATE()) {
+                if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
                     System.out.println("and switched to " + b.getStateString());
                 }
                 break;
@@ -335,7 +344,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     @Override
     public void postAccess(Buffer b) {
-        if (config.isSHOW_STATE()) {
+        if (FFIConfig.SHOW_STATE.isSet(config.bits())) {
             System.out.println("in postAccess state = " + b.getStateString());
         }
     }

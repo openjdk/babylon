@@ -51,6 +51,7 @@ questions.
         <module>matmul</module>
         <module>life</module>
         <module>experiments</module>
+        <module>arrayview</module>
     </modules>
     <profiles>
         <profile>

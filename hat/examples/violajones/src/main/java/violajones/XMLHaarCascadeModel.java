@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.function.Consumer;
@@ -238,6 +239,7 @@ public class XMLHaarCascadeModel implements Cascade {
                 this.rectElement = rectElement;
 
                 Scanner rectScanner = new Scanner(this.rectElement.getTextContent());
+                rectScanner.useLocale(Locale.US);
                 this.x = rectScanner.nextByte();
                 this.y = rectScanner.nextByte();
                 this.width = rectScanner.nextByte();

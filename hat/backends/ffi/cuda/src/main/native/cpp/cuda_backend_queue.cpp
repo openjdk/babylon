@@ -137,6 +137,8 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int threadsPerBlockY = 1;
     int threadsPerBlockZ = 1;
 
+    bool isSpecific = kernelContext->isSpecific;
+
     // The local and global mesh dimensions match by design from the Java APIs
     const int dimensions = kernelContext->dimensions;
     if (kernelContext->lsx > 0) {
@@ -158,12 +160,17 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int blocksPerGridX = (kernelContext->maxX + threadsPerBlockX - 1) / threadsPerBlockX;
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
-
     if (dimensions > 1) {
         blocksPerGridY = (kernelContext->maxY + threadsPerBlockY - 1) / threadsPerBlockY;
     }
     if (dimensions > 2) {
         blocksPerGridZ = (kernelContext->maxZ + threadsPerBlockZ - 1) / threadsPerBlockZ;
+    }
+
+    if (isSpecific) {
+        blocksPerGridX = kernelContext->maxX;
+        blocksPerGridY = kernelContext->maxY;
+        blocksPerGridZ = kernelContext->maxZ;
     }
 
     // Enable debug information with trace. Use HAT=INFO
@@ -174,9 +181,15 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     }
 
     const std::thread::id thread_id = std::this_thread::get_id();
-    if (thread_id != streamCreationThread){
+    if (thread_id != streamCreationThread) {
         std::cout << "dispatch()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
     }
+
+//     // CUDA events for timing
+//     cudaEvent_t start, stop;
+//     cuEventCreate(&start, cudaEventDefault);
+//     cuEventCreate(&stop, cudaEventDefault);
+//     cuEventRecord(start, 0);
 
     const auto status = cuLaunchKernel(cudaKernel->function, //
                                  blocksPerGridX, blocksPerGridY, blocksPerGridZ, //
@@ -185,6 +198,11 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
                                  cuStream, //
                                  cudaKernel->argslist, //
                                  nullptr);
+//     cuEventRecord(stop, 0);
+//     cuEventSynchronize(stop);
+//     float elapsedTimeMs = 0.0f;
+//     cuEventElapsedTime(&elapsedTimeMs, start, stop);
+//     std::cout << "Kernel Elapsed Time: " << elapsedTimeMs << " ms\n";
 
     CUDA_CHECK(status, "cuLaunchKernel");
 }

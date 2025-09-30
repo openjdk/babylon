@@ -21,23 +21,23 @@
  * questions.
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.invoke.MethodHandles;
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestForOp
+ * @run junit TestForOp
  */
 
 public class TestForOp {
@@ -61,7 +61,7 @@ public class TestForOp {
 
         System.out.println(lf.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f());
+        Assertions.assertEquals(f(), Interpreter.invoke(MethodHandles.lookup(), lf));
     }
 
     @CodeReflection
@@ -84,7 +84,7 @@ public class TestForOp {
 
         System.out.println(lf.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f2());
+        Assertions.assertEquals(f2(), Interpreter.invoke(MethodHandles.lookup(), lf));
     }
 
     @CodeReflection
@@ -109,7 +109,7 @@ public class TestForOp {
 
         System.out.println(lf.toText());
 
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf), f3());
+        Assertions.assertEquals(f3(), Interpreter.invoke(MethodHandles.lookup(), lf));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

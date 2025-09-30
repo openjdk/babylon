@@ -24,8 +24,12 @@
  */
 package hat.codebuilders;
 
-import hat.NDRange;
 import hat.buffer.Buffer;
+import hat.dialect.HatBlockThreadIdOp;
+import hat.dialect.HatGlobalThreadIdOp;
+import hat.dialect.HatGlobalSizeOp;
+import hat.dialect.HatLocalSizeOp;
+import hat.dialect.HatLocalThreadIdOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
@@ -47,27 +51,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (OpTk.isKernelContextAccess(fieldLoadOp)) {
-            switch (fieldLoadOp.fieldDescriptor().name()){
-                case "x","gix"->globalId(0);
-                case "y","giy"->globalId(1);
-                case "z","giz"->globalId(3);
-                case "maxX","gsx"->globalSize(0);
-                case "maxY","gsy"->globalSize(1);
-                case "maxZ","gsz"->globalSize(2);
-                case "lix"->localId(0);
-                case "liy"->localId(1);
-                case "liz"->localId(2);
-                case "lsx"->localSize(0);
-                case "lsy"->localSize(1);
-                case "lsz"->localSize(2);
-                case "bix"->blockId(0);
-                case "biy"->blockId(1);
-                case "biz"->blockId(2);
-                default ->  throw new IllegalStateException("handle ? kc."+fieldLoadOp.fieldDescriptor().name());
-            }
-
-        } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
+        if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
             Object value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
             literal(value.toString());
         } else {
@@ -75,6 +59,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
+
     T typedefStructOrUnion(boolean isStruct, String name, Consumer<T> consumer) {
         return typedefKeyword()
                 .space()
@@ -84,7 +69,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .braceNlIndented(consumer)
                 .suffix_t(name).semicolon().nl();
     }
-
 
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
@@ -117,8 +101,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public T kernelEntrypoint(ScopedCodeBuilderContext buildContext,
-                              Object... args) {
+    public T kernelEntrypoint(ScopedCodeBuilderContext buildContext, Object... args) {
         nl();
         buildContext.funcScope(buildContext.funcOp, () -> {
             kernelDeclaration(buildContext.funcOp);
@@ -147,6 +130,36 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
         return localPtrPrefix().space() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
+    }
+
+    @Override
+    public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadIdOp globalThreadIdOp) {
+        globalId(globalThreadIdOp.getDimension());
+        return self();
+    }
+
+    @Override
+    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalSizeOp globalSizeOp) {
+        globalSize(globalSizeOp.getDimension());
+        return self();
+    }
+
+    @Override
+    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HatLocalThreadIdOp localThreadIdOp) {
+        localId(localThreadIdOp.getDimension());
+        return self();
+    }
+
+    @Override
+    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HatLocalSizeOp hatLocalSizeOp) {
+        localSize(hatLocalSizeOp.getDimension());
+        return self();
+    }
+
+    @Override
+    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp) {
+        blockId(hatBlockThreadIdOp.getDimension());
+        return self();
     }
 
     public abstract T globalPtrPrefix();

@@ -1,29 +1,20 @@
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeReflection;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Quotable;
-import jdk.incubator.code.Quoted;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpParser;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Method;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.SequencedMap;
-import java.util.SequencedSet;
+import java.util.*;
 import java.util.function.IntUnaryOperator;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestQuoteOp
+ * @run junit TestQuoteOp
  */
 public class TestQuoteOp {
 
@@ -48,13 +39,13 @@ public class TestQuoteOp {
         // op must have the same structure as lop
         // for the moment, we don't have utility to check that
 
-        Assert.assertTrue(lop.getClass().isInstance(quoted.op()));
+        Assertions.assertTrue(lop.getClass().isInstance(quoted.op()));
 
         Iterator<Object> iterator = quoted.capturedValues().values().iterator();
 
-        Assert.assertEquals(((CoreOp.Var) iterator.next()).value(), args[0]);
-        Assert.assertEquals(((CoreOp.Var) iterator.next()).value(), args[1]);
-        Assert.assertEquals(iterator.next(), args[2]);
+        Assertions.assertEquals(args[0], ((CoreOp.Var) iterator.next()).value());
+        Assertions.assertEquals(args[1], ((CoreOp.Var) iterator.next()).value());
+        Assertions.assertEquals(args[2], iterator.next());
     }
 
     @CodeReflection
@@ -73,12 +64,12 @@ public class TestQuoteOp {
         Object[] args = {"abc", "b"};
         Quoted quoted = Quoted.extractOp(funcOp, args);
 
-        Assert.assertTrue(invOp.getClass().isInstance(quoted.op()));
+        Assertions.assertTrue(invOp.getClass().isInstance(quoted.op()));
 
         Iterator<Object> iterator = quoted.operands().values().iterator();
 
-        Assert.assertEquals(iterator.next(), args[0]);
-        Assert.assertEquals(iterator.next(), args[1]);
+        Assertions.assertEquals(args[0], iterator.next());
+        Assertions.assertEquals(args[1], iterator.next());
     }
 
     @Test
@@ -98,13 +89,12 @@ public class TestQuoteOp {
 
         Iterator<Object> iterator = quoted2.capturedValues().values().iterator();
 
-        Assert.assertEquals(((CoreOp.Var) iterator.next()).value(), y);
-        Assert.assertEquals(((CoreOp.Var) iterator.next()).value(), args[1]);
-        Assert.assertEquals(iterator.next(), args[0]);
+        Assertions.assertEquals(y, ((CoreOp.Var) iterator.next()).value());
+        Assertions.assertEquals(args[1], ((CoreOp.Var) iterator.next()).value());
+        Assertions.assertEquals(args[0], iterator.next());
     }
 
-    @DataProvider
-    Object[][] invalidCases() {
+    static Object[][] invalidCases() {
         return new Object[][]{
               // TODO describe error in a comment
                 {
@@ -333,14 +323,14 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
 }
 
 
-    @Test(dataProvider = "invalidCases")
+    @ParameterizedTest
+    @MethodSource("invalidCases")
     void testInvalidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
-        Assert.assertThrows(RuntimeException.class, () -> Quoted.extractOp(fop, args));
+        Assertions.assertThrows(RuntimeException.class, () -> Quoted.extractOp(fop, args));
     }
 
-    @DataProvider
-    Object[][] validCases() {
+    static Object[][] validCases() {
         return new Object[][] {
                 {
                         """
@@ -466,7 +456,8 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
         };
     }
 
-    @Test(dataProvider = "validCases")
+    @ParameterizedTest
+    @MethodSource("validCases")
     void testValidCases(String model, Object[] args) {
         CoreOp.FuncOp fop = ((CoreOp.FuncOp) OpParser.fromStringOfJavaCodeModel(model));
         Quoted quoted = Quoted.extractOp(fop, args);
@@ -477,15 +468,14 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
             // assert only when captured value is block param, or result of VarOp initialized with block param
             if (sv instanceof Op.Result opr && opr.op() instanceof CoreOp.VarOp vop
                     && vop.initOperand() instanceof Block.Parameter p) {
-                Assert.assertEquals(((CoreOp.Var) rv).value(), args[p.index()]);
+                Assertions.assertEquals(args[p.index()], ((CoreOp.Var) rv).value());
             } else if (sv instanceof Block.Parameter p) {
-                Assert.assertEquals(rv, args[p.index()]);
+                Assertions.assertEquals(args[p.index()], rv);
             }
         }
     }
 
-    @DataProvider
-    Object[][] numParamsCases() {
+    static Object[][] numParamsCases() {
         return new Object[][]{
                 {
                         """
@@ -540,11 +530,12 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
         };
     }
 
-    @Test(dataProvider = "numParamsCases")
+    @ParameterizedTest
+    @MethodSource("numParamsCases")
     void testNumAndOrderOfParams(String model, int expectedNumParams) {
         CoreOp.FuncOp funcOp = (CoreOp.FuncOp) OpParser.fromString(JavaOp.JAVA_DIALECT_FACTORY, model).get(0);
         CoreOp.FuncOp qm = Quoted.embedOp(funcOp.body().entryBlock().ops().getFirst());
-        Assert.assertEquals(qm.parameters().size(), expectedNumParams);
+        Assertions.assertEquals(expectedNumParams, qm.parameters().size());
 
         // test that qm parameters are the sequence set of op 's operands + captured values
         CoreOp.QuotedOp qop = ((CoreOp.QuotedOp) qm.body().entryBlock().ops().get(qm.body().entryBlock().ops().size() - 2));
@@ -552,7 +543,7 @@ func @"q" (%0 : java.type:"int", %2 : java.type:"int")java.type:"jdk.incubator.c
         SequencedSet<Value> expectedParams = new LinkedHashSet<>();
         expectedParams.addAll(op.operands());
         expectedParams.addAll(op.capturedValues());
-        Assert.assertEquals(qm.parameters(), expectedParams);
+        Assertions.assertEquals(expectedParams.stream().toList(), qm.parameters());
 
         // test that validation in Quoted constructor are correct
         SequencedMap<Value, Object> m = new LinkedHashMap<>();

@@ -24,21 +24,21 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestInvokeSuper
+ * @run junit TestInvokeSuper
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.Ignore;
-import org.testng.annotations.Test;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -64,7 +64,7 @@ public class TestInvokeSuper {
         }
     }
 
-    @Ignore
+    @Disabled
     @Test
     public void testInvokeSuper() throws Throwable {
         CoreOp.FuncOp f = getFuncOp(B.class, "f");
@@ -72,7 +72,7 @@ public class TestInvokeSuper {
 
         for (boolean invokeClass : new boolean[] {true, false}) {
             B b = new B(invokeClass);
-            Assert.assertEquals(mh.invoke(b), b.f());
+            Assertions.assertEquals(b.f(), mh.invoke(b));
         }
     }
 

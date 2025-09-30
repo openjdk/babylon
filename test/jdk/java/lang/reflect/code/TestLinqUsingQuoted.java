@@ -21,30 +21,29 @@
  * questions.
  */
 
-import jdk.incubator.code.analysis.Inliner;
-import jdk.incubator.code.dialect.java.JavaOp;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.analysis.Inliner;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.TypeElement;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.dialect.java.MethodRef.method;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
+import static jdk.incubator.code.dialect.java.MethodRef.method;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestLinqUsingQuoted
+ * @run junit TestLinqUsingQuoted
  */
 
 public class TestLinqUsingQuoted {
@@ -262,6 +261,6 @@ public class TestLinqUsingQuoted {
         Op op = qr2.expression();
         System.out.println(op.toText());
 
-        Assert.assertEquals(qr.expression().toText(), qr2.expression().toText());
+        Assertions.assertEquals(qr2.expression().toText(), qr.expression().toText());
     }
 }

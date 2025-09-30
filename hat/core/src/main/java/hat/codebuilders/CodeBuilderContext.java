@@ -36,9 +36,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CodeBuilderContext {
+
     final public MethodHandles.Lookup lookup;
     final public CoreOp.FuncOp funcOp;
     final public FuncOpParams paramTable;
+
     public CodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         this.lookup = lookup;
         this.funcOp = funcOp;

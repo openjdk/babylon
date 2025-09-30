@@ -24,19 +24,19 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestTraverse
+ * @run junit TestTraverse
  */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
-import java.lang.reflect.Method;
 import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -78,9 +78,9 @@ public class TestTraverse {
             l.add(e);
             return l;
         });
-        Assert.assertEquals(op.elements().toList(), tl);
+        Assertions.assertEquals(tl, op.elements().toList());
 
-        Assert.assertEquals(op.elements().limit(2).toList(), tl.subList(0, 2));
+        Assertions.assertEquals(tl.subList(0, 2), op.elements().limit(2).toList());
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

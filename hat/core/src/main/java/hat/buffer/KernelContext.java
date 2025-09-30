@@ -100,6 +100,9 @@ public interface KernelContext extends Buffer {
     int biz();
     void biz(int biz);
 
+    boolean isSpecific();
+    void isSpecific(boolean specific);
+
     Schema<KernelContext> schema = Schema.of(KernelContext.class,
             kernelContext -> kernelContext
                     .fields(
@@ -108,7 +111,8 @@ public interface KernelContext extends Buffer {
                             "gsx", "gsy", "gsz",  // global sizes
                             "lix", "liy", "liz",  // local (thread-ids)
                             "lsx", "lsy", "lsz",  // block size
-                            "bix", "biy", "biz"  // block id
+                            "bix", "biy", "biz",   // block id
+                            "isSpecific"
                     ));
 
     static KernelContext  createDefault(Accelerator accelerator) {
@@ -140,6 +144,8 @@ public interface KernelContext extends Buffer {
         kernelContext.bix(0);
         kernelContext.biy(0);
         kernelContext.biz(0);
+
+        kernelContext.isSpecific(false);
 
         return kernelContext;
     }

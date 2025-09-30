@@ -21,24 +21,26 @@
  * questions.
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.Test;
-import org.testng.annotations.DataProvider;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import jdk.incubator.code.interpreter.Interpreter;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.CodeReflection;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestConcat
+ * @run junit TestConcat
  */
 
 public class TestConcat {
@@ -183,8 +185,8 @@ public class TestConcat {
     private static String testName(Class<?> n, Integer i){
         return n.getSimpleName().toLowerCase() + "Concat" + i;
     }
-    @DataProvider(name = "testData")
-    public static Object[][]  testData() {
+
+    public static Stream<TestMethodData> testData() {
         Set<Class<?>> types = Set.of(byte.class, short.class, int.class, long.class, float.class,
                 double.class, char.class, boolean.class, Object.class);
 
@@ -197,18 +199,11 @@ public class TestConcat {
                                       new TestMethodData(String.class, TestObject.class, testName(Object.class, 4)),
                                       new TestMethodData(String.class, String.class, "stringConcat"));
 
-        Object[] t = Stream.concat(Stream.concat(s1,s2),s3).toArray();
-
-        Object[][] args = new Object[t.length][];
-
-        for(int i = 0; i < args.length; i++) {
-            args[i] = new Object[]{ t[i] };
-        }
-
-        return args;
+        return Stream.concat(Stream.concat(s1,s2),s3);
     }
 
-    @Test(dataProvider = "testData")
+    @ParameterizedTest
+    @MethodSource("testData")
     public static void testRun(TestMethodData t) {
         try {
             Object[] args = new Object[] {valMap.get(t.first), valMap.get(t.second)};
@@ -218,7 +213,7 @@ public class TestConcat {
             var res1 = Interpreter.invoke(MethodHandles.lookup(), f, args);
             var res2 = method.invoke(null, args);
 
-            Assert.assertEquals(res1, res2);
+            Assertions.assertEquals(res2, res1);
 
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);

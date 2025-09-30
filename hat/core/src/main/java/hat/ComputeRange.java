@@ -35,8 +35,8 @@ package hat;
  */
 public class ComputeRange {
 
-    final private ThreadMesh globalMesh;
-    final private ThreadMesh localMesh;
+    private final ThreadMesh globalMesh;
+    private final ThreadMesh localMesh;
 
     /**
      * Total number of threads to run in 1D.
@@ -122,5 +122,9 @@ public class ComputeRange {
      */
     public ThreadMesh getLocalMesh() {
         return localMesh;
+    }
+
+    public boolean isSpecificRange() {
+        return false;
     }
 }
