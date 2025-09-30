@@ -25,6 +25,7 @@
 package matmul;
 
 import hat.Accelerator;
+import hat.CUDARange;
 import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
@@ -66,7 +67,7 @@ public class Main {
 
     private static final boolean CHECK_RESULT = true;
 
-    private static final int NUM_ITERATIONS = 100;
+    private static final int NUM_ITERATIONS = 10;
 
     /**
      * Naive Matrix Multiplication implemented in 2D.
@@ -176,6 +177,372 @@ public class Main {
         matrixC.array((long) row * size + col, sum);
     }
 
+    private interface SharedMemory extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+        Schema<SharedMemory> schema = Schema.of(SharedMemory.class,
+                arr -> arr.array("array", 1024));
+        static SharedMemory create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static SharedMemory createLocal() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+    }
+
+    private interface PrivateArray extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+        Schema<PrivateArray> schema = Schema.of(PrivateArray.class,
+                arr -> arr.array("array", 64));
+        static PrivateArray create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static PrivateArray createPrivate() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+    }
+
+    private interface FlatPrivate extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+        Schema<FlatPrivate> schema = Schema.of(FlatPrivate.class,
+                arr -> arr.array("array", 8));
+        static FlatPrivate create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static FlatPrivate createPrivate() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+    }
+
+    /**
+     * Algorithm for MatMul using 2D Cache (shared memory), Loop Tiling and 2D Register Tiling.
+     *
+     * <p>
+     *     We want to probe that HAT can represent more complex optimisations, and make use of the
+     *     different levels of memory hierarchy, such as shared memory (as in CUDA shared memory),
+     *     and private memory. This code has been tested on NVIDIA A10 GPUs.
+     * </p>
+     *
+     * <p>
+     *     The code has been adapted from CUDA to HAT based on the algorithms presented here:
+     *     {@url https://siboehm.com/articles/22/CUDA-MMM}
+     * </p>
+     *
+     * @param kc
+     * @param matrixA
+     * @param matrixB
+     * @param matrixC
+     * @param size
+     */
+    @CodeReflection
+    public static void matrixMultiplyKernel2DRegisterTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+
+        int bx = kc.bix;
+        int by = kc.biy;
+
+        // Configuration for the kernel
+        final int BM = 128;
+        final int BN = 128;
+        final int BK = 8;
+        final int TM = 8;    // Register Block
+        final int TN = 8;    // Register block
+
+        int totalResultsBlockTile = BM * BN;
+        final int numThreadsBlockTile = totalResultsBlockTile / (TM * TN);
+
+        final int limitA = (BN / TN);
+        final int limitB = (BN / TN);
+        final int threadCol = kc.lix % limitA;
+        final int threadRow = kc.lix / limitB;
+
+        SharedMemory tileA = SharedMemory.createLocal();
+        SharedMemory tileB = SharedMemory.createLocal();
+
+        int aFrom = by * BM * size;
+        int bFrom = bx * BN;
+        int v = bx * BN;
+        int cFrom = (by * BM * size) + (v);
+
+        final int innerRowA = kc.lix / BK;
+        final int innerColA = kc.lix % BK;
+
+        final int strideA = numThreadsBlockTile / BK;
+        final int innerRowB = kc.lix / BN;
+        final int innerColB = kc.lix % BN;
+
+        int strideB = numThreadsBlockTile / BN;
+
+        // Declarations of the arrays in private memory to perform register tiling
+        PrivateArray threadResults = PrivateArray.createPrivate();
+        FlatPrivate regM = FlatPrivate.createPrivate();
+        FlatPrivate regN = FlatPrivate.createPrivate();
+
+        // initialize values
+        for (int i = 0; i < (TN * TN); i++) {
+            threadResults.array(i, 0.0f);
+        }
+
+        // Each thread loops over the tiles
+        for (int bkIdx = 0; bkIdx < size; bkIdx += BK) {
+
+            // A) Load data into shared memory for array A
+            for (int loadOffset = 0; loadOffset < BM; loadOffset += strideA) {
+                tileA.array((innerRowA + loadOffset) * BK + innerColA,
+                        matrixA.array(((innerRowA + loadOffset) * size + innerColA) + aFrom));
+            }
+
+            // B) Load data matrixB into shared memory for array B
+            for (int loadOffset = 0; loadOffset < BK; loadOffset += strideB) {
+                tileB.array((innerRowB + loadOffset) * BN + innerColB,
+                        matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom));
+            }
+            kc.barrier();
+
+            aFrom += (BK);
+            int f = BK * size;
+            bFrom += f;
+
+            // Per-thread, we load the data from the shared memory into register for both
+            // array A and array B (matrix A and B), and then perform the reduction within
+            // the small region in private memory.
+            for (int dotIdx = 0; dotIdx < BK; dotIdx++) {
+                // block into registers
+                for (int i = 0; i < TM; i++) {
+                    regM.array(i,  tileA.array((threadRow * TM + i) * BK + dotIdx));
+                }
+                for (int i = 0; i < TN; i++) {
+                    regN.array(i,  tileB.array(dotIdx * BN + threadCol * TN + i));
+                }
+                for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
+                    for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
+                        float val = regM.array(resIdxM) * regN.array(resIdxN);
+                        float acc = threadResults.array(resIdxM * TN + resIdxN);
+                        acc += val;
+                        threadResults.array((resIdxM * TN + resIdxN), (acc));
+                    }
+                }
+            }
+            kc.barrier();
+        }
+
+        // Finally, we store the results of the reductions for the whole 2D register block into global memory.
+        // Essentially, each thread compute a small block of TM * TN sub-block size.
+        for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
+            for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
+                float value = threadResults.array(resIdxM * TN + resIdxN);
+                matrixC.array((((threadRow * TM + resIdxM) * size + threadCol * TN + resIdxN) + (cFrom)), value);
+            }
+        }
+    }
+
+    private interface SharedWithPad extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+        Schema<SharedWithPad> schema = Schema.of(SharedWithPad.class,
+                arr -> arr.array("array", 1088));   // The size is BLOCK_M * (TILE_K + 1) to mitigate memory bank conflicts
+        static SharedWithPad create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static SharedWithPad createLocal() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+    }
+
+    private interface SharedWithPadB extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+        Schema<SharedWithPadB> schema = Schema.of(SharedWithPadB.class,
+                arr -> arr.array("array", 1040));    // The size is TILE_K * (BLOCk_M + 1) to mitigate memory bank conflicts
+        static SharedWithPadB create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static SharedWithPadB createLocal() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+    }
+
+    private interface PrivateAcc extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+        Schema<PrivateAcc> schema = Schema.of(PrivateAcc.class,
+                arr -> arr.array("array", 16));
+        static PrivateAcc create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static PrivateAcc createPrivate() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+    }
+
+    private interface PrivateReg extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+        Schema<PrivateReg> schema = Schema.of(PrivateReg.class,
+                arr -> arr.array("array", 4));
+        static PrivateReg create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static PrivateReg createPrivate() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+    }
+
+    /**
+     * The following algorithm is a variant of the previous kernel to show register tiling and 2D thread-block. This algorithm
+     * is portable across CUDA and OpenCL backend of the HAT compiler/runtime. It can be tuned by changing the configuration
+     * parameters at the beginning of the function. Some notes for auto-tuning:
+     * - Global size must be multiples of local group, and cover (BLOCK_M x BLOCK_N) per group
+     * - BLOCK_M = WG_M * REG_M, BLOCK_N = WG_N * REG_N
+     *
+     * <p>
+     * Some possible values for tuning: WG_M {8 .. 32}, and WG_N {8 .. 32}, REG_M {1 .. 4}, REG_N {1 .. 4}, TILE_K {16 .. 128}.
+     * Depending on the GPU used, some of the configuration values might be too high/illegal.
+     * </p>
+     *
+     * <p>
+     * The goal of this example is to show how HAT could be used to express more complex algorithm and optimizations for GPUs,
+     * and how HAT could table performance tuning.
+     * </p>
+     *
+     * @param kc
+     * @param matrixA
+     * @param matrixB
+     * @param matrixC
+     * @param size
+     */
+    @CodeReflection
+    public static void matrixMultiplyKernel2DRegisterTilingPortable(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+
+        // Configuration for this kernel
+        final int WG_M = 16;
+        final int WG_N = 16;
+        final int REG_M = 4;
+        final int REG_N = 4;
+        final int TILE_K = 16;
+        final int BLOCK_M = WG_M * REG_M;
+        final int BLOCK_N = WG_N * REG_N;
+
+        // We compute squares matrices for simplification. But the code is
+        // prepared to compute any compatible matmul sizes
+        final int M = size;
+        final int N = size;
+        final int K = size;
+        final int lda = size;
+        final int ldb = size;
+        final int ldc = size;
+
+        final int lid_m = kc.lix;
+        final int lid_n = kc.liy;
+        final int gid_m = kc.bix;
+        final int gid_n = kc.biy;
+
+        // starting index of the tile in the matrix
+        final int blockRow = gid_m * BLOCK_M;
+        final int blockCol = gid_n * BLOCK_N;
+
+        // Within the block, each thread computes REG_M x REG_N micro-tile
+        // start at (blockRow + lid_m * REG_M) and (blockCol + lid_n * REG_N)
+        final int cRowBase = blockRow + lid_m * REG_M;
+        final int cColBase = blockCol + lid_n * REG_N;
+
+        // Accumulators in private memory. This is set to REG_M x REG_N values
+        PrivateAcc acc = PrivateAcc.createPrivate();
+        for (int i = 0; i < REG_M; i++) {
+            for (int j = 0; j < REG_N; j++) {
+                acc.array(i * REG_M + j, 0.0f);
+            }
+        }
+
+        // Shared memory to store tiles of matrixA and matrixB
+        SharedWithPad sharedA = SharedWithPad.createLocal();
+        SharedWithPadB sharedB = SharedWithPadB.createLocal();
+
+        // Padding scales to access local memory.
+        // We add +1 to mitigate memory bank conflicts.
+        final int padA = TILE_K + 1;
+        final int padB = BLOCK_M + 1;
+        for (int tileIndex = 0; tileIndex < K; tileIndex += TILE_K) {
+            // Load A tile (Block_M x Tile_K)
+            for (int i = 0; i < REG_M; i++) {
+                final int aRow = cRowBase + i;
+                for (int kk = lid_n; kk < TILE_K; kk += WG_N) {
+                    final int aCol = tileIndex + kk;
+                    float valA = 0.0f;
+                    if (aRow < M && aCol < K) {
+                        valA = matrixA.array(aRow * lda + aCol);
+                    }
+                    sharedA.array(((aRow - blockRow) * padA) + kk, valA);
+                }
+            }
+
+            // Load B tile (Tile_K x Block_N)
+            for (int j = 0; j < REG_N; j++) {
+                final int bCol = cColBase + j;
+                for (int kk = lid_m; kk < TILE_K; kk += WG_M) {
+                    final int bRow = tileIndex + kk;
+                    float valB = 0.0f;
+                    if (bRow < K && bCol < N) {
+                        valB = matrixB.array(bRow * ldb + bCol);
+                    }
+                    sharedB.array((kk * padB) + (bCol - blockCol), valB);
+                }
+            }
+            kc.barrier();
+
+            // Compute the tile acc += sharedA[:,k] * sharedB[k,:]
+            for (int kk = 0; kk < TILE_K && (tileIndex + kk) < K; kk++) {
+                // Load the A and B operands into registers to reuse for REG_M x REG_N accumulations
+                PrivateReg aReg = PrivateReg.createPrivate();
+                PrivateReg bReg = PrivateReg.createPrivate();
+
+                // Fetch a column kk of sharedA to private memory
+                for (int i = 0; i < REG_M; i++) {
+                    final int aRowL = (cRowBase + i) - blockRow;
+                    float valPrivA = 0.0f;
+                    if ((cRowBase + i) < M) {
+                        valPrivA = sharedA.array(aRowL * padA + kk);
+                    }
+                    aReg.array(i, valPrivA);
+                }
+
+                // Fetch a row kk of sharedB to private memory
+                for (int j = 0; j < REG_N; j++) {
+                    final int bColL = (cColBase + j) - blockCol;
+                    float valPrivB = 0.0f;
+                    if ((cColBase + j) < N) {
+                        valPrivB = sharedB.array(kk * padB + bColL);
+                    }
+                    bReg.array(j, valPrivB);
+                }
+
+                // FMA over the register tile
+                for (int i = 0; i < REG_M; i++) {
+                    final float a_ik = aReg.array(i);
+                    for (int j = 0; j < REG_N; j++) {
+                        float valRes = acc.array(i * REG_M + j);
+                        valRes += a_ik * bReg.array(j);
+                        acc.array(i * REG_M + j, valRes);
+                    }
+                }
+            }
+            kc.barrier();
+        }
+        // Write back the result of the register tile into matrixC
+        for (int i = 0; i < REG_M; i++) {
+            final int row = cRowBase + i;
+            if (row < M) {
+                for (int j = 0; j < REG_N; j++) {
+                    final int col = cColBase + j;
+                    if (col < N) {
+                        matrixC.array(row * ldc + col, acc.array(i * REG_M + j));
+                    }
+                }
+            }
+        }
+    }
+
     @CodeReflection
     public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
         float acc = 0.0f;
@@ -262,6 +629,22 @@ public class Main {
         );
     }
 
+    @CodeReflection
+    public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        CUDARange cudaRange = new CUDARange(new GlobalMesh2D(8, 8), new LocalMesh2D(256, 1));
+        cc.dispatchKernel(cudaRange,
+                kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, globalSize)
+        );
+    }
+
+    @CodeReflection
+    public static void matrixMultiply2DRegisterTilingPortable(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+        ComputeRange cudaRange = new ComputeRange(new GlobalMesh2D(256, 256), new LocalMesh2D(16, 16));
+        cc.dispatchKernel(cudaRange,
+                kc -> matrixMultiplyKernel2DRegisterTilingPortable(kc, matrixA, matrixB, matrixC, globalSize)
+        );
+    }
+
     private static void runSequential(F32Array matrixA, F32Array matrixB, F32Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
@@ -287,6 +670,8 @@ public class Main {
         _2D,   //
         _2DLI,
         _2DTILING,
+        _2DREGISTER_TILING,
+        _2DREGISTER_TILING_PORTABLE,
     }
 
     /**
@@ -295,7 +680,7 @@ public class Main {
      *      args: <"1D"|"2D"> for 1D dispatch
      *
      */
-    public static void main(String[] args) {
+    static void main(String[] args) {
         System.out.println("[INFO] Running Matrix Multiplication: ");
 
         Configuration configuration = Configuration._2DTILING;
@@ -307,6 +692,8 @@ public class Main {
                 case "2D" -> Configuration._2D;
                 case "2DLI" -> Configuration._2DLI;
                 case "2DTILING" -> Configuration._2DTILING;
+                case "2DREGISTERTILING" -> Configuration._2DREGISTER_TILING;
+                case "2DRTPORTABLE" -> Configuration._2DREGISTER_TILING_PORTABLE;
                 default -> configuration;
             };
         }
@@ -336,33 +723,44 @@ public class Main {
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
 
-        for (int it = 0; it < NUM_ITERATIONS; it++) {
+        IO.println("BACKEND: "  + accelerator.backend.getName());
+        String backendName = accelerator.backend.getName();
 
+        if (configuration == Configuration._2DREGISTER_TILING && !backendName.equals("hat.backend.ffi.CudaBackend")) {
+            throw new UnsupportedOperationException("MxM with 2D Register tiling is only supported on CUDA backend");
+        }
+
+        for (int it = 0; it < NUM_ITERATIONS; it++) {
             long start = System.nanoTime();
             switch (configuration) {
                 case _MT -> runMultiThreadedWithStreams(matrixA, matrixB, matrixC, size);
                 case _1D -> accelerator.compute(cc ->
-                        Main.matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
+                        matrixMultiply1D(cc, matrixA, matrixB, matrixC, size));
                 case _1DFC -> accelerator.compute(cc ->
-                        Main.matrixMultiply1DWithFunctionCalls(cc, matrixA, matrixB, matrixC, size));
+                        matrixMultiply1DWithFunctionCalls(cc, matrixA, matrixB, matrixC, size));
                 case _2D -> accelerator.compute(cc ->
-                        Main.matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
+                        matrixMultiply2D(cc, matrixA, matrixB, matrixC, size));
                 case _2DLI -> accelerator.compute(cc ->
-                        Main.matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
+                        matrixMultiply2DLI(cc, matrixA, matrixB, matrixC, size));
                 case _2DTILING -> accelerator.compute(cc ->
-                        Main.matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
+                        matrixMultiply2DTiling(cc, matrixA, matrixB, matrixC, size));
+                case _2DREGISTER_TILING -> accelerator.compute(cc ->
+                            matrixMultiply2DRegisterTiling(cc, matrixA, matrixB, matrixC, size));
+                case _2DREGISTER_TILING_PORTABLE -> accelerator.compute(cc ->
+                        matrixMultiply2DRegisterTilingPortable(cc, matrixA, matrixB, matrixC, size));
             }
 
             long end = System.nanoTime();
             System.out.println("Elapsed Time: " + (end - start) + " ns");
 
-            // If check result is ON, then check first and lat iterations
+            // If the check is ON, then check first and lat iterations
             if (it == 0 || it == (NUM_ITERATIONS - 1) && CHECK_RESULT) {
                 // Check result for the first iteration
                 boolean isCorrect = true;
                 for (int i = 0; i < size; i++) {
                     for (int j = 0; j < size; j++) {
                         if (Math.abs(resultSeq.array(i * size + j) - matrixC.array(i * size + j)) > 0.01f) {
+                            IO.println(resultSeq.array(i * size + j) + " != " + matrixC.array(i * size + j));
                             isCorrect = false;
                             break;
                         }
