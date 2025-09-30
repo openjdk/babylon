@@ -393,6 +393,8 @@ public:
     int bix;
     int biy;
     int biz;
+
+    bool isSpecific;
 };
 
 class Backend {

@@ -98,7 +98,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             kernelContext.lsx(threadMesh.getX());
             kernelContext.lsy(threadMesh.getY());
             kernelContext.lsz(threadMesh.getZ());
-            //kernelContext.dimensions(threadMesh.getDims());
         }
 
         private void setDefaultLocalMesh() {
@@ -130,6 +129,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             } else {
                 setDefaultLocalMesh();
             }
+            kernelContext.isSpecific(computeRange.isSpecificRange());
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
