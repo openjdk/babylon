@@ -115,6 +115,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             if (isComputeRangeDefined) {
                 globalMesh = computeRange.getGlobalMesh();
                 localMesh = computeRange.getLocalMesh();
+                kernelContext.isSpecific(computeRange.isSpecificRange());
             }
 
             if (!isComputeRangeDefined) {
@@ -127,7 +128,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             } else {
                 setDefaultLocalMesh();
             }
-            kernelContext.isSpecific(computeRange.isSpecificRange());
+
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
