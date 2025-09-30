@@ -165,6 +165,7 @@ fi
 
 #Assuming the remote path ends with babylon
 cd $REMOTE_PATH
+git fetch --all
 git checkout $BRANCH
 git pull
 
@@ -213,6 +214,7 @@ ssh $user@$server bash << EOF
 $backend_definition
 cd "$REMOTE_PATH"
 cd hat/
+git fetch --all
 git checkout $BRANCH
 git pull
 
