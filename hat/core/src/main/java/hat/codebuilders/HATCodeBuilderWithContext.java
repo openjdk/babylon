@@ -430,6 +430,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     throw new IllegalStateException("bad atomic");
                 }
             } else {
+
                if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
                 /*
                 We have three types of returned values from an ifaceBuffer
@@ -473,8 +474,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                          * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
                          */
                     }
-
-
 
                     recurse(buildContext, instanceResult.op());
 
