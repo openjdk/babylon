@@ -49,7 +49,7 @@ void CudaBackend::CudaQueue::init(){
                   << " custream=" <<std::hex<<streamCreationThread <<std::dec
                   << std::endl;
     }
-    }
+}
 
 void CudaBackend::CudaQueue::wait(){
     CUDA_CHECK(cuStreamSynchronize(cuStream), "cuStreamSynchronize");
@@ -107,7 +107,7 @@ void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
                   << std::hex<<cudaBuffer->bufferState->length<<std::dec << "/"
                   << cudaBuffer->bufferState->length << " "
                   << "devptr=" << std::hex<<  static_cast<long>(cudaBuffer->devicePtr) <<std::dec
-                << " thread=" <<thread_id
+                  << " thread=" <<thread_id
                   << std::endl;
     }
 
