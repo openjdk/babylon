@@ -26,20 +26,21 @@ package hat.backend.ffi;
 
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 
 public class OpenCLBackend extends C99FFIBackend {
 
     public OpenCLBackend(String configSpec) {
-        this(FFIConfig.of(configSpec));
+        this(Config.of(configSpec));
     }
 
     public OpenCLBackend() {
-        this(FFIConfig.of());
+        this(Config.of());
     }
 
-    public OpenCLBackend(FFIConfig config) {
+    public OpenCLBackend(Config config) {
         super("opencl_backend", config);
     }
 
@@ -53,7 +54,7 @@ public class OpenCLBackend extends C99FFIBackend {
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createC99(kernelCallGraph,  args);
-            if (FFIConfig.SHOW_CODE.isSet(config.bits())) {
+            if (Config.SHOW_CODE.isSet(config.bits())) {
                 System.out.println(code);
             }
             var compilationUnit = backendBridge.compile(code);
