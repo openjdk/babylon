@@ -137,8 +137,6 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int threadsPerBlockY = 1;
     int threadsPerBlockZ = 1;
 
-    bool isSpecific = kernelContext->isSpecific;
-
     // The local and global mesh dimensions match by design from the Java APIs
     const int dimensions = kernelContext->dimensions;
     if (kernelContext->lsx > 0) {
@@ -165,12 +163,6 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     }
     if (dimensions > 2) {
         blocksPerGridZ = (kernelContext->maxZ + threadsPerBlockZ - 1) / threadsPerBlockZ;
-    }
-
-    if (isSpecific) {
-        blocksPerGridX = kernelContext->maxX;
-        blocksPerGridY = kernelContext->maxY;
-        blocksPerGridZ = kernelContext->maxZ;
     }
 
     // Enable debug information with trace. Use HAT=INFO
