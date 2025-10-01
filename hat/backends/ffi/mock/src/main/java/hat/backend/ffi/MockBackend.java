@@ -26,6 +26,7 @@ package hat.backend.ffi;
 
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.NDRange;
 import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
@@ -38,7 +39,7 @@ public class MockBackend extends FFIBackend {
 
 
     public MockBackend() {
-        super("mock_backend", FFIConfig.of(0));
+        super("mock_backend", Config.of(0));
        // getBackend_MPtr  =  ffiLib.longIntFunc("getMockBackend");
        // getBackend(0);
     }

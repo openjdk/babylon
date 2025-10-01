@@ -26,6 +26,7 @@
 package hat.backend.ffi;
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
@@ -59,7 +60,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
         return segmentMapper.allocate(arena, boundSchema);
     }
 
-    public FFIBackend(String libName, FFIConfig config) {
+    public FFIBackend(String libName, Config config) {
         super(libName, config);
     }
 
@@ -70,7 +71,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
         }
 
         backendBridge.computeStart();
-        if (FFIConfig.INTERPRET.isSet(config.bits())) {
+        if (Config.INTERPRET.isSet(config.bits())) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
         } else {
             try {
@@ -128,8 +129,8 @@ public abstract class FFIBackend extends FFIBackendDriver {
     // This code should be common with jextracted-shared probably should be pushed down into another lib?
     protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         CoreOp.FuncOp transformedFuncOp = computeMethod.funcOp();
-        if (FFIConfig.MINIMIZE_COPIES.isSet(config.bits())) {
-            if (FFIConfig.SHOW_COMPUTE_MODEL.isSet(config.bits())) {
+        if (Config.MINIMIZE_COPIES.isSet(config.bits())) {
+            if (Config.SHOW_COMPUTE_MODEL.isSet(config.bits())) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
@@ -201,12 +202,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 return bldr;
             });
-            if (FFIConfig.SHOW_COMPUTE_MODEL.isSet(config.bits())) {
+            if (Config.SHOW_COMPUTE_MODEL.isSet(config.bits())) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
         }else{
-            if (FFIConfig.SHOW_COMPUTE_MODEL.isSet(config.bits())) {
+            if (Config.SHOW_COMPUTE_MODEL.isSet(config.bits())) {
                 System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
                 System.out.println(transformedFuncOp.toText());
             }

@@ -306,6 +306,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return obrace().indent(ct).cbrace();
     }
 
+    public T ocsbrace() {
+        return osbrace().csbrace();
+    }
+    public T ocbrace() {
+        return obrace().cbrace();
+    }
     public T sbrace(Consumer<T> ct) {
         return osbrace().accept(ct).csbrace();
     }
