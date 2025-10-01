@@ -125,7 +125,6 @@ public abstract class FFIBackendDriver implements Backend {
             this.getBufferFromDeviceIfDirty_MPtr = ffiLib.booleanHandleAddressLongFunc("getBufferFromDeviceIfDirty");
         }
 
-
         void release() {}
 
         public long getBackend(int configBits) {
