@@ -116,7 +116,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             if (isComputeRangeDefined) {
                 globalMesh = computeRange.getGlobalMesh();
                 localMesh = computeRange.getLocalMesh();
-                kernelContext.isSpecific(computeRange.isSpecificRange());
             }
 
             if (!isComputeRangeDefined) {

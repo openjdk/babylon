@@ -25,7 +25,6 @@
 package matmul;
 
 import hat.Accelerator;
-import hat.CUDARange;
 import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
@@ -194,7 +193,7 @@ public class Main {
         void array(long index, float value);
         float array(long index);
         Schema<PrivateArray> schema = Schema.of(PrivateArray.class,
-                arr -> arr.array("array", 64));
+                arr -> arr.array("array", 16));
         static PrivateArray create(Accelerator accelerator) {
             return schema.allocate(accelerator);
         }
@@ -207,7 +206,7 @@ public class Main {
         void array(long index, float value);
         float array(long index);
         Schema<FlatPrivate> schema = Schema.of(FlatPrivate.class,
-                arr -> arr.array("array", 8));
+                arr -> arr.array("array", 4));
         static FlatPrivate create(Accelerator accelerator) {
             return schema.allocate(accelerator);
         }
@@ -221,7 +220,7 @@ public class Main {
      *
      * <p>
      *     We want to probe that HAT can represent more complex optimisations, and make use of the
-     *     different levels of memory hierarchy, such as shared memory (as in CUDA shared memory),
+     *     different levels of the GPU's memory hierarchy, such as shared memory (as in CUDA shared memory),
      *     and private memory. This code has been tested on NVIDIA A10 GPUs.
      * </p>
      *
@@ -239,23 +238,23 @@ public class Main {
     @CodeReflection
     public static void matrixMultiplyKernel2DRegisterTiling(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
 
+        // Configuration for the kernel: Keep in mind that if you change the following parameters,
+        // also change the scheduling (global and local work sizes).
+        final int BM = 64;
+        final int BN = 64;
+        final int BK = 16;
+        final int TM = 4;
+        final int TN = 4;
+
         int bx = kc.bix;
         int by = kc.biy;
-
-        // Configuration for the kernel
-        final int BM = 128;
-        final int BN = 128;
-        final int BK = 8;
-        final int TM = 8;    // Register Block
-        final int TN = 8;    // Register block
 
         int totalResultsBlockTile = BM * BN;
         final int numThreadsBlockTile = totalResultsBlockTile / (TM * TN);
 
-        final int limitA = (BN / TN);
-        final int limitB = (BN / TN);
-        final int threadCol = kc.lix % limitA;
-        final int threadRow = kc.lix / limitB;
+        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
+        final int threadCol = kc.lix;
+        final int threadRow = kc.liy;
 
         SharedMemory tileA = SharedMemory.createLocal();
         SharedMemory tileB = SharedMemory.createLocal();
@@ -265,12 +264,12 @@ public class Main {
         int v = bx * BN;
         int cFrom = (by * BM * size) + (v);
 
-        final int innerRowA = kc.lix / BK;
-        final int innerColA = kc.lix % BK;
+        final int innerRowA = linearLocalId / BK;
+        final int innerColA = linearLocalId % BK;
 
         final int strideA = numThreadsBlockTile / BK;
-        final int innerRowB = kc.lix / BN;
-        final int innerColB = kc.lix % BN;
+        final int innerRowB = linearLocalId / BN;
+        final int innerColB = linearLocalId % BN;
 
         int strideB = numThreadsBlockTile / BN;
 
@@ -631,7 +630,7 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        CUDARange cudaRange = new CUDARange(new GlobalMesh2D(8, 8), new LocalMesh2D(256, 1));
+        ComputeRange cudaRange = new ComputeRange(new GlobalMesh2D(256, 256), new LocalMesh2D(16, 16));
         cc.dispatchKernel(cudaRange,
                 kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -722,13 +721,6 @@ public class Main {
 
         // Run Seq for reference
         runSequential(matrixA, matrixB, resultSeq, size);
-
-        IO.println("BACKEND: "  + accelerator.backend.getName());
-        String backendName = accelerator.backend.getName();
-
-        if (configuration == Configuration._2DREGISTER_TILING && !backendName.equals("hat.backend.ffi.CudaBackend")) {
-            throw new UnsupportedOperationException("MxM with 2D Register tiling is only supported on CUDA backend");
-        }
 
         for (int it = 0; it < NUM_ITERATIONS; it++) {
             long start = System.nanoTime();
