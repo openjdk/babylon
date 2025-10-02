@@ -49,6 +49,7 @@ import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
 
+
 /**
  * This class provides the developer facing view of HAT, and wraps a <a href="backend/Backend.html">Backend</a> capable of
  * executing <b>NDRange</b> style execution.

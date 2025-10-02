@@ -136,6 +136,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
     public void dispatchKernel(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         dispatchKernelWithComputeRange(computeRange, quotableKernelContextConsumer);
     }
+    /*
 
     private boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
         String kernelContextCanonicalName = hat.KernelContext.class.getName();
@@ -153,7 +154,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         Op.Result outputResult = blockBuilder.op(hatBarrierOp);
         Op.Result inputResult = invokeOp.result();
         context.mapValue(inputResult, outputResult);
-    }
+    } */
 
     record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
@@ -162,6 +163,9 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
         MethodRef methodRef = OpTk.getQuotableTargetInvokeOpWrapper( lambdaOp).invokeDescriptor();
         KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+        if (kernelCallGraph == null){
+            throw new RuntimeException("Failed to create KernelCallGraph (did you miss @CodeReflection annotation?) ");
+        }
         // Analysis : dialect
         // NOTE: Keep the following boolean until we have the config available/reachable
         // from this class
@@ -238,20 +242,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         }
 
     }
-/*
-    @Override
-    public void preEscape(Buffer b) {
-        if (accelerator.backend instanceof BufferTracker bufferTracker) {
-            bufferTracker.preEscape(b);
-        }
-    }
 
-    @Override
-    public void postEscape(Buffer b) {
-        if (accelerator.backend instanceof BufferTracker bufferTracker) {
-            bufferTracker.postEscape(b);
-        }
-    } */
 
     @Override
     public <T extends Buffer> T allocate(SegmentMapper<T> segmentMapper, BoundSchema<T> boundSchema) {

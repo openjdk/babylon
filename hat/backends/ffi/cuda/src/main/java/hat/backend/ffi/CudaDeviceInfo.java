@@ -24,9 +24,11 @@
  */
 package hat.backend.ffi;
 
+import hat.Config;
+
 public class CudaDeviceInfo {
     public static void main(String[] args) {
-        CudaBackend backend = new CudaBackend();
+        CudaBackend backend = new CudaBackend(Config.fromIntBits(0));
         backend.backendBridge.info();
     }
 }

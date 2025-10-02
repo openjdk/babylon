@@ -27,6 +27,7 @@ package hat.backend.jextracted;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.Config;
 import hat.NDRange;
 //import hat.backend.ffi.C99FFIBackend;
 import hat.callgraph.KernelCallGraph;
@@ -48,13 +49,15 @@ public class OpenCLBackend extends C99JExtractedBackend {
         return 0l;//backendHandle;
     }
 
-    public OpenCLBackend() {
-        super("opencl_backend");
+    public OpenCLBackend(Config config) {
+        super(config,"opencl_backend");
         getBackend_MH  = null;// nativeLibrary.longFunc("getBackend",JAVA_INT,JAVA_INT, JAVA_INT);
         getBackend(0,0,0);
         info();
     }
-
+    public OpenCLBackend() { // Ignore Intellij's no usages here, we load vai serviceloader!
+        this(Config.fromEnvOrProperty());
+    }
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {

@@ -25,6 +25,7 @@
 package hat.callgraph;
 
 import hat.ComputeContext;
+import hat.Config;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -42,8 +43,10 @@ public abstract class CallGraph<E extends Entrypoint> {
     public final Set<MethodCall> calls = new HashSet<>();
     public final Map<MethodRef, MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
     public CoreOp.ModuleOp moduleOp;
-    public static boolean noModuleOp = Boolean.getBoolean("noModuleOp");
-    public static boolean bufferTagging = Boolean.getBoolean("bufferTagging");
+
+    // Todo: We should phase these out. We can also use Config.....
+    public final static boolean noModuleOp = Boolean.getBoolean("noModuleOp");
+    public final static boolean bufferTagging = Boolean.getBoolean("bufferTagging");
     public Stream<MethodCall> callStream() {
         return methodRefToMethodCallMap.values().stream();
     }
