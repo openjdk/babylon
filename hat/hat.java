@@ -222,16 +222,16 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                            }
                            var test_reports_txt = Paths.get("test_report.txt");
                            Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
-                           Stream.of( "Arrays", "MatMul", "Mandel",
-                                       "Local", "Reductions",
-                                       "Private", "Parenthesis",
-                                       "Constants", "Blackscholes",
-                                       "Nbody", "ArrayView")
-                              .map(s->"oracle.code.hat.Test" + s)
-                              .forEach(suite->{
-                                 tests.run("oracle.code.hat.engine.HatTestEngine",
-                                    new job.Dag(tests, backend).ordered(), List.of(),List.of(suite));
-                              });
+                           var suiteRe = Pattern.compile("(oracle/code/hat/Test[a-zA-Z0-9]*).class");
+                           var jarFile = new JarFile(tests.jarFile().toString());
+                           var testEngine = "oracle.code.hat.engine.HatTestEngine";
+                           var entries = jarFile.entries();
+                           var orderedDag  = new job.Dag(tests, backend).ordered();
+                           while (entries.hasMoreElements()) {
+                              if (suiteRe.matcher(entries.nextElement().getName()) instanceof Matcher matched && matched.matches()){ 
+                                  tests.run(testEngine, orderedDag, List.of(),List.of(matched.group(1).replace('/','.')));
+                              }
+                           }
                            System.out.println("\n\n"+logo+"                 HAT Test Report ");
                            System.out.println("************************************************");
                            var pattern = Pattern.compile( "passed: (\\d+), failed: (\\d+)");
