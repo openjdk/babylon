@@ -26,6 +26,7 @@ package hat.backend;
 
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.NDRange;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
@@ -35,15 +36,22 @@ import hat.callgraph.KernelCallGraph;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 
-public interface Backend extends BufferAllocator {
+public  abstract class Backend implements BufferAllocator {
+    private final Config config;
 
-   // Arena arena();
+    public Config config(){
+        return config;
+    }
 
-    default String getName() {
+    protected Backend(Config config){
+        this.config = config;
+    }
+
+    final public String getName() {
         return this.getClass().getName();
     }
 
-    Predicate<Backend> PROPERTY = (backend) -> {
+    final public static Predicate<Backend> PROPERTY = (backend) -> {
         String requestedBackendName = System.getProperty("hat.backend");
         if (requestedBackendName == null) {
             throw new IllegalStateException("Expecting property hat.backend to name a Backend class");
@@ -51,11 +59,9 @@ public interface Backend extends BufferAllocator {
         String backendName = backend.getName();
         return (backendName.equals(requestedBackendName));
     };
-    Predicate<Backend> FIRST = backend -> true;
-   //  Predicate<Backend> JAVA_MULTITHREADED = backend -> backend instanceof JavaMultiThreadedBackend;
-   // Predicate<Backend> JAVA_SEQUENTIAL = backend -> backend instanceof JavaSequentialBackend;
+    public static Predicate<Backend> FIRST = backend -> true;
 
-    static Backend getBackend(Predicate<Backend> backendPredicate) {
+    public static Backend getBackend(Predicate<Backend> backendPredicate) {
         return ServiceLoader.load(Backend.class)
                 .stream()
                 .map(ServiceLoader.Provider::get)
@@ -63,9 +69,9 @@ public interface Backend extends BufferAllocator {
                 .findFirst().orElseThrow();
     }
 
-    void computeContextHandoff(ComputeContext computeContext);
+    public abstract void computeContextHandoff(ComputeContext computeContext);
 
-    void dispatchCompute(ComputeContext computeContext, Object... args);
+    public abstract void dispatchCompute(ComputeContext computeContext, Object... args);
 
-    void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args);
+    public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args);
 }

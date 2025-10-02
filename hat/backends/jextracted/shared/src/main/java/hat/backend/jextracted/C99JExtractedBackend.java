@@ -25,6 +25,7 @@
 
 package hat.backend.jextracted;
 
+import hat.Config;
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
@@ -43,10 +44,9 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class C99JExtractedBackend extends JExtractedBackend {
-    public C99JExtractedBackend(String libName) {
-        super(libName);
+    public C99JExtractedBackend(Config config,String libName) {
+        super(config,libName);
     }
-
     public static class CompiledKernel {
         public final C99JExtractedBackend c99NativeBackend;
         public final KernelCallGraph kernelCallGraph;

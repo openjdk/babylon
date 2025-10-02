@@ -48,17 +48,21 @@ public class Config {
             return Integer.compare(index, bit.index);
         }
 
-        public boolean isSet(int bits){
-            return (shifted()&bits) == shifted();
+       public boolean isBitSet(int bits){
+            return (mask()&bits) == mask();
         }
-        public int shifted(){
-            return 1<<index;
+        public boolean isSet(Config config){
+            return (mask()&config.bits) == mask();
+        }
+        public int mask(){
+            return ((1<<size)-1) << index;
+        }
+
+        public String maskString(){
+            return Integer.toBinaryString(mask());
         }
     }
 
-
-    // Bits 0-3 select platform id 0..5
-    // Bits 4-7 select device id 0..15
     public static final Bit PLATFORM =  Bit.of(0,4, "PLATFORM", "FFI ONLY platform id (0-15)");
     public static final Bit DEVICE = Bit.nextBit(PLATFORM, 4, "DEVICE","FFI ONLY device id (0-15)");
     public static final Bit MINIMIZE_COPIES =  Bit.nextBit(DEVICE, "MINIMIZE_COPIES","FFI ONLY Try to minimize copies");
@@ -76,6 +80,11 @@ public class Config {
     public static final Bit SHOW_STATE = Bit.nextBit(SHOW_WHY, "SHOW_STATE", "Show iface buffer state changes");
     public static final Bit PTX = Bit.nextBit(SHOW_STATE, "PTX", "FFI (NVIDIA) ONLY pass PTX rather than C99 CUDA code");
     public static final Bit INTERPRET = Bit.nextBit(PTX, "INTERPRET", "Interpret the code model rather than converting to bytecode");
+    public static final Bit NO_BUFFER_TAGGING = Bit.nextBit(INTERPRET, "NO_BUFFER_TAGGING", "Skip AUTO buffer tagging (rely on annotations)");
+    public static final Bit NO_DIALECT = Bit.nextBit(NO_BUFFER_TAGGING, "NO_DIALECT", "Skip generating HAT dialect ops");
+    public static final Bit NO_MODULE_OP = Bit.nextBit(NO_DIALECT, "NO_MODULE_OP", "Use original callgraph (not using Module Op)");
+    public static final Bit HEADLESS = Bit.nextBit(NO_MODULE_OP, "HEADLESS", "Don't show UI");
+
 
     public static final List<Bit> bitList = List.of(
             PLATFORM,
@@ -94,10 +103,12 @@ public class Config {
             SHOW_WHY,
             SHOW_STATE,
             PTX,
-            INTERPRET
+            INTERPRET,
+            NO_BUFFER_TAGGING,
+            NO_DIALECT,
+            NO_MODULE_OP,
+            HEADLESS
     );
-
-
 
     private int bits;
 
@@ -116,51 +127,51 @@ public class Config {
     // These must sync with hat/backends/ffi/shared/include/config.h
     // We can create the above config by running main() below...
 
-    public static Config of() {
+    public static Config fromEnvOrProperty() {
         if (System.getenv("HAT") instanceof String opts) {
             System.out.println("From env " + opts);
-            return of(opts);
+            return fromSpec(opts);
         }
         if (System.getProperty("HAT") instanceof String opts) {
             System.out.println("From prop " + opts);
-            return of(opts);
+            return fromSpec(opts);
         }
-        return of("");
+        return fromSpec("");
     }
 
-    public static Config of(int bits) {
+    public static Config fromIntBits(int bits) {
         return new Config(bits);
     }
 
-    public static Config of(List<Bit> configBits) {
+    public static Config fromBits(List<Bit> configBits) {
         int allBits = 0;
         for (Bit configBit : configBits) {
-            allBits |= configBit.shifted();
+            allBits |= configBit.mask();
         }
         return new Config(allBits);
     }
 
-    public static Config of(Bit... configBits) {
-        return of(List.of(configBits));
+    public static Config fromBits(Bit... configBits) {
+        return fromBits(List.of(configBits));
     }
 
     public Config and(Bit... configBits) {
-        return Config.of(Config.of(List.of(configBits)).bits & bits);
+        return Config.fromIntBits(Config.fromBits(List.of(configBits)).bits & bits);
     }
 
     public Config or(Bit... configBits) {
-        return Config.of(Config.of(List.of(configBits)).bits | bits);
+        return Config.fromIntBits(Config.fromBits(List.of(configBits)).bits | bits);
     }
 
     public record BitValue(Bit bit, int value){}
 
-    public static Config of(String spec) {
+    public static Config fromSpec(String spec) {
         if (spec == null || spec.equals("")) {
-            return Config.of(0);
+            return Config.fromIntBits(0);
         }
         for (Bit bit:bitList) {
             if (bit.name().equals(spec)) {
-                return new Config(bit.shifted());
+                return new Config(bit.mask());
             }
         }
         if (spec.contains(",")) {
@@ -176,11 +187,11 @@ public class Config {
                         .orElseThrow();
                 bits |= bitValue.value << bitValue.bit.index();
             }
-            return of(bits);
+            return fromIntBits(bits);
         } else {
             System.out.println("Unexpected spec '" + spec + "'");
             System.exit(1);
-            return Config.of(0);
+            return Config.fromIntBits(0);
         }
     }
 
@@ -188,7 +199,7 @@ public class Config {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         for (Bit bit:bitList){
-            if (bit.isSet(bits)) {
+            if (bit.isBitSet(bits)) {
                 if (!builder.isEmpty()) {
                     builder.append("|");
                 }
@@ -197,6 +208,13 @@ public class Config {
             }
         }
         return builder.toString();
+    }
+
+    public static void main(String[] args){
+       bitList.forEach(b-> {
+           System.out.printf("%30s MASK= %32s\n",  b.name,b.maskString());
+       });
+
     }
 
 }

@@ -27,6 +27,7 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.BufferTagger;
 import hat.ComputeContext;
+import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
@@ -293,8 +294,6 @@ public interface ArgArray extends Buffer {
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
         Annotation[][] parameterAnnotations = kernelCallGraph.entrypoint.getMethod().getParameterAnnotations();
         List<BufferTagger.AccessType> bufferAccessList = kernelCallGraph.bufferAccessList;
-        boolean bufferTagging = Boolean.getBoolean("bufferTagging");
-
         for (int i = 0; i < args.length; i++) {
             Object argObject = args[i];
             Arg arg = argArray.arg(i); // this should be invariant, but if we are called from create it will be 0 for all
@@ -331,7 +330,7 @@ public interface ArgArray extends Buffer {
                     buf.bytes(segment.byteSize());
                     buf.access(accessByte);
 
-                    if (bufferTagging) assert bufferAccessList.get(i).value == accessByte;
+                    if (CallGraph.bufferTagging) assert bufferAccessList.get(i).value == accessByte;
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }

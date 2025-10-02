@@ -39,7 +39,7 @@ public class MockBackend extends FFIBackend {
 
 
     public MockBackend() {
-        super("mock_backend", Config.of(0));
+        super("mock_backend", Config.fromIntBits(0));
        // getBackend_MPtr  =  ffiLib.longIntFunc("getMockBackend");
        // getBackend(0);
     }

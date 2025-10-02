@@ -35,11 +35,10 @@ import java.lang.foreign.MemorySegment;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class FFIBackendDriver implements Backend {
+public abstract class FFIBackendDriver extends Backend {
     public boolean isAvailable() {
         return ffiLib.available;
     }
-    protected final Config config;
 
     public static class BackendBridge {
         // CUDA this combines Device+Stream+Context
@@ -165,8 +164,8 @@ public abstract class FFIBackendDriver implements Backend {
     public final BackendBridge backendBridge;
 
     public FFIBackendDriver(String libName, Config config) {
+        super(config);
         this.ffiLib = new FFILib(libName);
-        this.config = config;
         this.backendBridge = new BackendBridge(ffiLib, config);
     }
 

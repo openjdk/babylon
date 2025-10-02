@@ -25,6 +25,7 @@
 package hat.backend;
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
@@ -50,6 +51,7 @@ public class DebugBackend extends BackendAdaptor {
     }
 
     public DebugBackend(HowToRunCompute howToRunCompute, HowToRunKernel howToRunKernel){
+        super(Config.fromEnvOrProperty());
         this.howToRunCompute = howToRunCompute;
         this.howToRunKernel = howToRunKernel;
     }
