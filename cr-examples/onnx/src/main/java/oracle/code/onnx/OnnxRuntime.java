@@ -78,15 +78,17 @@ public final class OnnxRuntime {
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException(e);
         }
-        try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
-            var libFile = File.createTempFile("libonnxruntime", "");
-            Path libFilePath = libFile.toPath();
-            Files.copy(libStream, libFilePath, StandardCopyOption.REPLACE_EXISTING);
-            System.load(libFilePath.toAbsolutePath().toString());
-            libFile.deleteOnExit();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+//        try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
+//            var libFile = File.createTempFile("libonnxruntime", "");
+//            Path libFilePath = libFile.toPath();
+//            Files.copy(libStream, libFilePath, StandardCopyOption.REPLACE_EXISTING);
+//            System.load(libFilePath.toAbsolutePath().toString());
+//            libFile.deleteOnExit();
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+        Path p = Path.of("/Users/ammbra/Documents/experiments/onnxruntime/build/MacOS/Release/libonnxruntime.dylib").toAbsolutePath().normalize();
+        System.load(p.toString());
     }
 
     @FunctionalInterface
