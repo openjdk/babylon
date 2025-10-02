@@ -228,7 +228,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                            var entries = jarFile.entries();
                            var orderedDag  = new job.Dag(tests, backend).ordered();
                            while (entries.hasMoreElements()) {
-                              if (suiteRe.matcher(entries.nextElement().getName()) instanceof Matcher matched && matched.matches()){ 
+                              if (suiteRe.matcher(entries.nextElement().getName()) instanceof Matcher matched && matched.matches()){
                                   tests.run(testEngine, orderedDag, List.of(),List.of(matched.group(1).replace('/','.')));
                               }
                            }
