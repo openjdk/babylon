@@ -226,8 +226,8 @@ java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
 # run the test suite per backend
 for backend in "\${BACKENDS[@]}"
 do
-echo -e "${GREEN}[running] java @hat/test suite "\$backend" ${NC}"
-java @hat/test suite "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
+echo -e "${GREEN}[running] java -cp job.jar hat.java test "\$backend" ${NC}"
+java -cp job.jar hat.java test "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
 done
 
 # Print logs
