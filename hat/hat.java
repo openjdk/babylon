@@ -188,9 +188,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                 case "run" -> {
                     if (args.size() > 1) {
                         var backendName = args.removeFirst();
-                        var vmOpts = new ArrayList<String>(List.of(
-                            "-DbufferTagging=true"
-                        ));
+                        var vmOpts = new ArrayList<String>(List.of());
                         while (args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
                             vmOpts.add(args.removeFirst());
                         }
@@ -257,9 +255,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     if (args.size() > 1) {
                         var backendName = args.removeFirst();
                         var runnableName = "experiments";
-                        var vmOpts = new ArrayList<String>(List.of(
-                            "-DbufferTagging=true"
-                        ));
+                        var vmOpts = new ArrayList<String>(List.of());
                         while (args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
                             vmOpts.add(args.removeFirst());
                         }

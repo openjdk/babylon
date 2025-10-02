@@ -408,22 +408,11 @@ public class CudaBackend extends C99FFIBackend {
         out.append(builder.getText());
         builder.clear();
 
-        if (CallGraph.noModuleOp) {
-            System.out.println("NOT using ModuleOp for CudaBackend");
-            for (KernelCallGraph.KernelReachableResolvedMethodCall k : kernelCallGraph.kernelReachableResolvedStream().toList()) {
-                CoreOp.FuncOp calledFunc = k.funcOp();
-                CoreOp.FuncOp loweredFunc = OpTk.lower(calledFunc);
-                loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,loweredFunc, argsMap, usedMathFns);
-                invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
-            }
-        } else {
-            System.out.println("Using ModuleOp for CudaBackend");
-            kernelCallGraph.moduleOp.functionTable().forEach((_, funcOp) -> {
-                CoreOp.FuncOp loweredFunc = OpTk.lower(funcOp);
-                loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,loweredFunc, argsMap, usedMathFns);
-                invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
-            });
-        }
+        kernelCallGraph.moduleOp.functionTable().forEach((_, funcOp) -> {
+            CoreOp.FuncOp loweredFunc = OpTk.lower(funcOp);
+            loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,loweredFunc, argsMap, usedMathFns);
+            invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+        });
 
         lowered = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,lowered, argsMap, usedMathFns);
         for (String s : usedMathFns) {

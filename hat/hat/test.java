@@ -30,7 +30,6 @@ import java.util.regex.Pattern;
 
 class Config {
     boolean headless = false;
-    boolean noModuleOp = false;
     boolean verbose = false;
     boolean startOnFirstThread = false;
     boolean justShowCommandline = false;
@@ -78,7 +77,6 @@ class Config {
             } else {
                 switch (args[arg]) {
                     case "headless" -> headless = true;
-                    case "noModuleOp" -> noModuleOp = true;
                     case "verbose" -> verbose = true;
                     case "justShowCommandLine" -> justShowCommandline = true;
                     case "startOnFirstThread" -> startOnFirstThread = true;
@@ -148,9 +146,6 @@ void main(String[] argv) {
             default -> {
             }
         }
-        if (config.noModuleOp) {
-            System.out.println("NOT using ModuleOp for CallGraphs");
-        }
     }
 
     // Remove the previous report file:
@@ -185,7 +180,6 @@ void main(String[] argv) {
                     .enable_native_access("ALL-UNNAMED")
                     .library_path(buildDir)
                     .when(config.headless, Script.JavaBuilder::headless)
-                    .when(config.noModuleOp, Script.JavaBuilder::noModuleOp)
                     .when(config.startOnFirstThread, Script.JavaBuilder::start_on_first_thread)
                     .class_path(config.classpath)
                     .vmargs(config.vmargs)
@@ -228,7 +222,6 @@ void main(String[] argv) {
                 .enable_native_access("ALL-UNNAMED")
                 .library_path(buildDir)
                 .when(config.headless, Script.JavaBuilder::headless)
-                .when(config.noModuleOp, Script.JavaBuilder::noModuleOp)
                 .when(config.startOnFirstThread, Script.JavaBuilder::start_on_first_thread)
                 .class_path(config.classpath)
                 .vmargs(config.vmargs)

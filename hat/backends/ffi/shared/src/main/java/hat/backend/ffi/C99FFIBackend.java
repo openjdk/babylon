@@ -231,29 +231,16 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                         kernelCallGraph.entrypoint.funcOp());
 
         // Sorting by rank ensures we don't need forward declarations
-        if (CallGraph.noModuleOp) {
-            IO.println("NOT using ModuleOp for C99FFIBackend");
-            kernelCallGraph.kernelReachableResolvedStream().sorted((lhs, rhs) -> rhs.rank - lhs.rank)
-                    .forEach(kernelReachableResolvedMethod -> {
-                                HatFinalDetectionPhase finals = new HatFinalDetectionPhase();
-                                finals.apply(kernelReachableResolvedMethod.funcOp());
-                                // Update the build context for this method to use the right constants-map
-                                buildContext.setFinals(finals.getFinalVars());
-                                builder.nl().kernelMethod(buildContext, kernelReachableResolvedMethod.funcOp()).nl();
-                    });
-        } else {
-            IO.println("Using ModuleOp for C99FFIBackend");
-            kernelCallGraph.moduleOp.functionTable()
-                    .forEach((_, funcOp) -> {
+        kernelCallGraph.moduleOp.functionTable()
+                .forEach((_, funcOp) -> {
 
-                        HatFinalDetectionPhase finals = new HatFinalDetectionPhase();
-                        finals.apply(funcOp);
+                    HatFinalDetectionPhase finals = new HatFinalDetectionPhase();
+                    finals.apply(funcOp);
 
-                        // Update the build context for this method to use the right constants-map
-                        buildContext.setFinals(finals.getFinalVars());
-                        builder.nl().kernelMethod(buildContext, funcOp).nl();
-                    });
-        }
+                    // Update the build context for this method to use the right constants-map
+                    buildContext.setFinals(finals.getFinalVars());
+                    builder.nl().kernelMethod(buildContext, funcOp).nl();
+                });
 
         // Update the constants-map for the main kernel
         HatFinalDetectionPhase hatFinalDetectionPhase = new HatFinalDetectionPhase();

@@ -57,6 +57,17 @@ public class BufferTagger {
         }
     }
 
+    public static String convertAccessType(int i) {
+        switch (i) {
+            case 0 -> {return "NOT_BUFFER";}
+            case 1 -> {return "NA";}
+            case 2 -> {return "RO";}
+            case 4 -> {return "WO";}
+            case 6 -> {return "RW";}
+            default -> {return "";}
+        }
+    }
+
     // generates a list of AccessTypes matching the given FuncOp's parameter order
     public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup l, CoreOp.FuncOp f) {
         CoreOp.FuncOp inlinedFunc = inlineLoop(l, f);

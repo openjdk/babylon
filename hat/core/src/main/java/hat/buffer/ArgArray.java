@@ -27,7 +27,6 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.BufferTagger;
 import hat.ComputeContext;
-import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
@@ -330,7 +329,11 @@ public interface ArgArray extends Buffer {
                     buf.bytes(segment.byteSize());
                     buf.access(accessByte);
 
-                    if (CallGraph.bufferTagging) assert bufferAccessList.get(i).value == accessByte;
+                    assert bufferAccessList.get(i).value == accessByte: "buffer tagging mismatch: "
+                            + kernelCallGraph.entrypoint.getMethod().getParameters()[i].toString()
+                            + " in " + kernelCallGraph.entrypoint.getMethod().getName()
+                            + " annotated as " + BufferTagger.convertAccessType(accessByte)
+                            + " but tagged as " + bufferAccessList.get(i).name();
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);
             }
