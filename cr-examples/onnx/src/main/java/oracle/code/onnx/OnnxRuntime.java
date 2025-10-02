@@ -88,7 +88,7 @@ public final class OnnxRuntime {
 //            throw new RuntimeException(e);
 //        }
         // TODO: change path here
-        Path p = Path.of("/Users/ammbra/Documents/experiments/onnxruntime/build/MacOS/Release/libonnxruntime.dylib").toAbsolutePath().normalize();
+        Path p = Path.of("/Users/lize/Documents/Code/onnxruntime/build/MacOS/Release/libonnxruntime.1.23.0.dylib").toAbsolutePath().normalize();
         System.load(p.toString());
     }
 
@@ -304,7 +304,7 @@ public final class OnnxRuntime {
         return createSession(arena, model, createSessionOptions(arena));
     }
 
-    private Session createSession(Arena arena, byte[] model, SessionOptions options) {
+    public Session createSession(Arena arena, byte[] model, SessionOptions options) {
         return new Session(arena, retAddr(OrtApi.CreateSessionFromArray(runtimeAddress, envAddress, arena.allocateFrom(ValueLayout.JAVA_BYTE, model), model.length, options.sessionOptionsAddress, ret)));
     }
 

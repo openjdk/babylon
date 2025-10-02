@@ -55,7 +55,7 @@ public class coreml_provider_factory_h_1 {
         };
     }
 
-    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.libraryLookup("/Users/ammbra/Documents/experiments/onnxruntime/build/MacOS/Release/libonnxruntime.dylib", LIBRARY_ARENA)
+    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.libraryLookup("/Users/lize/Documents/Code/onnxruntime/build/MacOS/Release/libonnxruntime.1.23.0.dylib", LIBRARY_ARENA)
             .or(SymbolLookup.loaderLookup())
             .or(Linker.nativeLinker().defaultLookup());
 
