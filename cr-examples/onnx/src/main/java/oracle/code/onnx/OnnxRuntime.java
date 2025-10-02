@@ -87,6 +87,7 @@ public final class OnnxRuntime {
 //        } catch (IOException e) {
 //            throw new RuntimeException(e);
 //        }
+        // TODO: change path here
         Path p = Path.of("/Users/ammbra/Documents/experiments/onnxruntime/build/MacOS/Release/libonnxruntime.dylib").toAbsolutePath().normalize();
         System.load(p.toString());
     }
