@@ -188,6 +188,13 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return nl();
     }
 
+    public T hashDefine(String name, Consumer<T> consumer) {
+        hashDefineKeyword().space().identifier(name);
+        space();
+        consumer.accept(self());
+        return nl();
+    }
+
     public T pragma(String name, String... values) {
         hash().pragmaKeyword().space().identifier(name);
         for (String value : values) {

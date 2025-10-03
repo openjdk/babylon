@@ -34,15 +34,10 @@ import jdk.incubator.code.dialect.java.JavaType;
 public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelBuilder> {
 
     @Override
-    public OpenCLHatKernelBuilder defines() {
-        return pragmas().hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
-    }
-
-    @Override
-    public OpenCLHatKernelBuilder pragmas() {
-        return self().
-                pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable").
-                pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
+    public OpenCLHatKernelBuilder defines(){
+        return hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
+                .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
+                .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
     }
 
     @Override

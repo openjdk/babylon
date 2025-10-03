@@ -76,7 +76,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
-        builder.defines().pragmas().types();
+        builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)

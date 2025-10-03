@@ -150,7 +150,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
 
-        builder.defines().pragmas().types();
+        builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
