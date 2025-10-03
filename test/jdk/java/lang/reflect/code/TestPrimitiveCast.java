@@ -24,19 +24,19 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestPrimitiveCast
+ * @run junit TestPrimitiveCast
  */
 
+import jdk.incubator.code.CodeReflection;
 import jdk.incubator.code.Op;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
-
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -150,7 +150,6 @@ public class TestPrimitiveCast {
         return collect(d, f, l, i, s, c, b);
     }
 
-    @DataProvider
     static Object[][] fromMethods() {
         return new Object[][] {
                 { "fromDouble", Math.PI, FROM_DOUBLE},
@@ -165,10 +164,11 @@ public class TestPrimitiveCast {
         };
     };
 
-    @Test(dataProvider = "fromMethods")
+    @ParameterizedTest
+    @MethodSource("fromMethods")
     public void testFromDouble(String name, Object value, Function<Object, String> m) {
         CoreOp.FuncOp f = getFuncOp(name);
-        Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), f, value), m.apply(value));
+        Assertions.assertEquals(m.apply(value), Interpreter.invoke(MethodHandles.lookup(), f, value));
     }
 
 

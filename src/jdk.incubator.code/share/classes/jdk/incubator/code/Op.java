@@ -279,12 +279,14 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     final List<Value> operands;
 
     /**
-     * Constructs an operation by copying given operation.
+     * Constructs an operation from a given operation.
+     * <p>
+     * The constructor defers to the {@link Op#Op(List) operands} constructor passing a list of values computed, in
+     * order, by mapping the given operation's operands using the copy context. The constructor also assigns the new
+     * operation's location to the given operation's location, if any.
      *
-     * @param that the operation to copy.
+     * @param that the given operation.
      * @param cc   the copy context.
-     * @implSpec The default implementation calls the constructor with the operation's name, result type, and a list
-     * values computed, in order, by mapping the operation's operands using the copy context.
      */
     protected Op(Op that, CopyContext cc) {
         this(cc.getValues(that.operands));
@@ -292,35 +294,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Copies this operation and its bodies, if any.
-     * <p>
-     * The returned operation is structurally identical to this operation and is otherwise independent
-     * of the values declared and used.
-     *
-     * @return the copied operation.
-     */
-    public Op copy() {
-        return transform(CopyContext.create(), OpTransformer.COPYING_TRANSFORMER);
-    }
-
-    /**
-     * Copies this operation and its bodies, if any.
-     * <p>
-     * The returned operation is structurally identical to this operation and is otherwise independent
-     * of the values declared and used.
-     *
-     * @param cc the copy context.
-     * @return the copied operation.
-     */
-    public Op copy(CopyContext cc) {
-        return transform(cc, OpTransformer.COPYING_TRANSFORMER);
-    }
-
-    /**
      * Copies this operation and transforms its bodies, if any.
      * <p>
      * Bodies are {@link Body#transform(CopyContext, OpTransformer) transformed} with the given copy context and
      * operation transformer.
+     * @apiNote
+     * To copy an operation use the {@link OpTransformer#COPYING_TRANSFORMER copying transformer}.
      *
      * @param cc the copy context.
      * @param ot the operation transformer.
@@ -329,7 +308,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public abstract Op transform(CopyContext cc, OpTransformer ot);
 
     /**
-     * Constructs an operation with a name and list of operands.
+     * Constructs an operation with a list of operands.
      *
      * @param operands the list of operands, a copy of the list is performed if required.
      */

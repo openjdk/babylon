@@ -49,7 +49,7 @@ void CudaBackend::CudaQueue::init(){
                   << " custream=" <<std::hex<<streamCreationThread <<std::dec
                   << std::endl;
     }
-    }
+}
 
 void CudaBackend::CudaQueue::wait(){
     CUDA_CHECK(cuStreamSynchronize(cuStream), "cuStreamSynchronize");
@@ -107,7 +107,7 @@ void CudaBackend::CudaQueue::copyFromDevice(Buffer *buffer) {
                   << std::hex<<cudaBuffer->bufferState->length<<std::dec << "/"
                   << cudaBuffer->bufferState->length << " "
                   << "devptr=" << std::hex<<  static_cast<long>(cudaBuffer->devicePtr) <<std::dec
-                << " thread=" <<thread_id
+                  << " thread=" <<thread_id
                   << std::endl;
     }
 
@@ -158,7 +158,6 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int blocksPerGridX = (kernelContext->maxX + threadsPerBlockX - 1) / threadsPerBlockX;
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
-
     if (dimensions > 1) {
         blocksPerGridY = (kernelContext->maxY + threadsPerBlockY - 1) / threadsPerBlockY;
     }
@@ -174,15 +173,15 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     }
 
     const std::thread::id thread_id = std::this_thread::get_id();
-    if (thread_id != streamCreationThread){
+    if (thread_id != streamCreationThread) {
         std::cout << "dispatch()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
     }
 
-    // // CUDA events for timing
-    // cudaEvent_t start, stop;
-    // cuEventCreate(&start, cudaEventDefault);
-    // cuEventCreate(&stop, cudaEventDefault);
-    // cuEventRecord(start, 0);
+//     // CUDA events for timing
+//     cudaEvent_t start, stop;
+//     cuEventCreate(&start, cudaEventDefault);
+//     cuEventCreate(&stop, cudaEventDefault);
+//     cuEventRecord(start, 0);
 
     const auto status = cuLaunchKernel(cudaKernel->function, //
                                  blocksPerGridX, blocksPerGridY, blocksPerGridZ, //
@@ -191,12 +190,11 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
                                  cuStream, //
                                  cudaKernel->argslist, //
                                  nullptr);
-    // cuEventRecord(stop, 0);
-    // cuEventSynchronize(stop); // Wait for completion
-    //
-    // float elapsedTimeMs = 0.0f;
-    // cuEventElapsedTime(&elapsedTimeMs, start, stop);
-    // std::cout << "Kernel Elapsed Time: " << elapsedTimeMs << " ms\n";
+//     cuEventRecord(stop, 0);
+//     cuEventSynchronize(stop);
+//     float elapsedTimeMs = 0.0f;
+//     cuEventElapsedTime(&elapsedTimeMs, start, stop);
+//     std::cout << "Kernel Elapsed Time: " << elapsedTimeMs << " ms\n";
 
     CUDA_CHECK(status, "cuLaunchKernel");
 }

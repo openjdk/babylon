@@ -25,6 +25,7 @@
 package violajones;
 
 import hat.Accelerator;
+import hat.Config;
 import hat.backend.Backend;
 import org.xml.sax.SAXException;
 import violajones.attic.ViolaJones;
@@ -43,28 +44,24 @@ import java.lang.invoke.MethodHandles;
 public class Main {
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
-        boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));
+
         String imageName = (args.length>2 && args[1].equals("--image"))?args[2]:System.getProperty("image", "Nasa1996");
-      //  System.out.println("Using image "+imageName+".jpg");
+
         BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream("/images/"+imageName+".jpg"));
-               //"/images/team.jpg"
-              // "/images/eggheads.jpg"
-             // "/images/highett.jpg"
-        //     "/images/Nasa1996.jpg"
-      //  ));
+
         XMLHaarCascadeModel xmlCascade = XMLHaarCascadeModel.load(
                 ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
-              //  new JavaSequentialBackend()
-                Backend.FIRST
-        );
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        // TODO: lets use Config going forward
+        boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"))
+                || Config.HEADLESS.isSet(accelerator.backend.config());
 
         var cascade = Cascade.createFrom(accelerator,xmlCascade);
 
         S08x3RGBImage rgbImage = S08x3RGBImage.create(accelerator, nasa1996.getWidth(),nasa1996.getHeight());
         rgbImage.syncFromRaster(nasa1996);
         ResultTable resultTable = ResultTable.create(accelerator,1000);
-       // System.out.println("result table layout "+Buffer.getLayout(resultTable));
         Viewer viewer = null;
         if (!headless){
             viewer = new Viewer(accelerator, nasa1996, rgbImage, cascade, null, null);

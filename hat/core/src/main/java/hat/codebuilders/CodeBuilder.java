@@ -306,6 +306,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return obrace().indent(ct).cbrace();
     }
 
+    public T ocsbrace() {
+        return osbrace().csbrace();
+    }
+    public T ocbrace() {
+        return obrace().cbrace();
+    }
     public T sbrace(Consumer<T> ct) {
         return osbrace().accept(ct).csbrace();
     }
@@ -464,7 +470,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T intConstZero() {
         return constant("0");
     }
-
+    public final T intConstOne() {
+        return constant("1");
+    }
+    public final T intConstTwo() {
+        return constant("2");
+    }
 
     public final T voidType() {
         return typeName("void");

@@ -24,15 +24,18 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestAttributeSerialization
+ * @run junit TestAttributeSerialization
  */
 
-import jdk.incubator.code.*;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.Map;
@@ -73,7 +76,6 @@ public class TestAttributeSerialization {
     }
 
 
-    @DataProvider
     static Object[][] attributes() {
         return new Object[][] {
                 { new int[] {1, 2, 3}, "[1, 2, 3]"},
@@ -82,11 +84,12 @@ public class TestAttributeSerialization {
         };
     }
 
-    @Test(dataProvider = "attributes")
+    @ParameterizedTest
+    @MethodSource("attributes")
     public void testAttributes(Object a, String s) {
         TestOp op = new TestOp(a);
         String serOp = op.toText();
-        Assert.assertTrue(serOp.contains(s), serOp);
+        Assertions.assertTrue(serOp.contains(s), serOp);
     }
 
 }

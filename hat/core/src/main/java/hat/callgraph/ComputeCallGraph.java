@@ -89,10 +89,11 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     static boolean isKernelDispatch(MethodHandles.Lookup lookup,Method calledMethod, CoreOp.FuncOp fow) {
-        if (fow.body().yieldType().equals(JavaType.VOID)) {
-            if (calledMethod.getParameterTypes() instanceof Class<?>[] parameterTypes && parameterTypes.length > 1) {
-                // We check that the proposed kernel first arg is an KernelContext and
-                // the only other args are primitive or ifacebuffers
+        if (fow.body().yieldType().equals(JavaType.VOID)
+                && calledMethod.getParameterTypes() instanceof Class<?>[] parameterTypes
+                && parameterTypes.length > 1) {
+                // We check that the proposed kernel returns void, the first arg is an KernelContext and we have more args
+                // We also check that other args are primitive or ifacebuffers  (or atomics?)...
                 var firstArgIsKid = StreamMutable.of(false);
                 var atLeastOneIfaceBufferParam = StreamMutable.of(false);
                 var hasOnlyPrimitiveAndIfaceBufferParams = StreamMutable.of(true);
@@ -113,9 +114,6 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                 return true;
             }
             return false;
-        } else {
-            return false;
-        }
     }
 
     public final Map<MethodRef, KernelCallGraph> kernelCallGraphMap = new HashMap<>();
@@ -216,11 +214,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     }
 
     public void close() {
-        if (CallGraph.noModuleOp) {
-            updateDag(entrypoint);
-        } else {
-            closeWithModuleOp(entrypoint);
-        }
+        closeWithModuleOp(entrypoint);
     }
 
     public void closeWithModuleOp(ComputeReachableResolvedMethodCall computeReachableResolvedMethodCall) {

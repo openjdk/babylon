@@ -38,8 +38,8 @@ public class HatGlobalSizeOp extends HatThreadOP {
     private final TypeElement resultType;
     private static final String NAME = "GlobalThreadSize";
 
-    public HatGlobalSizeOp(int dimension, TypeElement resultType, List<Value> operands) {
-        super(dimension, operands);
+    public HatGlobalSizeOp(int dimension, TypeElement resultType) {
+        super(dimension, List.of());
         this.resultType = resultType;
     }
 

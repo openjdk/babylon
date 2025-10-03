@@ -87,7 +87,6 @@ public class Main {
             return 1f - part1 * part2;
         }
        return part1 * part2;
-
     }
 
     @CodeReflection

@@ -238,6 +238,27 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
 
                         }
                         """;
+                /* Aspirational Java code
+                     void nbody(KernelContext kc, F32Arr xyzPosFloats ,F32Arr xyzVelFloats, float mass, float delT, float espSqr ){
+                                float4 acc = float4.of(0.0,0.0,0.0,0.0);
+                                float4[] xyzPos = xyzPosFloats.float4ArrayView();
+                                float4[] xyzVel = xyzVelFloats.float4ArrayView();
+                                float4 myPos = xyzPos[kc.gix];
+                                float4 myVel = xyzVel[kc.gix];
+                                for (int i = 0; i < kc.gsx; i++) {
+                                       float4 delta =  xyzPos[i].sub(myPos); // xyzPos[i] - myPos
+                                       float invDist =  (float) 1.0/sqrt((float)((delta.x * delta.x) + (delta.y * delta.y) + (delta.z * delta.z) + espSqr));
+                                       float s = mass * invDist * invDist * invDist;
+                                       acc  = acc.plus(delta.mul(s)); //  acc= acc + (s * delta);
+                                }
+                                acc = acc.mul(delT); //acc = acc*delT;
+                                myPos = myPos.plus(myVel.mul(delT)).plus(acc.mul(delT/2); //  myPos = myPos + (myVel * delT) + (acc * delT)/2;
+                                myVel = myVel.plus(acc)//   myVel = myVel + acc;
+                                xyzPos[kc.gix] = myPos;
+                                xyzVel[kc.gix] = myVel;
+
+                            }
+                 */
                 default -> throw new IllegalStateException();
             };
             var program = context.buildProgram(code);

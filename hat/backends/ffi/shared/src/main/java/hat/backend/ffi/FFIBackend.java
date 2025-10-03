@@ -26,6 +26,7 @@
 package hat.backend.ffi;
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
@@ -33,7 +34,6 @@ import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.SegmentMapper;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -71,7 +71,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
         }
 
         backendBridge.computeStart();
-        if (config.isINTERPRET()) {
+        if (Config.INTERPRET.isSet(config())) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
         } else {
             try {
@@ -129,8 +129,8 @@ public abstract class FFIBackend extends FFIBackendDriver {
     // This code should be common with jextracted-shared probably should be pushed down into another lib?
     protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         CoreOp.FuncOp transformedFuncOp = computeMethod.funcOp();
-        if (config.isMINIMIZE_COPIES()) {
-            if (config.isSHOW_COMPUTE_MODEL()) {
+        if (Config.MINIMIZE_COPIES.isSet(config())) {
+            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
@@ -202,12 +202,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 return bldr;
             });
-            if (config.isSHOW_COMPUTE_MODEL()) {
+            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
         }else{
-            if (config.isSHOW_COMPUTE_MODEL()) {
+            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
                 System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
                 System.out.println(transformedFuncOp.toText());
             }

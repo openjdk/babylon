@@ -68,7 +68,7 @@ public class HatDialectifyMemoryPhase implements HatDialectifyPhase {
                 case SHARED -> HatLocalVarOp.INTRINSIC_NAME;
             };
 
-            //IO.println("ORIGINAL: " + funcOp.toText());
+            // IO.println("[INFO] Code model before HatDialectifyMemoryPhase: " + funcOp.toText());
             Stream<CodeElement<?, ?>> elements = funcOp.elements()
                     .mapMulti((codeElement, consumer) -> {
                         if (codeElement instanceof CoreOp.VarOp varOp) {
@@ -112,7 +112,12 @@ public class HatDialectifyMemoryPhase implements HatDialectifyPhase {
                                 default ->
                                         new HatPrivateVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
                             };
+
                             Op.Result hatLocalResult = blockBuilder.op(memoryOp);
+
+                            // update location
+                            memoryOp.setLocation(varOp.location());
+
                             context.mapValue(invokeOp.result(), hatLocalResult);
                         }
                     }
@@ -122,8 +127,7 @@ public class HatDialectifyMemoryPhase implements HatDialectifyPhase {
                 }
                 return blockBuilder;
             });
-            // IO.println("[INFO] Code model: " + funcOp.toText());
-            //entrypoint.funcOp(funcOp);
+            // IO.println("[INFO] Code model after HatDialectifyMemoryPhase: " + funcOp.toText());
             return funcOp;
     }
 }

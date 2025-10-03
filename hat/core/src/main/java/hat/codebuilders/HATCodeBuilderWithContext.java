@@ -24,7 +24,6 @@
  */
 package hat.codebuilders;
 
-
 import hat.dialect.HatBarrierOp;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatMemoryOp;
@@ -59,8 +58,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T varLoadOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
-            case CoreOp.VarOp varOp -> varName(varOp);
-            case HatMemoryOp hatMemoryOp -> varName(hatMemoryOp);
+            case CoreOp.VarOp $ -> varName($);
+            case HatMemoryOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -78,6 +77,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public record LocalArrayDeclaration(ClassType classType, HatMemoryOp varOp) {}
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
+        if (buildContext.isVarOpFinal(varOp)) {
+            constKeyword().space();
+        }
         type(buildContext, (JavaType) varOp.varValueType()).space().varName(varOp).space().equals().space();
         parenthesisIfNeeded(buildContext, varOp, ((Op.Result)varOp.operands().getFirst()).op());
     }
@@ -113,9 +115,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T fieldLoadOp(ScopedCodeBuilderContext buildContext, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        if (OpTk.isKernelContextAccess(fieldLoadOp)) {
-            identifier("kc").rarrow().fieldName(fieldLoadOp);
-        } else if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
+        if (fieldLoadOp.operands().isEmpty() && fieldLoadOp.result().type() instanceof PrimitiveType) {
             Object value = OpTk.getStaticFinalPrimitiveValue(buildContext.lookup,fieldLoadOp);
             literal(value.toString());
         } else {
@@ -294,9 +294,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-
-
-
     @Override
     public T whileOp(ScopedCodeBuilderContext buildContext, JavaOp.WhileOp whileOp) {
         whileKeyword().paren(_ ->
@@ -433,6 +430,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     throw new IllegalStateException("bad atomic");
                 }
             } else {
+
                if (invokeOp.operands().getFirst() instanceof Op.Result instanceResult) {
                 /*
                 We have three types of returned values from an ifaceBuffer
@@ -476,8 +474,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                          * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
                          */
                     }
-
-
 
                     recurse(buildContext, instanceResult.op());
 

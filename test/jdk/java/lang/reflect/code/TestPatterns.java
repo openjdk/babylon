@@ -24,20 +24,19 @@
 /*
  * @test
  * @modules jdk.incubator.code
- * @run testng TestPatterns
+ * @run junit TestPatterns
  * @enablePreview */
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
+import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.interpreter.Interpreter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import jdk.incubator.code.CodeReflection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -83,26 +82,26 @@ public class TestPatterns {
             Rectangle r = new Rectangle(
                     new ColoredPoint(new ConcretePoint(1, 2), Color.RED),
                     new ColoredPoint(new ConcretePoint(3, 4), Color.BLUE));
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, r), recordPatterns(r));
+            Assertions.assertEquals(recordPatterns(r), Interpreter.invoke(MethodHandles.lookup(), lf, r));
         }
 
         {
             Rectangle r = new Rectangle(
                     new ColoredPoint(new ConcretePoint(1, 2), Color.RED),
                     new ConcretePoint(3, 4));
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, r), recordPatterns(r));
+            Assertions.assertEquals(recordPatterns(r), Interpreter.invoke(MethodHandles.lookup(), lf, r));
         }
 
         {
             Rectangle r = new Rectangle(
                     new ConcretePoint(1, 2),
                     new ConcretePoint(3, 4));
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, r), recordPatterns(r));
+            Assertions.assertEquals(recordPatterns(r), Interpreter.invoke(MethodHandles.lookup(), lf, r));
         }
 
         {
             String r = "";;
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, r), recordPatterns(r));
+            Assertions.assertEquals(recordPatterns(r), Interpreter.invoke(MethodHandles.lookup(), lf, r));
         }
     }
 
@@ -124,7 +123,7 @@ public class TestPatterns {
 
         Object[] objects = {new R(1), "str", null};
         for (Object o : objects) {
-            Assert.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf, o), recordPatterns2(o));
+            Assertions.assertEquals(recordPatterns2(o), Interpreter.invoke(MethodHandles.lookup(), lf, o));
         }
     }
 

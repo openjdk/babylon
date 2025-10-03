@@ -26,42 +26,23 @@ package hat.callgraph;
 
 import hat.BufferTagger;
 import hat.buffer.Buffer;
-import hat.dialect.HatBarrierOp;
-import hat.dialect.HatBlockThreadIdOp;
-import hat.dialect.HatGlobalThreadIdOp;
-import hat.dialect.HatGlobalSizeOp;
-import hat.dialect.HatLocalSizeOp;
-import hat.dialect.HatLocalThreadIdOp;
-import hat.dialect.HatLocalVarOp;
-import hat.dialect.HatMemoryOp;
-import hat.dialect.HatPrivateVarOp;
-import hat.dialect.HatThreadOP;
 import hat.optools.OpTk;
 import hat.phases.HatDialectifyTier;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.*;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
     public final ComputeCallGraph computeCallGraph;
     public final Map<MethodRef, MethodCall> bufferAccessToMethodCallMap = new LinkedHashMap<>();
     public final List<BufferTagger.AccessType> bufferAccessList;
+    public boolean usesArrayView;
 
     public interface KernelReachable {
     }
@@ -101,9 +82,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         super(computeCallGraph.computeContext, new KernelEntrypoint(null, methodRef, method, funcOp));
         entrypoint.callGraph = this;
         this.computeCallGraph = computeCallGraph;
-        System.out.println("-DbufferTagging="+CallGraph.bufferTagging);
-        System.out.println("-DnoModuleOp="+CallGraph.noModuleOp);
-        bufferAccessList = CallGraph.bufferTagging?BufferTagger.getAccessList(computeContext.accelerator.lookup, entrypoint.funcOp()):List.of();
+        bufferAccessList = BufferTagger.getAccessList(computeContext.accelerator.lookup, entrypoint.funcOp());
+        usesArrayView = false;
     }
 
     void updateDag(KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
@@ -189,301 +169,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         return true;
     }
 
-    private boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
-        String kernelContextCanonicalName = hat.KernelContext.class.getName();
-        return invokeOp.invokeDescriptor().refType().toString().equals(kernelContextCanonicalName);
-    }
-
-    private boolean isMethodFromHatKernelContext(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        String kernelContextCanonicalName = hat.KernelContext.class.getName();
-        return varLoadOp.resultType().toString().equals(kernelContextCanonicalName);
-    }
-
-    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
-        return invokeOp.invokeDescriptor().name().equals(methodName);
-    }
-
-    private boolean isFieldLoadGlobalThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("x")
-                || fieldLoadOp.fieldDescriptor().name().equals("y")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("z")
-                || fieldLoadOp.fieldDescriptor().name().equals("gix")
-                || fieldLoadOp.fieldDescriptor().name().equals("giy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("giz");
-    }
-
-    private boolean isFieldLoadGlobalSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("gsx")
-                || fieldLoadOp.fieldDescriptor().name().equals("gsy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("gsz")
-                || fieldLoadOp.fieldDescriptor().name().equals("maxX")
-                || fieldLoadOp.fieldDescriptor().name().equals("maxY")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("maxZ");
-    }
-
-    private boolean isFieldLoadThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("lix")
-                || fieldLoadOp.fieldDescriptor().name().equals("liy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("liz");
-    }
-
-    private boolean isFieldLoadThreadSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("lsx")
-                || fieldLoadOp.fieldDescriptor().name().equals("lsy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("lsz");
-    }
-
-    private boolean isFieldLoadBlockId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("bix")
-                || fieldLoadOp.fieldDescriptor().name().equals("biy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("biz");
-    }
-
-    private void createBarrierNodeOp(CopyContext context, JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
-        List<Value> inputOperands = invokeOp.operands();
-        List<Value> outputOperands = context.getValues(inputOperands);
-        HatBarrierOp hatBarrierOp = new HatBarrierOp(outputOperands);
-        Op.Result outputResult = blockBuilder.op(hatBarrierOp);
-        Op.Result inputResult = invokeOp.result();
-        context.mapValue(inputResult, outputResult);
-    }
-
-    public CoreOp.FuncOp dialectifyToHatBarriers(CoreOp.FuncOp funcOp) {
-        Stream<CodeElement<?, ?>> elements = funcOp
-                .elements()
-                .mapMulti((element, consumer) -> {
-                    if (element instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, HatBarrierOp.INTRINSIC_NAME)) {
-                            consumer.accept(invokeOp);
-                        }
-                    }
-                });
-        Set<CodeElement<?, ?>> collect = elements.collect(Collectors.toSet());
-        if (collect.isEmpty()) {
-            // Return the function with no modifications
-            return funcOp;
-        }
-        funcOp = funcOp.transform((blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
-            if (!collect.contains(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                createBarrierNodeOp(context, invokeOp, blockBuilder);
-            }
-            return blockBuilder;
-        });
-        // System.out.println("[INFO] Code model: " + funcOp.toText());
-        //entrypoint.funcOp(funcOp);
-        return funcOp;
-    }
-
-    public CoreOp.FuncOp dialectifyToHatMemorySpace(CoreOp.FuncOp funcOp, Space memorySpace) {
-
-        String nameNode = switch (memorySpace) {
-            case PRIVATE -> HatPrivateVarOp.INTRINSIC_NAME;
-            case SHARED -> HatLocalVarOp.INTRINSIC_NAME;
-        };
-
-        //IO.println("ORIGINAL: " + funcOp.toText());
-        Stream<CodeElement<?, ?>> elements = funcOp.elements()
-                .mapMulti((codeElement, consumer) -> {
-                    if (codeElement instanceof CoreOp.VarOp varOp) {
-                        List<Value> inputOperandsVarOp = varOp.operands();
-                        for (Value inputOperand : inputOperandsVarOp) {
-                            if (inputOperand instanceof Op.Result result) {
-                                if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
-                                    if (OpTk.isIfaceBufferMethod(computeContext.accelerator.lookup, invokeOp) && isMethod(invokeOp, nameNode)) {
-                                        // It is the node we are looking for
-                                        consumer.accept(invokeOp);
-                                        consumer.accept(varOp);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-
-        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
-        if (nodesInvolved.isEmpty()) {
-            // No memory nodes involved
-            return funcOp;
-        }
-
-        funcOp = funcOp.transform((blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
-            if (!nodesInvolved.contains(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                // Don't insert the invoke node
-                Op.Result result = invokeOp.result();
-                List<Op.Result> collect = result.uses().stream().toList();
-                for (Op.Result r : collect) {
-                    if (r.op() instanceof CoreOp.VarOp varOp) {
-                        // That's the node we want
-                        List<Value> inputOperandsVarOp = invokeOp.operands();
-                        List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                        HatMemoryOp memoryOp = switch (memorySpace) {
-                            case SHARED ->
-                                    new HatLocalVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
-                            default ->
-                                    new HatPrivateVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
-                        };
-                        Op.Result hatLocalResult = blockBuilder.op(memoryOp);
-                        context.mapValue(invokeOp.result(), hatLocalResult);
-                    }
-                }
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                // pass value
-                context.mapValue(varOp.result(), context.getValue(varOp.operands().getFirst()));
-            }
-            return blockBuilder;
-        });
-        // IO.println("[INFO] Code model: " + funcOp.toText());
-        //entrypoint.funcOp(funcOp);
-        return funcOp;
-    }
-
-    private enum Space {
-        PRIVATE,
-        SHARED,
-    }
-
-    private int getDimension(ThreadAccess threadAccess, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        String fieldName = fieldLoadOp.fieldDescriptor().name();
-        switch (threadAccess) {
-            case GLOBAL_ID -> {
-                if (fieldName.equals("y")) {
-                    return 1;
-                } else if (fieldName.equals("z")) {
-                    return 2;
-                }
-                return 0;
-            }
-            case GLOBAL_SIZE -> {
-                if (fieldName.equals("gsy")) {
-                    return 1;
-                } else if (fieldName.equals("gsz")) {
-                    return 2;
-                }
-                return 0;
-            }
-            case LOCAL_ID -> {
-                if (fieldName.equals("liy")) {
-                    return 1;
-                } else if (fieldName.equals("lyz")) {
-                    return 2;
-                }
-                return 0;
-            }
-            case LOCAL_SIZE -> {
-                if (fieldName.equals("lsy")) {
-                    return 1;
-                } else if (fieldName.equals("lsz")) {
-                    return 2;
-                }
-                return 0;
-            }
-            case BLOCK_ID ->  {
-                if (fieldName.equals("biy")) {
-                    return 1;
-                } else if (fieldName.equals("biz")) {
-                    return 2;
-                }
-                return 0;
-            }
-        }
-        return -1;
-    }
-
-    public CoreOp.FuncOp dialectifyToHatThreadIds(CoreOp.FuncOp funcOp, ThreadAccess threadAccess) {
-        Stream<CodeElement<?, ?>> elements = funcOp.elements()
-                .mapMulti((codeElement, consumer) -> {
-                    if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-                        List<Value> operands = fieldLoadOp.operands();
-                        for (Value inputOperand : operands) {
-                            if (inputOperand instanceof Op.Result result) {
-                                if (result.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                                    boolean isThreadIntrinsic = switch (threadAccess) {
-                                        case GLOBAL_ID -> isFieldLoadGlobalThreadId(fieldLoadOp);
-                                        case GLOBAL_SIZE -> isFieldLoadGlobalSize(fieldLoadOp);
-                                        case LOCAL_ID -> isFieldLoadThreadId(fieldLoadOp);
-                                        case LOCAL_SIZE -> isFieldLoadThreadSize(fieldLoadOp);
-                                        case BLOCK_ID ->  isFieldLoadBlockId(fieldLoadOp);
-                                    };
-                                    if (isMethodFromHatKernelContext(varLoadOp) && isThreadIntrinsic) {
-                                        consumer.accept(fieldLoadOp);
-                                        consumer.accept(varLoadOp);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-
-        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
-        if (nodesInvolved.isEmpty()) {
-            // No memory nodes involved
-            return funcOp;
-        }
-
-        funcOp = funcOp.transform((blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
-            if (!nodesInvolved.contains(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                // pass value
-                context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
-            } else if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-                List<Value> operands = fieldLoadOp.operands();
-                for (Value operand : operands) {
-                    if (operand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                        List<Value> varLoadOperands = varLoadOp.operands();
-                        List<Value> outputOperands = context.getValues(varLoadOperands);
-                        int dim = getDimension(threadAccess, fieldLoadOp);
-                        if (dim < 0) {
-                            throw new IllegalStateException("Thread Access can't be below 0!");
-                        }
-                        HatThreadOP threadOP = switch (threadAccess) {
-                            case GLOBAL_ID -> new HatGlobalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case GLOBAL_SIZE -> new HatGlobalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case LOCAL_ID -> new HatLocalThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case LOCAL_SIZE -> new HatLocalSizeOp(dim, fieldLoadOp.resultType(), outputOperands);
-                            case BLOCK_ID -> new HatBlockThreadIdOp(dim, fieldLoadOp.resultType(), outputOperands);
-                        };
-                        Op.Result threadResult = blockBuilder.op(threadOP);
-                        context.mapValue(fieldLoadOp.result(), threadResult);
-                    }
-                }
-            }
-            return blockBuilder;
-        });
-        //IO.println("[INFO] Code model: " + funcOp.toText());
-        //entrypoint.funcOp(funcOp);
-        return funcOp;
-    }
-
-    private enum ThreadAccess {
-        GLOBAL_ID,
-        GLOBAL_SIZE,
-        LOCAL_ID,
-        LOCAL_SIZE,
-        BLOCK_ID,
-    }
-
-    private CoreOp.FuncOp dialectifyToHat(CoreOp.FuncOp funcOp) {
-        CoreOp.FuncOp f = dialectifyToHatBarriers(funcOp);
-        for (Space space : Space.values()) {
-            f = dialectifyToHatMemorySpace(f, space);
-        }
-        for (ThreadAccess threadAccess : ThreadAccess.values()) {
-            f = dialectifyToHatThreadIds(f, threadAccess);
-        }
-        return f;
-    }
-
     public void dialectifyToHat() {
         // Analysis Phases to transform the Java Code Model to a HAT Code Model
-
 
         // Main kernel
         {
@@ -493,7 +180,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             entrypoint.funcOp(f);
         }
 
-//        // Reachable functions
+        // Reachable functions
         if (moduleOp != null) {
             List<CoreOp.FuncOp> funcs = new ArrayList<>();
             moduleOp.functionTable().forEach((_, kernelOp) -> {
@@ -513,5 +200,185 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 kernel.funcOp(f);
             });
         }
+    }
+
+    public void convertArrayView() {
+        CoreOp.FuncOp entry = convertArrayViewForFunc(computeContext.accelerator.lookup, entrypoint.funcOp());
+        entrypoint.funcOp(entry);
+
+        if (moduleOp != null) {
+            List<CoreOp.FuncOp> funcs = new ArrayList<>();
+            moduleOp.functionTable().forEach((_, kernelOp) -> {
+                CoreOp.FuncOp f = convertArrayViewForFunc(computeContext.accelerator.lookup, kernelOp);
+                funcs.add(f);
+            });
+            moduleOp = CoreOp.module(funcs);
+        } else {
+            kernelReachableResolvedStream().forEach((method) -> {
+                CoreOp.FuncOp f = convertArrayViewForFunc(computeContext.accelerator.lookup, method.funcOp());
+                method.funcOp(f);
+            });
+
+        }
+    }
+
+    public CoreOp.FuncOp convertArrayViewForFunc(MethodHandles.Lookup l, CoreOp.FuncOp entry) {
+        if (!OpTk.isArrayView(l, entry)) return entry;
+        usesArrayView = true;
+        // maps a replaced result to the result it should be replaced by
+        Map<Op.Result, Op.Result> replaced = new HashMap<>();
+        Map<CoreOp.VarOp, CoreOp.VarAccessOp.VarLoadOp> bufferVarLoads = new HashMap<>();
+
+        return entry.transform(entry.funcName(), (bb, op) -> {
+            switch (op) {
+                case JavaOp.InvokeOp iop -> {
+                    if (OpTk.isBufferArray(l, iop) &&
+                            OpTk.firstOperand(iop) instanceof Op.Result r) { // ensures we can use iop as key for replaced vvv
+                        replaced.put(iop.result(), r);
+                        if (OpTk.firstOperand(r.op()) instanceof Op.Result res &&
+                                res.op() instanceof CoreOp.VarOp vop &&
+                                r.op() instanceof CoreOp.VarAccessOp.VarLoadOp vlop) {
+                            bufferVarLoads.put(vop, vlop); // map buffer VarOp to its corresponding VarLoadOp
+                        }
+                        return bb;
+                    }
+                }
+                case CoreOp.VarOp vop -> {
+                    if (OpTk.isBufferArray(l, vop) &&
+                            OpTk.firstOperand(vop) instanceof Op.Result r &&
+                            !(r.op() instanceof JavaOp.NewOp) && // makes sure we don't process a new int[] for example
+                            replaced.get(r) instanceof Op.Result res && // gets the VarLoadOp associated w/ og buffer
+                            OpTk.firstOperand(res.op()) instanceof Op.Result result) { // gets VarOp associated w/ og buffer
+                        replaced.put(vop.result(), result);
+                        return bb;
+                    }
+                }
+                case CoreOp.VarAccessOp.VarLoadOp vlop -> {
+                    if (OpTk.isBufferArray(l, vlop) &&
+                            OpTk.firstOperand(vlop) instanceof Op.Result r) {
+                        // if this is the VarLoadOp after the .arrayView() InvokeOp
+                        if (r.op() instanceof CoreOp.VarOp &&
+                                replaced.get(r).op() instanceof CoreOp.VarOp rVop) {
+                            replaced.put(vlop.result(), bufferVarLoads.get(rVop).result());
+                        } else { // if this is a VarLoadOp loading in the buffer
+                            Value loaded = OpTk.getValue(bb, replaced.get(r));
+                            CoreOp.VarAccessOp.VarLoadOp newVlop = CoreOp.VarAccessOp.varLoad(loaded);
+                            replaced.put(vlop.result(), replaced.get(r));
+                            bb.context().mapValue(vlop.result(), bb.op(newVlop));
+                        }
+                        return bb;
+                    }
+                }
+                // handles only 1D and 2D arrays
+                case JavaOp.ArrayAccessOp.ArrayLoadOp alop -> {
+                    if (OpTk.isBufferArray(l, alop) &&
+                            OpTk.firstOperand(alop) instanceof Op.Result r) {
+                        Op.Result buffer = replaced.getOrDefault(r, r);
+                        if (((ArrayType) OpTk.firstOperand(op).type()).dimensions() == 1) { // we ignore the first array[][] load if using 2D arrays
+                            if (r.op() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp rowOp) {
+                                // idea: we want to calculate the idx for the buffer access
+                                // idx = (long) (((long) rowOp.idx * (long) buffer.width()) + alop.idx)
+                                Op.Result x = (Op.Result) OpTk.getValue(bb, rowOp.operands().getLast());
+                                Op.Result y = (Op.Result) OpTk.getValue(bb, alop.operands().getLast());
+                                Op.Result ogBufferLoad = replaced.get((Op.Result) OpTk.firstOperand(rowOp));
+                                Op.Result ogBuffer = replaced.getOrDefault((Op.Result) OpTk.firstOperand(ogBufferLoad.op()), (Op.Result) OpTk.firstOperand(ogBufferLoad.op()));
+                                Op.Result bufferLoad = bb.op(CoreOp.VarAccessOp.varLoad(OpTk.getValue(bb, ogBuffer)));
+
+                                Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) ((VarType) ogBuffer.type()).valueType());
+                                MethodRef m = MethodRef.method(c, "width", int.class);
+                                Op.Result width = bb.op(JavaOp.invoke(m, OpTk.getValue(bb, bufferLoad)));
+                                Op.Result longX = bb.op(JavaOp.conv(JavaType.LONG, x));
+                                Op.Result longY = bb.op(JavaOp.conv(JavaType.LONG, y));
+                                Op.Result longWidth = bb.op(JavaOp.conv(JavaType.LONG, OpTk.getValue(bb, width)));
+                                Op.Result mul = bb.op(JavaOp.mul(OpTk.getValue(bb, longY), OpTk.getValue(bb, longWidth)));
+                                Op.Result idx = bb.op(JavaOp.add(OpTk.getValue(bb, longX), OpTk.getValue(bb, mul)));
+
+                                Class<?> storedClass = OpTk.primitiveTypeToClass(alop.result().type());
+                                MethodRef arrayMethod = MethodRef.method(c, "array", storedClass, long.class);
+                                Op.Result invokeRes = bb.op(JavaOp.invoke(arrayMethod, OpTk.getValue(bb, ogBufferLoad), OpTk.getValue(bb, idx)));
+                                bb.context().mapValue(alop.result(), invokeRes);
+                            } else {
+                                JavaOp.ConvOp conv = JavaOp.conv(JavaType.LONG, OpTk.getValue(bb, alop.operands().get(1)));
+                                Op.Result convRes = bb.op(conv);
+                                if (buffer.type() instanceof ClassType classType && alop.result() != null) {
+                                    Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, classType);
+                                    Class<?> storedClass = OpTk.primitiveTypeToClass(alop.result().type());
+                                    MethodRef m = MethodRef.method(c, "array", storedClass, long.class);
+                                    Op.Result invokeRes = bb.op(JavaOp.invoke(m, OpTk.getValue(bb, buffer), convRes));
+                                    bb.context().mapValue(alop.result(), invokeRes);
+                                }
+                            }
+                        }
+                        return bb;
+                    }
+                }
+                // handles only 1D and 2D arrays
+                case JavaOp.ArrayAccessOp.ArrayStoreOp asop -> {
+                    if (OpTk.isBufferArray(l, asop) &&
+                            OpTk.firstOperand(asop) instanceof Op.Result r) {
+                        Op.Result buffer = replaced.getOrDefault(r, r);
+                        if (((ArrayType) OpTk.firstOperand(op).type()).dimensions() == 1) { // we ignore the first array[][] load if using 2D arrays
+                            if (r.op() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp rowOp) {
+                                Op.Result x = (Op.Result) rowOp.operands().getLast();
+                                Op.Result y = (Op.Result) asop.operands().get(1);
+                                Op.Result ogBufferLoad = replaced.get((Op.Result) OpTk.firstOperand(rowOp));
+                                Op.Result ogBuffer = replaced.getOrDefault((Op.Result) OpTk.firstOperand(ogBufferLoad.op()), (Op.Result) OpTk.firstOperand(ogBufferLoad.op()));
+                                Op.Result bufferLoad = bb.op(CoreOp.VarAccessOp.varLoad(OpTk.getValue(bb, ogBuffer)));
+                                Op.Result computed = (Op.Result) asop.operands().getLast();
+
+                                Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) ((VarType) ogBuffer.type()).valueType());
+                                MethodRef m = MethodRef.method(c, "width", int.class);
+                                Op.Result width = bb.op(JavaOp.invoke(m, OpTk.getValue(bb, bufferLoad)));
+                                Op.Result longX = bb.op(JavaOp.conv(JavaType.LONG, OpTk.getValue(bb, x)));
+                                Op.Result longY = bb.op(JavaOp.conv(JavaType.LONG, OpTk.getValue(bb, y)));
+                                Op.Result longWidth = bb.op(JavaOp.conv(JavaType.LONG, OpTk.getValue(bb, width)));
+                                Op.Result mul = bb.op(JavaOp.mul(OpTk.getValue(bb, longY), OpTk.getValue(bb, longWidth)));
+                                Op.Result idx = bb.op(JavaOp.add(OpTk.getValue(bb, longX), OpTk.getValue(bb, mul)));
+
+                                MethodRef arrayMethod = MethodRef.method(c, "array", void.class, long.class, int.class);
+                                Op.Result invokeRes = bb.op(JavaOp.invoke(arrayMethod, OpTk.getValue(bb, ogBufferLoad), OpTk.getValue(bb, idx), OpTk.getValue(bb, computed)));
+                                bb.context().mapValue(asop.result(), invokeRes);
+                            } else {
+                                Op.Result idx = bb.op(JavaOp.conv(JavaType.LONG, OpTk.getValue(bb, asop.operands().get(1))));
+                                Value val = OpTk.getValue(bb, asop.operands().getLast());
+
+                                TypeElement type;
+                                boolean noRootVlop = false;
+                                if (buffer.op() instanceof CoreOp.VarOp vop) {
+                                    type = vop.varValueType();
+                                    noRootVlop = true;
+                                } else {
+                                    type = buffer.type();
+                                }
+
+                                if (type instanceof ClassType classType) {
+                                    Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, classType);
+                                    Class<?> storedClass = OpTk.primitiveTypeToClass(val.type());
+                                    MethodRef m = MethodRef.method(c, "array", void.class, long.class, storedClass);
+                                    Op.Result invokeRes = (noRootVlop) ?
+                                            bb.op(JavaOp.invoke(m, OpTk.getValue(bb, r), idx, val)) :
+                                            bb.op(JavaOp.invoke(m, OpTk.getValue(bb, buffer), idx, val));
+                                    bb.context().mapValue(asop.result(), invokeRes);
+                                }
+                            }
+                        }
+                        return bb;
+                    }
+                }
+                case JavaOp.ArrayLengthOp alen -> {
+                    if (OpTk.firstOperand(alen) instanceof Op.Result r) {
+                        Op.Result buffer = replaced.get(r);
+                        Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) buffer.type());
+                        MethodRef m = MethodRef.method(c, "length", int.class);
+                        Op.Result invokeRes = bb.op(JavaOp.invoke(m, OpTk.getValue(bb, buffer)));
+                        bb.context().mapValue(alen.result(), invokeRes);
+                    }
+                    return bb;
+                }
+                default -> {}
+            }
+            bb.op(op);
+            return bb;
+        });
     }
 }

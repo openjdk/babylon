@@ -27,6 +27,7 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.Config;
 import hat.backend.ffi.OpenCLBackend;
 import hat.buffer.S32Array;
 import static hat.ifacemapper.MappableIface.*;
@@ -34,7 +35,7 @@ import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
 
-import static hat.backend.ffi.Config.*;
+import static hat.Config.*;
 
 public class MinBufferTest {
 
@@ -58,12 +59,7 @@ public class MinBufferTest {
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
-                new OpenCLBackend(of(
-                      //  TRACE(),
-                        TRACE_COPIES(),
-                        MINIMIZE_COPIES()
-                ))
-
+                new OpenCLBackend(fromSpec("TRACE_COPIES,MINIMIZE_COPIES"))
         );
         int len = 10000000;
         int valueToAdd = 10;

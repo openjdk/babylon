@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ScopedCodeBuilderContext extends CodeBuilderContext {
+
     public static class Scope<O extends Op> {
         final Scope<?> parent;
         final O op;
@@ -223,7 +224,18 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
     }
 
     public Scope<?> scope = null;
+
     public ScopedCodeBuilderContext(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         super(lookup,funcOp);
+    }
+
+    private Map<Op.Result, CoreOp.VarOp> finalVarOps = new HashMap<>();
+
+    public void setFinals(Map<Op.Result, CoreOp.VarOp> finalVars) {
+        this.finalVarOps = finalVars;
+    }
+
+    public boolean isVarOpFinal(CoreOp.VarOp varOp) {
+        return finalVarOps.containsKey(varOp.result());
     }
 }

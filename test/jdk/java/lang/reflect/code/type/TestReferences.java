@@ -24,14 +24,14 @@
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import jdk.incubator.code.extern.ExternalizedTypeElement;
-import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /*
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.dialect.java.impl
- * @run testng TestReferences
+ * @run junit TestReferences
  */
 
 public class TestReferences {
@@ -44,8 +44,7 @@ public class TestReferences {
         Boolean value();
     }
 
-    @DataProvider
-    public Object[][] methodRefs() {
+    public static Object[][] methodRefs() {
         return new Object[][]{
                 {"a::b():void", "a", "b"},
                 {"a.b::c(int):int", "a.b", "c"},
@@ -57,17 +56,17 @@ public class TestReferences {
         };
     }
 
-    @Test(dataProvider = "methodRefs")
+    @ParameterizedTest
+    @MethodSource("methodRefs")
     public void testMethodRef(String mds, String refType, String name) {
         MethodRef mr = refFromFlatString(mds);
-        Assert.assertEquals(mr.toString(), mds);
-        Assert.assertEquals(mr.refType().toString(), refType);
-        Assert.assertEquals(mr.name(), name);
+        Assertions.assertEquals(mds, mr.toString());
+        Assertions.assertEquals(refType, mr.refType().toString());
+        Assertions.assertEquals(name, mr.name());
     }
 
 
-    @DataProvider
-    public Object[][] externalizedMethodRefs() {
+    public static Object[][] externalizedMethodRefs() {
         return new Object[][]{
                 {"java.ref:\"a::b():void\"", "a", "b"},
                 {"java.ref:\"a.b::c(int):int\"", "a.b", "c"},
@@ -79,51 +78,51 @@ public class TestReferences {
         };
     }
 
-    @Test(dataProvider = "externalizedMethodRefs")
+    @ParameterizedTest
+    @MethodSource("externalizedMethodRefs")
     public void testExternalizedMethodRef(String mds, String refType, String name) {
         ExternalizedTypeElement emr = ExternalizedTypeElement.ofString(mds);
         MethodRef mr = (MethodRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(emr));
-        Assert.assertEquals(JavaTypeUtils.flatten(mr.externalize()).toString(), mds);
-        Assert.assertEquals(mr.refType().toString(), refType);
-        Assert.assertEquals(mr.name(), name);
+        Assertions.assertEquals(mds, JavaTypeUtils.flatten(mr.externalize()).toString());
+        Assertions.assertEquals(refType, mr.refType().toString());
+        Assertions.assertEquals(name, mr.name());
     }
 
 
-    @DataProvider
-    public Object[][] constructorRefs() {
+    public static Object[][] constructorRefs() {
         return new Object[][]{
                 {"MethodReferenceTest$X::(int)", "MethodReferenceTest$X"},
                 {"MethodReferenceTest$A[]::(int)", "MethodReferenceTest$A[]"},
         };
     }
 
-    @Test(dataProvider = "constructorRefs")
+    @ParameterizedTest
+    @MethodSource("constructorRefs")
     public void testConstructorRef(String cds, String refType) {
         ConstructorRef cr = refFromFlatString(cds);
-        Assert.assertEquals(cr.toString(), cds);
-        Assert.assertEquals(cr.refType().toString(), refType);
+        Assertions.assertEquals(cds, cr.toString());
+        Assertions.assertEquals(refType, cr.refType().toString());
     }
 
-    @DataProvider
-    public Object[][] externalizedConstructorRefs() {
+    public static Object[][] externalizedConstructorRefs() {
         return new Object[][]{
                 {"java.ref:\"MethodReferenceTest$X::(int)\"", "MethodReferenceTest$X"},
                 {"java.ref:\"MethodReferenceTest$A[]::(int)\"", "MethodReferenceTest$A[]"},
         };
     }
 
-    @Test(dataProvider = "externalizedConstructorRefs")
+    @ParameterizedTest
+    @MethodSource("externalizedConstructorRefs")
     public void testExternalizedConstructorRef(String crs, String refType) {
         ExternalizedTypeElement ecr = ExternalizedTypeElement.ofString(crs);
         ConstructorRef cr = (ConstructorRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ecr));
 
-        Assert.assertEquals(JavaTypeUtils.flatten(cr.externalize()).toString(), crs);
-        Assert.assertEquals(cr.refType().toString(), refType);
+        Assertions.assertEquals(crs, JavaTypeUtils.flatten(cr.externalize()).toString());
+        Assertions.assertEquals(refType, cr.refType().toString());
     }
 
 
-    @DataProvider
-    public Object[][] fieldRefs() {
+    public static Object[][] fieldRefs() {
         return new Object[][]{
                 {"a.b::c:int", "a.b", "c", "int"},
                 {"a.b.c::d:int", "a.b.c", "d", "int"},
@@ -132,17 +131,17 @@ public class TestReferences {
         };
     }
 
-    @Test(dataProvider = "fieldRefs")
+    @ParameterizedTest
+    @MethodSource("fieldRefs")
     public void testFieldRef(String fds, String refType, String name, String type) {
         FieldRef fr = refFromFlatString(fds);
-        Assert.assertEquals(fr.toString(), fds);
-        Assert.assertEquals(fr.refType().toString(), refType);
-        Assert.assertEquals(fr.name(), name);
-        Assert.assertEquals(fr.type().toString(), type);
+        Assertions.assertEquals(fds, fr.toString());
+        Assertions.assertEquals(refType, fr.refType().toString());
+        Assertions.assertEquals(name, fr.name());
+        Assertions.assertEquals(type, fr.type().toString());
     }
 
-    @DataProvider
-    public Object[][] externalizedFieldRefs() {
+    public static Object[][] externalizedFieldRefs() {
         return new Object[][]{
                 {"java.ref:\"a.b::c:int\"", "a.b", "c", "int"},
                 {"java.ref:\"a.b.c::d:int\"", "a.b.c", "d", "int"},
@@ -151,20 +150,20 @@ public class TestReferences {
         };
     }
 
-    @Test(dataProvider = "externalizedFieldRefs")
+    @ParameterizedTest
+    @MethodSource("externalizedFieldRefs")
     public void testExternalizedFieldRef(String frs, String refType, String name, String type) {
         ExternalizedTypeElement efr = ExternalizedTypeElement.ofString(frs);
         FieldRef fr = (FieldRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(efr));
 
-        Assert.assertEquals(JavaTypeUtils.flatten(fr.externalize()).toString(), frs);
-        Assert.assertEquals(fr.refType().toString(), refType);
-        Assert.assertEquals(fr.name(), name);
-        Assert.assertEquals(fr.type().toString(), type);
+        Assertions.assertEquals(frs, JavaTypeUtils.flatten(fr.externalize()).toString());
+        Assertions.assertEquals(refType, fr.refType().toString());
+        Assertions.assertEquals(name, fr.name());
+        Assertions.assertEquals(type, fr.type().toString());
     }
 
 
-    @DataProvider
-    public Object[][] recordTypeRefs() {
+    public static Object[][] recordTypeRefs() {
         return new Object[][]{
                 {"()A"},
                 {"(B b)A"},
@@ -174,14 +173,14 @@ public class TestReferences {
         };
     }
 
-    @Test(dataProvider = "recordTypeRefs")
+    @ParameterizedTest
+    @MethodSource("recordTypeRefs")
     public void testRecordTypeRef(String rtds) {
         RecordTypeRef rtr = refFromFlatString(rtds);
-        Assert.assertEquals(rtr.toString(), rtds);
+        Assertions.assertEquals(rtds, rtr.toString());
     }
 
-    @DataProvider
-    public Object[][] externalizedRecordTypeRefs() {
+    public static Object[][] externalizedRecordTypeRefs() {
         return new Object[][]{
                 {"java.ref:\"()A\""},
                 {"java.ref:\"(B b)A\""},
@@ -191,11 +190,12 @@ public class TestReferences {
         };
     }
 
-    @Test(dataProvider = "externalizedRecordTypeRefs")
+    @ParameterizedTest
+    @MethodSource("externalizedRecordTypeRefs")
     public void testExternalizedRecordTypeRef(String rtds) {
         ExternalizedTypeElement ertr = ExternalizedTypeElement.ofString(rtds);
         RecordTypeRef rtr = (RecordTypeRef) JavaTypeUtils.toJavaRef(JavaTypeUtils.inflate(ertr));
-        Assert.assertEquals(JavaTypeUtils.flatten(rtr.externalize()).toString(), rtds);
+        Assertions.assertEquals(rtds, JavaTypeUtils.flatten(rtr.externalize()).toString());
     }
 
     @SuppressWarnings("unchecked")

@@ -47,6 +47,9 @@ display_help() {
   exit 0
 }
 
+GREEN="\033[0;32m"
+NC="\033[0m" # No Color (reset)
+
 generate_config_file() {
     cat << EOF > remoteTesting.conf 
 # HAT Remote Testing Settings
@@ -151,7 +154,7 @@ build_babylon() {
     server=${listOfServers[$index]}
     user=${listOfUsers[$index]}
 
-    echo "ssh $user@$server"
+    echo -e "${GREEN}[info] ssh $user@$server${NC}"
     ssh -T $user@$server << EOF
 if [ ! -d $REMOTE_PATH ]; 
 then 
@@ -162,6 +165,7 @@ fi
 
 #Assuming the remote path ends with babylon
 cd $REMOTE_PATH
+git fetch --all
 git checkout $BRANCH
 git pull
 
@@ -177,18 +181,18 @@ then
   echo "ARCHITECTIRE \$(uname -m)"
   if [[ "\$(uname -m)" == "x86_64" ]]; then
       wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
-      tar xvzf openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
+      tar xvzf openjdk-22-jextract+6-47_linux-x64_bin.tar.gz > /dev/null
   elif [[ "\$(uname -m)" == "arm64" ]]; then
       wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz
-      tar xvzf openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz
+      tar xvzf openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz > /dev/null
   fi
   echo "export PATH=\$(pwd)/jextract-22/bin:\$PATH" >> setup.sh
   echo "source env.bash" >> setup.sh
 fi
 
-source setup.sh
-java @hat/clean 
-java @hat/bld > hatCompilation.log
+source setup.sh > /dev/null 2> /dev/null
+java @hat/clean > hatCompilation.log 2> hatCompilationErrors.log
+java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
 EOF
 done
 
@@ -204,31 +208,44 @@ do
 server=${listOfServers[$index]}
 user=${listOfUsers[$index]}
 
-echo "ssh $user@$server"
+echo -e "\n${GREEN}[info] ssh $user@$server${NC}"
 backend_definition=$(typeset -p BACKENDS)
 ssh $user@$server bash << EOF
 $backend_definition
 cd "$REMOTE_PATH"
 cd hat/
+git fetch --all
 git checkout $BRANCH
 git pull
 
 # compile
-source setup.sh
-java @hat/clean 
-java @hat/bld > compilation.log
+source setup.sh > /dev/null 2> /dev/null
+java @hat/clean > hatCompilation.log 2> hatCompilationErrors.log
+java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
 
 # run the test suite per backend
 for backend in "\${BACKENDS[@]}"
 do
-echo "[running] java @hat/test suite "\$backend"  > "\$backend".txt"
-java @hat/test suite "\$backend"  > "\$backend".txt
+echo -e "${GREEN}[running] java -cp hat/job.jar hat.java test "\$backend" ${NC}"
+java -cp hat/job.jar hat.java test "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
 done
 
 # Print logs
 for backend in "\${BACKENDS[@]}"
 do
 cat "\$backend".txt
+done
+
+## Run violajones
+for backend in "\${BACKENDS[@]}"
+do
+echo -e "${GREEN}[running] java -cp hat/job.jar hat.java run "\$backend" -Dheadless=true violajones${NC}"
+java -cp hat/job.jar hat.java run "\$backend" -Dheadless=true violajones > "\$backend"Violajones.log
+done
+
+for backend in "\${BACKENDS[@]}"
+do
+cat "\$backend"Violajones.log | grep "336faces found"
 done
 EOF
 done

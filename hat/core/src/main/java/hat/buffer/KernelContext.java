@@ -108,7 +108,7 @@ public interface KernelContext extends Buffer {
                             "gsx", "gsy", "gsz",  // global sizes
                             "lix", "liy", "liz",  // local (thread-ids)
                             "lsx", "lsy", "lsz",  // block size
-                            "bix", "biy", "biz"  // block id
+                            "bix", "biy", "biz"   // block id
                     ));
 
     static KernelContext  createDefault(Accelerator accelerator) {

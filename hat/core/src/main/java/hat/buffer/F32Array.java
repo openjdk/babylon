@@ -60,4 +60,10 @@ public interface F32Array extends Buffer {
         return this;
     }
 
+    default float[] arrayView() {
+        float[] arr = new float[this.length()];
+        this.copyTo(arr);
+        return arr;
+    }
+
 }
