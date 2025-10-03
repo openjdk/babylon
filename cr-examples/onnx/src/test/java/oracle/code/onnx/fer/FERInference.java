@@ -56,6 +56,7 @@ public class FERInference {
             
             float[] rawScores = outputs.get(0)
                     .data().toArray(java.lang.foreign.ValueLayout.JAVA_FLOAT);
+            // model does not output softmax, so we need to apply it ourselves         
             float[] probs = softmax(rawScores);
             
             return probs;
@@ -131,54 +132,41 @@ public class FERInference {
             var status = OrtApi.SetSessionLogSeverityLevel(runtimeAddress, sessionOptionsAddress, 0);
 
             if (status.address() == 0) {
-                System.out.println("✓ Verbose logging enabled (level 0)");
+                System.out.println("Verbose logging enabled (level 0)");
             } else {
-                System.out.println("⚠ Failed to enable verbose logging (status: " + status.address() + ")");
+                System.out.println("Failed to enable verbose logging (status: " + status.address() + ")");
             }
 
         } catch (Exception e) {
-            System.out.println("✗ Error enabling verbose logging: " + e.getMessage());
+            System.out.println("Error enabling verbose logging: " + e.getMessage());
         }
     }
 
-    /**
-     * Enable CoreML execution provider with optimal settings.
-     */
     private static void enableCoreML(OnnxRuntime.SessionOptions sessionOptions, Arena arena) {
         var sessionOptionsAddress = getSessionOptionsAddress(sessionOptions);
         try {
-            // Try to enable CoreML with GPU acceleration
-            var method = coreml_provider_factory_h.class.getMethod(
-                    "OrtSessionOptionsAppendExecutionProvider_CoreML",
-                    MemorySegment.class, int.class
-            );
-
-            // Use CPU_AND_GPU flag for optimal performance on Apple Silicon
             int coremlFlags = coreml_provider_factory_h.COREML_FLAG_USE_CPU_AND_GPU();
+            MemorySegment status = coreml_provider_factory_h
+                    .OrtSessionOptionsAppendExecutionProvider_CoreML(sessionOptionsAddress, coremlFlags);
 
-            Object status = method.invoke(null, sessionOptionsAddress, coremlFlags);
-
-            if (status == null || (status instanceof MemorySegment ms && ms.address() == 0)) {
-                System.out.println("✓ CoreML execution provider enabled successfully!");
+            if (status == null || status.address() == 0) {
+                System.out.println("CoreML execution provider enabled successfully!");
             } else {
-                System.out.println("⚠ CoreML EP returned status: " + status);
-                // Try fallback with CPU only
-                status = method.invoke(null, sessionOptionsAddress, coreml_provider_factory_h.COREML_FLAG_USE_CPU_ONLY());
-                if (status == null || (status instanceof MemorySegment ms && ms.address() == 0)) {
-                    System.out.println("✓ CoreML execution provider enabled with CPU_ONLY fallback!");
+                System.out.println("CoreML EP returned status: " + status.address());
+                status = coreml_provider_factory_h.OrtSessionOptionsAppendExecutionProvider_CoreML(
+                        sessionOptionsAddress, coreml_provider_factory_h.COREML_FLAG_USE_CPU_ONLY());
+                if (status == null || status.address() == 0) {
+                    System.out.println("CoreML execution provider enabled with CPU_ONLY fallback!");
                 } else {
-                    System.out.println("✗ CoreML EP failed with all flags - " + status);
+                    System.out.println("CoreML EP failed with all flags - " + status.address());
                 }
             }
 
-        } catch (NoSuchMethodException e) {
-            System.out.println("✗ CoreML execution provider is not available in this ONNX Runtime build");
-            throw new RuntimeException("CoreML execution provider is not available in this ONNX Runtime build (method missing in bindings).", e);
         } catch (UnsatisfiedLinkError e) {
-            System.out.println("✗ CoreML execution provider is not available in the native ONNX Runtime library");
+            System.out.println("CoreML execution provider is not available in the native ONNX Runtime library");
             throw new RuntimeException("CoreML execution provider is not available in the native ONNX Runtime library (symbol missing).", e);
         } catch (Throwable t) {
-            System.out.println("✗ Unexpected error while enabling CoreML EP: " + t.getMessage());
+            System.out.println("Unexpected error while enabling CoreML EP: " + t.getMessage());
             throw new RuntimeException("Unexpected error while enabling CoreML EP: " + t.getMessage(), t);
         }
     }
