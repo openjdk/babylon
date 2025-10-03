@@ -59,11 +59,7 @@ public class MinBufferTest {
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
-                new OpenCLBackend(of(
-                        Config.TRACE_COPIES,
-                        Config.MINIMIZE_COPIES
-                ))
-
+                new OpenCLBackend(fromSpec("TRACE_COPIES,MINIMIZE_COPIES"))
         );
         int len = 10000000;
         int valueToAdd = 10;

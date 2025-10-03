@@ -24,10 +24,8 @@
  */
 package hat.backend.ffi;
 
-import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
-
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -37,55 +35,110 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder defines() {
-        hashIfndef("NULL", _ -> hashDefine("NULL", "0"));
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder pragmas() {
-        return self().
-                pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable").
-                pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable");
+        return self()
+              //  .hashDefine("HAT_OPENCL")
+              //  .hashIfdef("HAT_OPENCL", _ ->
+                //        indent(_ -> self()
+                                .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
+                                .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
+                                .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable")
+                                .hashDefine("_gix()", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstZero())))
+                                .hashDefine("_giy()", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstOne())))
+                                .hashDefine("_giz()", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstTwo())))
+                                .hashDefine("_lix()", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstZero())))
+                                .hashDefine("_liy()", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstOne())))
+                                .hashDefine("_liz()", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstTwo())))
+                                .hashDefine("_gsx()", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstZero())))
+                                .hashDefine("_gsy()", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstOne())))
+                                .hashDefine("_gsz()", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstTwo())))
+                                .hashDefine("_lsx()", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstZero())))
+                                .hashDefine("_lsy()", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstOne())))
+                                .hashDefine("_lsz()", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstTwo())))
+                                .hashDefine("_bix()", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstZero())))
+                                .hashDefine("_biy()", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstOne())))
+                                .hashDefine("_biz()", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstTwo())))
+                                .hashDefine("_barrier()", _->identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen());
+               //         )
+               // );
     }
 
     @Override
     public OpenCLHATKernelBuilder globalId(int id) {
-        return identifier("get_global_id").oparen().literal(id).cparen();
+        switch (id) {
+            case 0 -> identifier("_gix()");
+            case 1 -> identifier("_giy()");
+            case 2 -> identifier("_giz()");
+            default -> throw new RuntimeException("globalId id = " + id);
+        }
+        return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder localId(int id) {
-        return identifier("get_local_id").oparen().literal(id).cparen();
+        switch (id) {
+            case 0 -> identifier("_lix()");
+            case 1 -> identifier("_liy()");
+            case 2 -> identifier("_liz()");
+            default -> throw new RuntimeException("localId id = " + id);
+        }
+        return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder globalSize(int id) {
-        return identifier("get_global_size").oparen().literal(id).cparen();
+        switch (id) {
+            case 0 -> identifier("_gsx()");
+            case 1 -> identifier("_gsy()");
+            case 2 -> identifier("_gsz()");
+            default -> throw new RuntimeException("globalSize id = " + id);
+        }
+        return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder localSize(int id) {
-        return identifier("get_local_size").oparen().literal(id).cparen();
+        switch (id) {
+            case 0 -> identifier("_lsx()");
+            case 1 -> identifier("_lsy()");
+            case 2 -> identifier("_lsz()");
+            default -> throw new RuntimeException("localSize id = " + id);
+        }
+        return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder blockId(int id) {
-        return identifier("get_group_id").oparen().literal(id).cparen();
+        switch (id) {
+            case 0 -> identifier("_bix()");
+            case 1 -> identifier("_biy()");
+            case 2 -> identifier("_biz()");
+            default -> throw new RuntimeException("blockId id = " + id);
+        }
+        return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder syncBlockThreads() {
-        return identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen().semicolon();
+        return identifier("_barrier").ocparen();
     }
+
+    public OpenCLHATKernelBuilder kernelPrefix() {
+        return keyword("__kernel").space();
+    }
+
 
     @Override
     public OpenCLHATKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
-        return keyword("__kernel").space().voidType().space().identifier(funcOp.funcName());
+        return kernelPrefix().voidType().space().identifier(funcOp.funcName());
+    }
+
+    public OpenCLHATKernelBuilder functionPrefix() {
+        return keyword("inline").space();
     }
 
     @Override
     public OpenCLHATKernelBuilder functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType type, CoreOp.FuncOp funcOp) {
-        return keyword("inline").space().type(codeBuilderContext,type).space().identifier(funcOp.funcName());
+        return functionPrefix().type(codeBuilderContext, type).space().identifier(funcOp.funcName());
     }
 
     @Override
@@ -99,10 +152,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name){
-          return identifier("atomic_inc").paren(_ ->
-              ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name)
-          );
+    public OpenCLHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name) {
+        return identifier("atomic_inc").paren(_ ->
+                ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name)
+        );
     }
 
 }

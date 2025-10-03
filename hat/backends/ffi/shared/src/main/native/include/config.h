@@ -24,7 +24,7 @@
 */
 /*
 You probably should not edit this this file!!!
-It was auto generated 2025-10-01 11:34:45.328 by hat.FFIConfigCreator
+It was auto generated 2025-10-02 14:07:12.618 by hat.FFIConfigCreator
 */
 #pragma once
 
@@ -47,6 +47,10 @@ struct BasicConfig{
     static constexpr int SHOW_STATE_BIT                   = 1<<0x14;
     static constexpr int PTX_BIT                          = 1<<0x15;
     static constexpr int INTERPRET_BIT                    = 1<<0x16;
+    static constexpr int NO_BUFFER_TAGGING_BIT            = 1<<0x17;
+    static constexpr int NO_DIALECT_BIT                   = 1<<0x18;
+    static constexpr int NO_MODULE_OP_BIT                 = 1<<0x19;
+    static constexpr int HEADLESS_BIT                     = 1<<0x1a;
     const static char *bitNames[]; // See below for initialization
     const static char *bitDescriptions[]; // See below for initialization
     int configBits;
@@ -65,6 +69,10 @@ struct BasicConfig{
     bool showState;
     bool ptx;
     bool interpret;
+    bool noBufferTagging;
+    bool noDialect;
+    bool noModuleOp;
+    bool headless;
     int platform;
     int device;
     bool alwaysCopy;
@@ -85,6 +93,10 @@ struct BasicConfig{
         showState((configBits & SHOW_STATE_BIT)==SHOW_STATE_BIT),
         ptx((configBits & PTX_BIT)==PTX_BIT),
         interpret((configBits & INTERPRET_BIT)==INTERPRET_BIT),
+        noBufferTagging((configBits & NO_BUFFER_TAGGING_BIT)==NO_BUFFER_TAGGING_BIT),
+        noDialect((configBits & NO_DIALECT_BIT)==NO_DIALECT_BIT),
+        noModuleOp((configBits & NO_MODULE_OP_BIT)==NO_MODULE_OP_BIT),
+        headless((configBits & HEADLESS_BIT)==HEADLESS_BIT),
         platform(configBits & 0xf),
         alwaysCopy(!minimizeCopies),
         device((configBits & 0xf0) >> 4){
@@ -104,6 +116,10 @@ struct BasicConfig{
                 std::cout << "native showState " << showState << std::endl;
                 std::cout << "native ptx " << ptx << std::endl;
                 std::cout << "native interpret " << interpret << std::endl;
+                std::cout << "native noBufferTagging " << noBufferTagging << std::endl;
+                std::cout << "native noDialect " << noDialect << std::endl;
+                std::cout << "native noModuleOp " << noModuleOp << std::endl;
+                std::cout << "native headless " << headless << std::endl;
                 std::cout << "native platform " << platform << std::endl;
                 std::cout << "native device " << device << std::endl;
             }
@@ -128,6 +144,10 @@ const char *BasicConfig::bitNames[]={
     "SHOW_STATE_BIT",
     "PTX_BIT",
     "INTERPRET_BIT",
+    "NO_BUFFER_TAGGING_BIT",
+    "NO_DIALECT_BIT",
+    "NO_MODULE_OP_BIT",
+    "HEADLESS_BIT",
 };
 const char *BasicConfig::bitDescriptions[]={
     "FFI ONLY Try to minimize copies",
@@ -145,5 +165,9 @@ const char *BasicConfig::bitDescriptions[]={
     "Show iface buffer state changes",
     "FFI (NVIDIA) ONLY pass PTX rather than C99 CUDA code",
     "Interpret the code model rather than converting to bytecode",
+    "Skip AUTO buffer tagging (rely on annotations)",
+    "Skip generating HAT dialect ops",
+    "Use original callgraph (not using Module Op)",
+    "Don't show UI",
 };
 #endif

@@ -1284,8 +1284,6 @@ public class Script {
         public StringList args = new StringList();
         public StringList nativeAccessModules = new StringList();
         private boolean headless;
-        public boolean noModuleOp;
-        public boolean bufferTagging;
 
 
         public JavaBuilder enable_native_access(String module) {
@@ -1344,14 +1342,6 @@ public class Script {
         public void headless() {
             this.headless = true;
         }
-
-        public void noModuleOp() {
-            this.noModuleOp = true;
-        }
-
-        public void bufferTagging() {
-            this.bufferTagging = true;
-        }
     }
 
     public static final class JavaResult extends Result<JavaBuilder> {
@@ -1382,12 +1372,6 @@ public class Script {
         }
         if (javaBuilder.headless) {
             result.opts.add("-Dheadless=true");
-        }
-        if (javaBuilder.noModuleOp) {
-            result.opts.add("-DnoModuleOp=true");
-        }
-        if (javaBuilder.bufferTagging) {
-            result.opts.add("-DbufferTagging=true");
         }
         if (javaBuilder.startOnFirstThread) {
             result.opts.add("-XstartOnFirstThread");

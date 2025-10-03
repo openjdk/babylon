@@ -26,10 +26,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
 import hat.KernelContext;
-import hat.LocalMesh1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.S32Array;
@@ -43,34 +40,26 @@ import java.lang.invoke.MethodHandles;
 /**
  * How to test?
  * <code>
- *     HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-opencl PrefixSum
- *     HAT=SHOW_CODE java -cp job.jar hat.java exp ffi-cuda PrefixSum
+ * java @hat/exp ffi-opencl -DHAT=SHOW_CODE PrefixSum
+ * java @hat/exp ffi-cuda -DHAT=SHOW_CODE PrefixSum
  * </code>
  */
 public class PrefixSum {
-    private interface SharedS32x32Array extends Buffer {
+    private interface SharedS32x256Array extends Buffer {
         void array(long index, int value);
+
         int array(long index);
 
-        Schema<SharedS32x32Array> schema = Schema.of(SharedS32x32Array.class,
-                $ -> $
-                        // It is a bound schema, so we fix the size here
-                        .array("array", 256));
+        Schema<SharedS32x256Array> schema = Schema.of(SharedS32x256Array.class, $ -> $.array("array", 256));
 
-        static SharedS32x32Array create(Accelerator accelerator) {
+        static SharedS32x256Array create(Accelerator accelerator) {
             return schema.allocate(accelerator);
         }
 
-       // static SharedS32x32Array createLocal(Accelerator accelerator) {
-         //   return schema.allocate(accelerator);
-       // }
-
-        static SharedS32x32Array createLocal() {
+        static SharedS32x256Array createLocal() {
             return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
         }
     }
-
-
 
 
 //  4    2    3    2    6    1    2    3
@@ -164,46 +153,39 @@ public class PrefixSum {
 // then sum each group
 
     @CodeReflection
-     static void groupScan(@RO KernelContext kc,@RW S32Array dataBuf){
-        var scratchBuf = SharedS32x32Array.createLocal();
+    static void groupScan(@RO KernelContext kc, @RW S32Array dataBuf) {
+        var scratchBuf = SharedS32x256Array.createLocal();
+        // int[] scratch=scratchBuf.arrayView();
         int[] data = dataBuf.arrayView();
-        // int[] scratch=scratchBuf.arrayView(); one day
-        //  scratch[kc.lix]=data[kc.gix];
-        scratchBuf.array(kc.lix,data[kc.gix]); // copy into local scratch for the reduction
+
+        scratchBuf.array(kc.lix, data[kc.gix]); // scratch[kc.lix]=data[kc.gix];
         kc.barrier();
 
-        for (int step=2; step <= kc.lsx; step<<=1){
-            if (((kc.lix+1)%step) == 0){
-                //  one day scratch[kc.lix]+=scratch[kc.lix-(step>>1)];
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix)+scratchBuf.array(kc.lix-(step>>1)));
+        for (int step = 2; step <= kc.lsx; step <<= 1) {
+            if (((kc.lix + 1) % step) == 0) {
+                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + scratchBuf.array(kc.lix - (step >> 1))); // scratch[kc.lix]+=scratch[kc.lix-(step>>1)];
             }
             kc.barrier();
         }
-        int sum=0;
-        if ((kc.lix+1) == kc.lsx){
-           // one day  sum = scratch[kc.lix];
-            sum = scratchBuf.array(kc.lix);
-           // one day  scratch[kc.lix]=0;
-            scratchBuf.array(kc.lix,0);
+        int sum = 0;
+        if ((kc.lix + 1) == kc.lsx) {
+            sum = scratchBuf.array(kc.lix);    // sum = scratch[kc.lix];
+            scratchBuf.array(kc.lix, 0); // scratch[kc.lix]=0;
         }
         kc.barrier();
-        for (int step=kc.lsx; step >1 ; step>>=1){
-            if (((kc.lix+1)%step) == 0){
-               // int prev = scratch[kc.lix-(step>>1)];
-                int prev = scratchBuf.array(kc.lix-(step>>1));
-               // scratch[kc.lix-(step>>1)]=scratch[kc.lix];
-                scratchBuf.array(kc.lix-(step>>1),scratchBuf.array(kc.lix));
-                //  scratch[kc.lix]+= prev;
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix)+prev);
+        for (int step = kc.lsx; step > 1; step >>= 1) {
+            if (((kc.lix + 1) % step) == 0) {
+                int prev = scratchBuf.array(kc.lix - (step >> 1));                // int prev = scratch[kc.lix-(step>>1)];
+                scratchBuf.array(kc.lix - (step >> 1), scratchBuf.array(kc.lix)); // scratch[kc.lix-(step>>1)]=scratch[kc.lix];
+                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + prev);        //  scratch[kc.lix]+= prev;
             }
             kc.barrier();
         }
 
-        if ((kc.lix+1) == kc.lsx){
-            data[ kc.gix] = sum;
-        }else{
-           // data[ kc.gix] = scratch[kc.lix+1];
-            data[ kc.gix] = scratchBuf.array(kc.lix+1);
+        if ((kc.lix + 1) == kc.lsx) {
+            data[kc.gix] = sum;
+        } else {
+            data[kc.gix] = scratchBuf.array(kc.lix + 1);  // data[ kc.gix] = scratch[kc.lix+1];
         }
         kc.barrier();
 
@@ -217,109 +199,99 @@ public class PrefixSum {
 //                 ^                 ^                 ^                 ^                  ^
 //                 s0                s1                s2                s3                 s4
 
-    @CodeReflection static void crossGroupScan(@RO KernelContext kc, @RW S32Array  dataBuf){
-       var scratchBuf = SharedS32x32Array.createLocal();
-        int[] data = dataBuf.arrayView();
-       // int[] scratch=scratchBuf.arrayView();
+    @CodeReflection
+    static void crossGroupScan(@RO KernelContext kc, @RW S32Array dataBuf) {
+        var scratchBuf = SharedS32x256Array.createLocal();
+        int[] data = dataBuf.arrayView();  // int[] scratch=scratchBuf.arrayView();
 
-        int gid = (kc.gix*(kc.gsx))-1; // 0-> -1?  hence the >0 checks below.
-        //scratch[kc.lix]= (gid>0)?data[gid]:0;
-        scratchBuf.array(kc.lix, (gid>0)?data[gid]:0); // copy into local scratch for the reduction
-      kc.barrier(); // make sure all of scratch is populated
-        for (int step=2; step <= kc.gsx; step<<=1){
-            if (((kc.lix+1)%step) == 0){
-               // scratch[kc.lix]+=scratch[kc.lix-(step>>1)];
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix)+scratchBuf.array(kc.lix-(step>>1)));
+        int gid = (kc.gix * (kc.gsx)) - 1; // 0-> -1?  hence the >0 checks below.
+
+        scratchBuf.array(kc.lix, (gid > 0) ? data[gid] : 0);   // scratch[kc.lix]= (gid>0)?data[gid]:0;
+        kc.barrier();
+        for (int step = 2; step <= kc.gsx; step <<= 1) {
+            if (((kc.lix + 1) % step) == 0) {
+                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + scratchBuf.array(kc.lix - (step >> 1))); // scratch[kc.lix]+=scratch[kc.lix-(step>>1)];
             }
-          kc.barrier();
+            kc.barrier();
         }
-        int sum=0;
-        if ((kc.lix+1) == kc.gsx){
-           // sum = scratch[kc.lix];
-            sum = scratchBuf.array(kc.lix);
-
-            //scratch[kc.lix]=0;
-            scratchBuf.array(kc.lix, 0);
+        int sum = 0;
+        if ((kc.lix + 1) == kc.gsx) {
+            sum = scratchBuf.array(kc.lix);     // sum = scratch[kc.lix];
+            scratchBuf.array(kc.lix, 0);  // scratch[kc.lix]=0;
         }
-      kc.barrier();
-        for (int step=kc.gsx; step >1 ; step>>=1){
-            if (((kc.lix+1)%step) == 0){
-              //  int prev = scratch[kc.lix-(step>>1)];
-                int prev = scratchBuf.array(kc.lix-(step>>1));
-              //  scratch[kc.lix-(step>>1)]=scratch[kc.lix];
-                scratchBuf.array(kc.lix-(step>>1), scratchBuf.array(kc.lix));
-               // scratch[kc.lix]+= prev;
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix)+prev);
+        kc.barrier();
+        for (int step = kc.gsx; step > 1; step >>= 1) {
+            if (((kc.lix + 1) % step) == 0) {
+                int swap = scratchBuf.array(kc.lix - (step >> 1));                // int swap = scratch[kc.lix-(step>>1)];
+                scratchBuf.array(kc.lix - (step >> 1), scratchBuf.array(kc.lix)); // scratch[kc.lix-(step>>1)]=scratch[kc.lix];
+                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + swap);        // scratch[kc.lix]+= swap;
             }
-          kc.barrier();
+            kc.barrier();
         }
 
-        if ((kc.lix+1) == kc.gsx){
-            data[ gid] = sum;
-        }else if (gid>0){
-          //  data[ gid] = scratch[kc.lix+1];
-            data[ gid] = scratchBuf.array(kc.lix+1);
+        if ((kc.lix + 1) == kc.gsx) {
+            data[gid] = sum;
+        } else if (gid > 0) {
+            data[gid] = scratchBuf.array(kc.lix + 1); //  data[ gid] = scratch[kc.lix+1];
         }
-      kc.barrier();
+        kc.barrier();
     }
 
 
-// add s[?] to each element in group[?+1]
-// if local_size(0) were 8 and global_size(0) was 40
-//      group 0      |    group 1      |    group 2      |    group 3      |     group 4      |
-// | 0,1,2,3,4,5,6,7 | 0,1,2,3,4,5,6,7 | 0,1,2,3,4,5,6,7 | 0,1,2,3,4,5,6,7 |  0,1,2,3,4,5,6,7 |
-//                 ^                 ^                 ^                 ^                  ^
-//                 s0                s1                s2                s3                 s4
-//                     0+s0, 1+s0, ....| 0+s1, 1+s1, ....| 0+s2, 1+s2, ....| 0+s3, 1+s4, ....
-@CodeReflection
-   static  void sumKernel(@RO KernelContext kc, @RW S32Array  dataBuf){
-       var scratchBuf = SharedS32x32Array.createLocal();
+    // add s[?] to each element in group[?+1]
+    // if local_size(0) were 8 and global_size(0) was 40
+    //      group 0      |    group 1      |    group 2      |    group 3      |     group 4      |
+    // | 0,1,2,3,4,5,6,7 | 0,1,2,3,4,5,6,7 | 0,1,2,3,4,5,6,7 | 0,1,2,3,4,5,6,7 |  0,1,2,3,4,5,6,7 |
+    //                 ^                 ^                 ^                 ^                  ^
+    //                 s0                s1                s2                s3                 s4
+    //                     0+s0, 1+s0, ....| 0+s1, 1+s1, ....| 0+s2, 1+s2, ....| 0+s3, 1+s4, ....
+    @CodeReflection
+    static void sumKernel(@RO KernelContext kc, @RW S32Array dataBuf) {
+        var scratchBuf = SharedS32x256Array.createLocal();
         int[] data = dataBuf.arrayView();
-      //  int[] scratch=scratchBuf.arrayView(); one day
-       // scratch[kc.lix] = data[kc.gix];
-        scratchBuf.array(kc.lix, data[kc.gix]); // copy into local scratch
-      kc.barrier();
-        if ((kc.lix+1)!=kc.gsx && kc.gix>0){// don't do this for last in group
-           // scratch[kc.lix]+= data[(kc.gix*kc.gsx)-1];
-            scratchBuf.array(kc.lix, scratchBuf.array(kc.lix)+ data[(kc.gix*kc.gsx)-1]);
+        //  int[] scratch=scratchBuf.arrayView();
+
+        scratchBuf.array(kc.lix, data[kc.gix]); // scratch[kc.lix] = data[kc.gix];
+        kc.barrier();
+        if ((kc.lix + 1) != kc.gsx && kc.gix > 0) {// don't do this for last in group
+            scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + data[(kc.gix * kc.gsx) - 1]); // scratch[kc.lix]+= data[(kc.gix*kc.gsx)-1];
         }
-      kc.barrier();
-       //data[kc.gix]=scratch[kc.lix];
-        data[kc.gix]=scratchBuf.array(kc.lix);
+        kc.barrier();
+        data[kc.gix] = scratchBuf.array(kc.lix); // data[kc.gix]=scratch[kc.lix];
     }
 
 
-    private static final int GROUP_SIZE = 32;
+    private static final int GROUP_SIZE = 256;
 
     @CodeReflection
-    private static void compute(ComputeContext cc,  @RW S32Array data) {
-        cc.dispatchKernel(data.length(),kc-> groupScan(kc,  data));
+    private static void compute(ComputeContext cc, @RW S32Array data) {
+        cc.dispatchKernel(data.length(), kc -> groupScan(kc, data));
 
-        int groupCount = data.length() / GROUP_SIZE; // we assume 32 bit groups
-        int log2=1;
-        while (log2<groupCount){
-            log2<<=1;
+        int groupCount = data.length() / GROUP_SIZE;
+        int log2 = 1;
+        while (log2 < groupCount) {
+            log2 <<= 1;
         }
-        cc.dispatchKernel(data.length(),kc-> crossGroupScan(kc, data));
-        cc.dispatchKernel(data.length(),kc-> sumKernel(kc,  data));
+        cc.dispatchKernel(data.length(), kc -> crossGroupScan(kc, data));
+        cc.dispatchKernel(data.length(), kc -> sumKernel(kc, data));
 
     }
 
     public static void main(String[] args) {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
-        S32Array input = S32Array.create(accelerator, GROUP_SIZE *GROUP_SIZE);
+        S32Array input = S32Array.create(accelerator, GROUP_SIZE * GROUP_SIZE);
 
         int result = 0;
         for (int i = 0; i < input.length(); i++) {
-            var randInt = (int)Math.round( Math.random() );
-            result+=randInt;
-            input.array(i,randInt);
+            var randInt = (int) Math.round(Math.random());
+            result += randInt;
+            input.array(i, randInt);
         }
 
 
         // Compute on the accelerator
-        accelerator.compute( cc -> PrefixSum.compute(cc, input));
+        accelerator.compute(cc -> PrefixSum.compute(cc, input));
 
 
     }

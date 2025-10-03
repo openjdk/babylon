@@ -71,7 +71,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
         }
 
         backendBridge.computeStart();
-        if (Config.INTERPRET.isSet(config.bits())) {
+        if (Config.INTERPRET.isSet(config())) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
         } else {
             try {
@@ -129,8 +129,8 @@ public abstract class FFIBackend extends FFIBackendDriver {
     // This code should be common with jextracted-shared probably should be pushed down into another lib?
     protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         CoreOp.FuncOp transformedFuncOp = computeMethod.funcOp();
-        if (Config.MINIMIZE_COPIES.isSet(config.bits())) {
-            if (Config.SHOW_COMPUTE_MODEL.isSet(config.bits())) {
+        if (Config.MINIMIZE_COPIES.isSet(config())) {
+            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
@@ -202,12 +202,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 return bldr;
             });
-            if (Config.SHOW_COMPUTE_MODEL.isSet(config.bits())) {
+            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
         }else{
-            if (Config.SHOW_COMPUTE_MODEL.isSet(config.bits())) {
+            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
                 System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
                 System.out.println(transformedFuncOp.toText());
             }

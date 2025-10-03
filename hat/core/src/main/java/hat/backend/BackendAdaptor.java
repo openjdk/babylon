@@ -25,6 +25,7 @@
 package hat.backend;
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelCallGraph;
@@ -35,7 +36,11 @@ import hat.ifacemapper.SegmentMapper;
 import java.lang.foreign.Arena;
 import java.lang.reflect.InvocationTargetException;
 
-public abstract class BackendAdaptor implements Backend {
+public abstract class BackendAdaptor extends Backend {
+    BackendAdaptor(Config config) {
+        super(config);
+    }
+
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
 

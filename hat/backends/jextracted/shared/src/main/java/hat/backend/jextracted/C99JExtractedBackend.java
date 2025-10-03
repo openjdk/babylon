@@ -25,6 +25,7 @@
 
 package hat.backend.jextracted;
 
+import hat.Config;
 import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
@@ -43,10 +44,9 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class C99JExtractedBackend extends JExtractedBackend {
-    public C99JExtractedBackend(String libName) {
-        super(libName);
+    public C99JExtractedBackend(Config config,String libName) {
+        super(config,libName);
     }
-
     public static class CompiledKernel {
         public final C99JExtractedBackend c99NativeBackend;
         public final KernelCallGraph kernelCallGraph;
@@ -76,7 +76,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
-        builder.defines().pragmas().types();
+        builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)

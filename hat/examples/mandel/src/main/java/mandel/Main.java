@@ -26,6 +26,7 @@ package mandel;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.Config;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -71,8 +72,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"));
-
         final int width = 1024;
         final int height = 1024;
         final float defaultScale = 3f;
@@ -83,11 +82,10 @@ public class Main {
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
+        // TODO: lets use Config going forward
+        boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"))
+                || Config.HEADLESS.isSet(accelerator.backend.config());
         S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
-        //var s32Array2DState = SegmentMapper.BufferState.of(s32Array2D);
-        //System.out.println(s32Array2DState);
-
-
 
         int[] palletteArray = new int[maxIterations];
 

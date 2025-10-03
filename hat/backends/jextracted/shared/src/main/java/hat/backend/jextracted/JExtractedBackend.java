@@ -26,6 +26,7 @@
 package hat.backend.jextracted;
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.buffer.Buffer;
 import hat.callgraph.CallGraph;
 import hat.ifacemapper.BoundSchema;
@@ -54,8 +55,8 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
         return segmentMapper.allocate(arena, boundSchema);
     }
 
-    public JExtractedBackend(String libName) {
-        super(libName);
+    public JExtractedBackend(Config config, String libName) {
+        super(config,libName);
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
