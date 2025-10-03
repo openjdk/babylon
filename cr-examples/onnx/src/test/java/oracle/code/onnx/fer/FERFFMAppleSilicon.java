@@ -47,19 +47,19 @@ public class FERFFMAppleSilicon {
             }
 
             var sessionOptions = runtime.createSessionOptions(arena);
-            
+
             // Check available providers first
             System.out.println("=== Available Execution Providers ===");
             checkAvailableProviders(runtime, arena);
-            
+
             // Enable verbose logging to see execution provider usage
             System.out.println("\n=== Enabling Verbose Logging ===");
             enableVerboseLogging(sessionOptions, arena);
-            
+
             // Explicitly enable CoreML execution provider
             System.out.println("\n=== Enabling CoreML Execution Provider ===");
             enableCoreML(sessionOptions, arena);
-            
+
             var session = runtime.createSession(arena, modelBytes, sessionOptions);
 
             // Check which execution providers are being used
@@ -97,14 +97,14 @@ public class FERFFMAppleSilicon {
                     // Perform inference with timing and verification
                     System.out.println("\n=== Running Inference ===");
                     long startTime = System.nanoTime();
-                    
+
                     List<Tensor> outputs = session.run(arena, List.of(inputTensor));
-                    
+
                     long endTime = System.nanoTime();
                     double inferenceTimeMs = (endTime - startTime) / 1_000_000.0;
-                    
+
                     System.out.println("✓ Inference completed in " + String.format("%.2f", inferenceTimeMs) + " ms");
-                    
+
                     // Performance analysis
                     if (inferenceTimeMs < 10) {
                         System.out.println("🚀 FAST inference - likely using GPU acceleration (CoreML)");
@@ -113,7 +113,7 @@ public class FERFFMAppleSilicon {
                     } else {
                         System.out.println("🐌 SLOW inference - likely using CPU-only execution");
                     }
-                    
+
                     // Additional verification methods
                     System.out.println("\n=== CoreML Verification Methods ===");
                     System.out.println("1. Check verbose logs above for 'CoreML' execution messages");
@@ -121,7 +121,7 @@ public class FERFFMAppleSilicon {
                     System.out.println("3. Check Activity Monitor for GPU usage spikes during inference");
                     System.out.println("4. Fast inference times (<10ms) typically indicate GPU acceleration");
                     System.out.println("=====================================");
-                    
+
                     var output = outputs.get(0);
 
                     float[] rawScores = output.data().toArray(java.lang.foreign.ValueLayout.JAVA_FLOAT);
@@ -147,31 +147,31 @@ public class FERFFMAppleSilicon {
     /**
      * Check which execution providers are available in the ONNX Runtime build.
      */
-    private static void checkAvailableProviders(OnnxRuntime runtime, Arena arena) {
+    public static void checkAvailableProviders(OnnxRuntime runtime, Arena arena) {
         try {
             // Get the runtime address using reflection
             var runtimeField = OnnxRuntime.class.getDeclaredField("runtimeAddress");
             runtimeField.setAccessible(true);
             var runtimeAddress = (MemorySegment) runtimeField.get(runtime);
-            
+
             // Allocate memory for provider names and count
             var providersPtr = arena.allocate(C_POINTER);
             var countPtr = arena.allocate(C_INT);
-            
+
             // Call GetAvailableProviders
             var status = oracle.code.onnx.foreign.OrtApi.GetAvailableProviders(runtimeAddress, providersPtr, countPtr);
-            
+
             if (status.address() == 0) { // Success
                 int count = countPtr.get(C_INT, 0);
                 var providers = providersPtr.get(C_POINTER, 0);
-                
+
                 System.out.println("Found " + count + " available execution providers:");
                 for (int i = 0; i < count; i++) {
                     var providerName = providers.getAtIndex(C_POINTER, i);
                     String name = providerName.getString(0);
                     System.out.println("  " + (i + 1) + ". " + name);
                 }
-                
+
                 // Check if CoreML is available
                 boolean coremlAvailable = false;
                 for (int i = 0; i < count; i++) {
@@ -183,15 +183,15 @@ public class FERFFMAppleSilicon {
                         break;
                     }
                 }
-                
+
                 if (!coremlAvailable) {
                     System.out.println("⚠ CoreML execution provider is NOT available in this build");
                 }
-                
+
             } else {
                 System.out.println("Failed to get available providers (status: " + status.address() + ")");
             }
-            
+
         } catch (Exception e) {
             System.out.println("Error checking available providers: " + e.getMessage());
             e.printStackTrace();
@@ -201,24 +201,24 @@ public class FERFFMAppleSilicon {
     /**
      * Enable verbose logging to see execution provider usage during inference.
      */
-    private static void enableVerboseLogging(OnnxRuntime.SessionOptions sessionOptions, Arena arena) {
+    public static void enableVerboseLogging(OnnxRuntime.SessionOptions sessionOptions, Arena arena) {
         var sessionOptionsAddress = getSessionOptionsAddress(sessionOptions);
         try {
             // Get the runtime address using reflection
             var runtimeField = OnnxRuntime.class.getDeclaredField("runtimeAddress");
             runtimeField.setAccessible(true);
             var runtimeAddress = (MemorySegment) runtimeField.get(OnnxRuntime.getInstance());
-            
+
             // Set log severity level to VERBOSE (0)
             var status = oracle.code.onnx.foreign.OrtApi.SetSessionLogSeverityLevel(runtimeAddress, sessionOptionsAddress, 0);
-            
+
             if (status.address() == 0) {
                 System.out.println("✓ Verbose logging enabled (level 0)");
                 System.out.println("  This will show detailed execution provider information during inference");
             } else {
                 System.out.println("⚠ Failed to enable verbose logging (status: " + status.address() + ")");
             }
-            
+
         } catch (Exception e) {
             System.out.println("✗ Error enabling verbose logging: " + e.getMessage());
         }
@@ -227,7 +227,7 @@ public class FERFFMAppleSilicon {
     /**
      * Enable CoreML execution provider with optimal settings.
      */
-    private static void enableCoreML(OnnxRuntime.SessionOptions sessionOptions, Arena arena) {
+    public static void enableCoreML(OnnxRuntime.SessionOptions sessionOptions, Arena arena) {
         var sessionOptionsAddress = getSessionOptionsAddress(sessionOptions);
         try {
             // Try to enable CoreML with GPU acceleration
@@ -239,9 +239,9 @@ public class FERFFMAppleSilicon {
             // Use CPU_AND_GPU flag for optimal performance on Apple Silicon
             int coremlFlags = coreml_provider_factory_h.COREML_FLAG_USE_CPU_AND_GPU();
             System.out.println("Enabling CoreML with CPU_AND_GPU flag (" + coremlFlags + ")");
-            
+
             Object status = method.invoke(null, sessionOptionsAddress, coremlFlags);
-            
+
             if (status == null || (status instanceof MemorySegment ms && ms.address() == 0)) {
                 System.out.println("✓ CoreML execution provider enabled successfully!");
             } else {
