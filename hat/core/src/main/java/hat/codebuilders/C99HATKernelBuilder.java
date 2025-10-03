@@ -168,8 +168,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T defines();
 
-    public abstract T pragmas();
-
     public abstract T kernelDeclaration(CoreOp.FuncOp funcOp);
 
     public abstract T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp);

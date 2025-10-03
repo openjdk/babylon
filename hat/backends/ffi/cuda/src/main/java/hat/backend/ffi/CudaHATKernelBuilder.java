@@ -37,12 +37,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder defines() {
-        return hashDefine("__global");  // nor this
-    }
-
-    @Override
-    public CudaHATKernelBuilder pragmas() {
-        return self();
+        return self();  // nor this
     }
 
     private CudaHATKernelBuilder threadDimId(int id) {

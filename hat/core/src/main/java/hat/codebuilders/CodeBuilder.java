@@ -470,7 +470,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T intConstZero() {
         return constant("0");
     }
-
+    public final T intConstOne() {
+        return constant("1");
+    }
+    public final T intConstTwo() {
+        return constant("2");
+    }
 
     public final T voidType() {
         return typeName("void");
