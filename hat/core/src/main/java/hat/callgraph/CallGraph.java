@@ -43,10 +43,6 @@ public abstract class CallGraph<E extends Entrypoint> {
     public final Set<MethodCall> calls = new HashSet<>();
     public final Map<MethodRef, MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
     public CoreOp.ModuleOp moduleOp;
-
-    // Todo: We should phase these out. We can also use Config.....
-    public final static boolean noModuleOp = Boolean.getBoolean("noModuleOp");
-    public final static boolean bufferTagging = Boolean.getBoolean("bufferTagging");
     public Stream<MethodCall> callStream() {
         return methodRefToMethodCallMap.values().stream();
     }
