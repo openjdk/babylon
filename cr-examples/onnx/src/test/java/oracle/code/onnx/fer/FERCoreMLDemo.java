@@ -12,13 +12,6 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.List;
 
-/**
- * GUI demo for FER (Facial Expression Recognition) using CoreML EP.
- * - Automatically loads first 10–12 PNGs from resource folder
- * - User can click thumbnails to enlarge in slots (max 6)
- * - ENTER or "Analyze" runs FER inference
- * - Displays top 3 emotions under each selected meme
- */
 public class FERCoreMLDemo {
 
     private static final int MAX_SELECTIONS = 6;
@@ -31,7 +24,6 @@ public class FERCoreMLDemo {
     private JLabel[] resultLabels;
     private List<URL> selectedUrls = new ArrayList<>();
 
-    // FER Inference Engine
     private FERInference ferInference;
 
     public static void main(String[] args) {
@@ -58,7 +50,6 @@ public class FERCoreMLDemo {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout(10, 10));
 
-        // Big panel for 6 selected images
         bigPanel = new JPanel(new GridLayout(2, 3, 10, 10));
         imageLabels = new JLabel[MAX_SELECTIONS];
         resultLabels = new JLabel[MAX_SELECTIONS];
@@ -73,7 +64,6 @@ public class FERCoreMLDemo {
             bigPanel.add(slot);
         }
 
-        // Thumbnail panel
         JPanel thumbPanel = new JPanel(new FlowLayout());
         thumbPanel.setBorder(BorderFactory.createTitledBorder("Select memes (max 6)"));
 
@@ -101,7 +91,6 @@ public class FERCoreMLDemo {
             thumbPanel.add(thumb);
         }
 
-        // Analyze/Restart button + progress bar
         JButton analyzeBtn = new JButton("Analyze");
         JProgressBar progressBar = new JProgressBar(0, MAX_SELECTIONS);
         progressBar.setStringPainted(true);
@@ -131,7 +120,6 @@ public class FERCoreMLDemo {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
-        // ENTER key triggers analyze
         frame.getRootPane().setDefaultButton(analyzeBtn);
     }
 
@@ -169,7 +157,6 @@ public class FERCoreMLDemo {
         progressBar.setVisible(true);
         analyzeBtn.setEnabled(false);
 
-        // Run everything on the main thread sequentially
         for (int i = 0; i < selectedUrls.size(); i++) {
             URL url = selectedUrls.get(i);
             
@@ -177,19 +164,16 @@ public class FERCoreMLDemo {
                 float[] probs = ferInference.analyzeImage(url);
                 String top3 = FERUtils.formatTopK(probs, 3, FERInference.getEmotions());
                 
-                // Update GUI immediately
                 resultLabels[i].setText("<html>" + top3 + "</html>");
                 progressBar.setValue(i + 1);
                 progressBar.setString("Processed " + (i + 1) + "/" + selectedUrls.size());
                 
-                // Force GUI update
                 frame.repaint();
                 
             } catch (Exception ex) {
                 resultLabels[i].setText("<html><span style='color:red'>Error!</span></html>");
             }
             
-            // Small delay to see progress
             try {
                 Thread.sleep(500);
             } catch (InterruptedException ignored) {}
@@ -202,24 +186,19 @@ public class FERCoreMLDemo {
     }
 
     private void restartAnalysis(JButton analyzeBtn) {
-        // Clear selected URLs
         selectedUrls.clear();
         
-        // Clear all image slots
         for (int i = 0; i < MAX_SELECTIONS; i++) {
             imageLabels[i].setIcon(null);
             imageLabels[i].setText("Empty");
             resultLabels[i].setText("");
         }
         
-        // Reset button
         analyzeBtn.setText("Analyze");
         
-        // Hide progress bar
         JProgressBar progressBar = (JProgressBar) ((JPanel) analyzeBtn.getParent()).getComponent(1);
         progressBar.setVisible(false);
         
-        // Force GUI update
         frame.repaint();
     }
 
