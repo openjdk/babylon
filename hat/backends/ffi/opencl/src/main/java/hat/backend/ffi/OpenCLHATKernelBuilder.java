@@ -63,92 +63,24 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder globalId(int id) {
-        switch (id) {
-            case 0 -> identifier("_gix()");
-            case 1 -> identifier("_giy()");
-            case 2 -> identifier("_giz()");
-            default -> throw new RuntimeException("globalId id = " + id);
-        }
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder localId(int id) {
-        switch (id) {
-            case 0 -> identifier("_lix()");
-            case 1 -> identifier("_liy()");
-            case 2 -> identifier("_liz()");
-            default -> throw new RuntimeException("localId id = " + id);
-        }
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder globalSize(int id) {
-        switch (id) {
-            case 0 -> identifier("_gsx()");
-            case 1 -> identifier("_gsy()");
-            case 2 -> identifier("_gsz()");
-            default -> throw new RuntimeException("globalSize id = " + id);
-        }
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder localSize(int id) {
-        switch (id) {
-            case 0 -> identifier("_lsx()");
-            case 1 -> identifier("_lsy()");
-            case 2 -> identifier("_lsz()");
-            default -> throw new RuntimeException("localSize id = " + id);
-        }
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder blockId(int id) {
-        switch (id) {
-            case 0 -> identifier("_bix()");
-            case 1 -> identifier("_biy()");
-            case 2 -> identifier("_biz()");
-            default -> throw new RuntimeException("blockId id = " + id);
-        }
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder syncBlockThreads() {
-        return identifier("_barrier").ocparen();
-    }
-
     public OpenCLHATKernelBuilder kernelPrefix() {
         return keyword("__kernel").space();
     }
 
-
     @Override
-    public OpenCLHATKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
-        return kernelPrefix().voidType().space().identifier(funcOp.funcName());
-    }
-
     public OpenCLHATKernelBuilder functionPrefix() {
         return keyword("inline").space();
     }
 
-    @Override
-    public OpenCLHATKernelBuilder functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType type, CoreOp.FuncOp funcOp) {
-        return functionPrefix().type(codeBuilderContext, type).space().identifier(funcOp.funcName());
-    }
 
     @Override
     public OpenCLHATKernelBuilder globalPtrPrefix() {
-        return keyword("__global");
+        return keyword("__global").space();
     }
 
     @Override
     public OpenCLHATKernelBuilder localPtrPrefix() {
-        return keyword("__local");
+        return keyword("__local").space();
     }
 
     @Override
