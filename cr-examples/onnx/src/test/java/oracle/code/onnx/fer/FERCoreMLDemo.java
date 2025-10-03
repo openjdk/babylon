@@ -1,22 +1,16 @@
 package oracle.code.onnx.fer;
 
-import oracle.code.onnx.OnnxRuntime;
-import oracle.code.onnx.Tensor;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.lang.foreign.Arena;
 import java.net.URL;
 import java.net.URISyntaxException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.List;
-
-import static oracle.code.onnx.fer.FERFFMAppleSilicon.*;
 
 /**
  * GUI demo for FER (Facial Expression Recognition) using CoreML EP.
@@ -30,8 +24,6 @@ public class FERCoreMLDemo {
     private static final int MAX_SELECTIONS = 6;
     private static final int MAX_THUMBNAILS = 12;
     private static final String BASE_PATH = "/oracle/code/onnx/fer/";
-    private static final String MODEL_PATH = BASE_PATH + "emotion-ferplus-8.onnx";
-    private static final int IMAGE_SIZE = 64;
 
     private JFrame frame;
     private JPanel bigPanel;
@@ -39,10 +31,8 @@ public class FERCoreMLDemo {
     private JLabel[] resultLabels;
     private List<URL> selectedUrls = new ArrayList<>();
 
-    // ONNX Runtime stuff
-    private OnnxRuntime runtime;
-    private OnnxRuntime.Session session;
-    private Arena arena;
+    // FER Inference Engine
+    private FERInference ferInference;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -55,31 +45,12 @@ public class FERCoreMLDemo {
     }
 
     public void start() throws Exception {
-        initOnnx();
+        initFER();
         buildGUI();
     }
 
-    private void initOnnx() throws Exception {
-        arena = Arena.ofConfined();
-        runtime = OnnxRuntime.getInstance();
-
-        // Load model bytes
-        URL modelUrl = FERCoreMLDemo.class.getResource(MODEL_PATH);
-        if (modelUrl == null) {
-            throw new RuntimeException("Model not found: " + MODEL_PATH);
-        }
-        byte[] modelBytes = modelUrl.openStream().readAllBytes();
-
-        var sessionOptions = runtime.createSessionOptions(arena);
-
-        // 🔑 bring in the CLI setup
-        FERFFMAppleSilicon.checkAvailableProviders(runtime, arena);
-        FERFFMAppleSilicon.enableVerboseLogging(sessionOptions, arena);
-        FERFFMAppleSilicon.enableCoreML(sessionOptions, arena);
-
-        session = runtime.createSession(arena, modelBytes, sessionOptions);
-
-        System.out.println("=== ONNX Runtime session initialized with model: " + modelUrl + " ===");
+    private void initFER() throws Exception {
+        ferInference = new FERInference();
     }
 
     private void buildGUI() throws IOException, URISyntaxException {
@@ -199,18 +170,12 @@ public class FERCoreMLDemo {
         analyzeBtn.setEnabled(false);
 
         // Run everything on the main thread sequentially
-        System.out.println("=== Starting FER analysis on " + selectedUrls.size() + " images ===");
-        
         for (int i = 0; i < selectedUrls.size(); i++) {
             URL url = selectedUrls.get(i);
-            System.out.println("Processing image " + (i + 1) + ": " + url);
             
             try {
-                System.out.println("  [MainThread] Calling runFER for image " + (i + 1));
-                float[] probs = runFER(url);
-                System.out.println("  [MainThread] runFER returned probabilities array of length: " + probs.length);
-                String top3 = formatTop3(probs);
-                System.out.println("  [MainThread] Formatted top3: " + top3);
+                float[] probs = ferInference.analyzeImage(url);
+                String top3 = FERUtils.formatTopK(probs, 3, FERInference.getEmotions());
                 
                 // Update GUI immediately
                 resultLabels[i].setText("<html>" + top3 + "</html>");
@@ -220,11 +185,7 @@ public class FERCoreMLDemo {
                 // Force GUI update
                 frame.repaint();
                 
-                System.out.println("  [MainThread] Updated GUI for image " + (i + 1));
-                
             } catch (Exception ex) {
-                System.out.println("  [ERROR] Failed on image: " + url);
-                ex.printStackTrace(System.out);
                 resultLabels[i].setText("<html><span style='color:red'>Error!</span></html>");
             }
             
@@ -241,8 +202,6 @@ public class FERCoreMLDemo {
     }
 
     private void restartAnalysis(JButton analyzeBtn) {
-        System.out.println("=== Restarting analysis ===");
-        
         // Clear selected URLs
         selectedUrls.clear();
         
@@ -262,130 +221,6 @@ public class FERCoreMLDemo {
         
         // Force GUI update
         frame.repaint();
-        
-        System.out.println("=== Analysis restarted - ready for new selections ===");
     }
 
-    private float[] runFER(URL url) {
-        System.out.println("  [runFER] Loading image: " + url);
-        try {
-            float[] imageData = loadImageAsFloatArray(url);
-            System.out.println("  [runFER] Image loaded, size=" + imageData.length);
-
-            // Use the existing session and arena from main thread
-            System.out.println("  [runFER] Using existing session and arena");
-            
-            // Prepare tensor
-            long[] shape = {1, 1, IMAGE_SIZE, IMAGE_SIZE};
-            System.out.println("  [runFER] Creating input tensor with shape: " + java.util.Arrays.toString(shape));
-            var inputTensor = Tensor.ofShape(arena, shape, imageData);
-            System.out.println("  [runFER] Input tensor created successfully");
-
-            System.out.println("  [runFER] Starting inference...");
-            long start = System.nanoTime();
-            List<Tensor> outputs = session.run(arena, List.of(inputTensor));
-            long end = System.nanoTime();
-
-            double ms = (end - start) / 1_000_000.0;
-            System.out.printf("  [runFER] Inference completed in %.2f ms%n", ms);
-
-            System.out.println("  [runFER] Processing outputs...");
-            float[] rawScores = outputs.get(0)
-                    .data().toArray(java.lang.foreign.ValueLayout.JAVA_FLOAT);
-            System.out.println("  [runFER] Raw scores length: " + rawScores.length);
-            
-            float[] probs = softmax(rawScores);
-            System.out.println("  [runFER] Probabilities computed");
-
-            // Print all emotion probabilities like CLI
-            System.out.println("\nEmotion probabilities:");
-            for (int i = 0; i < probs.length; i++) {
-                System.out.printf("  %-10s : %.2f%%%n", FERFFMAppleSilicon.EMOTIONS[i], probs[i] * 100);
-            }
-
-            int pred = argMax(probs);
-            System.out.println("Predicted emotion: " + FERFFMAppleSilicon.EMOTIONS[pred] + "\n");
-
-            return probs;
-        } catch (Exception e) {
-            System.out.println("  [runFER] ERROR while processing " + url + ": " + e.getMessage());
-            e.printStackTrace(System.out);
-            throw new RuntimeException("Failed to run FER on " + url, e);
-        }
-    }
-
-
-    private String formatTop3(float[] probs) {
-        int[] idxs = topK(probs, 3);
-        StringBuilder sb = new StringBuilder();
-        for (int idx : idxs) {
-            sb.append(String.format("%s : %.1f%%<br>", EMOTIONS[idx], probs[idx] * 100));
-        }
-        return sb.toString();
-    }
-
-    private int[] topK(float[] arr, int k) {
-        return java.util.stream.IntStream.range(0, arr.length)
-                .boxed()
-                .sorted((i, j) -> Float.compare(arr[j], arr[i]))
-                .limit(k)
-                .mapToInt(i -> i)
-                .toArray();
-    }
-
-    private static float[] loadImageAsFloatArray(URL imgUrl) throws IOException {
-        System.out.println("    [loadImage] Attempting to read image: " + imgUrl);
-        BufferedImage src = ImageIO.read(imgUrl);
-        if (src == null) {
-            throw new IOException("Unsupported or corrupt image: " + imgUrl);
-        }
-        System.out.println("    [loadImage] ImageIO.read succeeded: "
-                + src.getWidth() + "x" + src.getHeight());
-
-        BufferedImage graySrc = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-        Graphics2D g0 = graySrc.createGraphics();
-        g0.drawImage(src, 0, 0, null);
-        g0.dispose();
-
-        BufferedImage gray = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_BYTE_GRAY);
-        Graphics2D g = gray.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g.drawImage(graySrc, 0, 0, IMAGE_SIZE, IMAGE_SIZE, null);
-        g.dispose();
-
-        float[] data = new float[IMAGE_SIZE * IMAGE_SIZE];
-        gray.getData().getSamples(0, 0, IMAGE_SIZE, IMAGE_SIZE, 0, data);
-
-        System.out.println("    [loadImage] Returning float array of length " + data.length);
-        return data;
-    }
-
-
-    public static float[] softmax(float[] scores) {
-        float max = Float.NEGATIVE_INFINITY;
-        for (float s : scores) if (s > max) max = s;
-        double sum = 0.0;
-        double[] exps = new double[scores.length];
-        for (int i = 0; i < scores.length; i++) {
-            exps[i] = Math.exp(scores[i] - max);
-            sum += exps[i];
-        }
-        float[] out = new float[scores.length];
-        for (int i = 0; i < scores.length; i++) {
-            out[i] = (float)(exps[i] / sum);
-        }
-        return out;
-    }
-
-    public static int argMax(float[] arr) {
-        int idx = 0;
-        float max = arr[0];
-        for (int i = 1; i < arr.length; i++) {
-            if (arr[i] > max) {
-                max = arr[i];
-                idx = i;
-            }
-        }
-        return idx;
-    }
 }
