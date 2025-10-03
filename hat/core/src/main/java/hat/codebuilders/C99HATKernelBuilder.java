@@ -33,6 +33,7 @@ import hat.dialect.HatLocalThreadIdOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -73,9 +74,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
-            globalPtrPrefix().space().suffix_t(classType).asterisk();
+            globalPtrPrefix().suffix_t(classType).asterisk();
         }else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")){
-            globalPtrPrefix().space().suffix_t("KernelContext").asterisk();
+            globalPtrPrefix().suffix_t("KernelContext").asterisk();
         } else {
             typeName(javaType.toString());
         }
@@ -128,7 +129,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
-        return localPtrPrefix().space() // we should be able to compose-call to privateDeclaration?
+        return localPtrPrefix() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
     }
 
@@ -162,24 +163,82 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+
+
+    public T globalId(int id) {
+        switch (id) {
+            case 0 -> identifier("_gix()");
+            case 1 -> identifier("_giy()");
+            case 2 -> identifier("_giz()");
+            default -> throw new RuntimeException("globalId id = " + id);
+        }
+        return self();
+    }
+
+    public T localId(int id) {
+        switch (id) {
+            case 0 -> identifier("_lix()");
+            case 1 -> identifier("_liy()");
+            case 2 -> identifier("_liz()");
+            default -> throw new RuntimeException("localId id = " + id);
+        }
+        return self();
+    }
+
+    public T globalSize(int id) {
+        switch (id) {
+            case 0 -> identifier("_gsx()");
+            case 1 -> identifier("_gsy()");
+            case 2 -> identifier("_gsz()");
+            default -> throw new RuntimeException("globalSize id = " + id);
+        }
+        return self();
+    }
+
+    public T localSize(int id) {
+        switch (id) {
+            case 0 -> identifier("_lsx()");
+            case 1 -> identifier("_lsy()");
+            case 2 -> identifier("_lsz()");
+            default -> throw new RuntimeException("localSize id = " + id);
+        }
+        return self();
+    }
+
+
+    public T blockId(int id) {
+        switch (id) {
+            case 0 -> identifier("_bix()");
+            case 1 -> identifier("_biy()");
+            case 2 -> identifier("_biz()");
+            default -> throw new RuntimeException("blockId id = " + id);
+        }
+        return self();
+    }
+    public abstract T kernelPrefix();
+
+
+    public T kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return kernelPrefix().voidType().space().funcName(funcOp);
+    }
+    public abstract  T functionPrefix();
+
+
+    public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
+        return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
+    }
+
+
+    public T syncBlockThreads() {
+        return identifier("_barrier").ocparen();
+    }
+
+
     public abstract T globalPtrPrefix();
 
     public abstract T localPtrPrefix();
 
     public abstract T defines();
 
-    public abstract T kernelDeclaration(CoreOp.FuncOp funcOp);
-
-    public abstract T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp);
-
-    public abstract T globalId(int id);
-
-    public abstract T localId(int id);
-
-    public abstract T globalSize(int id);
-
-    public abstract T localSize(int id);
-
-    public abstract T blockId(int id);
 
 }

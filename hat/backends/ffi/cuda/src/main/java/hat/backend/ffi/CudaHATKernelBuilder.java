@@ -24,22 +24,12 @@
  */
 package hat.backend.ffi;
 
-import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
-
-
-    @Override
-    public CudaHATKernelBuilder defines() {
-        return self();  // nor this
-    }
-
     private CudaHATKernelBuilder threadDimId(int id) {
         return keyword(switch(id){
             case 0->"x";
@@ -48,40 +38,39 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             default -> throw new RuntimeException("Thread Dimension not supported");
         });
     }
-
     @Override
-    public CudaHATKernelBuilder globalId(int id) {
-        return paren(_->blockId(id).asterisk().localSize(id).plus().localId(id));
+    public CudaHATKernelBuilder defines() {
+        return self()
+               //   .hashDefine("HAT_CUDA")
+                 // .hashIfdef("HAT_CUDA", _ ->
+                   //     indent(_ -> self()
+                .hashDefine("_gix()", _ -> paren(_->blockId(0).asterisk().localSize(0).plus().localId(0)))
+                .hashDefine("_giy()", _ -> paren(_->blockId(1).asterisk().localSize(1).plus().localId(1)))
+                .hashDefine("_giz()", _ -> paren(_->blockId(2).asterisk().localSize(2).plus().localId(2)))
+                .hashDefine("_lix()", _ -> keyword("threadIdx").dot().threadDimId(0))
+                .hashDefine("_liy()", _ -> keyword("threadIdx").dot().threadDimId(1))
+                .hashDefine("_liz()", _ -> keyword("threadIdx").dot().threadDimId(2))
+                .hashDefine("_gsx()", _ -> keyword("gridDim").dot().threadDimId(0).asterisk().localSize(0))
+                .hashDefine("_gsy()", _ -> keyword("gridDim").dot().threadDimId(1).asterisk().localSize(1))
+                .hashDefine("_gsz()", _ -> keyword("gridDim").dot().threadDimId(2).asterisk().localSize(2))
+                .hashDefine("_lsx()", _ -> keyword("blockDim").dot().threadDimId(0))
+                .hashDefine("_lsy()", _ -> keyword("blockDim").dot().threadDimId(1))
+                .hashDefine("_lsz()", _ -> keyword("blockDim").dot().threadDimId(2))
+                .hashDefine("_bix()", _ -> keyword("blockIdx").dot().threadDimId(0))
+                .hashDefine("_biy()", _ -> keyword("blockIdx").dot().threadDimId(1))
+                .hashDefine("_biz()", _ -> keyword("blockIdx").dot().threadDimId(2))
+                .hashDefine("_barrier()", _->keyword("__syncthreads").ocparen());
+                    //    )
+        //);
     }
+    @Override
+   public CudaHATKernelBuilder kernelPrefix() {
+       return externC().space().keyword("__global__").space();
+   }
 
     @Override
-    public CudaHATKernelBuilder localId(int id) {
-        return keyword("threadIdx").dot().threadDimId(id);
-    }
-
-    @Override
-    public CudaHATKernelBuilder globalSize(int id) {
-        return keyword("gridDim").dot().threadDimId(id).asterisk().localSize(id);
-    }
-
-    @Override
-    public CudaHATKernelBuilder localSize(int id) {
-        return keyword("blockDim").dot().threadDimId(id);
-    }
-
-    @Override
-    public CudaHATKernelBuilder blockId(int id) {
-        return keyword("blockIdx").dot().threadDimId(id);
-    }
-
-    @Override
-    public CudaHATKernelBuilder kernelDeclaration(CoreOp.FuncOp funcOp) {
-        return externC().space().keyword("__global__").space().voidType().space().funcName(funcOp);
-    }
-
-    @Override
-    public CudaHATKernelBuilder functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
-        return externC().space().keyword("__device__").space().keyword("inline").space().type(codeBuilderContext,javaType).space().funcName(funcOp);
+    public CudaHATKernelBuilder functionPrefix() {
+        return externC().space().keyword("__device__").space().keyword("inline").space();
     }
 
     @Override
@@ -91,7 +80,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder localPtrPrefix() {
-        return keyword("__shared__");
+        return keyword("__shared__").space();
     }
 
 
@@ -101,10 +90,5 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
              ampersand().recurse(buildContext, instanceResult.op());
              rarrow().identifier(name).comma().literal(1);
         });
-    }
-
-    @Override
-    public CudaHATKernelBuilder syncBlockThreads() {
-        return keyword("__syncthreads").ocparen();
     }
 }
