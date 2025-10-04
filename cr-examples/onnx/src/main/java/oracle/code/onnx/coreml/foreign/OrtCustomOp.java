@@ -2,12 +2,15 @@
 
 package oracle.code.onnx.coreml.foreign;
 
+import java.lang.invoke.*;
 import java.lang.foreign.*;
-import java.lang.invoke.MethodHandle;
-import java.util.function.Consumer;
+import java.nio.ByteOrder;
+import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
 
-import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
-import static java.lang.foreign.ValueLayout.OfInt;
+import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 /**
  * {@snippet lang=c :
@@ -160,13 +163,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(CreateKernel.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(CreateKernel.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -258,13 +261,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetName.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetName.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -356,13 +359,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetExecutionProviderType.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetExecutionProviderType.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -455,13 +458,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetInputType.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetInputType.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -553,13 +556,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetInputTypeCount.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetInputTypeCount.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -652,13 +655,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetOutputType.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetOutputType.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -750,13 +753,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetOutputTypeCount.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetOutputTypeCount.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -848,13 +851,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(KernelCompute.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(KernelCompute.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -945,13 +948,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(KernelDestroy.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(KernelDestroy.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1044,13 +1047,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetInputCharacteristic.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetInputCharacteristic.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1143,13 +1146,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetOutputCharacteristic.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetOutputCharacteristic.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1242,13 +1245,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetInputMemoryType.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetInputMemoryType.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1340,13 +1343,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetVariadicInputMinArity.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetVariadicInputMinArity.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1438,13 +1441,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetVariadicInputHomogeneity.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetVariadicInputHomogeneity.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1536,13 +1539,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetVariadicOutputMinArity.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetVariadicOutputMinArity.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1634,13 +1637,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetVariadicOutputHomogeneity.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetVariadicOutputHomogeneity.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1735,13 +1738,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(CreateKernelV2.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(CreateKernelV2.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1834,13 +1837,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(KernelComputeV2.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(KernelComputeV2.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -1933,13 +1936,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(InferOutputShapeFn.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(InferOutputShapeFn.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -2031,13 +2034,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetStartVersion.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetStartVersion.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -2129,13 +2132,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetEndVersion.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetEndVersion.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -2228,13 +2231,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetMayInplace.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetMayInplace.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -2326,13 +2329,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(ReleaseMayInplace.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(ReleaseMayInplace.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -2425,13 +2428,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetAliasMap.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(GetAliasMap.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 
@@ -2523,13 +2526,13 @@ public class OrtCustomOp {
             return $DESC;
         }
 
-        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(Function.class, "apply", $DESC);
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(ReleaseAliasMap.Function.class, "apply", $DESC);
 
         /**
          * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
          * The lifetime of the returned segment is managed by {@code arena}
          */
-        public static MemorySegment allocate(Function fi, Arena arena) {
+        public static MemorySegment allocate(ReleaseAliasMap.Function fi, Arena arena) {
             return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
         }
 

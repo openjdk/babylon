@@ -2,11 +2,15 @@
 
 package oracle.code.onnx.coreml.foreign;
 
-import java.lang.foreign.AddressLayout;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
-import java.lang.foreign.MemorySegment;
-import java.lang.invoke.MethodHandle;
+import java.lang.invoke.*;
+import java.lang.foreign.*;
+import java.nio.ByteOrder;
+import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
+
+import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 public class coreml_provider_factory_h extends coreml_provider_factory_h_1 {
 
@@ -2015,13 +2019,13 @@ public class coreml_provider_factory_h extends coreml_provider_factory_h_1 {
     }
     /**
      * {@snippet lang=c :
-     * #define ORT_FILE "/var/folders/20/84x77j_x7p7fb3fmm0n_b0n40000gn/T/jextract$15152546753471302894.h"
+     * #define ORT_FILE "/var/folders/20/84x77j_x7p7fb3fmm0n_b0n40000gn/T/jextract$6133332196994114281.h"
      * }
      */
     public static MemorySegment ORT_FILE() {
         class Holder {
             static final MemorySegment ORT_FILE
-                = coreml_provider_factory_h.LIBRARY_ARENA.allocateFrom("/var/folders/20/84x77j_x7p7fb3fmm0n_b0n40000gn/T/jextract$15152546753471302894.h");
+                = coreml_provider_factory_h.LIBRARY_ARENA.allocateFrom("/var/folders/20/84x77j_x7p7fb3fmm0n_b0n40000gn/T/jextract$6133332196994114281.h");
         }
         return Holder.ORT_FILE;
     }

@@ -2,13 +2,15 @@
 
 package oracle.code.onnx.coreml.foreign;
 
-import oracle.code.onnx.foreign.onnxruntime_c_api_h;
-
+import java.lang.invoke.*;
 import java.lang.foreign.*;
-import java.lang.invoke.MethodHandle;
-import java.util.function.Consumer;
+import java.nio.ByteOrder;
+import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
 
-import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
+import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 /**
  * {@snippet lang=c :
@@ -25,8 +27,8 @@ public class OrtApiBase {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        oracle.code.onnx.foreign.onnxruntime_c_api_h.C_POINTER.withName("GetApi"),
-        oracle.code.onnx.foreign.onnxruntime_c_api_h.C_POINTER.withName("GetVersionString")
+        coreml_provider_factory_h.C_POINTER.withName("GetApi"),
+        coreml_provider_factory_h.C_POINTER.withName("GetVersionString")
     ).withName("OrtApiBase");
 
     /**
@@ -41,12 +43,40 @@ public class OrtApiBase {
      * const OrtApi *(*GetApi)(uint32_t)
      * }
      */
-    private static class GetApi {
+    public static class GetApi {
+
+        GetApi() {
+            // Should not be called directly
+        }
+
+        /**
+         * The function pointer signature, expressed as a functional interface
+         */
+        public interface Function {
+            MemorySegment apply(int _x0);
+        }
 
         private static final FunctionDescriptor $DESC = FunctionDescriptor.of(
-            oracle.code.onnx.foreign.onnxruntime_c_api_h.C_POINTER,
-            oracle.code.onnx.foreign.onnxruntime_c_api_h.C_INT
+            coreml_provider_factory_h.C_POINTER,
+            coreml_provider_factory_h.C_INT
         );
+
+        /**
+         * The descriptor of this function pointer
+         */
+        public static FunctionDescriptor descriptor() {
+            return $DESC;
+        }
+
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetApi.Function.class, "apply", $DESC);
+
+        /**
+         * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
+         * The lifetime of the returned segment is managed by {@code arena}
+         */
+        public static MemorySegment allocate(GetApi.Function fi, Arena arena) {
+            return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
+        }
 
         private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
 
@@ -64,17 +94,46 @@ public class OrtApiBase {
 
     private static final AddressLayout GetApi$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("GetApi"));
 
-    private static final long GetApi$OFFSET = $LAYOUT.byteOffset(groupElement("GetApi"));
-
     /**
-     * Invoker for field:
+     * Layout for field:
      * {@snippet lang=c :
      * const OrtApi *(*GetApi)(uint32_t)
      * }
      */
-    public static MemorySegment GetApi(MemorySegment struct, int _x0) {
-        var funcPtr = struct.get(GetApi$LAYOUT, GetApi$OFFSET);
-        return GetApi.invoke(funcPtr, _x0);
+    public static final AddressLayout GetApi$layout() {
+        return GetApi$LAYOUT;
+    }
+
+    private static final long GetApi$OFFSET = 0;
+
+    /**
+     * Offset for field:
+     * {@snippet lang=c :
+     * const OrtApi *(*GetApi)(uint32_t)
+     * }
+     */
+    public static final long GetApi$offset() {
+        return GetApi$OFFSET;
+    }
+
+    /**
+     * Getter for field:
+     * {@snippet lang=c :
+     * const OrtApi *(*GetApi)(uint32_t)
+     * }
+     */
+    public static MemorySegment GetApi(MemorySegment struct) {
+        return struct.get(GetApi$LAYOUT, GetApi$OFFSET);
+    }
+
+    /**
+     * Setter for field:
+     * {@snippet lang=c :
+     * const OrtApi *(*GetApi)(uint32_t)
+     * }
+     */
+    public static void GetApi(MemorySegment struct, MemorySegment fieldValue) {
+        struct.set(GetApi$LAYOUT, GetApi$OFFSET, fieldValue);
     }
 
     /**
@@ -82,10 +141,38 @@ public class OrtApiBase {
      * const char *(*GetVersionString)(void)
      * }
      */
-    private static class GetVersionString {
+    public static class GetVersionString {
+
+        GetVersionString() {
+            // Should not be called directly
+        }
+
+        /**
+         * The function pointer signature, expressed as a functional interface
+         */
+        public interface Function {
+            MemorySegment apply();
+        }
 
         private static final FunctionDescriptor $DESC = FunctionDescriptor.of(
-            onnxruntime_c_api_h.C_POINTER);
+            coreml_provider_factory_h.C_POINTER);
+
+        /**
+         * The descriptor of this function pointer
+         */
+        public static FunctionDescriptor descriptor() {
+            return $DESC;
+        }
+
+        private static final MethodHandle UP$MH = coreml_provider_factory_h.upcallHandle(GetVersionString.Function.class, "apply", $DESC);
+
+        /**
+         * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
+         * The lifetime of the returned segment is managed by {@code arena}
+         */
+        public static MemorySegment allocate(GetVersionString.Function fi, Arena arena) {
+            return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
+        }
 
         private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
 
@@ -103,17 +190,46 @@ public class OrtApiBase {
 
     private static final AddressLayout GetVersionString$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("GetVersionString"));
 
-    private static final long GetVersionString$OFFSET = $LAYOUT.byteOffset(groupElement("GetVersionString"));
+    /**
+     * Layout for field:
+     * {@snippet lang=c :
+     * const char *(*GetVersionString)(void)
+     * }
+     */
+    public static final AddressLayout GetVersionString$layout() {
+        return GetVersionString$LAYOUT;
+    }
+
+    private static final long GetVersionString$OFFSET = 8;
 
     /**
-     * Invoker for field:
+     * Offset for field:
+     * {@snippet lang=c :
+     * const char *(*GetVersionString)(void)
+     * }
+     */
+    public static final long GetVersionString$offset() {
+        return GetVersionString$OFFSET;
+    }
+
+    /**
+     * Getter for field:
      * {@snippet lang=c :
      * const char *(*GetVersionString)(void)
      * }
      */
     public static MemorySegment GetVersionString(MemorySegment struct) {
-        var funcPtr = struct.get(GetVersionString$LAYOUT, GetVersionString$OFFSET);
-        return GetVersionString.invoke(funcPtr);
+        return struct.get(GetVersionString$LAYOUT, GetVersionString$OFFSET);
+    }
+
+    /**
+     * Setter for field:
+     * {@snippet lang=c :
+     * const char *(*GetVersionString)(void)
+     * }
+     */
+    public static void GetVersionString(MemorySegment struct, MemorySegment fieldValue) {
+        struct.set(GetVersionString$LAYOUT, GetVersionString$OFFSET, fieldValue);
     }
 
     /**

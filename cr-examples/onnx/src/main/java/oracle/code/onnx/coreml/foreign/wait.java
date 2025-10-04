@@ -2,11 +2,15 @@
 
 package oracle.code.onnx.coreml.foreign;
 
+import java.lang.invoke.*;
 import java.lang.foreign.*;
-import java.util.function.Consumer;
+import java.nio.ByteOrder;
+import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
 
-import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
-import static java.lang.foreign.ValueLayout.OfInt;
+import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 /**
  * {@snippet lang=c :
@@ -34,8 +38,8 @@ public class wait {
 
     private static final GroupLayout $LAYOUT = MemoryLayout.unionLayout(
         coreml_provider_factory_h.C_INT.withName("w_status"),
-        w_T.layout().withName("w_T"),
-        w_S.layout().withName("w_S")
+        wait.w_T.layout().withName("w_T"),
+        wait.w_S.layout().withName("w_S")
     ).withName("wait");
 
     /**
