@@ -167,9 +167,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public T globalId(int id) {
         switch (id) {
-            case 0 -> identifier("_gix()");
-            case 1 -> identifier("_giy()");
-            case 2 -> identifier("_giz()");
+            case 0 -> identifier("HAT_GIX");
+            case 1 -> identifier("HAT_GIY");
+            case 2 -> identifier("HAT_GIZ");
             default -> throw new RuntimeException("globalId id = " + id);
         }
         return self();
@@ -177,9 +177,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public T localId(int id) {
         switch (id) {
-            case 0 -> identifier("_lix()");
-            case 1 -> identifier("_liy()");
-            case 2 -> identifier("_liz()");
+            case 0 -> identifier("HAT_LIX");
+            case 1 -> identifier("HAT_LIY");
+            case 2 -> identifier("HAT_LIZ");
             default -> throw new RuntimeException("localId id = " + id);
         }
         return self();
@@ -187,9 +187,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public T globalSize(int id) {
         switch (id) {
-            case 0 -> identifier("_gsx()");
-            case 1 -> identifier("_gsy()");
-            case 2 -> identifier("_gsz()");
+            case 0 -> identifier("HAT_GSX");
+            case 1 -> identifier("HAT_GSY");
+            case 2 -> identifier("HAT_GSZ");
             default -> throw new RuntimeException("globalSize id = " + id);
         }
         return self();
@@ -197,9 +197,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public T localSize(int id) {
         switch (id) {
-            case 0 -> identifier("_lsx()");
-            case 1 -> identifier("_lsy()");
-            case 2 -> identifier("_lsz()");
+            case 0 -> identifier("HAT_LSX");
+            case 1 -> identifier("HAT_LSY");
+            case 2 -> identifier("HAT_LSZ");
             default -> throw new RuntimeException("localSize id = " + id);
         }
         return self();
@@ -208,20 +208,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public T blockId(int id) {
         switch (id) {
-            case 0 -> identifier("_bix()");
-            case 1 -> identifier("_biy()");
-            case 2 -> identifier("_biz()");
+            case 0 -> identifier("HAT_BIX");
+            case 1 -> identifier("HAT_BIY");
+            case 2 -> identifier("HAT_BIZ");
             default -> throw new RuntimeException("blockId id = " + id);
         }
         return self();
     }
- //   public abstract T kernelPrefix();
 
 
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
         return kernelPrefix().voidType().space().funcName(funcOp);
     }
-   // public abstract  T functionPrefix();
 
 
     public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
@@ -229,29 +227,24 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T kernelPrefix() {
-        return keyword("_KERNEL").space();
+        return keyword("HAT_KERNEL").space();
     }
 
     public T functionPrefix() {
-        return keyword("_FUNC").space();
+        return keyword("HAT_FUNC").space();
     }
 
     public T globalPtrPrefix() {
-        return keyword("_GLOBAL_MEM").space();
+        return keyword("HAT_GLOBAL_MEM").space();
     }
 
     public T localPtrPrefix() {
-        return keyword("_LOCAL_MEM").space();
+        return keyword("HAT_LOCAL_MEM").space();
     }
 
     public T syncBlockThreads() {
-        return identifier("_barrier").ocparen();
+        return identifier("HAT_BARRIER");
     }
-
-
-  //  public abstract T globalPtrPrefix();
-
-  //  public abstract T localPtrPrefix();
 
     public abstract T defines();
 

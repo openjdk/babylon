@@ -41,53 +41,32 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder defines() {
         return self()
-               //   .hashDefine("HAT_CUDA")
+                .hashDefine("HAT_CUDA")
                  // .hashIfdef("HAT_CUDA", _ ->
                    //     indent(_ -> self()
-                .hashDefine("_GLOBAL_MEM", _ -> {})
-                .hashDefine("_LOCAL_MEM", _ -> keyword("__shared__"))
-                .hashDefine("_FUNC", _->externC().space().keyword("__device__").space().keyword("inline"))
-                .hashDefine("_KERNEL", _->externC().space().keyword("__global__"))
-                .hashDefine("_gix()", _ -> paren(_->blockId(0).asterisk().localSize(0).plus().localId(0)))
-                .hashDefine("_giy()", _ -> paren(_->blockId(1).asterisk().localSize(1).plus().localId(1)))
-                .hashDefine("_giz()", _ -> paren(_->blockId(2).asterisk().localSize(2).plus().localId(2)))
-                .hashDefine("_lix()", _ -> keyword("threadIdx").dot().threadDimId(0))
-                .hashDefine("_liy()", _ -> keyword("threadIdx").dot().threadDimId(1))
-                .hashDefine("_liz()", _ -> keyword("threadIdx").dot().threadDimId(2))
-                .hashDefine("_gsx()", _ -> keyword("gridDim").dot().threadDimId(0).asterisk().localSize(0))
-                .hashDefine("_gsy()", _ -> keyword("gridDim").dot().threadDimId(1).asterisk().localSize(1))
-                .hashDefine("_gsz()", _ -> keyword("gridDim").dot().threadDimId(2).asterisk().localSize(2))
-                .hashDefine("_lsx()", _ -> keyword("blockDim").dot().threadDimId(0))
-                .hashDefine("_lsy()", _ -> keyword("blockDim").dot().threadDimId(1))
-                .hashDefine("_lsz()", _ -> keyword("blockDim").dot().threadDimId(2))
-                .hashDefine("_bix()", _ -> keyword("blockIdx").dot().threadDimId(0))
-                .hashDefine("_biy()", _ -> keyword("blockIdx").dot().threadDimId(1))
-                .hashDefine("_biz()", _ -> keyword("blockIdx").dot().threadDimId(2))
-                .hashDefine("_barrier()", _->keyword("__syncthreads").ocparen());
+                .hashDefine("HAT_GLOBAL_MEM", _ -> {})
+                .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
+                .hashDefine("HAT_FUNC", _->externC().space().keyword("__device__").space().keyword("inline"))
+                .hashDefine("HAT_KERNEL", _->externC().space().keyword("__global__"))
+                .hashDefine("HAT_GIX", _ -> paren(_->blockId(0).asterisk().localSize(0).plus().localId(0)))
+                .hashDefine("HAT_GIY", _ -> paren(_->blockId(1).asterisk().localSize(1).plus().localId(1)))
+                .hashDefine("HAT_GIZ", _ -> paren(_->blockId(2).asterisk().localSize(2).plus().localId(2)))
+                .hashDefine("HAT_LIX", _ -> keyword("threadIdx").dot().threadDimId(0))
+                .hashDefine("HAT_LIY", _ -> keyword("threadIdx").dot().threadDimId(1))
+                .hashDefine("HAT_LIZ", _ -> keyword("threadIdx").dot().threadDimId(2))
+                .hashDefine("HAT_GSX", _ -> keyword("gridDim").dot().threadDimId(0).asterisk().localSize(0))
+                .hashDefine("HAT_GSY", _ -> keyword("gridDim").dot().threadDimId(1).asterisk().localSize(1))
+                .hashDefine("HAT_GSZ", _ -> keyword("gridDim").dot().threadDimId(2).asterisk().localSize(2))
+                .hashDefine("HAT_LSX", _ -> keyword("blockDim").dot().threadDimId(0))
+                .hashDefine("HAT_LSY", _ -> keyword("blockDim").dot().threadDimId(1))
+                .hashDefine("HAT_LSZ", _ -> keyword("blockDim").dot().threadDimId(2))
+                .hashDefine("HAT_BIX", _ -> keyword("blockIdx").dot().threadDimId(0))
+                .hashDefine("HAT_BIY", _ -> keyword("blockIdx").dot().threadDimId(1))
+                .hashDefine("HAT_BIZ", _ -> keyword("blockIdx").dot().threadDimId(2))
+                .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen());
                     //    )
         //);
     }
-    /*
-    @Override
-   public CudaHATKernelBuilder kernelPrefix() {
-       return externC().space().keyword("__global__").space();
-   }
-
-    @Override
-    public CudaHATKernelBuilder functionPrefix() {
-        return externC().space().keyword("__device__").space().keyword("inline").space();
-    }
-
-    @Override
-    public CudaHATKernelBuilder globalPtrPrefix() {
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder localPtrPrefix() {
-        return keyword("__shared__").space();
-    } */
-
 
     @Override
     public CudaHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name){
