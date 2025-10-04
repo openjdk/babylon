@@ -27,8 +27,6 @@ package hat.backend.ffi;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
@@ -36,58 +34,38 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder defines() {
         return self()
-              //  .hashDefine("HAT_OPENCL")
-              //  .hashIfdef("HAT_OPENCL", _ ->
+                //  .hashDefine("HAT_OPENCL")
+                //  .hashIfdef("HAT_OPENCL", _ ->
                 //        indent(_ -> self()
-                                .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
-                                .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
-                                .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable")
-                                .hashDefine("_gix()", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstZero())))
-                                .hashDefine("_giy()", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstOne())))
-                                .hashDefine("_giz()", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstTwo())))
-                                .hashDefine("_lix()", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstZero())))
-                                .hashDefine("_liy()", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstOne())))
-                                .hashDefine("_liz()", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstTwo())))
-                                .hashDefine("_gsx()", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstZero())))
-                                .hashDefine("_gsy()", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstOne())))
-                                .hashDefine("_gsz()", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstTwo())))
-                                .hashDefine("_lsx()", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstZero())))
-                                .hashDefine("_lsy()", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstOne())))
-                                .hashDefine("_lsz()", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstTwo())))
-                                .hashDefine("_bix()", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstZero())))
-                                .hashDefine("_biy()", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstOne())))
-                                .hashDefine("_biz()", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstTwo())))
-                                .hashDefine("_barrier()", _->identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen());
-               //         )
-               // );
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder kernelPrefix() {
-        return keyword("__kernel").space();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder functionPrefix() {
-        return keyword("inline").space();
-    }
-
-
-    @Override
-    public OpenCLHATKernelBuilder globalPtrPrefix() {
-        return keyword("__global").space();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder localPtrPrefix() {
-        return keyword("__local").space();
+                .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
+                .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
+                .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable")
+                .hashDefine("_FUNC", _ -> keyword("inline"))
+                .hashDefine("_KERNEL", _ -> keyword("__kernel"))
+                .hashDefine("_GLOBAL_MEM", _ -> keyword("__global"))
+                .hashDefine("_LOCAL_MEM", _ -> keyword("__local"))
+                .hashDefine("_gix()", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstZero())))
+                .hashDefine("_giy()", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstOne())))
+                .hashDefine("_giz()", _ -> paren(_ -> identifier("get_global_id").paren(_ -> intConstTwo())))
+                .hashDefine("_lix()", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstZero())))
+                .hashDefine("_liy()", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstOne())))
+                .hashDefine("_liz()", _ -> paren(_ -> identifier("get_local_id").paren(_ -> intConstTwo())))
+                .hashDefine("_gsx()", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstZero())))
+                .hashDefine("_gsy()", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstOne())))
+                .hashDefine("_gsz()", _ -> paren(_ -> identifier("get_global_size").paren(_ -> intConstTwo())))
+                .hashDefine("_lsx()", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstZero())))
+                .hashDefine("_lsy()", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstOne())))
+                .hashDefine("_lsz()", _ -> paren(_ -> identifier("get_local_size").paren(_ -> intConstTwo())))
+                .hashDefine("_bix()", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstZero())))
+                .hashDefine("_biy()", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstOne())))
+                .hashDefine("_biz()", _ -> paren(_ -> identifier("get_group_id").paren(_ -> intConstTwo())))
+                .hashDefine("_barrier()", _ -> identifier("barrier").oparen().identifier("CLK_LOCAL_MEM_FENCE").cparen());
+        //         )
+        // );
     }
 
     @Override
     public OpenCLHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name) {
-        return identifier("atomic_inc").paren(_ ->
-                ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name)
-        );
+        return identifier("atomic_inc").paren(_ -> ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name));
     }
-
 }

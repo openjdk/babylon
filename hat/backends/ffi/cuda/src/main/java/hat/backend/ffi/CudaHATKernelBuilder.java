@@ -44,6 +44,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                //   .hashDefine("HAT_CUDA")
                  // .hashIfdef("HAT_CUDA", _ ->
                    //     indent(_ -> self()
+                .hashDefine("_GLOBAL_MEM", _ -> {})
+                .hashDefine("_LOCAL_MEM", _ -> keyword("__shared__"))
+                .hashDefine("_FUNC", _->externC().space().keyword("__device__").space().keyword("inline"))
+                .hashDefine("_KERNEL", _->externC().space().keyword("__global__"))
                 .hashDefine("_gix()", _ -> paren(_->blockId(0).asterisk().localSize(0).plus().localId(0)))
                 .hashDefine("_giy()", _ -> paren(_->blockId(1).asterisk().localSize(1).plus().localId(1)))
                 .hashDefine("_giz()", _ -> paren(_->blockId(2).asterisk().localSize(2).plus().localId(2)))
@@ -63,6 +67,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     //    )
         //);
     }
+    /*
     @Override
    public CudaHATKernelBuilder kernelPrefix() {
        return externC().space().keyword("__global__").space();
@@ -81,14 +86,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder localPtrPrefix() {
         return keyword("__shared__").space();
-    }
+    } */
 
 
     @Override
     public CudaHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name){
-        return identifier("atomicAdd").paren(_ -> {
-             ampersand().recurse(buildContext, instanceResult.op());
-             rarrow().identifier(name).comma().literal(1);
-        });
+        return identifier("atomicAdd").paren(_ -> ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name).comma().literal(1));
     }
 }
