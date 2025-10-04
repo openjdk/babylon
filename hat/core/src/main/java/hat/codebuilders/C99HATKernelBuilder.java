@@ -215,28 +215,43 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return self();
     }
-    public abstract T kernelPrefix();
+ //   public abstract T kernelPrefix();
 
 
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
         return kernelPrefix().voidType().space().funcName(funcOp);
     }
-    public abstract  T functionPrefix();
+   // public abstract  T functionPrefix();
 
 
     public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
         return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
     }
 
+    public T kernelPrefix() {
+        return keyword("_KERNEL").space();
+    }
+
+    public T functionPrefix() {
+        return keyword("_FUNC").space();
+    }
+
+    public T globalPtrPrefix() {
+        return keyword("_GLOBAL_MEM").space();
+    }
+
+    public T localPtrPrefix() {
+        return keyword("_LOCAL_MEM").space();
+    }
 
     public T syncBlockThreads() {
         return identifier("_barrier").ocparen();
     }
 
 
-    public abstract T globalPtrPrefix();
+  //  public abstract T globalPtrPrefix();
 
-    public abstract T localPtrPrefix();
+  //  public abstract T localPtrPrefix();
 
     public abstract T defines();
 
