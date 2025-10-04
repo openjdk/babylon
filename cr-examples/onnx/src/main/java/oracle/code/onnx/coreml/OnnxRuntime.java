@@ -23,33 +23,11 @@
  * questions.
  */
 
-package oracle.code.onnx;
+package oracle.code.onnx.coreml;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.foreign.*;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-import java.lang.reflect.AccessFlag;
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
-import jdk.incubator.code.*;
-
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.TupleType;
-import jdk.incubator.code.dialect.java.ArrayType;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.FieldRef;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
-import oracle.code.onnx.compiler.OnnxTransformer;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
 
@@ -60,188 +38,15 @@ public final class OnnxRuntime {
     static final boolean DEBUG = Boolean.getBoolean("oracle.code.onnx.OnnxRuntime.DEBUG");
 
     static {
-        String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";
-        String os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
-        String libResource;
-        if (os.contains("mac") || os.contains("darwin")) {
-            libResource = "/ai/onnxruntime/native/osx-" + arch + "/libonnxruntime.dylib";
-        } else if (os.contains("win")) {
-            libResource = "/ai/onnxruntime/native/win-" + arch + "/libonnxruntime.dll";
-        } else if (os.contains("nux")) {
-            libResource = "/ai/onnxruntime/native/linux-" + arch + "/libonnxruntime.so";
-        } else {
-            throw new IllegalStateException("Unsupported os:" + os);
-        }
         try {
             // workaround to avoid CNFE when the ReleaseEnv class is attempted to load in the shutdown hook from already closed classloader
-            Class.forName("oracle.code.onnx.foreign.OrtApi$ReleaseEnv");
+            Class.forName("oracle.code.onnx.coreml.foreign.OrtApi$ReleaseEnv");
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException(e);
         }
-        try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
-            var libFile = File.createTempFile("libonnxruntime", "");
-            Path libFilePath = libFile.toPath();
-            Files.copy(libStream, libFilePath, StandardCopyOption.REPLACE_EXISTING);
-            System.load(libFilePath.toAbsolutePath().toString());
-            libFile.deleteOnExit();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        Path p = Path.of("lib/libonnxruntime.1.23.0.dylib").toAbsolutePath().normalize();
+        System.load(p.toString());
     }
-
-    @FunctionalInterface
-    public interface OnnxFunction<T> extends Supplier<T>, Quotable {
-    }
-
-    // @@@ temporary set public for ongoing experiments
-    public static List<Object> getInitValues(MethodHandles.Lookup lookup, SequencedCollection<FieldRef> initializers, SequencedCollection<Object> possibleReceivers) {
-        return initializers.stream().map(i -> {
-            try {
-                Field initializerField = i.resolveToMember(lookup);
-                VarHandle handle = lookup.unreflectVarHandle(initializerField);
-                if (initializerField.accessFlags().contains(AccessFlag.STATIC)) {
-                    return handle.get();
-                } else {
-                    Class<?> initializerClass = initializerField.getDeclaringClass();
-                    return handle.get(possibleReceivers.stream().filter(initializerClass::isInstance).findFirst().orElseThrow());
-                }
-            } catch (ReflectiveOperationException ex) {
-                throw new RuntimeException(ex);
-            }
-        }).toList();
-    }
-
-    record SessionWithReturnType(Session session, TypeElement returnType) {}
-
-    static class CachedSessionClassValue extends ClassValue<SessionWithReturnType> {
-
-        private MethodHandles.Lookup l;
-        private Quoted q;
-
-        SessionWithReturnType computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
-            try {
-                this.l = l;
-                this.q = q;
-                // not very nice way to pass additional arguments to computeValue method
-                return get(lambdaClass);
-            } finally {
-                this.l = null;
-                this.q = null;
-            }
-        }
-
-        @Override
-        protected SessionWithReturnType computeValue(Class<?> type) {
-            OnnxTransformer.ModuleAndInitializers mi = OnnxTransformer.transform(l, q);
-
-            String domainName = type.getSimpleName().split("\\$")[0];
-            byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues()));
-
-            if (DEBUG) {
-                System.out.println(mi.module().toText());
-//                System.out.println(OnnxModel.readFrom(protobufModel).toText());
-                try {
-                    var export = Path.of(domainName + ".onnx");
-                    Files.write(export, protobufModel);
-                    System.out.println("Onnx model exported to: " + export.toAbsolutePath());
-                } catch (IOException _) {}
-            }
-
-            return new SessionWithReturnType(
-                    getInstance().createSession(
-                            Arena.ofAuto(), // cached session must be created under its own auto arena
-                            protobufModel),
-                    mi.module().functionTable().lastEntry().getValue().invokableType().returnType());
-
-        }
-    }
-
-    private static final CachedSessionClassValue SESSION_CACHE = new CachedSessionClassValue();
-
-    public static <T> T execute(OnnxFunction<T> codeLambda) {
-        return execute(MethodHandles.lookup(), codeLambda);
-    }
-
-    public static <T> T execute(MethodHandles.Lookup l, OnnxFunction<T> codeLambda) {
-        return execute(Arena.ofAuto(), l, codeLambda);
-    }
-
-
-    private static void expandArg(Object val, Consumer<Tensor> args) {
-        switch (val) {
-            case CoreOp.Var<?> v -> expandArg(v.value(), args);
-            case Tensor t -> args.accept(t);
-            case Record r -> {
-                for (var rc : r.getClass().getRecordComponents()) try {
-                    expandArg(rc.getAccessor().invoke(r), args);
-                } catch (ReflectiveOperationException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-            // @@@ constant array last object must be consumed or the statically detected size and the actual size missmatch
-            case Object[] os -> {
-                for (var o : os) {
-                    expandArg(o, args);
-                }
-            }
-            default -> {
-            }
-        }
-    }
-
-    public static <T> T execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<T> codeLambda) {
-        var q = Op.ofQuotable(codeLambda).orElseThrow();
-
-        var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
-
-        List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
-                .mapMulti(OnnxRuntime::expandArg)
-                .toList();
-        List<Tensor> ret = model.session().run(arena, arguments);
-
-        var lambdaOp = ((JavaOp.LambdaOp)q.op());
-        TypeElement type = lambdaOp.invokableType().returnType();
-        if (type instanceof ArrayType) {
-            return (T)ret.toArray(Tensor[]::new);
-        }
-        ClassType retType = ((ClassType)type).rawType();
-        if (retType.equals(TENSOR_RAW_TYPE)) {
-            return (T)ret.getFirst();
-        } else if(retType.equals(LIST_RAW_TYPE)) {
-            return (T)ret;
-        } else if(getRecordClass(l, retType) instanceof Class cls) {
-            try {
-                return (T)cls.getConstructors()[0].newInstance(unflat(ret, (TupleType)model.returnType()));
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException(e);
-            }
-        } else {
-            throw new UnsupportedOperationException("Unsupported return type: " + q.op().resultType());
-        }
-    }
-
-    static Object[] unflat(List<Tensor> values, TupleType returnTupleType) {
-        var returnTypes = returnTupleType.componentTypes();
-        Object[] ret = new Object[returnTypes.size()];
-        for (int i = 0, j = 0; i < ret.length; i++) {
-            ret[i] = returnTypes.get(i) instanceof TupleType tt ? values.subList(j, j += tt.componentTypes().size()).toArray(Tensor[]::new) : values.get(j++);
-        }
-        return ret;
-    }
-
-
-    static Class getRecordClass(MethodHandles.Lookup l, ClassType ct) {
-        try {
-            var t = ct.resolve(l);
-            while (t instanceof ParameterizedType pt) t = pt.getRawType();
-            if (t instanceof Class c && c.isRecord()) return c;
-        } catch (ReflectiveOperationException _) {
-        }
-        return null;
-    }
-
-    static final JavaType TENSOR_RAW_TYPE = JavaType.type(Tensor.class);
-    static final JavaType LIST_RAW_TYPE = JavaType.type(List.class);
 
     public static OnnxRuntime getInstance() {
         if (INSTANCE == null) {
@@ -266,27 +71,6 @@ public final class OnnxRuntime {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             OrtApi.ReleaseEnv(runtimeAddress, envAddress);
         }));
-    }
-
-    public List<Tensor> runOp(Arena arena, String opName, List<Tensor> inputValues, int numOutputs, Map<String, Object> attributes) {
-        var outputNames = IntStream.range(0, numOutputs).mapToObj(o -> "o" + o).toList();
-        var protoModel = OnnxProtoBuilder.buildModel(
-                List.of(),
-                IntStream.range(0, inputValues.size()).mapToObj(i -> OnnxProtoBuilder.tensorInfo("i" + i, inputValues.get(i).elementType().id)).toList(),
-                List.of(OnnxProtoBuilder.node(
-                        opName,
-                        IntStream.range(0, inputValues.size()).mapToObj(i -> "i" + i).toList(),
-                        outputNames,
-                        attributes)),
-                outputNames);
-        return createSession(arena, protoModel)
-                .run(arena, inputValues);
-    }
-
-    public List<Tensor> run(Arena arena, Block block, List<Tensor> inputValues, int initializers) {
-        var protoModel = OnnxProtoBuilder.buildModel(block, inputValues.subList(0, initializers));
-        return createSession(arena, protoModel)
-                .run(arena, inputValues.subList(initializers, inputValues.size()));
     }
 
     public Session createSession(Arena arena, String modelPath) {
