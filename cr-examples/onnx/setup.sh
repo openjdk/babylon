@@ -23,10 +23,10 @@ OUTPUT_DIR=src/main/java
 
 ## This portion is commented as the code is already generated in the project
 
-#jextract --target-package oracle.code.onnx.foreign \
-#  -l $LIB_PATH \
-#  --output $OUTPUT_DIR \
-#  $INCLUDE_DIR/core/session/onnxruntime_c_api.h
+## jextract --target-package oracle.code.onnx.foreign \
+##  -l $LIB_PATH \
+##  --output $OUTPUT_DIR \
+##  $INCLUDE_DIR/core/session/onnxruntime_c_api.h
 
 jextract --target-package oracle.code.onnx.coreml.foreign \
   -l $LIB_PATH \
