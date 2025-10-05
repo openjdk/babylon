@@ -19,13 +19,3 @@ Running the Llama demo:
 JAVA_HOME=<path to the Babylon JDK home>
 mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.llm.LlamaDemo
 ```
-
-ln -s /Users/ammbra/Documents/experiments/onnxruntime onnxruntime
-ln -s /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h coreml_provider_factory.h
-
-/Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/session/onnxruntime_c_api.h,
-
-jextract --target-package oracle.code.onnx.foreign.coreml \
--l /Users/ammbra/Documents/experiments/onnxruntime/build/MacOS/Release/libonnxruntime.dylib \
--I /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/session \
---output src/main/java /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h

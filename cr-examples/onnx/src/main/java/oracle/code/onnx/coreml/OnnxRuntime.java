@@ -40,7 +40,7 @@ public final class OnnxRuntime {
     static {
         try {
             // workaround to avoid CNFE when the ReleaseEnv class is attempted to load in the shutdown hook from already closed classloader
-            Class.forName("oracle.code.onnx.coreml.foreign.OrtApi$ReleaseEnv");
+            Class.forName("oracle.code.onnx.foreign.OrtApi$ReleaseEnv");
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException(e);
         }
