@@ -25,8 +25,7 @@
 
 package oracle.code.onnx.coreml;
 
-import oracle.code.onnx.coreml.OnnxNumber;
-import oracle.code.onnx.coreml.OnnxRuntime;
+import oracle.code.onnx.OnnxNumber;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
