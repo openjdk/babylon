@@ -31,5 +31,6 @@ OUTPUT_DIR=src/main/java
 jextract --target-package oracle.code.onnx.coreml.foreign \
   -l :$LIB_PATH \
   -I $INCLUDE_DIR/core/session \
+  @symbols \
   --output $OUTPUT_DIR \
   $INCLUDE_DIR/core/providers/coreml/coreml_provider_factory.h

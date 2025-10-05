@@ -1,0 +1,17 @@
+#### Extracted from: /onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+
+--include-constant COREML_FLAG_CREATE_MLPROGRAM                    # header: /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+--include-constant COREML_FLAG_ENABLE_ON_SUBGRAPH                  # header: /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+--include-constant COREML_FLAG_LAST                                # header: /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+--include-constant COREML_FLAG_ONLY_ALLOW_STATIC_INPUT_SHAPES      # header: /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+--include-constant COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE         # header: /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+--include-constant COREML_FLAG_USE_CPU_AND_GPU                     # header: /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+--include-constant COREML_FLAG_USE_CPU_ONLY                        # header: /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+--include-constant COREML_FLAG_USE_NONE                            # header: /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+--include-function OrtSessionOptionsAppendExecutionProvider_CoreML # header: /Users/ammbra/Documents/experiments/onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+
+#### Extracted from: /jextract-22/runtime/conf/jextract/stdbool.h
+
+--include-constant __bool_true_false_are_defined # header: /Users/ammbra/Downloads/jextract-22/runtime/conf/jextract/stdbool.h
+--include-constant false                         # header: /Users/ammbra/Downloads/jextract-22/runtime/conf/jextract/stdbool.h
+--include-constant true                          # header: /Users/ammbra/Downloads/jextract-22/runtime/conf/jextract/stdbool.h
