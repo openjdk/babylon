@@ -8,6 +8,29 @@ JAVA_HOME=<path to the Babylon JDK home>
 mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.mnist.MNISTDemo
 ```
 
+### ONNX Runtime with CoreML running facial emotion recognition from Java source.
+
+Build and install custom ONNX Runtime with CoreML enabled (for Mac users):
+
+```
+git clone --recursive https://github.com/microsoft/onnxruntime.git
+cd onnxruntime
+./build.sh --config Release --build_shared_lib --use_coreml --parallel
+```
+
+Now install the built library:
+
+```
+sudo cp build/MacOS/Release/lib/libonnxruntime.* /usr/local/lib/
+sudo cp -r include/onnxruntime /usr/local/include/
+```
+
+Running the FER demo:
+```
+JAVA_HOME=<path to the Babylon JDK home>
+mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.fer.FERCoreMLDemo
+```
+
 ### ONNX GenAI running large language model from Java source.
 
 Setup:
