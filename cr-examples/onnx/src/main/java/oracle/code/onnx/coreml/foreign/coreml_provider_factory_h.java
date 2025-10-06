@@ -55,9 +55,7 @@ public class coreml_provider_factory_h {
         };
     }
 
-    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.libraryLookup("lib/libonnxruntime.1.23.0.dylib", LIBRARY_ARENA)
-            .or(SymbolLookup.loaderLookup())
-            .or(Linker.nativeLinker().defaultLookup());
+    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.loaderLookup();
 
     public static final ValueLayout.OfBoolean C_BOOL = ValueLayout.JAVA_BOOLEAN;
     public static final ValueLayout.OfByte C_CHAR = ValueLayout.JAVA_BYTE;

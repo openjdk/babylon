@@ -25,8 +25,12 @@
 
 package oracle.code.onnx.coreml;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.foreign.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import oracle.code.onnx.foreign.OrtApi;
 import oracle.code.onnx.foreign.OrtApiBase;
@@ -35,17 +39,36 @@ import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
 public final class OnnxRuntime {
 
-    static final boolean DEBUG = Boolean.getBoolean("oracle.code.onnx.OnnxRuntime.DEBUG");
+    static final boolean DEBUG = Boolean.getBoolean("oracle.code.onnx.coreml.OnnxRuntime.DEBUG");
 
     static {
+        String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH).startsWith("aarch64") ? "aarch64" : "x64";
+        String os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+        String libResource;
+        if (os.contains("mac") || os.contains("darwin")) {
+            libResource = "/ai/onnxruntime/native/osx-" + arch + "/libonnxruntime.dylib";
+        } else if (os.contains("win")) {
+            libResource = "/ai/onnxruntime/native/win-" + arch + "/libonnxruntime.dll";
+        } else if (os.contains("nux")) {
+            libResource = "/ai/onnxruntime/native/linux-" + arch + "/libonnxruntime.so";
+        } else {
+            throw new IllegalStateException("Unsupported os:" + os);
+        }
         try {
             // workaround to avoid CNFE when the ReleaseEnv class is attempted to load in the shutdown hook from already closed classloader
             Class.forName("oracle.code.onnx.foreign.OrtApi$ReleaseEnv");
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException(e);
         }
-        Path p = Path.of("lib/libonnxruntime.1.23.0.dylib").toAbsolutePath().normalize();
-        System.load(p.toString());
+        try (var libStream = oracle.code.onnx.OnnxRuntime.class.getResourceAsStream(libResource)) {
+            var libFile = File.createTempFile("libonnxruntime", "");
+            Path libFilePath = libFile.toPath();
+            Files.copy(libStream, libFilePath, StandardCopyOption.REPLACE_EXISTING);
+            System.load(libFilePath.toAbsolutePath().toString());
+            libFile.deleteOnExit();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static OnnxRuntime getInstance() {
