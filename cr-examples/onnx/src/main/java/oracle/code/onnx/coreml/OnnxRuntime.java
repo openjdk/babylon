@@ -60,7 +60,7 @@ public final class OnnxRuntime {
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException(e);
         }
-        try (var libStream = oracle.code.onnx.OnnxRuntime.class.getResourceAsStream(libResource)) {
+        try (var libStream = oracle.code.onnx.coreml.OnnxRuntime.class.getResourceAsStream(libResource)) {
             var libFile = File.createTempFile("libonnxruntime", "");
             Path libFilePath = libFile.toPath();
             Files.copy(libStream, libFilePath, StandardCopyOption.REPLACE_EXISTING);

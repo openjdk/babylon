@@ -10,25 +10,45 @@ mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.mnist.MNIST
 
 ### ONNX Runtime with CoreML running facial emotion recognition from Java source.
 
+For demo purposes, we isolated the CoreML generated bindings and an FFM only `OnnxRuntime` in `oracle.code.onnx.coreml.foreign`.
+
+Running the FER demo:
+```
+JAVA_HOME=<path to the Babylon JDK home>
+mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.fer.FERCoreMLDemo
+```
+
+Babylon JDK is based on current OpenJDK mainline.
+This means that the FFM compatible parts of the `onnx` project can be ran with JDK 25 or OpenJDK 26 Early Access Builds.
+You can try that by pointing your $JAVA_HOME to JDK 25 then run `run-jdk.sh` script:
+
+```shell
+JAVA_HOME=<path to JDK 25>
+./run-jdk.sh
+```
+
+#### How to (Re)Generate the CoreML Java Bindings
+
 Build and install custom ONNX Runtime with CoreML enabled (for Mac users):
 
 ```
 git clone --recursive https://github.com/microsoft/onnxruntime.git
 cd onnxruntime
 ./build.sh --config Release --build_shared_lib --use_coreml --parallel
+# get the path to where current built library is available
+pwd
 ```
 
-Now install the built library:
+Inside `cr-examples/onnx` project you will find the `setup.sh` script that takes as argument the path to your cloned `onnxruntime` and uses `jextract` to regenerate the binaries.
+Prior to running it make sure that `jextract` is in your system `$PATH` :
+
+```shell
+jextract --version
+```
+Provide the path to your cloned `onnxruntime` and the script will regenerate the CoreML Java bindings inside the `oracle.code.onnx.coreml.foreign`:
 
 ```
-sudo cp build/MacOS/Release/lib/libonnxruntime.* /usr/local/lib/
-sudo cp -r include/onnxruntime /usr/local/include/
-```
-
-Running the FER demo:
-```
-JAVA_HOME=<path to the Babylon JDK home>
-mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.fer.FERCoreMLDemo
+sh setup.sh path/to/cloned/onnxruntime
 ```
 
 ### ONNX GenAI running large language model from Java source.
