@@ -29,6 +29,7 @@ import hat.buffer.Buffer;
 import hat.buffer.KernelContext;
 import hat.callgraph.CallGraph;
 import hat.callgraph.ComputeEntrypoint;
+import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatThreadOP;
@@ -131,36 +132,22 @@ public class OpTk {
 
         Deque<RefAndFunc> work = new ArrayDeque<>();
 
-        entry.traverse(null, (map, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, invokeOp);
-                try {
-                    var method = invokeOp.invokeDescriptor().resolveToMethod(l, invokeOp.invokeKind());
-                    CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
-                    if (f != null && !callGraph.filterCalls(f, invokeOp, method, invokeOp.invokeDescriptor(), javaRefTypeClass)) {
-                        work.push(new RefAndFunc(invokeOp.invokeDescriptor(),  f));
+        entry.elements().filter(elem -> elem instanceof JavaOp.InvokeOp)
+                .forEach(elem -> {
+                    JavaOp.InvokeOp iop = (JavaOp.InvokeOp) elem;
+                    Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, iop);
+                    try {
+                        var method = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
+                        CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
+                        if (f != null && !callGraph.filterCalls(f, iop, method, iop.invokeDescriptor(), javaRefTypeClass)) {
+                            work.push(new RefAndFunc(iop.invokeDescriptor(), f));
+                        }
+                    } catch (ReflectiveOperationException _) {
+                        throw new IllegalStateException("Could not resolve invokeWrapper to method");
                     }
-                } catch (ReflectiveOperationException _) {
-                    throw new IllegalStateException("Could not resolve invokeWrapper to method");
-                }
-            }
-            return map;
-        });
+                });
 
-        // modEntry.elements().filter(elem -> elem instanceof JavaOp.InvokeOp)
-        //         .forEach(elem -> {
-        //             JavaOp.InvokeOp iop = (JavaOp.InvokeOp) elem;
-        //             Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, iop);
-        //             try {
-        //                 var method = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
-        //                 CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
-        //                 if (f != null && !callGraph.filterCalls(f, iop, method, iop.invokeDescriptor(), javaRefTypeClass)) {
-        //                     work.push(new RefAndFunc(iop.invokeDescriptor(), f));
-        //                 }
-        //             } catch (ReflectiveOperationException _) {
-        //                 throw new IllegalStateException("Could not resolve invokeWrapper to method");
-        //             }
-        //         });
+        funcs.addFirst(entry);
 
         while (!work.isEmpty()) {
             RefAndFunc rf = work.pop();

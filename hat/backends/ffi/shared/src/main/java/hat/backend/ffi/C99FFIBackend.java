@@ -239,14 +239,14 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
                     // Update the build context for this method to use the right constants-map
                     buildContext.setFinals(finals.getFinalVars());
-                    builder.nl().kernelMethod(buildContext, funcOp).nl();
+                    if (funcOp.location().equals(kernelCallGraph.entrypoint.funcOp().location())) {
+                        builder.nl().kernelEntrypoint(buildContext, args).nl();
+                    } else {
+                        builder.nl().kernelMethod(buildContext, funcOp).nl();
+                    }
                 });
 
         // Update the constants-map for the main kernel
-        HatFinalDetectionPhase hatFinalDetectionPhase = new HatFinalDetectionPhase();
-        hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
-        buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
-        builder.nl().kernelEntrypoint(buildContext, args).nl();
 
         if (Config.SHOW_KERNEL_MODEL.isSet(config())) {
             IO.println("Original");
