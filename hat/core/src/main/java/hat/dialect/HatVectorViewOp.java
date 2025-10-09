@@ -46,4 +46,14 @@ public abstract class HatVectorViewOp extends HatOP {
     public String varName() {
         return varName;
     }
+
+    public String mapLane(int lane) {
+        return switch (lane) {
+            case 0 -> "x";
+            case 1 -> "y";
+            case 2 -> "z";
+            case 3 -> "w";
+            default -> throw new InternalError("Invalid lane: " + lane);
+        };
+    }
 }

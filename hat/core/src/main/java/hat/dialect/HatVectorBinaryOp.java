@@ -37,6 +37,7 @@ public class HatVectorBinaryOp extends HatVectorViewOp {
 
     private final TypeElement elementType;
     private final OpType operationType;
+    private final int vectorN;
 
     public enum OpType {
         ADD("+"),
@@ -53,19 +54,22 @@ public class HatVectorBinaryOp extends HatVectorViewOp {
         public String symbol() {
             return symbol;
         }
-
     }
 
-    public HatVectorBinaryOp(String varName, TypeElement typeElement, OpType operationType, List<Value> operands) {
+    public HatVectorBinaryOp(String varName, TypeElement typeElement, TypeElement returnType, OpType operationType, List<Value> operands) {
         super(varName, operands);
         this.elementType = typeElement;
         this.operationType = operationType;
+        IO.println(returnType.toString());
+        int l = returnType.toString().length();
+        vectorN = Integer.parseInt(returnType.toString().substring(l - 1, l));
     }
 
     public HatVectorBinaryOp(HatVectorBinaryOp op, CopyContext copyContext) {
         super(op, copyContext);
         this.elementType = op.elementType;
         this.operationType = op.operationType;
+        this.vectorN = op.vectorN;
     }
 
     @Override
@@ -85,6 +89,10 @@ public class HatVectorBinaryOp extends HatVectorViewOp {
 
     public OpType operationType() {
         return operationType;
+    }
+
+    public int vectorN() {
+        return vectorN;
     }
 
 }

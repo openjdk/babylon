@@ -30,6 +30,7 @@ import hat.codebuilders.ScopedCodeBuilderContext;
 
 import hat.dialect.*;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -111,31 +112,125 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
-        blockComment("Store Vector Not Implemented");
+        Value dest = hatVectorStoreView.operands().get(0);
+        Value index = hatVectorStoreView.operands().get(2);
+
+        keyword("reinterpret_cast")
+                .lt()
+                .typeName("float4")  // fixme
+                .asterisk()
+                .gt()
+                .oparen()
+                .ampersand();
+
+        if (dest instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        rarrow().identifier("array").osbrace();
+
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        csbrace().cparen().osbrace().intConstZero().csbrace()
+                .space().equals().space()
+                .varName(hatVectorStoreView);
+
         return self();
     }
 
     @Override
     public CudaHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
-        blockComment("Binary Vector Not Implemented");
+
+        // Declaration
+        typeName("float4")
+                .space()
+                .varName(hatVectorBinaryOp).semicolon().nl();
+
+        // Operation per lane
+        // floatX foo;
+        // foo.x = a.x op b.x;
+        // foo.y = a.y op b.y;
+        // ...
+        for (int i = 0; i < hatVectorBinaryOp.vectorN(); i++) {
+            identifier(hatVectorBinaryOp.varName())
+                    .dot()
+                    .identifier(hatVectorBinaryOp.mapLane(i))
+            .space().equals().space();
+
+            Value op1 = hatVectorBinaryOp.operands().get(0);
+            Value op2 = hatVectorBinaryOp.operands().get(1);
+
+            if (op1 instanceof Op.Result r) {
+                recurse(buildContext, r.op());
+            }
+            dot().identifier(hatVectorBinaryOp.mapLane(i)).space();
+            identifier(hatVectorBinaryOp.operationType().symbol()).space();
+
+            if (op2 instanceof Op.Result r) {
+                recurse(buildContext, r.op());
+            }
+            dot().identifier(hatVectorBinaryOp.mapLane(i)).semicolon().nl();
+        }
+
         return self();
     }
 
     @Override
     public CudaHATKernelBuilder generateVectorLoad(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
-        blockComment("Load Vector Not Implemented");
+        Value source = hatVectorLoadOp.operands().get(0);
+        Value index = hatVectorLoadOp.operands().get(1);
+
+        typeName(hatVectorLoadOp.buildType())
+                .space()
+                .varName(hatVectorLoadOp)
+                .space().equals().space()
+                .keyword("reinterpret_cast")
+                .lt()
+                .typeName(hatVectorLoadOp.buildType())
+                .asterisk()
+                .gt()
+                .oparen()
+                .ampersand();
+
+        if (source instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        rarrow().identifier("array").osbrace();
+
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        csbrace().cparen().osbrace().intConstZero().csbrace();
+
         return self();
     }
 
     @Override
     public CudaHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
-        blockComment("Select Vector Not Implemented");
+        identifier(hatVSelectLoadOp.varName())
+                .dot()
+                .identifier(hatVSelectLoadOp.mapLane());
         return self();
     }
 
     @Override
     public CudaHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
-        blockComment("Select Vector Not Implemented");
+        identifier(hatVSelectStoreOp.varName())
+                .dot()
+                .identifier(hatVSelectStoreOp.mapLane())
+                .space().equals().space();
+        if (hatVSelectStoreOp.resultValue() != null) {
+            // We have detected a direct resolved result (resolved name)
+            varName(hatVSelectStoreOp.resultValue());
+        } else {
+            // otherwise, we traverse to resolve the expression
+            Value storeValue = hatVSelectStoreOp.operands().get(1);
+            if (storeValue instanceof Op.Result r) {
+                recurse(buildContext, r.op());
+            }
+        }
         return self();
     }
 }

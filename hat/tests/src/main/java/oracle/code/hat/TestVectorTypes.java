@@ -24,13 +24,9 @@
  */
 package oracle.code.hat;
 
-import hat.Accelerator;
-import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
-import hat.KernelContext;
 import hat.buffer.Float4;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
@@ -44,8 +40,8 @@ import java.util.Random;
 public class TestVectorTypes {
 
     @CodeReflection
-    public static void processVectorAddition(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c) {
-        if (kernelContext.gix < kernelContext.gsx) {
+    public static void processVectorAddition(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c, int size) {
+        if (kernelContext.gix < size) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
             Float4 vB = b.float4View(index * 4);
@@ -99,8 +95,8 @@ public class TestVectorTypes {
     @CodeReflection
     public static void computeGraph01(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.processVectorAddition(kernelContext, a, b, c));
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4), new LocalMesh1D(128));
+        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.processVectorAddition(kernelContext, a, b, c, size));
     }
 
     @CodeReflection

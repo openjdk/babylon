@@ -115,7 +115,7 @@ public class HatDialectifyVectorOpPhase extends HatDialectAbstractPhase implemen
                         List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
                         HatVectorViewOp memoryViewOp = switch (vectorOperation) {
                             case FLOAT4_LOAD -> new HatVectorLoadOp(varOp.varName(), varOp.resultType(), invokeOp.resultType(), 4, outputOperandsVarOp);
-                            case ADD ->  new HatVectorBinaryOp(varOp.varName(), varOp.resultType(), HatVectorBinaryOp.OpType.ADD, outputOperandsVarOp);
+                            case ADD ->  new HatVectorBinaryOp(varOp.varName(), varOp.resultType(), invokeOp.resultType(), HatVectorBinaryOp.OpType.ADD, outputOperandsVarOp);
                         };
                         Op.Result hatLocalResult = blockBuilder.op(memoryViewOp);
                         memoryViewOp.setLocation(varOp.location());
