@@ -118,6 +118,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         keyword("reinterpret_cast")
                 .lt()
                 .typeName("float4")  // fixme
+                .space()
                 .asterisk()
                 .gt()
                 .oparen()
@@ -188,6 +189,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .keyword("reinterpret_cast")
                 .lt()
                 .typeName(hatVectorLoadOp.buildType())
+                .space()
                 .asterisk()
                 .gt()
                 .oparen()
