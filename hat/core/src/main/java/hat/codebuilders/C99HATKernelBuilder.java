@@ -33,6 +33,7 @@ import hat.dialect.HatLocalThreadIdOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -73,9 +74,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
         if (OpTk.isAssignable(buildContext.lookup, javaType, MappableIface.class) && javaType instanceof ClassType classType) {
-            globalPtrPrefix().space().suffix_t(classType).asterisk();
+            globalPtrPrefix().suffix_t(classType).asterisk();
         }else if (javaType instanceof ClassType classType && classType.toClassName().equals("hat.KernelContext")){
-            globalPtrPrefix().space().suffix_t("KernelContext").asterisk();
+            globalPtrPrefix().suffix_t("KernelContext").asterisk();
         } else {
             typeName(javaType.toString());
         }
@@ -128,7 +129,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public T localDeclaration(HATCodeBuilderWithContext.LocalArrayDeclaration localArrayDeclaration) {
-        return localPtrPrefix().space() // we should be able to compose-call to privateDeclaration?
+        return localPtrPrefix() // we should be able to compose-call to privateDeclaration?
                 .suffix_t(localArrayDeclaration.classType()).space().varName(localArrayDeclaration.varOp());
     }
 
@@ -162,24 +163,90 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public abstract T globalPtrPrefix();
 
-    public abstract T localPtrPrefix();
+
+    public T globalId(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_GIX");
+            case 1 -> identifier("HAT_GIY");
+            case 2 -> identifier("HAT_GIZ");
+            default -> throw new RuntimeException("globalId id = " + id);
+        }
+        return self();
+    }
+
+    public T localId(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_LIX");
+            case 1 -> identifier("HAT_LIY");
+            case 2 -> identifier("HAT_LIZ");
+            default -> throw new RuntimeException("localId id = " + id);
+        }
+        return self();
+    }
+
+    public T globalSize(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_GSX");
+            case 1 -> identifier("HAT_GSY");
+            case 2 -> identifier("HAT_GSZ");
+            default -> throw new RuntimeException("globalSize id = " + id);
+        }
+        return self();
+    }
+
+    public T localSize(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_LSX");
+            case 1 -> identifier("HAT_LSY");
+            case 2 -> identifier("HAT_LSZ");
+            default -> throw new RuntimeException("localSize id = " + id);
+        }
+        return self();
+    }
+
+
+    public T blockId(int id) {
+        switch (id) {
+            case 0 -> identifier("HAT_BIX");
+            case 1 -> identifier("HAT_BIY");
+            case 2 -> identifier("HAT_BIZ");
+            default -> throw new RuntimeException("blockId id = " + id);
+        }
+        return self();
+    }
+
+
+    public T kernelDeclaration(CoreOp.FuncOp funcOp) {
+        return kernelPrefix().voidType().space().funcName(funcOp);
+    }
+
+
+    public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
+        return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
+    }
+
+    public T kernelPrefix() {
+        return keyword("HAT_KERNEL").space();
+    }
+
+    public T functionPrefix() {
+        return keyword("HAT_FUNC").space();
+    }
+
+    public T globalPtrPrefix() {
+        return keyword("HAT_GLOBAL_MEM").space();
+    }
+
+    public T localPtrPrefix() {
+        return keyword("HAT_LOCAL_MEM").space();
+    }
+
+    public T syncBlockThreads() {
+        return identifier("HAT_BARRIER");
+    }
 
     public abstract T defines();
 
-    public abstract T kernelDeclaration(CoreOp.FuncOp funcOp);
-
-    public abstract T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp);
-
-    public abstract T globalId(int id);
-
-    public abstract T localId(int id);
-
-    public abstract T globalSize(int id);
-
-    public abstract T localSize(int id);
-
-    public abstract T blockId(int id);
 
 }
