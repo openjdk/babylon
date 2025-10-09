@@ -28,6 +28,7 @@ import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 
+import hat.dialect.*;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -106,5 +107,35 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder syncBlockThreads() {
         return keyword("__syncthreads").ocparen();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+        blockComment("Store Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+        blockComment("Binary Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorLoad(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+        blockComment("Load Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+        blockComment("Select Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+        blockComment("Select Vector Not Implemented");
+        return self();
     }
 }

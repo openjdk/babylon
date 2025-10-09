@@ -26,7 +26,9 @@ package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.*;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -122,6 +124,113 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return identifier("_barrier").ocparen();
     }
 
+    @Override
+    public OpenCLHATKernelBuilder generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+        Value dest = hatVectorStoreView.operands().get(0);
+        Value index = hatVectorStoreView.operands().get(2);
+
+        identifier("vstore" + hatVectorStoreView.storeN())
+                .oparen()
+                .varName(hatVectorStoreView)
+                .comma()
+                .space()
+                .intConstZero()
+                .comma()
+                .space()
+                .ampersand();
+
+        if (dest instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        rarrow().identifier("array").osbrace();
+
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        csbrace().cparen();
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+        // TODO: generalize type using the dialect node
+        typeName("float4")
+                .space()
+                .varName(hatVectorBinaryOp)
+                .space().equals().space();
+
+        Value op1 = hatVectorBinaryOp.operands().get(0);
+        Value op2 = hatVectorBinaryOp.operands().get(1);
+
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        identifier(hatVectorBinaryOp.operationType().symbol()).space();
+
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder generateVectorLoad(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+        Value source = hatVectorLoadOp.operands().get(0);
+        Value index = hatVectorLoadOp.operands().get(1);
+
+        typeName(hatVectorLoadOp.buildType())
+                .space()
+                .varName(hatVectorLoadOp)
+                .space().equals().space()
+                .identifier("vload" + hatVectorLoadOp.loadN())
+                .oparen()
+                .intConstZero()
+                .comma()
+                .space()
+                .ampersand();
+
+        if (source instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        rarrow().identifier("array").osbrace();
+
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        csbrace().cparen();
+
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+        identifier(hatVSelectLoadOp.varName())
+                .dot()
+                .identifier(hatVSelectLoadOp.mapLane());
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+        identifier(hatVSelectStoreOp.varName())
+                .dot()
+                .identifier(hatVSelectStoreOp.mapLane())
+                .space().equals().space();
+        if (hatVSelectStoreOp.resultValue() != null) {
+            // We have detected a direct resolved result (resolved name)
+            varName(hatVSelectStoreOp.resultValue());
+        } else {
+            // otherwise, we traverse to resolve the expression
+            Value storeValue = hatVSelectStoreOp.operands().get(1);
+            if (storeValue instanceof Op.Result r) {
+                recurse(buildContext, r.op());
+            }
+        }
+        return self();
+    }
+
     public OpenCLHATKernelBuilder kernelPrefix() {
         return keyword("__kernel").space();
     }
@@ -157,5 +266,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name)
         );
     }
+
 
 }

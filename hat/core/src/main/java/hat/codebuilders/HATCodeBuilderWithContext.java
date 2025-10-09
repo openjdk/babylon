@@ -616,118 +616,38 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
     }
 
+    public abstract T generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView);
+
+    public abstract T generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp);
+
+    public abstract T generateVectorLoad(ScopedCodeBuilderContext buildContext,HatVectorLoadOp hatVectorLoadOp);
+
+    public abstract T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext,HatVSelectLoadOp hatVSelectLoadOp);
+
+    public abstract T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext,HatVSelectStoreOp hatVSelectStoreOp);
+
     @Override
     public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
-
-        Value dest = hatVectorStoreView.operands().get(0);
-        Value vector = hatVectorStoreView.operands().get(1);
-        Value index = hatVectorStoreView.operands().get(2);
-
-        // emitText("vstore4(vC, 0, &c->array[index * 4])");
-
-        emitText("vstore" + hatVectorStoreView.storeN())
-                .oparen()
-                .varName(hatVectorStoreView)
-                .comma()
-                .space()
-                .intConstZero()
-                .comma()
-                .space()
-                .ampersand();
-
-        if (dest instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-        rarrow().emitText("array").osbrace();
-
-        if (index instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-
-        csbrace().cparen();
-
-        return self();
+       return generateVectorStore(buildContext, hatVectorStoreView);
     }
 
     @Override
     public T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
-        //emitText("float4 vC = vA + vB").semicolon().nl();
-
-        typeName("float4")
-                .space()
-                .varName(hatVectorBinaryOp)
-                .space().equals().space();
-
-        Value op1 = hatVectorBinaryOp.operands().get(0);
-        Value op2 = hatVectorBinaryOp.operands().get(1);
-
-        if (op1 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-        emitText(hatVectorBinaryOp.operationType().symbol()).space();
-
-        if (op2 instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-
-        return self();
+        return generateVectorBinary(buildContext, hatVectorBinaryOp);
     }
 
     @Override
     public T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
-
-        Value source = hatVectorLoadOp.operands().get(0);
-        Value index = hatVectorLoadOp.operands().get(1);
-
-        typeName(hatVectorLoadOp.buildType())
-                .space()
-                .varName(hatVectorLoadOp)
-                .space().equals().space()
-                .emitText("vload" + hatVectorLoadOp.loadN())
-                .oparen()
-                .intConstZero()
-                .comma()
-                .space()
-                .ampersand();
-
-        if (source instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-        rarrow().emitText("array").osbrace();
-
-        if (index instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-
-        csbrace().cparen();
-
-        return self();
+        return generateVectorLoad(buildContext, hatVectorLoadOp);
     }
 
     @Override
     public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
-        identifier(hatVSelectLoadOp.varName())
-                .dot()
-                .emitText(hatVSelectLoadOp.mapLane());
-        return self();
+        return generateVectorSelectLoadOp(buildContext, hatVSelectLoadOp);
     }
 
     @Override
     public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
-        identifier(hatVSelectStoreOp.varName())
-                .dot()
-                .emitText(hatVSelectStoreOp.mapLane())
-                .space().equals().space();
-        if (hatVSelectStoreOp.resultValue() != null) {
-            // We have detected a direct resolved result (resolved name)
-            varName(hatVSelectStoreOp.resultValue());
-        } else {
-            // otherwise, we traverse to resolve the expression
-            Value storeValue = hatVSelectStoreOp.operands().get(1);
-            if (storeValue instanceof Op.Result r) {
-                recurse(buildContext, r.op());
-            }
-        }
-        return self();
+        return generateVectorSelectStoreOp(buildContext, hatVSelectStoreOp);
     }
 }
