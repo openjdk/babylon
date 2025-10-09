@@ -40,8 +40,8 @@ import java.util.Random;
 public class TestVectorTypes {
 
     @CodeReflection
-    public static void processVectorAddition(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c, int size) {
-        if (kernelContext.gix < size) {
+    public static void processVectorAddition(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c) {
+        if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
             Float4 vB = b.float4View(index * 4);
@@ -50,9 +50,8 @@ public class TestVectorTypes {
         }
     }
 
-
     @CodeReflection
-    public static void processVectorsWithsScale02(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b) {
+    public static void processVectorsWithsScale02(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -63,7 +62,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void processVectorsWithsScale03(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b) {
+    public static void processVectorsWithsScale03(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -80,7 +79,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void processVectorsWithsScale04(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b) {
+    public static void processVectorsWithsScale04(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -96,25 +95,25 @@ public class TestVectorTypes {
     public static void computeGraph01(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4), new LocalMesh1D(128));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.processVectorAddition(kernelContext, a, b, c, size));
+        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.processVectorAddition(kernelContext, a, b, c));
     }
 
     @CodeReflection
-    public static void computeGraph02(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, int size) {
+    public static void computeGraph02(@RO ComputeContext cc, @RW F32Array a, @RW F32Array b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.processVectorsWithsScale02(kernelContext, a, b));
     }
 
     @CodeReflection
-    public static void computeGraph03(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, int size) {
+    public static void computeGraph03(@RO ComputeContext cc, @RO F32Array a, @RW F32Array b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.processVectorsWithsScale03(kernelContext, a, b));
     }
 
     @CodeReflection
-    public static void computeGraph04(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, int size) {
+    public static void computeGraph04(@RO ComputeContext cc, @RO F32Array a, @RW F32Array b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.processVectorsWithsScale04(kernelContext, a, b));
