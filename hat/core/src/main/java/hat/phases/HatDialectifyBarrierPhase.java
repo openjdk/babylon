@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.Config;
 import hat.dialect.HatBarrierOp;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -38,7 +39,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HatDialectifyBarrierPhase implements HatDialectifyPhase {
+public class HatDialectifyBarrierPhase extends HatDialectAbstractPhase implements HatDialectifyPhase {
+
+    public HatDialectifyBarrierPhase(Config config) {
+        super(config);
+    }
 
     private boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
         String kernelContextCanonicalName = hat.KernelContext.class.getName();
@@ -61,7 +66,9 @@ public class HatDialectifyBarrierPhase implements HatDialectifyPhase {
 
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-        //System.out.println("[INFO] Code model before HatDialectifyBarrierPhase: " + funcOp.toText());
+        if (Config.SHOW_COMPILATION_PHASES.isSet(config)) {
+            System.out.println("[INFO] Code model before HatDialectifyBarrierPhase: " + funcOp.toText());
+        }
         Stream<CodeElement<?, ?>> elements = funcOp
                 .elements()
                 .mapMulti((element, consumer) -> {
@@ -85,7 +92,9 @@ public class HatDialectifyBarrierPhase implements HatDialectifyPhase {
             }
             return blockBuilder;
         });
-        //System.out.println("[INFO] Code model after HatDialectifyBarrierPhase: " + funcOp.toText());
+        if (Config.SHOW_COMPILATION_PHASES.isSet(config)) {
+            System.out.println("[INFO] Code model after HatDialectifyBarrierPhase: " + funcOp.toText());
+        }
         return funcOp;
     }
 

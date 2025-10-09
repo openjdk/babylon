@@ -26,6 +26,11 @@ package hat.codebuilders;
 
 import hat.dialect.HatBarrierOp;
 import hat.dialect.HatBlockThreadIdOp;
+import hat.dialect.HatVSelectLoadOp;
+import hat.dialect.HatVSelectStoreOp;
+import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorLoadOp;
+import hat.dialect.HatVectorStoreView;
 import hat.dialect.HatGlobalThreadIdOp;
 import hat.dialect.HatGlobalSizeOp;
 import hat.dialect.HatLocalSizeOp;
@@ -108,6 +113,16 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp);
 
+    T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatFloat4StoreOp);
+
+    T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp);
+
+    T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp);
+
+    T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp);
+
+    T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp);
+
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -143,6 +158,11 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HatLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);
             case HatLocalSizeOp $ -> hatLocalSizeOp(buildContext, $);
             case HatBlockThreadIdOp $ -> hatBlockThreadIdOp(buildContext, $);
+            case HatVectorStoreView $ -> hatVectorStoreOp(buildContext, $);
+            case HatVectorBinaryOp $ -> hatBinaryVectorOp(buildContext, $);
+            case HatVectorLoadOp $ -> hatVectorLoadOp(buildContext, $);
+            case HatVSelectLoadOp $ -> hatSelectLoadOp(buildContext, $);
+            case HatVSelectStoreOp $ -> hatSelectStoreOp(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

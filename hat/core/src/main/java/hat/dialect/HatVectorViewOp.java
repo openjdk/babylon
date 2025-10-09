@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,35 +22,38 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package hat.dialect;
 
-import hat.optools.OpTk;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Value;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
+import java.util.List;
 
-import java.lang.invoke.MethodHandles;
+public abstract class HatVectorViewOp extends HatOP {
 
+    private final String varName;
 
-public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
-
-    public T computeDeclaration(TypeElement typeElement, String name) {
-        return typeName(typeElement.toString()).space().identifier(name);
+    public HatVectorViewOp(String varName, List<Value> operands) {
+        super(operands);
+        this.varName = varName;
     }
 
-     public T compute(ScopedCodeBuilderContext buildContext) {
+    protected HatVectorViewOp(HatVectorViewOp that, CopyContext cc) {
+        super(that, cc);
+        this.varName = that.varName;
+    }
 
-        computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
-        parenNlIndented(_ ->
-                separated(buildContext.paramTable.list(), (_)->comma().space()
-                        , param -> declareParam(buildContext, param)
-                )
-        );
+    public String varName() {
+        return varName;
+    }
 
-        braceNlIndented(_ -> separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_)->nl(),
-                statement ->statement(buildContext,statement).nl()));
-
-        return self();
+    public String mapLane(int lane) {
+        return switch (lane) {
+            case 0 -> "x";
+            case 1 -> "y";
+            case 2 -> "z";
+            case 3 -> "w";
+            default -> throw new InternalError("Invalid lane: " + lane);
+        };
     }
 }

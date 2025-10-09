@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,35 +22,33 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package hat.buffer;
 
-import hat.optools.OpTk;
+import hat.Accelerator;
+import hat.ifacemapper.Schema;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
+public interface Float4 extends HatVector {
+    float x();
+    float y();
+    float z();
+    float w();
+    void x(float x);
+    void y(float y);
+    void z(float z);
+    void w(float w);
 
-import java.lang.invoke.MethodHandles;
+    Schema<Float4> schema = Schema.of(Float4.class,
+            float4->float4.fields("x","y","z","w"));
 
-
-public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
-
-    public T computeDeclaration(TypeElement typeElement, String name) {
-        return typeName(typeElement.toString()).space().identifier(name);
+    static Float4 create(Accelerator accelerator) {
+        return schema.allocate(accelerator, 1);
     }
 
-     public T compute(ScopedCodeBuilderContext buildContext) {
+    static Float4 add(Float4 vA, Float4 vB) {
+        return null;
+    }
 
-        computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
-        parenNlIndented(_ ->
-                separated(buildContext.paramTable.list(), (_)->comma().space()
-                        , param -> declareParam(buildContext, param)
-                )
-        );
-
-        braceNlIndented(_ -> separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_)->nl(),
-                statement ->statement(buildContext,statement).nl()));
-
-        return self();
+    default float[] toArray() {
+        return new float[] { x(), y(), z(), w() };
     }
 }

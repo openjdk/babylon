@@ -85,6 +85,8 @@ public class Config {
     public static final Bit NO_MODULE_OP = Bit.nextBit(NO_DIALECT, "NO_MODULE_OP", "Use original callgraph (not using Module Op)");
     public static final Bit HEADLESS = Bit.nextBit(NO_MODULE_OP, "HEADLESS", "Don't show UI");
 
+    public static final Bit SHOW_COMPILATION_PHASES = Bit.nextBit(HEADLESS, "SHOW_COMPILATION_PHASES", "Show HAT compilation phases");
+
 
     public static final List<Bit> bitList = List.of(
             PLATFORM,
@@ -107,7 +109,9 @@ public class Config {
             NO_BUFFER_TAGGING,
             NO_DIALECT,
             NO_MODULE_OP,
-            HEADLESS
+            HEADLESS,
+
+            SHOW_COMPILATION_PHASES
     );
 
     private int bits;

@@ -174,9 +174,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
 
         // Main kernel
         {
-            HatDialectifyTier tier = new HatDialectifyTier(entrypoint.funcOp(), computeContext.accelerator.lookup);
-            CoreOp.FuncOp f = tier.run();
-            //CoreOp.FuncOp f = dialectifyToHat(entrypoint.funcOp());
+            HatDialectifyTier tier = new HatDialectifyTier(computeContext.accelerator.lookup);
+            CoreOp.FuncOp f = tier.run(entrypoint.funcOp());
             entrypoint.funcOp(f);
         }
 
@@ -186,17 +185,15 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             moduleOp.functionTable().forEach((_, kernelOp) -> {
                 // ModuleOp is an Immutable Collection, thus, we need to create a new one from a
                 // new list of methods
-                //CoreOp.FuncOp f = dialectifyToHat(kernelOp);
-                HatDialectifyTier tier = new HatDialectifyTier(kernelOp, computeContext.accelerator.lookup);
-                CoreOp.FuncOp f = tier.run();
+                HatDialectifyTier tier = new HatDialectifyTier(computeContext.accelerator.lookup);
+                CoreOp.FuncOp f = tier.run(kernelOp);
                 funcs.add(f);
             });
             moduleOp = CoreOp.module(funcs);
         } else {
             kernelReachableResolvedStream().forEach((kernel) -> {
-                //CoreOp.FuncOp f = dialectifyToHat(kernel.funcOp());
-                HatDialectifyTier tier = new HatDialectifyTier(kernel.funcOp(), computeContext.accelerator.lookup);
-                CoreOp.FuncOp f = tier.run();
+                HatDialectifyTier tier = new HatDialectifyTier(computeContext.accelerator.lookup);
+                CoreOp.FuncOp f = tier.run(kernel.funcOp());
                 kernel.funcOp(f);
             });
         }

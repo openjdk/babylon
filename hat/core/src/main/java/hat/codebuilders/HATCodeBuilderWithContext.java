@@ -25,6 +25,11 @@
 package hat.codebuilders;
 
 import hat.dialect.HatBarrierOp;
+import hat.dialect.HatVSelectLoadOp;
+import hat.dialect.HatVSelectStoreOp;
+import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorLoadOp;
+import hat.dialect.HatVectorStoreView;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatPrivateVarOp;
@@ -36,6 +41,7 @@ import hat.optools.OpTk;
 import hat.util.StreamMutable;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -60,6 +66,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
             case HatMemoryOp $ -> varName($);
+            case HatVectorLoadOp $ -> varName($);
+            case HatVectorBinaryOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -206,8 +214,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         });
         return self();
     }
-
-
 
     @Override
     public T funcCallOp(ScopedCodeBuilderContext buildContext, CoreOp.FuncCallOp funcCallOp) {
@@ -605,7 +611,43 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         }
         return suffix_t(name);
     }
+
     public T declareParam(ScopedCodeBuilderContext buildContext, FuncOpParams.Info param){
-        return   type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
+        return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
+    }
+
+    public abstract T generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView);
+
+    public abstract T generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp);
+
+    public abstract T generateVectorLoad(ScopedCodeBuilderContext buildContext,HatVectorLoadOp hatVectorLoadOp);
+
+    public abstract T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext,HatVSelectLoadOp hatVSelectLoadOp);
+
+    public abstract T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext,HatVSelectStoreOp hatVSelectStoreOp);
+
+    @Override
+    public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+       return generateVectorStore(buildContext, hatVectorStoreView);
+    }
+
+    @Override
+    public T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+        return generateVectorBinary(buildContext, hatVectorBinaryOp);
+    }
+
+    @Override
+    public T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+        return generateVectorLoad(buildContext, hatVectorLoadOp);
+    }
+
+    @Override
+    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+        return generateVectorSelectLoadOp(buildContext, hatVSelectLoadOp);
+    }
+
+    @Override
+    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+        return generateVectorSelectStoreOp(buildContext, hatVSelectStoreOp);
     }
 }
