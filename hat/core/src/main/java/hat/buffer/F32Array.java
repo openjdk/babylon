@@ -37,7 +37,7 @@ public interface F32Array extends Buffer {
     void array(long idx, float f);
 
     Schema<F32Array> schema = Schema.of(F32Array.class, s32Array ->
-            s32Array.arrayLen("length").array("array"));
+            s32Array.arrayLen("length").pad(12).array("array"));
 
     static F32Array create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
