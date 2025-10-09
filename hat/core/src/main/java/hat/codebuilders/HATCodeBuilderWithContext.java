@@ -25,6 +25,11 @@
 package hat.codebuilders;
 
 import hat.dialect.HatBarrierOp;
+import hat.dialect.HatVSelectLoadOp;
+import hat.dialect.HatVSelectStoreOp;
+import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorLoadOp;
+import hat.dialect.HatVectorStoreView;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatPrivateVarOp;
@@ -36,6 +41,7 @@ import hat.optools.OpTk;
 import hat.util.StreamMutable;
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -60,6 +66,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
             case HatMemoryOp $ -> varName($);
+            case HatVectorLoadOp $ -> varName($);
+            case HatVectorBinaryOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -206,8 +214,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         });
         return self();
     }
-
-
 
     @Override
     public T funcCallOp(ScopedCodeBuilderContext buildContext, CoreOp.FuncCallOp funcCallOp) {
@@ -605,7 +611,123 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         }
         return suffix_t(name);
     }
+
     public T declareParam(ScopedCodeBuilderContext buildContext, FuncOpParams.Info param){
-        return   type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
+        return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
+    }
+
+    @Override
+    public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+
+        Value dest = hatVectorStoreView.operands().get(0);
+        Value vector = hatVectorStoreView.operands().get(1);
+        Value index = hatVectorStoreView.operands().get(2);
+
+        // emitText("vstore4(vC, 0, &c->array[index * 4])");
+
+        emitText("vstore" + hatVectorStoreView.storeN())
+                .oparen()
+                .varName(hatVectorStoreView)
+                .comma()
+                .space()
+                .intConstZero()
+                .comma()
+                .space()
+                .ampersand();
+
+        if (dest instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        rarrow().emitText("array").osbrace();
+
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        csbrace().cparen();
+
+        return self();
+    }
+
+    @Override
+    public T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+        //emitText("float4 vC = vA + vB").semicolon().nl();
+
+        typeName("float4")
+                .space()
+                .varName(hatVectorBinaryOp)
+                .space().equals().space();
+
+        Value op1 = hatVectorBinaryOp.operands().get(0);
+        Value op2 = hatVectorBinaryOp.operands().get(1);
+
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        emitText(hatVectorBinaryOp.operationType().symbol()).space();
+
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        return self();
+    }
+
+    @Override
+    public T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+
+        Value source = hatVectorLoadOp.operands().get(0);
+        Value index = hatVectorLoadOp.operands().get(1);
+
+        typeName(hatVectorLoadOp.buildType())
+                .space()
+                .varName(hatVectorLoadOp)
+                .space().equals().space()
+                .emitText("vload" + hatVectorLoadOp.loadN())
+                .oparen()
+                .intConstZero()
+                .comma()
+                .space()
+                .ampersand();
+
+        if (source instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        rarrow().emitText("array").osbrace();
+
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        csbrace().cparen();
+
+        return self();
+    }
+
+    @Override
+    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+        identifier(hatVSelectLoadOp.varName())
+                .dot()
+                .emitText(hatVSelectLoadOp.mapLane());
+        return self();
+    }
+
+    @Override
+    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+        identifier(hatVSelectStoreOp.varName())
+                .dot()
+                .emitText(hatVSelectStoreOp.mapLane())
+                .space().equals().space();
+        if (hatVSelectStoreOp.resultValue() != null) {
+            // We have detected a direct resolved result (resolved name)
+            varName(hatVSelectStoreOp.resultValue());
+        } else {
+            // otherwise, we traverse to resolve the expression
+            Value storeValue = hatVSelectStoreOp.operands().get(1);
+            if (storeValue instanceof Op.Result r) {
+                recurse(buildContext, r.op());
+            }
+        }
+        return self();
     }
 }

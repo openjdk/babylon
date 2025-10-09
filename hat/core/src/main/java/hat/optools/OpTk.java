@@ -26,27 +26,24 @@ package hat.optools;
 
 import hat.ComputeContext;
 import hat.buffer.Buffer;
+import hat.buffer.HatVector;
 import hat.buffer.KernelContext;
 import hat.callgraph.CallGraph;
-import hat.callgraph.ComputeEntrypoint;
-import hat.callgraph.KernelEntrypoint;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatThreadOP;
+import hat.dialect.HatVSelectLoadOp;
+import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorLoadOp;
 import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 
-import java.lang.invoke.CallSite;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.sql.Array;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 public class OpTk {
@@ -292,6 +289,8 @@ public class OpTk {
                 (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
                         || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
                         || (op instanceof HatMemoryOp)
+                        || (op instanceof HatVectorLoadOp)
+                        || (op instanceof HatVectorBinaryOp)
                 )
                         && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
                         && !(op instanceof CoreOp.YieldOp));
@@ -384,6 +383,7 @@ public class OpTk {
             case JavaOp.FieldAccessOp o -> 0;
             case HatThreadOP o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
+            case HatVSelectLoadOp o -> 0;      // same as VarLoadOp
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;

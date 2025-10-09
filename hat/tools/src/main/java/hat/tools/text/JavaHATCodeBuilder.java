@@ -27,6 +27,11 @@ package hat.tools.text;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
 import hat.dialect.HatBlockThreadIdOp;
+import hat.dialect.HatVSelectLoadOp;
+import hat.dialect.HatVSelectStoreOp;
+import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorLoadOp;
+import hat.dialect.HatVectorStoreView;
 import hat.dialect.HatGlobalThreadIdOp;
 import hat.dialect.HatGlobalSizeOp;
 import hat.dialect.HatLocalSizeOp;
@@ -37,7 +42,8 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
-public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
             try {
@@ -122,6 +128,36 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
     @Override
     public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp) {
         blockInlineComment("Block ID ");
+        return self();
+    }
+
+    @Override
+    public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+        blockComment("Store Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+        blockComment("Binary Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+        blockComment("Load Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+        blockComment("Select Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+        blockComment("Select Vector Not Implemented");
         return self();
     }
 

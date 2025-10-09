@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.Config;
 import hat.dialect.HatBlockThreadIdOp;
 import hat.dialect.HatGlobalSizeOp;
 import hat.dialect.HatGlobalThreadIdOp;
@@ -42,17 +43,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HatDialectifyThreadsPhase implements HatDialectifyPhase {
+public class HatDialectifyThreadsPhase extends HatDialectAbstractPhase implements HatDialectifyPhase {
 
     private final ThreadAccess threadAccess;
 
-    public HatDialectifyThreadsPhase(ThreadAccess threadAccess) {
+    public HatDialectifyThreadsPhase(ThreadAccess threadAccess, Config config) {
+        super(config);
         this.threadAccess =  threadAccess;
     }
 
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-        // IO.println("[INFO] Code model before HatDialectifyThreadsPhase: " + funcOp.toText());
+        if (Config.SHOW_COMPILATION_PHASES.isSet(config))
+            IO.println("[INFO] Code model before HatDialectifyThreadsPhase: " + funcOp.toText());
+
         Stream<CodeElement<?, ?>> elements = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
@@ -118,7 +122,8 @@ public class HatDialectifyThreadsPhase implements HatDialectifyPhase {
             }
             return blockBuilder;
         });
-        // IO.println("[INFO] Code model after HatDialectifyThreadsPhase: " + funcOp.toText());
+        if (Config.SHOW_COMPILATION_PHASES.isSet(config))
+            IO.println("[INFO] Code model after HatDialectifyThreadsPhase: " + funcOp.toText());
         return funcOp;
     }
 

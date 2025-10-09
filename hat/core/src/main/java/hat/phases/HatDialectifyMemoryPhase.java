@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.Config;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatPrivateVarOp;
@@ -42,7 +43,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HatDialectifyMemoryPhase implements HatDialectifyPhase {
+public class HatDialectifyMemoryPhase extends HatDialectAbstractPhase implements HatDialectifyPhase {
 
     public enum Space {
         PRIVATE,
@@ -52,7 +53,8 @@ public class HatDialectifyMemoryPhase implements HatDialectifyPhase {
     private final Space memorySpace;
     private final MethodHandles.Lookup lookup;
 
-    public HatDialectifyMemoryPhase(Space space, MethodHandles.Lookup lookup) {
+    public HatDialectifyMemoryPhase(Space space, MethodHandles.Lookup lookup, Config config) {
+        super(config);
         this.memorySpace = space;
         this.lookup = lookup;
     }
@@ -68,7 +70,9 @@ public class HatDialectifyMemoryPhase implements HatDialectifyPhase {
                 case SHARED -> HatLocalVarOp.INTRINSIC_NAME;
             };
 
-            // IO.println("[INFO] Code model before HatDialectifyMemoryPhase: " + funcOp.toText());
+            if (Config.SHOW_COMPILATION_PHASES.isSet(config)) {
+                IO.println("[INFO] Code model before HatDialectifyMemoryPhase: " + funcOp.toText());
+            }
             Stream<CodeElement<?, ?>> elements = funcOp.elements()
                     .mapMulti((codeElement, consumer) -> {
                         if (codeElement instanceof CoreOp.VarOp varOp) {
@@ -127,7 +131,9 @@ public class HatDialectifyMemoryPhase implements HatDialectifyPhase {
                 }
                 return blockBuilder;
             });
-            // IO.println("[INFO] Code model after HatDialectifyMemoryPhase: " + funcOp.toText());
+            if (Config.SHOW_COMPILATION_PHASES.isSet(config)) {
+                IO.println("[INFO] Code model after HatDialectifyMemoryPhase: " + funcOp.toText());
+            }
             return funcOp;
     }
 }

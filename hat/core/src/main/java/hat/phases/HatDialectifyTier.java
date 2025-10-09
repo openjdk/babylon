@@ -24,32 +24,37 @@
  */
 package hat.phases;
 
+import hat.Config;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-public class HatDialectifyTier {
+public class HatDialectifyTier implements HatCompilationTier {
 
-    private CoreOp.FuncOp funcOp;
     List<HatDialectifyPhase> hatPhases = new ArrayList<>();
 
-    public HatDialectifyTier(CoreOp.FuncOp funcOp, MethodHandles.Lookup lookup) {
-        this.funcOp = funcOp;
-        hatPhases.add(new HatDialectifyBarrierPhase());
-        for (HatDialectifyMemoryPhase.Space space: HatDialectifyMemoryPhase.Space.values()) {
-            hatPhases.add(new HatDialectifyMemoryPhase(space, lookup));
-            hatPhases.add(new HatDialectifyMemoryPhase(space, lookup));
-        }
-        for (HatDialectifyThreadsPhase.ThreadAccess threadAccess: HatDialectifyThreadsPhase.ThreadAccess.values()) {
-            hatPhases.add(new HatDialectifyThreadsPhase(threadAccess));
-        }
+    public HatDialectifyTier(MethodHandles.Lookup lookup) {
+        Config config = Config.fromEnvOrProperty();
+        hatPhases.add(new HatDialectifyBarrierPhase(config));
+        Arrays.stream(HatDialectifyMemoryPhase.Space.values())
+                .forEach(space -> hatPhases.add(new HatDialectifyMemoryPhase(space, lookup, config)));
+        Arrays.stream(HatDialectifyThreadsPhase.ThreadAccess.values())
+                .forEach(threadAccess -> hatPhases.add(new HatDialectifyThreadsPhase(threadAccess, config)));
+        Arrays.stream(HatDialectifyVectorOpPhase.LoadView.values())
+                .forEach(vectorOperation -> hatPhases.add(new HatDialectifyVectorOpPhase(lookup, vectorOperation, config)));
+        Arrays.stream(HatDialectifyVectorStorePhase.StoreView.values())
+                .forEach(vectorOperation -> hatPhases.add(new HatDialectifyVectorStorePhase(lookup, vectorOperation, config)));
+        hatPhases.add(new HatDialectifyVSelectPhase(lookup, config));
     }
 
-    public CoreOp.FuncOp run() {
+    // It computes a set of function code model transformations from FuncOp to FuncOp'.
+    @Override
+    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
         BlockingQueue<HatDialectifyPhase> queue = new ArrayBlockingQueue<>(hatPhases.size());
         queue.addAll(hatPhases);
         CoreOp.FuncOp f = funcOp;

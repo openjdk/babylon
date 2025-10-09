@@ -27,6 +27,9 @@ package hat.codebuilders;
 
 import hat.FFIConfigCreator;
 import hat.dialect.HatMemoryOp;
+import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorLoadOp;
+import hat.dialect.HatVectorStoreView;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -172,6 +175,22 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         identifier(hatLocalVarOp.varName());
         return self();
     }
+
+    public T varName(HatVectorLoadOp vectorLoadOp) {
+        identifier(vectorLoadOp.varName());
+        return self();
+    }
+
+    public T varName(HatVectorStoreView hatVectorStoreView) {
+        identifier(hatVectorStoreView.varName());
+        return self();
+    }
+
+    public T varName(HatVectorBinaryOp hatVectorBinaryOp) {
+        identifier(hatVectorBinaryOp.varName());
+        return self();
+    }
+
     public T pragmaKeyword() {
         return keyword("pragma");
     }

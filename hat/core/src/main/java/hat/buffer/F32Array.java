@@ -28,11 +28,8 @@ import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.StructLayout;
-import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32Array extends Buffer {
     int length();
@@ -64,6 +61,28 @@ public interface F32Array extends Buffer {
         float[] arr = new float[this.length()];
         this.copyTo(arr);
         return arr;
+    }
+
+    default Float4 float4View(float base) {
+        // To create a new Float4, we need an accelerator instance, which at this point,. we don't have
+
+        return null;
+    }
+
+    default Float4 float4View(float base, int index) {
+        // To create a new Float4, we need an accelerator instance, which at this point,. we don't have
+
+        return null;
+    }
+
+    default Float4 float4View(int index) {
+        // To create a new Float4, we need an accelerator instance, which at this point,. we don't have
+
+        return null;
+    }
+
+    default void storeFloat4View(Float4 v, int index) {
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, 0,  v.toArray(), 4 + index, 4);
     }
 
 }
