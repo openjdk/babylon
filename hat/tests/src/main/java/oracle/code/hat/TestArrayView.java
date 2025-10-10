@@ -29,23 +29,21 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.*;
-import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.MappableIface.*;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import oracle.code.hat.annotation.HatTest;
 import oracle.code.hat.engine.HatAsserts;
 
-import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class TestArrayView {
 
+    // simple square kernel example using S32Array's ArrayView
     @CodeReflection
     public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
         if (kc.x<kc.maxX){
@@ -112,7 +110,7 @@ public class TestArrayView {
         }
     }
 
-
+    // simplified version of Game of Life using ArrayView
     public final static byte ALIVE = (byte) 0xff;
     public final static byte DEAD = 0x00;
 
@@ -306,6 +304,7 @@ public class TestArrayView {
         }
     }
 
+    // simplified version of mandel using ArrayView
     @CodeReflection
     public static int mandelCheck(int i, int j, float width, float height, int[] pallette, float offsetx, float offsety, float scale) {
         float x = (i * scale - (scale / 2f * width)) / width + offsetx;
@@ -391,6 +390,19 @@ public class TestArrayView {
             }
             // System.out.println();
         }
+    }
+
+    // simplified version of BlackScholes using ArrayView
+    @CodeReflection
+    public static float[] blackScholesCheck(float s, float x, float t, float r, float v) {
+        float expNegRt = (float) Math.exp(-r * t);
+        float d1 = (float) ((Math.log(s / x) + (r + v * v * .5f) * t) / (v * Math.sqrt(t)));
+        float d2 = (float) (d1 - v * Math.sqrt(t));
+        float cnd1 = CND(d1);
+        float cnd2 = CND(d2);
+        float call = s * cnd1 - expNegRt * x * cnd2;
+        float put = expNegRt * x * (1 - cnd2) - s * (1 - cnd1);
+        return new float[]{call, put};
     }
 
     @CodeReflection
@@ -485,8 +497,97 @@ public class TestArrayView {
         float v = 0.30f;
 
         accelerator.compute(cc -> blackScholes(cc, call, put, S, X, T, r, v));
-        // for (int i = 0; i < call.length(); i++) {
-        //     System.out.println("S=" + S.array(i) + "\t X=" + X.array(i) + "\t T=" + T.array(i) + "\t call option price = " + call.array(i) + "\t\t put option price = " + put.array(i));
-        // }
+        float[] res;
+        for (int i = 0; i < call.length(); i++) {
+            res = blackScholesCheck(S.array(i), X.array(i), T.array(i), r, v);
+            HatAsserts.assertEquals(res[0], call.array(i), 0.0001);
+            HatAsserts.assertEquals(res[1], put.array(i), 0.0001);
+        }
+    }
+
+    // basic test of local and private buffer ArrayViews
+    private interface SharedMemory extends Buffer {
+        void array(long index, int value);
+        int array(long index);
+        Schema<SharedMemory> schema = Schema.of(SharedMemory.class,
+                arr -> arr.array("array", 1024));
+        static SharedMemory create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static SharedMemory createLocal() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+
+        default int[] localArrayView() {
+            int[] view = new int[1024];
+            for (int i = 0; i < 1024; i++) {
+                view[i] = this.array(i);
+            }
+            return view;
+        }
+    }
+
+    public interface PrivateArray extends Buffer {
+        void array(long index, int value);
+        int array(long index);
+        Schema<PrivateArray> schema = Schema.of(PrivateArray.class,
+                arr -> arr.array("array", 16));
+        static PrivateArray create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static PrivateArray createPrivate() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+
+        default int[] privateArrayView() {
+            int[] view = new int[16];
+            for (int i = 0; i < 16; i++) {
+                view[i] = this.array(i);
+            }
+            return view;
+        }
+    }
+
+    @CodeReflection
+    public static void squareKernelWithPrivateAndLocal(@RO  KernelContext kc, @RW S32Array s32Array) {
+        SharedMemory shared = SharedMemory.createLocal();
+        if (kc.x<kc.maxX){
+            int[] arr = s32Array.arrayView();
+            arr[kc.x] += arr[kc.x];
+            // int[] a = new int[4];
+            // a[1] = 4;
+
+            PrivateArray priv = PrivateArray.createPrivate();
+            int[] privView = priv.privateArrayView();
+            privView[0] = 1;
+            arr[kc.x] += privView[0];
+
+            int[] sharedView = shared.localArrayView();
+            sharedView[0] = 16;
+            arr[kc.x] += sharedView[0];
+        }
+    }
+
+    @CodeReflection
+    public static void privateAndLocal(@RO ComputeContext cc, @RW S32Array s32Array) {
+        cc.dispatchKernel(s32Array.length(),
+                kc -> squareKernelWithPrivateAndLocal(kc, s32Array)
+        );
+    }
+
+    @HatTest
+    public static void testPrivateAndLocal() {
+
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var arr = S32Array.create(accelerator, 32);
+        for (int i = 0; i < arr.length(); i++) {
+            arr.array(i, i);
+        }
+        accelerator.compute(
+                cc -> privateAndLocal(cc, arr)  //QuotableComputeContextConsumer
+        );                                     //   extends Quotable, Consumer<ComputeContext>
+        for (int i = 0; i < arr.length(); i++) {
+            HatAsserts.assertEquals(2 * i + 17, arr.array(i));
+        }
     }
 }
