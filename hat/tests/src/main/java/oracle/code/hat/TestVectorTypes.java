@@ -137,6 +137,18 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
+    public static void vectorOps09(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c) {
+        // Checking composition
+        if (kernelContext.gix < kernelContext.gsx) {
+            int index = kernelContext.gix;
+            Float4 vA = a.float4View(index * 4);
+            Float4 vB = b.float4View(index * 4);
+            Float4 vC = vA.add(vA.mul(vB));
+            c.storeFloat4View(vC, index * 4);
+        }
+    }
+
+    @CodeReflection
     public static void computeGraph01(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4), new LocalMesh1D(128));
@@ -191,6 +203,13 @@ public class TestVectorTypes {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps08(kernelContext, a, b, c));
+    }
+
+    @CodeReflection
+    public static void computeGraph09(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c,  int size) {
+        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
+        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps09(kernelContext, a, b, c));
     }
 
     @HatTest
@@ -359,6 +378,28 @@ public class TestVectorTypes {
         }
 
         accelerator.compute(cc -> TestVectorTypes.computeGraph08(cc, arrayA, arrayB, arrayC, size));
+
+        for (int i = 0; i < size; i ++) {
+            float val = (((arrayA.array(i) + arrayB.array(i)) * arrayA.array(i)) / arrayB.array(i));
+            HatAsserts.assertEquals(val, arrayC.array(i), 0.001f);
+        }
+    }
+
+    @HatTest
+    public void testVectorTypes09() {
+        final int size = 1024;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var arrayA = F32Array.create(accelerator, size);
+        var arrayB = F32Array.create(accelerator, size);
+        var arrayC = F32Array.create(accelerator, size);
+
+        Random r = new Random(19);
+        for (int i = 0; i < size; i++) {
+            arrayA.array(i, r.nextFloat());
+            arrayB.array(i, r.nextFloat());
+        }
+
+        accelerator.compute(cc -> TestVectorTypes.computeGraph09(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i ++) {
             float val = (((arrayA.array(i) + arrayB.array(i)) * arrayA.array(i)) / arrayB.array(i));
