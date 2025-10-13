@@ -402,7 +402,7 @@ public class TestVectorTypes {
         accelerator.compute(cc -> TestVectorTypes.computeGraph09(cc, arrayA, arrayB, arrayC, size));
 
         for (int i = 0; i < size; i ++) {
-            float val = (((arrayA.array(i) + arrayB.array(i)) * arrayA.array(i)) / arrayB.array(i));
+            float val = (arrayA.array(i) + (arrayB.array(i)) * arrayA.array(i));
             HatAsserts.assertEquals(val, arrayC.array(i), 0.001f);
         }
     }
