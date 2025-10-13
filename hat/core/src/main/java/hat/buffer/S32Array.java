@@ -53,11 +53,11 @@ public interface S32Array extends Buffer {
         return create( accelerator, arr.length).copyfrom(arr);
     }
     default S32Array copyfrom(int[] ints) {
-        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());
+        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 16, length());
         return this;
     }
     default S32Array copyTo(int[] ints) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 4, ints, 0, length());
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 16, ints, 0, length());
         return this;
     }
     default S32Array fill(Function<Integer, Integer> filler) {
