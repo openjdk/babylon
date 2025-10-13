@@ -133,16 +133,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             recurse(buildContext, hatVectorBinaryOp2);
         }
 
-        // Declaration
-//        typeName("float4") // fixme
-//                .space()
-//                .varName(hatVectorBinaryOp).semicolon().nl();
-
-        // Operation per lane
-        // floatX foo;
-        // foo.x = a.x op b.x;
-        // foo.y = a.y op b.y;
-        // ...
         for (int i = 0; i < hatVectorBinaryOp.vectorN(); i++) {
 
            identifier(hatVectorBinaryOp.varName())
@@ -178,10 +168,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
-//        typeName(hatVectorLoadOp.buildType())
-//                .space()
-//                .varName(hatVectorLoadOp)
-//                .space().equals().space()
         keyword("reinterpret_cast")
                 .lt()
                 .typeName(hatVectorLoadOp.buildType())

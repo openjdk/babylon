@@ -107,11 +107,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
-        // TODO: generalize type using the dialect node
-//        typeName("float4")
-//                .space()
-//                .varName(hatVectorBinaryOp)
-//                .space().equals().space();
+
         oparen();
         Value op1 = hatVectorBinaryOp.operands().get(0);
         Value op2 = hatVectorBinaryOp.operands().get(1);
@@ -133,10 +129,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
-//        typeName(hatVectorLoadOp.buildType())
-//                .space()
-//                .varName(hatVectorLoadOp)
-//                .space().equals().space()
         identifier("vload" + hatVectorLoadOp.loadN())
                 .oparen()
                 .intConstZero()
