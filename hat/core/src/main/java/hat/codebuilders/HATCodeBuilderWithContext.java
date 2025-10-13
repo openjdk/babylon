@@ -654,23 +654,5 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return generateVectorSelectStoreOp(buildContext, hatVSelectStoreOp);
     }
 
-    @Override
-    public T hatVectorVarOp(ScopedCodeBuilderContext buildContext, HatVectorVarOp hatVectorVarOp) {
-        typeName(hatVectorVarOp.buildType())
-                .space()
-                .varName(hatVectorVarOp)
-                .space().equals().space();
 
-        Value operand = hatVectorVarOp.operands().getFirst();
-        if (operand instanceof Op.Result r) {
-            recurse(buildContext, r.op());
-        }
-        return self();
-    }
-
-    @Override
-    public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HatVectorVarLoadOp hatVectorVarLoadOp) {
-        varName(hatVectorVarLoadOp);
-        return self();
-    }
 }

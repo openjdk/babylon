@@ -31,7 +31,7 @@ import java.util.List;
 
 public abstract class HatVectorViewOp extends HatOP {
 
-    private final String varName;
+    private String varName;
 
     public HatVectorViewOp(String varName, List<Value> operands) {
         super(operands);
@@ -45,6 +45,10 @@ public abstract class HatVectorViewOp extends HatOP {
 
     public String varName() {
         return varName;
+    }
+
+    public void  varName(String varName) {
+        this.varName = varName;
     }
 
     public String mapLane(int lane) {

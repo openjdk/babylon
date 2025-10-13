@@ -112,7 +112,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 //                .space()
 //                .varName(hatVectorBinaryOp)
 //                .space().equals().space();
-
+        oparen();
         Value op1 = hatVectorBinaryOp.operands().get(0);
         Value op2 = hatVectorBinaryOp.operands().get(1);
 
@@ -124,6 +124,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (op2 instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
+        cparen();
         return self();
     }
 
@@ -181,6 +182,26 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 recurse(buildContext, r.op());
             }
         }
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HatVectorVarOp hatVectorVarOp) {
+        typeName(hatVectorVarOp.buildType())
+                .space()
+                .varName(hatVectorVarOp)
+                .space().equals().space();
+
+        Value operand = hatVectorVarOp.operands().getFirst();
+        if (operand instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HatVectorVarLoadOp hatVectorVarLoadOp) {
+        varName(hatVectorVarLoadOp);
         return self();
     }
 
