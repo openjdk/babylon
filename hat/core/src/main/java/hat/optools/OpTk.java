@@ -29,11 +29,17 @@ import hat.buffer.Buffer;
 import hat.buffer.HatVector;
 import hat.buffer.KernelContext;
 import hat.callgraph.CallGraph;
+import hat.dialect.HatBarrierOp;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatThreadOP;
 import hat.dialect.HatVSelectLoadOp;
+import hat.dialect.HatVectorAddOp;
 import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorDivOp;
 import hat.dialect.HatVectorLoadOp;
+import hat.dialect.HatVectorMulOp;
+import hat.dialect.HatVectorSubOp;
+import hat.dialect.HatVectorVarOp;
 import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -289,8 +295,7 @@ public class OpTk {
                 (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
                         || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
                         || (op instanceof HatMemoryOp)
-                        || (op instanceof HatVectorLoadOp)
-                        || (op instanceof HatVectorBinaryOp)
+                        || (op instanceof HatVectorVarOp)
                 )
                         && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
                         && !(op instanceof CoreOp.YieldOp));
@@ -392,9 +397,13 @@ public class OpTk {
             case JavaOp.NegOp  o-> 1;
             case JavaOp.ModOp o -> 2;
             case JavaOp.MulOp o -> 2;
+            case HatVectorMulOp o -> 2;
             case JavaOp.DivOp o -> 2;
+            case HatVectorDivOp o -> 2;
             case JavaOp.NotOp o -> 2;
             case JavaOp.AddOp o -> 3;
+            case HatVectorAddOp o -> 3;
+            case HatVectorSubOp o -> 3;
             case JavaOp.SubOp o -> 3;
             case JavaOp.AshrOp o -> 4;
             case JavaOp.LshlOp o -> 4;

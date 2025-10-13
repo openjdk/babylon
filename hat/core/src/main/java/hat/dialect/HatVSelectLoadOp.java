@@ -36,8 +36,6 @@ import java.util.Map;
 public class HatVSelectLoadOp extends HatVectorViewOp {
 
     private final TypeElement elementType;
-
-    public static final String INTRINSIC_NAME = "vselect";
     private final int lane;
 
     public HatVSelectLoadOp(String varName, TypeElement typeElement, int lane, List<Value> operands) {

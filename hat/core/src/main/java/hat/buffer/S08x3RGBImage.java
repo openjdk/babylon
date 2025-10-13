@@ -30,6 +30,7 @@ import hat.ifacemapper.Schema;
 import java.lang.invoke.MethodHandles;
 
 public interface S08x3RGBImage extends ImageIfaceBuffer<S08x3RGBImage> {
+
     int width();
     int height();
     byte data(long idx);

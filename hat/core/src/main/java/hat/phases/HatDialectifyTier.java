@@ -45,7 +45,7 @@ public class HatDialectifyTier implements HatCompilationTier {
                 .forEach(space -> hatPhases.add(new HatDialectifyMemoryPhase(space, lookup, config)));
         Arrays.stream(HatDialectifyThreadsPhase.ThreadAccess.values())
                 .forEach(threadAccess -> hatPhases.add(new HatDialectifyThreadsPhase(threadAccess, config)));
-        Arrays.stream(HatDialectifyVectorOpPhase.LoadView.values())
+        Arrays.stream(HatDialectifyVectorOpPhase.OpView.values())
                 .forEach(vectorOperation -> hatPhases.add(new HatDialectifyVectorOpPhase(lookup, vectorOperation, config)));
         Arrays.stream(HatDialectifyVectorStorePhase.StoreView.values())
                 .forEach(vectorOperation -> hatPhases.add(new HatDialectifyVectorStorePhase(lookup, vectorOperation, config)));

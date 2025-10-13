@@ -53,7 +53,7 @@ public interface S32Array2D extends Buffer {
     }
 
     Schema<S32Array2D> schema = Schema.of(S32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").array("array"));
+            .arrayLen("width","height").pad(8).array("array"));
 
     static S32Array2D create(Accelerator accelerator, int width, int height){
         return schema.allocate(accelerator, width,height);

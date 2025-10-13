@@ -37,6 +37,8 @@ import hat.dialect.HatLocalSizeOp;
 import hat.dialect.HatLocalThreadIdOp;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatPrivateVarOp;
+import hat.dialect.HatVectorVarLoadOp;
+import hat.dialect.HatVectorVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -113,6 +115,8 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp);
 
+    T hatVectorVarOp(ScopedCodeBuilderContext buildContext, HatVectorVarOp hatVectorVarOp);
+
     T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatFloat4StoreOp);
 
     T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp);
@@ -122,6 +126,8 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
     T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp);
 
     T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp);
+
+    T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HatVectorVarLoadOp hatVectorVarLoadOp);
 
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
@@ -158,11 +164,13 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HatLocalThreadIdOp $ -> hatLocalThreadIdOp(buildContext, $);
             case HatLocalSizeOp $ -> hatLocalSizeOp(buildContext, $);
             case HatBlockThreadIdOp $ -> hatBlockThreadIdOp(buildContext, $);
+            case HatVectorVarOp $ -> hatVectorVarOp(buildContext, $);
             case HatVectorStoreView $ -> hatVectorStoreOp(buildContext, $);
             case HatVectorBinaryOp $ -> hatBinaryVectorOp(buildContext, $);
             case HatVectorLoadOp $ -> hatVectorLoadOp(buildContext, $);
             case HatVSelectLoadOp $ -> hatSelectLoadOp(buildContext, $);
             case HatVSelectStoreOp $ -> hatSelectStoreOp(buildContext, $);
+            case HatVectorVarLoadOp $ -> hatVectorVarLoadOp(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

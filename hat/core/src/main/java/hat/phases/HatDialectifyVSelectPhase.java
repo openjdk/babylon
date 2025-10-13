@@ -90,13 +90,12 @@ public class HatDialectifyVSelectPhase extends HatDialectAbstractPhase implement
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findNameVector(varLoadOp);
         } else {
-            if (v instanceof CoreOp.Result r && r.op() instanceof HatVectorLoadOp vectorLoadOp) {
-                return vectorLoadOp.varName();
+            if (v instanceof CoreOp.Result r && r.op() instanceof HatVectorViewOp vectorViewOp) {
+                return vectorViewOp.varName();
             }
             return null;
         }
     }
-
 
     private CoreOp.VarOp findVarOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return findVarOp(varLoadOp.operands().get(0));

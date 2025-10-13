@@ -33,7 +33,7 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HatVectorBinaryOp extends HatVectorViewOp {
+public abstract class HatVectorBinaryOp extends HatVectorViewOp {
 
     private final TypeElement elementType;
     private final OpType operationType;
@@ -56,13 +56,12 @@ public class HatVectorBinaryOp extends HatVectorViewOp {
         }
     }
 
-    public HatVectorBinaryOp(String varName, TypeElement typeElement, TypeElement returnType, OpType operationType, List<Value> operands) {
+    public HatVectorBinaryOp(String varName, TypeElement typeElement, OpType operationType, List<Value> operands) {
         super(varName, operands);
         this.elementType = typeElement;
         this.operationType = operationType;
-        IO.println(returnType.toString());
-        int l = returnType.toString().length();
-        vectorN = Integer.parseInt(returnType.toString().substring(l - 1, l));
+        int l = typeElement.toString().length();
+        vectorN = Integer.parseInt(typeElement.toString().substring(l - 1, l));
     }
 
     public HatVectorBinaryOp(HatVectorBinaryOp op, CopyContext copyContext) {
@@ -70,11 +69,6 @@ public class HatVectorBinaryOp extends HatVectorViewOp {
         this.elementType = op.elementType;
         this.operationType = op.operationType;
         this.vectorN = op.vectorN;
-    }
-
-    @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HatVectorBinaryOp(this, copyContext);
     }
 
     @Override
@@ -94,5 +88,4 @@ public class HatVectorBinaryOp extends HatVectorViewOp {
     public int vectorN() {
         return vectorN;
     }
-
 }

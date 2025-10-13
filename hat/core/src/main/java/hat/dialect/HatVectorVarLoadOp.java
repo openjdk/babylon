@@ -29,57 +29,38 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
 
 import java.util.List;
 import java.util.Map;
 
-public class HatVSelectStoreOp extends HatVectorViewOp {
+public class HatVectorVarLoadOp extends HatVectorViewOp {
 
-    private final TypeElement elementType;
-    private final int lane;
-    private final CoreOp.VarOp resultVarOp;
+    private final TypeElement typeElement;
 
-    public HatVSelectStoreOp(String varName, TypeElement typeElement, int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
+    public HatVectorVarLoadOp(String varName, TypeElement typeElement, List<Value> operands) {
         super(varName, operands);
-        this.elementType = typeElement;
-        this.lane = lane;
-        this.resultVarOp = resultVarOp;
+        this.typeElement = typeElement;
     }
 
-    public HatVSelectStoreOp(HatVSelectStoreOp that, CopyContext cc) {
-        super(that, cc);
-        this.elementType = that.elementType;
-        this.lane = that.lane;
-        this.resultVarOp = that.resultVarOp;
+    public HatVectorVarLoadOp(HatVectorVarLoadOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.typeElement = op.typeElement;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HatVSelectStoreOp(this, copyContext);
+        return new HatVectorVarLoadOp(this, copyContext);
     }
 
     @Override
     public TypeElement resultType() {
-        return elementType;
+        return typeElement;
     }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vselect.store." + lane, elementType);
+        return Map.of("hat.dialect.vectorVarLoadOp." + varName(), typeElement);
     }
 
-    public String mapLane() {
-        return switch (lane) {
-            case 0 -> "x";
-            case 1 -> "y";
-            case 2 -> "z";
-            case 3 -> "w";
-            default -> throw new InternalError("Invalid lane: " + lane);
-        };
-    }
-
-    public CoreOp.VarOp resultValue() {
-        return resultVarOp;
-    }
 }

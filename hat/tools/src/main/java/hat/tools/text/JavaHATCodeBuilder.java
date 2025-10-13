@@ -36,6 +36,8 @@ import hat.dialect.HatGlobalThreadIdOp;
 import hat.dialect.HatGlobalSizeOp;
 import hat.dialect.HatLocalSizeOp;
 import hat.dialect.HatLocalThreadIdOp;
+import hat.dialect.HatVectorVarLoadOp;
+import hat.dialect.HatVectorVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -162,6 +164,12 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     }
 
     @Override
+    public T hatVectorVarOp(ScopedCodeBuilderContext buildContext, HatVectorVarOp hatVectorVarOp) {
+        blockComment("Vector Variable Not Implemented");
+        return self();
+    }
+
+    @Override
     public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
         blockComment("Store Vector Not Implemented");
         return self();
@@ -188,6 +196,12 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     @Override
     public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
         blockComment("Select Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HatVectorVarLoadOp hatVectorVarLoadOp) {
+        blockComment("Vector Variable Not Implemented");
         return self();
     }
 

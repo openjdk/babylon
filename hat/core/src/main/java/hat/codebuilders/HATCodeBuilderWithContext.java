@@ -33,6 +33,8 @@ import hat.dialect.HatVectorStoreView;
 import hat.dialect.HatLocalVarOp;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatPrivateVarOp;
+import hat.dialect.HatVectorVarLoadOp;
+import hat.dialect.HatVectorVarOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
@@ -66,6 +68,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
             case HatMemoryOp $ -> varName($);
+            case HatVectorVarOp $ -> varName($);
             case HatVectorLoadOp $ -> varName($);
             case HatVectorBinaryOp $ -> varName($);
             case null, default -> {
@@ -649,5 +652,25 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     @Override
     public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
         return generateVectorSelectStoreOp(buildContext, hatVSelectStoreOp);
+    }
+
+    @Override
+    public T hatVectorVarOp(ScopedCodeBuilderContext buildContext, HatVectorVarOp hatVectorVarOp) {
+        typeName(hatVectorVarOp.buildType())
+                .space()
+                .varName(hatVectorVarOp)
+                .space().equals().space();
+
+        Value operand = hatVectorVarOp.operands().getFirst();
+        if (operand instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HatVectorVarLoadOp hatVectorVarLoadOp) {
+        varName(hatVectorVarLoadOp);
+        return self();
     }
 }

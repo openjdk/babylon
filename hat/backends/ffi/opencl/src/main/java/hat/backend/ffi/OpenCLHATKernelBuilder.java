@@ -31,6 +31,8 @@ import hat.dialect.HatVSelectStoreOp;
 import hat.dialect.HatVectorBinaryOp;
 import hat.dialect.HatVectorLoadOp;
 import hat.dialect.HatVectorStoreView;
+import hat.dialect.HatVectorVarLoadOp;
+import hat.dialect.HatVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
@@ -106,10 +108,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
         // TODO: generalize type using the dialect node
-        typeName("float4")
-                .space()
-                .varName(hatVectorBinaryOp)
-                .space().equals().space();
+//        typeName("float4")
+//                .space()
+//                .varName(hatVectorBinaryOp)
+//                .space().equals().space();
 
         Value op1 = hatVectorBinaryOp.operands().get(0);
         Value op2 = hatVectorBinaryOp.operands().get(1);
@@ -117,7 +119,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (op1 instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        identifier(hatVectorBinaryOp.operationType().symbol()).space();
+        space().identifier(hatVectorBinaryOp.operationType().symbol()).space();
 
         if (op2 instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -130,11 +132,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
-        typeName(hatVectorLoadOp.buildType())
-                .space()
-                .varName(hatVectorLoadOp)
-                .space().equals().space()
-                .identifier("vload" + hatVectorLoadOp.loadN())
+//        typeName(hatVectorLoadOp.buildType())
+//                .space()
+//                .varName(hatVectorLoadOp)
+//                .space().equals().space()
+        identifier("vload" + hatVectorLoadOp.loadN())
                 .oparen()
                 .intConstZero()
                 .comma()
@@ -181,4 +183,5 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         }
         return self();
     }
+
 }

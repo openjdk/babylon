@@ -30,6 +30,8 @@ import hat.dialect.HatMemoryOp;
 import hat.dialect.HatVectorBinaryOp;
 import hat.dialect.HatVectorLoadOp;
 import hat.dialect.HatVectorStoreView;
+import hat.dialect.HatVectorVarLoadOp;
+import hat.dialect.HatVectorVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -176,6 +178,11 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return self();
     }
 
+    public T varName(HatVectorVarOp hatVectorVarOp) {
+        identifier(hatVectorVarOp.varName());
+        return self();
+    }
+
     public T varName(HatVectorLoadOp vectorLoadOp) {
         identifier(vectorLoadOp.varName());
         return self();
@@ -190,6 +197,12 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         identifier(hatVectorBinaryOp.varName());
         return self();
     }
+
+    public T varName(HatVectorVarLoadOp hatVectorVarLoadOp) {
+        identifier(hatVectorVarLoadOp.varName());
+        return self();
+    }
+
 
     public T pragmaKeyword() {
         return keyword("pragma");

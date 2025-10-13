@@ -63,21 +63,9 @@ public interface F32Array extends Buffer {
         return arr;
     }
 
-    default Float4 float4View(float base) {
-        // To create a new Float4, we need an accelerator instance, which at this point,. we don't have
-
-        return null;
-    }
-
-    default Float4 float4View(float base, int index) {
-        // To create a new Float4, we need an accelerator instance, which at this point,. we don't have
-
-        return null;
-    }
-
+    // This is an intrinsic for HAT in order to create views. It does not execute code
+    // on the host side, at least for now.
     default Float4 float4View(int index) {
-        // To create a new Float4, we need an accelerator instance, which at this point,. we don't have
-
         return null;
     }
 

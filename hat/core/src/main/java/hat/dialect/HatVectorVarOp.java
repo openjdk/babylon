@@ -29,57 +29,49 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
 
 import java.util.List;
 import java.util.Map;
 
-public class HatVSelectStoreOp extends HatVectorViewOp {
+public class HatVectorVarOp extends HatVectorViewOp {
 
-    private final TypeElement elementType;
-    private final int lane;
-    private final CoreOp.VarOp resultVarOp;
+    private final VarType typeElement;
+    private final int loadN;
 
-    public HatVSelectStoreOp(String varName, TypeElement typeElement, int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
+    public HatVectorVarOp(String varName, VarType typeElement, int loadN, List<Value> operands) {
         super(varName, operands);
-        this.elementType = typeElement;
-        this.lane = lane;
-        this.resultVarOp = resultVarOp;
+        this.typeElement = typeElement;
+        this.loadN = loadN;
     }
 
-    public HatVSelectStoreOp(HatVSelectStoreOp that, CopyContext cc) {
-        super(that, cc);
-        this.elementType = that.elementType;
-        this.lane = that.lane;
-        this.resultVarOp = that.resultVarOp;
+    public HatVectorVarOp(HatVectorVarOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.typeElement = op.typeElement;
+        this.loadN = op.loadN;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HatVSelectStoreOp(this, copyContext);
+        return new HatVectorVarOp(this, copyContext);
     }
 
     @Override
     public TypeElement resultType() {
-        return elementType;
+        return typeElement;
     }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vselect.store." + lane, elementType);
+        return Map.of("hat.dialect.vectorVarOp." + varName(), typeElement);
     }
 
-    public String mapLane() {
-        return switch (lane) {
-            case 0 -> "x";
-            case 1 -> "y";
-            case 2 -> "z";
-            case 3 -> "w";
-            default -> throw new InternalError("Invalid lane: " + lane);
-        };
+    public String buildType() {
+        // floatN
+        if (typeElement.valueType().toString().startsWith("hat.buffer.Float")) {
+            return "float" + loadN;
+        }
+        throw new RuntimeException("Unexpected vector type " + typeElement);
     }
 
-    public CoreOp.VarOp resultValue() {
-        return resultVarOp;
-    }
 }

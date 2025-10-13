@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 public interface Float4 extends HatVector {
+
     float x();
     float y();
     float z();
@@ -45,6 +46,34 @@ public interface Float4 extends HatVector {
     }
 
     static Float4 add(Float4 vA, Float4 vB) {
+        return null;
+    }
+
+    static Float4 sub(Float4 vA, Float4 vB) {
+        return null;
+    }
+
+    static Float4 mul(Float4 vA, Float4 vB) {
+        return null;
+    }
+
+    static Float4 div(Float4 vA, Float4 vB) {
+        return null;
+    }
+
+    default Float4 add(Float4 vb) {
+        return null;
+    }
+
+    default Float4 sub(Float4 vb) {
+        return null;
+    }
+
+    default Float4 mul(Float4 vb) {
+        return null;
+    }
+
+    default Float4 div(Float4 vb) {
         return null;
     }
 
