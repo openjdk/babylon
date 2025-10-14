@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,44 +27,57 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-import java.lang.foreign.StructLayout;
-import java.lang.invoke.MethodHandles;
+public interface Float4 extends HatVector {
 
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+    float x();
+    float y();
+    float z();
+    float w();
+    void x(float x);
+    void y(float y);
+    void z(float z);
+    void w(float w);
 
-public interface F32Array2D extends Buffer {
+    Schema<Float4> schema = Schema.of(Float4.class,
+            float4->float4.fields("x","y","z","w"));
 
-    int width();
-
-    int height();
-
-    float array(long idx);
-
-    void array(long idx, float v);
-
-    default float get(int x, int y) {
-        return array((long) y * width() + x);
+    static Float4 create(Accelerator accelerator) {
+        return schema.allocate(accelerator, 1);
     }
 
-    default void set(int x, int y, float v) {
-        array((long) y * width() + x, v);
+    static Float4 add(Float4 vA, Float4 vB) {
+        return null;
     }
 
-    Schema<F32Array2D> schema = Schema.of(F32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").stride(1).array("array"));
-
-    static F32Array2D create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator, width,height);
+    static Float4 sub(Float4 vA, Float4 vB) {
+        return null;
     }
 
-    default float[][] arrayView() {
-        float[][] arr = new float[this.height()][this.width()];
-        for (int i = 0; i < this.height(); i++) {
-            for (int j = 0; j < this.width(); j++) {
-                arr[i][j] = this.get(i, j);
-            }
-        }
-        return arr;
+    static Float4 mul(Float4 vA, Float4 vB) {
+        return null;
+    }
+
+    static Float4 div(Float4 vA, Float4 vB) {
+        return null;
+    }
+
+    default Float4 add(Float4 vb) {
+        return null;
+    }
+
+    default Float4 sub(Float4 vb) {
+        return null;
+    }
+
+    default Float4 mul(Float4 vb) {
+        return null;
+    }
+
+    default Float4 div(Float4 vb) {
+        return null;
+    }
+
+    default float[] toArray() {
+        return new float[] { x(), y(), z(), w() };
     }
 }

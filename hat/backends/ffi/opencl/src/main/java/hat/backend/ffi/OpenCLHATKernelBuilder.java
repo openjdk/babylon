@@ -25,8 +25,17 @@
 package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.HatVSelectLoadOp;
+import hat.dialect.HatVSelectStoreOp;
+import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorLoadOp;
+import hat.dialect.HatVectorStoreView;
+import hat.dialect.HatVectorVarLoadOp;
+import hat.dialect.HatVectorVarOp;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
@@ -68,4 +77,125 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name) {
         return identifier("atomic_inc").paren(_ -> ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name));
     }
+
+    @Override
+    public OpenCLHATKernelBuilder generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+        Value dest = hatVectorStoreView.operands().get(0);
+        Value index = hatVectorStoreView.operands().get(2);
+
+        identifier("vstore" + hatVectorStoreView.storeN())
+                .oparen()
+                .varName(hatVectorStoreView)
+                .comma()
+                .space()
+                .intConstZero()
+                .comma()
+                .space()
+                .ampersand();
+
+        if (dest instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        either(hatVectorStoreView.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        identifier("array").osbrace();
+
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        csbrace().cparen();
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+
+        oparen();
+        Value op1 = hatVectorBinaryOp.operands().get(0);
+        Value op2 = hatVectorBinaryOp.operands().get(1);
+
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        space().identifier(hatVectorBinaryOp.operationType().symbol()).space();
+
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        cparen();
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder generateVectorLoad(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+        Value source = hatVectorLoadOp.operands().get(0);
+        Value index = hatVectorLoadOp.operands().get(1);
+
+        identifier("vload" + hatVectorLoadOp.loadN())
+                .oparen()
+                .intConstZero()
+                .comma()
+                .space()
+                .ampersand();
+
+        if (source instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        either(hatVectorLoadOp.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        identifier("array").osbrace();
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        csbrace().cparen();
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+        identifier(hatVSelectLoadOp.varName())
+                .dot()
+                .identifier(hatVSelectLoadOp.mapLane());
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+        identifier(hatVSelectStoreOp.varName())
+                .dot()
+                .identifier(hatVSelectStoreOp.mapLane())
+                .space().equals().space();
+        if (hatVSelectStoreOp.resultValue() != null) {
+            // We have detected a direct resolved result (resolved name)
+            varName(hatVSelectStoreOp.resultValue());
+        } else {
+            // otherwise, we traverse to resolve the expression
+            Value storeValue = hatVSelectStoreOp.operands().get(1);
+            if (storeValue instanceof Op.Result r) {
+                recurse(buildContext, r.op());
+            }
+        }
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HatVectorVarOp hatVectorVarOp) {
+        typeName(hatVectorVarOp.buildType())
+                .space()
+                .varName(hatVectorVarOp)
+                .space().equals().space();
+
+        Value operand = hatVectorVarOp.operands().getFirst();
+        if (operand instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HatVectorVarLoadOp hatVectorVarLoadOp) {
+        varName(hatVectorVarLoadOp);
+        return self();
+    }
+
 }

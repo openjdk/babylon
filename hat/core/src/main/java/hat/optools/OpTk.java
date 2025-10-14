@@ -33,21 +33,39 @@ import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatThreadOP;
+import hat.dialect.HatVSelectLoadOp;
+import hat.dialect.HatVectorAddOp;
+import hat.dialect.HatVectorDivOp;
+import hat.dialect.HatVectorMulOp;
+import hat.dialect.HatVectorSubOp;
+import hat.dialect.HatVectorVarOp;
 import hat.ifacemapper.MappableIface;
-import jdk.incubator.code.*;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.VarType;
-import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.java.ArrayType;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
-import java.lang.invoke.CallSite;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.sql.Array;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class OpTk {
@@ -92,14 +110,6 @@ public class OpTk {
     }
 
     public static boolean isBufferArray(MethodHandles.Lookup l, Op op) {
-        // first check if the return is an array type
-        if (op instanceof CoreOp.VarOp vop) {
-            if (!(vop.varValueType() instanceof ArrayType)) return false;
-        } else if (!(op instanceof JavaOp.ArrayAccessOp)){
-            if (!(op.resultType() instanceof ArrayType)) return false;
-        }
-
-        // then check if returned array is from a buffer access
         while (!(op instanceof JavaOp.InvokeOp iop)) {
             if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
                 op = r.op();
@@ -108,11 +118,31 @@ public class OpTk {
             }
         }
 
-        if (iop.invokeDescriptor().refType() instanceof JavaType javaType) {
-            return isAssignable(l, javaType, MappableIface.class);
+        return iop.invokeDescriptor().name().toLowerCase().contains("arrayview");
+    }
+
+    public static boolean notGlobalVarOp(MethodHandles.Lookup l, Op op) {
+        while (!(op instanceof JavaOp.InvokeOp iop)) {
+            if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
+                op = r.op();
+            } else {
+                return false;
+            }
         }
 
-        return false;
+        return iop.invokeDescriptor().name().toLowerCase().contains("local") ||
+                iop.invokeDescriptor().name().toLowerCase().contains("private");
+    }
+
+    public static boolean isBufferInitialize(MethodHandles.Lookup l, Op op) {
+        // first check if the return is an array type
+        if (op instanceof CoreOp.VarOp vop) {
+            if (!(vop.varValueType() instanceof ArrayType)) return false;
+        } else if (!(op instanceof JavaOp.ArrayAccessOp)){
+            if (!(op.resultType() instanceof ArrayType)) return false;
+        }
+
+        return isBufferArray(l, op);
     }
 
     public static boolean isArrayView(MethodHandles.Lookup l, CoreOp.FuncOp entry) {
@@ -279,6 +309,7 @@ public class OpTk {
                 (   (op instanceof CoreOp.VarAccessOp.VarStoreOp && op.operands().get(1).uses().size() < 2)
                         || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
                         || (op instanceof HatMemoryOp)
+                        || (op instanceof HatVectorVarOp)
                 )
                         && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
                         && !(op instanceof CoreOp.YieldOp));
@@ -371,6 +402,7 @@ public class OpTk {
             case JavaOp.FieldAccessOp o -> 0;
             case HatThreadOP o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
+            case HatVSelectLoadOp o -> 0;      // same as VarLoadOp
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;
@@ -379,9 +411,13 @@ public class OpTk {
             case JavaOp.NegOp  o-> 1;
             case JavaOp.ModOp o -> 2;
             case JavaOp.MulOp o -> 2;
+            case HatVectorMulOp o -> 2;
             case JavaOp.DivOp o -> 2;
+            case HatVectorDivOp o -> 2;
             case JavaOp.NotOp o -> 2;
             case JavaOp.AddOp o -> 3;
+            case HatVectorAddOp o -> 3;
+            case HatVectorSubOp o -> 3;
             case JavaOp.SubOp o -> 3;
             case JavaOp.AshrOp o -> 4;
             case JavaOp.LshlOp o -> 4;

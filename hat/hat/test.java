@@ -169,7 +169,8 @@ void main(String[] argv) {
                 "oracle.code.hat.TestConstants",
                 "oracle.code.hat.TestBlackscholes",
                 "oracle.code.hat.TestNbody",
-                "oracle.code.hat.TestArrayView"
+                "oracle.code.hat.TestArrayView",
+                "oracle.code.hat.TestVectorTypes"
         };
 
         // Test the whole suite

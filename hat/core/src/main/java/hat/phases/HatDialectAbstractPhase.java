@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,25 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.phases;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import hat.Config;
 
-import java.lang.invoke.MethodHandles;
+public class HatDialectAbstractPhase {
 
-public interface S08x3RGBImage extends ImageIfaceBuffer<S08x3RGBImage> {
+    protected final Config config;
 
-    int width();
-    int height();
-    byte data(long idx);
-    void data(long idx, byte v);
-
-    Schema<S08x3RGBImage> schema = Schema.of(S08x3RGBImage.class, s -> s
-            .arrayLen("width", "height").stride(3).array("data")
-    );
-
-    static S08x3RGBImage create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator,width,height);
+    HatDialectAbstractPhase(Config config) {
+        this.config = config;
     }
 }
