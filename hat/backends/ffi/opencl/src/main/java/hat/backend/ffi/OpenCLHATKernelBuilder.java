@@ -25,6 +25,7 @@
 package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HatVSelectLoadOp;
 import hat.dialect.HatVSelectStoreOp;
@@ -95,11 +96,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (dest instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        if (hatVectorStoreView.isShared()) {
-            dot();
-        } else {
-            rarrow();
-        }
+        either(hatVectorStoreView.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
@@ -145,19 +142,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             recurse(buildContext, r.op());
         }
 
-        if (hatVectorLoadOp.isSharedOrPrivate()) {
-            dot();
-        } else {
-            rarrow();
-        }
+        either(hatVectorLoadOp.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
         identifier("array").osbrace();
-
         if (index instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-
         csbrace().cparen();
-
         return self();
     }
 

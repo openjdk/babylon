@@ -37,20 +37,20 @@ public class HatVectorStoreView extends HatVectorViewOp {
 
     private final TypeElement elementType;
     private final int storeN;
-    private final boolean isShared;
+    private final boolean isSharedOrPrivate;
 
-    public HatVectorStoreView(String varName, TypeElement elementType, int storeN, boolean isShared, List<Value> operands) {
+    public HatVectorStoreView(String varName, TypeElement elementType, int storeN, boolean isSharedOrPrivate, List<Value> operands) {
         super(varName, operands);
         this.elementType = elementType;
         this.storeN = storeN;
-        this.isShared = isShared;
+        this.isSharedOrPrivate = isSharedOrPrivate;
     }
 
     public HatVectorStoreView(HatVectorStoreView op, CopyContext copyContext) {
         super(op, copyContext);
         this.elementType = op.elementType;
         this.storeN = op.storeN;
-        this.isShared = op.isShared;
+        this.isSharedOrPrivate = op.isSharedOrPrivate;
     }
 
     @Override
@@ -72,7 +72,7 @@ public class HatVectorStoreView extends HatVectorViewOp {
         return storeN;
     }
 
-    public boolean isShared() {
-        return this.isShared;
+    public boolean isSharedOrPrivate() {
+        return this.isSharedOrPrivate;
     }
 }

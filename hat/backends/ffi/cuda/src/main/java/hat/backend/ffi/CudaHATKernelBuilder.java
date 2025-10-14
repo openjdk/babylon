@@ -25,6 +25,7 @@
 package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HatVSelectLoadOp;
 import hat.dialect.HatVSelectStoreOp;
@@ -98,7 +99,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (dest instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        rarrow().identifier("array").osbrace();
+
+        either(hatVectorStoreView.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -180,7 +183,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (source instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        rarrow().identifier("array").osbrace();
+        either(hatVectorLoadOp.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
             recurse(buildContext, r.op());
