@@ -206,7 +206,6 @@ public class TestVectorTypes {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
-            int lix = kernelContext.lix;
             pm.storeFloat4View(vA, 0);
             kernelContext.barrier();
             Float4 r = pm.float4View(0);
