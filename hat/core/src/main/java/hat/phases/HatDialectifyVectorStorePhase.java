@@ -115,7 +115,7 @@ public class HatDialectifyVectorStorePhase extends HatDialectAbstractPhase imple
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
         if (Config.SHOW_COMPILATION_PHASES.isSet(config))
-            IO.println("BEFORE Vector Types transform: " + funcOp.toText());
+            IO.println("[BEFORE] Vector Types STORE Transform: " + funcOp.toText());
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
@@ -157,7 +157,7 @@ public class HatDialectifyVectorStorePhase extends HatDialectAbstractPhase imple
             return blockBuilder;
         });
         if (Config.SHOW_COMPILATION_PHASES.isSet(config))
-            IO.println("After Vector Types Transform: " + funcOp.toText());
+            IO.println("[AFTER] Vector Types STORE Transform: " + funcOp.toText());
         return funcOp;
     }
 }

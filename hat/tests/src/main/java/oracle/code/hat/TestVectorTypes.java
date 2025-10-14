@@ -173,8 +173,8 @@ public class TestVectorTypes {
         SharedMemory sm = SharedMemory.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
             int lix = kernelContext.lix;
+            Float4 vA = a.float4View(index * 4);
             sm.storeFloat4View(vA, lix * 4);
             kernelContext.barrier();
             Float4 r = sm.float4View(lix * 4);
@@ -209,6 +209,23 @@ public class TestVectorTypes {
             pm.storeFloat4View(vA, 0);
             kernelContext.barrier();
             Float4 r = pm.float4View(0);
+            b.storeFloat4View(r, index * 4);
+        }
+    }
+
+    @CodeReflection
+    public static void vectorOps12(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
+        SharedMemory sm = SharedMemory.createLocal();
+        if (kernelContext.gix < kernelContext.gsx) {
+            int index = kernelContext.gix;
+            int lix = kernelContext.lix;
+            Float4 vA = a.float4View(index * 4);
+            sm.array(lix * 4 + 0, vA.x());
+            sm.array(lix * 4 + 1, vA.y());
+            sm.array(lix * 4 + 2, vA.z());
+            sm.array(lix * 4 + 3, vA.w());
+            kernelContext.barrier();
+            Float4 r = sm.float4View(lix * 4);
             b.storeFloat4View(r, index * 4);
         }
     }
@@ -289,6 +306,13 @@ public class TestVectorTypes {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps11(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void computeGraph12(@RO ComputeContext cc, @RO F32Array a,  @RW F32Array b, int size) {
+        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
+        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
     }
 
     @HatTest
@@ -526,5 +550,23 @@ public class TestVectorTypes {
         }
     }
 
+    @HatTest
+    public void testVectorTypes12() {
+        final int size = 1024;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var arrayA = F32Array.create(accelerator, size);
+        var arrayB = F32Array.create(accelerator, size);
 
+        Random r = new Random(19);
+        for (int i = 0; i < size; i++) {
+            arrayA.array(i, r.nextFloat());
+            arrayB.array(i, r.nextFloat());
+        }
+
+        accelerator.compute(cc -> TestVectorTypes.computeGraph12(cc, arrayA, arrayB, size));
+
+        for (int i = 0; i < size; i ++) {
+            HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
+        }
+    }
 }
