@@ -88,4 +88,11 @@ public abstract class HatVectorBinaryOp extends HatVectorViewOp {
     public int vectorN() {
         return vectorN;
     }
+
+    public String buildType() {
+        if (elementType.toString().startsWith("hat.buffer.Float")) {
+            return "float" + vectorN;
+        }
+        throw new RuntimeException("Unexpected vector type " + elementType);
+    }
 }

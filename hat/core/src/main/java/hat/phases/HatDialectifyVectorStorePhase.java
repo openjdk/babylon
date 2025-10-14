@@ -47,7 +47,6 @@ import java.util.stream.Stream;
 public class HatDialectifyVectorStorePhase extends HatDialectAbstractPhase implements HatDialectifyPhase {
 
     MethodHandles.Lookup lookup;
-    private final String METHOD_NAME = "float4View";
     private final StoreView vectorOperation;
 
     public HatDialectifyVectorStorePhase(MethodHandles.Lookup lookup, StoreView vectorOperation, Config config) {
@@ -62,6 +61,7 @@ public class HatDialectifyVectorStorePhase extends HatDialectAbstractPhase imple
 
     public enum StoreView {
         FLOAT4_STORE("storeFloat4View");
+
         final String methodName;
         StoreView(String methodName) {
             this.methodName = methodName;
@@ -145,7 +145,7 @@ public class HatDialectifyVectorStorePhase extends HatDialectAbstractPhase imple
                 boolean isSharedOrPrivate = findIsSharedOrPrivateSpace(invokeOp.operands().get(0));
 
                 HatVectorViewOp storeView = switch (vectorOperation) {
-                    case FLOAT4_STORE -> new HatVectorStoreView(name, invokeOp.resultType(), 4, isSharedOrPrivate,  outputOperandsVarOp);
+                    case FLOAT4_STORE -> new HatVectorStoreView(name, invokeOp.resultType(), 4, HatVectorViewOp.VectorType.FLOAT4, isSharedOrPrivate,  outputOperandsVarOp);
                 };
                 Op.Result hatLocalResult = blockBuilder.op(storeView);
                 storeView.setLocation(invokeOp.location());

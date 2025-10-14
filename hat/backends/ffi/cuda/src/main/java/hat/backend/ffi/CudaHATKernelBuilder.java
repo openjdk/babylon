@@ -89,7 +89,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
         keyword("reinterpret_cast")
                 .lt()
-                .typeName("float4")  // fixme
+                .typeName(hatVectorStoreView.buildType())
                 .space()
                 .asterisk()
                 .gt()
@@ -121,7 +121,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value op2 = hatVectorBinaryOp.operands().get(1);
 
         if (op1 instanceof Op.Result r && r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp1) {
-            typeName("float" + hatVectorBinaryOp.vectorN()).space()
+            typeName(hatVectorBinaryOp1.buildType()).space()
                             .identifier(hatVectorBinaryOp.varName() + "_1")
                                     .semicolon().nl();
             hatVectorBinaryOp1.varName(hatVectorBinaryOp.varName() + "_1");
@@ -129,7 +129,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
 
         if (op2 instanceof Op.Result r && r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp2) {
-            typeName("float" + hatVectorBinaryOp.vectorN()).space()
+            typeName(hatVectorBinaryOp2.buildType()).space()
                     .identifier(hatVectorBinaryOp.varName() + "_2")
                     .semicolon().nl();
             hatVectorBinaryOp2.varName(hatVectorBinaryOp.varName() + "_2");
@@ -246,5 +246,4 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         varName(hatVectorVarLoadOp);
         return self();
     }
-
 }

@@ -60,4 +60,18 @@ public abstract class HatVectorViewOp extends HatOP {
             default -> throw new InternalError("Invalid lane: " + lane);
         };
     }
+
+    public enum VectorType {
+        FLOAT4("float4");
+
+        private final String type;
+
+        VectorType(String type) {
+            this.type = type;
+        }
+
+        public String type() {
+            return type;
+        }
+    }
 }
