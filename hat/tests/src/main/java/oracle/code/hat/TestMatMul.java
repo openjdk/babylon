@@ -34,6 +34,7 @@ import hat.LocalMesh2D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
+import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
@@ -226,6 +227,21 @@ public class TestMatMul {
             }
         }
     }
+
+    private static void runSequential(F32ArrayPadded matrixA, F32ArrayPadded matrixB, F32ArrayPadded matrixC, final int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                float sum = 0;
+                for (int k = 0; k < size; k++) {
+                    float a = matrixA.array((long) i * size + k);
+                    float b = matrixB.array((long) k * size + j);
+                    sum += a * b;
+                }
+                matrixC.array((long) i * size + j, sum);
+            }
+        }
+    }
+
 
 
     @HatTest
@@ -545,7 +561,7 @@ public class TestMatMul {
 
     // Code ported from the HAT example module.
     @CodeReflection
-    public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW F32ArrayPadded matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -653,7 +669,7 @@ public class TestMatMul {
     }
 
     @CodeReflection
-    public static void matrixMultiply2DRegisterTilingVectorized(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, final int size) {
+    public static void matrixMultiply2DRegisterTilingVectorized(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW  F32ArrayPadded matrixC, final int size) {
         ComputeRange cudaRange = new ComputeRange(new GlobalMesh2D(256, 256), new LocalMesh2D(16, 16));
         cc.dispatchKernel(cudaRange,
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, size)
@@ -701,12 +717,12 @@ public class TestMatMul {
         var accelerator = new Accelerator(lookup, Backend.FIRST);
 
         final int size = 1024;
-        var matrixA = F32Array.create(accelerator, size * size);
-        var matrixB = F32Array.create(accelerator, size * size);
+        var matrixA = F32ArrayPadded.create(accelerator, size * size);
+        var matrixB = F32ArrayPadded.create(accelerator, size * size);
 
         // Matrix for the results
-        var matrixC = F32Array.create(accelerator, size * size);
-        var resultSeq = F32Array.create(accelerator, size * size);
+        var matrixC = F32ArrayPadded.create(accelerator, size * size);
+        var resultSeq = F32ArrayPadded.create(accelerator, size * size);
 
         // Initialize matrices (A and B have the same size)
         Random r = new Random(19);

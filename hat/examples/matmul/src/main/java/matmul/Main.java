@@ -35,6 +35,7 @@ import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
 
+import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
@@ -359,7 +360,7 @@ public class Main {
      * @param size
      */
     @CodeReflection
-    public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingVectorized(@RO KernelContext kc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW F32ArrayPadded matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -553,7 +554,7 @@ public class Main {
     }
 
     @CodeReflection
-    public static void matrixMultiply2DRegisterTilingVectorizedAccesses(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
+    public static void matrixMultiply2DRegisterTilingVectorizedAccesses(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW  F32ArrayPadded matrixC, int globalSize) {
         ComputeRange cudaRange = new ComputeRange(new GlobalMesh2D(256, 256), new LocalMesh2D(16, 16));
         cc.dispatchKernel(cudaRange,
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, globalSize)
@@ -561,6 +562,20 @@ public class Main {
     }
 
     private static void runSequential(F32Array matrixA, F32Array matrixB, F32Array matrixC, final int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                float sum = 0;
+                for (int k = 0; k < size; k++) {
+                    float a = matrixA.array((long) i * size + k);
+                    float b = matrixB.array((long) k * size + j);
+                    sum += a * b;
+                }
+                matrixC.array((long) i * size + j, sum);
+            }
+        }
+    }
+
+    private static void runSequential(F32ArrayPadded matrixA, F32ArrayPadded matrixB, F32Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 float sum = 0;
@@ -615,28 +630,51 @@ public class Main {
 
         System.out.println("[INFO] NDRangeConfiguration: " + configuration);
 
-        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
         System.out.println(accelerator);
 
         final int size = 1024;
-        var matrixA = F32Array.create(accelerator, size * size);
-        var matrixB = F32Array.create(accelerator, size * size);
-
-        // Matrix for the results
-        var matrixC = F32Array.create(accelerator, size * size);
-        var resultSeq = F32Array.create(accelerator, size * size);
-
-        // Initialize matrices (A and B have the same size)
+        F32Array matrixA;
+        F32Array matrixB;
+        F32Array matrixC;
+        F32ArrayPadded matrixAPad;
+        F32ArrayPadded matrixBPad;
+        F32ArrayPadded matrixCPad;
         Random r = new Random(19);
-
-        for (int j = 0; j < matrixA.length(); j++) {
-            matrixA.array(j, r.nextFloat());
-            matrixB.array(j, r.nextFloat());
+        if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
+            matrixC = null;
+            matrixB = null;
+            matrixA = null;
+            matrixAPad = F32ArrayPadded.create(accelerator, size * size);
+            matrixBPad = F32ArrayPadded.create(accelerator, size * size);
+            matrixCPad = F32ArrayPadded.create(accelerator, size * size);
+            for (int j = 0; j < matrixAPad.length(); j++) {
+                matrixAPad.array(j, r.nextFloat());
+                matrixBPad.array(j, r.nextFloat());
+            }
+        } else {
+            matrixCPad = null;
+            matrixBPad = null;
+            matrixAPad = null;
+            matrixA = F32Array.create(accelerator, size * size);
+            matrixB = F32Array.create(accelerator, size * size);
+            matrixC = F32Array.create(accelerator, size * size);
+            for (int j = 0; j < matrixA.length(); j++) {
+                matrixA.array(j, r.nextFloat());
+                matrixB.array(j, r.nextFloat());
+            }
         }
 
+
+        var resultSeq = F32Array.create(accelerator, size * size);
+
         // Run Seq for reference
-        runSequential(matrixA, matrixB, resultSeq, size);
+        if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
+            runSequential(matrixAPad, matrixBPad, resultSeq, size);
+        } else {
+            runSequential(matrixA, matrixB, resultSeq, size);
+        }
 
         for (int it = 0; it < NUM_ITERATIONS; it++) {
             long start = System.nanoTime();
@@ -655,7 +693,7 @@ public class Main {
                 case _2DREGISTER_TILING -> accelerator.compute(cc ->
                             matrixMultiply2DRegisterTiling(cc, matrixA, matrixB, matrixC, size));
                 case _2DREGISTER_TILING_VECTORIZED -> accelerator.compute(cc ->
-                            matrixMultiply2DRegisterTilingVectorizedAccesses(cc, matrixA, matrixB, matrixC, size));
+                            matrixMultiply2DRegisterTilingVectorizedAccesses(cc, matrixAPad, matrixBPad, matrixCPad, size));
                 default -> throw new RuntimeException("Unknown configuration: " + configuration);
             }
 
@@ -668,8 +706,10 @@ public class Main {
                 boolean isCorrect = true;
                 for (int i = 0; i < size; i++) {
                     for (int j = 0; j < size; j++) {
-                        if (Math.abs(resultSeq.array(i * size + j) - matrixC.array(i * size + j)) > 0.01f) {
-                            IO.println(resultSeq.array(i * size + j) + " != " + matrixC.array(i * size + j));
+                        float expectedValue = resultSeq.array(i * size + j);
+                        float gotValue = configuration == Configuration._2DREGISTER_TILING_VECTORIZED? matrixCPad.array(i * size + j) : matrixC.array(i * size + j);
+                        if (Math.abs(expectedValue - gotValue) > 0.01f) {
+                            IO.println(expectedValue + " != " + gotValue);
                             isCorrect = false;
                             break;
                         }

@@ -31,30 +31,31 @@ import java.lang.foreign.MemorySegment;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 
-public interface F32Array extends Buffer {
+public interface F32ArrayPadded extends Buffer {
     int length();
     float array(long idx);
     void array(long idx, float f);
 
-    int HEADER_BYTES = 4;
+    int PADDING_BYTES = 12;
+    int HEADER_BYTES = 4 + PADDING_BYTES;
 
-    Schema<F32Array> schema = Schema.of(F32Array.class, s32Array ->
-            s32Array.arrayLen("length").array("array"));
+    Schema<F32ArrayPadded> schema = Schema.of(F32ArrayPadded.class, s32Array ->
+            s32Array.arrayLen("length").pad(12).array("array"));
 
-    static F32Array create(Accelerator accelerator, int length){
+    static F32ArrayPadded create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
     }
 
-    default F32Array copyFrom(float[] floats) {
+    default F32ArrayPadded copyFrom(float[] floats) {
         MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, HEADER_BYTES, length());
         return this;
     }
 
-    static F32Array createFrom(Accelerator accelerator, float[] arr){
+    static F32ArrayPadded createFrom(Accelerator accelerator, float[] arr){
         return create( accelerator, arr.length).copyFrom(arr);
     }
 
-    default F32Array copyTo(float[] floats) {
+    default F32ArrayPadded copyTo(float[] floats) {
         MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, HEADER_BYTES, floats, 0, length());
         return this;
     }
@@ -64,5 +65,14 @@ public interface F32Array extends Buffer {
         this.copyTo(arr);
         return arr;
     }
+
+    // This is an intrinsic for HAT to create views. It does not execute code
+    // on the host side, at least for now.
+    default Float4 float4View(int index) {
+        return null;
+    }
+
+    // This is an intrinsic for HAT to store views. It does not execute code
+    default void storeFloat4View(Float4 v, int index) {}
 
 }

@@ -28,6 +28,7 @@ import hat.*;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
+import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
@@ -42,7 +43,7 @@ import java.util.Random;
 public class TestVectorTypes {
 
     @CodeReflection
-    public static void vectorOps01(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c) {
+    public static void vectorOps01(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -53,7 +54,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps02(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
+    public static void vectorOps02(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -64,7 +65,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps03(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
+    public static void vectorOps03(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -81,7 +82,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps04(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
+    public static void vectorOps04(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -94,7 +95,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps05(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c) {
+    public static void vectorOps05(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -105,7 +106,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps06(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c) {
+    public static void vectorOps06(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -117,7 +118,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps07(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c) {
+    public static void vectorOps07(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -128,7 +129,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps08(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c) {
+    public static void vectorOps08(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
             Float4 vA = a.float4View(index * 4);
@@ -139,7 +140,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps09(@RO KernelContext kernelContext, @RO F32Array a, @RO F32Array b, @RW F32Array c) {
+    public static void vectorOps09(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c) {
         // Checking composition
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -169,7 +170,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps10(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
+    public static void vectorOps10(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         SharedMemory sm = SharedMemory.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -201,7 +202,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps11(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
+    public static void vectorOps11(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         PrivateMemory pm = PrivateMemory.createPrivate();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -214,7 +215,7 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void vectorOps12(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
+    public static void vectorOps12(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         SharedMemory sm = SharedMemory.createLocal();
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
@@ -231,42 +232,42 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
-    public static void computeGraph01(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c, int size) {
+    public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4), new LocalMesh1D(128));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps01(kernelContext, a, b, c));
     }
 
     @CodeReflection
-    public static void computeGraph02(@RO ComputeContext cc, @RW F32Array a, @RW F32Array b, int size) {
+    public static void computeGraph02(@RO ComputeContext cc, @RW F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps02(kernelContext, a, b));
     }
 
     @CodeReflection
-    public static void computeGraph03(@RO ComputeContext cc, @RO F32Array a, @RW F32Array b, int size) {
+    public static void computeGraph03(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps03(kernelContext, a, b));
     }
 
     @CodeReflection
-    public static void computeGraph04(@RO ComputeContext cc, @RO F32Array a, @RW F32Array b, int size) {
+    public static void computeGraph04(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps04(kernelContext, a, b));
     }
 
     @CodeReflection
-    public static void computeGraph05(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c,  int size) {
+    public static void computeGraph05(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps05(kernelContext, a, b, c));
     }
 
     @CodeReflection
-    public static void computeGraph06(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c,  int size) {
+    public static void computeGraph06(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps06(kernelContext, a, b, c));
@@ -274,42 +275,42 @@ public class TestVectorTypes {
 
 
     @CodeReflection
-    public static void computeGraph07(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c,  int size) {
+    public static void computeGraph07(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps07(kernelContext, a, b, c));
     }
 
     @CodeReflection
-    public static void computeGraph08(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c,  int size) {
+    public static void computeGraph08(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps08(kernelContext, a, b, c));
     }
 
     @CodeReflection
-    public static void computeGraph09(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c,  int size) {
+    public static void computeGraph09(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps09(kernelContext, a, b, c));
     }
 
     @CodeReflection
-    public static void computeGraph10(@RO ComputeContext cc, @RO F32Array a,  @RW F32Array b, int size) {
+    public static void computeGraph10(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps10(kernelContext, a, b));
     }
 
     @CodeReflection
-    public static void computeGraph11(@RO ComputeContext cc, @RO F32Array a,  @RW F32Array b, int size) {
+    public static void computeGraph11(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps11(kernelContext, a, b));
     }
 
     @CodeReflection
-    public static void computeGraph12(@RO ComputeContext cc, @RO F32Array a,  @RW F32Array b, int size) {
+    public static void computeGraph12(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
@@ -319,9 +320,9 @@ public class TestVectorTypes {
     public void testVectorTypes01() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
-        var arrayC = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
+        var arrayC = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -341,8 +342,8 @@ public class TestVectorTypes {
     public void testVectorTypes02() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -363,8 +364,8 @@ public class TestVectorTypes {
     public void testVectorTypes03() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -385,8 +386,8 @@ public class TestVectorTypes {
     public void testVectorTypes04() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -407,9 +408,9 @@ public class TestVectorTypes {
     public void testVectorTypes05() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
-        var arrayC = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
+        var arrayC = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -428,9 +429,9 @@ public class TestVectorTypes {
     public void testVectorTypes06() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
-        var arrayC = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
+        var arrayC = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -449,9 +450,9 @@ public class TestVectorTypes {
     public void testVectorTypes07() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
-        var arrayC = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
+        var arrayC = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -470,9 +471,9 @@ public class TestVectorTypes {
     public void testVectorTypes08() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
-        var arrayC = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
+        var arrayC = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -492,9 +493,9 @@ public class TestVectorTypes {
     public void testVectorTypes09() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
-        var arrayC = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
+        var arrayC = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -514,8 +515,8 @@ public class TestVectorTypes {
     public void testVectorTypes10() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -534,8 +535,8 @@ public class TestVectorTypes {
     public void testVectorTypes11() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
@@ -554,8 +555,8 @@ public class TestVectorTypes {
     public void testVectorTypes12() {
         final int size = 1024;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var arrayA = F32Array.create(accelerator, size);
-        var arrayB = F32Array.create(accelerator, size);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+        var arrayB = F32ArrayPadded.create(accelerator, size);
 
         Random r = new Random(19);
         for (int i = 0; i < size; i++) {
