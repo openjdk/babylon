@@ -218,7 +218,6 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 CoreOp.FuncOp f = convertArrayViewForFunc(computeContext.accelerator.lookup, method.funcOp());
                 method.funcOp(f);
             });
-
         }
     }
 
@@ -241,8 +240,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 }
                 case CoreOp.VarOp vop -> {
                     if (OpTk.isBufferInitialize(l, vop) &&
-                            OpTk.firstOperand(vop) instanceof Op.Result r &&
-                            !(r.op() instanceof JavaOp.NewOp)) { // makes sure we don't process a new int[] for example
+                            OpTk.firstOperand(vop) instanceof Op.Result r) { // makes sure we don't process a new int[] for example
                         Op bufferLoad = replaced.get(r).op(); // gets the VarLoadOp associated w/ og buffer
                         replaced.put(vop.result(), (Op.Result) OpTk.firstOperand(bufferLoad)); // gets VarOp associated w/ og buffer
                         return bb;
@@ -251,13 +249,11 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 case CoreOp.VarAccessOp.VarLoadOp vlop -> {
                     if (OpTk.isBufferInitialize(l, vlop) &&
                             OpTk.firstOperand(vlop) instanceof Op.Result r) {
-                        // if this is the VarLoadOp after the .arrayView() InvokeOp
-                        if (r.op() instanceof CoreOp.VarOp) {
-                            if (OpTk.notGlobalVarOp(l, vlop)) {
-                                replaced.put(vlop.result(), (Op.Result) OpTk.firstOperand(((Op.Result) OpTk.firstOperand(r.op())).op()));
-                            } else {
-                                replaced.put(vlop.result(), bufferVarLoads.get(replaced.get(r).op()).result());
-                            }
+                        if (r.op() instanceof CoreOp.VarOp) { // if this is the VarLoadOp after the .arrayView() InvokeOp
+                            Op.Result replacement = (OpTk.notGlobalVarOp(l, vlop)) ?
+                                    (Op.Result) OpTk.firstOperand(((Op.Result) OpTk.firstOperand(r.op())).op()) :
+                                    bufferVarLoads.get(replaced.get(r).op()).result();
+                            replaced.put(vlop.result(), replacement);
                         } else { // if this is a VarLoadOp loading in the buffer
                             Value loaded = OpTk.getValue(bb, replaced.get(r));
                             Op.Result newVlop = bb.op(CoreOp.VarAccessOp.varLoad(loaded));
@@ -298,14 +294,12 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                             } else {
                                 JavaOp.ConvOp conv = JavaOp.conv(JavaType.LONG, OpTk.getValue(bb, alop.operands().get(1)));
                                 Op.Result convRes = bb.op(conv);
-                                if (alop.result() != null) {
-                                    ClassType classType = (ClassType) buffer.type();
-                                    Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, classType);
-                                    Class<?> storedClass = OpTk.primitiveTypeToClass(alop.result().type());
-                                    MethodRef m = MethodRef.method(c, "array", storedClass, long.class);
-                                    Op.Result invokeRes = bb.op(JavaOp.invoke(m, OpTk.getValue(bb, buffer), convRes));
-                                    bb.context().mapValue(alop.result(), invokeRes);
-                                }
+
+                                Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) buffer.type());
+                                Class<?> storedClass = OpTk.primitiveTypeToClass(alop.result().type());
+                                MethodRef m = MethodRef.method(c, "array", storedClass, long.class);
+                                Op.Result invokeRes = bb.op(JavaOp.invoke(m, OpTk.getValue(bb, buffer), convRes));
+                                bb.context().mapValue(alop.result(), invokeRes);
                             }
                         }
                     }
@@ -341,14 +335,10 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                                 Op.Result idx = bb.op(JavaOp.conv(JavaType.LONG, OpTk.getValue(bb, asop.operands().get(1))));
                                 Value val = OpTk.getValue(bb, asop.operands().getLast());
 
-                                ClassType classType;
-                                boolean noRootVlop = false;
-                                if (buffer.op() instanceof CoreOp.VarOp vop) {
-                                    classType = (ClassType) vop.varValueType();
-                                    noRootVlop = true;
-                                } else {
-                                    classType = (ClassType) buffer.type();
-                                }
+                                boolean noRootVlop = (buffer.op() instanceof CoreOp.VarOp);
+                                ClassType classType = (noRootVlop) ?
+                                        (ClassType) ((CoreOp.VarOp) buffer.op()).varValueType() :
+                                        (ClassType) buffer.type();
 
                                 Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, classType);
                                 Class<?> storedClass = OpTk.primitiveTypeToClass(val.type());
@@ -363,8 +353,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                     return bb;
                 }
                 case JavaOp.ArrayLengthOp alen -> {
-                    if (OpTk.firstOperand(alen) instanceof Op.Result r &&
-                            OpTk.isBufferArray(l, alen)) {
+                    if (OpTk.isBufferArray(l, alen) &&
+                            OpTk.firstOperand(alen) instanceof Op.Result r) {
                         Op.Result buffer = replaced.get(r);
                         Class<?> c = (Class<?>) OpTk.classTypeToTypeOrThrow(l, (ClassType) buffer.type());
                         MethodRef m = MethodRef.method(c, "length", int.class);
