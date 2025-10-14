@@ -63,14 +63,6 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
                 return hatVectorVarOp;
             }
 
-//            if (value instanceof Op.Result result && result.op() instanceof HatVectorLoadOp hatVectorLoadOp) {
-//                return hatVectorLoadOp;
-//            }
-//
-//            if (value instanceof Op.Result result && result.op() instanceof HatVectorBinaryOp hatVectorBinaryOp) {
-//                return hatVectorBinaryOp;
-//            }
-
             if (parent != null) {
                 return parent.resolve(value);
             }
