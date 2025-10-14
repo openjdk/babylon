@@ -1,0 +1,163 @@
+/*
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+package hat.phases;
+
+import hat.Config;
+import hat.dialect.HatLocalVarOp;
+import hat.dialect.HatPrivateVarOp;
+import hat.dialect.HatVectorStoreView;
+import hat.dialect.HatVectorViewOp;
+import hat.optools.OpTk;
+import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+
+import java.lang.invoke.MethodHandles;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class HatDialectifyVectorStorePhase extends HatDialectAbstractPhase implements HatDialectifyPhase {
+
+    MethodHandles.Lookup lookup;
+    private final StoreView vectorOperation;
+
+    public HatDialectifyVectorStorePhase(MethodHandles.Lookup lookup, StoreView vectorOperation, Config config) {
+        super(config);
+        this.lookup = lookup;
+        this.vectorOperation = vectorOperation;
+    }
+
+    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
+        return invokeOp.invokeDescriptor().name().equals(methodName);
+    }
+
+    public enum StoreView {
+        FLOAT4_STORE("storeFloat4View");
+
+        final String methodName;
+        StoreView(String methodName) {
+            this.methodName = methodName;
+        }
+    }
+
+    private boolean isVectorOperation(JavaOp.InvokeOp invokeOp, Value varValue) {
+        if (varValue instanceof Op.Result r
+                && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            TypeElement typeElement = varLoadOp.resultType();
+            boolean isHatVectorType = typeElement.toString().startsWith("hat.buffer.Float");
+            return isHatVectorType
+                    && OpTk.isIfaceBufferMethod(lookup, invokeOp)
+                    && isMethod(invokeOp, vectorOperation.methodName);
+        }
+        return false;
+    }
+
+    private String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findNameVector(varLoadOp.operands().get(0));
+    }
+
+    private String findNameVector(Value v) {
+        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return findNameVector(varLoadOp);
+        } else {
+            // Leaf of tree -
+            if (v instanceof CoreOp.Result r && r.op() instanceof HatVectorViewOp hatVectorViewOp) {
+                return hatVectorViewOp.varName();
+            }
+            return null;
+        }
+    }
+
+    private boolean findIsSharedOrPrivateSpace(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findIsSharedOrPrivateSpace(varLoadOp.operands().get(0));
+    }
+
+    private boolean findIsSharedOrPrivateSpace(Value v) {
+        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return findIsSharedOrPrivateSpace(varLoadOp);
+        } else {
+            // Leaf of tree -
+            if (v instanceof CoreOp.Result r && (r.op() instanceof HatLocalVarOp || r.op() instanceof HatPrivateVarOp)) {
+                return true;
+            }
+            return false;
+        }
+    }
+
+    @Override
+    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
+        if (Config.SHOW_COMPILATION_PHASES.isSet(config))
+            IO.println("[BEFORE] Vector Types STORE Transform: " + funcOp.toText());
+        Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
+                .mapMulti((codeElement, consumer) -> {
+                    if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
+                        if ((invokeOp.operands().size() >= 3)
+                                && (isVectorOperation(invokeOp, invokeOp.operands().get(1)))) {
+                            consumer.accept(invokeOp);
+                        }
+                    }
+                });
+
+        Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
+        if (nodesInvolved.isEmpty()) {
+            return funcOp;
+        }
+
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (!nodesInvolved.contains(op)) {
+                blockBuilder.op(op);
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                // Don't insert the invoke node
+                List<Value> inputOperandsVarOp = invokeOp.operands();
+                List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
+                // Find the name of the vector view variable
+                Value v = invokeOp.operands().get(1);
+                String name = findNameVector(v);
+                boolean isSharedOrPrivate = findIsSharedOrPrivateSpace(invokeOp.operands().get(0));
+
+                HatVectorViewOp storeView = switch (vectorOperation) {
+                    case FLOAT4_STORE -> new HatVectorStoreView(name, invokeOp.resultType(), 4, HatVectorViewOp.VectorType.FLOAT4, isSharedOrPrivate,  outputOperandsVarOp);
+                };
+                Op.Result hatLocalResult = blockBuilder.op(storeView);
+                storeView.setLocation(invokeOp.location());
+                context.mapValue(invokeOp.result(), hatLocalResult);
+            } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                // pass value
+                context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
+            }
+            return blockBuilder;
+        });
+        if (Config.SHOW_COMPILATION_PHASES.isSet(config))
+            IO.println("[AFTER] Vector Types STORE Transform: " + funcOp.toText());
+        return funcOp;
+    }
+}

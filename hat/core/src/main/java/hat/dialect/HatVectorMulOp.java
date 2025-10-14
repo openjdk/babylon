@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,35 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package hat.dialect;
 
-import hat.optools.OpTk;
-
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.Value;
 
-import java.lang.invoke.MethodHandles;
+import java.util.List;
 
+public class HatVectorMulOp extends HatVectorBinaryOp {
 
-public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
-
-    public T computeDeclaration(TypeElement typeElement, String name) {
-        return typeName(typeElement.toString()).space().identifier(name);
+    public HatVectorMulOp(String varName, TypeElement typeElement, List<Value> operands) {
+        super(varName, typeElement, OpType.MUL, operands);
     }
 
-     public T compute(ScopedCodeBuilderContext buildContext) {
+    public HatVectorMulOp(HatVectorMulOp op, CopyContext copyContext) {
+        super(op, copyContext);
+    }
 
-        computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
-        parenNlIndented(_ ->
-                separated(buildContext.paramTable.list(), (_)->comma().space()
-                        , param -> declareParam(buildContext, param)
-                )
-        );
-
-        braceNlIndented(_ -> separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_)->nl(),
-                statement ->statement(buildContext,statement).nl()));
-
-        return self();
+    @Override
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HatVectorMulOp(this, copyContext);
     }
 }

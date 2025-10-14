@@ -28,45 +28,51 @@ import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
-import java.util.function.Function;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 
-public interface S32LocalArray extends Buffer {
-
+public interface F32ArrayPadded extends Buffer {
     int length();
-    int array(long idx);
-    void array(long idx, int i);
+    float array(long idx);
+    void array(long idx, float f);
 
-    Schema<S32LocalArray> schema = Schema.of(S32LocalArray.class, s32Array->s32Array
-            .arrayLen("length").array("array"));
+    int PADDING_BYTES = 12;
+    int HEADER_BYTES = 4 + PADDING_BYTES;
 
-    static S32LocalArray create(Accelerator accelerator, int length){
+    Schema<F32ArrayPadded> schema = Schema.of(F32ArrayPadded.class, s32Array ->
+            s32Array.arrayLen("length").pad(12).array("array"));
+
+    static F32ArrayPadded create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
     }
 
-    static S32LocalArray create(Accelerator accelerator, int length, Function<Integer,Integer> filler){
-        return schema.allocate(accelerator, length).fill(filler);
+    default F32ArrayPadded copyFrom(float[] floats) {
+        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, HEADER_BYTES, length());
+        return this;
     }
 
-    static S32LocalArray createFrom(Accelerator accelerator, int[] arr) {
+    static F32ArrayPadded createFrom(Accelerator accelerator, float[] arr){
         return create( accelerator, arr.length).copyFrom(arr);
     }
 
-    default S32LocalArray copyFrom(int[] ints) {
-        MemorySegment.copy(ints, 0, Buffer.getMemorySegment(this), JAVA_INT, 4, length());
+    default F32ArrayPadded copyTo(float[] floats) {
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, HEADER_BYTES, floats, 0, length());
         return this;
     }
 
-    default S32LocalArray copyTo(int[] ints) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_INT, 4, ints, 0, length());
-        return this;
+    default float[] arrayView() {
+        float[] arr = new float[this.length()];
+        this.copyTo(arr);
+        return arr;
     }
 
-    default S32LocalArray fill(Function<Integer, Integer> filler) {
-        for (int i = 0; i < length(); i++) {
-            array(i, filler.apply(i));
-        }
-        return this;
+    // This is an intrinsic for HAT to create views. It does not execute code
+    // on the host side, at least for now.
+    default Float4 float4View(int index) {
+        return null;
     }
+
+    // This is an intrinsic for HAT to store views. It does not execute code
+    default void storeFloat4View(Float4 v, int index) {}
+
 }

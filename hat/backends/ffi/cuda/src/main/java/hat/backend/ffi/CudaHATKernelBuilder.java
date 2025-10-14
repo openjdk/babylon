@@ -25,11 +25,20 @@
 package hat.backend.ffi;
 
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
-
+import hat.dialect.HatVSelectLoadOp;
+import hat.dialect.HatVSelectStoreOp;
+import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorLoadOp;
+import hat.dialect.HatVectorStoreView;
+import hat.dialect.HatVectorVarLoadOp;
+import hat.dialect.HatVectorVarOp;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
+
     private CudaHATKernelBuilder threadDimId(int id) {
         return keyword(switch(id){
             case 0->"x";
@@ -71,5 +80,170 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder atomicInc(ScopedCodeBuilderContext buildContext, Op.Result instanceResult, String name){
         return identifier("atomicAdd").paren(_ -> ampersand().recurse(buildContext, instanceResult.op()).rarrow().identifier(name).comma().literal(1));
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+        Value dest = hatVectorStoreView.operands().get(0);
+        Value index = hatVectorStoreView.operands().get(2);
+
+        keyword("reinterpret_cast")
+                .lt()
+                .typeName(hatVectorStoreView.buildType())
+                .space()
+                .asterisk()
+                .gt()
+                .oparen()
+                .ampersand();
+
+        if (dest instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        either(hatVectorStoreView.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        identifier("array").osbrace();
+
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        csbrace().cparen().osbrace().intConstZero().csbrace()
+                .space().equals().space()
+                .varName(hatVectorStoreView);
+
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+
+        Value op1 = hatVectorBinaryOp.operands().get(0);
+        Value op2 = hatVectorBinaryOp.operands().get(1);
+
+        if (op1 instanceof Op.Result r && r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp1) {
+            typeName(hatVectorBinaryOp1.buildType()).space()
+                            .identifier(hatVectorBinaryOp.varName() + "_1")
+                                    .semicolon().nl();
+            hatVectorBinaryOp1.varName(hatVectorBinaryOp.varName() + "_1");
+            recurse(buildContext, hatVectorBinaryOp1);
+        }
+
+        if (op2 instanceof Op.Result r && r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp2) {
+            typeName(hatVectorBinaryOp2.buildType()).space()
+                    .identifier(hatVectorBinaryOp.varName() + "_2")
+                    .semicolon().nl();
+            hatVectorBinaryOp2.varName(hatVectorBinaryOp.varName() + "_2");
+            recurse(buildContext, hatVectorBinaryOp2);
+        }
+
+        for (int i = 0; i < hatVectorBinaryOp.vectorN(); i++) {
+
+           identifier(hatVectorBinaryOp.varName())
+                   .dot()
+                   .identifier(hatVectorBinaryOp.mapLane(i))
+                   .space().equals().space();
+
+            if (op1 instanceof Op.Result r) {
+                if (!(r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp1)) {
+                    recurse(buildContext, r.op());
+                } else {
+                    identifier(hatVectorBinaryOp1.varName());
+                }
+            }
+            dot().identifier(hatVectorBinaryOp.mapLane(i)).space();
+            identifier(hatVectorBinaryOp.operationType().symbol()).space();
+
+            if (op2 instanceof Op.Result r) {
+                if (!(r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp2)) {
+                    recurse(buildContext, r.op());
+                } else {
+                    identifier(hatVectorBinaryOp2.varName());
+                }
+            }
+            dot().identifier(hatVectorBinaryOp.mapLane(i)).semicolon().nl();
+        }
+
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorLoad(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+        Value source = hatVectorLoadOp.operands().get(0);
+        Value index = hatVectorLoadOp.operands().get(1);
+
+        keyword("reinterpret_cast")
+                .lt()
+                .typeName(hatVectorLoadOp.buildType())
+                .space()
+                .asterisk()
+                .gt()
+                .oparen()
+                .ampersand();
+
+        if (source instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        either(hatVectorLoadOp.isSharedOrPrivate(), CodeBuilder::dot, CodeBuilder::rarrow);
+        identifier("array").osbrace();
+
+        if (index instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        csbrace().cparen().osbrace().intConstZero().csbrace();
+
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+        identifier(hatVSelectLoadOp.varName())
+                .dot()
+                .identifier(hatVSelectLoadOp.mapLane());
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+        identifier(hatVSelectStoreOp.varName())
+                .dot()
+                .identifier(hatVSelectStoreOp.mapLane())
+                .space().equals().space();
+        if (hatVSelectStoreOp.resultValue() != null) {
+            // We have detected a direct resolved result (resolved name)
+            varName(hatVSelectStoreOp.resultValue());
+        } else {
+            // otherwise, we traverse to resolve the expression
+            Value storeValue = hatVSelectStoreOp.operands().get(1);
+            if (storeValue instanceof Op.Result r) {
+                recurse(buildContext, r.op());
+            }
+        }
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HatVectorVarOp hatVectorVarOp) {
+        Value operand = hatVectorVarOp.operands().getFirst();
+        typeName(hatVectorVarOp.buildType())
+                .space()
+                .varName(hatVectorVarOp);
+
+        if (operand instanceof Op.Result r && r.op() instanceof HatVectorBinaryOp) {
+            semicolon().nl();
+        } else {
+            space().equals().space();
+        }
+
+        if (operand instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HatVectorVarLoadOp hatVectorVarLoadOp) {
+        varName(hatVectorVarLoadOp);
+        return self();
     }
 }

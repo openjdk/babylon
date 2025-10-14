@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,35 +22,45 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.codebuilders;
+package hat.dialect;
 
-import hat.optools.OpTk;
-
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.VarType;
 
-import java.lang.invoke.MethodHandles;
+import java.util.List;
+import java.util.Map;
 
+public class HatVectorVarLoadOp extends HatVectorViewOp {
 
-public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+    private final TypeElement typeElement;
 
-    public T computeDeclaration(TypeElement typeElement, String name) {
-        return typeName(typeElement.toString()).space().identifier(name);
+    public HatVectorVarLoadOp(String varName, TypeElement typeElement, List<Value> operands) {
+        super(varName, operands);
+        this.typeElement = typeElement;
     }
 
-     public T compute(ScopedCodeBuilderContext buildContext) {
-
-        computeDeclaration(buildContext.funcOp.resultType(), buildContext.funcOp.funcName());
-        parenNlIndented(_ ->
-                separated(buildContext.paramTable.list(), (_)->comma().space()
-                        , param -> declareParam(buildContext, param)
-                )
-        );
-
-        braceNlIndented(_ -> separated(OpTk.statements(buildContext.funcOp.bodies().getFirst().entryBlock()), (_)->nl(),
-                statement ->statement(buildContext,statement).nl()));
-
-        return self();
+    public HatVectorVarLoadOp(HatVectorVarLoadOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.typeElement = op.typeElement;
     }
+
+    @Override
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HatVectorVarLoadOp(this, copyContext);
+    }
+
+    @Override
+    public TypeElement resultType() {
+        return typeElement;
+    }
+
+    @Override
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect.vectorVarLoadOp." + varName(), typeElement);
+    }
+
 }

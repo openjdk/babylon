@@ -25,6 +25,9 @@
 package hat.codebuilders;
 
 import hat.dialect.HatMemoryOp;
+import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatVectorLoadOp;
+import hat.dialect.HatVectorVarOp;
 import hat.optools.FuncOpParams;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -54,6 +57,10 @@ public class ScopedCodeBuilderContext extends CodeBuilderContext {
 
             if (value instanceof Op.Result result && result.op() instanceof HatMemoryOp hatMemoryOp) {
                 return hatMemoryOp;
+            }
+
+            if (value instanceof Op.Result result && result.op() instanceof HatVectorVarOp hatVectorVarOp) {
+                return hatVectorVarOp;
             }
 
             if (parent != null) {
