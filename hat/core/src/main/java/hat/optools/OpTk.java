@@ -26,30 +26,43 @@ package hat.optools;
 
 import hat.ComputeContext;
 import hat.buffer.Buffer;
-import hat.buffer.HatVector;
 import hat.buffer.KernelContext;
 import hat.callgraph.CallGraph;
-import hat.dialect.HatBarrierOp;
 import hat.dialect.HatMemoryOp;
 import hat.dialect.HatThreadOP;
 import hat.dialect.HatVSelectLoadOp;
 import hat.dialect.HatVectorAddOp;
-import hat.dialect.HatVectorBinaryOp;
 import hat.dialect.HatVectorDivOp;
-import hat.dialect.HatVectorLoadOp;
 import hat.dialect.HatVectorMulOp;
 import hat.dialect.HatVectorSubOp;
 import hat.dialect.HatVectorVarOp;
 import hat.ifacemapper.MappableIface;
-import jdk.incubator.code.*;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.Quoted;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.java.ArrayType;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class OpTk {
@@ -94,14 +107,6 @@ public class OpTk {
     }
 
     public static boolean isBufferArray(MethodHandles.Lookup l, Op op) {
-        // first check if the return is an array type
-        if (op instanceof CoreOp.VarOp vop) {
-            if (!(vop.varValueType() instanceof ArrayType)) return false;
-        } else if (!(op instanceof JavaOp.ArrayAccessOp)){
-            if (!(op.resultType() instanceof ArrayType)) return false;
-        }
-
-        // then check if returned array is from a buffer access
         while (!(op instanceof JavaOp.InvokeOp iop)) {
             if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
                 op = r.op();
@@ -110,11 +115,31 @@ public class OpTk {
             }
         }
 
-        if (iop.invokeDescriptor().refType() instanceof JavaType javaType) {
-            return isAssignable(l, javaType, MappableIface.class);
+        return iop.invokeDescriptor().name().toLowerCase().contains("arrayview");
+    }
+
+    public static boolean notGlobalVarOp(MethodHandles.Lookup l, Op op) {
+        while (!(op instanceof JavaOp.InvokeOp iop)) {
+            if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
+                op = r.op();
+            } else {
+                return false;
+            }
         }
 
-        return false;
+        return iop.invokeDescriptor().name().toLowerCase().contains("local") ||
+                iop.invokeDescriptor().name().toLowerCase().contains("private");
+    }
+
+    public static boolean isBufferInitialize(MethodHandles.Lookup l, Op op) {
+        // first check if the return is an array type
+        if (op instanceof CoreOp.VarOp vop) {
+            if (!(vop.varValueType() instanceof ArrayType)) return false;
+        } else if (!(op instanceof JavaOp.ArrayAccessOp)){
+            if (!(op.resultType() instanceof ArrayType)) return false;
+        }
+
+        return isBufferArray(l, op);
     }
 
     public static boolean isArrayView(MethodHandles.Lookup l, CoreOp.FuncOp entry) {
