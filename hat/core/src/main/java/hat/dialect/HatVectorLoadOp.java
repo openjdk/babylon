@@ -38,12 +38,14 @@ public class HatVectorLoadOp extends HatVectorViewOp {
     private final TypeElement typeElement;
     private final TypeElement vectorType;
     private final int loadN;
+    private final boolean isSharedOrPrivate;
 
-    public HatVectorLoadOp(String varName, TypeElement typeElement, TypeElement vectorType, int loadN, List<Value> operands) {
+    public HatVectorLoadOp(String varName, TypeElement typeElement, TypeElement vectorType, int loadN, boolean isShared, List<Value> operands) {
         super(varName, operands);
         this.typeElement = typeElement;
         this.loadN = loadN;
         this.vectorType = vectorType;
+        this.isSharedOrPrivate = isShared;
     }
 
     public HatVectorLoadOp(HatVectorLoadOp op, CopyContext copyContext) {
@@ -51,6 +53,7 @@ public class HatVectorLoadOp extends HatVectorViewOp {
         this.typeElement = op.typeElement;
         this.loadN = op.loadN;
         this.vectorType = op.vectorType;
+        this.isSharedOrPrivate = op.isSharedOrPrivate;
     }
 
     @Override
@@ -84,4 +87,7 @@ public class HatVectorLoadOp extends HatVectorViewOp {
         throw new RuntimeException("Unexpected vector type " + vectorType);
     }
 
+    public boolean isSharedOrPrivate() {
+        return this.isSharedOrPrivate;
+    }
 }

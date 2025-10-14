@@ -25,6 +25,8 @@
 package hat.phases;
 
 import hat.Config;
+import hat.dialect.HatLocalVarOp;
+import hat.dialect.HatPrivateVarOp;
 import hat.dialect.HatVectorAddOp;
 import hat.dialect.HatVectorDivOp;
 import hat.dialect.HatVectorLoadOp;
@@ -113,6 +115,22 @@ public class HatDialectifyVectorOpPhase extends HatDialectAbstractPhase implemen
         }
     }
 
+    private boolean findIsSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findIsSharedOrPrivate(varLoadOp.operands().get(0));
+    }
+
+    private boolean findIsSharedOrPrivate(Value v) {
+        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return findIsSharedOrPrivate(varLoadOp);
+        } else {
+            // Leaf of tree -
+            if (v instanceof CoreOp.Result r && (r.op() instanceof HatLocalVarOp || r.op() instanceof HatPrivateVarOp)) {
+                return true;
+            }
+            return false;
+        }
+    }
+
     private HatVectorBinaryOp buildVectorBinaryOp(HatVectorBinaryOp.OpType opType, String varName, TypeElement resultType, List<Value> outputOperands) {
         return switch (opType) {
             case ADD -> new HatVectorAddOp(varName, resultType, outputOperands);
@@ -155,11 +173,12 @@ public class HatDialectifyVectorOpPhase extends HatDialectAbstractPhase implemen
                 // Don't insert the invoke node
                 Op.Result result = invokeOp.result();
                 List<Op.Result> collect = result.uses().stream().toList();
+                boolean isShared = findIsSharedOrPrivate(invokeOp.operands().getFirst());
                 for (Op.Result r : collect) {
                     if (r.op() instanceof CoreOp.VarOp varOp) {
                         List<Value> inputOperandsVarOp = invokeOp.operands();
                         List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                        HatVectorViewOp memoryViewOp = new HatVectorLoadOp(varOp.varName(), varOp.resultType(), invokeOp.resultType(), 4, outputOperandsVarOp);
+                        HatVectorViewOp memoryViewOp = new HatVectorLoadOp(varOp.varName(), varOp.resultType(), invokeOp.resultType(), 4, isShared, outputOperandsVarOp);
                         Op.Result hatLocalResult = blockBuilder.op(memoryViewOp);
                         memoryViewOp.setLocation(varOp.location());
                         context.mapValue(invokeOp.result(), hatLocalResult);

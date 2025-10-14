@@ -37,17 +37,20 @@ public class HatVectorStoreView extends HatVectorViewOp {
 
     private final TypeElement elementType;
     private final int storeN;
+    private final boolean isShared;
 
-    public HatVectorStoreView(String varName, TypeElement elementType, int storeN, List<Value> operands) {
+    public HatVectorStoreView(String varName, TypeElement elementType, int storeN, boolean isShared, List<Value> operands) {
         super(varName, operands);
         this.elementType = elementType;
         this.storeN = storeN;
+        this.isShared = isShared;
     }
 
     public HatVectorStoreView(HatVectorStoreView op, CopyContext copyContext) {
         super(op, copyContext);
         this.elementType = op.elementType;
         this.storeN = op.storeN;
+        this.isShared = op.isShared;
     }
 
     @Override
@@ -62,11 +65,14 @@ public class HatVectorStoreView extends HatVectorViewOp {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.float4StoreView." + varName(), elementType);
+        return Map.of("hat.dialect.floatNStoreView." + varName(), elementType);
     }
 
     public int storeN() {
         return storeN;
     }
 
+    public boolean isShared() {
+        return this.isShared;
+    }
 }

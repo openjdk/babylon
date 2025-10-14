@@ -26,10 +26,12 @@ package oracle.code.hat;
 
 import hat.*;
 import hat.backend.Backend;
+import hat.buffer.Buffer;
 import hat.buffer.F32Array;
 import hat.buffer.Float4;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
+import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 import oracle.code.hat.annotation.HatTest;
 import oracle.code.hat.engine.HatAsserts;
@@ -148,6 +150,70 @@ public class TestVectorTypes {
         }
     }
 
+    private interface SharedMemory extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+        Schema<SharedMemory> schema = Schema.of(SharedMemory.class,
+                arr -> arr.array("array", 1024));
+        static SharedMemory create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static SharedMemory createLocal() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+        default Float4 float4View(int index) {
+            return null;
+        }
+        default void storeFloat4View(Float4 float4, int index) {
+        }
+    }
+
+    @CodeReflection
+    public static void vectorOps10(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
+        SharedMemory sm = SharedMemory.createLocal();
+        if (kernelContext.gix < kernelContext.gsx) {
+            int index = kernelContext.gix;
+            Float4 vA = a.float4View(index * 4);
+            int lix = kernelContext.lix;
+            sm.storeFloat4View(vA, lix * 4);
+            kernelContext.barrier();
+            Float4 r = sm.float4View(lix * 4);
+            b.storeFloat4View(r, index * 4);
+        }
+    }
+
+    private interface PrivateMemory extends Buffer {
+        void array(long index, float value);
+        float array(long index);
+        Schema<PrivateMemory> schema = Schema.of(PrivateMemory.class,
+                arr -> arr.array("array", 4));
+        static PrivateMemory create(Accelerator accelerator) {
+            return schema.allocate(accelerator);
+        }
+        static PrivateMemory createPrivate() {
+            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        }
+        default Float4 float4View(int index) {
+            return null;
+        }
+        default void storeFloat4View(Float4 float4, int index) {
+        }
+    }
+
+    @CodeReflection
+    public static void vectorOps11(@RO KernelContext kernelContext, @RO F32Array a, @RW F32Array b) {
+        PrivateMemory pm = PrivateMemory.createPrivate();
+        if (kernelContext.gix < kernelContext.gsx) {
+            int index = kernelContext.gix;
+            Float4 vA = a.float4View(index * 4);
+            int lix = kernelContext.lix;
+            pm.storeFloat4View(vA, 0);
+            kernelContext.barrier();
+            Float4 r = pm.float4View(0);
+            b.storeFloat4View(r, index * 4);
+        }
+    }
+
     @CodeReflection
     public static void computeGraph01(@RO ComputeContext cc, @RO F32Array a, @RO F32Array b, @RW F32Array c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
@@ -210,6 +276,20 @@ public class TestVectorTypes {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps09(kernelContext, a, b, c));
+    }
+
+    @CodeReflection
+    public static void computeGraph10(@RO ComputeContext cc, @RO F32Array a,  @RW F32Array b, int size) {
+        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
+        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps10(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void computeGraph11(@RO ComputeContext cc, @RO F32Array a,  @RW F32Array b, int size) {
+        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
+        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps11(kernelContext, a, b));
     }
 
     @HatTest
@@ -404,6 +484,46 @@ public class TestVectorTypes {
         for (int i = 0; i < size; i ++) {
             float val = (arrayA.array(i) + (arrayB.array(i)) * arrayA.array(i));
             HatAsserts.assertEquals(val, arrayC.array(i), 0.001f);
+        }
+    }
+
+    @HatTest
+    public void testVectorTypes10() {
+        final int size = 1024;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var arrayA = F32Array.create(accelerator, size);
+        var arrayB = F32Array.create(accelerator, size);
+
+        Random r = new Random(19);
+        for (int i = 0; i < size; i++) {
+            arrayA.array(i, r.nextFloat());
+            arrayB.array(i, r.nextFloat());
+        }
+
+        accelerator.compute(cc -> TestVectorTypes.computeGraph10(cc, arrayA, arrayB, size));
+
+        for (int i = 0; i < size; i ++) {
+            HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
+        }
+    }
+
+    @HatTest
+    public void testVectorTypes11() {
+        final int size = 1024;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var arrayA = F32Array.create(accelerator, size);
+        var arrayB = F32Array.create(accelerator, size);
+
+        Random r = new Random(19);
+        for (int i = 0; i < size; i++) {
+            arrayA.array(i, r.nextFloat());
+            arrayB.array(i, r.nextFloat());
+        }
+
+        accelerator.compute(cc -> TestVectorTypes.computeGraph11(cc, arrayA, arrayB, size));
+
+        for (int i = 0; i < size; i ++) {
+            HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
 

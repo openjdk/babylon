@@ -95,7 +95,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (dest instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        rarrow().identifier("array").osbrace();
+        if (hatVectorStoreView.isShared()) {
+            dot();
+        } else {
+            rarrow();
+        }
+        identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
             recurse(buildContext, r.op());
@@ -139,7 +144,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (source instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        rarrow().identifier("array").osbrace();
+
+        if (hatVectorLoadOp.isSharedOrPrivate()) {
+            dot();
+        } else {
+            rarrow();
+        }
+        identifier("array").osbrace();
 
         if (index instanceof Op.Result r) {
             recurse(buildContext, r.op());

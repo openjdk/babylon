@@ -25,8 +25,8 @@
 package hat.phases;
 
 import hat.Config;
-import hat.dialect.HatVSelectStoreOp;
-import hat.dialect.HatVectorBinaryOp;
+import hat.dialect.HatLocalVarOp;
+import hat.dialect.HatPrivateVarOp;
 import hat.dialect.HatVectorStoreView;
 import hat.dialect.HatVectorViewOp;
 import hat.optools.OpTk;
@@ -96,6 +96,22 @@ public class HatDialectifyVectorStorePhase extends HatDialectAbstractPhase imple
         }
     }
 
+    private boolean findIsSharedOrPrivateSpace(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findIsSharedOrPrivateSpace(varLoadOp.operands().get(0));
+    }
+
+    private boolean findIsSharedOrPrivateSpace(Value v) {
+        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return findIsSharedOrPrivateSpace(varLoadOp);
+        } else {
+            // Leaf of tree -
+            if (v instanceof CoreOp.Result r && (r.op() instanceof HatLocalVarOp || r.op() instanceof HatPrivateVarOp)) {
+                return true;
+            }
+            return false;
+        }
+    }
+
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
         if (Config.SHOW_COMPILATION_PHASES.isSet(config))
@@ -126,9 +142,10 @@ public class HatDialectifyVectorStorePhase extends HatDialectAbstractPhase imple
                 // Find the name of the vector view variable
                 Value v = invokeOp.operands().get(1);
                 String name = findNameVector(v);
+                boolean isSharedOrPrivate = findIsSharedOrPrivateSpace(invokeOp.operands().get(0));
 
                 HatVectorViewOp storeView = switch (vectorOperation) {
-                    case FLOAT4_STORE -> new HatVectorStoreView(name, invokeOp.resultType(), 4, outputOperandsVarOp);
+                    case FLOAT4_STORE -> new HatVectorStoreView(name, invokeOp.resultType(), 4, isSharedOrPrivate,  outputOperandsVarOp);
                 };
                 Op.Result hatLocalResult = blockBuilder.op(storeView);
                 storeView.setLocation(invokeOp.location());

@@ -44,7 +44,7 @@ public interface F32Array extends Buffer {
     }
 
     default F32Array copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, 4, length());
+        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, 16, length());
         return this;
     }
 
@@ -53,7 +53,7 @@ public interface F32Array extends Buffer {
     }
 
     default F32Array copyTo(float[] floats) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, 4, floats, 0, length());
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, 16, floats, 0, length());
         return this;
     }
 
@@ -63,7 +63,7 @@ public interface F32Array extends Buffer {
         return arr;
     }
 
-    // This is an intrinsic for HAT in order to create views. It does not execute code
+    // This is an intrinsic for HAT to create views. It does not execute code
     // on the host side, at least for now.
     default Float4 float4View(int index) {
         return null;
