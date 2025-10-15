@@ -129,7 +129,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var example_violajones = Jar.of(project.id("example{s}-violajones"), example_shared);
 
         // experiments include code that expects an opencl backend, this is not idea, but we can accomodate
-        var example_experiments = Jar.of(project.id("example{s}-experiments"), backend_ffi_opencl);
+        var example_experiments = Jar.of(project.id("example{s}-experiments"), core);
 
         // Now we have the more complex nonsense for nbody (which needs opengl and opencl extracted)
         var wrapped_shared = Jar.of(project.id("wrap{s}-shared"));
