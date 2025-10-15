@@ -130,32 +130,46 @@ public class BufferTagger {
         f.elements().filter(elem -> elem instanceof Block)
                 .forEach(b -> blockParams.put((Block) b, ((Block) b).parameters()));
 
-        f.traverse(null, (map, op) -> {
-            if (op instanceof CoreOp.BranchOp b) {
-                mapBranch(l, b.branch());
-            } else if (op instanceof  CoreOp.ConditionalBranchOp cb) {
-                mapBranch(l, cb.trueBranch()); // handle true branch
-                mapBranch(l, cb.falseBranch()); // handle false branch
-            } else if (op instanceof JavaOp.InvokeOp iop) { // (almost) all the buffer accesses happen here
-                if (OpTk.isAssignable(l, (JavaType) iop.invokeDescriptor().refType(), MappableIface.class)) {
-                    updateAccessType(getRootValue(iop), getAccessType(iop)); // update buffer access
-                    if (OpTk.isAssignable(l, (JavaType) iop.invokeDescriptor().refType(), Buffer.class)
-                            && iop.result() != null && !(iop.resultType() instanceof PrimitiveType)
-                            && OpTk.isAssignable(l, (JavaType) iop.resultType(), MappableIface.class)) {
-                        // if we access a struct/union from a buffer, we map the struct/union to the buffer root
-                        remappedVals.put(iop.result(), getRootValue(iop));
+        f.elements().forEach(op -> {
+            switch (op) {
+                case CoreOp.BranchOp b -> {
+                    mapBranch(l, b.branch());
+                }
+                case CoreOp.ConditionalBranchOp cb -> {
+                    mapBranch(l, cb.trueBranch()); // handle true branch
+                    mapBranch(l, cb.falseBranch()); // handle false branch
+                }
+                case JavaOp.InvokeOp iop -> { // (almost) all the buffer accesses happen here
+                    // actually now that we have arrayview we'll need to map the corresponding arrays too
+                    if (OpTk.isAssignable(l, (JavaType) iop.invokeDescriptor().refType(), MappableIface.class)) {
+                        updateAccessType(getRootValue(iop), getAccessType(iop)); // update buffer access
+                        if (OpTk.isAssignable(l, (JavaType) iop.invokeDescriptor().refType(), Buffer.class)
+                                && iop.result() != null && !(iop.resultType() instanceof PrimitiveType)
+                                && (OpTk.isAssignable(l, (JavaType) iop.resultType(), MappableIface.class)
+                                    || iop.resultType() instanceof ArrayType)) {
+                            // if we access a struct/union from a buffer, we map the struct/union to the buffer root
+                            remappedVals.put(iop.result(), getRootValue(iop));
+                        }
                     }
                 }
-            } else if (op instanceof CoreOp.VarOp vop) { // map the new VarOp to the "root" param
-                if (OpTk.isAssignable(l, (JavaType) vop.resultType().valueType(), Buffer.class)) {
-                    remappedVals.put(vop.initOperand(), getRootValue(vop));
+                case CoreOp.VarOp vop -> { // map the new VarOp to the "root" param
+                    if (OpTk.isAssignable(l, (JavaType) vop.resultType().valueType(), Buffer.class)) {
+                        remappedVals.put(vop.initOperand(), getRootValue(vop));
+                    }
                 }
-            } else if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flop) {
-                if (OpTk.isAssignable(l, (JavaType) flop.fieldDescriptor().refType(), KernelContext.class)) {
-                    updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
+                case JavaOp.FieldAccessOp.FieldLoadOp flop -> {
+                    if (OpTk.isAssignable(l, (JavaType) flop.fieldDescriptor().refType(), KernelContext.class)) {
+                        updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
+                    }
                 }
+                case JavaOp.ArrayAccessOp.ArrayLoadOp alop -> {
+                    updateAccessType(getRootValue(alop), AccessType.RO);
+                }
+                case JavaOp.ArrayAccessOp.ArrayStoreOp asop -> {
+                    updateAccessType(getRootValue(asop), AccessType.WO);
+                }
+                default -> {}
             }
-            return map;
         });
     }
 
