@@ -27,9 +27,9 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.Config;
-import hat.backend.ffi.OpenCLBackend;
 import hat.buffer.S32Array;
+
+import static hat.backend.Backend.FIRST;
 import static hat.ifacemapper.MappableIface.*;
 import jdk.incubator.code.CodeReflection;
 
@@ -58,15 +58,11 @@ public class MinBufferTest {
     }
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),
-                new OpenCLBackend(fromSpec("TRACE_COPIES,MINIMIZE_COPIES"))
-        );
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
         int len = 10000000;
         int valueToAdd = 10;
         S32Array s32Array = S32Array.create(accelerator, len,i->i);
-        accelerator.compute(
-                cc -> Compute.add(cc, s32Array, len, valueToAdd)
-        );
+        accelerator.compute(cc -> Compute.add(cc, s32Array, len, valueToAdd));
         // Quite an expensive way of adding 20 to each array element
         for (int i = 0; i < 20; i++) {
             System.out.println(i + "=" + s32Array.array(i));
