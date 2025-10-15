@@ -107,6 +107,14 @@ public class OpTk {
     }
 
     public static boolean isBufferArray(MethodHandles.Lookup l, Op op) {
+        // first check if the return is an array type
+        //if (op instanceof CoreOp.VarOp vop) {
+        //    if (!(vop.varValueType() instanceof ArrayType)) return false;
+        //} else if (!(op instanceof JavaOp.ArrayAccessOp)){
+        //    if (!(op.resultType() instanceof ArrayType)) return false;
+        //}
+
+        // then check if returned array is from a buffer access
         while (!(op instanceof JavaOp.InvokeOp iop)) {
             if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
                 op = r.op();
@@ -115,6 +123,10 @@ public class OpTk {
             }
         }
 
+        //if (iop.invokeDescriptor().refType() instanceof JavaType javaType) {
+        //    return isAssignable(l, javaType, MappableIface.class);
+        //}
+        //return false;
         return iop.invokeDescriptor().name().toLowerCase().contains("arrayview");
     }
 
@@ -175,54 +187,39 @@ public class OpTk {
             return map;
         });
 
-        // modEntry.elements().filter(elem -> elem instanceof JavaOp.InvokeOp)
-        //         .forEach(elem -> {
-        //             JavaOp.InvokeOp iop = (JavaOp.InvokeOp) elem;
-        //             Class<?> javaRefTypeClass = javaRefClassOrThrow(callGraph.computeContext.accelerator.lookup, iop);
-        //             try {
-        //                 var method = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
-        //                 CoreOp.FuncOp f = Op.ofMethod(method).orElse(null);
-        //                 if (f != null && !callGraph.filterCalls(f, iop, method, iop.invokeDescriptor(), javaRefTypeClass)) {
-        //                     work.push(new RefAndFunc(iop.invokeDescriptor(), f));
-        //                 }
-        //             } catch (ReflectiveOperationException _) {
-        //                 throw new IllegalStateException("Could not resolve invokeWrapper to method");
-        //             }
-        //         });
-
         while (!work.isEmpty()) {
             RefAndFunc rf = work.pop();
             if (!funcsVisited.add(rf.r)) {
                 continue;
             }
 
-            CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
-                if (op instanceof JavaOp.InvokeOp iop) {
-                    try {
-                        Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
-                        if (invokeOpCalledMethod instanceof Method m) {
-                            CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
-                            if (f!=null) {
-                                RefAndFunc call = new RefAndFunc(iop.invokeDescriptor(), f);
-                                work.push(call);
-                                Op.Result result = blockBuilder.op(CoreOp.funcCall(
-                                        call.r.name(),
-                                        call.f.invokableType(),
-                                        blockBuilder.context().getValues(iop.operands())));
-                                blockBuilder.context().mapValue(op.result(), result);
-                                return blockBuilder;
+                CoreOp.FuncOp tf = rf.f.transform(rf.r.name(), (blockBuilder, op) -> {
+                    if (op instanceof JavaOp.InvokeOp iop) {
+                        try {
+                            Method invokeOpCalledMethod = iop.invokeDescriptor().resolveToMethod(l, iop.invokeKind());
+                            if (invokeOpCalledMethod instanceof Method m) {
+                                CoreOp.FuncOp f = Op.ofMethod(m).orElse(null);
+                                if (f!=null) {
+                                    RefAndFunc call = new RefAndFunc(iop.invokeDescriptor(), f);
+                                    work.push(call);
+                                    Op.Result result = blockBuilder.op(CoreOp.funcCall(
+                                            call.r.name(),
+                                            call.f.invokableType(),
+                                            blockBuilder.context().getValues(iop.operands())));
+                                    blockBuilder.context().mapValue(op.result(), result);
+                                    return blockBuilder;
+                                }
                             }
+                        } catch (ReflectiveOperationException _) {
+                            throw new IllegalStateException("Could not resolve invokeWrapper to method");
                         }
-                    } catch (ReflectiveOperationException _) {
-                        throw new IllegalStateException("Could not resolve invokeWrapper to method");
                     }
-                }
-                blockBuilder.op(op);
-                return blockBuilder;
-            });
+                    blockBuilder.op(op);
+                    return blockBuilder;
+                });
 
-            funcs.addFirst(tf);
-        }
+                funcs.addFirst(tf);
+            }
 
         return CoreOp.module(funcs);
     }
