@@ -29,12 +29,11 @@ import hat.ComputeRange;
 import hat.Config;
 import hat.ThreadMesh;
 import hat.NDRange;
-import hat.callgraph.CallGraph;
+import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
 import hat.buffer.BufferTracker;
-import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HatMemoryOp;
@@ -68,41 +67,41 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         public final KernelCallGraph kernelCallGraph;
         public final BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge;
         public final ArgArray argArray;
-        public final KernelContext kernelContext;
+        public final KernelBufferContext kernelBufferContext;
 
         public CompiledKernel(C99FFIBackend c99FFIBackend, KernelCallGraph kernelCallGraph, BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge, Object[] ndRangeAndArgs) {
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelContext = KernelContext.createDefault(kernelCallGraph.computeContext.accelerator);
-            ndRangeAndArgs[0] = this.kernelContext;
+            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
+            ndRangeAndArgs[0] = this.kernelBufferContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
 
         private void setGlobalMesh(hat.KernelContext kc) {
-            kernelContext.maxX(kc.maxX);
-            kernelContext.maxY(kc.maxY);
-            kernelContext.maxZ(kc.maxZ);
-            kernelContext.dimensions(kc.getDimensions());
+            kernelBufferContext.maxX(kc.maxX);
+            kernelBufferContext.maxY(kc.maxY);
+            kernelBufferContext.maxZ(kc.maxZ);
+            kernelBufferContext.dimensions(kc.getDimensions());
         }
 
         private void setGlobalMesh(ThreadMesh threadMesh) {
-            kernelContext.maxX(threadMesh.getX());
-            kernelContext.maxY(threadMesh.getY());
-            kernelContext.maxZ(threadMesh.getZ());
-            kernelContext.dimensions(threadMesh.getDims());
+            kernelBufferContext.maxX(threadMesh.getX());
+            kernelBufferContext.maxY(threadMesh.getY());
+            kernelBufferContext.maxZ(threadMesh.getZ());
+            kernelBufferContext.dimensions(threadMesh.getDims());
         }
 
         private void setLocalMesh(ThreadMesh threadMesh) {
-            kernelContext.lsx(threadMesh.getX());
-            kernelContext.lsy(threadMesh.getY());
-            kernelContext.lsz(threadMesh.getZ());
+            kernelBufferContext.lsx(threadMesh.getX());
+            kernelBufferContext.lsy(threadMesh.getY());
+            kernelBufferContext.lsz(threadMesh.getZ());
         }
 
         private void setDefaultLocalMesh() {
-            kernelContext.lsx(0);
-            kernelContext.lsy(0);
-            kernelContext.lsz(0);
+            kernelBufferContext.lsx(0);
+            kernelBufferContext.lsy(0);
+            kernelBufferContext.lsz(0);
         }
 
         private void setupComputeRange(NDRange ndRange) {
@@ -133,7 +132,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
         public void dispatch(NDRange ndRange, Object[] args) {
             setupComputeRange(ndRange);
-            args[0] = this.kernelContext;
+            args[0] = this.kernelBufferContext;
             ArgArray.update(argArray,kernelCallGraph, args);
             kernelBridge.ndRange(this.argArray);
         }
