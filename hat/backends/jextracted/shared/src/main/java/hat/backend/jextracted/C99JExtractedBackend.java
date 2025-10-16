@@ -76,6 +76,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object[] args) {
+        var here = OpTk.CallSite.of(C99JExtractedBackend.class, "createCode");
         builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -101,7 +102,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
         System.out.println("Original");
         System.out.println(kernelCallGraph.entrypoint.funcOp().toText());
         System.out.println("Lowered");
-        System.out.println(OpTk.lower(kernelCallGraph.entrypoint.funcOp()).toText());
+        System.out.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
 
         return builder.toString();
     }

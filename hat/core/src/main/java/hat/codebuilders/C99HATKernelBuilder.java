@@ -25,15 +25,14 @@
 package hat.codebuilders;
 
 import hat.buffer.Buffer;
-import hat.dialect.HatBlockThreadIdOp;
-import hat.dialect.HatGlobalThreadIdOp;
-import hat.dialect.HatGlobalSizeOp;
-import hat.dialect.HatLocalSizeOp;
-import hat.dialect.HatLocalThreadIdOp;
+import hat.dialect.HATBlockThreadIdOp;
+import hat.dialect.HATGlobalThreadIdOp;
+import hat.dialect.HATGlobalSizeOp;
+import hat.dialect.HATLocalSizeOp;
+import hat.dialect.HATLocalThreadIdOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -134,31 +133,31 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadIdOp globalThreadIdOp) {
+    public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
         globalId(globalThreadIdOp.getDimension());
         return self();
     }
 
     @Override
-    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalSizeOp globalSizeOp) {
+    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp globalSizeOp) {
         globalSize(globalSizeOp.getDimension());
         return self();
     }
 
     @Override
-    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HatLocalThreadIdOp localThreadIdOp) {
+    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATLocalThreadIdOp localThreadIdOp) {
         localId(localThreadIdOp.getDimension());
         return self();
     }
 
     @Override
-    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HatLocalSizeOp hatLocalSizeOp) {
+    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATLocalSizeOp hatLocalSizeOp) {
         localSize(hatLocalSizeOp.getDimension());
         return self();
     }
 
     @Override
-    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp) {
+    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATBlockThreadIdOp hatBlockThreadIdOp) {
         blockId(hatBlockThreadIdOp.getDimension());
         return self();
     }

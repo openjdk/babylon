@@ -27,13 +27,13 @@ package hat.backend.ffi;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.HatVSelectLoadOp;
-import hat.dialect.HatVSelectStoreOp;
-import hat.dialect.HatVectorBinaryOp;
-import hat.dialect.HatVectorLoadOp;
-import hat.dialect.HatVectorStoreView;
-import hat.dialect.HatVectorVarLoadOp;
-import hat.dialect.HatVectorVarOp;
+import hat.dialect.HATVSelectLoadOp;
+import hat.dialect.HATVSelectStoreOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATVectorVarLoadOp;
+import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
@@ -83,7 +83,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+    public CudaHATKernelBuilder generateVectorStore(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);
 
@@ -115,12 +115,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+    public CudaHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
 
         Value op1 = hatVectorBinaryOp.operands().get(0);
         Value op2 = hatVectorBinaryOp.operands().get(1);
 
-        if (op1 instanceof Op.Result r && r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp1) {
+        if (op1 instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp hatVectorBinaryOp1) {
             typeName(hatVectorBinaryOp1.buildType()).space()
                             .identifier(hatVectorBinaryOp.varName() + "_1")
                                     .semicolon().nl();
@@ -128,7 +128,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             recurse(buildContext, hatVectorBinaryOp1);
         }
 
-        if (op2 instanceof Op.Result r && r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp2) {
+        if (op2 instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp hatVectorBinaryOp2) {
             typeName(hatVectorBinaryOp2.buildType()).space()
                     .identifier(hatVectorBinaryOp.varName() + "_2")
                     .semicolon().nl();
@@ -144,7 +144,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                    .space().equals().space();
 
             if (op1 instanceof Op.Result r) {
-                if (!(r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp1)) {
+                if (!(r.op() instanceof HATVectorBinaryOp hatVectorBinaryOp1)) {
                     recurse(buildContext, r.op());
                 } else {
                     identifier(hatVectorBinaryOp1.varName());
@@ -154,7 +154,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             identifier(hatVectorBinaryOp.operationType().symbol()).space();
 
             if (op2 instanceof Op.Result r) {
-                if (!(r.op() instanceof HatVectorBinaryOp hatVectorBinaryOp2)) {
+                if (!(r.op() instanceof HATVectorBinaryOp hatVectorBinaryOp2)) {
                     recurse(buildContext, r.op());
                 } else {
                     identifier(hatVectorBinaryOp2.varName());
@@ -167,7 +167,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder generateVectorLoad(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+    public CudaHATKernelBuilder generateVectorLoad(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
         Value source = hatVectorLoadOp.operands().get(0);
         Value index = hatVectorLoadOp.operands().get(1);
 
@@ -196,7 +196,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+    public CudaHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp) {
         identifier(hatVSelectLoadOp.varName())
                 .dot()
                 .identifier(hatVSelectLoadOp.mapLane());
@@ -204,7 +204,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+    public CudaHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp) {
         identifier(hatVSelectStoreOp.varName())
                 .dot()
                 .identifier(hatVSelectStoreOp.mapLane())
@@ -223,13 +223,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HatVectorVarOp hatVectorVarOp) {
+    public CudaHATKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorVarOp hatVectorVarOp) {
         Value operand = hatVectorVarOp.operands().getFirst();
         typeName(hatVectorVarOp.buildType())
                 .space()
                 .varName(hatVectorVarOp);
 
-        if (operand instanceof Op.Result r && r.op() instanceof HatVectorBinaryOp) {
+        if (operand instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp) {
             semicolon().nl();
         } else {
             space().equals().space();
@@ -242,7 +242,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HatVectorVarLoadOp hatVectorVarLoadOp) {
+    public CudaHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
         varName(hatVectorVarLoadOp);
         return self();
     }

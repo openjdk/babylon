@@ -26,6 +26,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.annotations.Kernel;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
@@ -35,7 +36,10 @@ import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 
+import javax.print.DocFlavor;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * How to test?
@@ -44,20 +48,22 @@ import java.lang.invoke.MethodHandles;
  * java @hat/exp ffi-cuda -DHAT=SHOW_CODE PrefixSum
  * </code>
  */
+
 public class PrefixSum {
+    private static final int GROUP_SIZE = 32;
     private interface SharedS32x256Array extends Buffer {
         void array(long index, int value);
 
         int array(long index);
 
-        Schema<SharedS32x256Array> schema = Schema.of(SharedS32x256Array.class, $ -> $.array("array", 256));
+        Schema<SharedS32x256Array> schema = Schema.of(SharedS32x256Array.class, $ -> $.array("array", 32));
 
         static SharedS32x256Array create(Accelerator accelerator) {
-            return schema.allocate(accelerator);
+            return schema.allocate(accelerator); // Why would we get here?
         }
 
         static SharedS32x256Array createLocal() {
-            return schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+            return null;//schema.allocate(new Accelerator(MethodHandles.lookup(), Backend.FIRST)); /// This is crazy? why
         }
     }
 
@@ -199,7 +205,44 @@ public class PrefixSum {
 //                 ^                 ^                 ^                 ^                  ^
 //                 s0                s1                s2                s3                 s4
 
-    @CodeReflection
+    @CodeReflection @Kernel("""
+                    HAT_KERNEL void crossGroupScan(
+                        HAT_GLOBAL_MEM KernelContext_t* kc,
+                        HAT_GLOBAL_MEM S32Array_t* dataBuf
+                    ){
+                        HAT_LOCAL_MEM SharedS32x256Array_t scratchBuf;
+                        const int gid = HAT_GIX*HAT_GSX-1;
+                        scratchBuf.array[(long)HAT_LIX]=gid>0?dataBuf->array[(long)gid]:0;
+                        HAT_BARRIER;
+                        for(int step = 2; step<=HAT_GSX; step=step<<1){
+                            if((HAT_LIX+1)%step==0){
+                                scratchBuf.array[(long)HAT_LIX]=scratchBuf.array[(long)HAT_LIX]+scratchBuf.array[(long)(HAT_LIX-(step>>1))];
+                            }
+                            HAT_BARRIER;
+                        }
+                        int sum = 0;
+                        if(HAT_LIX+1==HAT_GSX){
+                            sum=scratchBuf.array[(long)HAT_LIX];
+                            scratchBuf.array[(long)HAT_LIX]=0;
+                        }
+                        HAT_BARRIER;
+                        for(int step = HAT_GSX; step>1; step=step>>1){
+                            if((HAT_LIX+1)%step==0){
+                                const int swap = scratchBuf.array[(long)(HAT_LIX-(step>>1))];
+                                scratchBuf.array[(long)(HAT_LIX-(step>>1))]=scratchBuf.array[(long)HAT_LIX];
+                                scratchBuf.array[(long)HAT_LIX]=scratchBuf.array[(long)HAT_LIX]+swap;
+                            }
+                            HAT_BARRIER;
+                        }
+                        if(HAT_LIX+1==HAT_GSX){
+                            dataBuf->array[(long)gid]=sum;
+                        }else if(gid>0){
+                            dataBuf->array[(long)gid]=scratchBuf.array[(long)(HAT_LIX+1)];
+                        }
+                        HAT_BARRIER;
+                        return;
+                    }
+            """)
     static void crossGroupScan(@RO KernelContext kc, @RW S32Array dataBuf) {
         var scratchBuf = SharedS32x256Array.createLocal();
         int[] data = dataBuf.arrayView();  // int[] scratch=scratchBuf.arrayView();
@@ -259,22 +302,59 @@ public class PrefixSum {
         kc.barrier();
         data[kc.gix] = scratchBuf.array(kc.lix); // data[kc.gix]=scratch[kc.lix];
     }
+    static String view(int[] data){
+        StringBuilder sb = new StringBuilder();
+        for (int i=0;i<data.length;i++){
+            sb.append(String.format("%02d ",data[i]));
+            if (i%GROUP_SIZE==0 && i>0){
+                sb.append('|');
+            }
+        }
+        return sb.toString();
+    }
+
+     static String view(S32Array data){
+        StringBuilder sb = new StringBuilder();
+        for (int i=0;i<data.length();i++){
+            sb.append(String.format("%02d ",data.array(i)));
+            if (i%GROUP_SIZE==0 && i>0){
+                sb.append('|');
+            }
+        }
+        return sb.toString();
+    }
 
 
-    private static final int GROUP_SIZE = 256;
+
 
     @CodeReflection
     private static void compute(ComputeContext cc, @RW S32Array data) {
-        cc.dispatchKernel(data.length(), kc -> groupScan(kc, data));
-
-        int groupCount = data.length() / GROUP_SIZE;
-        int log2 = 1;
-        while (log2 < groupCount) {
-            log2 <<= 1;
+        List<String> results = new ArrayList<>();
+        int[] ref = new int[data.length()];
+        int[] seq = new int[data.length()];
+        int sum =0;
+        for (int i=0;i<data.length();i++){
+            ref[i]=data.array(i);
+            sum+=ref[i];
+            seq[i] = sum;
         }
-        cc.dispatchKernel(data.length(), kc -> crossGroupScan(kc, data));
-        cc.dispatchKernel(data.length(), kc -> sumKernel(kc, data));
-
+        results.add(view(ref));
+        results.add(view(data));
+        cc.dispatchKernel(data.length(), kc -> groupScan(kc, data));
+        results.add(view(data));
+        cc.dispatchKernel(GROUP_SIZE, kc -> crossGroupScan(kc, data));
+        results.add(view(data));
+        cc.dispatchKernel(GROUP_SIZE, kc -> sumKernel(kc, data));
+      //  results.add(view(data));
+        results.add(view(seq));
+        boolean brokenBytecodeGen = true;
+        if (brokenBytecodeGen){
+            for (var r:results){
+                System.out.println(r.substring(0, 120));
+            }
+        }else {
+            results.forEach(r -> System.out.println(r.substring(0, 120)));
+        }
     }
 
     public static void main(String[] args) {

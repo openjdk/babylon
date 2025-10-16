@@ -87,11 +87,13 @@ public class BufferTagger {
 
     // inlines functions found in FuncOp f until no more inline-able functions are present
     public static CoreOp.FuncOp inlineLoop(MethodHandles.Lookup l, CoreOp.FuncOp f) {
-        CoreOp.FuncOp ssaFunc = SSA.transform(f.transform(OpTransformer.LOWERING_TRANSFORMER));
+
+        var here = OpTk.CallSite.of(BufferTagger.class, "inlineLoop");
+        CoreOp.FuncOp ssaFunc = OpTk.SSATransformLower(here, f); // do we need this nesting?
         AtomicBoolean changed = new AtomicBoolean(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
-            ssaFunc = ssaFunc.transform((bb, op) -> {
+            ssaFunc = OpTk.transform(OpTk.CallSite.of(BufferTagger.class, "inlineLoop"),ssaFunc,(bb, op) -> {
                 if (op instanceof JavaOp.InvokeOp iop) {
                     MethodRef methodRef = iop.invokeDescriptor();
                     Method invokeOpCalledMethod;
@@ -103,12 +105,10 @@ public class BufferTagger {
                     if (invokeOpCalledMethod instanceof Method method) { // if method isn't a buffer access (is code reflected)
                         if (Op.ofMethod(method).isPresent()) {
                             CoreOp.FuncOp inline = Op.ofMethod(method).get(); // method to be inlined
-                            CoreOp.FuncOp ssaInline = SSA.transform(inline.transform(OpTransformer.LOWERING_TRANSFORMER));
-
+                            CoreOp.FuncOp ssaInline = OpTk.SSATransformLower(here, inline);
                             Block.Builder exit = Inliner.inline(bb, ssaInline, bb.context().getValues(iop.operands()), (_, v) -> {
                                 if (v != null) bb.context().mapValue(iop.result(), v);
                             });
-
                             if (!exit.parameters().isEmpty()) {
                                 bb.context().mapValue(iop.result(), exit.parameters().getFirst());
                             }
@@ -127,10 +127,11 @@ public class BufferTagger {
     // creates the access map
     public static void buildAccessMap(MethodHandles.Lookup l, CoreOp.FuncOp f) {
         // build blockParams so that we can map params to "root" params later
-        f.elements().filter(elem -> elem instanceof Block)
+        var here = OpTk.CallSite.of(BufferTagger.class, "buildAccessMap");
+        OpTk.elements(here, f).filter(elem -> elem instanceof Block)
                 .forEach(b -> blockParams.put((Block) b, ((Block) b).parameters()));
 
-        f.traverse(null, (map, op) -> {
+        OpTk.traverse(here, f, (map, op) -> {
             if (op instanceof CoreOp.BranchOp b) {
                 mapBranch(l, b.branch());
             } else if (op instanceof  CoreOp.ConditionalBranchOp cb) {

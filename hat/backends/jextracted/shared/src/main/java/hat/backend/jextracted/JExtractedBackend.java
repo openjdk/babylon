@@ -60,9 +60,10 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
+        var here = OpTk.CallSite.of(JExtractedBackend.class, "dispatchCompuet");
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
             computeContext.computeCallGraph.entrypoint.lowered =
-                    OpTk.lower(computeContext.computeCallGraph.entrypoint.funcOp());
+                    OpTk.lower(here, computeContext.computeCallGraph.entrypoint.funcOp());
         }
         boolean interpret = false;
         if (interpret) {
@@ -82,11 +83,13 @@ public abstract class JExtractedBackend extends JExtractedBackendDriver {
 
     // This code should be common with ffi-shared probably should be pushed down into another lib?
     protected static CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
-        System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
-        System.out.println(computeMethod.funcOp().toText());
+      //  System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
+       // System.out.println(computeMethod.funcOp().toText());
         var lookup = computeMethod.callGraph.computeContext.accelerator.lookup;
+        // TODO : can't we get this from somewhere maybe it should be capturein the compute method?
         var paramTable = new FuncOpParams(computeMethod.funcOp());
-        var transformedFuncOp = computeMethod.funcOp().transform((bldr, op) -> {
+        var here = OpTk.CallSite.of(JExtractedBackend.class, "injectBufferTracking");
+        var transformedFuncOp = OpTk.transform(here,computeMethod.funcOp(),(bldr, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Value computeContext = bldr.context().getValue(paramTable.list().getFirst().parameter);
                 if (OpTk.isIfaceBufferMethod(lookup, invokeOp) && OpTk.javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
