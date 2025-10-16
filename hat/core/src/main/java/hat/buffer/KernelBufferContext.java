@@ -27,7 +27,7 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-public interface KernelContext extends Buffer {
+public interface KernelBufferContext extends Buffer {
 
     // ----------------------------------------------------------------------|
     //| OpenCL            | CUDA                                  | HAT      |
@@ -100,10 +100,10 @@ public interface KernelContext extends Buffer {
     int biz();
     void biz(int biz);
 
-    Schema<KernelContext> schema = Schema.of(KernelContext.class,
+    Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class,
             kernelContext -> kernelContext
                     .fields(
-                            "x", "maxX", "y", "maxY", "z", "maxZ", "dimensions",  // Initial version
+                            "x", "maxX", "y", "maxY", "z", "maxZ", "dimensions",  // Initial version: to be deprecated
                             "gix", "giy", "giz",  // global accesses
                             "gsx", "gsy", "gsz",  // global sizes
                             "lix", "liy", "liz",  // local (thread-ids)
@@ -111,36 +111,36 @@ public interface KernelContext extends Buffer {
                             "bix", "biy", "biz"   // block id
                     ));
 
-    static KernelContext  createDefault(Accelerator accelerator) {
-        KernelContext kernelContext =  schema.allocate(accelerator);
-        kernelContext.x(0);
-        kernelContext.maxX(0);
-        kernelContext.y(0);
-        kernelContext.maxY(0);
-        kernelContext.z(0);
-        kernelContext.maxZ(0);
-        kernelContext.dimensions(3);
+    static KernelBufferContext createDefault(Accelerator accelerator) {
+        KernelBufferContext kernelBufferContext =  schema.allocate(accelerator);
+        kernelBufferContext.x(0);
+        kernelBufferContext.maxX(0);
+        kernelBufferContext.y(0);
+        kernelBufferContext.maxY(0);
+        kernelBufferContext.z(0);
+        kernelBufferContext.maxZ(0);
+        kernelBufferContext.dimensions(3);
 
-        kernelContext.gix(0);
-        kernelContext.giy(0);
-        kernelContext.giz(0);
+        kernelBufferContext.gix(0);
+        kernelBufferContext.giy(0);
+        kernelBufferContext.giz(0);
 
-        kernelContext.gsy(0);
-        kernelContext.giy(0);
-        kernelContext.giz(0);
+        kernelBufferContext.gsy(0);
+        kernelBufferContext.giy(0);
+        kernelBufferContext.giz(0);
 
-        kernelContext.lix(0);
-        kernelContext.liy(0);
-        kernelContext.liz(0);
+        kernelBufferContext.lix(0);
+        kernelBufferContext.liy(0);
+        kernelBufferContext.liz(0);
 
-        kernelContext.lsx(0);
-        kernelContext.lsy(0);
-        kernelContext.lsz(0);
+        kernelBufferContext.lsx(0);
+        kernelBufferContext.lsy(0);
+        kernelBufferContext.lsz(0);
 
-        kernelContext.bix(0);
-        kernelContext.biy(0);
-        kernelContext.biz(0);
+        kernelBufferContext.bix(0);
+        kernelBufferContext.biy(0);
+        kernelBufferContext.biz(0);
 
-        return kernelContext;
+        return kernelBufferContext;
     }
 }

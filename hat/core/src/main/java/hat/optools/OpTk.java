@@ -26,6 +26,8 @@ package hat.optools;
 
 import hat.ComputeContext;
 import hat.buffer.KernelContext;
+import hat.buffer.Buffer;
+import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATThreadOp;
@@ -334,7 +336,7 @@ public class OpTk {
     public static boolean isKernelContextMethod(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) {
         return (op.operands().size() > 1 && op.operands().getFirst() instanceof Value value
                 && value.type() instanceof JavaType javaType
-                && (isAssignable(lookup, javaType, hat.KernelContext.class) || isAssignable(lookup, javaType, KernelContext.class))
+                && (isAssignable(lookup, javaType, hat.KernelContext.class) || isAssignable(lookup, javaType, KernelBufferContext.class))
         );
     }
 
