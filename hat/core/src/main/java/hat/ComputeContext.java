@@ -106,9 +106,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
     protected ComputeContext(Accelerator accelerator, Method computeMethod) {
         this.accelerator = accelerator;
-        CoreOp.FuncOp funcOp = Op.ofMethod(computeMethod).orElseThrow();
-        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp);
-        //this.computeCallGraph.close(computeCallGraph.entrypoint);
+        this.computeCallGraph = new ComputeCallGraph(this, computeMethod, Op.ofMethod(computeMethod).orElseThrow());
         this.accelerator.backend.computeContextHandoff(this);
     }
 
@@ -136,8 +134,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
 
 
     record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
-    // TODO: this hack simulates minimizing calls to diealectifyToHat
-   // Map<KernelCallGraph, CallGraph> callGraphMap = new HashMap<>();
+
     private CallGraph getKernelCallGraph(QuotableKernelContextConsumer quotableKernelContextConsumer) {
         Quoted quoted = Op.ofQuotable(quotableKernelContextConsumer).orElseThrow();
         JavaOp.LambdaOp lambdaOp = (JavaOp.LambdaOp) quoted.op();
@@ -146,17 +143,7 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         if (kernelCallGraph == null){
             throw new RuntimeException("Failed to create KernelCallGraph (did you miss @CodeReflection annotation?) ");
         }
-
-        // TODO: this hack simulates minimizing calls to diealectifyToHat
-       // if (!callGraphMap.containsKey(kernelCallGraph)) {
-            kernelCallGraph.dialectifyToHat();
-            kernelCallGraph.convertArrayView();
-            var cacheMeIfYouCan = new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
-         //   callGraphMap.put(kernelCallGraph, cacheMeIfYouCan);
-            return cacheMeIfYouCan;
-        //}else {
-          // return callGraphMap.get(kernelCallGraph);
-       // }
+        return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
     private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
