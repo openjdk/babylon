@@ -84,7 +84,24 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         this.computeCallGraph = computeCallGraph;
         bufferAccessList = BufferTagger.getAccessList(computeContext.accelerator.lookup, entrypoint.funcOp());
         usesArrayView = false;
-        setModuleOp(OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this));
+        CoreOp.ModuleOp initialModuleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this);
+        HATDialectifyTier tier = new HATDialectifyTier(computeContext.accelerator);
+        CoreOp.FuncOp initialEntrypointFuncOp = tier.run(entrypoint.funcOp());
+        entrypoint.funcOp(initialEntrypointFuncOp);
+        List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
+        initialModuleOp.functionTable().forEach((_, accessableFuncOp) ->
+                initialFuncOps.add( tier.run(accessableFuncOp))
+        );
+        CoreOp.ModuleOp interiModuleOp = CoreOp.module(initialFuncOps);
+        CoreOp.FuncOp interimEntrypointFuncOp = convertArrayViewForFunc(computeContext.accelerator.lookup, entrypoint.funcOp());
+        entrypoint.funcOp(interimEntrypointFuncOp);
+
+
+        List<CoreOp.FuncOp> interimFuncOps = new ArrayList<>();
+        interiModuleOp.functionTable().forEach((_, accessableFuncOp) ->
+            interimFuncOps.add(convertArrayViewForFunc(computeContext.accelerator.lookup, accessableFuncOp))
+        );
+        setModuleOp(CoreOp.module(interimFuncOps));
     }
     /*
      * A ResolvedKernelMethodCall (entrypoint or java  method reachable from a compute entrypojnt)  has the following calls
@@ -95,7 +112,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
      *    a) getters (return non void)
      *    b) setters (return void)
      * 3) calls on the NDRange id
-     *
+     */
     void oldUpdateDag(KernelReachableResolvedMethodCall kernelReachableResolvedMethodCall) {
 
         var here = OpTk.CallSite.of(KernelCallGraph.class,"updateDag");
@@ -143,24 +160,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
                 updated = true;
             }
         }
-    }*/
+    }
 
-   // KernelCallGraph close() {
-       // oldUpdateDag(entrypoint);
-        // now lets sort the MethodCalls into a dependency list
-     //   calls.forEach(m -> m.rank = 0);
-       // entrypoint.rankRecurse();
-       // throw new RuntimeException("is close ever called");
-       // return this;
-   // }
-
-  //  KernelCallGraph closeWithModuleOp() {
-
-    //    setModuleOp(OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this));
-        //calls.forEach(m -> m.rank = 0);
-        //entrypoint.rankRecurse();
-     //   return this;
-   // }
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
@@ -174,8 +175,8 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         }
         return true;
     }
-
-    public void dialectifyToHat() {
+/*
+    public void nodialectifyToHat() {
         // Analysis Phases to transform the Java Code Model to a HAT Code Model
 
         // Main kernel
@@ -199,15 +200,15 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
              setModuleOp(CoreOp.module(funcs));
         //} else {
           //  throw new IllegalStateException("moduleOp is null");
-          /*  kernelReachableResolvedStream().forEach((kernel) -> {
+           kernelReachableResolvedStream().forEach((kernel) -> {
                 HatDialectifyTier tier = new HatDialectifyTier(computeContext.accelerator);
                 CoreOp.FuncOp f = tier.run(kernel.funcOp());
                 kernel.funcOp(f);
-            }); */
+            });
         //}
     }
 
-    public void convertArrayView() {
+    public void noconvertArrayView() {
         CoreOp.FuncOp entry = convertArrayViewForFunc(computeContext.accelerator.lookup, entrypoint.funcOp());
         entrypoint.funcOp(entry);
 
@@ -225,7 +226,7 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
             //});
        // }
     }
-
+*/
     public CoreOp.FuncOp convertArrayViewForFunc(MethodHandles.Lookup l, CoreOp.FuncOp entry) {
         if (!OpTk.isArrayView(l, entry)) return entry;
         usesArrayView = true;

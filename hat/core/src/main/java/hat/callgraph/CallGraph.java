@@ -43,9 +43,6 @@ public abstract class CallGraph<E extends Entrypoint> {
     public final Set<MethodCall> calls = new HashSet<>();
     public final Map<MethodRef, MethodCall> methodRefToMethodCallMap = new LinkedHashMap<>();
     private CoreOp.ModuleOp moduleOp;
-    public Stream<MethodCall> callStream() {
-        return methodRefToMethodCallMap.values().stream();
-    }
     public CoreOp.ModuleOp getModuleOp(){
         return this.moduleOp;
     }
@@ -53,6 +50,11 @@ public abstract class CallGraph<E extends Entrypoint> {
     public void setModuleOp(CoreOp.ModuleOp moduleOp){
         this.moduleOp = moduleOp;
     }
+
+    public Stream<MethodCall> callStream() {
+        return methodRefToMethodCallMap.values().stream();
+    }
+
     public abstract boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass);
 
     public interface Resolved {

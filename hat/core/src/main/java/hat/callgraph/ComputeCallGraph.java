@@ -143,10 +143,8 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
      *    a) range creations (maybe compute context should manage ranges?)
      * 5) References to the dispatched kernels
      *    a) We must also have the code models for these and must extend the dag to include these.
-     *
+     */
     public void oldUpdateDag(ComputeReachableResolvedMethodCall computeReachableResolvedMethodCall) {
-
-
         MethodHandles.Lookup lookup =  computeReachableResolvedMethodCall.callGraph.computeContext.accelerator.lookup;
         var here = OpTk.CallSite.of(ComputeCallGraph.class,"updateDag");
         OpTk.transform(here, computeReachableResolvedMethodCall.funcOp(),(map, op) -> {
@@ -173,7 +171,7 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
                         if (isKernelDispatch(lookup,invokeWrapperCalledMethod, fow)) {
                             // System.out.println("A kernel reference (not a direct call) to a kernel " + methodRef);
                             kernelCallGraphMap.computeIfAbsent(invokeOp.invokeDescriptor(), _ ->
-                                    new KernelCallGraph(this, invokeOp.invokeDescriptor(), invokeWrapperCalledMethod, fow).close()
+                                    new KernelCallGraph(this, invokeOp.invokeDescriptor(), invokeWrapperCalledMethod, fow)
                             );
                         } else {
                             // System.out.println("A call to a method on the compute class which we have code model for " + methodRef);
@@ -216,16 +214,6 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
             }
         }
     }
-*/
-   // public void close() {
-     //   closeWithModuleOp(entrypoint);
-   // }
-
-
-
-    //public void close(ComputeReachableResolvedMethodCall computeReachableResolvedMethodCall) {
-     //   setModuleOp(OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, computeReachableResolvedMethodCall.funcOp(), this));
-    //}
 
     @Override
     public boolean filterCalls(CoreOp.FuncOp f, JavaOp.InvokeOp invokeOp, Method method, MethodRef methodRef, Class<?> javaRefTypeClass) {
