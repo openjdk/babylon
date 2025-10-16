@@ -1,0 +1,17 @@
+#### Extracted from: /onnxruntime/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
+
+--include-constant COREML_FLAG_CREATE_MLPROGRAM
+--include-constant COREML_FLAG_ENABLE_ON_SUBGRAPH
+--include-constant COREML_FLAG_LAST
+--include-constant COREML_FLAG_ONLY_ALLOW_STATIC_INPUT_SHAPES
+--include-constant COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE
+--include-constant COREML_FLAG_USE_CPU_AND_GPU
+--include-constant COREML_FLAG_USE_CPU_ONLY
+--include-constant COREML_FLAG_USE_NONE
+--include-function OrtSessionOptionsAppendExecutionProvider_CoreML
+
+#### Extracted from: /jextract-22/runtime/conf/jextract/stdbool.h
+
+--include-constant __bool_true_false_are_defined
+--include-constant false
+--include-constant true
