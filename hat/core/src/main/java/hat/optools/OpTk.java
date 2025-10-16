@@ -25,8 +25,6 @@
 package hat.optools;
 
 import hat.ComputeContext;
-import hat.buffer.KernelContext;
-import hat.buffer.Buffer;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
 import hat.dialect.HATMemoryOp;
