@@ -184,12 +184,7 @@ public class OpTk {
                     if (f != null && !callGraph.filterCalls(f, invokeOp, method, invokeOp.invokeDescriptor(), javaRefTypeClass)) {
                         work.push(new RefAndFunc(invokeOp.invokeDescriptor(),  f));
                     }
-                } catch (ReflectiveOperationException _) {
-                    throw new IllegalStateException("Could not resolve invokeWrapper to method");
-                }
-            }
-            return map;
-        });
+                });
 
         while (!work.isEmpty()) {
             RefAndFunc rf = work.pop();
