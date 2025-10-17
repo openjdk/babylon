@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package oracle.code.hat;
+package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
@@ -33,15 +33,15 @@ import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
-import oracle.code.hat.annotation.HatTest;
-import oracle.code.hat.engine.HatAsserts;
+import hat.test.annotation.HatTest;
+import hat.test.engine.HatAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
-import static oracle.code.hat.TestNbody.Universe.*;
+import static hat.test.TestNbody.Universe.*;
 
 public class TestNbody {
 

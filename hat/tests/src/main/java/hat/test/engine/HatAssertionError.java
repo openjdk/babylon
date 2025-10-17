@@ -22,14 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package oracle.code.hat.annotation;
+package hat.test.engine;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+public class HatAssertionError extends RuntimeException {
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface HatTest {
+    public HatAssertionError(String s) {
+        super(s);
+    }
 }

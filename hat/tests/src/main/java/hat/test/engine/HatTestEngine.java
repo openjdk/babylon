@@ -22,9 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package oracle.code.hat.engine;
+package hat.test.engine;
 
-import oracle.code.hat.annotation.HatTest;
+import hat.test.annotation.HatTest;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
