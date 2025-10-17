@@ -60,8 +60,11 @@ static String help = """
              exp:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] [-DXXX ... ] experimentClassName  args
                       exp ffi-opencl QuotedConstantArgs
 
-             test:  [ffi|my|seq]-[opencl|java|cuda|mock|hip]
-                      test ffi-opencl
+             test-suite:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] 
+                      test-suite ffi-opencl  
+
+             test:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] classToTest (also classToTest#method)
+                      test ffi-opencl  hat.test.TestMatMul
 
           sanity:  Check source files for copyright and WS issues (tabs and trailing EOL WS)
         """;
@@ -145,6 +148,11 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
 
         // Finally we have everything needed for nbody
         var example_nbody = Jar.of(project.id("example{s}-nbody"), ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
+        class Stats {
+            int passed = 0;
+            int failed = 0;
+        }
+        var testEngine = "hat.test.engine.HatTestEngine";
 
         while (!args.isEmpty()) {
             var arg = args.removeFirst();
@@ -214,15 +222,10 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     if (args.size() > 0) {
                         var backendName = args.removeFirst();
                         if (project.get(backendName) instanceof Jar backend) {
-                           class Stats {
-                               int passed = 0;
-                               int failed = 0;
-                           }
                            var test_reports_txt = Paths.get("test_report.txt");
                            Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
                            var suiteRe = Pattern.compile("(hat/test/Test[a-zA-Z0-9]*).class");
                            var jarFile = new JarFile(tests.jarFile().toString());
-                           var testEngine = "hat.test.engine.HatTestEngine";
                            var entries = jarFile.entries();
                            var orderedDag  = new job.Dag(tests, backend).ordered();
                            while (entries.hasMoreElements()) {
@@ -256,11 +259,6 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                         var backendName = args.removeFirst();
                         var classAndMethod = args.removeFirst();
                         if (project.get(backendName) instanceof Jar backend) {
-                            class Stats {
-                                int passed = 0;
-                                int failed = 0;
-                            }
-                            var testEngine = "hat.test.engine.HatTestEngine";
                             var orderedDag  = new job.Dag(tests, backend).ordered();
                             tests.run(testEngine, orderedDag, List.of(), List.of(classAndMethod));
 
@@ -270,8 +268,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     } else {
                         System.err.println("For test we require a backend and a TestClass.");
                         System.err.println("Examples: ");
-                        System.err.println("$ test ffi-opencl TestMatMul");
-                        System.err.println("$ test ffi-opencl TestMatMul#method");
+                        System.err.println("$ test ffi-opencl hat.test.TestMatMul");
+                        System.err.println("$ test ffi-opencl hat.test.TestMatMul#method");
                     }
                     args.clear(); //!! :)
                 }
