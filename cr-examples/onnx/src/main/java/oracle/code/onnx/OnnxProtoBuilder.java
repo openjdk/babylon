@@ -419,7 +419,7 @@ public final class OnnxProtoBuilder {
                 attr.ints(longs);
             }
             case String s -> {
-                attr.type(AttributeType.String);
+                attr.type(AttributeType.STRING);
                 attr.s(s.getBytes());
             }
             case Tensor<?> t -> {
