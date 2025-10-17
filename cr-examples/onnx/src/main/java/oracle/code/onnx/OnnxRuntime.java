@@ -341,7 +341,7 @@ public final class OnnxRuntime {
                 .run(arena, inputValues.subList(initializers, inputValues.size()));
     }
 
-	public Session createSession(Arena arena, String modelPath) {
+    public Session createSession(Arena arena, String modelPath) {
         return createSession(arena, modelPath, createSessionOptions(arena));
     }
 

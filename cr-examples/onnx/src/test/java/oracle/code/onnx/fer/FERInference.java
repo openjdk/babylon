@@ -39,20 +39,20 @@ import static oracle.code.onnx.fer.FERCoreMLDemo.IMAGE_SIZE;
 public class FERInference {
 
 
-	private final OnnxRuntime runtime;
+    private final OnnxRuntime runtime;
 
     public FERInference() {
-		runtime = OnnxRuntime.getInstance();
-	}
+        runtime = OnnxRuntime.getInstance();
+    }
 
     public float[] analyzeImage(Arena arena, OnnxProvider provider, URL url, boolean useCondensedModel) throws Exception {
         float[] imageData = transformToFloatArray(url);
-		var sessionOptions = runtime.createSessionOptions(arena);
-		if (Objects.nonNull(provider))
-			provider.configure(sessionOptions);
-		FERModel ferModel = new FERModel(arena);
-		float[] rawScores = ferModel.classify(arena, imageData, sessionOptions, useCondensedModel);
-		return rawScores;
+        var sessionOptions = runtime.createSessionOptions(arena);
+        if (Objects.nonNull(provider))
+            provider.configure(sessionOptions);
+        FERModel ferModel = new FERModel(arena);
+        float[] rawScores = ferModel.classify(arena, imageData, sessionOptions, useCondensedModel);
+        return rawScores;
     }
 
     private float[] transformToFloatArray(URL imgUrl) throws IOException {
