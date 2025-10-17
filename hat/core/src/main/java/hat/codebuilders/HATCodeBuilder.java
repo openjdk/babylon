@@ -25,22 +25,19 @@
 package hat.codebuilders;
 
 
-import hat.FFIConfigCreator;
-import hat.dialect.HatMemoryOp;
-import hat.dialect.HatVectorBinaryOp;
-import hat.dialect.HatVectorLoadOp;
-import hat.dialect.HatVectorStoreView;
-import hat.dialect.HatVectorVarLoadOp;
-import hat.dialect.HatVectorVarOp;
+import hat.dialect.HATMemoryOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATVectorVarLoadOp;
+import hat.dialect.HATVectorVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.function.Consumer;
 
 public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBuilder<T> {
@@ -173,32 +170,32 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
         return self();
     }
 
-    public T varName(HatMemoryOp hatLocalVarOp) {
+    public T varName(HATMemoryOp hatLocalVarOp) {
         identifier(hatLocalVarOp.varName());
         return self();
     }
 
-    public T varName(HatVectorVarOp hatVectorVarOp) {
+    public T varName(HATVectorVarOp hatVectorVarOp) {
         identifier(hatVectorVarOp.varName());
         return self();
     }
 
-    public T varName(HatVectorLoadOp vectorLoadOp) {
+    public T varName(HATVectorLoadOp vectorLoadOp) {
         identifier(vectorLoadOp.varName());
         return self();
     }
 
-    public T varName(HatVectorStoreView hatVectorStoreView) {
+    public T varName(HATVectorStoreView hatVectorStoreView) {
         identifier(hatVectorStoreView.varName());
         return self();
     }
 
-    public T varName(HatVectorBinaryOp hatVectorBinaryOp) {
+    public T varName(HATVectorBinaryOp hatVectorBinaryOp) {
         identifier(hatVectorBinaryOp.varName());
         return self();
     }
 
-    public T varName(HatVectorVarLoadOp hatVectorVarLoadOp) {
+    public T varName(HATVectorVarLoadOp hatVectorVarLoadOp) {
         identifier(hatVectorVarLoadOp.varName());
         return self();
     }

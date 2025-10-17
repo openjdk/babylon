@@ -80,13 +80,10 @@ public class Config {
     public static final Bit SHOW_STATE = Bit.nextBit(SHOW_WHY, "SHOW_STATE", "Show iface buffer state changes");
     public static final Bit PTX = Bit.nextBit(SHOW_STATE, "PTX", "FFI (NVIDIA) ONLY pass PTX rather than C99 CUDA code");
     public static final Bit INTERPRET = Bit.nextBit(PTX, "INTERPRET", "Interpret the code model rather than converting to bytecode");
-    public static final Bit NO_BUFFER_TAGGING = Bit.nextBit(INTERPRET, "NO_BUFFER_TAGGING", "Skip AUTO buffer tagging (rely on annotations)");
-    public static final Bit NO_DIALECT = Bit.nextBit(NO_BUFFER_TAGGING, "NO_DIALECT", "Skip generating HAT dialect ops");
-    public static final Bit NO_MODULE_OP = Bit.nextBit(NO_DIALECT, "NO_MODULE_OP", "Use original callgraph (not using Module Op)");
-    public static final Bit HEADLESS = Bit.nextBit(NO_MODULE_OP, "HEADLESS", "Don't show UI");
-
-    public static final Bit SHOW_COMPILATION_PHASES = Bit.nextBit(HEADLESS, "SHOW_COMPILATION_PHASES", "Show HAT compilation phases");
-
+    public static final Bit NO_DIALECT = Bit.nextBit(INTERPRET, "NO_DIALECT", "Skip generating HAT dialect ops");
+    public static final Bit HEADLESS = Bit.nextBit(NO_DIALECT, "HEADLESS", "Don't show UI");
+    public static final Bit SHOW_LOWERED_KERNEL_MODEL = Bit.nextBit(HEADLESS,"SHOW_LOWERED_KERNEL_MODEL", "Show (via OpWriter) Lowered Kernel Model");
+    public static final Bit SHOW_COMPILATION_PHASES = Bit.nextBit(SHOW_LOWERED_KERNEL_MODEL, "SHOW_COMPILATION_PHASES", "Show HAT compilation phases");
 
     public static final List<Bit> bitList = List.of(
             PLATFORM,
@@ -106,11 +103,9 @@ public class Config {
             SHOW_STATE,
             PTX,
             INTERPRET,
-            NO_BUFFER_TAGGING,
             NO_DIALECT,
-            NO_MODULE_OP,
             HEADLESS,
-
+            SHOW_LOWERED_KERNEL_MODEL,
             SHOW_COMPILATION_PHASES
     );
 

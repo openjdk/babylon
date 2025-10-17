@@ -227,7 +227,7 @@ java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
 for backend in "\${BACKENDS[@]}"
 do
 echo -e "${GREEN}[running] java -cp hat/job.jar hat.java test "\$backend" ${NC}"
-java -cp hat/job.jar hat.java test "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
+java -cp hat/job.jar hat.java test-suite "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
 done
 
 # Print logs

@@ -24,17 +24,16 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.HatBarrierOp;
-import hat.dialect.HatVSelectLoadOp;
-import hat.dialect.HatVSelectStoreOp;
-import hat.dialect.HatVectorBinaryOp;
-import hat.dialect.HatVectorLoadOp;
-import hat.dialect.HatVectorStoreView;
-import hat.dialect.HatLocalVarOp;
-import hat.dialect.HatMemoryOp;
-import hat.dialect.HatPrivateVarOp;
-import hat.dialect.HatVectorVarLoadOp;
-import hat.dialect.HatVectorVarOp;
+import hat.dialect.HATBarrierOp;
+import hat.dialect.HATVSelectLoadOp;
+import hat.dialect.HATVSelectStoreOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATLocalVarOp;
+import hat.dialect.HATMemoryOp;
+import hat.dialect.HATPrivateVarOp;
+import hat.dialect.HATVectorVarOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
@@ -43,7 +42,6 @@ import hat.optools.OpTk;
 import hat.util.StreamMutable;
 
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -67,10 +65,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
-            case HatMemoryOp $ -> varName($);
-            case HatVectorVarOp $ -> varName($);
-            case HatVectorLoadOp $ -> varName($);
-            case HatVectorBinaryOp $ -> varName($);
+            case HATMemoryOp $ -> varName($);
+            case HATVectorVarOp $ -> varName($);
+            case HATVectorLoadOp $ -> varName($);
+            case HATVectorBinaryOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -85,7 +83,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
-    public record LocalArrayDeclaration(ClassType classType, HatMemoryOp varOp) {}
+    public record LocalArrayDeclaration(ClassType classType, HATMemoryOp varOp) {}
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         if (buildContext.isVarOpFinal(varOp)) {
@@ -106,14 +104,14 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HatLocalVarOp hatLocalVarOp) {
+    public T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATLocalVarOp hatLocalVarOp) {
         LocalArrayDeclaration localArrayDeclaration = new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp);
         localDeclaration(localArrayDeclaration);
         return self();
     }
 
     @Override
-    public T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HatPrivateVarOp hatLocalVarOp) {
+    public T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATPrivateVarOp hatLocalVarOp) {
         LocalArrayDeclaration localArrayDeclaration = new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp);
         privateDeclaration(localArrayDeclaration);
         return self();
@@ -420,7 +418,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T barrier(ScopedCodeBuilderContext buildContext, HatBarrierOp barrierOp) {
+    public T barrier(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp) {
         return syncBlockThreads();
     }
 
@@ -491,7 +489,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     if (instanceResult.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
                         //if (localDataStructures.contains(resolve)) {
-                        if (resolve instanceof HatMemoryOp) {
+                        if (resolve instanceof HATMemoryOp) {
                             isLocalOrPrivateDS = true;
                         }
                     }
@@ -619,38 +617,38 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
     }
 
-    public abstract T generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView);
+    public abstract T generateVectorStore(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView);
 
-    public abstract T generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp);
+    public abstract T generateVectorBinary(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp);
 
-    public abstract T generateVectorLoad(ScopedCodeBuilderContext buildContext,HatVectorLoadOp hatVectorLoadOp);
+    public abstract T generateVectorLoad(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp);
 
-    public abstract T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext,HatVSelectLoadOp hatVSelectLoadOp);
+    public abstract T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp);
 
-    public abstract T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext,HatVSelectStoreOp hatVSelectStoreOp);
+    public abstract T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp);
 
     @Override
-    public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+    public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
        return generateVectorStore(buildContext, hatVectorStoreView);
     }
 
     @Override
-    public T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+    public T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
         return generateVectorBinary(buildContext, hatVectorBinaryOp);
     }
 
     @Override
-    public T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+    public T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
         return generateVectorLoad(buildContext, hatVectorLoadOp);
     }
 
     @Override
-    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp) {
         return generateVectorSelectLoadOp(buildContext, hatVSelectLoadOp);
     }
 
     @Override
-    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp) {
         return generateVectorSelectStoreOp(buildContext, hatVSelectStoreOp);
     }
 
