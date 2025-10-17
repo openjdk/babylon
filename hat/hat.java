@@ -210,7 +210,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     }
                     args.clear(); //!! :)
                 }
-                case "test" -> {
+                case "test-suite" -> {
                     if (args.size() > 0) {
                         var backendName = args.removeFirst();
                         if (project.get(backendName) instanceof Jar backend) {
@@ -248,6 +248,30 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                         }
                     } else {
                         System.err.println("For test we require a backend ");
+                    }
+                    args.clear(); //!! :)
+                }
+                case "test" -> {
+                    if (args.size() >= 2) {
+                        var backendName = args.removeFirst();
+                        var classAndMethod = args.removeFirst();
+                        if (project.get(backendName) instanceof Jar backend) {
+                            class Stats {
+                                int passed = 0;
+                                int failed = 0;
+                            }
+                            var testEngine = "hat.test.engine.HatTestEngine";
+                            var orderedDag  = new job.Dag(tests, backend).ordered();
+                            tests.run(testEngine, orderedDag, List.of(), List.of(classAndMethod));
+
+                        } else {
+                            System.err.println("Failed to find backend   " + backendName);
+                        }
+                    } else {
+                        System.err.println("For test we require a backend and a TestClass.");
+                        System.err.println("Examples: ");
+                        System.err.println("$ test ffi-opencl TestMatMul");
+                        System.err.println("$ test ffi-opencl TestMatMul#method");
                     }
                     args.clear(); //!! :)
                 }
