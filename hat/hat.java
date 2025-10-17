@@ -220,9 +220,9 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                            }
                            var test_reports_txt = Paths.get("test_report.txt");
                            Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
-                           var suiteRe = Pattern.compile("(oracle/code/hat/Test[a-zA-Z0-9]*).class");
+                           var suiteRe = Pattern.compile("(hat/test/Test[a-zA-Z0-9]*).class");
                            var jarFile = new JarFile(tests.jarFile().toString());
-                           var testEngine = "oracle.code.hat.engine.HatTestEngine";
+                           var testEngine = "hat.test.engine.HatTestEngine";
                            var entries = jarFile.entries();
                            var orderedDag  = new job.Dag(tests, backend).ordered();
                            while (entries.hasMoreElements()) {

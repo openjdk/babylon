@@ -22,13 +22,14 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package oracle.code.hat.engine;
+package hat.test.annotation;
 
-public class Colours {
-    public static String RED = "\u001b[31m";
-    public static String GREEN = "\u001b[32m";
-    public static String BLUE = "\u001b[34m";
-    public static String CYAN = "\u001b[36m";
-    public static String YELLOW = "\u001b[33m";
-    public static String RESET = "\u001b[0m";
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface HatTest {
 }

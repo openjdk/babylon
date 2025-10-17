@@ -48,7 +48,7 @@ class Config {
 
         var testJARFile = buildDir.jarFile("hat-tests-1.0.jar");
         if (testJARFile.exists()) {
-            testMainClassName = "oracle.code.hat.engine.HatTestEngine";
+            testMainClassName = "hat.test.engine.HatTestEngine";
             exampleJar = testJARFile;
             if (exampleJar.exists()) {
                 classpath.add(exampleJar);
@@ -159,18 +159,18 @@ void main(String[] argv) {
     if (config.runSuite) {
 
         String[] suite = new String[] {
-                "oracle.code.hat.TestArrays",
-                "oracle.code.hat.TestMatMul",
-                "oracle.code.hat.TestMandel",
-                "oracle.code.hat.TestLocal",
-                "oracle.code.hat.TestReductions",
-                "oracle.code.hat.TestPrivate",
-                "oracle.code.hat.TestParenthesis",
-                "oracle.code.hat.TestConstants",
-                "oracle.code.hat.TestBlackscholes",
-                "oracle.code.hat.TestNbody",
-                "oracle.code.hat.TestArrayView",
-                "oracle.code.hat.TestVectorTypes"
+                "hat.test.TestMatMul",
+                "hat.test.TestArrays",
+                "hat.test.TestMandel",
+                "hat.test.TestLocal",
+                "hat.test.TestReductions",
+                "hat.test.TestPrivate",
+                "hat.test.TestParenthesis",
+                "hat.test.TestConstants",
+                "hat.test.TestBlackscholes",
+                "hat.test.TestNbody",
+                "hat.test.TestArrayView",
+                "hat.test.TestVectorTypes"
         };
 
         // Test the whole suite

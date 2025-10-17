@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package oracle.code.hat.engine;
+package hat.test.engine;
 
 public class HatAsserts {
 
