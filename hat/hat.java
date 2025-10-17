@@ -60,8 +60,8 @@ static String help = """
              exp:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] [-DXXX ... ] experimentClassName  args
                       exp ffi-opencl QuotedConstantArgs
 
-             test-suite:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] 
-                      test-suite ffi-opencl  
+             test-suite:  [ffi|my|seq]-[opencl|java|cuda|mock|hip]
+                      test-suite ffi-opencl
 
              test:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] classToTest (also classToTest#method)
                       test ffi-opencl  hat.test.TestMatMul
