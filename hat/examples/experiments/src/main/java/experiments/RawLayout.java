@@ -33,6 +33,8 @@ import java.lang.foreign.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+
+import hat.optools.OpTk;
 import jdk.incubator.code.*;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -122,7 +124,8 @@ public class RawLayout {
     public static void main(String[] args) {
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         CoreOp.FuncOp m = getFuncOp("m");
-        m = SSA.transform(m);
+        var here = OpTk.CallSite.of(RawLayout.class, "main");
+        m = OpTk.SSATransform(here, m);
         System.out.println(m.toText());
 
         CoreOp.FuncOp pm = transformInvokesToPtrs(lookup, m);

@@ -24,16 +24,15 @@
  */
 package hat.backend.jextracted;
 
-import hat.NDRange;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.HatVSelectLoadOp;
-import hat.dialect.HatVSelectStoreOp;
-import hat.dialect.HatVectorBinaryOp;
-import hat.dialect.HatVectorLoadOp;
-import hat.dialect.HatVectorStoreView;
-import hat.dialect.HatVectorVarLoadOp;
-import hat.dialect.HatVectorVarOp;
+import hat.dialect.HATVSelectLoadOp;
+import hat.dialect.HATVSelectStoreOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATVectorVarLoadOp;
+import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -107,37 +106,37 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder generateVectorStore(ScopedCodeBuilderContext buildContext, HatVectorStoreView hatVectorStoreView) {
+    public OpenCLHatKernelBuilder generateVectorStore(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
         throw new RuntimeException("implement OpenCLHatKernelBuilder generateVectorStore");
     }
 
     @Override
-    public OpenCLHatKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HatVectorBinaryOp hatVectorBinaryOp) {
+    public OpenCLHatKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
         throw new RuntimeException("implement OpenCLHatKernelBuilder generateVectorBinary");
     }
 
     @Override
-    public OpenCLHatKernelBuilder generateVectorLoad(ScopedCodeBuilderContext buildContext, HatVectorLoadOp hatVectorLoadOp) {
+    public OpenCLHatKernelBuilder generateVectorLoad(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
         throw new RuntimeException("implement OpenCLHatKernelBuilder generateVectorLoad");
     }
 
     @Override
-    public OpenCLHatKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HatVSelectLoadOp hatVSelectLoadOp) {
+    public OpenCLHatKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp) {
         throw new RuntimeException("implement OpenCLHatKernelBuilder generateVectorSelectLoadOp");
     }
 
     @Override
-    public OpenCLHatKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HatVSelectStoreOp hatVSelectStoreOp) {
+    public OpenCLHatKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp) {
         throw new RuntimeException("implement OpenCLHatKernelBuilder generateVectorSelectStoreOp");
     }
 
     @Override
-    public OpenCLHatKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HatVectorVarOp hatVectorVarOp) {
+    public OpenCLHatKernelBuilder hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorVarOp hatVectorVarOp) {
         throw new RuntimeException("implement OpenCLHatKernelBuilder hatVectorVarOp");
     }
 
     @Override
-    public OpenCLHatKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HatVectorVarLoadOp hatVectorVarLoadOp) {
+    public OpenCLHatKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
         throw new RuntimeException("implement OpenCLHatKernelBuilder hatVectorVarLoadOp");
     }
 }

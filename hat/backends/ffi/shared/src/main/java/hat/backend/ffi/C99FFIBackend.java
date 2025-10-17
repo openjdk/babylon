@@ -29,24 +29,22 @@ import hat.ComputeRange;
 import hat.Config;
 import hat.ThreadMesh;
 import hat.NDRange;
-import hat.callgraph.CallGraph;
+import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
 import hat.buffer.Buffer;
 import hat.buffer.BufferTracker;
-import hat.buffer.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.HatMemoryOp;
+import hat.dialect.HATMemoryOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import hat.optools.OpTk;
-import hat.phases.HatFinalDetectionPhase;
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
+import hat.phases.HATFinalDetectionPhase;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.dialect.java.ClassType;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,41 +66,41 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         public final KernelCallGraph kernelCallGraph;
         public final BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge;
         public final ArgArray argArray;
-        public final KernelContext kernelContext;
+        public final KernelBufferContext kernelBufferContext;
 
         public CompiledKernel(C99FFIBackend c99FFIBackend, KernelCallGraph kernelCallGraph, BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge, Object[] ndRangeAndArgs) {
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelContext = KernelContext.createDefault(kernelCallGraph.computeContext.accelerator);
-            ndRangeAndArgs[0] = this.kernelContext;
+            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator);
+            ndRangeAndArgs[0] = this.kernelBufferContext;
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
 
         private void setGlobalMesh(hat.KernelContext kc) {
-            kernelContext.maxX(kc.maxX);
-            kernelContext.maxY(kc.maxY);
-            kernelContext.maxZ(kc.maxZ);
-            kernelContext.dimensions(kc.getDimensions());
+            kernelBufferContext.maxX(kc.maxX);
+            kernelBufferContext.maxY(kc.maxY);
+            kernelBufferContext.maxZ(kc.maxZ);
+            kernelBufferContext.dimensions(kc.getDimensions());
         }
 
         private void setGlobalMesh(ThreadMesh threadMesh) {
-            kernelContext.maxX(threadMesh.getX());
-            kernelContext.maxY(threadMesh.getY());
-            kernelContext.maxZ(threadMesh.getZ());
-            kernelContext.dimensions(threadMesh.getDims());
+            kernelBufferContext.maxX(threadMesh.getX());
+            kernelBufferContext.maxY(threadMesh.getY());
+            kernelBufferContext.maxZ(threadMesh.getZ());
+            kernelBufferContext.dimensions(threadMesh.getDims());
         }
 
         private void setLocalMesh(ThreadMesh threadMesh) {
-            kernelContext.lsx(threadMesh.getX());
-            kernelContext.lsy(threadMesh.getY());
-            kernelContext.lsz(threadMesh.getZ());
+            kernelBufferContext.lsx(threadMesh.getX());
+            kernelBufferContext.lsy(threadMesh.getY());
+            kernelBufferContext.lsz(threadMesh.getZ());
         }
 
         private void setDefaultLocalMesh() {
-            kernelContext.lsx(0);
-            kernelContext.lsy(0);
-            kernelContext.lsz(0);
+            kernelBufferContext.lsx(0);
+            kernelBufferContext.lsy(0);
+            kernelBufferContext.lsz(0);
         }
 
         private void setupComputeRange(NDRange ndRange) {
@@ -133,7 +131,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
         public void dispatch(NDRange ndRange, Object[] args) {
             setupComputeRange(ndRange);
-            args[0] = this.kernelContext;
+            args[0] = this.kernelBufferContext;
             ArgArray.update(argArray,kernelCallGraph, args);
             kernelBridge.ndRange(this.argArray);
         }
@@ -141,15 +139,8 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    private void updateListOfSchemas(Op op, List<String> localIfaceList) {
-        if (Objects.requireNonNull(op) instanceof HatMemoryOp hatMemoryOp) {
-            String klassName = hatMemoryOp.invokeType().toString();
-            localIfaceList.add(klassName);
-        }
-    }
-
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
-
+        var here = OpTk.CallSite.of(C99FFIBackend.class, "createCode");
         builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -165,47 +156,29 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                     });
                 });
 
-        List<String> localIFaceList = new ArrayList<>();
-        // Traverse the list of reachable functions and append the intrinsics functions found for each of the functions
-        if (kernelCallGraph.moduleOp != null) {
-            kernelCallGraph.moduleOp.functionTable()
-                    .forEach((entryName, f) -> {
-                        f.transform(CopyContext.create(), (blockBuilder, op) -> {
-                            updateListOfSchemas(op, localIFaceList);
-                            blockBuilder.op(op);
-                            return blockBuilder;
-                        });
-                    });
-        } else {
-            // We take the list from all reachable methods. When we finally merge with the moduleOpWrapper,
-            // this else-branch will be deleted.
-            kernelCallGraph.kernelReachableResolvedStream().forEach((kernel) -> {
-                kernel.funcOp().transform(CopyContext.create(), (blockBuilder, op) -> {
-                    updateListOfSchemas(op, localIFaceList);
-                    blockBuilder.op(op);
-                    return blockBuilder;
-                });
-            });
-        }
+        List<TypeElement> localIFaceList = new ArrayList<>();
 
-        // Traverse the main kernel and append the intrinsics functions found in the main kernel
-        kernelCallGraph.entrypoint.funcOp()
-                .transform(CopyContext.create(), (blockBuilder, op) -> {
-                    updateListOfSchemas(op, localIFaceList);
-                    blockBuilder.op(op);
-                    return blockBuilder;
-                });
+        kernelCallGraph.getModuleOp()
+                .elements()
+                .filter(c->Objects.requireNonNull(c) instanceof HATMemoryOp)
+                .map(c->((HATMemoryOp)c).invokeType())
+                .forEach(localIFaceList::add);
+
+       kernelCallGraph.entrypoint.funcOp()
+                .elements()
+                .filter(c->Objects.requireNonNull(c) instanceof HATMemoryOp)
+                .map(c->((HATMemoryOp)c).invokeType())
+                .forEach(localIFaceList::add);
 
         // Dynamically build the schema for the user data type we are creating within the kernel.
         // This is because no allocation was done from the host. This is kernel code, and it is reflected
         // using the code reflection API
         // 1. Add for struct for iface objects
-        for (String klassName : localIFaceList) {
+        for (TypeElement typeElement : localIFaceList) {
             // 1.1 Load the class dynamically
-            Class<?> clazz;
             try {
-                clazz = Class.forName(klassName);
-
+               Class<?> clazz = (Class<?>)((ClassType)typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);//Class.forName(typeElement.toString());
+                //System.out.println("!!!!!!For  "+clazz);
                 // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
                 // 1.2 Obtain the create method
                 Method method = clazz.getMethod("create", hat.Accelerator.class);
@@ -220,8 +193,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                         already.add(t);
                     }
                 });
-            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException |
-                     ClassNotFoundException e) {
+            } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -231,10 +203,10 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                         kernelCallGraph.entrypoint.funcOp());
 
         // Sorting by rank ensures we don't need forward declarations
-        kernelCallGraph.moduleOp.functionTable()
+        kernelCallGraph.getModuleOp().functionTable()
                 .forEach((_, funcOp) -> {
-
-                    HatFinalDetectionPhase finals = new HatFinalDetectionPhase();
+// TODO: did we just trash the callgraph sidetables?
+                    HATFinalDetectionPhase finals = new HATFinalDetectionPhase();
                     finals.apply(funcOp);
 
                     // Update the build context for this method to use the right constants-map
@@ -243,7 +215,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 });
 
         // Update the constants-map for the main kernel
-        HatFinalDetectionPhase hatFinalDetectionPhase = new HatFinalDetectionPhase();
+        HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase();
         hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
         buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
         builder.nl().kernelEntrypoint(buildContext, args).nl();
@@ -251,8 +223,10 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         if (Config.SHOW_KERNEL_MODEL.isSet(config())) {
             IO.println("Original");
             IO.println(kernelCallGraph.entrypoint.funcOp().toText());
+        }
+        if (Config.SHOW_LOWERED_KERNEL_MODEL.isSet(config())){
             IO.println("Lowered");
-            IO.println(OpTk.lower(kernelCallGraph.entrypoint.funcOp()).toText());
+            IO.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
         }
         return builder.toString();
     }
