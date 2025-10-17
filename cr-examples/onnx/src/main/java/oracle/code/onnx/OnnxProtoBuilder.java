@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.function.Function;
 import java.util.stream.IntStream;
@@ -202,6 +201,8 @@ public final class OnnxProtoBuilder {
         for (var v : values) {
             if (v instanceof Op.Result or && or.op() instanceof CoreOp.TupleOp op) {
                 expandTuples(indexer, names, op.operands());
+            } else if (v instanceof Op.Result or && or.op() instanceof CoreOp.TupleLoadOp op) {
+                names.add(indexer.nameOf(op.operands().getFirst(), op.index()));
             } else if (v.type() instanceof TupleType tt) {
                 var ct = tt.componentTypes();
                 for (int i = 0; i < ct.size(); i++) {
@@ -422,6 +423,10 @@ public final class OnnxProtoBuilder {
             case Tensor<?> t -> {
                 attr.type(AttributeType.TENSOR);
                 attr.t(tensorProto(t));
+            }
+            case String s -> {
+                attr.type(AttributeType.STRING);
+                attr.s(s.getBytes());
             }
             default -> {
                 throw new UnsupportedOperationException(value.getClass().toString()); // @@@ ToDo
