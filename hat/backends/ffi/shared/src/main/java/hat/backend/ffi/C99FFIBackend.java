@@ -220,11 +220,11 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
         builder.nl().kernelEntrypoint(buildContext, args).nl();
 
-        if (Config.SHOW_KERNEL_MODEL.isSet(config())) {
+        if (config().showKernelModel()) {
             IO.println("Original");
             IO.println(kernelCallGraph.entrypoint.funcOp().toText());
         }
-        if (Config.SHOW_LOWERED_KERNEL_MODEL.isSet(config())){
+        if (config().showLoweredKernelModel()){
             IO.println("Lowered");
             IO.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
         }

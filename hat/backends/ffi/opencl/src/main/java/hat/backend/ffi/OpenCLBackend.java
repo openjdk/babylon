@@ -54,7 +54,7 @@ public class OpenCLBackend extends C99FFIBackend {
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createC99(kernelCallGraph,  args);
-            if (Config.SHOW_CODE.isSet(config())) {
+            if (config().showCode()) {
                 System.out.println(code);
             }
             var compilationUnit = backendBridge.compile(code);

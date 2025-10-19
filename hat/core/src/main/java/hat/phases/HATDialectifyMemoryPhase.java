@@ -68,7 +68,7 @@ public class HATDialectifyMemoryPhase extends HATDialectAbstractPhase implements
                 case SHARED -> HATLocalVarOp.INTRINSIC_NAME;
             };
 
-            if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config())) {
+            if (accelerator.config().showCompilationPhases()) {
                 IO.println("[INFO] Code model before HatDialectifyMemoryPhase: " + funcOp.toText());
             }
             Stream<CodeElement<?, ?>> elements = funcOp.elements()
@@ -130,7 +130,7 @@ public class HATDialectifyMemoryPhase extends HATDialectAbstractPhase implements
                 }
                 return blockBuilder;
             });
-            if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config())) {
+            if (accelerator.config().showCompilationPhases()) {
                 IO.println("[INFO] Code model after HatDialectifyMemoryPhase: " + funcOp.toText());
             }
             return funcOp;

@@ -44,19 +44,14 @@ import java.lang.invoke.MethodHandles;
 public class Main {
 
     public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
+        boolean headless = accelerator.config().headless(args.length>0?args[0]:null);
         String imageName = (args.length>2 && args[1].equals("--image"))?args[2]:System.getProperty("image", "Nasa1996");
 
         BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream("/images/"+imageName+".jpg"));
-
         XMLHaarCascadeModel xmlCascade = XMLHaarCascadeModel.load(
                 ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-
-        // TODO: lets use Config going forward
-        boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"))
-                || Config.HEADLESS.isSet(accelerator.backend.config());
-
         var cascade = Cascade.createFrom(accelerator,xmlCascade);
 
         S08x3RGBImage rgbImage = S08x3RGBImage.create(accelerator, nasa1996.getWidth(),nasa1996.getHeight());
