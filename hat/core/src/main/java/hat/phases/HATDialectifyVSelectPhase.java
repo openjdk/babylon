@@ -115,8 +115,9 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
 
     private CoreOp.FuncOp vloadSelectPhase(CoreOp.FuncOp funcOp) {
 
-        if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config()))
+        if (accelerator.config().showCompilationPhases()) {
             IO.println("[BEFORE] VSelect Load Transform: " + funcOp.toText());
+        }
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
@@ -166,8 +167,9 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
             return blockBuilder;
         });
 
-        if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config()))
+        if (accelerator.config().showCompilationPhases()) {
             IO.println("[After] VSelect Load Transform: " + funcOp.toText());
+        }
         return funcOp;
     }
 
@@ -176,8 +178,9 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
     // %21 : java.type:"float" = var.load %19 @loc="64:18";
     // invoke %20 %21 @loc="64:13" @java.ref:"hat.buffer.Float4::x(float):void";
     private CoreOp.FuncOp vstoreSelectPhase(CoreOp.FuncOp funcOp) {
-        if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config()))
+        if (accelerator.config().showCompilationPhases()) {
             IO.println("[BEFORE] VSelect Store Transform " + funcOp.toText());
+        }
         var here = OpTk.CallSite.of(HATDialectifyVSelectPhase.class,"vstoreSelectPhase");
         //TODO is this side table safe?
         Stream<CodeElement<?, ?>> float4NodesInvolved = OpTk.elements(here,funcOp)
@@ -232,8 +235,9 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
             return blockBuilder;
         });
 
-        if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config()))
+        if (accelerator.config().showCompilationPhases()) {
             IO.println("[AFTER] VSelect Store Transform: " + funcOp.toText());
+        }
         return funcOp;
     }
 

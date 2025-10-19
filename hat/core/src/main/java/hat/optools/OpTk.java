@@ -38,6 +38,7 @@ import hat.dialect.HATVectorVarOp;
 import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
+import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Quoted;
@@ -60,10 +61,13 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class OpTk {
@@ -554,7 +558,12 @@ public class OpTk {
         return ifOp.bodies().size() > idx?ifOp.bodies().get(idx).entryBlock():null;
     }
 
-
+    public static boolean fieldNameIs(JavaOp.FieldAccessOp.FieldAccessOp fieldAccessOp, String name) {
+        return fieldName(fieldAccessOp).equals(name);
+    }
+    public static boolean fieldNameMatches(JavaOp.FieldAccessOp.FieldAccessOp fieldAccessOp, Pattern pattern) {
+        return pattern.matcher(fieldName(fieldAccessOp)).matches();
+    }
 
     public  record CallSite(Class<?> clazz,String methodName){
         public static CallSite of(Class<?> clazz, String methodName) {
@@ -607,6 +616,36 @@ public class OpTk {
         }
         return funcOp.transform(opTransformer);
     }
+
+    public record  OpMap(CoreOp.FuncOp fromFuncOp, CoreOp.FuncOp toFuncOp,  Map<Op,Op> fromToOpMap){}
+
+    public  static <InOp extends Op, OutOp extends Op> OutOp replaceOp(Block.Builder blockBuilder, InOp inOp,java.util.function.Function<List<Value>, OutOp> factory) {
+        List<Value> inputOperands = inOp.operands();
+        CopyContext context = blockBuilder.context();
+        List<Value> outputOperands = context.getValues(inputOperands);
+        OutOp outOp = factory.apply(outputOperands);
+        Op.Result outputResult = blockBuilder.op(outOp);
+        Op.Result inputResult = inOp.result();
+        outOp.setLocation(inOp.location());
+        context.mapValue(inputResult, outputResult);
+        return outOp;
+    }
+    public static < OutOp extends Op> OpMap simpleOpMappingTransform(OpTk.CallSite here, CoreOp.FuncOp fromFuncOp, Predicate<Op> opPredicate,
+                                                         java.util.function.Function<List<Value>, OutOp> opFactory){
+        Map<Op,Op> fromToOpMap = new LinkedHashMap<>();
+        CoreOp.FuncOp toFuncOp =  OpTk.transform(here, fromFuncOp, (blockBuilder, inOp) -> {
+            if (opPredicate.test(inOp)) {
+                fromToOpMap.put(inOp, replaceOp(blockBuilder, inOp, opFactory));
+            }else {
+                var r = blockBuilder.op(inOp);
+                fromToOpMap.put(inOp,r.op());
+            }
+            return blockBuilder;
+        });
+        return new OpMap(fromFuncOp, toFuncOp, fromToOpMap);
+    }
+
+
 
     public record ParamVar(CoreOp.VarOp varOp, Block.Parameter parameter, CoreOp.FuncOp funcOp) {
     }

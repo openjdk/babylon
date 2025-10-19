@@ -56,9 +56,9 @@ public class HATDialectifyThreadsPhase extends HATDialectAbstractPhase implement
 
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-        if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config()))
+        if (accelerator.config().showCompilationPhases()) {
             IO.println("[INFO] Code model before HatDialectifyThreadsPhase: " + funcOp.toText());
-
+        }
         Stream<CodeElement<?, ?>> elements = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
@@ -125,8 +125,9 @@ public class HATDialectifyThreadsPhase extends HATDialectAbstractPhase implement
             }
             return blockBuilder;
         });
-        if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config()))
+        if (accelerator.config().showCompilationPhases()) {
             IO.println("[INFO] Code model after HatDialectifyThreadsPhase: " + funcOp.toText());
+        }
         return funcOp;
     }
 

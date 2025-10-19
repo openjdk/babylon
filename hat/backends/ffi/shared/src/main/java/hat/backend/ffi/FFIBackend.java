@@ -131,8 +131,8 @@ public abstract class FFIBackend extends FFIBackendDriver {
     protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         CoreOp.FuncOp transformedFuncOp = computeMethod.funcOp();
         var here = OpTk.CallSite.of(FFIBackend.class,"injectBufferTracking");
-        if (Config.MINIMIZE_COPIES.isSet(config())) {
-            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
+        if (config().minimizeCopies()) {
+            if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
@@ -205,12 +205,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 return bldr;
             });
-            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
+            if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
         }else{
-            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
+            if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
                 System.out.println(transformedFuncOp.toText());
             }

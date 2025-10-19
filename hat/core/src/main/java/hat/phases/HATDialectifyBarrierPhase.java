@@ -68,7 +68,7 @@ public class HATDialectifyBarrierPhase extends HATDialectAbstractPhase implement
 
     @Override
     public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-        if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config())) {
+        if (accelerator.config().showCompilationPhases()) {
             System.out.println("[INFO] Code model before HatDialectifyBarrierPhase: " + funcOp.toText());
         }
         Stream<CodeElement<?, ?>> elements = funcOp
@@ -95,7 +95,7 @@ public class HATDialectifyBarrierPhase extends HATDialectAbstractPhase implement
             }
             return blockBuilder;
         });
-        if (Config.SHOW_COMPILATION_PHASES.isSet(accelerator.backend.config())) {
+        if (accelerator.config().showCompilationPhases()) {
             System.out.println("[INFO] Code model after HatDialectifyBarrierPhase: " + funcOp.toText());
         }
         return funcOp;
