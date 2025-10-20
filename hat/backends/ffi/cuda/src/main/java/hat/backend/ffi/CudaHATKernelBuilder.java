@@ -27,6 +27,9 @@ package hat.backend.ffi;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.HATF16BinaryOp;
+import hat.dialect.HATF16VarLoadOp;
+import hat.dialect.HATF16VarOp;
 import hat.dialect.HATVSelectLoadOp;
 import hat.dialect.HATVSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
@@ -244,6 +247,24 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
         varName(hatVectorVarLoadOp);
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
+        blockComment("F16 Variable Not Implemented");
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+        blockComment("Binary F16 Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
+        blockComment("F16 Load Op Not Implemented");
         return self();
     }
 }

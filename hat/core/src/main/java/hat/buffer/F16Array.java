@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,38 +27,46 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-public interface F32Array2D extends Buffer {
+public interface F16Array extends Buffer {
+    int length();
 
-    int width();
-
-    int height();
-
-    float array(long idx);
-
-    void array(long idx, float v);
-
-    default float get(int x, int y) {
-        return array((long) y * width() + x);
-    }
-
-    default void set(int x, int y, float v) {
-        array((long) y * width() + x, v);
-    }
-
-    Schema<F32Array2D> schema = Schema.of(F32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").stride(1).array("array"));
-
-    static F32Array2D create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator, width,height);
-    }
-
-    default float[][] arrayView() {
-        float[][] arr = new float[this.height()][this.width()];
-        for (int i = 0; i < this.height(); i++) {
-            for (int j = 0; j < this.width(); j++) {
-                arr[i][j] = this.get(i, j);
-            }
+    interface F16 extends Struct {
+        short value();
+        void value(short value);
+        static short float2half(float value) {
+            return Float.floatToFloat16(value);
         }
-        return arr;
+        static float half2float(short value) {
+            return Float.float16ToFloat(value);
+        }
+        static F16 add(F16 ha, F16 hb) {
+            return null;
+        }
+
+        static F16 sub(F16 ha, F16 hb) {
+            return null;
+        }
+
+        static F16 mul(F16 ha, F16 hb) {
+            return null;
+        }
+
+        static F16 div(F16 ha, F16 hb) {
+            return null;
+        }
+
+        String HAT_MAPPING_TYPE = "half";
     }
+
+    F16 array(long index);
+
+    Schema<F16Array> schema = Schema.of(F16Array.class, f16array ->
+            f16array.arrayLen("length")
+                    .array("array",
+                            half -> half.fields("value")));
+
+    static F16Array create(Accelerator accelerator, int length){
+        return schema.allocate(accelerator, length);
+    }
+
 }

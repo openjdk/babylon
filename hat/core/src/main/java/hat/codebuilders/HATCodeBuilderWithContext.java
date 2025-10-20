@@ -48,6 +48,8 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
+import static hat.buffer.F16Array.F16;
+
 public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements BabylonOpBuilder<T> {
 
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
@@ -335,16 +337,23 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
+    private boolean isHalfType(Schema.IfaceType ifaceType) {
+        return ifaceType.iface.getName().equals(F16.class.getName());
+    }
 
     public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
         typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
                 .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
                     int fieldCount = ifaceType.fields.size();
                     var fieldIdx = StreamMutable.of(0);
-                    separated(ifaceType.fields,(_)->nl(), field->{
-                        boolean isLast =fieldIdx.get() == fieldCount - 1;
+                    separated(ifaceType.fields, (_) -> nl(), field -> {
+                        boolean isLast = fieldIdx.get() == fieldCount - 1;
                         if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
-                            typeName(primitiveField.type.getSimpleName());
+                            if (isHalfType(ifaceType)) {
+                                typeName(F16.HAT_MAPPING_TYPE);
+                            } else {
+                                typeName(primitiveField.type.getSimpleName());
+                            }
                             space().typeName(primitiveField.name);
                             if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
                                 if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray fieldControlledArray) {
@@ -362,7 +371,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                             if (!done[0]) {
                                                 throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                             }
-                                        }else {
+                                        } else {
                                             throw new IllegalStateException("bound schema is null  !");
                                         }
                                     }
@@ -391,8 +400,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                             if (!done[0]) {
                                                 throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                             }
-                                        }else {
-                                        throw new IllegalStateException("bound schema is null  !");
+                                        } else {
+                                            throw new IllegalStateException("bound schema is null  !");
                                         }
                                     }
                                 } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
@@ -407,7 +416,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             throw new IllegalStateException("hmm");
                         }
                         semicolon();
-                        fieldIdx.set(fieldIdx.get()+1);
+                        fieldIdx.set(fieldIdx.get() + 1);
                     });
                 }).suffix_t(ifaceType.iface.getSimpleName()).semicolon().nl().nl();
         return self();

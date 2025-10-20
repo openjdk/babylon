@@ -28,11 +28,8 @@ import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.StructLayout;
-import java.lang.invoke.MethodHandles;
 import java.util.function.Function;
 
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array extends Buffer {

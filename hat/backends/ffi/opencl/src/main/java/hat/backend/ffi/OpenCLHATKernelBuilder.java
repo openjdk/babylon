@@ -27,6 +27,9 @@ package hat.backend.ffi;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.HATF16BinaryOp;
+import hat.dialect.HATF16VarLoadOp;
+import hat.dialect.HATF16VarOp;
 import hat.dialect.HATVSelectLoadOp;
 import hat.dialect.HATVSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
@@ -36,6 +39,8 @@ import hat.dialect.HATVectorVarLoadOp;
 import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+
+import java.util.List;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
@@ -49,6 +54,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
                 .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
                 .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable")
+                .pragma("OPENCL", "EXTENSION", "cl_khr_fp16", ":", "enable")                      // Enable Half type
                 .hashDefine("HAT_FUNC", _ -> keyword("inline"))
                 .hashDefine("HAT_KERNEL", _ -> keyword("__kernel"))
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
@@ -195,6 +201,52 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
         varName(hatVectorVarLoadOp);
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
+        typeName("half")
+                .space()
+                .identifier(hatF16VarOp.varName())
+                .space().equals().space();
+        Value operand = hatF16VarOp.operands().getFirst();
+        if (operand instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+        oparen();
+        Value op1 = hatF16BinaryOp.operands().get(0);
+        Value op2 = hatF16BinaryOp.operands().get(1);
+        List<Boolean> references = hatF16BinaryOp.references();
+
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        if (references.getFirst()) {
+            rarrow().identifier("value");
+        }
+        space().identifier(hatF16BinaryOp.operationType().symbol()).space();
+
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        if (references.get(1)) {
+            rarrow().identifier("value");
+        }
+
+        cparen();
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
+        identifier(hatF16VarLoadOp.varName());
         return self();
     }
 
