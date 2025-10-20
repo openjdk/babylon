@@ -24,13 +24,34 @@
  */
 package hat.phases;
 
+
 import hat.Accelerator;
+import hat.optools.OpTk;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
-public class HATDialectAbstractPhase {
+import java.util.function.Function;
 
-    protected final Accelerator accelerator;
+public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
+    Accelerator accelerator();
 
-    HATDialectAbstractPhase(Accelerator accelerator) {
-        this.accelerator = accelerator;
+    default boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
+        String kernelContextCanonicalName = hat.KernelContext.class.getName();// URRH Strings
+        return invokeOp.invokeDescriptor().refType().toString().equals(kernelContextCanonicalName);
+    }
+
+    default boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
+        return invokeOp.invokeDescriptor().name().equals(methodName);
+    }
+
+    default boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp, String methodName) {
+        return OpTk.isIfaceBufferMethod(accelerator().lookup, invokeOp) && isMethod(invokeOp, methodName);
+    }
+
+    default boolean isKernelContextInvokeWithName(Op op, String methodName) {
+        return op instanceof JavaOp.InvokeOp invokeOp
+                && isMethodFromHatKernelContext(invokeOp)
+                && isMethod(invokeOp,methodName);
     }
 }

@@ -27,6 +27,7 @@ package hat.backend.ffi;
 
 import hat.ComputeRange;
 import hat.Config;
+import hat.KernelContext;
 import hat.ThreadMesh;
 import hat.NDRange;
 import hat.buffer.KernelBufferContext;
@@ -205,8 +206,8 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         // Sorting by rank ensures we don't need forward declarations
         kernelCallGraph.getModuleOp().functionTable()
                 .forEach((_, funcOp) -> {
-// TODO: did we just trash the callgraph sidetables?
-                    HATFinalDetectionPhase finals = new HATFinalDetectionPhase();
+                    // TODO: did we just trash the callgraph sidetables?
+                    HATFinalDetectionPhase finals = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
                     finals.apply(funcOp);
 
                     // Update the build context for this method to use the right constants-map
@@ -215,7 +216,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                 });
 
         // Update the constants-map for the main kernel
-        HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase();
+        HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
         hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
         buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
         builder.nl().kernelEntrypoint(buildContext, args).nl();

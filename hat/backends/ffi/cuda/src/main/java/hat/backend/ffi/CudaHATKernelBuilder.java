@@ -27,8 +27,8 @@ package hat.backend.ffi;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.HATVSelectLoadOp;
-import hat.dialect.HATVSelectStoreOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
@@ -196,7 +196,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp) {
+    public CudaHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
         identifier(hatVSelectLoadOp.varName())
                 .dot()
                 .identifier(hatVSelectLoadOp.mapLane());
@@ -204,7 +204,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp) {
+    public CudaHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
         identifier(hatVSelectStoreOp.varName())
                 .dot()
                 .identifier(hatVSelectStoreOp.mapLane())

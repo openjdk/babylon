@@ -27,8 +27,8 @@ package hat.tools.text;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
 import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATVSelectLoadOp;
-import hat.dialect.HATVSelectStoreOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
@@ -122,13 +122,13 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     }
 
     @Override
-    public T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp) {
+    public T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
         blockComment("Select Vector Not Implemented");
         return self();
     }
 
     @Override
-    public T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp) {
+    public T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
         blockComment("Select Vector Not Implemented");
         return self();
     }
@@ -188,13 +188,13 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     }
 
     @Override
-    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp) {
+    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
         blockComment("Select Vector Not Implemented");
         return self();
     }
 
     @Override
-    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp) {
+    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
         blockComment("Select Vector Not Implemented");
         return self();
     }

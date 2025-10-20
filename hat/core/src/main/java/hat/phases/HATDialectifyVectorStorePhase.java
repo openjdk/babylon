@@ -25,7 +25,6 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.Config;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorStoreView;
@@ -44,21 +43,23 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyVectorStorePhase extends HATDialectAbstractPhase implements HATDialectifyPhase {
+public  class HATDialectifyVectorStorePhase implements HATDialect {
+
+    protected final Accelerator accelerator;
+    @Override  public Accelerator accelerator(){
+        return this.accelerator;
+    }
     private final StoreView vectorOperation;
 
     public HATDialectifyVectorStorePhase(Accelerator accelerator, StoreView vectorOperation) {
-        super(accelerator);
+        this.accelerator= accelerator;
         this.vectorOperation = vectorOperation;
     }
 
-    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
-        return invokeOp.invokeDescriptor().name().equals(methodName);
-    }
+
 
     public enum StoreView {
         FLOAT4_STORE("storeFloat4View");
-
         final String methodName;
         StoreView(String methodName) {
             this.methodName = methodName;
@@ -69,7 +70,7 @@ public class HATDialectifyVectorStorePhase extends HATDialectAbstractPhase imple
         if (varValue instanceof Op.Result r
                 && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             TypeElement typeElement = varLoadOp.resultType();
-            boolean isHatVectorType = typeElement.toString().startsWith("hat.buffer.Float");
+            boolean isHatVectorType = typeElement.toString().startsWith("hat.buffer.Float");/// UGGHHH!
             return isHatVectorType
                     && OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp)
                     && isMethod(invokeOp, vectorOperation.methodName);
@@ -84,11 +85,9 @@ public class HATDialectifyVectorStorePhase extends HATDialectAbstractPhase imple
     private String findNameVector(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findNameVector(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorViewOp hatVectorViewOp) {
-                return hatVectorViewOp.varName();
-            }
+        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorViewOp hatVectorViewOp) {
+            return hatVectorViewOp.varName();
+        }else{
             return null;
         }
     }
@@ -100,18 +99,17 @@ public class HATDialectifyVectorStorePhase extends HATDialectAbstractPhase imple
     private boolean findIsSharedOrPrivateSpace(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findIsSharedOrPrivateSpace(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && (r.op() instanceof HATLocalVarOp || r.op() instanceof HATPrivateVarOp)) {
-                return true;
-            }
+        } else  if (v instanceof CoreOp.Result r && (r.op() instanceof HATLocalVarOp || r.op() instanceof HATPrivateVarOp)) {
+            return true;
+        }else{
             return false;
         }
     }
 
     @Override
-    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-        if (accelerator.config().showCompilationPhases()) {
+    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+        accelerator.backend.config().showCompilationPhases();
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[BEFORE] Vector Types STORE Transform: " + funcOp.toText());
         }
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
@@ -155,7 +153,7 @@ public class HATDialectifyVectorStorePhase extends HATDialectAbstractPhase imple
             }
             return blockBuilder;
         });
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[AFTER] Vector Types STORE Transform: " + funcOp.toText());
         }
         return funcOp;

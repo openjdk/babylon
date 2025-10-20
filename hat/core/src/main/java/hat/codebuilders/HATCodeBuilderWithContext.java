@@ -25,8 +25,8 @@
 package hat.codebuilders;
 
 import hat.dialect.HATBarrierOp;
-import hat.dialect.HATVSelectLoadOp;
-import hat.dialect.HATVSelectStoreOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
@@ -623,9 +623,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     public abstract T generateVectorLoad(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp);
 
-    public abstract T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp);
+    public abstract T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp);
 
-    public abstract T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp);
+    public abstract T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp);
 
     @Override
     public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
@@ -643,12 +643,12 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp) {
+    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
         return generateVectorSelectLoadOp(buildContext, hatVSelectLoadOp);
     }
 
     @Override
-    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp) {
+    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
         return generateVectorSelectStoreOp(buildContext, hatVSelectStoreOp);
     }
 

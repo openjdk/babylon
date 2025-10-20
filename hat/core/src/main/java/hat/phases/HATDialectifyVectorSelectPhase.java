@@ -25,9 +25,8 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.Config;
-import hat.dialect.HATVSelectLoadOp;
-import hat.dialect.HATVSelectStoreOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorViewOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
@@ -43,14 +42,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implements HATDialectifyPhase {
+public class HATDialectifyVectorSelectPhase implements HATDialect{
 
-    public HATDialectifyVSelectPhase(Accelerator accelerator) {
-        super(accelerator);
+    protected final Accelerator accelerator;
+    @Override  public Accelerator accelerator(){
+        return this.accelerator;
     }
-
-    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
-        return invokeOp.invokeDescriptor().name().equals(methodName);
+    public HATDialectifyVectorSelectPhase(Accelerator accelerator) {
+        this.accelerator = accelerator;
     }
 
     private boolean isVectorLane(JavaOp.InvokeOp invokeOp) {
@@ -115,7 +114,7 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
 
     private CoreOp.FuncOp vloadSelectPhase(CoreOp.FuncOp funcOp) {
 
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[BEFORE] VSelect Load Transform: " + funcOp.toText());
         }
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
@@ -137,7 +136,7 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
             return funcOp;
         }
 
-        var here = OpTk.CallSite.of(HATDialectifyVSelectPhase.class, "vloadSelectPhase");
+        var here = OpTk.CallSite.of(HATDialectifyVectorSelectPhase.class, "vloadSelectPhase");
         funcOp = OpTk.transform(here, funcOp,(blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
@@ -151,7 +150,7 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
                         HATVectorViewOp vSelectOp;
                         String name = findNameVector(varLoadOp);
                         if (invokeOp.resultType() != JavaType.VOID) {
-                            vSelectOp = new HATVSelectLoadOp(name, invokeOp.resultType(), lane, outputOperandsInvokeOp);
+                            vSelectOp = new HATVectorSelectLoadOp(name, invokeOp.resultType(), lane, outputOperandsInvokeOp);
                         } else {
                             throw new RuntimeException("VSelect Load Op must return a value!");
                         }
@@ -167,7 +166,7 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
             return blockBuilder;
         });
 
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[After] VSelect Load Transform: " + funcOp.toText());
         }
         return funcOp;
@@ -178,10 +177,10 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
     // %21 : java.type:"float" = var.load %19 @loc="64:18";
     // invoke %20 %21 @loc="64:13" @java.ref:"hat.buffer.Float4::x(float):void";
     private CoreOp.FuncOp vstoreSelectPhase(CoreOp.FuncOp funcOp) {
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[BEFORE] VSelect Store Transform " + funcOp.toText());
         }
-        var here = OpTk.CallSite.of(HATDialectifyVSelectPhase.class,"vstoreSelectPhase");
+        var here = OpTk.CallSite.of(HATDialectifyVectorSelectPhase.class,"vstoreSelectPhase");
         //TODO is this side table safe?
         Stream<CodeElement<?, ?>> float4NodesInvolved = OpTk.elements(here,funcOp)
                 .mapMulti((codeElement, consumer) -> {
@@ -219,7 +218,7 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
                         // The operand 1 in the store is the address (lane)
                         // The operand 1 in the store is the storeValue
                         CoreOp.VarOp resultOp = findVarOp(outputOperandsInvokeOp.get(1));
-                        vSelectOp = new HATVSelectStoreOp(name, invokeOp.resultType(), lane, resultOp, outputOperandsInvokeOp);
+                        vSelectOp = new HATVectorSelectStoreOp(name, invokeOp.resultType(), lane, resultOp, outputOperandsInvokeOp);
                     } else {
                         throw new RuntimeException("VSelect Store Op must return a value!");
                     }
@@ -235,14 +234,14 @@ public class HATDialectifyVSelectPhase extends HATDialectAbstractPhase implement
             return blockBuilder;
         });
 
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[AFTER] VSelect Store Transform: " + funcOp.toText());
         }
         return funcOp;
     }
 
     @Override
-    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         funcOp = vloadSelectPhase(funcOp);
         funcOp = vstoreSelectPhase(funcOp);
         return funcOp;

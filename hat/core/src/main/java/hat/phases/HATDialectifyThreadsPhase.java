@@ -42,145 +42,144 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyThreadsPhase extends HATDialectAbstractPhase implements HATDialectifyPhase {
+public class HATDialectifyThreadsPhase implements HATDialect  {
 
-    private final ThreadAccess threadAccess;
-
-    public HATDialectifyThreadsPhase(Accelerator accelerator,ThreadAccess threadAccess) {
-        super(accelerator);
-        this.threadAccess =  threadAccess;
+    protected final Accelerator accelerator;
+    @Override  public Accelerator accelerator(){
+        return this.accelerator;
     }
-
-    @Override
-    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-        if (accelerator.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model before HatDialectifyThreadsPhase: " + funcOp.toText());
-        }
-        Stream<CodeElement<?, ?>> elements = funcOp.elements()
-                .mapMulti((codeElement, consumer) -> {
-                    if (codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-                        List<Value> operands = fieldLoadOp.operands();
-                        for (Value inputOperand : operands) {
-                            if (inputOperand instanceof Op.Result result) {
-                                if (result.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                                    boolean isThreadIntrinsic = switch (threadAccess) {
-                                        case GLOBAL_ID -> isFieldLoadGlobalThreadId(fieldLoadOp);
-                                        case GLOBAL_SIZE -> isFieldLoadGlobalSize(fieldLoadOp);
-                                        case LOCAL_ID -> isFieldLoadThreadId(fieldLoadOp);
-                                        case LOCAL_SIZE -> isFieldLoadThreadSize(fieldLoadOp);
-                                        case BLOCK_ID ->  isFieldLoadBlockId(fieldLoadOp);
-                                    };
-                                    if (isMethodFromHatKernelContext(varLoadOp) && isThreadIntrinsic) {
-                                        consumer.accept(fieldLoadOp);
-                                        consumer.accept(varLoadOp);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-
-        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
-        if (nodesInvolved.isEmpty()) {
-            // No memory nodes involved
-            return funcOp;
-        }
-
-        var here = OpTk.CallSite.of(HATDialectifyThreadsPhase.class, "run");
-        funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
-            if (!nodesInvolved.contains(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                // pass value
-                context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
-            } else if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-                List<Value> operands = fieldLoadOp.operands();
-                for (Value operand : operands) {
-                    if (operand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                        List<Value> varLoadOperands = varLoadOp.operands();
-                        List<Value> outputOperands = context.getValues(varLoadOperands);
-                        int dim = getDimension(threadAccess, fieldLoadOp);
-                        if (dim < 0) {
-                            throw new IllegalStateException("Thread Access can't be below 0!");
-                        }
-                        HATThreadOp threadOP = switch (threadAccess) {
-                            case GLOBAL_ID -> new HATGlobalThreadIdOp(dim, fieldLoadOp.resultType());
-                            case GLOBAL_SIZE -> new HATGlobalSizeOp(dim, fieldLoadOp.resultType());
-                            case LOCAL_ID -> new HATLocalThreadIdOp(dim, fieldLoadOp.resultType());
-                            case LOCAL_SIZE -> new HATLocalSizeOp(dim, fieldLoadOp.resultType());
-                            case BLOCK_ID -> new HATBlockThreadIdOp(dim, fieldLoadOp.resultType());
-                        };
-                        Op.Result threadResult = blockBuilder.op(threadOP);
-
-                        // update location
-                        threadOP.setLocation(fieldLoadOp.location());
-
-                        context.mapValue(fieldLoadOp.result(), threadResult);
-                    }
-                }
-            }
-            return blockBuilder;
-        });
-        if (accelerator.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model after HatDialectifyThreadsPhase: " + funcOp.toText());
-        }
-        return funcOp;
-    }
-
     public enum ThreadAccess {
         GLOBAL_ID,
         GLOBAL_SIZE,
         LOCAL_ID,
         LOCAL_SIZE,
-        BLOCK_ID,
+        BLOCK_ID
     }
+    private final ThreadAccess threadAccess;
+
+    public HATDialectifyThreadsPhase(Accelerator accelerator,ThreadAccess threadAccess) {
+        this.accelerator=accelerator;
+        this.threadAccess =  threadAccess;
+    }
+
+    @Override
+    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+        if (accelerator.backend.config().showCompilationPhases()) {
+            IO.println("[INFO] Code model before HatDialectifyThreadsPhase: " + funcOp.toText());
+        }
+        Predicate<JavaOp.FieldAccessOp.FieldLoadOp> isFieldOp = (fieldLoadOp)->
+             switch (threadAccess) { // Why not pass threadAccess to isFieldLoadGlobalThreadId? see getDimension style
+                case GLOBAL_ID -> isFieldLoadGlobalThreadId(fieldLoadOp);
+                case GLOBAL_SIZE -> isFieldLoadGlobalSize(fieldLoadOp);
+                case LOCAL_ID -> isFieldLoadThreadId(fieldLoadOp);
+                case LOCAL_SIZE -> isFieldLoadThreadSize(fieldLoadOp);
+                case BLOCK_ID -> isFieldLoadBlockId(fieldLoadOp);
+            };
+        Function<JavaOp.FieldAccessOp.FieldLoadOp,HATThreadOp> hatOpFactory = ( fieldLoadOp)-> {
+            if (getDimension(threadAccess, fieldLoadOp) instanceof Integer dim && (dim >=0 && dim<3)) {
+                return switch (threadAccess) {
+                    case GLOBAL_ID -> new HATGlobalThreadIdOp(dim, fieldLoadOp.resultType());
+                    case GLOBAL_SIZE -> new HATGlobalSizeOp(dim, fieldLoadOp.resultType());
+                    case LOCAL_ID -> new HATLocalThreadIdOp(dim, fieldLoadOp.resultType());
+                    case LOCAL_SIZE -> new HATLocalSizeOp(dim, fieldLoadOp.resultType());
+                    case BLOCK_ID -> new HATBlockThreadIdOp(dim, fieldLoadOp.resultType());
+                };
+            }else {
+                throw new IllegalStateException("Thread Access can't be below 0!");
+            }
+        };
+
+        Stream<CodeElement<?, ?>> elements = funcOp.elements()
+                .filter(codeElement ->codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp)
+                .map(codeElement -> (JavaOp.FieldAccessOp.FieldLoadOp)codeElement)
+                .filter(isFieldOp)
+                .mapMulti((fieldLoadOp, consumer) ->
+                        fieldLoadOp.operands().stream()
+                                .filter(o->o instanceof Op.Result result && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp)
+                                .map(o->( CoreOp.VarAccessOp.VarLoadOp)((Op.Result)o).op())
+                                .filter(this::isMethodFromHatKernelContext)
+                                .forEach(varLoadOp -> {
+                                    consumer.accept(fieldLoadOp);
+                                    consumer.accept(varLoadOp);
+                                })
+                );
+
+        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
+      //  if (!nodesInvolved.isEmpty()) {
+
+        var here = OpTk.CallSite.of(HATDialectifyThreadsPhase.class, "run");
+        funcOp = OpTk.transform(here, funcOp, nodesInvolved::contains, (blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
+            } else if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+                fieldLoadOp.operands().stream()//does a field Load not have 1 operand?
+                        .filter(operand->operand instanceof Op.Result result && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp)
+                        .map(operand->(CoreOp.VarAccessOp.VarLoadOp)((Op.Result)operand).op())
+                        .forEach(_-> { // why are we looping over all operands ?
+                                HATThreadOp threadOp = hatOpFactory.apply(fieldLoadOp);
+                                Op.Result threadResult = blockBuilder.op(threadOp);
+                                threadOp.setLocation(fieldLoadOp.location()); // update location
+                                context.mapValue(fieldLoadOp.result(), threadResult);
+                        });
+            }
+            return blockBuilder;
+        });
+
+            // No memory nodes involved
+          //  return funcOp;
+        //}
+        if (accelerator.backend.config().showCompilationPhases()) {
+            IO.println("[INFO] Code model after HatDialectifyThreadsPhase: " + funcOp.toText());
+        }
+        return funcOp;
+    }
+
 
     private int getDimension(ThreadAccess threadAccess, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
         String fieldName = fieldLoadOp.fieldDescriptor().name();
         switch (threadAccess) {
             case GLOBAL_ID -> {
-                if (fieldName.equals("y")) {
-                    return 1;
-                } else if (fieldName.equals("z")) {
-                    return 2;
-                }
-                return 0;
+                return switch (fieldName){
+                    case "y"->1;
+                    case "z"->2;
+                    default -> 0;
+                };
             }
             case GLOBAL_SIZE -> {
-                if (fieldName.equals("gsy")) {
-                    return 1;
-                } else if (fieldName.equals("gsz")) {
-                    return 2;
-                }
-                return 0;
+                return switch (fieldName){
+                    case "gsy"->1;
+                    case "gsz"->2;
+                    default -> 0;
+                };
             }
             case LOCAL_ID -> {
-                if (fieldName.equals("liy")) {
-                    return 1;
-                } else if (fieldName.equals("lyz")) {
-                    return 2;
-                }
-                return 0;
+                return switch (fieldName){
+                    case "liy"->1;
+                    case "liz"->2;
+                    default -> 0;
+                };
             }
             case LOCAL_SIZE -> {
-                if (fieldName.equals("lsy")) {
-                    return 1;
-                } else if (fieldName.equals("lsz")) {
-                    return 2;
-                }
-                return 0;
+                return switch (fieldName){
+                    case "lsy"->1;
+                    case "lsz"->2;
+                    default -> 0;
+                };
             }
             case BLOCK_ID ->  {
-                if (fieldName.equals("biy")) {
-                    return 1;
-                } else if (fieldName.equals("biz")) {
-                    return 2;
-                }
-                return 0;
+                return switch (fieldName){
+                    case "biy"->1;
+                    case "biz"->2;
+                    default -> 0;
+                };
             }
         }
         return -1;
@@ -188,39 +187,23 @@ public class HATDialectifyThreadsPhase extends HATDialectAbstractPhase implement
 
 
     private boolean isFieldLoadGlobalThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("x")
-                || fieldLoadOp.fieldDescriptor().name().equals("y")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("z")
-                || fieldLoadOp.fieldDescriptor().name().equals("gix")
-                || fieldLoadOp.fieldDescriptor().name().equals("giy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("giz");
+        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("([xyz]|gi[xyz])"));
     }
 
     private boolean isFieldLoadGlobalSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("gsx")
-                || fieldLoadOp.fieldDescriptor().name().equals("gsy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("gsz")
-                || fieldLoadOp.fieldDescriptor().name().equals("maxX")
-                || fieldLoadOp.fieldDescriptor().name().equals("maxY")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("maxZ");
+        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("(gs[xyz]|max[XYZ])"));
     }
 
     private boolean isFieldLoadThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("lix")
-                || fieldLoadOp.fieldDescriptor().name().equals("liy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("liz");
+        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("li[xyz]"));
     }
 
     private boolean isFieldLoadThreadSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("lsx")
-                || fieldLoadOp.fieldDescriptor().name().equals("lsy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("lsz");
+        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("ls[xyz]"));
     }
 
     private boolean isFieldLoadBlockId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return fieldLoadOp.fieldDescriptor().name().equals("bix")
-                || fieldLoadOp.fieldDescriptor().name().equals("biy")
-                ||  fieldLoadOp.fieldDescriptor().name().equals("biz");
+        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("bi[xyz]"));
     }
 
     private boolean isMethodFromHatKernelContext(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
