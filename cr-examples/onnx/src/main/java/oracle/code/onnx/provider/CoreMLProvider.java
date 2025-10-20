@@ -33,10 +33,10 @@ import static oracle.code.onnx.foreign.coreml_provider_factory_h.*;
 public final class CoreMLProvider implements OnnxProvider {
     private static final Logger logger = Logger.getLogger(CoreMLProvider.class.getName());
 
-    private int flag;
+    private int flags;
 
-    public CoreMLProvider(int flag) {
-        this.flag = flag;
+    public CoreMLProvider(int flags) {
+        this.flags = flags;
     }
 
     @Override
@@ -44,7 +44,7 @@ public final class CoreMLProvider implements OnnxProvider {
         var sessionOptionsAddress = sessionOptions.getSessionOptionsAddress();
 
         try {
-            var status = OrtSessionOptionsAppendExecutionProvider_CoreML(sessionOptionsAddress, flag);
+            var status = OrtSessionOptionsAppendExecutionProvider_CoreML(sessionOptionsAddress, flags);
 
             if (status == null || status.address() == 0) {
                 logger.info("CoreML execution provider enabled successfully!");
