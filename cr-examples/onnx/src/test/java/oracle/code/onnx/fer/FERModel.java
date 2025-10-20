@@ -42,9 +42,9 @@ import static oracle.code.onnx.fer.FERCoreMLDemo.IMAGE_SIZE;
 
 public class FERModel {
 
-	private final Arena arena;
+    private final Arena arena;
 
-	// Weights and biases (constant inputs)
+    // Weights and biases (constant inputs)
     final Tensor<Float> parameter1693;
     final Tensor<Float> parameter1403;
     final Tensor<Float> parameter1367;
@@ -76,8 +76,8 @@ public class FERModel {
     final Tensor<Float> parameter1404;
     final Tensor<Float> parameter1694;
 
-	public FERModel(Arena arena) throws IOException {
-		this.arena = arena;
+    public FERModel(Arena arena) throws IOException {
+        this.arena = arena;
         URL resource = Objects.requireNonNull(FERModel.class.getResource("emotion-ferplus-8.onnx.data"));
         var modelData = new TensorDataStream(arena, resource.getPath());
         parameter1693 = modelData.nextTensor(Tensor.ElementType.FLOAT, 1024, 8);
