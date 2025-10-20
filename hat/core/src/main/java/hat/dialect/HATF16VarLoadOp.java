@@ -60,7 +60,7 @@ public class HATF16VarLoadOp extends HATF16Op {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.fp16varop." + varName(), typeElement);
+        return Map.of("hat.dialect.fp16VarOp." + varName(), typeElement);
     }
 
 }

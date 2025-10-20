@@ -15,6 +15,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -84,8 +85,18 @@ public class HATDialectifyFP16Phase extends HATDialectAbstractPhase implements H
                 // then, we will need to operate half using a->value, instead of ha directly.
                 boolean isFirstOperandReference = findReference(invokeOp.operands().getFirst());
                 boolean isSecondOperandReference = findReference(invokeOp.operands().get(1));
+
+                // Todo: subclassing to get this
+                HATF16BinaryOp.OpType opType = switch (methodName) {
+                    case "add" -> HATF16BinaryOp.OpType.ADD;
+                    case "sub" -> HATF16BinaryOp.OpType.SUB;
+                    case "mul" -> HATF16BinaryOp.OpType.MUL;
+                    case "div" -> HATF16BinaryOp.OpType.DIV;
+                    default -> throw new IllegalStateException("Unexpected value: " + methodName);
+                };
+
                 HATF16BinaryOp binaryOp = new HATF16BinaryOp(invokeOp.resultType(),
-                        HATF16BinaryOp.OpType.ADD,
+                        opType,
                         List.of(isFirstOperandReference, isSecondOperandReference),
                         outputOperands);
                 Op.Result op1 = blockBuilder.op(binaryOp);
@@ -118,7 +129,7 @@ public class HATDialectifyFP16Phase extends HATDialectAbstractPhase implements H
                             Value value = invokeOp.operands().getFirst();
                             if (value instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                                 Value second = varLoadOp.operands().getFirst();
-                                if (second instanceof Op.Result r1 && r1.op() instanceof HATF16VarOp hatf16VarOp) {
+                                if (second instanceof Op.Result r1 && r1.op() instanceof HATF16VarOp) {
                                     consumer.accept(invokeOp);
                                     consumer.accept(varLoadOp);
                                 }

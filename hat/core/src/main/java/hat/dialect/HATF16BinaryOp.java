@@ -82,7 +82,7 @@ public class HATF16BinaryOp extends HATF16Op {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.fp16." + varName(), elementType);
+        return Map.of("hat.dialect.fp16." + varName(), operationType.symbol());
     }
 
     public OpType operationType() {

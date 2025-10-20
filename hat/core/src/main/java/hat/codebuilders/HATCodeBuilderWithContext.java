@@ -25,6 +25,8 @@
 package hat.codebuilders;
 
 import hat.dialect.HATBarrierOp;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATF16VarOp;
 import hat.dialect.HATVSelectLoadOp;
 import hat.dialect.HATVSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
@@ -71,6 +73,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
             case HATVectorVarOp $ -> varName($);
             case HATVectorLoadOp $ -> varName($);
             case HATVectorBinaryOp $ -> varName($);
+            case HATF16VarOp $ -> varName($);
             case null, default -> {
             }
         }

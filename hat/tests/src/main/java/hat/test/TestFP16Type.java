@@ -58,7 +58,7 @@ public class TestFP16Type {
     }
 
     @CodeReflection
-    public static void fp16Ops(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void fp16Ops_02(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16Array.F16 ha = a.array(kernelContext.gix);
             F16Array.F16 hb = b.array(kernelContext.gix);
@@ -70,7 +70,7 @@ public class TestFP16Type {
     }
 
     @CodeReflection
-    public static void fp16Ops_02(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+    public static void fp16Ops_03(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16Array.F16 ha = a.array(kernelContext.gix);
             F16Array.F16 hb = b.array(kernelContext.gix);
@@ -78,6 +78,22 @@ public class TestFP16Type {
             F16Array.F16 result = F16.add(ha, F16.add(hb, hb));
             F16Array.F16 hC = c.array(kernelContext.gix);
             hC.value(result.value());
+        }
+    }
+
+    @CodeReflection
+    public static void fp16Ops_04(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            F16Array.F16 ha = a.array(kernelContext.gix);
+            F16Array.F16 hb = b.array(kernelContext.gix);
+
+            F16Array.F16 r1 = F16.mul(ha, hb);
+            F16Array.F16 r2 = F16.div(ha, hb);
+            F16Array.F16 r3 = F16.sub(ha, hb);
+            F16Array.F16 r4 = F16.add(r1, r2);
+            F16Array.F16 r5 = F16.add(r4, r3);
+            F16Array.F16 hC = c.array(kernelContext.gix);
+            hC.value(r5.value());
         }
     }
 
@@ -90,13 +106,19 @@ public class TestFP16Type {
     @CodeReflection
     public static void compute02(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
-        computeContext.dispatchKernel(computeRange, kernelContext -> TestFP16Type.fp16Ops(kernelContext, a, b, c));
+        computeContext.dispatchKernel(computeRange, kernelContext -> TestFP16Type.fp16Ops_02(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void compute03(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
-        computeContext.dispatchKernel(computeRange, kernelContext -> TestFP16Type.fp16Ops_02(kernelContext, a, b, c));
+        computeContext.dispatchKernel(computeRange, kernelContext -> TestFP16Type.fp16Ops_03(kernelContext, a, b, c));
+    }
+
+    @CodeReflection
+    public static void compute04(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
+        computeContext.dispatchKernel(computeRange, kernelContext -> TestFP16Type.fp16Ops_04(kernelContext, a, b, c));
     }
 
     @HatTest
@@ -170,6 +192,38 @@ public class TestFP16Type {
             float fa = Float.float16ToFloat(arrayA.array(i).value());
             float fb = Float.float16ToFloat(arrayB.array(i).value());
             HatAsserts.assertEquals((fa + fb + fb), F16.half2float(val), 0.001f);
+        }
+    }
+
+    @HatTest
+    public void testF16_04() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 16;
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F16Array arrayB = F16Array.create(accelerator, size);
+        F16Array arrayC = F16Array.create(accelerator, size);
+
+        Random random = new Random();
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(F16.float2half(random.nextFloat()));
+            arrayA.array(i).value(F16.float2half(random.nextFloat()));
+        }
+
+        accelerator.compute(computeContext -> {
+            TestFP16Type.compute04(computeContext, arrayA, arrayB, arrayC);
+        });
+
+        for (int i = 0; i < arrayC.length(); i++) {
+            short val = arrayC.array(i).value();
+            F16Array.F16 ha = arrayA.array(i);
+            F16Array.F16 hb = arrayB.array(i);
+            F16Array.F16 r1 = F16.mul(ha, hb);
+            F16Array.F16 r2 = F16.div(ha, hb);
+            F16Array.F16 r3 = F16.sub(ha, hb);
+            F16Array.F16 r4 = F16.add(r1, r2);
+            F16Array.F16 r5 = F16.add(r4, r3);
+            HatAsserts.assertEquals(F16.half2float(r5.value()), F16.half2float(val), 0.001f);
         }
     }
 
