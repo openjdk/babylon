@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.Accelerator;
 import hat.ifacemapper.MappableIface;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
@@ -36,11 +37,20 @@ import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
-public class HATFinalDetectionPhase implements HATPhase {
+public class HATFinalDetectionPhase implements HATDialect {
 
+    protected final Accelerator accelerator;
+    @Override  public Accelerator accelerator(){
+        return this.accelerator;
+    }
     private final Map<Op.Result, CoreOp.VarOp> finalVars = new HashMap<>();
+
+    public HATFinalDetectionPhase(Accelerator accelerator) {
+       this.accelerator = accelerator;
+    }
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {

@@ -29,34 +29,30 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.util.List;
 import java.util.Map;
 
-public class HATVSelectStoreOp extends HATVectorViewOp {
+public class HATVectorSelectLoadOp extends HATVectorViewOp {
 
     private final TypeElement elementType;
     private final int lane;
-    private final CoreOp.VarOp resultVarOp;
 
-    public HATVSelectStoreOp(String varName, TypeElement typeElement, int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
+    public HATVectorSelectLoadOp(String varName, TypeElement typeElement, int lane, List<Value> operands) {
         super(varName, operands);
         this.elementType = typeElement;
         this.lane = lane;
-        this.resultVarOp = resultVarOp;
     }
 
-    public HATVSelectStoreOp(HATVSelectStoreOp that, CopyContext cc) {
+    public HATVectorSelectLoadOp(HATVectorSelectLoadOp that, CopyContext cc) {
         super(that, cc);
         this.elementType = that.elementType;
         this.lane = that.lane;
-        this.resultVarOp = that.resultVarOp;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HATVSelectStoreOp(this, copyContext);
+        return new HATVectorSelectLoadOp(this, copyContext);
     }
 
     @Override
@@ -66,7 +62,7 @@ public class HATVSelectStoreOp extends HATVectorViewOp {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vselect.store." + lane, elementType);
+        return Map.of("hat.dialect.vselect." + lane, elementType);
     }
 
     public String mapLane() {
@@ -77,9 +73,5 @@ public class HATVSelectStoreOp extends HATVectorViewOp {
             case 3 -> "w";
             default -> throw new InternalError("Invalid lane: " + lane);
         };
-    }
-
-    public CoreOp.VarOp resultValue() {
-        return resultVarOp;
     }
 }

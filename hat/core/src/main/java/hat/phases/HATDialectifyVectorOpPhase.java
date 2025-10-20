@@ -53,21 +53,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyVectorOpPhase extends HATDialectAbstractPhase implements HATDialectifyPhase {
+public class HATDialectifyVectorOpPhase implements HATDialect{
 
+    protected final Accelerator accelerator;
+    @Override  public Accelerator accelerator(){
+        return this.accelerator;
+    }
     private final OpView vectorOperation;
 
     public HATDialectifyVectorOpPhase(Accelerator accelerator, OpView vectorOperation) {
-        super(accelerator);
+       this.accelerator = accelerator;
         this.vectorOperation = vectorOperation;
     }
 
-    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
-        return invokeOp.invokeDescriptor().name().equals(methodName);
-    }
+
 
     private HATVectorBinaryOp.OpType getBinaryOpType(JavaOp.InvokeOp invokeOp) {
         return switch (invokeOp.invokeDescriptor().name()) {
@@ -141,9 +144,8 @@ public class HATDialectifyVectorOpPhase extends HATDialectAbstractPhase implemen
     }
 
     private CoreOp.FuncOp dialectifyVectorLoad(CoreOp.FuncOp funcOp) {
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases())
             IO.println("[BEFORE] Vector Load Ops: " + funcOp.toText());
-        }
             Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof CoreOp.VarOp varOp) {
@@ -201,7 +203,7 @@ public class HATDialectifyVectorOpPhase extends HATDialectAbstractPhase implemen
             }
             return blockBuilder;
         });
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[AFTER] Vector Load Ops: " + funcOp.toText());
         }
         return funcOp;
@@ -209,7 +211,7 @@ public class HATDialectifyVectorOpPhase extends HATDialectAbstractPhase implemen
 
     private CoreOp.FuncOp dialectifyVectorBinaryOps(CoreOp.FuncOp funcOp) {
         Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation = new HashMap<>();
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[BEFORE] Vector Binary Ops: " + funcOp.toText());
         }
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
@@ -237,11 +239,12 @@ public class HATDialectifyVectorOpPhase extends HATDialectAbstractPhase implemen
         }
 
         var here = OpTk.CallSite.of(HATDialectifyVectorOpPhase.class, "dialectifyVectorBinaryOps");
-        funcOp = OpTk.transform(here, funcOp,(blockBuilder, op) -> {
+        funcOp = OpTk.transform(here, funcOp, nodesInvolved::contains, (blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
-            if (!nodesInvolved.contains(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+           // if (!nodesInvolved.contains(op)) {
+             //   blockBuilder.op(op);
+            //} else
+                if (op instanceof JavaOp.InvokeOp invokeOp) {
                 Op.Result result = invokeOp.result();
                 List<Value> inputOperands = invokeOp.operands();
                 List<Value> outputOperands = context.getValues(inputOperands);
@@ -266,14 +269,14 @@ public class HATDialectifyVectorOpPhase extends HATDialectAbstractPhase implemen
             }
             return blockBuilder;
         });
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[AFTER] Vector Binary Ops: " + funcOp.toText());
         }
         return funcOp;
     }
 
     private CoreOp.FuncOp dialectifyVectorBinaryWithContatenationOps(CoreOp.FuncOp funcOp) {
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[BEFORE] Vector Contact Binary Ops: " + funcOp.toText());
         }
         Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation = new HashMap<>();
@@ -328,14 +331,14 @@ public class HATDialectifyVectorOpPhase extends HATDialectAbstractPhase implemen
             }
             return blockBuilder;
         });
-        if (accelerator.config().showCompilationPhases()) {
+        if (accelerator.backend.config().showCompilationPhases()) {
             IO.println("[AFTER] Vector Binary Ops: " + funcOp.toText());
         }
         return funcOp;
     }
 
     @Override
-    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         if (Objects.requireNonNull(vectorOperation) == OpView.FLOAT4_LOAD) {
             funcOp = dialectifyVectorLoad(funcOp);
         } else {

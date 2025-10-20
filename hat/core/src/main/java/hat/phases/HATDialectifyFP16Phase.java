@@ -21,10 +21,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyFP16Phase extends HATDialectAbstractPhase implements HATDialectifyPhase {
+public class HATDialectifyFP16Phase implements HATDialect {
 
+    private final Accelerator accelerator;
     public HATDialectifyFP16Phase(Accelerator accelerator) {
-        super(accelerator);
+        this.accelerator = accelerator;
     }
 
     private boolean isFP16Operation(JavaOp.InvokeOp invokeOp, String methodName) {
@@ -179,7 +180,7 @@ public class HATDialectifyFP16Phase extends HATDialectAbstractPhase implements H
     }
 
     @Override
-    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         funcOp = dialectifyF16Ops(funcOp, "add");
         funcOp = dialectifyF16Ops(funcOp, "sub");
         funcOp = dialectifyF16Ops(funcOp, "mul");
@@ -189,4 +190,8 @@ public class HATDialectifyFP16Phase extends HATDialectAbstractPhase implements H
     }
 
 
+    @Override
+    public Accelerator accelerator() {
+        return accelerator;
+    }
 }

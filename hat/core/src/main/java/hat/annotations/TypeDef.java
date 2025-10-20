@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,10 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.phases;
+package hat.annotations;
 
-import jdk.incubator.code.dialect.core.CoreOp;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public interface HATPhase {
-    CoreOp.FuncOp apply(CoreOp.FuncOp funcOp);
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface TypeDef {
+    String value();
 }

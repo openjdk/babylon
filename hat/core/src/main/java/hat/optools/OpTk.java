@@ -30,7 +30,7 @@ import hat.callgraph.CallGraph;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATThreadOp;
-import hat.dialect.HATVSelectLoadOp;
+import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorAddOp;
 import hat.dialect.HATVectorDivOp;
 import hat.dialect.HATVectorMulOp;
@@ -416,7 +416,7 @@ public class OpTk {
             case JavaOp.FieldAccessOp o -> 0;
             case HATThreadOp o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
-            case HATVSelectLoadOp o -> 0;      // same as VarLoadOp
+            case HATVectorSelectLoadOp o -> 0;      // same as VarLoadOp
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;
@@ -610,6 +610,23 @@ public class OpTk {
             System.out.println(callSite);
         }
         return  SSA.transform(funcOp);
+    }
+
+    public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<Op> predicate, OpTransformer opTransformer) {
+        if (callSite!= null){
+            System.out.println(callSite);
+        }
+        return funcOp.transform((blockBuilder, op) -> {
+            if (predicate.test(op)){
+                var builder = opTransformer.acceptOp(blockBuilder,op);
+                if (builder != blockBuilder){
+                    throw new RuntimeException("Where does this builder come from "+builder);
+                }
+            }else {
+                blockBuilder.op(op);
+            }
+            return blockBuilder;
+        });
     }
 
     public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, OpTransformer opTransformer) {

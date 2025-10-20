@@ -27,8 +27,11 @@ package hat.backend.ffi;
 
 import hat.ComputeRange;
 import hat.Config;
+import hat.KernelContext;
 import hat.ThreadMesh;
 import hat.NDRange;
+import hat.annotations.Kernel;
+import hat.annotations.TypeDef;
 import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.buffer.ArgArray;
@@ -45,6 +48,7 @@ import hat.phases.HATFinalDetectionPhase;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -141,6 +145,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         var here = OpTk.CallSite.of(C99FFIBackend.class, "createCode");
+
+
+
         builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -156,77 +163,90 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
                     });
                 });
 
-        List<TypeElement> localIFaceList = new ArrayList<>();
+        var annotation = kernelCallGraph.entrypoint.method.getAnnotation(Kernel.class);
 
-        kernelCallGraph.getModuleOp()
-                .elements()
-                .filter(c->Objects.requireNonNull(c) instanceof HATMemoryOp)
-                .map(c->((HATMemoryOp)c).invokeType())
-                .forEach(localIFaceList::add);
+        if (annotation!=null){
+            builder.lineComment("Preformatted from annotation");
 
-       kernelCallGraph.entrypoint.funcOp()
-                .elements()
-                .filter(c->Objects.requireNonNull(c) instanceof HATMemoryOp)
-                .map(c->((HATMemoryOp)c).invokeType())
-                .forEach(localIFaceList::add);
-
-        // Dynamically build the schema for the user data type we are creating within the kernel.
-        // This is because no allocation was done from the host. This is kernel code, and it is reflected
-        // using the code reflection API
-        // 1. Add for struct for iface objects
-        for (TypeElement typeElement : localIFaceList) {
-            // 1.1 Load the class dynamically
-            try {
-               Class<?> clazz = (Class<?>)((ClassType)typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);//Class.forName(typeElement.toString());
-                //System.out.println("!!!!!!For  "+clazz);
-                // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
-                // 1.2 Obtain the create method
-                Method method = clazz.getMethod("create", hat.Accelerator.class);
-                method.setAccessible(true);
-                Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);
-
-                // code gen of the struct
-                BoundSchema<?> boundSchema = Buffer.getBoundSchema(invoke);
-                boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
-                    if (!already.contains(t)) {
-                        builder.typedef(boundSchema, t);
-                        already.add(t);
-                    }
-                });
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
+            var typedef = kernelCallGraph.entrypoint.method.getAnnotation(TypeDef.class);
+            if (typedef!=null){
+                builder.preformatted(typedef.value());
             }
-        }
+          //  System.out.println(annotation.value());
+            builder.preformatted(annotation.value());
+        }else {
+            List<TypeElement> localIFaceList = new ArrayList<>();
 
-        ScopedCodeBuilderContext buildContext =
-                new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
-                        kernelCallGraph.entrypoint.funcOp());
+            kernelCallGraph.getModuleOp()
+                    .elements()
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryOp)
+                    .map(c -> ((HATMemoryOp) c).invokeType())
+                    .forEach(localIFaceList::add);
 
-        // Sorting by rank ensures we don't need forward declarations
-        kernelCallGraph.getModuleOp().functionTable()
-                .forEach((_, funcOp) -> {
-// TODO: did we just trash the callgraph sidetables?
-                    HATFinalDetectionPhase finals = new HATFinalDetectionPhase();
-                    finals.apply(funcOp);
+            kernelCallGraph.entrypoint.funcOp()
+                    .elements()
+                    .filter(c -> Objects.requireNonNull(c) instanceof HATMemoryOp)
+                    .map(c -> ((HATMemoryOp) c).invokeType())
+                    .forEach(localIFaceList::add);
 
-                    // Update the build context for this method to use the right constants-map
-                    buildContext.setFinals(finals.getFinalVars());
-                    builder.nl().kernelMethod(buildContext, funcOp).nl();
-                });
+            // Dynamically build the schema for the user data type we are creating within the kernel.
+            // This is because no allocation was done from the host. This is kernel code, and it is reflected
+            // using the code reflection API
+            // 1. Add for struct for iface objects
+            for (TypeElement typeElement : localIFaceList) {
+                // 1.1 Load the class dynamically
+                try {
+                    Class<?> clazz = (Class<?>) ((ClassType) typeElement).resolve(kernelCallGraph.computeContext.accelerator.lookup);//Class.forName(typeElement.toString());
+                    //System.out.println("!!!!!!For  "+clazz);
+                    // TODO: Contract between the Java interface and the user. We require a method called `create` in order for this to work.
+                    // 1.2 Obtain the create method
+                    Method method = clazz.getMethod("create", hat.Accelerator.class);
+                    method.setAccessible(true);
+                    Buffer invoke = (Buffer) method.invoke(null, kernelCallGraph.computeContext.accelerator);
 
-        // Update the constants-map for the main kernel
-        HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase();
-        hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
-        buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
-        builder.nl().kernelEntrypoint(buildContext, args).nl();
+                    // code gen of the struct
+                    BoundSchema<?> boundSchema = Buffer.getBoundSchema(invoke);
+                    boundSchema.schema().rootIfaceType.visitTypes(0, t -> {
+                        if (!already.contains(t)) {
+                            builder.typedef(boundSchema, t);
+                            already.add(t);
+                        }
+                    });
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(e);
+                }
+            }
 
-        if (config().showKernelModel()) {
-            IO.println("Original");
-            IO.println(kernelCallGraph.entrypoint.funcOp().toText());
-        }
-        if (config().showLoweredKernelModel()){
-            IO.println("Lowered");
-            IO.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
+            ScopedCodeBuilderContext buildContext =
+                    new ScopedCodeBuilderContext(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator.lookup,
+                            kernelCallGraph.entrypoint.funcOp());
+
+            // Sorting by rank ensures we don't need forward declarations
+            kernelCallGraph.getModuleOp().functionTable()
+                    .forEach((_, funcOp) -> {
+                        // TODO: did we just trash the callgraph sidetables?
+                        HATFinalDetectionPhase finals = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
+                        finals.apply(funcOp);
+
+                        // Update the build context for this method to use the right constants-map
+                        buildContext.setFinals(finals.getFinalVars());
+                        builder.nl().kernelMethod(buildContext, funcOp).nl();
+                    });
+
+            // Update the constants-map for the main kernel
+            HATFinalDetectionPhase hatFinalDetectionPhase = new HATFinalDetectionPhase(kernelCallGraph.entrypoint.callGraph.computeContext.accelerator);
+            hatFinalDetectionPhase.apply(kernelCallGraph.entrypoint.funcOp());
+            buildContext.setFinals(hatFinalDetectionPhase.getFinalVars());
+            builder.nl().kernelEntrypoint(buildContext, args).nl();
+
+            if (config().showKernelModel()) {
+                IO.println("Original");
+                IO.println(kernelCallGraph.entrypoint.funcOp().toText());
+            }
+            if (config().showLoweredKernelModel()) {
+                IO.println("Lowered");
+                IO.println(OpTk.lower(here, kernelCallGraph.entrypoint.funcOp()).toText());
+            }
         }
         return builder.toString();
     }

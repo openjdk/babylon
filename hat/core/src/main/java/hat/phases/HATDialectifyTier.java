@@ -32,37 +32,38 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.function.Function;
 
-public class HATDialectifyTier implements HATCompilationTier {
+public class HATDialectifyTier implements Function<CoreOp.FuncOp,CoreOp.FuncOp> {
 
-    private List<HATDialectifyPhase> hatPhases = new ArrayList<>();
+    private List<HATDialect> hatPhases = new ArrayList<>();
 
     public HATDialectifyTier(Accelerator accelerator) {
         hatPhases.add(new HATDialectifyBarrierPhase(accelerator));
-        Arrays.stream(HATDialectifyMemoryPhase.Space.values())
-                .forEach(space -> hatPhases.add(new HATDialectifyMemoryPhase(accelerator,space)));
+        hatPhases.add(new HATDialectifyMemorySharedPhase(accelerator));
+        hatPhases.add(new HATDialectifyMemoryPrivatePhase(accelerator));
         Arrays.stream(HATDialectifyThreadsPhase.ThreadAccess.values())
                 .forEach(threadAccess -> hatPhases.add(new HATDialectifyThreadsPhase(accelerator,threadAccess)));
         Arrays.stream(HATDialectifyVectorOpPhase.OpView.values())
                 .forEach(vectorOperation -> hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, vectorOperation)));
         Arrays.stream(HATDialectifyVectorStorePhase.StoreView.values())
                 .forEach(vectorOperation -> hatPhases.add(new HATDialectifyVectorStorePhase(accelerator, vectorOperation)));
-        hatPhases.add(new HATDialectifyVSelectPhase(accelerator));
+        hatPhases.add(new HATDialectifyVectorSelectPhase(accelerator));
         hatPhases.add(new HATDialectifyFP16Phase(accelerator));
     }
 
     // It computes a set of function code model transformations from FuncOp to FuncOp'.
     @Override
-    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-        BlockingQueue<HATDialectifyPhase> queue = new ArrayBlockingQueue<>(hatPhases.size());
+    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+        BlockingQueue<Function<CoreOp.FuncOp,CoreOp.FuncOp>> queue = new ArrayBlockingQueue<>(hatPhases.size());
         queue.addAll(hatPhases);
 
         CoreOp.FuncOp f = funcOp;
         while (!queue.isEmpty()) {
             try {
                 // TODO Did we just trash side tables ?
-                HATDialectifyPhase phase = queue.take();
-                f = phase.run(f);
+                Function<CoreOp.FuncOp,CoreOp.FuncOp> phase = queue.take();
+                f = phase.apply(f);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

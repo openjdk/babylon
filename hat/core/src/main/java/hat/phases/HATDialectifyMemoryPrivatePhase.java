@@ -24,9 +24,31 @@
  */
 package hat.phases;
 
+import hat.Accelerator;
+import hat.dialect.HATMemoryOp;
+import hat.dialect.HATPrivateVarOp;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
 
-public interface HATCompilationTier {
+public class HATDialectifyMemoryPrivatePhase extends HATDialectifyMemoryPhase {
+    public HATDialectifyMemoryPrivatePhase(Accelerator accelerator) {
+        super(accelerator);
+    }
+    @Override protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
+         return isIfaceBufferInvokeWithName(invokeOp, HATPrivateVarOp.INTRINSIC_NAME);
+    }
 
-    CoreOp.FuncOp run(CoreOp.FuncOp funcOp);
+    @Override protected HATMemoryOp createMemoryOp(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
+        var op=  new HATPrivateVarOp(
+                varOp.varName(),
+                (ClassType) varOp.varValueType(),
+                varOp.resultType(),
+                invokeOp.resultType(),
+                builder.context().getValues(invokeOp.operands())
+        );
+        op.setLocation(varOp.location());
+        return op;
+    }
 }

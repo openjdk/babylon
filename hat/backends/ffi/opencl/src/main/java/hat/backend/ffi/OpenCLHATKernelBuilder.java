@@ -27,11 +27,11 @@ package hat.backend.ffi;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATF16BinaryOp;
 import hat.dialect.HATF16VarLoadOp;
 import hat.dialect.HATF16VarOp;
-import hat.dialect.HATVSelectLoadOp;
-import hat.dialect.HATVSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
@@ -158,7 +158,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp) {
+    public OpenCLHATKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
         identifier(hatVSelectLoadOp.varName())
                 .dot()
                 .identifier(hatVSelectLoadOp.mapLane());
@@ -166,7 +166,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp) {
+    public OpenCLHATKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
         identifier(hatVSelectStoreOp.varName())
                 .dot()
                 .identifier(hatVSelectStoreOp.mapLane())
