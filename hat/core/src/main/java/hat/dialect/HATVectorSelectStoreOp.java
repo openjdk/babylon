@@ -29,30 +29,34 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.util.List;
 import java.util.Map;
 
-public class HATVSelectLoadOp extends HATVectorViewOp {
+public class HATVectorSelectStoreOp extends HATVectorViewOp {
 
     private final TypeElement elementType;
     private final int lane;
+    private final CoreOp.VarOp resultVarOp;
 
-    public HATVSelectLoadOp(String varName, TypeElement typeElement, int lane, List<Value> operands) {
+    public HATVectorSelectStoreOp(String varName, TypeElement typeElement, int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
         super(varName, operands);
         this.elementType = typeElement;
         this.lane = lane;
+        this.resultVarOp = resultVarOp;
     }
 
-    public HATVSelectLoadOp(HATVSelectLoadOp that, CopyContext cc) {
+    public HATVectorSelectStoreOp(HATVectorSelectStoreOp that, CopyContext cc) {
         super(that, cc);
         this.elementType = that.elementType;
         this.lane = that.lane;
+        this.resultVarOp = that.resultVarOp;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HATVSelectLoadOp(this, copyContext);
+        return new HATVectorSelectStoreOp(this, copyContext);
     }
 
     @Override
@@ -62,7 +66,7 @@ public class HATVSelectLoadOp extends HATVectorViewOp {
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vselect." + lane, elementType);
+        return Map.of("hat.dialect.vselect.store." + lane, elementType);
     }
 
     public String mapLane() {
@@ -73,5 +77,9 @@ public class HATVSelectLoadOp extends HATVectorViewOp {
             case 3 -> "w";
             default -> throw new InternalError("Invalid lane: " + lane);
         };
+    }
+
+    public CoreOp.VarOp resultValue() {
+        return resultVarOp;
     }
 }

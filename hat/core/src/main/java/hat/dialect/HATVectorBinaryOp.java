@@ -29,14 +29,8 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
 import java.util.List;
-import java.util.Map;
 
 public abstract class HATVectorBinaryOp extends HATVectorViewOp {
-
-    private final TypeElement elementType;
-    private final OpType operationType;
-    private final int vectorN;
-
     public enum OpType {
         ADD("+"),
         SUB("-"),
@@ -53,6 +47,10 @@ public abstract class HATVectorBinaryOp extends HATVectorViewOp {
             return symbol;
         }
     }
+
+    private final TypeElement elementType;
+    private final OpType operationType;
+    private final int vectorN;
 
     public HATVectorBinaryOp(String varName, TypeElement typeElement, OpType operationType, List<Value> operands) {
         super(varName, operands);
@@ -74,10 +72,10 @@ public abstract class HATVectorBinaryOp extends HATVectorViewOp {
         return this.elementType;
     }
 
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.floatNOp." + varName(), elementType);
-    }
+  //  @Override
+    //public Map<String, Object> externalize() {
+     //   return Map.of("hat.dialect.floatNOp." + varName(), elementType);
+   // }
 
     public OpType operationType() {
         return operationType;

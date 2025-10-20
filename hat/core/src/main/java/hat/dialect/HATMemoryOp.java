@@ -32,7 +32,6 @@ import jdk.incubator.code.dialect.java.ClassType;
 import java.util.List;
 
 public abstract class HATMemoryOp extends HATOp {
-
     private final String varName;
 
     public HATMemoryOp(String varName, List<Value> operands) {

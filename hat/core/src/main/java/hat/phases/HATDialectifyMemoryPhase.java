@@ -25,114 +25,74 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.Config;
-import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryOp;
-import hat.dialect.HATPrivateVarOp;
 import hat.optools.OpTk;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
-
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyMemoryPhase extends HATDialectAbstractPhase implements HATDialectifyPhase {
-
-    public enum Space {
-        PRIVATE,
-        SHARED,
+public abstract class HATDialectifyMemoryPhase implements HATDialect {
+    protected final Accelerator accelerator;
+    @Override  public Accelerator accelerator(){
+        return this.accelerator;
     }
+    protected abstract HATMemoryOp createMemoryOp(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
 
-    private final Space memorySpace;
-
-    public HATDialectifyMemoryPhase(Accelerator accelerator, Space space) {
-        super(accelerator);
-        this.memorySpace = space;
-    }
-
-    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
-        return invokeOp.invokeDescriptor().name().equals(methodName);
+    protected abstract boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp);
+    public HATDialectifyMemoryPhase(Accelerator accelerator) {
+        this.accelerator = accelerator;
     }
 
     @Override
-    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-            String nameNode = switch (memorySpace) {
-                case PRIVATE -> HATPrivateVarOp.INTRINSIC_NAME;
-                case SHARED -> HATLocalVarOp.INTRINSIC_NAME;
-            };
-
-            if (accelerator.config().showCompilationPhases()) {
-                IO.println("[INFO] Code model before HatDialectifyMemoryPhase: " + funcOp.toText());
-            }
-            Stream<CodeElement<?, ?>> elements = funcOp.elements()
-                    .mapMulti((codeElement, consumer) -> {
-                        if (codeElement instanceof CoreOp.VarOp varOp) {
-                            List<Value> inputOperandsVarOp = varOp.operands();
-                            for (Value inputOperand : inputOperandsVarOp) {
-                                if (inputOperand instanceof Op.Result result) {
-                                    if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
-                                        if (OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp) && isMethod(invokeOp, nameNode)) {
-                                            // It is the node we are looking for
-                                            consumer.accept(invokeOp);
-                                            consumer.accept(varOp);
-                                        }
-                                    }
+    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+        if (accelerator.backend.config().showCompilationPhases()) {
+            IO.println("[INFO] Code model before HatDialectifyMemoryPhase: " + funcOp.toText());
+        }
+      //  record BufferIfaceInvokeOpAndVarOpPair(JavaOp.InvokeOp bufferIfaceOp, CoreOp.VarOp varOp){}
+       // List<BufferIfaceInvokeOpAndVarOpPair> bufferIfaceInvokeOpAndVarOpPairList = new ArrayList<>();
+        Stream<CodeElement<?, ?>> elements = funcOp.elements().filter(e -> e instanceof CoreOp.VarOp ).map(e-> (CoreOp.VarOp) e)
+                .mapMulti((varOp, consumer) -> {
+                                var bufferIfaceInvokeOp = varOp.operands().stream()
+                                        .filter(o -> o instanceof Op.Result result && result.op() instanceof JavaOp.InvokeOp invokeOp && isIfaceBufferInvokeWithName(invokeOp))
+                                        .map(r -> (JavaOp.InvokeOp) (((Op.Result) r).op()))
+                                        .findFirst();
+                                if (bufferIfaceInvokeOp.isPresent()) {
+                                    consumer.accept(bufferIfaceInvokeOp.get());
+                                    consumer.accept(varOp);
                                 }
-                            }
                         }
-                    });
+                );
 
-            Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
-            if (nodesInvolved.isEmpty()) {
-                // No memory nodes involved
-                return funcOp;
+        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
+
+        var here = OpTk.CallSite.of(HATDialectifyMemoryPrivatePhase.class, "run");
+        funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
+            CopyContext context = blockBuilder.context();
+            if (!nodesInvolved.contains(op)) {
+                blockBuilder.op(op);
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                // Don't insert the invoke node we just want the results
+                invokeOp.result().uses().stream()
+                        .filter(r->r.op() instanceof CoreOp.VarOp)
+                        .map(r->(CoreOp.VarOp)r.op())
+                        .forEach(varOp->
+                            context.mapValue(invokeOp.result(), blockBuilder.op(createMemoryOp(blockBuilder,varOp,invokeOp)))
+                        );
+            } else if (op instanceof CoreOp.VarOp varOp) {
+                // pass value
+                context.mapValue(varOp.result(), context.getValue(varOp.operands().getFirst()));
             }
-
-        var here = OpTk.CallSite.of(HATDialectifyMemoryPhase.class, "run");
-        funcOp = OpTk.transform(here, funcOp,(blockBuilder, op) -> {
-                CopyContext context = blockBuilder.context();
-                if (!nodesInvolved.contains(op)) {
-                    blockBuilder.op(op);
-                } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                    // Don't insert the invoke node
-                    Op.Result result = invokeOp.result();
-                    List<Op.Result> collect = result.uses().stream().toList();
-                    for (Op.Result r : collect) {
-                        if (r.op() instanceof CoreOp.VarOp varOp) {
-                            // That's the node we want
-                            List<Value> inputOperandsVarOp = invokeOp.operands();
-                            List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                            HATMemoryOp memoryOp = switch (memorySpace) {
-                                case SHARED ->
-                                        new HATLocalVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
-                                default ->
-                                        new HATPrivateVarOp(varOp.varName(), (ClassType) varOp.varValueType(), varOp.resultType(), invokeOp.resultType(), outputOperandsVarOp);
-                            };
-
-                            Op.Result hatLocalResult = blockBuilder.op(memoryOp);
-
-                            // update location
-                            memoryOp.setLocation(varOp.location());
-
-                            context.mapValue(invokeOp.result(), hatLocalResult);
-                        }
-                    }
-                } else if (op instanceof CoreOp.VarOp varOp) {
-                    // pass value
-                    context.mapValue(varOp.result(), context.getValue(varOp.operands().getFirst()));
-                }
-                return blockBuilder;
-            });
-            if (accelerator.config().showCompilationPhases()) {
-                IO.println("[INFO] Code model after HatDialectifyMemoryPhase: " + funcOp.toText());
-            }
-            return funcOp;
+            return blockBuilder;
+        });
+        if (accelerator.backend.config().showCompilationPhases()) {
+            IO.println("[INFO] Code model after HatDialectifyMemoryPhase: " + funcOp.toText());
+        }
+        return funcOp;
     }
 }

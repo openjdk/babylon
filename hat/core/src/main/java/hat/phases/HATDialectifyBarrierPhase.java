@@ -38,67 +38,39 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyBarrierPhase extends HATDialectAbstractPhase implements HATDialectifyPhase {
+public class HATDialectifyBarrierPhase implements HATDialect {
 
+    protected final Accelerator accelerator;
+    @Override  public Accelerator accelerator(){
+        return this.accelerator;
+    }
     public HATDialectifyBarrierPhase(Accelerator accelerator) {
-        super(accelerator);
-    }
-
-    private boolean isMethodFromHatKernelContext(JavaOp.InvokeOp invokeOp) {
-        String kernelContextCanonicalName = hat.KernelContext.class.getName();
-        return invokeOp.invokeDescriptor().refType().toString().equals(kernelContextCanonicalName);
-    }
-
-    private boolean isMethod(JavaOp.InvokeOp invokeOp, String methodName) {
-        return invokeOp.invokeDescriptor().name().equals(methodName);
-    }
-
-    private void createBarrierNodeOp(CopyContext context, JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
-        List<Value> inputOperands = invokeOp.operands();
-        List<Value> outputOperands = context.getValues(inputOperands);
-        HATBarrierOp hatBarrierOp = new HATBarrierOp(outputOperands);
-        Op.Result outputResult = blockBuilder.op(hatBarrierOp);
-        Op.Result inputResult = invokeOp.result();
-        hatBarrierOp.setLocation(invokeOp.location());
-        context.mapValue(inputResult, outputResult);
+        this.accelerator = accelerator;
     }
 
     @Override
-    public CoreOp.FuncOp run(CoreOp.FuncOp funcOp) {
-        if (accelerator.config().showCompilationPhases()) {
-            System.out.println("[INFO] Code model before HatDialectifyBarrierPhase: " + funcOp.toText());
+    public CoreOp.FuncOp apply(CoreOp.FuncOp fromFuncOp) {
+        if (accelerator.backend.config().showCompilationPhases()) {
+            System.out.println("[INFO] Code model before HatDialectifyBarrierPhase: " + fromFuncOp.toText());
         }
-        Stream<CodeElement<?, ?>> elements = funcOp
-                .elements()
-                .mapMulti((element, consumer) -> {
-                    if (element instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isMethodFromHatKernelContext(invokeOp) && isMethod(invokeOp, HATBarrierOp.INTRINSIC_NAME)) {
-                            consumer.accept(invokeOp);
-                        }
-                    }
-                });
-        Set<CodeElement<?, ?>> collect = elements.collect(Collectors.toSet());
-        if (collect.isEmpty()) {
-            // Return the function with no modifications
-            return funcOp;
+        // The resulting op map also includes all op mappings (so op -> op') and the to and from funcOp
+        // I expect this to be useful for tracking state...
+
+        OpTk.OpMap opMap = OpTk.simpleOpMappingTransform(
+                /* for debugging we will remove */ OpTk.CallSite.of(HATDialectifyBarrierPhase.class, "run"), fromFuncOp,
+                /* filter op                    */ op->isKernelContextInvokeWithName(op,HATBarrierOp.INTRINSIC_NAME),
+                /* replace op                   */ HATBarrierOp::new
+        );
+        if (accelerator.backend.config().showCompilationPhases()) {
+            System.out.println("[INFO] Code model after HatDialectifyBarrierPhase: " + opMap.toFuncOp().toText());
         }
-        var here = OpTk.CallSite.of(HATDialectifyBarrierPhase.class, "run");
-        funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
-            if (!collect.contains(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                createBarrierNodeOp(context, invokeOp, blockBuilder);
-            }
-            return blockBuilder;
-        });
-        if (accelerator.config().showCompilationPhases()) {
-            System.out.println("[INFO] Code model after HatDialectifyBarrierPhase: " + funcOp.toText());
-        }
-        return funcOp;
+        return opMap.toFuncOp();
     }
 
 }

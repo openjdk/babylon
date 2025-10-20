@@ -31,11 +31,9 @@ import jdk.incubator.code.Value;
 import java.util.List;
 
 public abstract class HATOp extends Op {
-
     public HATOp(List<Value> operands) {
         super(operands);
     }
-
     protected HATOp(Op that, CopyContext cc) {
         super(that, cc);
     }

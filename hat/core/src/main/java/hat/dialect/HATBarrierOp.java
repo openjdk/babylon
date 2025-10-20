@@ -35,10 +35,9 @@ import jdk.incubator.code.dialect.java.JavaType;
 import java.util.List;
 import java.util.Map;
 
-public class HATBarrierOp extends HATOp {
-
-    private static final String NAME = "hat.dialect.sync.barrier";
+public final class HATBarrierOp extends HATOp {
     public static final String INTRINSIC_NAME = "barrier";
+    private static final String NAME = "hat.dialect.sync."+INTRINSIC_NAME;
 
     public HATBarrierOp(List<Value> operands) {
         super(operands);

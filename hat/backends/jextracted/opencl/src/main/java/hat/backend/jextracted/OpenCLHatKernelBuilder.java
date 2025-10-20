@@ -26,8 +26,8 @@ package hat.backend.jextracted;
 
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.HATVSelectLoadOp;
-import hat.dialect.HATVSelectStoreOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
@@ -121,12 +121,12 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp) {
+    public OpenCLHatKernelBuilder generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
         throw new RuntimeException("implement OpenCLHatKernelBuilder generateVectorSelectLoadOp");
     }
 
     @Override
-    public OpenCLHatKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp) {
+    public OpenCLHatKernelBuilder generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
         throw new RuntimeException("implement OpenCLHatKernelBuilder generateVectorSelectStoreOp");
     }
 

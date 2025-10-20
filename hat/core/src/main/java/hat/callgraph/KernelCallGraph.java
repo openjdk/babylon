@@ -86,11 +86,11 @@ public class KernelCallGraph extends CallGraph<KernelEntrypoint> {
         usesArrayView = false;
         CoreOp.ModuleOp initialModuleOp = OpTk.createTransitiveInvokeModule(computeContext.accelerator.lookup, entrypoint.funcOp(), this);
         HATDialectifyTier tier = new HATDialectifyTier(computeContext.accelerator);
-        CoreOp.FuncOp initialEntrypointFuncOp = tier.run(entrypoint.funcOp());
+        CoreOp.FuncOp initialEntrypointFuncOp = tier.apply(entrypoint.funcOp());
         entrypoint.funcOp(initialEntrypointFuncOp);
         List<CoreOp.FuncOp> initialFuncOps = new ArrayList<>();
         initialModuleOp.functionTable().forEach((_, accessableFuncOp) ->
-                initialFuncOps.add( tier.run(accessableFuncOp))
+                initialFuncOps.add( tier.apply(accessableFuncOp))
         );
         CoreOp.ModuleOp interiModuleOp = CoreOp.module(initialFuncOps);
         CoreOp.FuncOp interimEntrypointFuncOp = convertArrayViewForFunc(computeContext.accelerator.lookup, entrypoint.funcOp());

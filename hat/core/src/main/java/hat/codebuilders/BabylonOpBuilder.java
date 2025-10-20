@@ -26,8 +26,8 @@ package hat.codebuilders;
 
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATVSelectLoadOp;
-import hat.dialect.HATVSelectStoreOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
@@ -123,9 +123,9 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp);
 
-    T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVSelectLoadOp hatVSelectLoadOp);
+    T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp);
 
-    T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVSelectStoreOp hatVSelectStoreOp);
+    T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp);
 
     T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp);
 
@@ -168,8 +168,8 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATVectorStoreView $ -> hatVectorStoreOp(buildContext, $);
             case HATVectorBinaryOp $ -> hatBinaryVectorOp(buildContext, $);
             case HATVectorLoadOp $ -> hatVectorLoadOp(buildContext, $);
-            case HATVSelectLoadOp $ -> hatSelectLoadOp(buildContext, $);
-            case HATVSelectStoreOp $ -> hatSelectStoreOp(buildContext, $);
+            case HATVectorSelectLoadOp $ -> hatSelectLoadOp(buildContext, $);
+            case HATVectorSelectStoreOp $ -> hatSelectStoreOp(buildContext, $);
             case HATVectorVarLoadOp $ -> hatVectorVarLoadOp(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
