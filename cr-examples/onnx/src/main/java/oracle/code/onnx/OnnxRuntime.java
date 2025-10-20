@@ -119,20 +119,8 @@ public final class OnnxRuntime {
         private Quoted q;
         private SessionOptions options;
 
-        SessionWithReturnType computeIfAbsent(Class<?> lambdaClass, MethodHandles.Lookup l,  Quoted q) {
-            try {
-                this.l = l;
-                this.q = q;
-                // not very nice way to pass additional arguments to computeValue method
-                return get(lambdaClass);
-            } finally {
-                this.l = null;
-                this.q = null;
-            }
-        }
-
         // Static helper for cache with options
-        protected SessionWithReturnType computeWithOptionsIfAbsent(
+        protected SessionWithReturnType computeIfAbsent(
                 Class<?> lambdaClass, MethodHandles.Lookup l, Quoted q, SessionOptions options) {
             try {
                 this.l = l;
@@ -211,45 +199,18 @@ public final class OnnxRuntime {
     }
 
     public static <T> T execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<T> codeLambda) {
+        return execute(arena, l, codeLambda, null);
+    }
+
+    public static <T> T execute(Arena arena, MethodHandles.Lookup l, OnnxFunction<T> codeLambda, SessionOptions options) {
         var q = Op.ofQuotable(codeLambda).orElseThrow();
 
-        var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q);
+        var model = SESSION_CACHE.computeIfAbsent(codeLambda.getClass(), l, q, options);
 
         List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
                 .mapMulti(OnnxRuntime::expandArg)
                 .toList();
         List<Tensor> ret = model.session().run(arena, arguments);
-
-        var lambdaOp = ((JavaOp.LambdaOp)q.op());
-        TypeElement type = lambdaOp.invokableType().returnType();
-        if (type instanceof ArrayType) {
-            return (T)ret.toArray(Tensor[]::new);
-        }
-        ClassType retType = ((ClassType)type).rawType();
-        if (retType.equals(TENSOR_RAW_TYPE)) {
-            return (T)ret.getFirst();
-        } else if(retType.equals(LIST_RAW_TYPE)) {
-            return (T)ret;
-        } else if(getRecordClass(l, retType) instanceof Class cls) {
-            try {
-                return (T)cls.getConstructors()[0].newInstance(unflat(ret, (TupleType)model.returnType()));
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException(e);
-            }
-        } else {
-            throw new UnsupportedOperationException("Unsupported return type: " + q.op().resultType());
-        }
-    }
-
-    public static <T> T executeWithOptions(Arena arena, MethodHandles.Lookup l, OnnxFunction<T> codeLambda, SessionOptions options) {
-        var q = Op.ofQuotable(codeLambda).orElseThrow();
-
-        SessionWithReturnType cached = SESSION_CACHE.computeWithOptionsIfAbsent(codeLambda.getClass(), l, q, options);
-
-        List<Tensor> arguments = q.capturedValues().sequencedValues().stream()
-                .mapMulti(OnnxRuntime::expandArg)
-                .toList();
-        List<Tensor> ret = cached.session().run(arena, arguments);
 
         var lambdaOp = ((JavaOp.LambdaOp)q.op());
         TypeElement type = lambdaOp.invokableType().returnType();
@@ -263,7 +224,7 @@ public final class OnnxRuntime {
             return (T) ret;
         } else if (getRecordClass(l, retType) instanceof Class cls) {
             try {
-                return (T) cls.getConstructors()[0].newInstance(unflat(ret, (TupleType) cached.returnType()));
+                return (T) cls.getConstructors()[0].newInstance(unflat(ret, (TupleType) model.returnType()));
             } catch (ReflectiveOperationException e) {
                 throw new IllegalStateException(e);
             }
@@ -313,7 +274,7 @@ public final class OnnxRuntime {
         //  const OrtApi* ortPtr = OrtGetApiBase()->GetApi((uint32_t)apiVersion);
         var apiBase = OrtApiBase.reinterpret(OrtGetApiBase(), arena, null);
         runtimeAddress = OrtApi.reinterpret(OrtApiBase.GetApi(apiBase, ORT_API_VERSION()), arena, null);
-        envAddress = retAddr(OrtApi.CreateEnv(runtimeAddress, ORT_LOGGING_LEVEL_ERROR(), arena.allocateFrom(LOG_ID), ret));
+        envAddress = retAddr(OrtApi.CreateEnv(runtimeAddress, ORT_LOGGING_LEVEL_VERBOSE(), arena.allocateFrom(LOG_ID), ret));
         defaultAllocatorAddress = retAddr(OrtApi.GetAllocatorWithDefaultOptions(runtimeAddress, ret)).reinterpret(arena, null);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             OrtApi.ReleaseEnv(runtimeAddress, envAddress);

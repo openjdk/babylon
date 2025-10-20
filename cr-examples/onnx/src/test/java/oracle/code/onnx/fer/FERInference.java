@@ -51,7 +51,7 @@ public class FERInference {
         if (Objects.nonNull(provider))
             provider.configure(sessionOptions);
         FERModel ferModel = new FERModel(arena);
-        float[] rawScores = ferModel.classify(arena, imageData, sessionOptions, useCondensedModel);
+        float[] rawScores = ferModel.classify(imageData, sessionOptions, useCondensedModel);
         return rawScores;
     }
 

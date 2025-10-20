@@ -10,6 +10,8 @@ mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.mnist.MNIST
 
 ### ONNX Runtime with CoreML running facial emotion recognition from Java source.
 
+Download the `.data` file from [emotion-ferplus-8.onnx.data](https://github.com/ammbra/fer-model-weights/raw/refs/heads/main/emotion-ferplus-8.onnx.data) and place it under `cr-examples/onnx/src/test/resources/oracle/code/onnx/fer` folder.
+
 Running the FER demo:
 ```
 JAVA_HOME=<path to the Babylon JDK home>
@@ -29,7 +31,7 @@ cd onnxruntime
 pwd
 ```
 
-Inside `cr-examples/onnx` project you will find the `setup.sh` script that takes as argument the path to your cloned `onnxruntime` and uses `jextract` to regenerate the binaries.
+Inside `cr-examples/onnx/opgen` project you will find the `setup.sh` script that takes as argument the path to your cloned `onnxruntime` and uses `jextract` to regenerate the binaries.
 Prior to running it make sure that `jextract` is in your system `$PATH` :
 
 ```shell

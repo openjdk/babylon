@@ -43,6 +43,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
+import static oracle.code.onnx.foreign.coreml_provider_factory_h.*;
+
 public class FERCoreMLDemo {
 
     static final int IMAGE_SIZE = 64;
@@ -196,7 +198,8 @@ public class FERCoreMLDemo {
             URL url = selectedUrls.get(i);
 
             try (var arena = Arena.ofConfined()) {
-                float[] probs = inference.analyzeImage(arena, new CoreMLProvider(), url, useCondensedModel);
+                CoreMLProvider provider = new CoreMLProvider(COREML_FLAG_USE_CPU_AND_GPU());
+                float[] probs = inference.analyzeImage(arena, provider, url, useCondensedModel);
                 String top3 = formatTopK(probs);
 
                 resultLabels[i].setText("<html>" + top3 + "</html>");

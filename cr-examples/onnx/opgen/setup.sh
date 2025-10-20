@@ -17,10 +17,10 @@ fi
 # Infer other paths based on the location of libonnxruntime.*.dylib
 ONNXRT_DIR=$(dirname $(dirname $(dirname $(dirname $LIB_PATH))))
 INCLUDE_DIR=$ONNXRT_DIR/include/onnxruntime
-OUTPUT_DIR=src/main/java
+OUTPUT_DIR=../src/main/java
 
 # Run jextract
-jextract --target-package oracle.code.onnx.coreml.foreign \
+jextract --target-package oracle.code.onnx.foreign \
   -l :$LIB_PATH \
   --use-system-load-library \
   -I $INCLUDE_DIR/core/session \

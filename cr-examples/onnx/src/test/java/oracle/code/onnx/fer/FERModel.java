@@ -42,7 +42,9 @@ import static oracle.code.onnx.fer.FERCoreMLDemo.IMAGE_SIZE;
 
 public class FERModel {
 
-    // Weights and biases (constant inputs)
+	private final Arena arena;
+
+	// Weights and biases (constant inputs)
     final Tensor<Float> parameter1693;
     final Tensor<Float> parameter1403;
     final Tensor<Float> parameter1367;
@@ -74,7 +76,8 @@ public class FERModel {
     final Tensor<Float> parameter1404;
     final Tensor<Float> parameter1694;
 
-    public FERModel(Arena arena) throws IOException {
+	public FERModel(Arena arena) throws IOException {
+		this.arena = arena;
         URL resource = Objects.requireNonNull(FERModel.class.getResource("emotion-ferplus-8.onnx.data"));
         var modelData = new TensorDataStream(arena, resource.getPath());
         parameter1693 = modelData.nextTensor(Tensor.ElementType.FLOAT, 1024, 8);
@@ -262,14 +265,14 @@ public class FERModel {
         return Identity(dropout.output());
     }
 
-    public float[] classify(Arena inferenceArena, float[] imageData, OnnxRuntime.SessionOptions options, boolean isCondensed) {
-        var imageTensor = Tensor.ofShape(inferenceArena, new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
+    public float[] classify(float[] imageData, OnnxRuntime.SessionOptions options, boolean isCondensed) {
+        var imageTensor = Tensor.ofShape(arena, new long[]{1, 1, IMAGE_SIZE, IMAGE_SIZE}, imageData);
         Tensor<Float> predictionTensor;
         if (isCondensed) {
-            predictionTensor = OnnxRuntime.executeWithOptions(inferenceArena, MethodHandles.lookup(),
+            predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(),
                     () -> condenseCNTKGraph(imageTensor), options);
         } else {
-            predictionTensor = OnnxRuntime.executeWithOptions(inferenceArena, MethodHandles.lookup(),
+            predictionTensor = OnnxRuntime.execute(arena, MethodHandles.lookup(),
                     () -> cntkGraph(imageTensor), options);
         }
         return predictionTensor.data().toArray(ValueLayout.JAVA_FLOAT);
