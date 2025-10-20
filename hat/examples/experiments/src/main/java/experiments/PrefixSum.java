@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.annotations.Kernel;
 import hat.KernelContext;
+import hat.annotations.TypeDef;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.S32Array;
@@ -205,7 +206,13 @@ public class PrefixSum {
 //                 ^                 ^                 ^                 ^                  ^
 //                 s0                s1                s2                s3                 s4
 
-    @CodeReflection @Kernel("""
+    @CodeReflection
+    @TypeDef("""
+            typedef struct SharedS32x256Array_s{
+                int array[32];
+            }SharedS32x256Array_t;
+            """)
+    @Kernel("""
                     HAT_KERNEL void crossGroupScan(
                         HAT_GLOBAL_MEM KernelContext_t* kc,
                         HAT_GLOBAL_MEM S32Array_t* dataBuf
