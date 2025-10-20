@@ -24,8 +24,6 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16Op;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATVectorVarOp;

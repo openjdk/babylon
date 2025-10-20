@@ -218,12 +218,15 @@ public class TestFP16Type {
             short val = arrayC.array(i).value();
             F16Array.F16 ha = arrayA.array(i);
             F16Array.F16 hb = arrayB.array(i);
-            F16Array.F16 r1 = F16.mul(ha, hb);
-            F16Array.F16 r2 = F16.div(ha, hb);
-            F16Array.F16 r3 = F16.sub(ha, hb);
-            F16Array.F16 r4 = F16.add(r1, r2);
-            F16Array.F16 r5 = F16.add(r4, r3);
-            HatAsserts.assertEquals(F16.half2float(r5.value()), F16.half2float(val), 0.001f);
+
+            float fa = Float.float16ToFloat(ha.value());
+            float fb = Float.float16ToFloat(hb.value());
+            float r1 = fa * fb;
+            float r2 = fa / fb;
+            float r3 = fa - fb;
+            float r4 = r1 + r2;
+            float r5 = r4 + r3;
+            HatAsserts.assertEquals(r5, Float.float16ToFloat(val), 0.001f);
         }
     }
 
