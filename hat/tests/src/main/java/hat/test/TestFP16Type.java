@@ -107,6 +107,15 @@ public class TestFP16Type {
     }
 
     @CodeReflection
+    public static void fp16Ops_06(@RO KernelContext kernelContext, @RW F16Array a) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            F16Array.F16 initVal = F16.of( kernelContext.gix);
+            F16Array.F16 ha = a.array(kernelContext.gix);
+            ha.value(initVal.value());
+        }
+    }
+
+    @CodeReflection
     public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
         computeContext.dispatchKernel(computeRange, kernelContext -> TestFP16Type.copy01(kernelContext, a, b));
@@ -134,6 +143,12 @@ public class TestFP16Type {
     public static void compute05(@RO ComputeContext computeContext, @RW F16Array a) {
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
         computeContext.dispatchKernel(computeRange, kernelContext -> TestFP16Type.fp16Ops_05(kernelContext, a));
+    }
+
+    @CodeReflection
+    public static void compute06(@RO ComputeContext computeContext, @RW F16Array a) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
+        computeContext.dispatchKernel(computeRange, kernelContext -> TestFP16Type.fp16Ops_06(kernelContext, a));
     }
 
     @HatTest
@@ -262,6 +277,26 @@ public class TestFP16Type {
         for (int i = 0; i < arrayA.length(); i++) {
             short val = arrayA.array(i).value();
             HatAsserts.assertEquals(2.1f, Float.float16ToFloat(val), 0.01f);
+        }
+    }
+
+    @HatTest
+    public void testF16_06() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 16;
+        F16Array arrayA = F16Array.create(accelerator, size);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(F16.float2half(0.0f));
+        }
+
+        accelerator.compute(computeContext -> {
+            TestFP16Type.compute06(computeContext, arrayA);
+        });
+
+        for (int i = 0; i < arrayA.length(); i++) {
+            short val = arrayA.array(i).value();
+            HatAsserts.assertEquals(i, Float.float16ToFloat(val), 0.01f);
         }
     }
 
