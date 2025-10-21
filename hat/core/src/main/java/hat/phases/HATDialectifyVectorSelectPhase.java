@@ -42,7 +42,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyVectorSelectPhase implements HATDialect{
+public class HATDialectifyVectorSelectPhase implements HATDialect {
 
     protected final Accelerator accelerator;
     @Override  public Accelerator accelerator(){

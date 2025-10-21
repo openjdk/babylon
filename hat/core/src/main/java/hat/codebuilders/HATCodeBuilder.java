@@ -25,6 +25,7 @@
 package hat.codebuilders;
 
 
+import hat.dialect.HATF16VarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
@@ -197,6 +198,11 @@ public abstract class HATCodeBuilder<T extends HATCodeBuilder<T>> extends CodeBu
 
     public T varName(HATVectorVarLoadOp hatVectorVarLoadOp) {
         identifier(hatVectorVarLoadOp.varName());
+        return self();
+    }
+
+    public T varName(HATF16VarOp hatF16VarOp) {
+        identifier(hatF16VarOp.varName());
         return self();
     }
 

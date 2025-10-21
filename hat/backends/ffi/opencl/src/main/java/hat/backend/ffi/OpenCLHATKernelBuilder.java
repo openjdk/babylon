@@ -32,13 +32,12 @@ import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarLoadOp;
 import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
-    
+
     @Override
     public OpenCLHATKernelBuilder defines() {
         return self()
@@ -48,6 +47,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
                 .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
                 .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable")
+                .pragma("OPENCL", "EXTENSION", "cl_khr_fp16", ":", "enable")                      // Enable Half type
                 .hashDefine("HAT_FUNC", _ -> keyword("inline"))
                 .hashDefine("HAT_KERNEL", _ -> keyword("__kernel"))
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
@@ -188,12 +188,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (operand instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
-        varName(hatVectorVarLoadOp);
         return self();
     }
 

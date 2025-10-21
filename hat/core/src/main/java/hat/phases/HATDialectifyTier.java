@@ -49,6 +49,7 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp,CoreOp.FuncOp> 
         Arrays.stream(HATDialectifyVectorStorePhase.StoreView.values())
                 .forEach(vectorOperation -> hatPhases.add(new HATDialectifyVectorStorePhase(accelerator, vectorOperation)));
         hatPhases.add(new HATDialectifyVectorSelectPhase(accelerator));
+        hatPhases.add(new HATDialectifyFP16Phase(accelerator));
     }
 
     // It computes a set of function code model transformations from FuncOp to FuncOp'.
