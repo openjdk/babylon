@@ -33,11 +33,11 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATF16BinaryOp extends HATF16Op {
+public abstract class HATF16BinaryOp extends HATF16Op {
 
-    private final TypeElement elementType;
-    private final OpType operationType;
-    private final List<Boolean> references;
+    protected final TypeElement elementType;
+    protected final OpType operationType;
+    protected final List<Boolean> references;
 
     public enum OpType {
         ADD("+"),
@@ -68,11 +68,6 @@ public class HATF16BinaryOp extends HATF16Op {
         this.elementType = op.elementType;
         this.operationType = op.operationType;
         this.references = op.references;
-    }
-
-    @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HATF16BinaryOp(this, copyContext);
     }
 
     @Override

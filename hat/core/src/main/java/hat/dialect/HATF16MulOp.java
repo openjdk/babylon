@@ -22,56 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.dialect;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
 
-public interface F16Array extends Buffer {
-    int length();
+import java.util.List;
 
-    interface F16 extends Struct {
-        short value();
-        void value(short value);
+public class HATF16MulOp extends HATF16BinaryOp {
 
-        static F16 of(float value) {
-            return null;
-        }
-
-        static short float2half(float value) {
-            return Float.floatToFloat16(value);
-        }
-        static float half2float(short value) {
-            return Float.float16ToFloat(value);
-        }
-        static F16 add(F16 ha, F16 hb) {
-            return null;
-        }
-
-        static F16 sub(F16 ha, F16 hb) {
-            return null;
-        }
-
-        static F16 mul(F16 ha, F16 hb) {
-            return null;
-        }
-
-        static F16 div(F16 ha, F16 hb) {
-            return null;
-        }
-
-        String HAT_MAPPING_TYPE = "half";
+    public HATF16MulOp(TypeElement typeElement, List<Boolean> references, List<Value> operands) {
+        super(typeElement, OpType.MUL, references, operands);
     }
 
-    F16 array(long index);
-
-    Schema<F16Array> schema = Schema.of(F16Array.class, f16array ->
-            f16array.arrayLen("length")
-                    .array("array",
-                            half -> half.fields("value")));
-
-    static F16Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    public HATF16MulOp(HATF16MulOp op, CopyContext copyContext) {
+        super(op, copyContext);
     }
 
+    @Override
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HATF16MulOp(this, copyContext);
+    }
 }

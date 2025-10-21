@@ -57,12 +57,12 @@ public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
 
     default void before(OpTk.CallSite callSite, CoreOp.FuncOp funcOp){
         if (accelerator().backend.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model before "+callSite.clazz().getSimpleName()+": " + funcOp.toText());
+            IO.println("[INFO] Code model before " + callSite.clazz().getSimpleName()+": " + funcOp.toText());
         }
     }
     default void after(OpTk.CallSite callSite, CoreOp.FuncOp funcOp){
         if (accelerator().backend.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model after "+callSite.clazz().getSimpleName()+": " + funcOp.toText());
+            IO.println("[INFO] Code model after " + callSite.clazz().getSimpleName()+": " + funcOp.toText());
         }
     }
 }
