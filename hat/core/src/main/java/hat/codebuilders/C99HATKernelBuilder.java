@@ -25,20 +25,19 @@
 package hat.codebuilders;
 
 import hat.buffer.Buffer;
-import hat.dialect.HATBlockThreadIdOp;
-import hat.dialect.HATGlobalThreadIdOp;
-import hat.dialect.HATGlobalSizeOp;
-import hat.dialect.HATLocalSizeOp;
-import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.*;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends HATCodeBuilderWithContext<T> {
@@ -212,6 +211,52 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case 2 -> identifier("HAT_BIZ");
             default -> throw new RuntimeException("blockId id = " + id);
         }
+        return self();
+    }
+
+    @Override
+    public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
+        typeName("half")
+                .space()
+                .identifier(hatF16VarOp.varName())
+                .space().equals().space();
+        Value operand = hatF16VarOp.operands().getFirst();
+        if (operand instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        return self();
+    }
+
+    @Override
+    public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+        oparen();
+        Value op1 = hatF16BinaryOp.operands().get(0);
+        Value op2 = hatF16BinaryOp.operands().get(1);
+        List<Boolean> references = hatF16BinaryOp.references();
+
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        if (references.getFirst()) {
+            rarrow().identifier("value");
+        }
+        space().identifier(hatF16BinaryOp.operationType().symbol()).space();
+
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        if (references.get(1)) {
+            rarrow().identifier("value");
+        }
+
+        cparen();
+        return self();
+    }
+
+    @Override
+    public T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
+        identifier(hatF16VarLoadOp.varName());
         return self();
     }
 

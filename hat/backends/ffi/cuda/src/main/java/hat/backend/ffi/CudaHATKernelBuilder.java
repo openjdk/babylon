@@ -29,13 +29,9 @@ import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16VarLoadOp;
-import hat.dialect.HATF16VarOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarLoadOp;
 import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
@@ -75,9 +71,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BIX", _ -> keyword("blockIdx").dot().threadDimId(0))
                 .hashDefine("HAT_BIY", _ -> keyword("blockIdx").dot().threadDimId(1))
                 .hashDefine("HAT_BIZ", _ -> keyword("blockIdx").dot().threadDimId(2))
-                .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen());
-                    //    )
-        //);
+                .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
+                .includeSys("cuda_fp16.h");
     }
 
     @Override
@@ -241,30 +236,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (operand instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
-        varName(hatVectorVarLoadOp);
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
-        blockComment("F16 Variable Not Implemented");
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
-        blockComment("Binary F16 Op Not Implemented");
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
-        blockComment("F16 Load Op Not Implemented");
         return self();
     }
 }
