@@ -138,6 +138,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var wrapped_shared = Jar.of(project.id("wrap{s}-shared"));
         var jextracted_opencl = JExtract.extract(project.id("extract{ions|ed}-opencl"), jextract, openclCmakeInfo, core);
         var wrapped_jextracted_opencl = Jar.of(project.id("wrap{s}-opencl"), jextracted_opencl, wrapped_shared);
+        var backend_jextracted_shared = Jar.of(project.id("backend{s}-jextracted-shared"), core);
+        var backend_jextracted_opencl = Jar.of(project.id("backend{s}-jextracted-opencl"), wrapped_jextracted_opencl, backend_jextracted_shared);
         var jextracted_opengl = JExtract.extract(project.id("extract{ions|ed}-opengl"), jextract, ui, openglCmakeInfo, core);
 
         // Sigh... We have different src exclusions for wrapped opengl depending on the OS
