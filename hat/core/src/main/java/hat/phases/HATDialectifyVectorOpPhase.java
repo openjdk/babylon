@@ -25,7 +25,6 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.Config;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorAddOp;
@@ -46,18 +45,15 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
-import javax.xml.crypto.dsig.Transform;
-import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyVectorOpPhase implements HATDialect{
+public abstract class HATDialectifyVectorOpPhase implements HATDialect{
 
     protected final Accelerator accelerator;
     @Override  public Accelerator accelerator(){
@@ -332,5 +328,40 @@ public class HATDialectifyVectorOpPhase implements HATDialect{
             funcOp = dialectifyVectorBinaryWithContatenationOps(funcOp);
         }
         return funcOp;
+    }
+
+    public static class AddPhase extends HATDialectifyVectorOpPhase{
+
+        public AddPhase(Accelerator accelerator) {
+           super(accelerator, OpView.ADD);
+        }
+    }
+
+    public static class DivPhase extends HATDialectifyVectorOpPhase{
+
+        public DivPhase(Accelerator accelerator) {
+           super(accelerator, OpView.DIV);
+        }
+    }
+
+    public static class Float4LoadPhase extends HATDialectifyVectorOpPhase{
+
+        public Float4LoadPhase(Accelerator accelerator) {
+           super(accelerator, OpView.FLOAT4_LOAD);
+        }
+    }
+
+    public static class MulPhase extends HATDialectifyVectorOpPhase{
+
+        public MulPhase(Accelerator accelerator) {
+           super(accelerator, OpView.MUL);
+        }
+    }
+
+    public static class SubPhase extends HATDialectifyVectorOpPhase{
+
+        public SubPhase(Accelerator accelerator) {
+           super(accelerator, OpView.SUB);
+        }
     }
 }

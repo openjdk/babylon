@@ -43,7 +43,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public  class HATDialectifyVectorStorePhase implements HATDialect {
+public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
 
     protected final Accelerator accelerator;
     @Override  public Accelerator accelerator(){
@@ -148,5 +148,12 @@ public  class HATDialectifyVectorStorePhase implements HATDialect {
         });
        after(here, funcOp);
         return funcOp;
+    }
+
+    public static class Float4StorePhase extends HATDialectifyVectorStorePhase{
+        public Float4StorePhase(Accelerator accelerator) {
+            super(accelerator, StoreView.FLOAT4_STORE);
+        }
+
     }
 }
