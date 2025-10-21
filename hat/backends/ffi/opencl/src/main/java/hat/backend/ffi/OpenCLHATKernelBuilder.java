@@ -27,6 +27,7 @@ package hat.backend.ffi;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.HATF16ConvOp;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
@@ -174,6 +175,18 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 recurse(buildContext, r.op());
             }
         }
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
+       oparen().typeName("half").cparen();
+       // typeName("convert_half").oparen();
+        Value initValue = hatF16ConvOp.operands().getFirst();
+        if (initValue instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        //cparen();
         return self();
     }
 

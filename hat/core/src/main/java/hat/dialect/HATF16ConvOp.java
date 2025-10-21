@@ -22,56 +22,45 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.dialect;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.VarType;
 
-public interface F16Array extends Buffer {
-    int length();
+import java.util.List;
+import java.util.Map;
 
-    interface F16 extends Struct {
-        short value();
-        void value(short value);
+public class HATF16ConvOp extends HATF16Op {
 
-        static F16 init(float value) {
-            return null;
-        }
+    private final TypeElement typeElement;
 
-        static short float2half(float value) {
-            return Float.floatToFloat16(value);
-        }
-        static float half2float(short value) {
-            return Float.float16ToFloat(value);
-        }
-        static F16 add(F16 ha, F16 hb) {
-            return null;
-        }
-
-        static F16 sub(F16 ha, F16 hb) {
-            return null;
-        }
-
-        static F16 mul(F16 ha, F16 hb) {
-            return null;
-        }
-
-        static F16 div(F16 ha, F16 hb) {
-            return null;
-        }
-
-        String HAT_MAPPING_TYPE = "half";
+    public HATF16ConvOp(TypeElement typeElement, List<Value> operands) {
+        super("", operands);
+        this.typeElement = typeElement;
     }
 
-    F16 array(long index);
+    public HATF16ConvOp(HATF16ConvOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.typeElement = op.typeElement;
+    }
 
-    Schema<F16Array> schema = Schema.of(F16Array.class, f16array ->
-            f16array.arrayLen("length")
-                    .array("array",
-                            half -> half.fields("value")));
+    @Override
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HATF16ConvOp(this, copyContext);
+    }
 
-    static F16Array create(Accelerator accelerator, int length){
-        return schema.allocate(accelerator, length);
+    @Override
+    public TypeElement resultType() {
+        return typeElement;
+    }
+
+    @Override
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect.f16Conv", typeElement);
     }
 
 }

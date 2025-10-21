@@ -27,6 +27,7 @@ package hat.backend.ffi;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
+import hat.dialect.HATF16ConvOp;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
@@ -217,6 +218,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 recurse(buildContext, r.op());
             }
         }
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
+        identifier("__float2half").oparen();
+        Value param =  hatF16ConvOp.operands().getFirst();
+        if (param instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        cparen();
         return self();
     }
 

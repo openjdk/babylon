@@ -78,8 +78,12 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T varStoreOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
-        CoreOp.VarOp varOp = (CoreOp.VarOp) buildContext.scope.resolve(varStoreOp.operands().getFirst());
-        varName(varOp).equals();
+        Op op = buildContext.scope.resolve(varStoreOp.operands().getFirst());
+        if (op instanceof CoreOp.VarOp varOp) {
+            varName(varOp).equals();
+        } else if (op instanceof HATF16VarOp hatf16VarOp) {
+            varName(hatf16VarOp).equals();
+        }
         parenthesisIfNeeded(buildContext, varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
         return self();
     }

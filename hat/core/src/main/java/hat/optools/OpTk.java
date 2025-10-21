@@ -27,6 +27,7 @@ package hat.optools;
 import hat.ComputeContext;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
+import hat.dialect.HATF16BinaryOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATThreadOp;
@@ -418,6 +419,7 @@ public class OpTk {
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
             case HATVectorSelectLoadOp o -> 0;      // same as VarLoadOp
             case CoreOp.ConstantOp o -> 0;
+            case HATF16BinaryOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;
             case JavaOp.WhileOp o -> 0;
