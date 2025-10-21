@@ -220,7 +220,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return kernelPrefix().voidType().space().funcName(funcOp);
     }
 
-
     public T functionDeclaration(ScopedCodeBuilderContext codeBuilderContext, JavaType javaType, CoreOp.FuncOp funcOp) {
         return functionPrefix().type(codeBuilderContext,javaType).space().funcName(funcOp);
     }
@@ -246,6 +245,5 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public abstract T defines();
-
 
 }

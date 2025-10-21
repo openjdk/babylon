@@ -104,36 +104,6 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     }
 
     @Override
-    public T generateVectorStore(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
-        blockComment("Store Vector Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T generateVectorBinary(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
-        blockComment("Binary Vector Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T generateVectorLoad(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
-        blockComment("Load Vector Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
-        blockComment("Select Vector Not Implemented");
-        return self();
-    }
-
-    @Override
-    public T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
-        blockComment("Select Vector Not Implemented");
-        return self();
-    }
-
-    @Override
     public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
         blockInlineComment("Thread ID access");
         return self();
@@ -216,5 +186,4 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
         });
         return self();
     }
-
 }

@@ -25,11 +25,8 @@
 package hat.codebuilders;
 
 import hat.dialect.HATBarrierOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATPrivateVarOp;
@@ -616,41 +613,5 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     public T declareParam(ScopedCodeBuilderContext buildContext, FuncOpParams.Info param){
         return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
     }
-
-    public abstract T generateVectorStore(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView);
-
-    public abstract T generateVectorBinary(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp);
-
-    public abstract T generateVectorLoad(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp);
-
-    public abstract T generateVectorSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp);
-
-    public abstract T generateVectorSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp);
-
-    @Override
-    public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
-       return generateVectorStore(buildContext, hatVectorStoreView);
-    }
-
-    @Override
-    public T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
-        return generateVectorBinary(buildContext, hatVectorBinaryOp);
-    }
-
-    @Override
-    public T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
-        return generateVectorLoad(buildContext, hatVectorLoadOp);
-    }
-
-    @Override
-    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
-        return generateVectorSelectLoadOp(buildContext, hatVSelectLoadOp);
-    }
-
-    @Override
-    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
-        return generateVectorSelectStoreOp(buildContext, hatVSelectStoreOp);
-    }
-
 
 }
