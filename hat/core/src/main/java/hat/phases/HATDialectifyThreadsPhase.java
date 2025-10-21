@@ -25,7 +25,6 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.Config;
 import hat.dialect.HATBlockThreadIdOp;
 import hat.dialect.HATGlobalSizeOp;
 import hat.dialect.HATGlobalThreadIdOp;
@@ -36,70 +35,38 @@ import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.util.List;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class HATDialectifyThreadsPhase implements HATDialect  {
+public abstract class HATDialectifyThreadsPhase implements HATDialect  {
 
     protected final Accelerator accelerator;
     @Override  public Accelerator accelerator(){
         return this.accelerator;
     }
-    public enum ThreadAccess {
-        GLOBAL_ID,
-        GLOBAL_SIZE,
-        LOCAL_ID,
-        LOCAL_SIZE,
-        BLOCK_ID
-    }
-    private final ThreadAccess threadAccess;
 
-    public HATDialectifyThreadsPhase(Accelerator accelerator,ThreadAccess threadAccess) {
+    public HATDialectifyThreadsPhase(Accelerator accelerator) {
         this.accelerator=accelerator;
-        this.threadAccess =  threadAccess;
     }
+
+    protected abstract  HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp);
+
+    protected abstract Pattern pattern();
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model before HatDialectifyThreadsPhase: " + funcOp.toText());
-        }
-        Predicate<JavaOp.FieldAccessOp.FieldLoadOp> isFieldOp = (fieldLoadOp)->
-             switch (threadAccess) { // Why not pass threadAccess to isFieldLoadGlobalThreadId? see getDimension style
-                case GLOBAL_ID -> isFieldLoadGlobalThreadId(fieldLoadOp);
-                case GLOBAL_SIZE -> isFieldLoadGlobalSize(fieldLoadOp);
-                case LOCAL_ID -> isFieldLoadThreadId(fieldLoadOp);
-                case LOCAL_SIZE -> isFieldLoadThreadSize(fieldLoadOp);
-                case BLOCK_ID -> isFieldLoadBlockId(fieldLoadOp);
-            };
-        Function<JavaOp.FieldAccessOp.FieldLoadOp,HATThreadOp> hatOpFactory = ( fieldLoadOp)-> {
-            if (getDimension(threadAccess, fieldLoadOp) instanceof Integer dim && (dim >=0 && dim<3)) {
-                return switch (threadAccess) {
-                    case GLOBAL_ID -> new HATGlobalThreadIdOp(dim, fieldLoadOp.resultType());
-                    case GLOBAL_SIZE -> new HATGlobalSizeOp(dim, fieldLoadOp.resultType());
-                    case LOCAL_ID -> new HATLocalThreadIdOp(dim, fieldLoadOp.resultType());
-                    case LOCAL_SIZE -> new HATLocalSizeOp(dim, fieldLoadOp.resultType());
-                    case BLOCK_ID -> new HATBlockThreadIdOp(dim, fieldLoadOp.resultType());
-                };
-            }else {
-                throw new IllegalStateException("Thread Access can't be below 0!");
-            }
-        };
+        var here = OpTk.CallSite.of(this.getClass(), "apply");
+        before(here, funcOp);
 
         Stream<CodeElement<?, ?>> elements = funcOp.elements()
                 .filter(codeElement ->codeElement instanceof JavaOp.FieldAccessOp.FieldLoadOp)
                 .map(codeElement -> (JavaOp.FieldAccessOp.FieldLoadOp)codeElement)
-                .filter(isFieldOp)
+                .filter(fieldLoadOp -> OpTk.fieldNameMatches(fieldLoadOp,pattern() ))
                 .mapMulti((fieldLoadOp, consumer) ->
                         fieldLoadOp.operands().stream()
                                 .filter(o->o instanceof Op.Result result && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp)
@@ -112,9 +79,8 @@ public class HATDialectifyThreadsPhase implements HATDialect  {
                 );
 
         Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
-      //  if (!nodesInvolved.isEmpty()) {
 
-        var here = OpTk.CallSite.of(HATDialectifyThreadsPhase.class, "run");
+
         funcOp = OpTk.transform(here, funcOp, nodesInvolved::contains, (blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -124,7 +90,7 @@ public class HATDialectifyThreadsPhase implements HATDialect  {
                         .filter(operand->operand instanceof Op.Result result && result.op() instanceof CoreOp.VarAccessOp.VarLoadOp)
                         .map(operand->(CoreOp.VarAccessOp.VarLoadOp)((Op.Result)operand).op())
                         .forEach(_-> { // why are we looping over all operands ?
-                                HATThreadOp threadOp = hatOpFactory.apply(fieldLoadOp);
+                                HATThreadOp threadOp = factory(fieldLoadOp);
                                 Op.Result threadResult = blockBuilder.op(threadOp);
                                 threadOp.setLocation(fieldLoadOp.location()); // update location
                                 context.mapValue(fieldLoadOp.result(), threadResult);
@@ -132,78 +98,8 @@ public class HATDialectifyThreadsPhase implements HATDialect  {
             }
             return blockBuilder;
         });
-
-            // No memory nodes involved
-          //  return funcOp;
-        //}
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model after HatDialectifyThreadsPhase: " + funcOp.toText());
-        }
+        after(here,funcOp);
         return funcOp;
-    }
-
-
-    private int getDimension(ThreadAccess threadAccess, JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        String fieldName = fieldLoadOp.fieldDescriptor().name();
-        switch (threadAccess) {
-            case GLOBAL_ID -> {
-                return switch (fieldName){
-                    case "y"->1;
-                    case "z"->2;
-                    default -> 0;
-                };
-            }
-            case GLOBAL_SIZE -> {
-                return switch (fieldName){
-                    case "gsy"->1;
-                    case "gsz"->2;
-                    default -> 0;
-                };
-            }
-            case LOCAL_ID -> {
-                return switch (fieldName){
-                    case "liy"->1;
-                    case "liz"->2;
-                    default -> 0;
-                };
-            }
-            case LOCAL_SIZE -> {
-                return switch (fieldName){
-                    case "lsy"->1;
-                    case "lsz"->2;
-                    default -> 0;
-                };
-            }
-            case BLOCK_ID ->  {
-                return switch (fieldName){
-                    case "biy"->1;
-                    case "biz"->2;
-                    default -> 0;
-                };
-            }
-        }
-        return -1;
-    }
-
-
-    private boolean isFieldLoadGlobalThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("([xyz]|gi[xyz])"));
-    }
-
-    private boolean isFieldLoadGlobalSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("(gs[xyz]|max[XYZ])"));
-    }
-
-    private boolean isFieldLoadThreadId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("li[xyz]"));
-    }
-
-    private boolean isFieldLoadThreadSize(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("ls[xyz]"));
-    }
-
-    private boolean isFieldLoadBlockId(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        return OpTk.fieldNameMatches(fieldLoadOp, Pattern.compile("bi[xyz]"));
     }
 
     private boolean isMethodFromHatKernelContext(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -212,4 +108,92 @@ public class HATDialectifyThreadsPhase implements HATDialect  {
     }
 
 
+    public static class BlockPhase extends HATDialectifyThreadsPhase  {
+        public BlockPhase(Accelerator accelerator) {
+            super(accelerator);
+        }
+        @Override protected Pattern pattern(){
+            return Pattern.compile("bi[xyz]");
+        }
+
+        @Override
+        public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
+                return new HATBlockThreadIdOp(switch (fieldLoadOp.fieldDescriptor().name()){
+                    case "biy"->1;
+                    case "biz"->2;
+                    default -> 0;
+                }, fieldLoadOp.resultType());
+        }
+    }
+
+    public static class GlobalIdPhase extends HATDialectifyThreadsPhase  {
+
+        public GlobalIdPhase(Accelerator accelerator) {
+            super(accelerator);
+        }
+        @Override protected Pattern pattern(){
+            return Pattern.compile("([xyz]|gi[xyz])");
+        }
+        @Override
+        public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
+                return new HATGlobalThreadIdOp(switch (fieldLoadOp.fieldDescriptor().name()){
+                    case "y", "giy"->1;
+                    case "z", "giz"->2;
+                    default -> 0;
+                }, fieldLoadOp.resultType());
+        }
+    }
+
+    public static class GlobalSizePhase extends HATDialectifyThreadsPhase  {
+        public GlobalSizePhase(Accelerator accelerator) {
+            super(accelerator);
+        }
+        @Override protected Pattern pattern(){
+            return Pattern.compile("(gs[xyz]|max[XYZ])");
+        }
+        @Override
+        public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
+                return new HATGlobalSizeOp(switch (fieldLoadOp.fieldDescriptor().name()){
+                    case "gsy","maxY"->1;
+                    case "gsz","maxZ"->2;
+                    default -> 0;
+                }, fieldLoadOp.resultType());
+        }
+
+
+    }
+
+    public static class LocalIdPhase extends HATDialectifyThreadsPhase  {
+        public LocalIdPhase(Accelerator accelerator) {
+            super(accelerator);
+        }
+        @Override protected Pattern pattern(){
+            return  Pattern.compile("li([xyz])");
+        }
+        @Override
+        public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
+                return new HATLocalThreadIdOp(switch (fieldLoadOp.fieldDescriptor().name()){
+                    case "liy"->1;
+                    case "liz"->2;
+                    default -> 0;
+                }, fieldLoadOp.resultType());
+        }
+    }
+
+    public static class LocalSizePhase extends HATDialectifyThreadsPhase  {
+        public LocalSizePhase(Accelerator accelerator) {
+            super(accelerator);
+        }
+        @Override protected Pattern pattern(){
+            return  Pattern.compile("ls([xyz])");
+        }
+        @Override
+        public HATThreadOp factory(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp){
+                return new HATLocalSizeOp(switch (fieldLoadOp.fieldDescriptor().name()){
+                    case "lsy"->1;
+                    case "lsz"->2;
+                    default -> 0;
+                }, fieldLoadOp.resultType());
+        }
+    }
 }

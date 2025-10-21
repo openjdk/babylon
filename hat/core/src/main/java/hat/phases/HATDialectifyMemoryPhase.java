@@ -25,13 +25,16 @@
 package hat.phases;
 
 import hat.Accelerator;
+import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATMemoryOp;
+import hat.dialect.HATPrivateVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,7 +45,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
     @Override  public Accelerator accelerator(){
         return this.accelerator;
     }
-    protected abstract HATMemoryOp createMemoryOp(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
+    protected abstract HATMemoryOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
 
     protected abstract boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp);
     public HATDialectifyMemoryPhase(Accelerator accelerator) {
@@ -71,7 +74,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
 
         Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
 
-        var here = OpTk.CallSite.of(HATDialectifyMemoryPrivatePhase.class, "run");
+        var here = OpTk.CallSite.of(PrivatePhase.class, "run");
         funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
@@ -82,7 +85,7 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
                         .filter(r->r.op() instanceof CoreOp.VarOp)
                         .map(r->(CoreOp.VarOp)r.op())
                         .forEach(varOp->
-                            context.mapValue(invokeOp.result(), blockBuilder.op(createMemoryOp(blockBuilder,varOp,invokeOp)))
+                            context.mapValue(invokeOp.result(), blockBuilder.op(factory(blockBuilder,varOp,invokeOp)))
                         );
             } else if (op instanceof CoreOp.VarOp varOp) {
                 // pass value
@@ -94,5 +97,48 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
             IO.println("[INFO] Code model after HatDialectifyMemoryPhase: " + funcOp.toText());
         }
         return funcOp;
+    }
+
+    public static class PrivatePhase extends HATDialectifyMemoryPhase {
+        public PrivatePhase(Accelerator accelerator) {
+            super(accelerator);
+        }
+        @Override protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
+             return isIfaceBufferInvokeWithName(invokeOp, HATPrivateVarOp.INTRINSIC_NAME);
+        }
+
+        @Override protected HATMemoryOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
+            var op=  new HATPrivateVarOp(
+                    varOp.varName(),
+                    (ClassType) varOp.varValueType(),
+                    varOp.resultType(),
+                    invokeOp.resultType(),
+                    builder.context().getValues(invokeOp.operands())
+            );
+            op.setLocation(varOp.location());
+            return op;
+        }
+    }
+
+    public static class SharedPhase extends HATDialectifyMemoryPhase {
+
+        public SharedPhase(Accelerator accelerator) {
+            super(accelerator);
+        }
+        @Override protected boolean isIfaceBufferInvokeWithName(JavaOp.InvokeOp invokeOp){
+            return isIfaceBufferInvokeWithName(invokeOp, HATLocalVarOp.INTRINSIC_NAME);
+        }
+
+        @Override protected HATMemoryOp factory(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
+            var op = new HATLocalVarOp(
+                    varOp.varName(),
+                    (ClassType) varOp.varValueType(),
+                    varOp.resultType(),
+                    invokeOp.resultType(),
+                    builder.context().getValues(invokeOp.operands())
+            );
+            op.setLocation(varOp.location());
+            return op;
+        }
     }
 }

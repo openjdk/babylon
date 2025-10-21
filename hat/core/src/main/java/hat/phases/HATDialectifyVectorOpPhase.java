@@ -144,8 +144,8 @@ public class HATDialectifyVectorOpPhase implements HATDialect{
     }
 
     private CoreOp.FuncOp dialectifyVectorLoad(CoreOp.FuncOp funcOp) {
-        if (accelerator.backend.config().showCompilationPhases())
-            IO.println("[BEFORE] Vector Load Ops: " + funcOp.toText());
+        var here = OpTk.CallSite.of(this.getClass(), "dialectifyVectorLoad" );
+        before(here,funcOp);
             Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof CoreOp.VarOp varOp) {
@@ -164,11 +164,8 @@ public class HATDialectifyVectorOpPhase implements HATDialect{
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-        if (nodesInvolved.isEmpty()) {
-            return funcOp;
-        }
 
-        var here = OpTk.CallSite.of(HATDialectifyVectorOpPhase.class, "dialectifyVectorLoad" );
+
         funcOp = OpTk.transform(here, funcOp,(blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
@@ -203,17 +200,15 @@ public class HATDialectifyVectorOpPhase implements HATDialect{
             }
             return blockBuilder;
         });
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[AFTER] Vector Load Ops: " + funcOp.toText());
-        }
+        after(here, funcOp);
         return funcOp;
     }
 
     private CoreOp.FuncOp dialectifyVectorBinaryOps(CoreOp.FuncOp funcOp) {
+        var here = OpTk.CallSite.of(this.getClass(), "dialectifyVectorBinaryOps");
+        before(here, funcOp);
         Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation = new HashMap<>();
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[BEFORE] Vector Binary Ops: " + funcOp.toText());
-        }
+
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof CoreOp.VarOp varOp) {
@@ -234,11 +229,7 @@ public class HATDialectifyVectorOpPhase implements HATDialect{
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-        if (nodesInvolved.isEmpty()) {
-            return funcOp;
-        }
 
-        var here = OpTk.CallSite.of(HATDialectifyVectorOpPhase.class, "dialectifyVectorBinaryOps");
         funcOp = OpTk.transform(here, funcOp, nodesInvolved::contains, (blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
            // if (!nodesInvolved.contains(op)) {
@@ -269,16 +260,13 @@ public class HATDialectifyVectorOpPhase implements HATDialect{
             }
             return blockBuilder;
         });
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[AFTER] Vector Binary Ops: " + funcOp.toText());
-        }
+       after(here,funcOp);
         return funcOp;
     }
 
     private CoreOp.FuncOp dialectifyVectorBinaryWithContatenationOps(CoreOp.FuncOp funcOp) {
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[BEFORE] Vector Contact Binary Ops: " + funcOp.toText());
-        }
+        var here = OpTk.CallSite.of(this.getClass(), "dialectifyBinaryWithConcatenation");
+        before(here, funcOp);
         Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation = new HashMap<>();
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
@@ -308,8 +296,7 @@ public class HATDialectifyVectorOpPhase implements HATDialect{
         if (nodesInvolved.isEmpty()) {
             return funcOp;
         }
-        var here = OpTk.CallSite.of(HATDialectifyVectorOpPhase.class, "dialectifyBinaryWithConcatenation");
-        funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
+         funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
@@ -331,9 +318,7 @@ public class HATDialectifyVectorOpPhase implements HATDialect{
             }
             return blockBuilder;
         });
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[AFTER] Vector Binary Ops: " + funcOp.toText());
-        }
+      after(here,funcOp);
         return funcOp;
     }
 

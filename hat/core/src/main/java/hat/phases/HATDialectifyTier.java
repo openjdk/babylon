@@ -28,7 +28,6 @@ import hat.Accelerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -40,14 +39,26 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp,CoreOp.FuncOp> 
 
     public HATDialectifyTier(Accelerator accelerator) {
         hatPhases.add(new HATDialectifyBarrierPhase(accelerator));
-        hatPhases.add(new HATDialectifyMemorySharedPhase(accelerator));
-        hatPhases.add(new HATDialectifyMemoryPrivatePhase(accelerator));
-        Arrays.stream(HATDialectifyThreadsPhase.ThreadAccess.values())
-                .forEach(threadAccess -> hatPhases.add(new HATDialectifyThreadsPhase(accelerator,threadAccess)));
-        Arrays.stream(HATDialectifyVectorOpPhase.OpView.values())
-                .forEach(vectorOperation -> hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, vectorOperation)));
-        Arrays.stream(HATDialectifyVectorStorePhase.StoreView.values())
-                .forEach(vectorOperation -> hatPhases.add(new HATDialectifyVectorStorePhase(accelerator, vectorOperation)));
+        // Memory
+        hatPhases.add(new HATDialectifyMemoryPhase.SharedPhase(accelerator));
+        hatPhases.add(new HATDialectifyMemoryPhase.PrivatePhase(accelerator));
+
+        // ID's /thread access
+        hatPhases.add(new HATDialectifyThreadsPhase.GlobalIdPhase(accelerator));
+        hatPhases.add(new HATDialectifyThreadsPhase.GlobalSizePhase(accelerator));
+        hatPhases.add(new HATDialectifyThreadsPhase.LocalIdPhase(accelerator));
+        hatPhases.add(new HATDialectifyThreadsPhase.LocalSizePhase(accelerator));
+        hatPhases.add(new HATDialectifyThreadsPhase.BlockPhase(accelerator));
+
+        // views
+        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.FLOAT4_LOAD));
+        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.ADD));
+        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.SUB));
+        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.MUL));
+        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.DIV));
+
+        hatPhases.add(new HATDialectifyVectorStorePhase(accelerator, HATDialectifyVectorStorePhase.StoreView.FLOAT4_STORE));
+
         hatPhases.add(new HATDialectifyVectorSelectPhase(accelerator));
         hatPhases.add(new HATDialectifyFP16Phase(accelerator));
     }
