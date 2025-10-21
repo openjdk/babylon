@@ -51,13 +51,13 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp,CoreOp.FuncOp> 
         hatPhases.add(new HATDialectifyThreadsPhase.BlockPhase(accelerator));
 
         // views
-        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.FLOAT4_LOAD));
-        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.ADD));
-        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.SUB));
-        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.MUL));
-        hatPhases.add(new HATDialectifyVectorOpPhase(accelerator, HATDialectifyVectorOpPhase.OpView.DIV));
+        hatPhases.add(new HATDialectifyVectorOpPhase.Float4LoadPhase(accelerator));
+        hatPhases.add(new HATDialectifyVectorOpPhase.AddPhase(accelerator));
+        hatPhases.add(new HATDialectifyVectorOpPhase.SubPhase(accelerator));
+        hatPhases.add(new HATDialectifyVectorOpPhase.MulPhase(accelerator));
+        hatPhases.add(new HATDialectifyVectorOpPhase.DivPhase(accelerator));
 
-        hatPhases.add(new HATDialectifyVectorStorePhase(accelerator, HATDialectifyVectorStorePhase.StoreView.FLOAT4_STORE));
+        hatPhases.add(new HATDialectifyVectorStorePhase.Float4StorePhase(accelerator));
 
         hatPhases.add(new HATDialectifyVectorSelectPhase(accelerator));
         hatPhases.add(new HATDialectifyFP16Phase(accelerator));
