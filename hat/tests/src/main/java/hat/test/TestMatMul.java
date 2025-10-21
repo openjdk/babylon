@@ -46,7 +46,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
 import static hat.buffer.F16Array.F16;
-import static hat.buffer.F16Array.F16;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 
@@ -84,7 +83,7 @@ public class TestMatMul {
     public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
         if (kc.x < kc.maxX) {
             if (kc.y < kc.maxY) {
-                F16 acc = F16.init(0.0f);
+                F16 acc = F16.of(0.0f);
                 for (int k = 0; k < size; k++) {
                     F16 valA = matrixA.array(kc.y * size + k);
                     F16 valB = matrixB.array(k * size + kc.x);

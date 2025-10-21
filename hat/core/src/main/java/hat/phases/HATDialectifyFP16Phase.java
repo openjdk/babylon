@@ -198,7 +198,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isFP16Operation(invokeOp, "init") && invokeOp.resultType() != JavaType.VOID) {
+                        if (isFP16Operation(invokeOp, "of") && invokeOp.resultType() != JavaType.VOID) {
                             Set<Op.Result> uses = invokeOp.result().uses();
                             for (Op.Result result : uses) {
                                 if (result.op() instanceof CoreOp.VarOp varOp) {

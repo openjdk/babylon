@@ -34,7 +34,7 @@ public interface F16Array extends Buffer {
         short value();
         void value(short value);
 
-        static F16 init(float value) {
+        static F16 of(float value) {
             return null;
         }
 

@@ -101,7 +101,7 @@ public class TestFP16Type {
     public static void fp16Ops_05(@RO KernelContext kernelContext, @RW F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
             F16Array.F16 ha = a.array(kernelContext.gix);
-            F16Array.F16 initVal = F16.init( 2.1f);
+            F16Array.F16 initVal = F16.of( 2.1f);
             ha.value(initVal.value());
         }
     }
