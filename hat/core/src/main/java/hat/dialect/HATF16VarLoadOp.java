@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,43 +22,45 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.dialect;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.VarType;
 
-public interface F32Array2D extends Buffer {
+import java.util.List;
+import java.util.Map;
 
-    int width();
+public class HATF16VarLoadOp extends HATF16Op {
 
-    int height();
+    private final VarType typeElement;
 
-    float array(long idx);
-
-    void array(long idx, float v);
-
-    default float get(int x, int y) {
-        return array((long) y * width() + x);
+    public HATF16VarLoadOp(String varName, VarType typeElement, List<Value> operands) {
+        super(varName, operands);
+        this.typeElement = typeElement;
     }
 
-    default void set(int x, int y, float v) {
-        array((long) y * width() + x, v);
+    public HATF16VarLoadOp(HATF16VarLoadOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.typeElement = op.typeElement;
     }
 
-    Schema<F32Array2D> schema = Schema.of(F32Array2D.class, s32Array->s32Array
-            .arrayLen("width","height").stride(1).array("array"));
-
-    static F32Array2D create(Accelerator accelerator, int width, int height){
-        return schema.allocate(accelerator, width,height);
+    @Override
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HATF16VarLoadOp(this, copyContext);
     }
 
-    default float[][] arrayView() {
-        float[][] arr = new float[this.height()][this.width()];
-        for (int i = 0; i < this.height(); i++) {
-            for (int j = 0; j < this.width(); j++) {
-                arr[i][j] = this.get(i, j);
-            }
-        }
-        return arr;
+    @Override
+    public TypeElement resultType() {
+        return typeElement;
     }
+
+    @Override
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect.fp16VarOp." + varName(), typeElement);
+    }
+
 }

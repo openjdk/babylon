@@ -32,7 +32,6 @@ import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarLoadOp;
 import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
@@ -72,9 +71,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BIX", _ -> keyword("blockIdx").dot().threadDimId(0))
                 .hashDefine("HAT_BIY", _ -> keyword("blockIdx").dot().threadDimId(1))
                 .hashDefine("HAT_BIZ", _ -> keyword("blockIdx").dot().threadDimId(2))
-                .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen());
-                    //    )
-        //);
+                .hashDefine("HAT_BARRIER", _->keyword("__syncthreads").ocparen())
+                .includeSys("cuda_fp16.h");
     }
 
     @Override
@@ -238,12 +236,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (operand instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
-        varName(hatVectorVarLoadOp);
         return self();
     }
 }

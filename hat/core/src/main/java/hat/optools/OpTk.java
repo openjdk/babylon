@@ -27,6 +27,7 @@ package hat.optools;
 import hat.ComputeContext;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
+import hat.dialect.HATF16VarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorSelectLoadOp;
@@ -322,6 +323,7 @@ public class OpTk {
                         || (op instanceof CoreOp.VarOp || op.result().uses().isEmpty())
                         || (op instanceof HATMemoryOp)
                         || (op instanceof HATVectorVarOp)
+                        || (op instanceof HATF16VarOp)
                 )
                         && !(op instanceof CoreOp.VarOp varOp && paramVar(varOp) != null)
                         && !(op instanceof CoreOp.YieldOp));

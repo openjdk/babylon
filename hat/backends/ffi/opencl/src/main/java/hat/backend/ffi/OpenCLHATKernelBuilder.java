@@ -49,6 +49,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
                 .pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable")
                 .pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable")
+                .pragma("OPENCL", "EXTENSION", "cl_khr_fp16", ":", "enable")                      // Enable Half type
                 .hashDefine("HAT_FUNC", _ -> keyword("inline"))
                 .hashDefine("HAT_KERNEL", _ -> keyword("__kernel"))
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
@@ -109,7 +110,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder generateVectorBinary(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
-
         oparen();
         Value op1 = hatVectorBinaryOp.operands().get(0);
         Value op2 = hatVectorBinaryOp.operands().get(1);
@@ -189,12 +189,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (operand instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
-        varName(hatVectorVarLoadOp);
         return self();
     }
 

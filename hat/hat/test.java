@@ -170,7 +170,8 @@ void main(String[] argv) {
                 "hat.test.TestBlackscholes",
                 "hat.test.TestNbody",
                 "hat.test.TestArrayView",
-                "hat.test.TestVectorTypes"
+                "hat.test.TestVectorTypes",
+                "hat.test.TestFP16Type"
         };
 
         // Test the whole suite
