@@ -420,6 +420,10 @@ public final class OnnxProtoBuilder {
                 attr.type(AttributeType.INTS);
                 attr.ints(longs);
             }
+            case String s -> {
+                attr.type(AttributeType.STRING);
+                attr.s(s.getBytes());
+            }
             case Tensor<?> t -> {
                 attr.type(AttributeType.TENSOR);
                 attr.t(tensorProto(t));
