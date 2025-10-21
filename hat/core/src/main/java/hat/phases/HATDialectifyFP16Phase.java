@@ -38,12 +38,13 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.extern.OpWriter;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static hat.buffer.F16Array.F16;
 
 public class HATDialectifyFP16Phase implements HATDialect {
 
@@ -198,7 +199,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isFP16Operation(invokeOp, "of") && invokeOp.resultType() != JavaType.VOID) {
+                        if (isFP16Operation(invokeOp, F16.HAT_F16_OF) && invokeOp.resultType() != JavaType.VOID) {
                             Set<Op.Result> uses = invokeOp.result().uses();
                             for (Op.Result result : uses) {
                                 if (result.op() instanceof CoreOp.VarOp varOp) {
@@ -217,7 +218,6 @@ public class HATDialectifyFP16Phase implements HATDialect {
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                // Insert a conversion Op
                 List<Value> operands = invokeOp.operands();
                 List<Value> outputOperands = context.getValues(operands);
                 HATF16ConvOp convOp1 = new HATF16ConvOp(JavaType.VOID, outputOperands);

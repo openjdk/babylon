@@ -61,6 +61,7 @@ public interface F16Array extends Buffer {
         }
 
         String HAT_MAPPING_TYPE = "half";
+        String HAT_F16_OF = "of";
     }
 
     F16 array(long index);
