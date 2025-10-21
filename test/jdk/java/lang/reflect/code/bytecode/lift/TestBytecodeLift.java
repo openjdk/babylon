@@ -22,9 +22,10 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.interpreter.Interpreter;
 import jdk.internal.classfile.components.ClassPrinter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,13 +51,13 @@ import java.util.stream.Stream;
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @modules java.base/jdk.internal.classfile.components
  * @enablePreview
- * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecode
+ * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecodeLift
  */
 
-public class TestBytecode {
+public class TestBytecodeLift {
 
     @CodeReflection
     static int intNumOps(int i, int j, int k) {
@@ -564,7 +565,7 @@ public class TestBytecode {
     }
 
     public static Stream<TestData> testMethods() {
-        return Stream.of(TestBytecode.class.getDeclaredMethods())
+        return Stream.of(TestBytecodeLift.class.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(CodeReflection.class))
                 .map(TestData::new);
     }
@@ -574,7 +575,7 @@ public class TestBytecode {
 
     @BeforeAll
     public static void setup() throws Exception {
-        CLASS_DATA = TestBytecode.class.getResourceAsStream("TestBytecode.class").readAllBytes();
+        CLASS_DATA = TestBytecodeLift.class.getResourceAsStream("TestBytecodeLift.class").readAllBytes();
         CLASS_MODEL = ClassFile.of().parse(CLASS_DATA);
     }
 
@@ -632,53 +633,56 @@ public class TestBytecode {
 
     @ParameterizedTest
     @MethodSource("testMethods")
-    public void testGenerate(TestData d) throws Throwable {
-        CoreOp.FuncOp func = Op.ofMethod(d.testMethod).get();
-
-        CoreOp.FuncOp lfunc;
+    public void testLift(TestData d) throws Throwable {
+        CoreOp.FuncOp flift;
         try {
-            lfunc = func.transform(CopyContext.create(), OpTransformer.LOWERING_TRANSFORMER);
-        } catch (UnsupportedOperationException uoe) {
-            throw new TestSkippedException("lowering caused:", uoe);
+            flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
+        } catch (Throwable e) {
+            ClassPrinter.toYaml(ClassFile.of().parse(TestBytecodeLift.class.getResourceAsStream("TestBytecodeLift.class").readAllBytes())
+                    .methods().stream().filter(m -> m.methodName().equalsString(d.testMethod().getName())).findAny().get(),
+                    ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
+            System.out.println("Lift failed, compiled model:");
+            Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
+            throw e;
         }
-
         try {
-            MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), lfunc);
             Object receiver1, receiver2;
             if (d.testMethod.accessFlags().contains(AccessFlag.STATIC)) {
                 receiver1 = null;
                 receiver2 = null;
             } else {
-                receiver1 = new TestBytecode();
-                receiver2 = new TestBytecode();
+                receiver1 = new TestBytecodeLift();
+                receiver2 = new TestBytecodeLift();
             }
-            permutateAllArgs(d.testMethod.getParameterTypes(), args -> {
-                List argl = new ArrayList(args.length + 1);
-                if (receiver1 != null) argl.add(receiver1);
-                argl.addAll(Arrays.asList(args));
-                assertEquals(d.testMethod.invoke(receiver2, args), mh.invokeWithArguments(argl));
-            });
+            permutateAllArgs(d.testMethod.getParameterTypes(), args ->
+                    assertEquals(d.testMethod.invoke(receiver2, args), invokeAndConvert(flift, receiver1, args)));
         } catch (Throwable e) {
-            System.out.println(func.toText());
-            System.out.println(lfunc.toText());
-            String methodName = d.testMethod().getName();
-            for (var mm : CLASS_MODEL.methods()) {
-                if (mm.methodName().equalsString(methodName)
-                        || mm.methodName().stringValue().startsWith("lambda$" + methodName + "$")) {
-                    ClassPrinter.toYaml(mm,
-                                        ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES,
-                                        System.out::print);
-                }
-            }
-            Files.list(Path.of("DUMP_CLASS_FILES")).forEach(p -> {
-                if (p.getFileName().toString().matches(methodName + "\\..+\\.class")) try {
-                    ClassPrinter.toYaml(ClassFile.of().parse(p),
-                                        ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES,
-                                        System.out::print);
-                } catch (IOException ignore) {}
-            });
+            System.out.println("Compiled model:");
+            Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
+            System.out.println("Lifted model:");
+            System.out.println(flift.toText());
             throw e;
         }
+    }
+
+    private static Object invokeAndConvert(CoreOp.FuncOp func, Object receiver, Object... args) {
+        List argl = new ArrayList(args.length + 1);
+        if (receiver != null) argl.add(receiver);
+        argl.addAll(Arrays.asList(args));
+        Object ret = Interpreter.invoke(MethodHandles.lookup(), func, argl);
+        if (ret instanceof Integer i) {
+            TypeElement rt = func.invokableType().returnType();
+            if (rt.equals(JavaType.BOOLEAN)) {
+                return i != 0;
+            } else if (rt.equals(JavaType.BYTE)) {
+                return i.byteValue();
+            } else if (rt.equals(JavaType.CHAR)) {
+                return (short)i.intValue();
+            } else if (rt.equals(JavaType.SHORT)) {
+                return i.shortValue();
+            }
+        }
+        return ret;
     }
 
     private static void assertEquals(Object expected, Object actual) {

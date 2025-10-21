@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ package jdk.incubator.code.bytecode.impl;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeTransform;
+import java.lang.classfile.Opcode;
 import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.instruction.BranchInstruction;
 import java.lang.classfile.instruction.LabelTarget;
@@ -47,7 +48,7 @@ public final class BranchCompactor implements CodeTransform {
     @Override
     public void accept(CodeBuilder cob, CodeElement coe) {
         if (branch == null) {
-            if (coe instanceof BranchInstruction bi && BytecodeHelpers.isUnconditionalBranch(bi.opcode())) {
+            if (coe instanceof BranchInstruction bi && isUnconditionalBranch(bi.opcode())) {
                 //unconditional branch is stored
                 branch = bi;
             } else {
@@ -88,5 +89,12 @@ public final class BranchCompactor implements CodeTransform {
         //flush the buffer
         buffer.forEach(cob::with);
         buffer.clear();
+    }
+
+    static boolean isUnconditionalBranch(Opcode opcode) {
+        return switch (opcode) {
+            case GOTO, ATHROW, GOTO_W, LOOKUPSWITCH, TABLESWITCH -> true;
+            default -> opcode.kind() == Opcode.Kind.RETURN;
+        };
     }
 }

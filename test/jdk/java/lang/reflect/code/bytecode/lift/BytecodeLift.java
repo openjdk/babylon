@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,9 +23,6 @@
  * questions.
  */
 
-package jdk.incubator.code.bytecode;
-
-import jdk.incubator.code.bytecode.impl.BytecodeHelpers;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
@@ -250,7 +247,7 @@ public final class BytecodeLift {
                         actualEreStack.or(newEreStack);
                     }
                 }
-                case BranchInstruction inst when BytecodeHelpers.isUnconditionalBranch(inst.opcode()) -> {
+                case BranchInstruction inst when isUnconditionalBranch(inst.opcode()) -> {
                     Block.Builder target = blockMap.get(inst.target());
                     ereTransit(actualEreStack, exceptionHandlersMap.get(inst.target()), currentBlock, target, stackValues(target), exceptionHandlers.indexOf(inst.target()));
                     endOfFlow();
@@ -949,5 +946,12 @@ public final class BytecodeLift {
     private static boolean isCategory1(Value v) {
         TypeElement t = v.type();
         return !t.equals(JavaType.LONG) && !t.equals(JavaType.DOUBLE);
+    }
+
+    private static boolean isUnconditionalBranch(Opcode opcode) {
+        return switch (opcode) {
+            case GOTO, ATHROW, GOTO_W, LOOKUPSWITCH, TABLESWITCH -> true;
+            default -> opcode.kind() == Opcode.Kind.RETURN;
+        };
     }
 }

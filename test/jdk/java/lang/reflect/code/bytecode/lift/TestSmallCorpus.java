@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,6 @@
  */
 
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.bytecode.BytecodeLift;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.internal.classfile.components.ClassPrinter;
 import org.junit.jupiter.api.Assertions;
@@ -44,7 +43,7 @@ import java.util.stream.Stream;
 
 /*
  * @test
- * @modules jdk.incubator.code
+ * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @modules java.base/java.lang.invoke:open
  * @modules java.base/jdk.internal.classfile.components
  * @enablePreview
