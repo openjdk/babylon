@@ -108,10 +108,8 @@ public  class HATDialectifyVectorStorePhase implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        accelerator.backend.config().showCompilationPhases();
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[BEFORE] Vector Types STORE Transform: " + funcOp.toText());
-        }
+        var here = OpTk.CallSite.of(this.getClass(), "apply");
+        before(here,funcOp);
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
@@ -123,12 +121,7 @@ public  class HATDialectifyVectorStorePhase implements HATDialect {
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-        if (nodesInvolved.isEmpty()) {
-            return funcOp;
-        }
-
-        var here = OpTk.CallSite.of(HATDialectifyVectorStorePhase.class, "run");
-        funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
+           funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
@@ -153,9 +146,7 @@ public  class HATDialectifyVectorStorePhase implements HATDialect {
             }
             return blockBuilder;
         });
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[AFTER] Vector Types STORE Transform: " + funcOp.toText());
-        }
+       after(here, funcOp);
         return funcOp;
     }
 }

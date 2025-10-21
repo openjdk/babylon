@@ -56,20 +56,17 @@ public class HATDialectifyBarrierPhase implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp fromFuncOp) {
-        if (accelerator.backend.config().showCompilationPhases()) {
-            System.out.println("[INFO] Code model before HatDialectifyBarrierPhase: " + fromFuncOp.toText());
-        }
+        var here =  OpTk.CallSite.of(HATDialectifyBarrierPhase.class, "apply");
+        before(here, fromFuncOp);
         // The resulting op map also includes all op mappings (so op -> op') and the to and from funcOp
         // I expect this to be useful for tracking state...
 
         OpTk.OpMap opMap = OpTk.simpleOpMappingTransform(
-                /* for debugging we will remove */ OpTk.CallSite.of(HATDialectifyBarrierPhase.class, "run"), fromFuncOp,
+                /* for debugging we will remove */ here, fromFuncOp,
                 /* filter op                    */ op->isKernelContextInvokeWithName(op,HATBarrierOp.INTRINSIC_NAME),
                 /* replace op                   */ HATBarrierOp::new
         );
-        if (accelerator.backend.config().showCompilationPhases()) {
-            System.out.println("[INFO] Code model after HatDialectifyBarrierPhase: " + opMap.toFuncOp().toText());
-        }
+        after(here,opMap.toFuncOp());
         return opMap.toFuncOp();
     }
 
