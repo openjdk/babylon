@@ -192,9 +192,4 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
-    @Override
-    public OpenCLHATKernelBuilder hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
-        varName(hatVectorVarLoadOp);
-        return self();
-    }
 }

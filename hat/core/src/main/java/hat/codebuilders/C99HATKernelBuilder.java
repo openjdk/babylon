@@ -25,7 +25,15 @@
 package hat.codebuilders;
 
 import hat.buffer.Buffer;
-import hat.dialect.*;
+import hat.dialect.HATBlockThreadIdOp;
+import hat.dialect.HATF16BinaryOp;
+import hat.dialect.HATF16VarLoadOp;
+import hat.dialect.HATF16VarOp;
+import hat.dialect.HATGlobalSizeOp;
+import hat.dialect.HATGlobalThreadIdOp;
+import hat.dialect.HATLocalSizeOp;
+import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATVectorVarLoadOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
 import hat.optools.OpTk;
@@ -211,6 +219,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case 2 -> identifier("HAT_BIZ");
             default -> throw new RuntimeException("blockId id = " + id);
         }
+        return self();
+    }
+
+    @Override
+    public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
+        varName(hatVectorVarLoadOp);
         return self();
     }
 
