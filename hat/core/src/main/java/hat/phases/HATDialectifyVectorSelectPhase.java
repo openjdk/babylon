@@ -113,10 +113,8 @@ public class HATDialectifyVectorSelectPhase implements HATDialect{
     //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.buffer.Float4::x():float";
 
     private CoreOp.FuncOp vloadSelectPhase(CoreOp.FuncOp funcOp) {
-
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[BEFORE] VSelect Load Transform: " + funcOp.toText());
-        }
+        var here = OpTk.CallSite.of(this.getClass(), "vloadSelectPhase");
+        before(here, funcOp);
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
@@ -132,12 +130,8 @@ public class HATDialectifyVectorSelectPhase implements HATDialect{
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-        if (nodesInvolved.isEmpty()) {
-            return funcOp;
-        }
 
-        var here = OpTk.CallSite.of(HATDialectifyVectorSelectPhase.class, "vloadSelectPhase");
-        funcOp = OpTk.transform(here, funcOp,(blockBuilder, op) -> {
+           funcOp = OpTk.transform(here, funcOp,(blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
@@ -166,9 +160,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect{
             return blockBuilder;
         });
 
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[After] VSelect Load Transform: " + funcOp.toText());
-        }
+       after(here,funcOp);
         return funcOp;
     }
 
@@ -177,11 +169,9 @@ public class HATDialectifyVectorSelectPhase implements HATDialect{
     // %21 : java.type:"float" = var.load %19 @loc="64:18";
     // invoke %20 %21 @loc="64:13" @java.ref:"hat.buffer.Float4::x(float):void";
     private CoreOp.FuncOp vstoreSelectPhase(CoreOp.FuncOp funcOp) {
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[BEFORE] VSelect Store Transform " + funcOp.toText());
-        }
-        var here = OpTk.CallSite.of(HATDialectifyVectorSelectPhase.class,"vstoreSelectPhase");
-        //TODO is this side table safe?
+        var here = OpTk.CallSite.of(this.getClass(),"vstoreSelectPhase");
+         before(here, funcOp);
+          //TODO is this side table safe?
         Stream<CodeElement<?, ?>> float4NodesInvolved = OpTk.elements(here,funcOp)
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
@@ -197,10 +187,6 @@ public class HATDialectifyVectorSelectPhase implements HATDialect{
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-        if (nodesInvolved.isEmpty()) {
-            return funcOp;
-        }
-
         funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
@@ -234,9 +220,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect{
             return blockBuilder;
         });
 
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[AFTER] VSelect Store Transform: " + funcOp.toText());
-        }
+        after(here, funcOp);
         return funcOp;
     }
 
