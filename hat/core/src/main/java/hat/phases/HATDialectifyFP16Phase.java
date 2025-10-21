@@ -45,6 +45,8 @@ import java.util.stream.Stream;
 
 public class HATDialectifyFP16Phase implements HATDialect {
 
+    private final String[] methodOps = new String[] {"add", "sub", "mul", "div"};
+
     private final Accelerator accelerator;
     public HATDialectifyFP16Phase(Accelerator accelerator) {
         this.accelerator = accelerator;
@@ -203,10 +205,8 @@ public class HATDialectifyFP16Phase implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        funcOp = dialectifyF16Ops(funcOp, "add");
-        funcOp = dialectifyF16Ops(funcOp, "sub");
-        funcOp = dialectifyF16Ops(funcOp, "mul");
-        funcOp = dialectifyF16Ops(funcOp, "div");
+        for (String methodName : methodOps)
+            funcOp = dialectifyF16Ops(funcOp, methodName);
         funcOp = dialectifyF16Stores(funcOp);
         return funcOp;
     }

@@ -24,7 +24,18 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.*;
+import hat.dialect.HATBarrierOp;
+import hat.dialect.HATF16VarOp;
+import hat.dialect.HATLocalVarOp;
+import hat.dialect.HATMemoryOp;
+import hat.dialect.HATPrivateVarOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
+import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATVectorVarLoadOp;
+import hat.dialect.HATVectorVarOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
@@ -33,14 +44,11 @@ import hat.optools.OpTk;
 import hat.util.StreamMutable;
 
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-
-import java.util.List;
 
 import static hat.buffer.F16Array.F16;
 
