@@ -30,20 +30,29 @@ import hat.ifacemapper.Schema;
 public interface F16Array extends Buffer {
     int length();
 
+    // Interface for Floating Point numbers of 16-bits
+    // Values are stored in a short format.
     interface F16 extends Struct {
+        String HAT_MAPPING_TYPE = "half";
+
         short value();
         void value(short value);
 
+        // Intrinsic for the HAT compiler to create a
+        // new half
+        String F16_INSTANCE_OF = "of";
         static F16 of(float value) {
             return null;
         }
 
-        static short float2half(float value) {
+        static short floatToF16(float value) {
             return Float.floatToFloat16(value);
         }
-        static float half2float(short value) {
+
+        static float f16ToFloat(short value) {
             return Float.float16ToFloat(value);
         }
+
         static F16 add(F16 ha, F16 hb) {
             return null;
         }
@@ -59,8 +68,6 @@ public interface F16Array extends Buffer {
         static F16 div(F16 ha, F16 hb) {
             return null;
         }
-
-        String HAT_MAPPING_TYPE = "half";
     }
 
     F16 array(long index);

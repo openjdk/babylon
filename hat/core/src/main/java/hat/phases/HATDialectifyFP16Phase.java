@@ -49,6 +49,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static hat.buffer.F16Array.F16;
+
 public class HATDialectifyFP16Phase implements HATDialect {
 
     public enum OpMethod {
@@ -231,7 +233,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isFP16Operation(invokeOp, "of") && invokeOp.resultType() != JavaType.VOID) {
+                        if (isFP16Operation(invokeOp, F16.F16_INSTANCE_OF) && invokeOp.resultType() != JavaType.VOID) {
                             Set<Op.Result> uses = invokeOp.result().uses();
                             for (Op.Result result : uses) {
                                 if (result.op() instanceof CoreOp.VarOp varOp) {
