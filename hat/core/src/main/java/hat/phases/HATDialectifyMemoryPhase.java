@@ -33,9 +33,15 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -52,52 +58,60 @@ public abstract class HATDialectifyMemoryPhase implements HATDialect {
         this.accelerator = accelerator;
     }
 
+    Stream<JavaOp.InvokeOp> invokeOpOperands(Op op){
+        return op.operands().stream()
+                .filter(o -> o instanceof Op.Result result
+                        && result.op() instanceof JavaOp.InvokeOp invokeOp
+                        && isIfaceBufferInvokeWithName(invokeOp))
+                .map(r -> (JavaOp.InvokeOp) (((Op.Result) r).op()));
+    }
+
+
+
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model before HatDialectifyMemoryPhase: " + funcOp.toText());
-        }
-      //  record BufferIfaceInvokeOpAndVarOpPair(JavaOp.InvokeOp bufferIfaceOp, CoreOp.VarOp varOp){}
-       // List<BufferIfaceInvokeOpAndVarOpPair> bufferIfaceInvokeOpAndVarOpPairList = new ArrayList<>();
-        Stream<CodeElement<?, ?>> elements = funcOp.elements().filter(e -> e instanceof CoreOp.VarOp ).map(e-> (CoreOp.VarOp) e)
-                .mapMulti((varOp, consumer) -> {
-                                var bufferIfaceInvokeOp = varOp.operands().stream()
-                                        .filter(o -> o instanceof Op.Result result && result.op() instanceof JavaOp.InvokeOp invokeOp && isIfaceBufferInvokeWithName(invokeOp))
-                                        .map(r -> (JavaOp.InvokeOp) (((Op.Result) r).op()))
-                                        .findFirst();
-                                if (bufferIfaceInvokeOp.isPresent()) {
-                                    consumer.accept(bufferIfaceInvokeOp.get());
-                                    consumer.accept(varOp);
-                                }
-                        }
+        var here = OpTk.CallSite.of(PrivatePhase.class, "apply");
+        before(here,funcOp);
+        Set<CoreOp.VarOp> removeMe = new LinkedHashSet<>();
+        Set<JavaOp.InvokeOp> mapMe = new LinkedHashSet<>();
+
+        funcOp.elements()
+                .filter(e -> e instanceof CoreOp.VarOp )
+                .map(e-> (CoreOp.VarOp) e)
+                .forEach(varOp->varOp
+                        .operands()
+                        .stream()
+                        .filter(o -> o instanceof Op.Result result
+                                && result.op() instanceof JavaOp.InvokeOp invokeOp
+                                && isIfaceBufferInvokeWithName(invokeOp))
+                        .map(r -> (JavaOp.InvokeOp) (((Op.Result) r).op()))
+                        .findFirst().ifPresent(remove-> {
+                            removeMe.add(varOp);
+                            mapMe.add(remove);
+                    })
                 );
 
-        Set<CodeElement<?, ?>> nodesInvolved = elements.collect(Collectors.toSet());
-
-        var here = OpTk.CallSite.of(PrivatePhase.class, "run");
         funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
-            if (!nodesInvolved.contains(op)) {
-                blockBuilder.op(op);
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                // Don't insert the invoke node we just want the results
-                invokeOp.result().uses().stream()
+            if (op instanceof JavaOp.InvokeOp invokeOp && mapMe.contains(invokeOp)) {
+                invokeOp.result()
+                        .uses()
+                        .stream()
                         .filter(r->r.op() instanceof CoreOp.VarOp)
                         .map(r->(CoreOp.VarOp)r.op())
                         .forEach(varOp->
-                            context.mapValue(invokeOp.result(), blockBuilder.op(factory(blockBuilder,varOp,invokeOp)))
+                                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(factory(blockBuilder, varOp, invokeOp)))
                         );
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                // pass value
-                context.mapValue(varOp.result(), context.getValue(varOp.operands().getFirst()));
+            } else if (op instanceof CoreOp.VarOp varOp && removeMe.contains(varOp)) {
+                blockBuilder.context().mapValue(varOp.result(), blockBuilder.context().getValue(varOp.operands().getFirst()));
+            }else{
+                blockBuilder.op(op);
             }
             return blockBuilder;
         });
-        if (accelerator.backend.config().showCompilationPhases()) {
-            IO.println("[INFO] Code model after HatDialectifyMemoryPhase: " + funcOp.toText());
-        }
+        after(here,funcOp );
         return funcOp;
     }
+
 
     public static class PrivatePhase extends HATDialectifyMemoryPhase {
         public PrivatePhase(Accelerator accelerator) {

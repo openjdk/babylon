@@ -25,6 +25,7 @@
 package hat.optools;
 
 import hat.ComputeContext;
+import hat.Config;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
 import hat.dialect.HATF16AddOp;
@@ -576,13 +577,9 @@ public class OpTk {
         return pattern.matcher(fieldName(fieldAccessOp)).matches();
     }
 
-    public  record CallSite(Class<?> clazz,String methodName){
+    public  record CallSite(Class<?> clazz,String methodName, boolean tracing){
         public static CallSite of(Class<?> clazz, String methodName) {
-            boolean TRACE = Boolean.getBoolean("TRACE_CALLSITES");
-
-                //System.out.println("TRACE_CALLSITES "+TRACE);
-
-            return TRACE?new CallSite(clazz,methodName):null;
+            return new CallSite(clazz,methodName, Boolean.getBoolean("TRACE_CALLSITES"));
         }
 
         @Override public  String toString(){
@@ -590,39 +587,39 @@ public class OpTk {
         }
     }
     public static <T> T traverse(CallSite callSite, CoreOp.FuncOp funcOp, BiFunction<T, CodeElement<?,?>,T> bifunc) {
-        if (callSite!= null){
+        if (callSite.tracing){
             System.out.println(callSite + " traverse is being deprecated!!");
         }
        return  funcOp.traverse(null, bifunc);
     }
     public static CoreOp.FuncOp lower(CallSite callSite, CoreOp.FuncOp funcOp) {
-        if (callSite!= null){
+        if (callSite.tracing){
             System.out.println(callSite);
         }
         return funcOp.transform(OpTransformer.LOWERING_TRANSFORMER);
     }
     public static Stream<CodeElement<?,?>> elements(CallSite callSite, CoreOp.FuncOp funcOp) {
-        if (callSite!= null){
+        if (callSite.tracing){
             System.out.println(callSite);
         }
         return funcOp.elements();
     }
 
     public static CoreOp.FuncOp SSATransformLower(CallSite callSite, CoreOp.FuncOp funcOp){
-        if (callSite!= null){
+        if (callSite.tracing){
             System.out.println(callSite);
         }
         return  SSA.transform(lower(callSite,funcOp));
     }
     public static CoreOp.FuncOp SSATransform(CallSite callSite, CoreOp.FuncOp funcOp){
-        if (callSite!= null){
+        if (callSite.tracing){
             System.out.println(callSite);
         }
         return  SSA.transform(funcOp);
     }
 
     public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, Predicate<Op> predicate, OpTransformer opTransformer) {
-        if (callSite!= null){
+        if (callSite.tracing){
             System.out.println(callSite);
         }
         return funcOp.transform((blockBuilder, op) -> {
@@ -639,7 +636,7 @@ public class OpTk {
     }
 
     public static CoreOp.FuncOp transform(CallSite callSite, CoreOp.FuncOp funcOp, OpTransformer opTransformer) {
-        if (callSite!= null){
+        if (callSite.tracing){
             System.out.println(callSite);
         }
         return funcOp.transform(opTransformer);
