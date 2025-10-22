@@ -26,13 +26,19 @@ package hat.phases;
 
 import hat.Accelerator;
 import hat.buffer.F16Array;
+import hat.dialect.HATF16AddOp;
 import hat.dialect.HATF16BinaryOp;
+import hat.dialect.HATF16ConvOp;
+import hat.dialect.HATF16DivOp;
+import hat.dialect.HATF16MulOp;
+import hat.dialect.HATF16SubOp;
 import hat.dialect.HATF16VarLoadOp;
 import hat.dialect.HATF16VarOp;
 import hat.optools.OpTk;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
-import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -43,9 +49,25 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static hat.buffer.F16Array.F16;
+
 public class HATDialectifyFP16Phase implements HATDialect {
 
-    private final String[] methodOps = new String[] {"add", "sub", "mul", "div"};
+    public enum OpMethod {
+        ADD("add"),
+        SUB("sub"),
+        MUL("mul"),
+        DIV("div");
+
+        final String methodName;
+        OpMethod(String name) {
+            this.methodName = name;
+        }
+
+        public String methodName() {
+            return this.methodName;
+        }
+    }
 
     private final Accelerator accelerator;
     public HATDialectifyFP16Phase(Accelerator accelerator) {
@@ -76,14 +98,66 @@ public class HATDialectifyFP16Phase implements HATDialect {
         }
     }
 
-    private CoreOp.FuncOp dialectifyF16Ops(CoreOp.FuncOp funcOp, String methodName) {
-        if (accelerator.backend.config().showCompilationPhases())
-            IO.println("[BEFORE] FP16 Phase: " + funcOp.toText());
+    private void createF16VarOp(CoreOp.VarOp varOp, Block.Builder blockBuilder) {
+        List<Value> operands = varOp.operands();
+        List<Value> outputOperands = blockBuilder.context().getValues(operands);
+        HATF16VarOp hatf16VarOp = new HATF16VarOp(varOp.varName(), varOp.resultType(), outputOperands);
+        Op.Result op1 = blockBuilder.op(hatf16VarOp);
+        hatf16VarOp.setLocation(varOp.location());
+        blockBuilder.context().mapValue(varOp.result(), op1);
+    }
+
+    private void createF16ConvOP(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
+        List<Value> operands = invokeOp.operands();
+        List<Value> outputOperands = blockBuilder.context().getValues(operands);
+        HATF16ConvOp convOp1 = new HATF16ConvOp(JavaType.VOID, outputOperands);
+        Op.Result op1 = blockBuilder.op(convOp1);
+        convOp1.setLocation(invokeOp.location());
+        blockBuilder.context().mapValue(invokeOp.result(), op1);
+    }
+
+    private void createF16VarLoadOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp, Block.Builder blockBuilder) {
+        List<Value> operands = varLoadOp.operands();
+        List<Value> outputOperands = blockBuilder.context().getValues(operands);
+        String nameVar = findName(varLoadOp);
+        HATF16VarLoadOp hatf16VarLoadOp = new HATF16VarLoadOp(nameVar, varLoadOp.varType(), outputOperands);
+        Op.Result op1 = blockBuilder.op(hatf16VarLoadOp);
+        hatf16VarLoadOp.setLocation(varLoadOp.location());
+        blockBuilder.context().mapValue(varLoadOp.result(), op1);
+    }
+
+    private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, OpMethod method) {
+        List<Value> operands = invokeOp.operands();
+        List<Value> outputOperands = blockBuilder.context().getValues(operands);
+        // Obtain the memory mapping for each operand
+        // if it comes from global memory, HAT replaces with a global* pointer to the inner struct,
+        // then, we will need to operate half using a->value, instead of half value directly.
+        boolean isFirstOperandReference = findReference(invokeOp.operands().getFirst());
+        boolean isSecondOperandReference = findReference(invokeOp.operands().get(1));
+
+        TypeElement typeElement = invokeOp.resultType();
+        List<Boolean> refList = List.of(isFirstOperandReference, isSecondOperandReference);
+
+        HATF16BinaryOp binaryOp = switch (method) {
+            case ADD -> new HATF16AddOp(typeElement, refList, outputOperands);
+            case SUB -> new HATF16SubOp(typeElement, refList, outputOperands);
+            case MUL -> new HATF16MulOp(typeElement, refList, outputOperands);
+            case DIV -> new HATF16DivOp(typeElement, refList, outputOperands);
+        };
+
+        Op.Result op1 = blockBuilder.op(binaryOp);
+        binaryOp.setLocation(invokeOp.location());
+        blockBuilder.context().mapValue(invokeOp.result(), op1);
+    }
+
+    private CoreOp.FuncOp dialectifyF16Ops(CoreOp.FuncOp funcOp, OpMethod method) {
+        var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Ops" );
+        before(here,funcOp);
 
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isFP16Operation(invokeOp, methodName) && invokeOp.resultType() != JavaType.VOID) {
+                        if (isFP16Operation(invokeOp, method.methodName) && invokeOp.resultType() != JavaType.VOID) {
                             Set<Op.Result> uses = invokeOp.result().uses();
                             consumer.accept(invokeOp);
                             for (Op.Result result : uses) {
@@ -97,64 +171,33 @@ public class HATDialectifyFP16Phase implements HATDialect {
                 }));
 
         Set<CodeElement<?, ?>> nodesInvolved = halfOps.collect(Collectors.toSet());
-
         funcOp = funcOp.transform((blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                List<Value> operands = invokeOp.operands();
-                List<Value> outputOperands = context.getValues(operands);
-                // Obtain the memory mapping for each operand
-                // if it comes from global memory, HAT replaces with a global* pointer to the inner struct,
-                // then, we will need to operate half using a->value, instead of ha directly.
-                boolean isFirstOperandReference = findReference(invokeOp.operands().getFirst());
-                boolean isSecondOperandReference = findReference(invokeOp.operands().get(1));
-
-                // Todo: subclassing to get this
-                HATF16BinaryOp.OpType opType = switch (methodName) {
-                    case "add" -> HATF16BinaryOp.OpType.ADD;
-                    case "sub" -> HATF16BinaryOp.OpType.SUB;
-                    case "mul" -> HATF16BinaryOp.OpType.MUL;
-                    case "div" -> HATF16BinaryOp.OpType.DIV;
-                    default -> throw new IllegalStateException("Unexpected value: " + methodName);
-                };
-
-                HATF16BinaryOp binaryOp = new HATF16BinaryOp(invokeOp.resultType(),
-                        opType,
-                        List.of(isFirstOperandReference, isSecondOperandReference),
-                        outputOperands);
-                Op.Result op1 = blockBuilder.op(binaryOp);
-                binaryOp.setLocation(invokeOp.location());
-                context.mapValue(invokeOp.result(), op1);
+                createF16BinaryOp(invokeOp, blockBuilder, method);
             } else if (op instanceof CoreOp.VarOp varOp) {
-                List<Value> operands = varOp.operands();
-                List<Value> outputOperands = context.getValues(operands);
-                HATF16VarOp hatf16VarOp = new HATF16VarOp(varOp.varName(), varOp.resultType(), outputOperands);
-                Op.Result op1 = blockBuilder.op(hatf16VarOp);
-                hatf16VarOp.setLocation(varOp.location());
-                context.mapValue(varOp.result(), op1);
+                createF16VarOp(varOp, blockBuilder);
             }
             return blockBuilder;
         });
-
-        if (accelerator.backend.config().showCompilationPhases())
-            IO.println("[AFTER] FP16 Phase: " + funcOp.toText());
+        after(here,funcOp);
         return funcOp;
     }
 
     private CoreOp.FuncOp dialectifyF16Stores(CoreOp.FuncOp funcOp) {
-        if (accelerator.backend.config().showCompilationPhases())
-            IO.println("[BEFORE] dialectifyF16Stores Phase: " + funcOp.toText());
+        var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Stores");
+        before(here,funcOp);
 
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
                         if (isFP16Operation(invokeOp, "value") && invokeOp.resultType() == JavaType.SHORT) {
+                            // This invoke only has one argument: the value to store
                             Value value = invokeOp.operands().getFirst();
                             if (value instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                                Value second = varLoadOp.operands().getFirst();
-                                if (second instanceof Op.Result r1 && r1.op() instanceof HATF16VarOp) {
+                                Value valLoad = varLoadOp.operands().getFirst();
+                                if (valLoad instanceof Op.Result r1 && r1.op() instanceof HATF16VarOp) {
                                     consumer.accept(invokeOp);
                                     consumer.accept(varLoadOp);
                                 }
@@ -166,25 +209,54 @@ public class HATDialectifyFP16Phase implements HATDialect {
         Set<CodeElement<?, ?>> nodesInvolved = halfOps.collect(Collectors.toSet());
 
         funcOp = funcOp.transform((blockBuilder, op) -> {
-            CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                context.mapValue(invokeOp.result(), context.getValue(invokeOp.operands().getFirst()));
+                blockBuilder.context().mapValue(
+                        invokeOp.result(), //
+                        blockBuilder.context().getValue(invokeOp.operands().getFirst()) //
+                );
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                List<Value> operands = varLoadOp.operands();
-                List<Value> outputOperands = context.getValues(operands);
-                String nameVar = findName(varLoadOp);
-                HATF16VarLoadOp hatf16VarLoadOp = new HATF16VarLoadOp(nameVar, varLoadOp.varType(), outputOperands);
-                Op.Result op1 = blockBuilder.op(hatf16VarLoadOp);
-                hatf16VarLoadOp.setLocation(varLoadOp.location());
-                context.mapValue(varLoadOp.result(), op1);
+                createF16VarLoadOp(varLoadOp, blockBuilder);
             }
             return blockBuilder;
         });
 
-        if (accelerator.backend.config().showCompilationPhases())
-            IO.println("[AFTER] dialectifyF16Stores Phase: " + funcOp.toText());
+        after(here, funcOp);
+        return funcOp;
+    }
+
+    private CoreOp.FuncOp dialectifyF16Init(CoreOp.FuncOp funcOp) {
+        var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Init");
+        before(here,funcOp);
+
+        Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
+                .mapMulti(((codeElement, consumer) -> {
+                    if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
+                        if (isFP16Operation(invokeOp, F16.F16_INSTANCE_OF) && invokeOp.resultType() != JavaType.VOID) {
+                            Set<Op.Result> uses = invokeOp.result().uses();
+                            for (Op.Result result : uses) {
+                                if (result.op() instanceof CoreOp.VarOp varOp) {
+                                    consumer.accept(varOp);
+                                    consumer.accept(invokeOp);
+                                }
+                            }
+                        }
+                    }
+                }));
+
+        Set<CodeElement<?, ?>> nodesInvolved = halfOps.collect(Collectors.toSet());
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            if (!nodesInvolved.contains(op)) {
+                blockBuilder.op(op);
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                createF16ConvOP(invokeOp, blockBuilder);
+            } else if (op instanceof CoreOp.VarOp varOp) {
+                createF16VarOp(varOp, blockBuilder);
+            }
+            return blockBuilder;
+        });
+        after(here, funcOp);
         return funcOp;
     }
 
@@ -205,8 +277,13 @@ public class HATDialectifyFP16Phase implements HATDialect {
 
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        for (String methodName : methodOps)
-            funcOp = dialectifyF16Ops(funcOp, methodName);
+        for (OpMethod method : OpMethod.values())
+            // Operations
+            funcOp = dialectifyF16Ops(funcOp, method);
+
+        // Init analysis before the store
+        funcOp = dialectifyF16Init(funcOp);
+        // Store analysis
         funcOp = dialectifyF16Stores(funcOp);
         return funcOp;
     }

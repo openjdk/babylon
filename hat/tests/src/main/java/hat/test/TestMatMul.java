@@ -33,18 +33,21 @@ import hat.KernelContext;
 import hat.LocalMesh2D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
+import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
 import hat.buffer.Float4;
 import hat.ifacemapper.Schema;
-import jdk.incubator.code.CodeReflection;
 import hat.test.annotation.HatTest;
 import hat.test.engine.HatAsserts;
+import jdk.incubator.code.CodeReflection;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.ifacemapper.MappableIface.*;
+import static hat.buffer.F16Array.F16;
+import static hat.ifacemapper.MappableIface.RO;
+import static hat.ifacemapper.MappableIface.RW;
 
 public class TestMatMul {
 
@@ -72,6 +75,23 @@ public class TestMatMul {
                     acc += (matrixA.array(kc.y * size + k) * matrixB.array(k * size + kc.x));
                 }
                 matrixC.array(kc.y * size + kc.x, acc);
+            }
+        }
+    }
+
+    @CodeReflection
+    public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
+        if (kc.x < kc.maxX) {
+            if (kc.y < kc.maxY) {
+                F16 acc = F16.of(0.0f);
+                for (int k = 0; k < size; k++) {
+                    F16 valA = matrixA.array(kc.y * size + k);
+                    F16 valB = matrixB.array(k * size + kc.x);
+                    F16 valc = F16.mul(valA, valB);
+                    acc = F16.add(acc, valc);
+                }
+                F16 resultC = matrixC.array(kc.y * size + kc.x);
+                resultC.value(acc.value());
             }
         }
     }
@@ -207,11 +227,33 @@ public class TestMatMul {
     }
 
     @CodeReflection
+    public static void matrixMultiply2DLIF16(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int globalSize) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(computeRange,
+                kc -> matrixMultiplyKernel2DLIF16(kc, matrixA, matrixB, matrixC, globalSize)
+        );
+    }
+
+    @CodeReflection
     public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
         ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
         cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
+    }
+
+    private static void runSequential(F16Array matrixA, F16Array matrixB, F16Array matrixC, final int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                float sum = 0.0f;
+                for (int k = 0; k < size; k++) {
+                    F16 a = matrixA.array((long) i * size + k);
+                    F16 b = matrixB.array((long) k * size + j);
+                    sum += Float.float16ToFloat(a.value()) * Float.float16ToFloat(b.value());
+                }
+                matrixC.array((long) i * size + j).value(Float.floatToFloat16(sum));
+            }
+        }
     }
 
     private static void runSequential(F32Array matrixA, F32Array matrixB, F32Array matrixC, final int size) {
@@ -377,6 +419,43 @@ public class TestMatMul {
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
                 HatAsserts.assertEquals(resultSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+            }
+        }
+    }
+
+    @HatTest
+    public void testMatrixMultiply2DLIF16() {
+        var lookup = java.lang.invoke.MethodHandles.lookup();
+        var accelerator = new Accelerator(lookup, Backend.FIRST);
+
+        final int size = SIZE;
+        var matrixA = F16Array.create(accelerator, size * size);
+        var matrixB = F16Array.create(accelerator, size * size);
+
+        // Matrix for the results
+        var matrixC = F16Array.create(accelerator, size * size);
+        var resultSeq = F16Array.create(accelerator, size * size);
+
+        // Initialize matrices (A and B have the same size)
+        Random r = new Random(19);
+
+        for (int j = 0; j < matrixA.length(); j++) {
+            matrixA.array(j).value(F16.floatToF16(r.nextFloat()));
+            matrixB.array(j).value(F16.floatToF16(r.nextFloat()));
+        }
+
+        accelerator.compute(cc ->
+                TestMatMul.matrixMultiply2DLIF16(cc, matrixA, matrixB, matrixC, size));
+
+        // Run Seq for reference
+        runSequential(matrixA, matrixB, resultSeq, size);
+
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                HatAsserts.assertEquals(
+                        Float.float16ToFloat(resultSeq.array(i * size + j).value()),
+                        Float.float16ToFloat(matrixC.array(i * size + j).value()),
+                        0.01f);
             }
         }
     }

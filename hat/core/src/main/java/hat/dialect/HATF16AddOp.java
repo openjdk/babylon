@@ -31,61 +31,19 @@ import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
 import java.util.List;
-import java.util.Map;
 
-public abstract class HATF16BinaryOp extends HATF16Op {
+public class HATF16AddOp extends HATF16BinaryOp {
 
-    protected final TypeElement elementType;
-    protected final OpType operationType;
-    protected final List<Boolean> references;
-
-    public enum OpType {
-        ADD("+"),
-        SUB("-"),
-        MUL("*"),
-        DIV("/");
-
-        String symbol;
-
-        OpType(String symbol) {
-            this.symbol = symbol;
-        }
-
-        public String symbol() {
-            return symbol;
-        }
+    public HATF16AddOp(TypeElement typeElement, List<Boolean> references, List<Value> operands) {
+        super(typeElement, HATF16BinaryOp.OpType.ADD, references, operands);
     }
 
-    public HATF16BinaryOp(TypeElement typeElement, OpType operationType, List<Boolean> references, List<Value> operands) {
-        super("", operands);
-        this.elementType = typeElement;
-        this.operationType = operationType;
-        this.references = references;
-    }
-
-    public HATF16BinaryOp(HATF16BinaryOp op, CopyContext copyContext) {
+    public HATF16AddOp(HATF16AddOp op, CopyContext copyContext) {
         super(op, copyContext);
-        this.elementType = op.elementType;
-        this.operationType = op.operationType;
-        this.references = op.references;
     }
 
     @Override
-    public TypeElement resultType() {
-        return this.elementType;
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HATF16AddOp(this, copyContext);
     }
-
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.fp16." + varName(), operationType.symbol());
-    }
-
-    public OpType operationType() {
-        return operationType;
-    }
-
-    public List<Boolean> references() {
-        return references;
-    }
-
 }

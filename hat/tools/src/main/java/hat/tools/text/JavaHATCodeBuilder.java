@@ -27,6 +27,7 @@ package hat.tools.text;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
 import hat.dialect.HATBlockThreadIdOp;
+import hat.dialect.HATF16ConvOp;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATF16BinaryOp;
@@ -193,6 +194,12 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     @Override
     public T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
         blockComment("F16 Load Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
+        blockComment("F16 Conv Op Not Implemented");
         return self();
     }
 

@@ -29,63 +29,38 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.VarType;
 
 import java.util.List;
 import java.util.Map;
 
-public abstract class HATF16BinaryOp extends HATF16Op {
+public class HATF16ConvOp extends HATF16Op {
 
-    protected final TypeElement elementType;
-    protected final OpType operationType;
-    protected final List<Boolean> references;
+    private final TypeElement typeElement;
 
-    public enum OpType {
-        ADD("+"),
-        SUB("-"),
-        MUL("*"),
-        DIV("/");
-
-        String symbol;
-
-        OpType(String symbol) {
-            this.symbol = symbol;
-        }
-
-        public String symbol() {
-            return symbol;
-        }
-    }
-
-    public HATF16BinaryOp(TypeElement typeElement, OpType operationType, List<Boolean> references, List<Value> operands) {
+    public HATF16ConvOp(TypeElement typeElement, List<Value> operands) {
         super("", operands);
-        this.elementType = typeElement;
-        this.operationType = operationType;
-        this.references = references;
+        this.typeElement = typeElement;
     }
 
-    public HATF16BinaryOp(HATF16BinaryOp op, CopyContext copyContext) {
+    public HATF16ConvOp(HATF16ConvOp op, CopyContext copyContext) {
         super(op, copyContext);
-        this.elementType = op.elementType;
-        this.operationType = op.operationType;
-        this.references = op.references;
+        this.typeElement = op.typeElement;
+    }
+
+    @Override
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HATF16ConvOp(this, copyContext);
     }
 
     @Override
     public TypeElement resultType() {
-        return this.elementType;
+        return typeElement;
     }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.fp16." + varName(), operationType.symbol());
-    }
-
-    public OpType operationType() {
-        return operationType;
-    }
-
-    public List<Boolean> references() {
-        return references;
+        return Map.of("hat.dialect.f16Conv", typeElement);
     }
 
 }
