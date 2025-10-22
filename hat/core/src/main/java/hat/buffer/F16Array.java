@@ -42,7 +42,16 @@ public interface F16Array extends Buffer {
         // new half
         String F16_INSTANCE_OF = "of";
         static F16 of(float value) {
-            return null;
+            return new F16() {
+                @Override
+                public short value() {
+                    return floatToF16(value);
+                }
+
+                @Override
+                public void value(short value) {
+                }
+            };
         }
 
         static short floatToF16(float value) {
@@ -54,19 +63,19 @@ public interface F16Array extends Buffer {
         }
 
         static F16 add(F16 ha, F16 hb) {
-            return null;
+            return F16.of(f16ToFloat(ha.value()) + f16ToFloat(hb.value()));
         }
 
         static F16 sub(F16 ha, F16 hb) {
-            return null;
+            return F16.of(f16ToFloat(ha.value()) - f16ToFloat(hb.value()));
         }
 
         static F16 mul(F16 ha, F16 hb) {
-            return null;
+            return F16.of(f16ToFloat(ha.value()) * f16ToFloat(hb.value()));
         }
 
         static F16 div(F16 ha, F16 hb) {
-            return null;
+            return F16.of(f16ToFloat(ha.value()) / f16ToFloat(hb.value()));
         }
     }
 
@@ -80,5 +89,4 @@ public interface F16Array extends Buffer {
     static F16Array create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
     }
-
 }
