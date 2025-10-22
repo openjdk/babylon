@@ -36,18 +36,17 @@ public interface F32ArrayPadded extends Buffer {
     float array(long idx);
     void array(long idx, float f);
 
-    int PADDING_BYTES = 12;
-    int HEADER_BYTES = 4 + PADDING_BYTES;
+    int ARRAY_OFFSET = 16;
 
-    Schema<F32ArrayPadded> schema = Schema.of(F32ArrayPadded.class, s32Array ->
-            s32Array.arrayLen("length").pad(12).array("array"));
+    Schema<F32ArrayPadded> schema = Schema.of(F32ArrayPadded.class, $ -> $
+            .arrayLen("length").pad(ARRAY_OFFSET-4).array("array"));
 
     static F32ArrayPadded create(Accelerator accelerator, int length){
         return schema.allocate(accelerator, length);
     }
 
     default F32ArrayPadded copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, HEADER_BYTES, length());
+        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, length());
         return this;
     }
 
@@ -56,7 +55,7 @@ public interface F32ArrayPadded extends Buffer {
     }
 
     default F32ArrayPadded copyTo(float[] floats) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, HEADER_BYTES, floats, 0, length());
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, length());
         return this;
     }
 
