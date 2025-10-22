@@ -171,7 +171,7 @@ void main(String[] argv) {
                 "hat.test.TestNbody",
                 "hat.test.TestArrayView",
                 "hat.test.TestVectorTypes",
-                "hat.test.TestFP16Type"
+                "hat.test.TestF16Type"
         };
 
         // Test the whole suite

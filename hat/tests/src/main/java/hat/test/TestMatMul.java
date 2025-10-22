@@ -245,13 +245,13 @@ public class TestMatMul {
     private static void runSequential(F16Array matrixA, F16Array matrixB, F16Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                float sum = 0.0f;
+                F16 sum = F16.of(0.0f);
                 for (int k = 0; k < size; k++) {
                     F16 a = matrixA.array((long) i * size + k);
                     F16 b = matrixB.array((long) k * size + j);
-                    sum += Float.float16ToFloat(a.value()) * Float.float16ToFloat(b.value());
+                    sum = F16.add(sum, F16.mul(a, b));
                 }
-                matrixC.array((long) i * size + j).value(Float.floatToFloat16(sum));
+                matrixC.array((long) i * size + j).value(sum.value());
             }
         }
     }
