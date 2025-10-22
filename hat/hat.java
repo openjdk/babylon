@@ -138,6 +138,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var wrapped_shared = Jar.of(project.id("wrap{s}-shared"));
         var jextracted_opencl = JExtract.extract(project.id("extract{ions|ed}-opencl"), jextract, openclCmakeInfo, core);
         var wrapped_jextracted_opencl = Jar.of(project.id("wrap{s}-opencl"), jextracted_opencl, wrapped_shared);
+        var backend_jextracted_shared = Jar.of(project.id("backend{s}-jextracted-shared"), core);
+        var backend_jextracted_opencl = Jar.of(project.id("backend{s}-jextracted-opencl"), wrapped_jextracted_opencl, backend_jextracted_shared);
         var jextracted_opengl = JExtract.extract(project.id("extract{ions|ed}-opengl"), jextract, ui, openglCmakeInfo, core);
 
         // Sigh... We have different src exclusions for wrapped opengl depending on the OS
@@ -221,7 +223,12 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                 case "test-suite" -> {
                     if (args.size() > 0) {
                         var backendName = args.removeFirst();
+
                         if (project.get(backendName) instanceof Jar backend) {
+                           var vmOpts = new ArrayList<String>(List.of());
+                           while (!args.isEmpty() && args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
+                               vmOpts.add(args.removeFirst());
+                           }
                            var test_reports_txt = Paths.get("test_report.txt");
                            Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
                            var suiteRe = Pattern.compile("(hat/test/Test[a-zA-Z0-9]*).class");
@@ -230,7 +237,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                            var orderedDag  = new job.Dag(tests, backend).ordered();
                            while (entries.hasMoreElements()) {
                               if (suiteRe.matcher(entries.nextElement().getName()) instanceof Matcher matched && matched.matches()){
-                                  tests.run(testEngine, orderedDag, List.of(),List.of(matched.group(1).replace('/','.')));
+                                  tests.run(testEngine, orderedDag, vmOpts,List.of(matched.group(1).replace('/','.')));
                               }
                            }
                            System.out.println("\n\n"+logo+"                 HAT Test Report ");
