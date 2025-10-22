@@ -266,8 +266,13 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                         var backendName = args.removeFirst();
                         var classAndMethod = args.removeFirst();
                         if (project.get(backendName) instanceof Jar backend) {
+                            var vmOpts = new ArrayList<String>(List.of());
+                            while (!args.isEmpty() && args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
+                                vmOpts.add(args.removeFirst());
+                            }
+
                             var orderedDag  = new job.Dag(tests, backend).ordered();
-                            tests.run(testEngine, orderedDag, List.of(), List.of(classAndMethod));
+                            tests.run(testEngine, orderedDag, vmOpts, List.of(classAndMethod));
 
                         } else {
                             System.err.println("Failed to find backend   " + backendName);
