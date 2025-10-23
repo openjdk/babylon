@@ -120,6 +120,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var example_matmul = Jar.of(project.id("example{s}-matmul"), core);
         var example_arrayview = Jar.of(project.id("example{s}-arrayview"), core);
         var example_blackscholes = Jar.of(project.id("example{s}-blackscholes"), core);
+        var example_view = Jar.of(project.id("example{s}-view"), core);
         var example_normmap = Jar.of(project.id("example{s}-normmap"), core); // will probabvly need shared when we hatify
 
         // example_shared allows us to break out common UI functions, views, even loops etc
