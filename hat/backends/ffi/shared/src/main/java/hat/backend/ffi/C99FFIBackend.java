@@ -31,6 +31,7 @@ import hat.KernelContext;
 import hat.ThreadMesh;
 import hat.NDRange;
 import hat.annotations.Kernel;
+import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.buffer.KernelBufferContext;
 import hat.codebuilders.C99HATKernelBuilder;
@@ -166,13 +167,21 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         var annotation = kernelCallGraph.entrypoint.method.getAnnotation(Kernel.class);
 
         if (annotation!=null){
-            builder.lineComment("Preformatted from annotation");
+
 
             var typedef = kernelCallGraph.entrypoint.method.getAnnotation(TypeDef.class);
             if (typedef!=null){
-                builder.preformatted(typedef.value());
+                builder.lineComment("Preformatted typedef body from @Typedef annotation");
+                builder.typedefKeyword().space().structKeyword().space().suffix_s(typedef.name()).braceNlIndented(_->
+                        builder.preformatted(typedef.body())
+                ).suffix_t(typedef.name()).semicolon().nl();
             }
-          //  System.out.println(annotation.value());
+            var preformatted = kernelCallGraph.entrypoint.method.getAnnotation(Preformatted.class);
+            if (preformatted!=null){
+                builder.lineComment("Preformatted text from @Preformatted annotation");
+                builder.preformatted(preformatted.value());
+            }
+            builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(annotation.value());
         }else {
             List<TypeElement> localIFaceList = new ArrayList<>();

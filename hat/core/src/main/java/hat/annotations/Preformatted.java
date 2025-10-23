@@ -31,7 +31,6 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface TypeDef {
-    String name();
-    String body();
+public @interface Preformatted {
+    String value();
 }
