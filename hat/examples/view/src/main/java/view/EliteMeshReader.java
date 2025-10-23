@@ -37,56 +37,33 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 class EliteMeshReader {
-    static Pattern remPattern = Pattern.compile("^ *REM(.*)$");
-    static Pattern colonPattern = Pattern.compile("^ *(:) *$");
-    static Pattern verticesPattern = Pattern.compile("^ *(vertices) *$");
-    static Pattern facesPattern = Pattern.compile("^ *(faces) *$");
-    static Pattern hueLigSatPattern = Pattern.compile("^ *(hue-lig-sat) *$");
-    static String hexRegex = "((?:-?&[0-9a-fA-F][0-9a-fA-F])|0)";
-    static String commaRegex = " *, *";
-    static String hexOrColorCommaRegex = "(" + hexRegex + "|(?:(?:[a-zA-Z][a-zA-Z0-9]*)))" + commaRegex;
+    static Regex remRegex = Regex.of("^ *REM(.*)$");
+    static Regex colonRegex = Regex.of("^ *(:) *$");
+    static Regex verticesRegex = Regex.of( "^ *(vertices) *$");
+    static Regex facesRegex = Regex.of("^ *(faces) *$");
+    static Regex hueLigSatRegex = Regex.of("^ *(hue-lig-sat) *$");
 
-    static String hexCommaRegex = hexRegex + commaRegex;
-    static String decRegex = "([0-9]+)";
-    static String decCommaRegex = decRegex + commaRegex;
-    static Pattern face6Pattern = Pattern.compile("^ *"
-            + hexOrColorCommaRegex + hexCommaRegex + hexCommaRegex + hexCommaRegex
-            + "6" + commaRegex + decCommaRegex + decCommaRegex + decCommaRegex + decCommaRegex + decCommaRegex + decRegex + " *$");
-    static Pattern face5Pattern = Pattern.compile("^ *"
-            + hexOrColorCommaRegex + hexCommaRegex + hexCommaRegex + hexCommaRegex
-            + "5" + commaRegex + decCommaRegex + decCommaRegex + decCommaRegex + decCommaRegex + decRegex + " *$");
-    static Pattern face4Pattern = Pattern.compile("^ *"
-            + hexOrColorCommaRegex + hexCommaRegex + hexCommaRegex + hexCommaRegex
-            + "4" + commaRegex + decCommaRegex + decCommaRegex + decCommaRegex + decRegex + " *$");
-    static Pattern face3Pattern = Pattern.compile("^ *"
-            + hexOrColorCommaRegex + hexCommaRegex + hexCommaRegex + hexCommaRegex
-            + "3" + commaRegex + decCommaRegex + decCommaRegex + decRegex + " *$");
-    static Pattern frontLaserVertexPattern = Pattern.compile("^ *" + hexRegex + " *$");
-    static Pattern vertexPattern = Pattern.compile("^ *" + hexCommaRegex + hexCommaRegex + hexRegex + " *$");
+    static String hexRegexStr = "((?:-?&[0-9a-fA-F][0-9a-fA-F])|0)";
+    static String commaRegexStr = " *, *";
+    static String hexOrColorCommaRegexStr = "(" + hexRegexStr + "|(?:(?:[a-zA-Z][a-zA-Z0-9]*)))" + commaRegexStr;
+    static String hexCommaRegexStr = hexRegexStr + commaRegexStr;
+    static String decRegexStr = "([0-9]+)";
+    static String decCommaRegexStr = decRegexStr + commaRegexStr;
 
-    static Pattern vertexCountPattern = Pattern.compile("^ *" + hexCommaRegex + hexRegex + " *$");
-    static Pattern namePattern = Pattern.compile("^ *([A-Za-z][0-9A-Za-z]+) *$");
-    static Pattern emptyPattern = Pattern.compile("^ *$");
+    static Regex face6Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "6" ,commaRegexStr, decCommaRegexStr.repeat(5), decRegexStr, " *$");
+    static Regex face5Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "5" ,commaRegexStr, decCommaRegexStr.repeat(4), decRegexStr, " *$");
+    static Regex face4Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "4" ,commaRegexStr, decCommaRegexStr.repeat(3), decRegexStr, " *$");
+    static Regex face3Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "3" ,commaRegexStr, decCommaRegexStr.repeat(2), decRegexStr, " *$");
 
-    static String getGroups(Matcher m) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i <= m.groupCount(); i++) {
-            sb.append("#" + i + "{" + m.group(i) + "}");
-        }
-        return sb.toString();
-    }
+    static Regex frontLaserVertexRegex = Regex.of( "^ *" + hexRegexStr + " *$");
+    static Regex vertexRegex = Regex.of("^ *" + hexCommaRegexStr + hexCommaRegexStr + hexRegexStr + " *$");
+    static Regex vertexCountRegex = Regex.of("^ *" + hexCommaRegexStr + hexRegexStr + " *$");
+    static Regex nameRegex = Regex.of("^ *([A-Za-z][0-9A-Za-z]+) *$");
+    static Regex emptyRegex = Regex.of("^ *$");
 
-    static void showGroups(String label, Matcher m) {
-        System.out.println(label + ":  " + getGroups(m));
-    }
 
-    static float hex2Float(String s) {
-        return (s.startsWith("-"))? (-Integer.parseInt(s.substring(2), 16) / 64f): (Integer.parseInt(s.substring(1), 16) / 64f);
-    }
 
     enum State {AWAITING_NAME, AWAITING_LAZER, AWAITING_COUNTS, AWAITING_VERTICES, AWAITING_HUE_LIG_SAT, AWAITING_FACES}
 
@@ -98,86 +75,48 @@ class EliteMeshReader {
             F32Mesh3D mesh= null;
             for (String line = reader.readLine(); line != null; line = reader.readLine()) {
                 line = line.trim();
-                Matcher lm;
-                if ((lm = remPattern.matcher(line)).matches()
-                        || (lm = emptyPattern.matcher(line)).matches()
-                        ||(lm = colonPattern.matcher(line)).matches()) {
-                } else {
+                if (!Regex.any(line, remRegex,emptyRegex,colonRegex).matched()) {
                     switch (state) {
-                        case AWAITING_NAME: {
-                            if ((lm = namePattern.matcher(line)).matches() && lm.group(1).equals(name)) {
+                        case AWAITING_NAME ->{
+                            if (nameRegex.is(line) instanceof Regex.OK ok && ok.string(1).equals(name)) {
                                 state = State.AWAITING_LAZER;
                                 mesh = F32Mesh3D.of(name);
-
                             }
-                            break;
                         }
-                        case AWAITING_LAZER: {
-                            if ((lm = frontLaserVertexPattern.matcher(line)).matches()) {
-                                state = State.AWAITING_COUNTS;
-                            }
-                            break;
-                        }
-                        case AWAITING_COUNTS: {
-                            if ((lm = vertexCountPattern.matcher(line)).matches()) {
-                                state = State.AWAITING_VERTICES;
-                            }
-                            break;
-                        }
-                        case AWAITING_VERTICES: {
-                            if ((lm = verticesPattern.matcher(line)).matches()) {
-                                state = State.AWAITING_FACES;
-                            }
-                            break;
-                        }
-                        case AWAITING_FACES: {
-                            if ((lm = vertexPattern.matcher(line)).matches()) {
-                                mesh.vec3(hex2Float(lm.group(1)),  hex2Float(lm.group(2)), hex2Float(lm.group(3)));
-                            } else if ((lm = facesPattern.matcher(line)).matches()) {
+                        case AWAITING_LAZER-> state = frontLaserVertexRegex.is(line).matched()?State.AWAITING_COUNTS:state;
+                        case AWAITING_COUNTS-> state  =vertexCountRegex.is(line).matched()?State.AWAITING_VERTICES:state;
+                        case AWAITING_VERTICES-> state = verticesRegex.is(line).matched()?State.AWAITING_FACES:state;
+                        case AWAITING_FACES->{
+                            if (vertexRegex.is(line) instanceof Regex.OK ok) {
+                                mesh.vec3(ok.f(1),  ok.f(2), ok.f(3));
+                            } else if (facesRegex.is(line).matched()) {
                                 state = State.AWAITING_HUE_LIG_SAT;
                             }
-                            break;
                         }
-                        case AWAITING_HUE_LIG_SAT: {
-                            if ((lm = face6Pattern.matcher(line)).matches()
-                                 || (lm = face5Pattern.matcher(line)).matches()
-                                    || (lm = face4Pattern.matcher(line)).matches()
-                                    || (lm = face3Pattern.matcher(line)).matches()
-                            ) {
-                               // showGroups("FACE ", lm);
-                            //    int vN = F32Vec3.createVec3( hex2Float(lm.group(3)),hex2Float(lm.group(4)),hex2Float(lm.group(5)));
-                                int v0 = mesh.vecEntries[Integer.parseInt(lm.group(6))];
-                                int v1 = mesh.vecEntries[Integer.parseInt(lm.group(7))];
-                                int v2 = mesh.vecEntries[Integer.parseInt(lm.group(8))];
+                        case AWAITING_HUE_LIG_SAT-> {
+                            if (Regex.any(line,face6Regex,face5Regex,face4Regex,face3Regex) instanceof Regex.OK ok) {
+                                int v0 = mesh.vecEntries[ok.i(6)];
+                                int v1 = mesh.vecEntries[ok.i(7)];
+                                int v2 = mesh.vecEntries[ok.i(8)];
 
-                                if (lm.groupCount()==8){
+                                if (ok.regex() == face3Regex){
                                     mesh.tri(v0, v1, v2,  0x00ff00 );
-                                }else {
-                                    int v3 = mesh.vecEntries[Integer.parseInt(lm.group(9))];
-                                    if (lm.groupCount() == 9) {
-                                        mesh.quad(v0, v1,v2, v3,  0xff0000);
-                                    } else {
-                                        int v4 = mesh.vecEntries[Integer.parseInt(lm.group(10))];
-                                        if (lm.groupCount() == 10) {
-                                            mesh.pent(v0, v1, v2, v3, v4, 0x0000ff);
-                                        } else {
-                                            int v5 =  mesh.vecEntries[Integer.parseInt(lm.group(11))];
-                                          //  System.out.println("normals {"+nx+","+ny+","+nz+"} abinormal="+abinormal);
-                                            mesh.hex(v0, v1, v2, v3, v4, v5, 0xfff000);
-                                        }
-                                    }
+                                }else if (ok.regex() == face4Regex) {
+                                    mesh.quad(v0, v1,v2, mesh.vecEntries[ok.i(9)],  0xff0000);
+                                } else if (ok.regex()== face5Regex) {
+                                    mesh.pent(v0, v1, v2, mesh.vecEntries[ok.i(9)], mesh.vecEntries[ok.i(10)], 0x0000ff);
+                                } else {
+                                    mesh.hex(v0, v1, v2, mesh.vecEntries[ok.i(9)], mesh.vecEntries[ok.i(10)], mesh.vecEntries[ok.i(11)], 0xfff000);
                                 }
-                            } else if ((lm = hueLigSatPattern.matcher(line)).matches()) {
+                            } else if ((hueLigSatRegex.is(line).matched())) {
                                 mesh.fin();
                                 return;
                             } else {
                                 System.out.println("In " + state + " skipping " + line);
                             }
-                            break;
                         }
-                        default: {
-                           // System.out.println("WHAt " + line);
-                        }
+                        default->  throw new IllegalStateException(("WHAt " + line));
+
                     }
                 }
             }
