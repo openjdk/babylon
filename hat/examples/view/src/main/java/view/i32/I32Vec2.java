@@ -27,7 +27,7 @@ package view.i32;
 
 public class I32Vec2 {
     public static final int SIZE = 2;
-    public  static final int MAX = 3200;
+    public  static final int MAX = 12800;
     public  static final int X = 0;
     public static final int Y = 1;
 
