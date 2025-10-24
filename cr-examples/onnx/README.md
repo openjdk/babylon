@@ -54,3 +54,13 @@ Running the Llama demo:
 JAVA_HOME=<path to the Babylon JDK home>
 mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.llm.LlamaDemo
 ```
+
+### Lifting ONNX model from binary to Java source.
+
+OnnxLift is an experimental tool for lifting ONNX binary models to ONNX code reflection model, extraction of weights, and generation of Java model source.
+
+Running the OnnxLift:
+```
+JAVA_HOME=<path to the Babylon JDK home>
+mvn package exec:java -Dexec.mainClass=oracle.code.onnx.lift.OnnxLift -Dexec.args="<model.onnx> <target folder>"
+```
