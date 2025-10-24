@@ -101,6 +101,7 @@ public class OnnxLift {
                     import java.lang.foreign.Arena;
                     import java.lang.foreign.MemorySegment;
                     import java.nio.channels.FileChannel;
+                    import jdk.incubator.code.CodeReflection;
                     import oracle.code.onnx.Tensor;
 
                     import static java.util.Optional.*;
@@ -140,6 +141,7 @@ public class OnnxLift {
             }
             out.append("""
 
+                        @CodeReflection
                         public Object mainGraph(
                     """);
             for (int i = 0; i < realParamsSize; i++) {
