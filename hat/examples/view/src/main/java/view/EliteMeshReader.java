@@ -58,17 +58,17 @@ class EliteMeshReader {
     static Regex colonRegex = Regex.of("^ *(:) *$");
     static Regex facesRegex = Regex.of("^ *(faces) *$");
 
-    interface St {
+    interface State {
         default String name(){
             return this.getClass().getSimpleName();
         }
-        record awaiting_name(Regex r) implements St {}
-        record awaiting_lazer(Regex r) implements St {}
-        record awaiting_counts(Regex r) implements St {}
-        record awaiting_vertices(Regex r) implements St {}
-        record awaiting_hue_lig_sat(Regex r) implements St {}
-        record awaiting_faces() implements St { }
-        record done() implements St{}
+        record awaiting_name(Regex r) implements State {}
+        record awaiting_lazer(Regex r) implements State {}
+        record awaiting_counts(Regex r) implements State {}
+        record awaiting_vertices(Regex r) implements State {}
+        record awaiting_hue_lig_sat(Regex r) implements State {}
+        record awaiting_faces() implements State { }
+        record done() implements State {}
         awaiting_name awaiting_name = new awaiting_name( Regex.of("^ *([A-Za-z][0-9A-Za-z]+) *$"));
         awaiting_lazer awaiting_lazer = new awaiting_lazer(Regex.of("^ *" + hexRegexStr + " *$"));
         awaiting_counts awaiting_counts = new awaiting_counts(Regex.of("^ *" + hexCommaRegexStr + hexRegexStr + " *$"));
@@ -81,52 +81,51 @@ class EliteMeshReader {
 
     static void load(String name) {
         final var mesh = StreamMutable.of((F32Mesh3D) null);
-        final var st = StreamMutable.of((St) St.awaiting_name);
+        final var st = StreamMutable.of((State) State.awaiting_name);
         new BufferedReader(
                 new InputStreamReader(EliteMeshReader.class.getResourceAsStream("/meshes/Elite.txt"), StandardCharsets.UTF_8))
                 .lines()
                 .map(String::trim)
                 .forEach(line -> {
-                   // System.out.println(st.get().name());
-                    if (st.get() instanceof St.awaiting_name(Regex r) && r.matches(line, whoseMatcher -> whoseMatcher.group(1).equals(name))) {
-                        st.set(St.awaiting_lazer);
-                        mesh.set(F32Mesh3D.of(name));
-                    } else if (st.get() instanceof St.awaiting_lazer(Regex r)) {
-                        st.setIf(r.matches(line), St.awaiting_counts);
-                    } else if (st.get() instanceof St.awaiting_counts(Regex r)) {
-                        st.setIf(r.matches(line), St.awaiting_vertices);
-                    } else if (st.get() instanceof St.awaiting_vertices(Regex r)) {
-                        st.setIf(r.matches(line), St.awaiting_faces);
-                    } else if (st.get() instanceof St.awaiting_faces s) {
-                        if (vertexRegex.is(line) instanceof Regex.OK ok) {
-                            mesh.get().vec3(ok.f(1), ok.f(2), ok.f(3));
-                        } else if (facesRegex.matchesOrThrow(line)) {
-                            st.set(St.awaiting_hue_lig_sat);
+                    switch(st.get()){
+                        case State.awaiting_name s when s.r().matches(line, whoseMatcher -> whoseMatcher.group(1).equals(name))->{
+                            st.set(State.awaiting_lazer);
+                            mesh.set(F32Mesh3D.of(name));
                         }
-                    } else if (st.get() instanceof St.awaiting_hue_lig_sat(Regex r)) {
-                        if (Regex.any(line, face6Regex, face5Regex, face4Regex, face3Regex) instanceof Regex.OK ok) {
-                            int v0 = mesh.get().vecEntries[ok.i(6)];
-                            int v1 = mesh.get().vecEntries[ok.i(7)];
-                            int v2 = mesh.get().vecEntries[ok.i(8)];
-                            if (ok.regex() == face3Regex) {
-                                mesh.get().tri(v0, v1, v2, 0x00ff00);
-                            } else if (ok.regex() == face4Regex) {
-                                mesh.get().quad(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], 0xff0000);
-                            } else if (ok.regex() == face5Regex) {
-                                mesh.get().pent(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], mesh.get().vecEntries[ok.i(10)], 0x0000ff);
-                            } else {
-                                mesh.get().hex(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], mesh.get().vecEntries[ok.i(10)], mesh.get().vecEntries[ok.i(11)], 0xfff000);
+                        case State.awaiting_lazer s-> st.setIf(s.r.matches(line), State.awaiting_counts);
+                        case State.awaiting_counts s-> st.setIf(s.r.matches(line), State.awaiting_vertices);
+                        case State.awaiting_vertices s-> st.setIf(s.r.matches(line), State.awaiting_faces);
+                        case State.awaiting_faces _-> {
+                            if (vertexRegex.is(line) instanceof Regex.OK ok) {
+                                mesh.get().vec3(ok.f(1), ok.f(2), ok.f(3));
+                            } else if (facesRegex.matchesOrThrow(line)) {
+                                st.set(State.awaiting_hue_lig_sat);
                             }
-                        } else if (r.matches(line)) {
-                            mesh.get().fin();
-                            st.set(St.done);
-                        }else if (!remRegex.matches(line)){
-                            System.out.println("UNHANDLED "+line);
                         }
-                    }else if (st.get() instanceof St.done){
-                        // we don't care
-                    } else if (st.get() instanceof St &&  Regex.any(line, remRegex, emptyRegex, colonRegex).matched()) {
-                        // we dont care ;)
+                        case State.awaiting_hue_lig_sat s-> {
+                            if (Regex.any(line, face6Regex, face5Regex, face4Regex, face3Regex) instanceof Regex.OK ok) {
+                                int v0 = mesh.get().vecEntries[ok.i(6)];
+                                int v1 = mesh.get().vecEntries[ok.i(7)];
+                                int v2 = mesh.get().vecEntries[ok.i(8)];
+                                if (ok.regex() == face3Regex) {
+                                    mesh.get().tri(v0, v1, v2, 0x00ff00);
+                                } else if (ok.regex() == face4Regex) {
+                                    mesh.get().quad(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], 0xff0000);
+                                } else if (ok.regex() == face5Regex) {
+                                    mesh.get().pent(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], mesh.get().vecEntries[ok.i(10)], 0x0000ff);
+                                } else {
+                                    mesh.get().hex(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], mesh.get().vecEntries[ok.i(10)], mesh.get().vecEntries[ok.i(11)], 0xfff000);
+                                }
+                            } else if (s.r().matches(line)) {
+                                mesh.get().fin();
+                                st.set(State.done);
+                            }else if (!remRegex.matches(line)){
+                                System.out.println("UNHANDLED "+line);
+                            }
+                        }
+                        case State.done _-> {}
+                        case State _ when Regex.any(line, remRegex, emptyRegex, colonRegex).matched()->{}
+                        case State _ ->{}
                     }
                 });
     }
