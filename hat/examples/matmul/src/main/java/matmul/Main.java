@@ -30,6 +30,7 @@ import hat.ComputeRange;
 import hat.GlobalMesh1D;
 import hat.GlobalMesh2D;
 import hat.KernelContext;
+import hat.LocalMesh1D;
 import hat.LocalMesh2D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
@@ -505,7 +506,7 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(globalSize));
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(globalSize), new LocalMesh1D(16));
         cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -515,7 +516,7 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size));
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size), new LocalMesh1D(16));
         cc.dispatchKernel(computeRange,
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
