@@ -51,6 +51,7 @@ struct BasicConfig{
     static constexpr int HEADLESS_BIT                     = 1<<0x18;
     static constexpr int SHOW_LOWERED_KERNEL_MODEL_BIT    = 1<<0x19;
     static constexpr int SHOW_COMPILATION_PHASES_BIT      = 1<<0x1a;
+    static constexpr int PROFILE_CUDA_KERNEL_BIT          = 1<<0x1b;
     const static char *bitNames[]; // See below for initialization
     const static char *bitDescriptions[]; // See below for initialization
     int configBits;
@@ -76,6 +77,7 @@ struct BasicConfig{
     int platform;
     int device;
     bool alwaysCopy;
+    bool profileCudaKernel;
     explicit BasicConfig(int configBits):
         configBits(configBits),
         minimizeCopies((configBits & MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
@@ -97,6 +99,7 @@ struct BasicConfig{
         headless((configBits & HEADLESS_BIT)==HEADLESS_BIT),
         showLoweredKernelModel((configBits & SHOW_LOWERED_KERNEL_MODEL_BIT)==SHOW_LOWERED_KERNEL_MODEL_BIT),
         showCompilationPhases((configBits & SHOW_COMPILATION_PHASES_BIT)==SHOW_COMPILATION_PHASES_BIT),
+        profileCudaKernel((configBits & PROFILE_CUDA_KERNEL_BIT)==PROFILE_CUDA_KERNEL_BIT),
         platform(configBits & 0xf),
         alwaysCopy(!minimizeCopies),
         device((configBits & 0xf0) >> 4){
@@ -120,6 +123,7 @@ struct BasicConfig{
                 std::cout << "native headless " << headless << std::endl;
                 std::cout << "native showLoweredKernelModel " << showLoweredKernelModel << std::endl;
                 std::cout << "native showCompilationPhases " << showCompilationPhases << std::endl;
+                std::cout << "native profilerCUDAKernel " << profileCudaKernel << std::endl;
                 std::cout << "native platform " << platform << std::endl;
                 std::cout << "native device " << device << std::endl;
             }
@@ -148,6 +152,7 @@ const char *BasicConfig::bitNames[]={
     "HEADLESS_BIT",
     "SHOW_LOWERED_KERNEL_MODEL_BIT",
     "SHOW_COMPILATION_PHASES_BIT",
+    "PROFILE_CUDA_KERNEL_BIT",
 };
 const char *BasicConfig::bitDescriptions[]={
     "FFI ONLY Try to minimize copies",
