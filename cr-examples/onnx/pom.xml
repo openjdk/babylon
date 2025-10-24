@@ -97,7 +97,6 @@ questions.
                 <version>3.5.1</version>
                 <configuration>
                     <classpathScope>test</classpathScope>
-                    <commandlineArgs>--add-modules jdk.incubator.code -classpath %classpath ${exec.mainClass}</commandlineArgs>
                 </configuration>
             </plugin>
         </plugins>
