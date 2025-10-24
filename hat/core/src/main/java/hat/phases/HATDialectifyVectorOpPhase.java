@@ -210,11 +210,11 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
                         if (isVectorOperation(invokeOp)) {
                             consumer.accept(invokeOp);
-                        }
-                        Set<Op.Result> uses = invokeOp.result().uses();
-                        for (Op.Result result : uses) {
-                            if (result.op() instanceof CoreOp.VarOp varOp) {
-                                consumer.accept(varOp);
+                            Set<Op.Result> uses = invokeOp.result().uses();
+                            for (Op.Result result : uses) {
+                                if (result.op() instanceof CoreOp.VarOp varOp) {
+                                    consumer.accept(varOp);
+                                }
                             }
                         }
                     }
