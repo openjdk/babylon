@@ -92,11 +92,14 @@ public:
 
 class CudaSource final :public Text  {
 public:
-    CudaSource(size_t len, char *text, bool isCopy);
+    CudaSource(size_t len, char *text, bool isCopy, bool lineinfo);
+    bool lineInfo() const;
     explicit CudaSource(size_t len);
     explicit CudaSource(char* text);
     CudaSource();
     ~CudaSource() override = default;
+private:
+    bool _lineInfo = false;
 };
 
 class CudaBackend final : public Backend {
@@ -186,5 +189,3 @@ public:
     static CudaBackend * of(long backendHandle);
     static CudaBackend * of(Backend *backend);
 };
-
-
