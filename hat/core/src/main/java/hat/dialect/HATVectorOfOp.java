@@ -25,53 +25,52 @@
 package hat.dialect;
 
 import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
 import java.util.List;
+import java.util.Map;
 
-public abstract class HATVectorViewOp extends HATOp {
+public class HATVectorOfOp extends HATVectorOp {
 
-    private String varName;
+    private final TypeElement typeElement;
+    private final int loadN;
 
-    public HATVectorViewOp(String varName, List<Value> operands) {
-        super(operands);
-        this.varName = varName;
+    public HATVectorOfOp(TypeElement typeElement, int loadN, List<Value> operands) {
+        super("", operands);
+        this.typeElement = typeElement;
+        this.loadN = loadN;
     }
 
-    protected HATVectorViewOp(HATVectorViewOp that, CopyContext cc) {
-        super(that, cc);
-        this.varName = that.varName;
+    public HATVectorOfOp(HATVectorOfOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.typeElement = op.typeElement;
+        this.loadN = op.loadN;
     }
 
-    public String varName() {
-        return varName;
+    @Override
+    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
+        return new HATVectorOfOp(this, copyContext);
     }
 
-    public void  varName(String varName) {
-        this.varName = varName;
+    @Override
+    public TypeElement resultType() {
+        return typeElement;
     }
 
-    public String mapLane(int lane) {
-        return switch (lane) {
-            case 0 -> "x";
-            case 1 -> "y";
-            case 2 -> "z";
-            case 3 -> "w";
-            default -> throw new InternalError("Invalid lane: " + lane);
-        };
+    @Override
+    public Map<String, Object> externalize() {
+        return Map.of("hat.dialect.vectorOf." + varName(), typeElement);
     }
 
-    public enum VectorType {
-        FLOAT4("float4");
-
-        private final String type;
-
-        VectorType(String type) {
-            this.type = type;
+    public String buildType() {
+        // floatN
+        if (typeElement.toString().startsWith("hat.buffer.Float")) {
+            return "float" + loadN;
         }
-
-        public String type() {
-            return type;
-        }
+        throw new RuntimeException("Unexpected vector type " + typeElement);
     }
+
 }

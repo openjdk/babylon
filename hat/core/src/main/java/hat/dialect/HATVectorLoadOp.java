@@ -33,7 +33,7 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorLoadOp extends HATVectorViewOp {
+public class HATVectorLoadOp extends HATVectorOp {
 
     private final TypeElement typeElement;
     private final TypeElement vectorType;

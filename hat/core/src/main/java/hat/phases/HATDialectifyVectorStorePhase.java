@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorViewOp;
+import hat.dialect.HATVectorOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
@@ -85,8 +85,8 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
     private String findNameVector(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findNameVector(varLoadOp);
-        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorViewOp hatVectorViewOp) {
-            return hatVectorViewOp.varName();
+        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
+            return hatVectorOp.varName();
         }else{
             return null;
         }
@@ -134,8 +134,8 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
                 String name = findNameVector(v);
                 boolean isSharedOrPrivate = findIsSharedOrPrivateSpace(invokeOp.operands().get(0));
 
-                HATVectorViewOp storeView = switch (vectorOperation) {
-                    case FLOAT4_STORE -> new HATVectorStoreView(name, invokeOp.resultType(), 4, HATVectorViewOp.VectorType.FLOAT4, isSharedOrPrivate,  outputOperandsVarOp);
+                HATVectorOp storeView = switch (vectorOperation) {
+                    case FLOAT4_STORE -> new HATVectorStoreView(name, invokeOp.resultType(), 4, HATVectorOp.VectorType.FLOAT4, isSharedOrPrivate,  outputOperandsVarOp);
                 };
                 Op.Result hatLocalResult = blockBuilder.op(storeView);
                 storeView.setLocation(invokeOp.location());

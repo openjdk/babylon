@@ -34,7 +34,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorSelectStoreOp extends HATVectorViewOp {
+public class HATVectorSelectStoreOp extends HATVectorOp {
 
     private final TypeElement elementType;
     private final int lane;

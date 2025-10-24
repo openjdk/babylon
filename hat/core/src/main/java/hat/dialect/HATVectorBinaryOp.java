@@ -30,7 +30,7 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public abstract class HATVectorBinaryOp extends HATVectorViewOp {
+public abstract class HATVectorBinaryOp extends HATVectorOp {
     public enum OpType {
         ADD("+"),
         SUB("-"),

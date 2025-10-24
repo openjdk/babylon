@@ -72,11 +72,8 @@ public class TestVectorTypes {
             float scaleY = vA.y() * 20.0f;
             float scaleZ = vA.z() * 30.0f;
             float scaleW = vA.w() * 40.0f;
-            vA.x(scaleX);
-            vA.y(scaleY);
-            vA.z(scaleZ);
-            vA.w(scaleW);
-            b.storeFloat4View(vA, index * 4);
+            Float4 vResult = Float4.of(scaleX, scaleY, scaleZ, scaleW);
+            b.storeFloat4View(vResult, index * 4);
         }
     }
 
@@ -569,4 +566,46 @@ public class TestVectorTypes {
             HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
+
+    @HatTest
+    public void testVectorTypes13() {
+        // Test the CPU implementation of Float4
+        Float4 vA = Float4.of(1, 2, 3, 4);
+        Float4 vB = Float4.of(4, 3, 2, 1);
+        Float4 vC = Float4.add(vA, vB);
+        Float4 expectedSum = Float4.of(vA.x() + vB.x(),
+                vA.y() + vB.y(),
+                vA.z() + vB.z(),
+                vA.w() + vB.w()
+                );
+        HatAsserts.assertEquals(expectedSum, vC, 0.001f);
+
+        Float4 vD = Float4.sub(vA, vB);
+        Float4 expectedSub = Float4.of(
+                vA.x() - vB.x(),
+                vA.y() - vB.y(),
+                vA.z() - vB.z(),
+                vA.w() - vB.w()
+        );
+        HatAsserts.assertEquals(expectedSub, vD, 0.001f);
+
+        Float4 vE = Float4.mul(vA, vB);
+        Float4 expectedMul = Float4.of(
+                vA.x() * vB.x(),
+                vA.y() * vB.y(),
+                vA.z() * vB.z(),
+                vA.w() * vB.w()
+        );
+        HatAsserts.assertEquals(expectedMul, vE, 0.001f);
+
+        Float4 vF = Float4.div(vA, vB);
+        Float4 expectedDiv = Float4.of(
+                vA.x() / vB.x(),
+                vA.y() / vB.y(),
+                vA.z() / vB.z(),
+                vA.w() / vB.w()
+        );
+        HatAsserts.assertEquals(expectedDiv, vF, 0.001f);
+    }
 }
+

@@ -24,8 +24,7 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import java.util.function.BiFunction;
 
 public interface Float4 extends HatVector {
 
@@ -38,43 +37,65 @@ public interface Float4 extends HatVector {
     void z(float z);
     void w(float w);
 
-    Schema<Float4> schema = Schema.of(Float4.class,
-            float4->float4.fields("x","y","z","w"));
+    record Float4Impl(float x, float y, float z, float w) implements Float4 {
+        @Override
+        public void x(float x) {}
 
-    static Float4 create(Accelerator accelerator) {
-        return schema.allocate(accelerator, 1);
+        @Override
+        public void y(float y) {}
+
+        @Override
+        public void z(float z) {}
+
+        @Override
+        public void w(float w) {}
+    }
+
+    static Float4 of(float x, float y, float z, float w) {
+        return new Float4Impl(x, y, z, w);
+    }
+
+    default Float4 lanewise(Float4 other, BiFunction<Float, Float, Float> f) {
+        float[] backA = this.toArray();
+        float[] backB = other.toArray();
+        float[] backC = new float[backA.length];
+        for (int j = 0; j < backA.length; j++) {
+            var r = f.apply(backA[j],  backB[j]);
+            backC[j] = r;
+        }
+        return of(backC[0], backC[1], backC[2], backC[3]);
     }
 
     static Float4 add(Float4 vA, Float4 vB) {
-        return null;
+        return vA.lanewise(vB, Float::sum);
     }
 
     static Float4 sub(Float4 vA, Float4 vB) {
-        return null;
+        return vA.lanewise(vB, (a, b) -> a - b);
     }
 
     static Float4 mul(Float4 vA, Float4 vB) {
-        return null;
+        return vA.lanewise(vB, (a, b) -> a * b);
     }
 
     static Float4 div(Float4 vA, Float4 vB) {
-        return null;
+        return vA.lanewise(vB, (a, b) -> a / b);
     }
 
     default Float4 add(Float4 vb) {
-        return null;
+        return Float4.add(this, vb);
     }
 
     default Float4 sub(Float4 vb) {
-        return null;
+        return Float4.sub(this, vb);
     }
 
     default Float4 mul(Float4 vb) {
-        return null;
+        return Float4.mul(this, vb);
     }
 
     default Float4 div(Float4 vb) {
-        return null;
+        return Float4.div(this, vb);
     }
 
     default float[] toArray() {

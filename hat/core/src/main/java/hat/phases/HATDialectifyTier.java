@@ -38,6 +38,7 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp,CoreOp.FuncOp> 
     private List<HATDialect> hatPhases = new ArrayList<>();
 
     public HATDialectifyTier(Accelerator accelerator) {
+        // barriers
         hatPhases.add(new HATDialectifyBarrierPhase(accelerator));
         // Memory
         hatPhases.add(new HATDialectifyMemoryPhase.SharedPhase(accelerator));
@@ -50,16 +51,19 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp,CoreOp.FuncOp> 
         hatPhases.add(new HATDialectifyThreadsPhase.LocalSizePhase(accelerator));
         hatPhases.add(new HATDialectifyThreadsPhase.BlockPhase(accelerator));
 
-        // views
+        // views for vector types
         hatPhases.add(new HATDialectifyVectorOpPhase.Float4LoadPhase(accelerator));
+        hatPhases.add(new HATDialectifyVectorOpPhase.Float4OfPhase(accelerator));
         hatPhases.add(new HATDialectifyVectorOpPhase.AddPhase(accelerator));
         hatPhases.add(new HATDialectifyVectorOpPhase.SubPhase(accelerator));
         hatPhases.add(new HATDialectifyVectorOpPhase.MulPhase(accelerator));
         hatPhases.add(new HATDialectifyVectorOpPhase.DivPhase(accelerator));
-
         hatPhases.add(new HATDialectifyVectorStorePhase.Float4StorePhase(accelerator));
 
+        // Vector Select individual lines
         hatPhases.add(new HATDialectifyVectorSelectPhase(accelerator));
+
+        // F16 type
         hatPhases.add(new HATDialectifyFP16Phase(accelerator));
     }
 
