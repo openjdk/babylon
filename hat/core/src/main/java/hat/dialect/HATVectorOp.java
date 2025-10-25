@@ -25,41 +25,53 @@
 package hat.dialect;
 
 import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
 import java.util.List;
-import java.util.Map;
 
-public class HATVectorVarLoadOp extends HATVectorOp {
+public abstract class HATVectorOp extends HATOp {
 
-    private final TypeElement typeElement;
+    private String varName;
 
-    public HATVectorVarLoadOp(String varName, TypeElement typeElement, List<Value> operands) {
-        super(varName, operands);
-        this.typeElement = typeElement;
+    public HATVectorOp(String varName, List<Value> operands) {
+        super(operands);
+        this.varName = varName;
     }
 
-    public HATVectorVarLoadOp(HATVectorVarLoadOp op, CopyContext copyContext) {
-        super(op, copyContext);
-        this.typeElement = op.typeElement;
+    protected HATVectorOp(HATVectorOp that, CopyContext cc) {
+        super(that, cc);
+        this.varName = that.varName;
     }
 
-    @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HATVectorVarLoadOp(this, copyContext);
+    public String varName() {
+        return varName;
     }
 
-    @Override
-    public TypeElement resultType() {
-        return typeElement;
+    public void  varName(String varName) {
+        this.varName = varName;
     }
 
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vectorVarLoadOp." + varName(), typeElement);
+    public String mapLane(int lane) {
+        return switch (lane) {
+            case 0 -> "x";
+            case 1 -> "y";
+            case 2 -> "z";
+            case 3 -> "w";
+            default -> throw new InternalError("Invalid lane: " + lane);
+        };
     }
 
+    public enum VectorType {
+        FLOAT4("float4");
+
+        private final String type;
+
+        VectorType(String type) {
+            this.type = type;
+        }
+
+        public String type() {
+            return type;
+        }
+    }
 }

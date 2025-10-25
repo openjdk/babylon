@@ -28,14 +28,17 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorOfOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+
+import java.util.List;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
@@ -250,4 +253,27 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
         return self();
     }
+
+    @Override
+    public CudaHATKernelBuilder hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
+        identifier("make_" + hatVectorOp.buildType()).oparen();
+
+        List<Value> inputOperands = hatVectorOp.operands();
+        int i;
+        for (i = 0; i < (inputOperands.size() - 1); i++) {
+            var operand = inputOperands.get(i);
+            if ((operand instanceof Op.Result r)) {
+                recurse(buildContext, r.op());
+            }
+            comma().space();
+        }
+        // Last parameter
+        var operand = inputOperands.get(i);
+        if ((operand instanceof Op.Result r)) {
+            recurse(buildContext, r.op());
+        }
+        cparen();
+        return self();
+    }
+
 }

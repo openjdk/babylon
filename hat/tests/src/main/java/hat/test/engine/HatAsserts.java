@@ -24,6 +24,8 @@
  */
 package hat.test.engine;
 
+import hat.buffer.Float4;
+
 public class HatAsserts {
 
     public static void assertEquals(int expected, int actual) {
@@ -47,6 +49,18 @@ public class HatAsserts {
     public static void assertEquals(double expected, double actual, double delta) {
         if (Math.abs(expected - actual) > delta) {
             throw new HatAssertionError("Expected: " + expected + " != actual: " + actual);
+        }
+    }
+
+    public static void assertEquals(Float4 expected, Float4 actual, float delta) {
+        float[] arrayExpected = expected.toArray();
+        float[] arrayActual = actual.toArray();
+        for (int i = 0; i < 4; i++) {
+            var expectedValue = arrayExpected[i];
+            var actualValue = arrayActual[i];
+            if (Math.abs(expectedValue - actualValue) > delta) {
+                throw new HatAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
+            }
         }
     }
 

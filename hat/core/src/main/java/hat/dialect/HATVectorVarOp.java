@@ -34,7 +34,7 @@ import jdk.incubator.code.dialect.core.VarType;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorVarOp extends HATVectorViewOp {
+public class HATVectorVarOp extends HATVectorOp {
 
     private final VarType typeElement;
     private final int loadN;

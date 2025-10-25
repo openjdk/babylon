@@ -33,6 +33,7 @@ import hat.dialect.HATGlobalSizeOp;
 import hat.dialect.HATGlobalThreadIdOp;
 import hat.dialect.HATLocalSizeOp;
 import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATVectorOfOp;
 import hat.dialect.HATVectorVarLoadOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;

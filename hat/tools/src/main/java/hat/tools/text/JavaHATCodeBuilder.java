@@ -28,6 +28,8 @@ import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
 import hat.dialect.HATBlockThreadIdOp;
 import hat.dialect.HATF16ConvOp;
+import hat.dialect.HATVectorOfOp;
+import hat.dialect.HATVectorOp;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATF16BinaryOp;
@@ -200,6 +202,12 @@ public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCode
     @Override
     public T hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
         blockComment("F16 Conv Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
+        blockComment("Vector Of Ops Not Implemented");
         return self();
     }
 
