@@ -22,9 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.i32;
+package view.f32;
 
-public class I32Triangle2D {
+public class F32Triangle2D {
     public static final int SIZE = 3;
     public static final int V0 = 0;
     public static final int V1 = 1;
@@ -34,18 +34,18 @@ public class I32Triangle2D {
 
     public static int[] entries = new int[MAX * SIZE];
     public static int[] colors = new int[MAX];
-    public static float side(int x, int y, int x0, int y0, int x1, int y1) {
+    public static float side(float x, float y, float x0, float y0, float x1, float y1) {
         return (y1 - y0) * (x - x0) + (-x1 + x0) * (y - y0);
     }
 
     public static float side(int v, int v0, int v1) {
-        v*= I32Vec2.SIZE;
-        v0*= I32Vec2.SIZE;
-        v1*= I32Vec2.SIZE;
-        return (I32Vec2.entries[v1+ I32Vec2.Y] - I32Vec2.entries[v0+ I32Vec2.Y] * (I32Vec2.entries[v+ I32Vec2.X] - I32Vec2.entries[v0+ I32Vec2.X]) + (-I32Vec2.entries[v1+ I32Vec2.X] + I32Vec2.entries[v0+ I32Vec2.X]) * (I32Vec2.entries[v+ I32Vec2.Y] - I32Vec2.entries[v0+ I32Vec2.Y]));
+        v*= F32Vec2.SIZE;
+        v0*= F32Vec2.SIZE;
+        v1*= F32Vec2.SIZE;
+        return (F32Vec2.entries[v1+ F32Vec2.Y] - F32Vec2.entries[v0+ F32Vec2.Y] * (F32Vec2.entries[v+ F32Vec2.X] - F32Vec2.entries[v0+ F32Vec2.X]) + (-F32Vec2.entries[v1+ F32Vec2.X] + F32Vec2.entries[v0+ F32Vec2.X]) * (F32Vec2.entries[v+ F32Vec2.Y] - F32Vec2.entries[v0+ F32Vec2.Y]));
     }
 
-    public static boolean intriangle(int x, int y, int x0, int y0, int x1, int y1, int x2, int y2) {
+    public static boolean intriangle(float x, float y, float x0, float y0, float x1, float y1, float x2, float y2) {
         return side(x, y, x0, y0, x1, y1) >= 0 && side(x, y, x1, y1, x2, y2) >= 0 && side(x, y, x2, y2, x0, y0) >= 0;
     }
     public static boolean intriangle(int v, int v0, int v1, int v2){
@@ -66,19 +66,19 @@ public class I32Triangle2D {
         }
     }
     public static boolean onedge(float x, float y, float x0, float y0, float x1, float y1, float x2, float y2, float deltaSquare) {
-        return online(x, y, x0, y0, x1, y1, deltaSquare) || I32Triangle2D.online(x, y, x1, y1, x2, y2, deltaSquare) || I32Triangle2D.online(x, y, x2, y2, x0, y0, deltaSquare);
+        return online(x, y, x0, y0, x1, y1, deltaSquare) || F32Triangle2D.online(x, y, x1, y1, x2, y2, deltaSquare) || F32Triangle2D.online(x, y, x2, y2, x0, y0, deltaSquare);
     }
 
 
 public static int createTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int col) {
-        entries[count * SIZE + V0] = I32Vec2.createVec2(x0,y0);
+        entries[count * SIZE + V0] = F32Vec2.createVec2(x0,y0);
         // We need the triangle to be clock wound
         if (side(x0, y0, x1, y1, x2, y2) > 0) {
-            entries[count * SIZE + V1] = I32Vec2.createVec2(x1,y1);
-            entries[count * SIZE + V2] = I32Vec2.createVec2(x2,y2);
+            entries[count * SIZE + V1] = F32Vec2.createVec2(x1,y1);
+            entries[count * SIZE + V2] = F32Vec2.createVec2(x2,y2);
         } else {
-            entries[count * SIZE + V1] = I32Vec2.createVec2(x2,y2);
-            entries[count * SIZE + V2] = I32Vec2.createVec2(x1,y1);
+            entries[count * SIZE + V1] = F32Vec2.createVec2(x2,y2);
+            entries[count * SIZE + V2] = F32Vec2.createVec2(x1,y1);
         }
         colors[count] = col;
         return count++;

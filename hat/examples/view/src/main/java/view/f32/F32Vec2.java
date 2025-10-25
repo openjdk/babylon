@@ -23,35 +23,34 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.i32;
+package view.f32;
 
-public class I32Vec2 {
+public class F32Vec2 {
     public static final int SIZE = 2;
     public  static final int MAX = 12800;
     public  static final int X = 0;
     public static final int Y = 1;
 
     public static int count = 0;
-    public static int entries[] = new int[MAX * SIZE];
+    public static float entries[] = new float[MAX * SIZE];
 
-    static int createVec2(int x, int y) {
+    public static int createVec2(float x, float y) {
         entries[count * SIZE + X] = x;
         entries[count * SIZE + Y] = y;
         return count++;
     }
-
-
-    static int mulScaler(int i, int s) {
+/*
+    static int mulScaler(int i, float s) {
         i *= SIZE;
         return createVec2(entries[i + X] * s, entries[i + Y] * s);
     }
 
-    static int addScaler(int i, int s) {
+    static int addScaler(int i, float s) {
         i *= SIZE;
         return createVec2(entries[i + X] + s, entries[i + Y] + s);
     }
 
-    static int divScaler(int i, int s) {
+    static int divScaler(int i, float s) {
         i *= SIZE;
         return createVec2(entries[i + X] / s, entries[i + Y] / s);
     }
@@ -78,5 +77,5 @@ public class I32Vec2 {
     static String asString(int i) {
         i *= SIZE;
         return entries[i + X] + "," + entries[i + Y];
-    }
+    } */
 }

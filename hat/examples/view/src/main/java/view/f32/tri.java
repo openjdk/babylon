@@ -29,21 +29,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class tri {
-    private int id;
+    private F32Triangle3D.Pool.Idx id;
 
-    public tri( int id) {
+    public tri( F32Triangle3D.Pool.Idx id) {
         this.id = id;
     }
 
     public static List<tri> all() {
         List<tri> all = new ArrayList<>();
         for (int t = 0; t < F32Triangle3D.pool.count; t++) {
-            all.add(new tri(t));
+            all.add(new tri(F32Triangle3D.Pool.Idx.of(t)));
         }
         return all;
     }
 
-    public tri mul(mat4 m) {
+    public tri mul(F32Mat4x4 m) {
         return new tri(F32Triangle3D.mulMat4(id, m.id));
     }
 

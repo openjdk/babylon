@@ -25,19 +25,15 @@
 
 package view;
 
-import view.f32.F32Mat4;
-import view.f32.F32Mesh3D;
-import view.f32.F32Triangle3D;
-import view.f32.F32Vec3;
-import view.f32.mat4;
-import view.f32.projectionMat4;
-import view.f32.rotationMat4;
-import view.f32.scaleMat4;
-import view.f32.translateMat4;
+import view.f32.F32Mat4x4;
+import view.f32.ProjF32Mat4x4;
+import view.f32.RotF32Mat4x4;
+import view.f32.ScaleF32Mat4x4;
+import view.f32.TransF32Mat4x4;
 import view.f32.tri;
 import view.f32.vec3;
-import view.i32.I32Triangle2D;
-import view.i32.I32Vec2;
+import view.f32.F32Triangle2D;
+import view.f32.F32Vec2;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -62,40 +58,11 @@ public class ViewFrame extends JFrame {
     long frames;
     vec3 cameraVec3;
     vec3 lookDirVec3;
-    mat4 projectionMat4;
+    F32Mat4x4 projF32Mat4x4;
     vec3 centerVec3;
     vec3 moveAwayVec3;
 
-    static class Mark {
-        int markedTriangles3D;
-        int markedTriangles2D;
-        int markedVec2;
-        int markedVec3;
-        int markedMat4;
-
-        Mark() {
-            markedTriangles3D = F32Triangle3D.pool.count;
-            markedVec3 = F32Vec3.pool.count;
-            markedMat4 = F32Mat4.pool.count;
-            markedTriangles2D = I32Triangle2D.count;
-            markedVec2 = I32Vec2.count;
-        }
-
-        void resetAll() {
-            reset3D();
-            I32Triangle2D.count = markedTriangles2D;
-            I32Vec2.count = markedVec2;
-        }
-
-        void reset3D() {
-            F32Triangle3D.pool.count = markedTriangles3D;
-            F32Vec3.pool.count = markedVec3;
-            F32Mat4.pool.count = markedMat4;
-        }
-
-    }
-
-    Mark mark;
+    ModelHighWaterMark mark;
 
     private ViewFrame(String name, Rasterizer rasterizer, Runnable sceneBuilder) {
         super(name);
@@ -128,19 +95,16 @@ public class ViewFrame extends JFrame {
             }
         });
 
-
         sceneBuilder.run();
-
 
         cameraVec3 = vec3.of(0f, 0f, .0f);
         lookDirVec3 = vec3.of(0f, 0f, 0f);//F32Vec3.createVec3(0, 0, 0);
-        projectionMat4 = new projectionMat4(rasterizer.view.image.getWidth(), rasterizer.view.image.getHeight(), 0.1f, 1000f, 60f);
-        projectionMat4 = projectionMat4.mul(new scaleMat4((float) rasterizer.view.image.getHeight() / 4));
-        projectionMat4 = projectionMat4.mul(new translateMat4((float) rasterizer.view.image.getHeight() / 2));
-
+        projF32Mat4x4 = new ProjF32Mat4x4(rasterizer.view.image.getWidth(), rasterizer.view.image.getHeight(), 0.1f, 1000f, 60f);
+        projF32Mat4x4 = projF32Mat4x4.mul(new ScaleF32Mat4x4((float) rasterizer.view.image.getHeight() / 4));
+        projF32Mat4x4 = projF32Mat4x4.mul(new TransF32Mat4x4((float) rasterizer.view.image.getHeight() / 2));
         centerVec3 = vec3.of((float) rasterizer.view.image.getWidth() / 2, (float) rasterizer.view.image.getHeight() / 2, 0);
         moveAwayVec3 = vec3.of(0f, 0f, 30f);
-        mark = new Mark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
+        mark = new ModelHighWaterMark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
     }
 
     public static ViewFrame of(String name, Rasterizer rasterizer, Runnable sceneBuilder){
@@ -174,7 +138,7 @@ public class ViewFrame extends JFrame {
 
     void update() {
         final long elapsedMillis = System.currentTimeMillis() - startMillis;
-        float theta = elapsedMillis * Rasterizer.thetaDelta;
+        float theta = elapsedMillis * Physics.thetaDelta;
 
         if ((frames++ % 50) == 0) {
             System.out.println("Frames " + frames + " Theta = " + theta + " FPS = " + ((frames * 1000) / elapsedMillis) + " Vertices " + rasterizer.vec2EntriesCount);
@@ -182,9 +146,9 @@ public class ViewFrame extends JFrame {
 
         mark.resetAll();
 
-        mat4 xyzRot4x4 = new rotationMat4(theta * 2, theta / 2, theta);
+        F32Mat4x4 xyzRot4x4 = new RotF32Mat4x4(theta * 2, theta / 2, theta);
 
-        Mark resetMark = new Mark();
+        ModelHighWaterMark resetMark = new ModelHighWaterMark();
 
         List<ZPos> zpos = new ArrayList<>();
         // Loop through the triangles
@@ -223,7 +187,7 @@ public class ViewFrame extends JFrame {
                 // now project the 3d triangle to 2d plane.
                 // Scale up to quarter screen height then add half height of screen
 
-                t = t.mul(projectionMat4);//  projection matrix also scales to screen and translate half a screen
+                t = t.mul(projF32Mat4x4);//  projection matrix also scales to screen and translate half a screen
 
                 zpos.add(new ZPos(t, howVisible));
             }
@@ -238,11 +202,11 @@ public class ViewFrame extends JFrame {
             z.create();
         }
 
-        rasterizer.triangle2DEntries = I32Triangle2D.entries;
-        rasterizer.triangle2DEntriesCount = I32Triangle2D.count;
-        rasterizer.vec2Entries = I32Vec2.entries;
-        rasterizer.vec2EntriesCount = I32Vec2.count;
-        rasterizer.colors = I32Triangle2D.colors;
+        rasterizer.triangle2DEntries = F32Triangle2D.entries;
+        rasterizer.triangle2DEntriesCount = F32Triangle2D.count;
+        rasterizer.vec2Entries = F32Vec2.entries;
+        rasterizer.vec2EntriesCount = F32Vec2.count;
+        rasterizer.colors = F32Triangle2D.colors;
         rasterizer.execute(rasterizer.range);
         rasterizer.view.update();
         viewer.repaint();

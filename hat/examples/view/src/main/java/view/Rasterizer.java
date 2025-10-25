@@ -31,8 +31,8 @@
  */
 package view;
 
-import view.i32.I32Triangle2D;
-import view.i32.I32Vec2;
+import view.f32.F32Triangle2D;
+import view.f32.F32Vec2;
 
 import java.util.stream.IntStream;
 
@@ -40,8 +40,6 @@ public class Rasterizer {
 
 
     public static final float deltaSquare = 10000f;
-    public static final float thetaDelta = 0.0002f;
-
 
     public enum DisplayMode {
         FILL(false,true,false),
@@ -67,7 +65,7 @@ public class Rasterizer {
     final int range;
     int triangle2DEntries[];
     int triangle2DEntriesCount;
-    int vec2Entries[];
+    float vec2Entries[];
     int vec2EntriesCount;
     int colors[];
 
@@ -91,18 +89,18 @@ public class Rasterizer {
         int y = gid / width;
         int col = 0x00000;
         for (int t = 0; t < triangle2DEntriesCount; t++) {
-            int v0 = triangle2DEntries[I32Triangle2D.SIZE * t + I32Triangle2D.V0];
-            int v1 = triangle2DEntries[I32Triangle2D.SIZE * t + I32Triangle2D.V1];
-            int v2 = triangle2DEntries[I32Triangle2D.SIZE * t + I32Triangle2D.V2];
-            int x0 = vec2Entries[v0 * I32Vec2.SIZE + I32Vec2.X];
-            int y0 = vec2Entries[v0 * I32Vec2.SIZE + I32Vec2.Y];
-            int x1 = vec2Entries[v1 * I32Vec2.SIZE + I32Vec2.X];
-            int y1 = vec2Entries[v1 * I32Vec2.SIZE + I32Vec2.Y];
-            int x2 = vec2Entries[v2 * I32Vec2.SIZE + I32Vec2.X];
-            int y2 = vec2Entries[v2 * I32Vec2.SIZE + I32Vec2.Y];
-            if (displayMode.filled && I32Triangle2D.intriangle(x, y, x0, y0, x1, y1, x2, y2)) {
+            int v0 = triangle2DEntries[F32Triangle2D.SIZE * t + F32Triangle2D.V0];
+            int v1 = triangle2DEntries[F32Triangle2D.SIZE * t + F32Triangle2D.V1];
+            int v2 = triangle2DEntries[F32Triangle2D.SIZE * t + F32Triangle2D.V2];
+            float x0 = vec2Entries[v0 * F32Vec2.SIZE + F32Vec2.X];
+            float y0 = vec2Entries[v0 * F32Vec2.SIZE + F32Vec2.Y];
+            float x1 = vec2Entries[v1 * F32Vec2.SIZE + F32Vec2.X];
+            float y1 = vec2Entries[v1 * F32Vec2.SIZE + F32Vec2.Y];
+            float x2 = vec2Entries[v2 * F32Vec2.SIZE + F32Vec2.X];
+            float y2 = vec2Entries[v2 * F32Vec2.SIZE + F32Vec2.Y];
+            if (displayMode.filled && F32Triangle2D.intriangle(x, y, x0, y0, x1, y1, x2, y2)) {
                 col = colors[t];
-            } else if (displayMode.wire && I32Triangle2D.onedge(x, y, x0, y0, x1, y1, x2, y2, deltaSquare)) {
+            } else if (displayMode.wire && F32Triangle2D.onedge(x, y, x0, y0, x1, y1, x2, y2, deltaSquare)) {
                 col = 0xffffff;//colors[t];
             }
         }

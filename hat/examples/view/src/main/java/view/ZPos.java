@@ -27,7 +27,7 @@ package view;
 
 import view.f32.tri;
 import view.f32.vec3;
-import view.i32.I32Triangle2D;
+import view.f32.F32Triangle2D;
 
 class ZPos implements Comparable<ZPos> {
     public enum ColourMode {NORMALIZED_COLOUR, NORMALIZED_INV_COLOUR, COLOUR, NORMALIZED_WHITE, NORMALIZED_INV_WHITE, WHITE}
@@ -84,7 +84,7 @@ class ZPos implements Comparable<ZPos> {
             r = g = b = 0xff;
         }
 
-        return I32Triangle2D.createTriangle(x0, y0, x1, y1, x2, y2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
+        return F32Triangle2D.createTriangle(x0, y0, x1, y1, x2, y2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
 
     }
 }

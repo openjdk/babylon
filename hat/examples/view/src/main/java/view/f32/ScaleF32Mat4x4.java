@@ -24,8 +24,8 @@
  */
 package view.f32;
 // https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-public class scaleMat4 extends mat4 {
-    public scaleMat4(float x, float y, float z) {
+public class ScaleF32Mat4x4 extends F32Mat4x4 {
+    public ScaleF32Mat4x4(float x, float y, float z) {
         super(
                         x, 0f, 0f, 0f,
                         0f, y, 0f, 0f,
@@ -35,7 +35,7 @@ public class scaleMat4 extends mat4 {
         );
     }
 
-    public scaleMat4(float v) {
+    public ScaleF32Mat4x4(float v) {
         this(v,v,v);
     }
 }

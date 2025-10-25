@@ -24,8 +24,11 @@
  */
 package view.f32;
 
-public class rotationMat4 extends mat4 {
-    public rotationMat4(float thetaX, float thetaY, float thetaZ){
-        super( F32Mat4.mulMat4(F32Mat4.mulMat4(F32Mat4.createRotXMat4(thetaX), F32Mat4.createRotYMat4(thetaY)),F32Mat4.createRotZMat4(thetaZ)));
+//https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
+public class ProjF32Mat4x4 extends F32Mat4x4 {
+
+    public ProjF32Mat4x4(float width, float height, float nearZ, float farZ, float fieldOfViewDeg){
+        super(F32Mat4.createProjectionMatrix(width, height,  nearZ, farZ,  fieldOfViewDeg));
+
     }
 }

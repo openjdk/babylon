@@ -22,26 +22,34 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32;
+package view;
 
-public class mat4 {
-    public int id;
+import view.f32.F32Mat4;
+import view.f32.F32Triangle2D;
+import view.f32.F32Triangle3D;
+import view.f32.F32Vec2;
+import view.f32.F32Vec3;
 
-    protected mat4(int id) {
-        this.id = id;
+record ModelHighWaterMark(
+        int markedTriangles3D,
+        int markedTriangles2D,
+        int markedVec2,
+        int markedVec3,
+        int markedMat4) {
+
+    ModelHighWaterMark() {
+        this(F32Triangle3D.pool.count, F32Triangle2D.count, F32Vec2.count, F32Vec3.pool.count, F32Mat4.pool.count);
     }
 
-    public mat4(float x0y0, float x1y0, float x2y0, float x3y0,
-                float x0y1, float x1y1, float x2y1, float x3y1,
-                float x0y2, float x1y2, float x2y2, float x3y2,
-                float x0y3, float x1y3, float x2y3, float x3y3) {
-        this(F32Mat4.createMat4(x0y0, x1y0, x2y0, x3y0,
-                x0y1, x1y1, x2y1, x3y1,
-                x0y2, x1y2, x2y2, x3y2,
-                x0y3, x1y3, x2y3, x3y3));
+    void resetAll() {
+        reset3D();
+        F32Triangle2D.count = markedTriangles2D;
+        F32Vec2.count = markedVec2;
     }
 
-    public mat4 mul(mat4 m) {
-        return new mat4(F32Mat4.mulMat4(id, m.id));
+    void reset3D() {
+        F32Triangle3D.pool.count = markedTriangles3D;
+        F32Vec3.pool.count = markedVec3;
+        F32Mat4.pool.count = markedMat4;
     }
 }

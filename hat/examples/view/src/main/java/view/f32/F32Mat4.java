@@ -25,7 +25,7 @@
 package view.f32;
 
 public class F32Mat4 {
-    static final int SIZE = 16;
+
     static final int X0Y0 = 0;
     static final int X1Y0 = 1;
     static final int X2Y0 = 2;
@@ -44,69 +44,76 @@ public class F32Mat4 {
     static final int X3Y3 = 15;
 
     public static class Pool {
+        public record Idx(int idx){
+            static Idx of (int idx){
+                return new Idx(idx);
+            }
+        }
+        public  final int stride;
         public final int max;
         public int count = 0;
         public final float entries[];
-        Pool(int max) {
+        Pool(int stride, int max) {
+            this.stride = stride;
             this.max = max;
-            this.entries = new float[max * SIZE];
+            this.entries = new float[max * this.stride];
         }
     }
 
-    public static Pool pool = new Pool(100);
+    public static Pool pool = new Pool(16,100);
 
-    public static int createMat4(float x0y0, float x1y0, float x2y0, float x3y0,
+    public static Pool.Idx createMat4(float x0y0, float x1y0, float x2y0, float x3y0,
                           float x0y1, float x1y1, float x2y1, float x3y1,
                           float x0y2, float x1y2, float x2y2, float x3y2,
                           float x0y3, float x1y3, float x2y3, float x3y3) {
-        pool.entries[pool.count * SIZE + X0Y0] = x0y0;
-        pool.entries[pool.count * SIZE + X1Y0] = x1y0;
-        pool.entries[pool.count * SIZE + X2Y0] = x2y0;
-        pool.entries[pool.count * SIZE + X3Y0] = x3y0;
-        pool.entries[pool.count * SIZE + X0Y1] = x0y1;
-        pool.entries[pool.count * SIZE + X1Y1] = x1y1;
-        pool.entries[pool.count * SIZE + X2Y1] = x2y1;
-        pool.entries[pool.count * SIZE + X3Y1] = x3y1;
-        pool.entries[pool.count * SIZE + X0Y2] = x0y2;
-        pool.entries[pool.count * SIZE + X1Y2] = x1y2;
-        pool.entries[pool.count * SIZE + X2Y2] = x2y2;
-        pool.entries[pool.count * SIZE + X3Y2] = x3y2;
-        pool.entries[pool.count * SIZE + X0Y3] = x0y3;
-        pool.entries[pool.count * SIZE + X1Y3] = x1y3;
-        pool.entries[pool.count * SIZE + X2Y3] = x2y3;
-        pool.entries[pool.count * SIZE + X3Y3] = x3y3;
-        return pool.count++;
+        pool.entries[pool.count * pool.stride + X0Y0] = x0y0;
+        pool.entries[pool.count * pool.stride + X1Y0] = x1y0;
+        pool.entries[pool.count * pool.stride + X2Y0] = x2y0;
+        pool.entries[pool.count * pool.stride + X3Y0] = x3y0;
+        pool.entries[pool.count * pool.stride + X0Y1] = x0y1;
+        pool.entries[pool.count * pool.stride + X1Y1] = x1y1;
+        pool.entries[pool.count * pool.stride + X2Y1] = x2y1;
+        pool.entries[pool.count * pool.stride + X3Y1] = x3y1;
+        pool.entries[pool.count * pool.stride + X0Y2] = x0y2;
+        pool.entries[pool.count * pool.stride + X1Y2] = x1y2;
+        pool.entries[pool.count * pool.stride + X2Y2] = x2y2;
+        pool.entries[pool.count * pool.stride + X3Y2] = x3y2;
+        pool.entries[pool.count * pool.stride + X0Y3] = x0y3;
+        pool.entries[pool.count * pool.stride + X1Y3] = x1y3;
+        pool.entries[pool.count * pool.stride + X2Y3] = x2y3;
+        pool.entries[pool.count * pool.stride + X3Y3] = x3y3;
+        return Pool.Idx.of(pool.count++);
     }
   //  https://stackoverflow.com/questions/28075743/how-do-i-compose-a-rotation-matrix-with-human-readable-angles-from-scratch/28084380#28084380
-    public static int mulMat4(int lhs, int rhs) {
-        lhs *= SIZE;
-        rhs *= SIZE;
+    public static Pool.Idx mulMat4(Pool.Idx lhs, Pool.Idx rhs) {
+        lhs = Pool.Idx.of(lhs.idx *pool.stride);
+        rhs = Pool.Idx.of(rhs.idx()*pool.stride);
         return createMat4(
-                pool.entries[lhs + X0Y0] * pool.entries[rhs + X0Y0] + pool.entries[lhs + X1Y0] * pool.entries[rhs + X0Y1] + pool.entries[lhs + X2Y0] * pool.entries[rhs + X0Y2] + pool.entries[lhs + X3Y0] * pool.entries[rhs + X0Y3],
-                pool.entries[lhs + X0Y0] * pool.entries[rhs + X1Y0] + pool.entries[lhs + X1Y0] * pool.entries[rhs + X1Y1] + pool.entries[lhs + X2Y0] * pool.entries[rhs + X1Y2] + pool.entries[lhs + X3Y0] * pool.entries[rhs + X1Y3],
-                pool.entries[lhs + X0Y0] * pool.entries[rhs + X2Y0] + pool.entries[lhs + X1Y0] * pool.entries[rhs + X2Y1] + pool.entries[lhs + X2Y0] * pool.entries[rhs + X2Y2] + pool.entries[lhs + X3Y0] * pool.entries[rhs + X2Y3],
-                pool.entries[lhs + X0Y0] * pool.entries[rhs + X3Y0] + pool.entries[lhs + X1Y0] * pool.entries[rhs + X3Y1] + pool.entries[lhs + X2Y0] * pool.entries[rhs + X3Y2] + pool.entries[lhs + X3Y0] * pool.entries[rhs + X3Y3],
+                pool.entries[lhs.idx() + X0Y0] * pool.entries[rhs.idx() + X0Y0] + pool.entries[lhs.idx() + X1Y0] * pool.entries[rhs.idx() + X0Y1] + pool.entries[lhs.idx() + X2Y0] * pool.entries[rhs.idx() + X0Y2] + pool.entries[lhs.idx() + X3Y0] * pool.entries[rhs.idx() + X0Y3],
+                pool.entries[lhs.idx() + X0Y0] * pool.entries[rhs.idx() + X1Y0] + pool.entries[lhs.idx() + X1Y0] * pool.entries[rhs.idx() + X1Y1] + pool.entries[lhs.idx() + X2Y0] * pool.entries[rhs.idx() + X1Y2] + pool.entries[lhs.idx() + X3Y0] * pool.entries[rhs.idx() + X1Y3],
+                pool.entries[lhs.idx() + X0Y0] * pool.entries[rhs.idx() + X2Y0] + pool.entries[lhs.idx() + X1Y0] * pool.entries[rhs.idx() + X2Y1] + pool.entries[lhs.idx() + X2Y0] * pool.entries[rhs.idx() + X2Y2] + pool.entries[lhs.idx() + X3Y0] * pool.entries[rhs.idx() + X2Y3],
+                pool.entries[lhs.idx() + X0Y0] * pool.entries[rhs.idx() + X3Y0] + pool.entries[lhs.idx() + X1Y0] * pool.entries[rhs.idx() + X3Y1] + pool.entries[lhs.idx() + X2Y0] * pool.entries[rhs.idx() + X3Y2] + pool.entries[lhs.idx() + X3Y0] * pool.entries[rhs.idx() + X3Y3],
 
-                pool.entries[lhs + X0Y1] * pool.entries[rhs + X0Y0] + pool.entries[lhs + X1Y1] * pool.entries[rhs + X0Y1] + pool.entries[lhs + X2Y1] * pool.entries[rhs + X0Y2] + pool.entries[lhs + X3Y1] * pool.entries[rhs + X0Y3],
-                pool.entries[lhs + X0Y1] * pool.entries[rhs + X1Y0] + pool.entries[lhs + X1Y1] * pool.entries[rhs + X1Y1] + pool.entries[lhs + X2Y1] * pool.entries[rhs + X1Y2] + pool.entries[lhs + X3Y1] * pool.entries[rhs + X1Y3],
-                pool.entries[lhs + X0Y1] * pool.entries[rhs + X2Y0] + pool.entries[lhs + X1Y1] * pool.entries[rhs + X2Y1] + pool.entries[lhs + X2Y1] * pool.entries[rhs + X2Y2] + pool.entries[lhs + X3Y1] * pool.entries[rhs + X2Y3],
-                pool.entries[lhs + X0Y1] * pool.entries[rhs + X3Y0] + pool.entries[lhs + X1Y1] * pool.entries[rhs + X3Y1] + pool.entries[lhs + X2Y1] * pool.entries[rhs + X3Y2] + pool.entries[lhs + X3Y1] * pool.entries[rhs + X3Y3],
+                pool.entries[lhs.idx() + X0Y1] * pool.entries[rhs.idx() + X0Y0] + pool.entries[lhs.idx() + X1Y1] * pool.entries[rhs.idx() + X0Y1] + pool.entries[lhs.idx() + X2Y1] * pool.entries[rhs.idx() + X0Y2] + pool.entries[lhs.idx() + X3Y1] * pool.entries[rhs.idx() + X0Y3],
+                pool.entries[lhs.idx() + X0Y1] * pool.entries[rhs.idx() + X1Y0] + pool.entries[lhs.idx() + X1Y1] * pool.entries[rhs.idx() + X1Y1] + pool.entries[lhs.idx() + X2Y1] * pool.entries[rhs.idx() + X1Y2] + pool.entries[lhs.idx() + X3Y1] * pool.entries[rhs.idx() + X1Y3],
+                pool.entries[lhs.idx() + X0Y1] * pool.entries[rhs.idx() + X2Y0] + pool.entries[lhs.idx() + X1Y1] * pool.entries[rhs.idx() + X2Y1] + pool.entries[lhs.idx() + X2Y1] * pool.entries[rhs.idx() + X2Y2] + pool.entries[lhs.idx() + X3Y1] * pool.entries[rhs.idx() + X2Y3],
+                pool.entries[lhs.idx() + X0Y1] * pool.entries[rhs.idx() + X3Y0] + pool.entries[lhs.idx() + X1Y1] * pool.entries[rhs.idx() + X3Y1] + pool.entries[lhs.idx() + X2Y1] * pool.entries[rhs.idx() + X3Y2] + pool.entries[lhs.idx() + X3Y1] * pool.entries[rhs.idx() + X3Y3],
 
-                pool.entries[lhs + X0Y2] * pool.entries[rhs + X0Y0] + pool.entries[lhs + X1Y2] * pool.entries[rhs + X0Y1] + pool.entries[lhs + X2Y2] * pool.entries[rhs + X0Y2] + pool.entries[lhs + X3Y2] * pool.entries[rhs + X0Y3],
-                pool.entries[lhs + X0Y2] * pool.entries[rhs + X1Y0] + pool.entries[lhs + X1Y2] * pool.entries[rhs + X1Y1] + pool.entries[lhs + X2Y2] * pool.entries[rhs + X1Y2] + pool.entries[lhs + X3Y2] * pool.entries[rhs + X1Y3],
-                pool.entries[lhs + X0Y2] * pool.entries[rhs + X2Y0] + pool.entries[lhs + X1Y2] * pool.entries[rhs + X2Y1] + pool.entries[lhs + X2Y2] * pool.entries[rhs + X2Y2] + pool.entries[lhs + X3Y2] * pool.entries[rhs + X2Y3],
-                pool.entries[lhs + X0Y2] * pool.entries[rhs + X3Y0] + pool.entries[lhs + X1Y2] * pool.entries[rhs + X3Y1] + pool.entries[lhs + X2Y2] * pool.entries[rhs + X3Y2] + pool.entries[lhs + X3Y2] * pool.entries[rhs + X3Y3],
+                pool.entries[lhs.idx() + X0Y2] * pool.entries[rhs.idx() + X0Y0] + pool.entries[lhs.idx() + X1Y2] * pool.entries[rhs.idx() + X0Y1] + pool.entries[lhs.idx() + X2Y2] * pool.entries[rhs.idx() + X0Y2] + pool.entries[lhs.idx() + X3Y2] * pool.entries[rhs.idx() + X0Y3],
+                pool.entries[lhs.idx() + X0Y2] * pool.entries[rhs.idx() + X1Y0] + pool.entries[lhs.idx() + X1Y2] * pool.entries[rhs.idx() + X1Y1] + pool.entries[lhs.idx() + X2Y2] * pool.entries[rhs.idx() + X1Y2] + pool.entries[lhs.idx() + X3Y2] * pool.entries[rhs.idx() + X1Y3],
+                pool.entries[lhs.idx() + X0Y2] * pool.entries[rhs.idx() + X2Y0] + pool.entries[lhs.idx() + X1Y2] * pool.entries[rhs.idx() + X2Y1] + pool.entries[lhs.idx() + X2Y2] * pool.entries[rhs.idx() + X2Y2] + pool.entries[lhs.idx() + X3Y2] * pool.entries[rhs.idx() + X2Y3],
+                pool.entries[lhs.idx() + X0Y2] * pool.entries[rhs.idx() + X3Y0] + pool.entries[lhs.idx() + X1Y2] * pool.entries[rhs.idx() + X3Y1] + pool.entries[lhs.idx() + X2Y2] * pool.entries[rhs.idx() + X3Y2] + pool.entries[lhs.idx() + X3Y2] * pool.entries[rhs.idx() + X3Y3],
 
-                pool.entries[lhs + X0Y3] * pool.entries[rhs + X0Y0] + pool.entries[lhs + X1Y3] * pool.entries[rhs + X0Y1] + pool.entries[lhs + X2Y3] * pool.entries[rhs + X0Y2] + pool.entries[lhs + X3Y3] * pool.entries[rhs + X0Y3],
-                pool.entries[lhs + X0Y3] * pool.entries[rhs + X1Y0] + pool.entries[lhs + X1Y3] * pool.entries[rhs + X1Y1] + pool.entries[lhs + X2Y3] * pool.entries[rhs + X1Y2] + pool.entries[lhs + X3Y3] * pool.entries[rhs + X1Y3],
-                pool.entries[lhs + X0Y3] * pool.entries[rhs + X2Y0] + pool.entries[lhs + X1Y3] * pool.entries[rhs + X2Y1] + pool.entries[lhs + X2Y3] * pool.entries[rhs + X2Y2] + pool.entries[lhs + X3Y3] * pool.entries[rhs + X2Y3],
-                pool.entries[lhs + X0Y3] * pool.entries[rhs + X3Y0] + pool.entries[lhs + X1Y3] * pool.entries[rhs + X3Y1] + pool.entries[lhs + X2Y3] * pool.entries[rhs + X3Y2] + pool.entries[lhs + X3Y3] * pool.entries[rhs + X3Y3]
+                pool.entries[lhs.idx() + X0Y3] * pool.entries[rhs.idx() + X0Y0] + pool.entries[lhs.idx() + X1Y3] * pool.entries[rhs.idx() + X0Y1] + pool.entries[lhs.idx() + X2Y3] * pool.entries[rhs.idx() + X0Y2] + pool.entries[lhs.idx() + X3Y3] * pool.entries[rhs.idx() + X0Y3],
+                pool.entries[lhs.idx() + X0Y3] * pool.entries[rhs.idx() + X1Y0] + pool.entries[lhs.idx() + X1Y3] * pool.entries[rhs.idx() + X1Y1] + pool.entries[lhs.idx() + X2Y3] * pool.entries[rhs.idx() + X1Y2] + pool.entries[lhs.idx() + X3Y3] * pool.entries[rhs.idx() + X1Y3],
+                pool.entries[lhs.idx() + X0Y3] * pool.entries[rhs.idx() + X2Y0] + pool.entries[lhs.idx() + X1Y3] * pool.entries[rhs.idx() + X2Y1] + pool.entries[lhs.idx() + X2Y3] * pool.entries[rhs.idx() + X2Y2] + pool.entries[lhs.idx() + X3Y3] * pool.entries[rhs.idx() + X2Y3],
+                pool.entries[lhs.idx() + X0Y3] * pool.entries[rhs.idx() + X3Y0] + pool.entries[lhs.idx() + X1Y3] * pool.entries[rhs.idx() + X3Y1] + pool.entries[lhs.idx() + X2Y3] * pool.entries[rhs.idx() + X3Y2] + pool.entries[lhs.idx() + X3Y3] * pool.entries[rhs.idx() + X3Y3]
 
         );
     }
 
     static String asString(int i) {
-        i *= SIZE;
+        i *= pool.stride;
         return String.format("|%5.2f, %5.2f, %5.2f, %5.2f|\n" +
                         "|%5.2f, %5.2f, %5.2f, %5.2f|\n" +
                         "|%5.2f, %5.2f, %5.2f, %5.2f|\n" +
@@ -117,7 +124,7 @@ public class F32Mat4 {
                 pool.entries[i + X0Y3], pool.entries[i + X1Y3], pool.entries[i + X2Y3], pool.entries[i + X3Y3]);
     }
 
-    public static int createProjectionMatrix(float width, float height, float near, float far, float fieldOfViewDeg) {
+    public static Pool.Idx createProjectionMatrix(float width, float height, float near, float far, float fieldOfViewDeg) {
 
         // Projection Matrix
 
@@ -147,7 +154,7 @@ public class F32Mat4 {
 
     }
 
-    public static int createRotXMat4(float thetaRadians) {
+    public static Pool.Idx createRotXMat4(float thetaRadians) {
         float sinTheta = (float) Math.sin(thetaRadians);
         float cosTheta = (float) Math.cos(thetaRadians);
         return createMat4(
@@ -159,7 +166,7 @@ public class F32Mat4 {
         );
     }
 
-    public static int createRotZMat4(float thetaRadians) {
+    public static Pool.Idx createRotZMat4(float thetaRadians) {
         float sinTheta = (float) Math.sin(thetaRadians);
         float cosTheta = (float) Math.cos(thetaRadians);
         return createMat4(
@@ -170,7 +177,7 @@ public class F32Mat4 {
         );
     }
 
-    public static int createRotYMat4(float thetaRadians) {
+    public static Pool.Idx createRotYMat4(float thetaRadians) {
         float sinTheta = (float) Math.sin(thetaRadians);
         float cosTheta = (float) Math.cos(thetaRadians);
         return createMat4(
