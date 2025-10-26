@@ -33,24 +33,25 @@ public interface F32Triangle3D {
     int V2 = 2;
     int RGB = 3;
 
+    static  int v0(view.f32.Pool.Idx idx){
+        return idx.idx(V0);
+    }
+    static int v1(view.f32.Pool.Idx idx){
+        return idx.idx(V1);
+    }
+    static int v2(view.f32.Pool.Idx idx){
+        return idx.idx(V2);
+    }
+    static int rgb(view.f32.Pool.Idx idx){
+        return idx.idx(RGB);
+    }
     class Pool extends IndexPool {
         Pool(int max) {
             super(4, max);
         }
-        int v0(Idx idx){
-            return idx.idx(V0);
-        }
-        int v1(Idx idx){
-            return idx.idx(V1);
-        }
-        int v2(Idx idx){
-            return idx.idx(V2);
-        }
-        int rgb(Idx idx){
-            return idx.idx(RGB);
-        }
     }
-     Pool pool = new Pool(12800);
+    Pool pool = new Pool(12800);
+
      /*
        v0----v1         v0----v2
         \    |           \    |
@@ -64,48 +65,48 @@ public interface F32Triangle3D {
      static Pool.Idx rewind(Pool.Idx i) {
         i = Pool.Idx.of(i.idx() * pool.stride);
         int temp =pool.entries[i.idx(V1)];
-        pool.entries[i.idx(V1)] =  pool.entries[i.idx(V2)];
-        pool.entries[i.idx(V2)] = temp;
+        pool.entries[v1(i)] =  pool.entries[v2(i)];
+        pool.entries[v2(i)] = temp;
         return i;
     }
 
     static Pool.Idx fillTriangle3D(Pool.Idx i, int v0, int v1, int v2, int rgb) {
         i = Pool.Idx.of(i.idx() * pool.stride);
-        pool.entries[pool.v0(i)] = v0;
-        pool.entries[pool.v1(i)] = v1;
-        pool.entries[pool.v2(i)] = v2;
-        pool.entries[pool.rgb(i)] = rgb;
+        pool.entries[v0(i)] = v0;
+        pool.entries[v1(i)] = v1;
+        pool.entries[v2(i)] = v2;
+        pool.entries[rgb(i)] = rgb;
         return i;
     }
 
-     static Pool.Idx createTriangle3D(int v0, int v1, int v2, int rgb) {
+     static Pool.Idx of(int v0, int v1, int v2, int rgb) {
         fillTriangle3D(Pool.Idx.of(pool.count), v0, v1, v2, rgb);
         return Pool.Idx.of(pool.count++);
     }
 
     static String asString(Pool.Idx i) {
         i = Pool.Idx.of(i.idx() * pool.stride);
-        return F32Vec3.asString(pool.entries[i.idx(V0)]) + " -> " + F32Vec3.asString(pool.entries[i.idx(V1)]) + " -> " + F32Vec3.asString(pool.entries[i.idx(V2)]) + " =" + String.format("0x%8x", pool.entries[i.idx(RGB)]);
+        return F32Vec3.asString(pool.entries[v0(i)]) + " -> " + F32Vec3.asString(pool.entries[v1(i)]) + " -> " + F32Vec3.asString(pool.entries[v2(i)]) + " =" + String.format("0x%8x", pool.entries[rgb(i)]);
     }
 
      static Pool.Idx mulMat4(Pool.Idx i, F32Matrix4x4.Pool.Idx  m4) {
         i = Pool.Idx.of(i.idx() * pool.stride);
-        return createTriangle3D(F32Vec3.mulMat4(pool.entries[i.idx(V0)], m4), F32Vec3.mulMat4(pool.entries[i.idx(V1)], m4), F32Vec3.mulMat4(pool.entries[i.idx(V2)], m4), pool.entries[i.idx(RGB)]);
+        return of(F32Vec3.mulMat4(pool.entries[v0(i)], m4), F32Vec3.mulMat4(pool.entries[v1(i)], m4), F32Vec3.mulMat4(pool.entries[v2(i)], m4), pool.entries[rgb(i)]);
     }
 
      static Pool.Idx addVec3(Pool.Idx i, int v3) {
         i = Pool.Idx.of(i.idx() * pool.stride);
-        return createTriangle3D(F32Vec3.addVec3(pool.entries[i.idx(V0)], v3), F32Vec3.addVec3(pool.entries[i.idx(V1)], v3), F32Vec3.addVec3(pool.entries[i.idx(V2)], v3), pool.entries[i.idx(RGB)]);
+        return of(F32Vec3.addVec3(pool.entries[v0(i)], v3), F32Vec3.addVec3(pool.entries[v1(i)], v3), F32Vec3.addVec3(pool.entries[v2(i)], v3), pool.entries[rgb(i)]);
     }
 
      static Pool.Idx mulScaler(Pool.Idx i, float s) {
         i = Pool.Idx.of(i.idx() * pool.stride);
-        return createTriangle3D(F32Vec3.mulScaler(pool.entries[i.idx(V0)], s), F32Vec3.mulScaler(pool.entries[i.idx(V1)], s), F32Vec3.mulScaler(pool.entries[i.idx(V2)], s), pool.entries[i.idx(RGB)]);
+        return of(F32Vec3.mulScaler(pool.entries[v0(i)], s), F32Vec3.mulScaler(pool.entries[v1(i)], s), F32Vec3.mulScaler(pool.entries[v2(i)], s), pool.entries[rgb(i)]);
     }
 
      static Pool.Idx addScaler(Pool.Idx i, float s) {
         i = Pool.Idx.of(i.idx() * pool.stride);
-        return createTriangle3D(F32Vec3.addScaler(pool.entries[i.idx(V0)], s), F32Vec3.addScaler(pool.entries[i.idx(V1)], s), F32Vec3.addScaler(pool.entries[i.idx(V2)], s), pool.entries[i.idx(RGB)]);
+        return of(F32Vec3.addScaler(pool.entries[v0(i)], s), F32Vec3.addScaler(pool.entries[v1(i)], s), F32Vec3.addScaler(pool.entries[v2(i)], s), pool.entries[rgb(i)]);
     }
 
      static int getCentre(Pool.Idx i){
@@ -182,28 +183,28 @@ public interface F32Triangle3D {
         }
 
         public tri add(F32Vec3.vec3 v) {
-            return new tri(addVec3(id, v.id.idx()));
+            return new tri(addVec3(id, v.id().idx()));
 
         }
 
         public F32Vec3.vec3 normalSumOfSquares() {
-            return new F32Vec3.vec3(F32Triangle3D.normalSumOfSquares(id));
+            return new F32Vec3.vec3(F32Vec3.Pool.Idx.of(F32Triangle3D.normalSumOfSquares(id)));
         }
 
         public F32Vec3.vec3 normal() {
-            return new F32Vec3.vec3(F32Triangle3D.normal(id));
+            return new F32Vec3.vec3(F32Vec3.Pool.Idx.of(F32Triangle3D.normal(id)));
         }
 
         public F32Vec3.vec3 v0() {
-            return new F32Vec3.vec3(getV0(id));
+            return new F32Vec3.vec3(F32Vec3.Pool.Idx.of(getV0(id)));
         }
 
         public F32Vec3.vec3 v1() {
-            return new F32Vec3.vec3(getV1(id));
+            return new F32Vec3.vec3(F32Vec3.Pool.Idx.of(getV1(id)));
         }
 
         public F32Vec3.vec3 v2() {
-            return new F32Vec3.vec3(getV2(id));
+            return new F32Vec3.vec3(F32Vec3.Pool.Idx.of(getV2(id)));
         }
 
         public tri mul(float s) {
@@ -219,7 +220,7 @@ public interface F32Triangle3D {
         }
 
         public F32Vec3.vec3 center() {
-            return new F32Vec3.vec3(getCentre(id));
+            return new F32Vec3.vec3(F32Vec3.Pool.Idx.of(getCentre(id)));
         }
     }
 }

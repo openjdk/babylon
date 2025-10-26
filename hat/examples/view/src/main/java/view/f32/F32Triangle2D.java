@@ -39,10 +39,10 @@ public class F32Triangle2D {
     }
 
     public static float side(int v, int v0, int v1) {
-        v*= F32Vec2.SIZE;
-        v0*= F32Vec2.SIZE;
-        v1*= F32Vec2.SIZE;
-        return (F32Vec2.entries[v1+ F32Vec2.Y] - F32Vec2.entries[v0+ F32Vec2.Y] * (F32Vec2.entries[v+ F32Vec2.X] - F32Vec2.entries[v0+ F32Vec2.X]) + (-F32Vec2.entries[v1+ F32Vec2.X] + F32Vec2.entries[v0+ F32Vec2.X]) * (F32Vec2.entries[v+ F32Vec2.Y] - F32Vec2.entries[v0+ F32Vec2.Y]));
+        v*= F32Vec2.pool.stride;
+        v0*= F32Vec2.pool.stride;
+        v1*= F32Vec2.pool.stride;
+        return (F32Vec2.pool.entries[v1+ F32Vec2.Y] - F32Vec2.pool.entries[v0+ F32Vec2.Y] * (F32Vec2.pool.entries[v+ F32Vec2.X] - F32Vec2.pool.entries[v0+ F32Vec2.X]) + (-F32Vec2.pool.entries[v1+ F32Vec2.X] + F32Vec2.pool.entries[v0+ F32Vec2.X]) * (F32Vec2.pool.entries[v+ F32Vec2.Y] - F32Vec2.pool.entries[v0+ F32Vec2.Y]));
     }
 
     public static boolean intriangle(float x, float y, float x0, float y0, float x1, float y1, float x2, float y2) {

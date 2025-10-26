@@ -138,7 +138,7 @@ public class ViewFrame extends JFrame {
         float theta = elapsedMillis * Physics.thetaDelta;
 
         if ((frames++ % 50) == 0) {
-            System.out.println("Frames " + frames + " Theta = " + theta + " FPS = " + ((frames * 1000) / elapsedMillis) + " Vertices " + rasterizer.vec2EntriesCount);
+            System.out.println("Frames " + frames + " Theta = " + theta + " FPS = " + ((frames * 1000) / elapsedMillis) + " Vertices " + F32Vec2.pool.count);
         }
 
         mark.resetAll();
@@ -201,10 +201,8 @@ public class ViewFrame extends JFrame {
 
         rasterizer.triangle2DEntries = F32Triangle2D.entries;
         rasterizer.triangle2DEntriesCount = F32Triangle2D.count;
-        rasterizer.vec2Entries = F32Vec2.entries;
-        rasterizer.vec2EntriesCount = F32Vec2.count;
-        rasterizer.colors = F32Triangle2D.colors;
-        rasterizer.execute(rasterizer.range);
+
+        rasterizer.execute();
         rasterizer.view.update();
         viewer.repaint();
     }

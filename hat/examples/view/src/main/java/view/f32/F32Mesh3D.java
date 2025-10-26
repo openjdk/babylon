@@ -49,7 +49,7 @@ public class F32Mesh3D {
 
 
     public F32Mesh3D tri(int v0, int v1, int v2, int rgb) {
-        var tri = F32Triangle3D.createTriangle3D(v0, v1, v2, rgb);
+        var tri = F32Triangle3D.of(v0, v1, v2, rgb);
 
         triEntries[triCount]= tri;
         normalEntries[triCount] = F32Triangle3D.normal(tri);
@@ -199,9 +199,6 @@ http://paulbourke.net/dataformats/obj/
         int v10 = vec3(x + (s * .30631556f), y + (s * .56712254f), z + (s * .1276f));
         int v11 = vec3(x + (s * .48592068f), y + (s * .56712254f), z + (s * .30720512f));
         int v12 = vec3(x + (s * .48592068f), y + (s * .38751743f), z + (s * .4868103f));
-
-
-
 
         tri(v1, v2, v3, 0xff0000);
         tri(v4, v2, v5, 0x7f8000);

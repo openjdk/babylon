@@ -38,13 +38,13 @@ record ModelHighWaterMark(
         int markedMat4) {
 
     ModelHighWaterMark() {
-        this(F32Triangle3D.pool.count, F32Triangle2D.count, F32Vec2.count, F32Vec3.pool.count, F32Matrix4x4.pool.count);
+        this(F32Triangle3D.pool.count, F32Triangle2D.count, F32Vec2.pool.count, F32Vec3.pool.count, F32Matrix4x4.pool.count);
     }
 
     void resetAll() {
         reset3D();
         F32Triangle2D.count = markedTriangles2D;
-        F32Vec2.count = markedVec2;
+        F32Vec2.pool.count = markedVec2;
     }
 
     void reset3D() {

@@ -187,32 +187,22 @@ public interface F32Vec3 {
         return pool.entries[i + Z];
     }
 
-    class vec3 implements Impl{
-        view.f32.Pool.Idx id;
-        vec3(int id){
-            this.id = view.f32.Pool.Idx.of(id);
-        }
-        @Override
-        public  view.f32.Pool.Idx id(){
-            return id;
-        }
-
-
-        private vec3(float x, float y, float z) {
-            this(createVec3(x,y,z));
+    record vec3(view.f32.Pool.Idx id) implements Impl{
+        public static vec3 of(Pool.Idx id){
+            return new vec3(id);
         }
         public static vec3 of(float x, float y, float z){
-            return new vec3(x,y,z);
+            return of(Pool.Idx.of(F32Vec3.createVec3(x,y,z)));
         }
 
         public vec3 sub(vec3 v) {
-            return new vec3(subVec3(id.idx(), v.id.idx()));
+            return of(Pool.Idx.of(subVec3(id.idx(), v.id.idx())));
         }
         public vec3 add(vec3 v) {
-            return new vec3(addVec3(id.idx(), v.id.idx()));
+            return of(Pool.Idx.of(addVec3(id.idx(), v.id.idx())));
         }
         public vec3 mul(vec3 v) {
-            return new vec3(mulVec3(id.idx(), v.id.idx()));
+            return of(Pool.Idx.of(mulVec3(id.idx(), v.id.idx())));
         }
 
         public float dotProd(vec3 v){
