@@ -24,17 +24,22 @@
  */
 package view.f32;
 
-public class F32Triangle2D {
-    public static final int SIZE = 3;
-    public static final int V0 = 0;
-    public static final int V1 = 1;
-    public static final int V2 = 2;
-    public static int MAX = 9000;
-    public static int count = 0;
+public interface F32Triangle2D {
+    int V0 = 0;
+     int V1 = 1;
+     int V2 = 2;
+    int RGB=3;
 
-    public static int[] entries = new int[MAX * SIZE];
-    public static int[] colors = new int[MAX];
-    public static float side(float x, float y, float x0, float y0, float x1, float y1) {
+    class Pool extends IndexPool{
+        Pool( int max) {
+            super(4, max);
+        }
+    }
+    Pool pool = new Pool(9000);
+   // public static int MAX = 9000;
+  //  public static int count = 0;
+
+     public static float side(float x, float y, float x0, float y0, float x1, float y1) {
         return (y1 - y0) * (x - x0) + (-x1 + x0) * (y - y0);
     }
 
@@ -65,36 +70,38 @@ public class F32Triangle2D {
             return false;
         }
     }
-    public static boolean onedge(float x, float y, float x0, float y0, float x1, float y1, float x2, float y2, float deltaSquare) {
+    float deltaSquare = 10000f;
+
+    public static boolean onedge(float x, float y, float x0, float y0, float x1, float y1, float x2, float y2) {
         return online(x, y, x0, y0, x1, y1, deltaSquare) || F32Triangle2D.online(x, y, x1, y1, x2, y2, deltaSquare) || F32Triangle2D.online(x, y, x2, y2, x0, y0, deltaSquare);
     }
 
 
 public static int createTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int col) {
-        entries[count * SIZE + V0] = F32Vec2.createVec2(x0,y0);
+        pool.entries[pool.count * pool.stride + V0] = F32Vec2.createVec2(x0,y0);
         // We need the triangle to be clock wound
         if (side(x0, y0, x1, y1, x2, y2) > 0) {
-            entries[count * SIZE + V1] = F32Vec2.createVec2(x1,y1);
-            entries[count * SIZE + V2] = F32Vec2.createVec2(x2,y2);
+            pool.entries[pool.count * pool.stride + V1] = F32Vec2.createVec2(x1,y1);
+            pool.entries[pool.count * pool.stride + V2] = F32Vec2.createVec2(x2,y2);
         } else {
-            entries[count * SIZE + V1] = F32Vec2.createVec2(x2,y2);
-            entries[count * SIZE + V2] = F32Vec2.createVec2(x1,y1);
+            pool.entries[pool.count * pool.stride + V1] = F32Vec2.createVec2(x2,y2);
+            pool.entries[pool.count * pool.stride + V2] = F32Vec2.createVec2(x1,y1);
         }
-        colors[count] = col;
-        return count++;
+    pool.entries[pool.count * pool.stride + RGB]= col;
+        return pool.count++;
     }
 
     static int createTriangle(int v0, int v1, int v2, int col) {
-        entries[count * SIZE + V0] = v0;
+        pool.entries[pool.count * pool.stride + V0] = v0;
         // We need the triangle to be clock wound
         if (side(v0, v1, v2) > 0) {
-            entries[count * SIZE + V1] = v1;
-            entries[count * SIZE + V2] = v2;
+            pool.entries[pool.count * pool.stride + V1] = v1;
+            pool.entries[pool.count * pool.stride + V2] = v2;
         } else {
-            entries[count * SIZE + V1] = v2;
-            entries[count * SIZE + V2] = v1;
+            pool.entries[pool.count * pool.stride + V1] = v2;
+            pool.entries[pool.count * pool.stride + V2] = v1;
         }
-        colors[count] = col;
-        return count++;
+        pool.entries[pool.count *pool.stride +RGB] = col;
+        return pool.count++;
     }
 }

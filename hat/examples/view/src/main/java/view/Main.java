@@ -46,10 +46,10 @@ public class Main {
         var args = new ArrayList<>(List.of(argArr));
        // args.add("COBRA");
         var viewFrame = (args.size() > 0 )
-                ? ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Rasterizer.DisplayMode.WIRE), () ->
+                ? ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.WIRE), () ->
                     EliteMeshReader.load(args.getFirst())
                 )
-                : ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Rasterizer.DisplayMode.FILL), () -> {
+                : ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.FILL), () -> {
                      for (int x = -2; x < 6; x += 2) {
                          for (int y = -2; y < 6; y += 2) {
                              for (int z = -2; z < 6; z += 2) {

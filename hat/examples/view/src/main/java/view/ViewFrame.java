@@ -29,7 +29,6 @@ import view.f32.F32Matrix4x4;
 import view.f32.F32Triangle3D;
 import view.f32.F32Vec3;
 import view.f32.Pool;
-import view.f32.F32Triangle2D;
 import view.f32.F32Vec2;
 
 import javax.swing.JComponent;
@@ -47,7 +46,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ViewFrame extends JFrame {
-    private final Rasterizer rasterizer;
+    private final Renderer renderer;
     private volatile Point point = null;
     private final Object doorBell;
     private final JComponent viewer;
@@ -61,19 +60,19 @@ public class ViewFrame extends JFrame {
 
     ModelHighWaterMark mark;
 
-    private ViewFrame(String name, Rasterizer rasterizer, Runnable sceneBuilder) {
+    private ViewFrame(String name, Renderer renderer, Runnable sceneBuilder) {
         super(name);
         startMillis = System.currentTimeMillis();
-        this.rasterizer = rasterizer;
+        this.renderer = renderer;
         this.doorBell = new Object();
 
         this.viewer = new JComponent() {
             @Override
             public void paintComponent(Graphics g) {
-                rasterizer.view.paint((Graphics2D) g);
+                renderer.view().paint((Graphics2D) g);
             }
         };
-        viewer.setPreferredSize(new Dimension(rasterizer.view.image.getWidth(), rasterizer.view.image.getHeight()));
+        viewer.setPreferredSize(new Dimension(renderer.view().image.getWidth(), renderer.view().image.getHeight()));
         viewer.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -96,16 +95,16 @@ public class ViewFrame extends JFrame {
 
         cameraVec3 = F32Vec3.vec3.of(0f, 0f, .0f);
         lookDirVec3 = F32Vec3.vec3.of(0f, 0f, 0f);
-        F32Matrix4x4.Projection projF32Mat4x4_1 = F32Matrix4x4.Projection.of(rasterizer.view.image, 0.1f, 1000f, 60f);
-        Pool.Idx projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1.id(), F32Matrix4x4.Scale.of(rasterizer.view.image.getHeight() / 4f).id());
-        projF32Mat4x4 = F32Matrix4x4.Projection.of(F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.Transformation.of(rasterizer.view.image.getHeight() / 2f).id()));
-        centerVec3 = F32Vec3.vec3.of(rasterizer.view.image.getWidth() / 2f,  rasterizer.view.image.getHeight() / 2f, 0);
+        F32Matrix4x4.Projection projF32Mat4x4_1 = F32Matrix4x4.Projection.of(renderer.view().image, 0.1f, 1000f, 60f);
+        Pool.Idx projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1.id(), F32Matrix4x4.Scale.of(renderer.view().image.getHeight() / 4f).id());
+        projF32Mat4x4 = F32Matrix4x4.Projection.of(F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.Transformation.of(renderer.view().image.getHeight() / 2f).id()));
+        centerVec3 = F32Vec3.vec3.of(renderer.view().image.getWidth() / 2f,  renderer.view().image.getHeight() / 2f, 0);
         moveAwayVec3 = F32Vec3.vec3.of(0f, 0f, 30f);
         mark = new ModelHighWaterMark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
     }
 
-    public static ViewFrame of(String name, Rasterizer rasterizer, Runnable sceneBuilder){
-        return new ViewFrame(name,rasterizer,sceneBuilder);
+    public static ViewFrame of(String name, Renderer renderer, Runnable sceneBuilder){
+        return new ViewFrame(name, renderer,sceneBuilder);
     }
 
     Point waitForPoint(long timeout) {
@@ -149,7 +148,7 @@ public class ViewFrame extends JFrame {
 
         List<ZPos> zpos = new ArrayList<>();
         // Loop through the triangles
-        boolean showHidden = rasterizer.displayMode == Rasterizer.DisplayMode.WIRE_SHOW_HIDDEN;
+        boolean showHidden = renderer.displayMode() == Renderer.DisplayMode.WIRE_SHOW_HIDDEN;
 
         for (F32Triangle3D.tri t : F32Triangle3D.tri.all()) {
             // here we rotate and then move into the Z plane.
@@ -199,11 +198,8 @@ public class ViewFrame extends JFrame {
             z.create();
         }
 
-        rasterizer.triangle2DEntries = F32Triangle2D.entries;
-        rasterizer.triangle2DEntriesCount = F32Triangle2D.count;
+        renderer.render();
 
-        rasterizer.execute();
-        rasterizer.view.update();
         viewer.repaint();
     }
 }
