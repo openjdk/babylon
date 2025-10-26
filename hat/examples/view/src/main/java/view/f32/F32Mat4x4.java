@@ -41,7 +41,7 @@ public class F32Mat4x4 {
                 x0y3, x1y3, x2y3, x3y3));
     }
 
-    public F32Mat4x4 mul(F32Mat4x4 m) {
-        return new F32Mat4x4(F32Mat4.mulMat4(id, m.id));
+    public static F32Mat4x4 mul(F32Mat4x4 lhs, F32Mat4x4 rhs){
+        return new F32Mat4x4(F32Mat4.mulMat4(lhs.id, rhs.id));
     }
 }

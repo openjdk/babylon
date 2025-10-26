@@ -44,7 +44,7 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-        //args.add("COBRA");
+        args.add("COBRA");
         var viewFrame = (args.size() > 0 )
                 ? ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Rasterizer.DisplayMode.WIRE), () ->
                     EliteMeshReader.load(args.getFirst())

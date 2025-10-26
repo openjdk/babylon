@@ -24,25 +24,12 @@
  */
 package view.f32;
 
-public class IndexPool {
-    public record Idx(int idx) {
-        static Idx of(int idx) {
-            return new Idx(idx);
-        }
+public class IndexPool extends Pool {
 
-        int idx(int offset) {
-            return idx + offset;
-        }
-    }
-
-    public final int max;
-    public final int stride;
-    public int count = 0;
     public final int entries[];
 
     IndexPool(int stride, int max) {
-        this.stride = stride;
-        this.max = max;
+      super(stride,max);
         this.entries = new int[max * stride];
     }
 }

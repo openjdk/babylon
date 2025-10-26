@@ -24,26 +24,20 @@
  */
 package view.f32;
 
-public class F32Vec3 {
+public interface F32Vec3 {
 
-    static final int X = 0;
-    static final int Y = 1;
-    static final int Z = 2;
+     int X = 0;
+     int Y = 1;
+     int Z = 2;
 
-    public static class Pool {
-        public final int stride;
-        public final int max;
-        public int count = 0;
-        public final float entries[];
+     class Pool extends FloatPool {
         Pool(int stride, int max) {
-            this.stride = stride;
-            this.max = max;
-            this.entries = new float[max * stride];
+           super(stride,max);
         }
     }
-    public static Pool pool = new Pool(3, 90000);
+     Pool pool = new Pool(3, 90000);
 
-    public static int createVec3(float x, float y, float z) {
+    static int createVec3(float x, float y, float z) {
         pool.entries[pool.count * pool.stride + X] = x;
         pool.entries[pool.count * pool.stride + Y] = y;
         pool.entries[pool.count * pool.stride + Z] = z;

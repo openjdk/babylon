@@ -25,11 +25,8 @@
 
 package view;
 
+import view.f32.F32Mat4;
 import view.f32.F32Mat4x4;
-import view.f32.ProjF32Mat4x4;
-import view.f32.RotF32Mat4x4;
-import view.f32.ScaleF32Mat4x4;
-import view.f32.TransF32Mat4x4;
 import view.f32.tri;
 import view.f32.vec3;
 import view.f32.F32Triangle2D;
@@ -56,11 +53,11 @@ public class ViewFrame extends JFrame {
     private final JComponent viewer;
     final long startMillis;
     long frames;
-    vec3 cameraVec3;
-    vec3 lookDirVec3;
-    F32Mat4x4 projF32Mat4x4;
-    vec3 centerVec3;
-    vec3 moveAwayVec3;
+    final vec3 cameraVec3;
+    final vec3 lookDirVec3;
+    final F32Mat4x4 projF32Mat4x4;
+    final vec3 centerVec3;
+    final vec3 moveAwayVec3;
 
     ModelHighWaterMark mark;
 
@@ -98,11 +95,11 @@ public class ViewFrame extends JFrame {
         sceneBuilder.run();
 
         cameraVec3 = vec3.of(0f, 0f, .0f);
-        lookDirVec3 = vec3.of(0f, 0f, 0f);//F32Vec3.createVec3(0, 0, 0);
-        projF32Mat4x4 = new ProjF32Mat4x4(rasterizer.view.image.getWidth(), rasterizer.view.image.getHeight(), 0.1f, 1000f, 60f);
-        projF32Mat4x4 = projF32Mat4x4.mul(new ScaleF32Mat4x4((float) rasterizer.view.image.getHeight() / 4));
-        projF32Mat4x4 = projF32Mat4x4.mul(new TransF32Mat4x4((float) rasterizer.view.image.getHeight() / 2));
-        centerVec3 = vec3.of((float) rasterizer.view.image.getWidth() / 2, (float) rasterizer.view.image.getHeight() / 2, 0);
+        lookDirVec3 = vec3.of(0f, 0f, 0f);
+        var projF32Mat4x4_1 = F32Mat4.Projection.of(rasterizer.view.image, 0.1f, 1000f, 60f);
+        var projF32Mat4x4_2 = F32Mat4x4.mul(projF32Mat4x4_1,F32Mat4.Scale.of(rasterizer.view.image.getHeight() / 4f));
+        projF32Mat4x4 = F32Mat4x4.mul(projF32Mat4x4_2, F32Mat4.Transformation.of(rasterizer.view.image.getHeight() / 2f));
+        centerVec3 = vec3.of(rasterizer.view.image.getWidth() / 2f,  rasterizer.view.image.getHeight() / 2f, 0);
         moveAwayVec3 = vec3.of(0f, 0f, 30f);
         mark = new ModelHighWaterMark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
     }
@@ -146,7 +143,7 @@ public class ViewFrame extends JFrame {
 
         mark.resetAll();
 
-        F32Mat4x4 xyzRot4x4 = new RotF32Mat4x4(theta * 2, theta / 2, theta);
+        F32Mat4x4 xyzRot4x4 = new F32Mat4.Rotation(theta * 2, theta / 2, theta);
 
         ModelHighWaterMark resetMark = new ModelHighWaterMark();
 

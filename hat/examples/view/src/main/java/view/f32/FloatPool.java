@@ -24,11 +24,10 @@
  */
 package view.f32;
 
-//https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-public class ProjF32Mat4x4 extends F32Mat4x4 {
-
-    public ProjF32Mat4x4(float width, float height, float nearZ, float farZ, float fieldOfViewDeg){
-        super(F32Mat4.createProjectionMatrix(width, height,  nearZ, farZ,  fieldOfViewDeg));
-
+public class FloatPool extends Pool {
+    public final float entries[];
+    FloatPool(int stride, int max) {
+        super(stride,max);
+        this.entries = new float[max * stride];
     }
 }

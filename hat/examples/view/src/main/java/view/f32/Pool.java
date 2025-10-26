@@ -24,19 +24,22 @@
  */
 package view.f32;
 
-//https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-public class TransF32Mat4x4 extends F32Mat4x4 {
-    public TransF32Mat4x4(float x, float y, float z) {
-        super(
-                1f, 0f, 0f, 0f,
-                0f, 1f, 0f, 0f,
-                0f, 0f, 1f, 0f,
-                x, y, z, 1f
-
-        );
+public abstract class Pool {
+    public record Idx(int idx) {
+        static Idx of(int idx) {
+            return new Idx(idx);
+        }
+        int idx(int offset) {
+            return idx + offset;
+        }
     }
 
-    public TransF32Mat4x4(float v) {
-        this(v,v,v);
+    public final int max;
+    public final int stride;
+    public int count = 0;
+
+    Pool(int stride, int max) {
+        this.stride = stride;
+        this.max = max;
     }
 }
