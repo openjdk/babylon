@@ -24,7 +24,7 @@
  */
 package view;
 
-import view.f32.F32Mat4;
+import view.f32.F32Matrix4x4;
 import view.f32.F32Triangle2D;
 import view.f32.F32Triangle3D;
 import view.f32.F32Vec2;
@@ -38,7 +38,7 @@ record ModelHighWaterMark(
         int markedMat4) {
 
     ModelHighWaterMark() {
-        this(F32Triangle3D.pool.count, F32Triangle2D.count, F32Vec2.count, F32Vec3.pool.count, F32Mat4.pool.count);
+        this(F32Triangle3D.pool.count, F32Triangle2D.count, F32Vec2.count, F32Vec3.pool.count, F32Matrix4x4.pool.count);
     }
 
     void resetAll() {
@@ -50,6 +50,6 @@ record ModelHighWaterMark(
     void reset3D() {
         F32Triangle3D.pool.count = markedTriangles3D;
         F32Vec3.pool.count = markedVec3;
-        F32Mat4.pool.count = markedMat4;
+        F32Matrix4x4.pool.count = markedMat4;
     }
 }

@@ -25,8 +25,8 @@
 
 package view;
 
-import view.f32.tri;
-import view.f32.vec3;
+import view.f32.F32Triangle3D;
+import view.f32.F32Vec3;
 import view.f32.F32Triangle2D;
 
 class ZPos implements Comparable<ZPos> {
@@ -44,10 +44,10 @@ class ZPos implements Comparable<ZPos> {
         return Float.compare(z, zPos.z);
     }
 
-    ZPos(tri t, float howVisible) {
-        vec3 v0 = t.v0();
-        vec3 v1 = t.v1();
-        vec3 v2 = t.v2();
+    ZPos(F32Triangle3D.tri t, float howVisible) {
+        F32Vec3.vec3 v0 = t.v0();
+        F32Vec3.vec3 v1 = t.v1();
+        F32Vec3.vec3 v2 = t.v2();
         x0 = (int) v0.x();
         y0 = (int) v0.y();
         z0 = v0.z();

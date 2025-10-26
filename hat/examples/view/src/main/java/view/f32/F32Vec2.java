@@ -39,7 +39,7 @@ public class F32Vec2 {
         entries[count * SIZE + Y] = y;
         return count++;
     }
-/*
+
     static int mulScaler(int i, float s) {
         i *= SIZE;
         return createVec2(entries[i + X] * s, entries[i + Y] * s);
@@ -77,5 +77,5 @@ public class F32Vec2 {
     static String asString(int i) {
         i *= SIZE;
         return entries[i + X] + "," + entries[i + Y];
-    } */
+    }
 }

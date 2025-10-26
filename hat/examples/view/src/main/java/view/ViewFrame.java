@@ -25,10 +25,10 @@
 
 package view;
 
-import view.f32.F32Mat4;
-import view.f32.F32Mat4x4;
-import view.f32.tri;
-import view.f32.vec3;
+import view.f32.F32Matrix4x4;
+import view.f32.F32Triangle3D;
+import view.f32.F32Vec3;
+import view.f32.Pool;
 import view.f32.F32Triangle2D;
 import view.f32.F32Vec2;
 
@@ -53,11 +53,11 @@ public class ViewFrame extends JFrame {
     private final JComponent viewer;
     final long startMillis;
     long frames;
-    final vec3 cameraVec3;
-    final vec3 lookDirVec3;
-    final F32Mat4x4 projF32Mat4x4;
-    final vec3 centerVec3;
-    final vec3 moveAwayVec3;
+    final F32Vec3.vec3 cameraVec3;
+    final F32Vec3.vec3 lookDirVec3;
+    final F32Matrix4x4.Projection projF32Mat4x4;
+    final F32Vec3.vec3 centerVec3;
+    final F32Vec3.vec3 moveAwayVec3;
 
     ModelHighWaterMark mark;
 
@@ -94,13 +94,13 @@ public class ViewFrame extends JFrame {
 
         sceneBuilder.run();
 
-        cameraVec3 = vec3.of(0f, 0f, .0f);
-        lookDirVec3 = vec3.of(0f, 0f, 0f);
-        var projF32Mat4x4_1 = F32Mat4.Projection.of(rasterizer.view.image, 0.1f, 1000f, 60f);
-        var projF32Mat4x4_2 = F32Mat4x4.mul(projF32Mat4x4_1,F32Mat4.Scale.of(rasterizer.view.image.getHeight() / 4f));
-        projF32Mat4x4 = F32Mat4x4.mul(projF32Mat4x4_2, F32Mat4.Transformation.of(rasterizer.view.image.getHeight() / 2f));
-        centerVec3 = vec3.of(rasterizer.view.image.getWidth() / 2f,  rasterizer.view.image.getHeight() / 2f, 0);
-        moveAwayVec3 = vec3.of(0f, 0f, 30f);
+        cameraVec3 = F32Vec3.vec3.of(0f, 0f, .0f);
+        lookDirVec3 = F32Vec3.vec3.of(0f, 0f, 0f);
+        F32Matrix4x4.Projection projF32Mat4x4_1 = F32Matrix4x4.Projection.of(rasterizer.view.image, 0.1f, 1000f, 60f);
+        Pool.Idx projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1.id(), F32Matrix4x4.Scale.of(rasterizer.view.image.getHeight() / 4f).id());
+        projF32Mat4x4 = F32Matrix4x4.Projection.of(F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.Transformation.of(rasterizer.view.image.getHeight() / 2f).id()));
+        centerVec3 = F32Vec3.vec3.of(rasterizer.view.image.getWidth() / 2f,  rasterizer.view.image.getHeight() / 2f, 0);
+        moveAwayVec3 = F32Vec3.vec3.of(0f, 0f, 30f);
         mark = new ModelHighWaterMark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
     }
 
@@ -143,7 +143,7 @@ public class ViewFrame extends JFrame {
 
         mark.resetAll();
 
-        F32Mat4x4 xyzRot4x4 = new F32Mat4.Rotation(theta * 2, theta / 2, theta);
+        var xyzRot4x4 = new F32Matrix4x4.Rotation(theta * 2, theta / 2, theta);
 
         ModelHighWaterMark resetMark = new ModelHighWaterMark();
 
@@ -151,7 +151,7 @@ public class ViewFrame extends JFrame {
         // Loop through the triangles
         boolean showHidden = rasterizer.displayMode == Rasterizer.DisplayMode.WIRE_SHOW_HIDDEN;
 
-        for (tri t : tri.all()) {
+        for (F32Triangle3D.tri t : F32Triangle3D.tri.all()) {
             // here we rotate and then move into the Z plane.
             t = t.mul(xyzRot4x4).add(moveAwayVec3);
             float howVisible = 1f;
@@ -169,7 +169,7 @@ public class ViewFrame extends JFrame {
 
                 // We subtract the camera from our point on the triangle so we can compare
 
-                vec3 cameraDeltaVec3 = t.center().sub(cameraVec3); // clearly our default camera is 0,0,0
+                F32Vec3.vec3 cameraDeltaVec3 = t.center().sub(cameraVec3); // clearly our default camera is 0,0,0
 
                 //  howVisible = cameraDeltaVec3.mul( t.normalSumOfSquares()).sumOf();
                 howVisible = cameraDeltaVec3.dotProd(t.normal());
