@@ -32,27 +32,29 @@ public interface Float4 extends HatVector {
     float y();
     float z();
     float w();
-    void x(float x);
-    void y(float y);
-    void z(float z);
-    void w(float w);
 
-    record Float4Impl(float x, float y, float z, float w) implements Float4 {
-        @Override
+    record MutableImpl(float x, float y, float z, float w) implements Float4 {
         public void x(float x) {}
-
-        @Override
         public void y(float y) {}
-
-        @Override
         public void z(float z) {}
-
-        @Override
         public void w(float w) {}
     }
 
+    record ImmutableImpl(float x, float y, float z, float w) implements Float4 {
+    }
+
+    /**
+     * Make a Mutable implementation (for the device side - e.g., the GPU) from an immutable implementation.
+     *
+     * @param float4Immutable
+     * @return {@link Float4.MutableImpl}
+     */
+    static Float4.MutableImpl makeMutable(ImmutableImpl float4Immutable) {
+        return new MutableImpl(float4Immutable.x(), float4Immutable.y(), float4Immutable.z(), float4Immutable.w());
+    }
+
     static Float4 of(float x, float y, float z, float w) {
-        return new Float4Impl(x, y, z, w);
+        return new ImmutableImpl(x, y, z, w);
     }
 
     default Float4 lanewise(Float4 other, BiFunction<Float, Float, Float> f) {
@@ -98,6 +100,7 @@ public interface Float4 extends HatVector {
         return Float4.div(this, vb);
     }
 
+    // Not implemented for the GPU yet.
     default float[] toArray() {
         return new float[] { x(), y(), z(), w() };
     }

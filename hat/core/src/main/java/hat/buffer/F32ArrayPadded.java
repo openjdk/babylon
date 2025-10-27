@@ -67,7 +67,7 @@ public interface F32ArrayPadded extends Buffer {
 
     // This is an intrinsic for HAT to create views. It does not execute code
     // on the host side, at least for now.
-    default Float4 float4View(int index) {
+    default Float4.MutableImpl float4View(int index) {
         return null;
     }
 

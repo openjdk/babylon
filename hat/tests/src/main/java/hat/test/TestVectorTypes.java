@@ -56,7 +56,7 @@ public class TestVectorTypes {
     public static void vectorOps02(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
+            Float4.MutableImpl vA = a.float4View(index * 4);
             float scaleX = vA.x() * 10.0f;
             vA.x(scaleX);
             b.storeFloat4View(vA, index * 4);
@@ -90,7 +90,7 @@ public class TestVectorTypes {
     public static void vectorOps04(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
+            Float4.MutableImpl vA = a.float4View(index * 4);
             vA.x(vA.x() * 10.0f);
             vA.y(vA.y() * 20.0f);
             vA.z(vA.z() * 30.0f);
