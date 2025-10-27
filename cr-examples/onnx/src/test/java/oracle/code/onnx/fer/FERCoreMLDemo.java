@@ -43,7 +43,6 @@ import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
 import oracle.code.onnx.OnnxProvider;
-import static oracle.code.onnx.foreign.coreml_provider_factory_h.*;
 
 public class FERCoreMLDemo {
 
@@ -199,7 +198,9 @@ public class FERCoreMLDemo {
 
             try (var arena = Arena.ofConfined()) {
                 Map<String, String> options = Map.of("ModelFormat", "MLProgram",
-                        "MLComputeUnits", "CPUAndGPU", "EnableOnSubgraphs", "1");
+                        "MLComputeUnits", "CPUAndGPU", "EnableOnSubgraphs", "1",
+                        "AllowLowPrecisionAccumulationOnGPU", "1",
+                        "ModelCacheDirectory", FERCoreMLDemo.class.getResource(BASE_PATH).getPath());
                 OnnxProvider provider = new OnnxProvider("CoreML", options);
                 float[] probs = inference.analyzeImage(arena, provider, url, useCondensedModel);
                 String top3 = formatTopK(probs);
