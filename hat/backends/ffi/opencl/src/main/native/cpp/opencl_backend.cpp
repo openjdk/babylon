@@ -303,7 +303,10 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
 }
 
 extern "C" long getBackend(int configBits) {
-    std::cerr << "Opencl Driver =" << std::hex << configBits << std::dec << std::endl;
+    Backend::Config config(configBits);
+    if (config.info) {
+        std::cerr << "Opencl Driver =" << std::hex << configBits << std::dec << std::endl;
+    }
     return reinterpret_cast<long>(new OpenCLBackend(configBits));
 }
 

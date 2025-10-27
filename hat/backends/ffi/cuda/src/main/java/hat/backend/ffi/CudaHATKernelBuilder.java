@@ -38,8 +38,6 @@ import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.List;
-
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
     private CudaHATKernelBuilder threadDimId(int id) {
