@@ -34,8 +34,8 @@ import java.util.List;
 
 public class HATVectorSubOp extends HATVectorBinaryOp {
 
-    public HATVectorSubOp(String varName, TypeElement typeElement, List<Value> operands) {
-        super(varName, typeElement, OpType.SUB, operands);
+    public HATVectorSubOp(String varName, TypeElement typeElement, int witdh, List<Value> operands) {
+        super(varName, typeElement, OpType.SUB, witdh, operands);
     }
 
     public HATVectorSubOp(HATVectorSubOp op, CopyContext copyContext) {

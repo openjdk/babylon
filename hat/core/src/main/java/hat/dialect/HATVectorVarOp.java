@@ -36,18 +36,15 @@ import java.util.Map;
 
 public class HATVectorVarOp extends HATVectorOp {
 
-    private final VarType typeElement;
     private final int loadN;
 
-    public HATVectorVarOp(String varName, VarType typeElement, int loadN, List<Value> operands) {
-        super(varName, typeElement, loadN, operands);
-        this.typeElement = typeElement;
+    public HATVectorVarOp(String varName, VarType typeElement, TypeElement vectorElementType, int loadN, List<Value> operands) {
+        super(varName, typeElement, vectorElementType, loadN, operands);
         this.loadN = loadN;
     }
 
     public HATVectorVarOp(HATVectorVarOp op, CopyContext copyContext) {
         super(op, copyContext);
-        this.typeElement = op.typeElement;
         this.loadN = op.loadN;
     }
 
@@ -66,12 +63,4 @@ public class HATVectorVarOp extends HATVectorOp {
         return Map.of("hat.dialect.vectorVarOp." + varName(), typeElement);
     }
 
-    @Override
-    public String buildType() {
-        // floatN
-        if (typeElement.valueType().toString().startsWith("hat.buffer.Float")) {
-            return "float" + loadN;
-        }
-        throw new RuntimeException("Unexpected vector type " + typeElement);
-    }
 }

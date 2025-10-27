@@ -38,8 +38,8 @@ public class HATVectorOfOp extends HATVectorOp {
     private final TypeElement typeElement;
     private final int loadN;
 
-    public HATVectorOfOp(TypeElement typeElement, int loadN, List<Value> operands) {
-        super("", typeElement, loadN, operands);
+    public HATVectorOfOp(TypeElement typeElement, TypeElement vectorTypeElement, int loadN, List<Value> operands) {
+        super("", typeElement, vectorTypeElement, loadN, operands);
         this.typeElement = typeElement;
         this.loadN = loadN;
     }

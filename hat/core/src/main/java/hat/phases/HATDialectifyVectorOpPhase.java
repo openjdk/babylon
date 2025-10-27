@@ -25,6 +25,7 @@
 package hat.phases;
 
 import hat.Accelerator;
+import hat.annotations.HATVectorType;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorAddOp;
@@ -38,6 +39,7 @@ import hat.dialect.HATVectorVarLoadOp;
 import hat.dialect.HATVectorVarOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.Utils;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
@@ -47,6 +49,8 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +58,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static hat.dialect.Utils.getVectorTypeInfo;
 
 public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
@@ -67,8 +73,6 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
        this.accelerator = accelerator;
         this.vectorOperation = vectorOperation;
     }
-
-
 
     private HATVectorBinaryOp.OpType getBinaryOpType(JavaOp.InvokeOp invokeOp) {
         return switch (invokeOp.invokeDescriptor().name()) {
@@ -96,26 +100,21 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
         TypeElement typeElement = invokeOp.resultType();
-        boolean isHatVectorType = typeElement.toString().startsWith("hat.buffer.Float");
-        return isHatVectorType
-                && OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp)
-                && isMethod(invokeOp, vectorOperation.methodName);
-    }
-
-    private String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findNameVector(varLoadOp.operands().get(0));
-    }
-
-    private String findNameVector(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findNameVector(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-                return hatVectorOp.varName();
+        boolean isHatVectorType = false;
+        try {
+            Class<?> aClass = Class.forName(typeElement.toString());
+            if (!aClass.isPrimitive()) {
+                Annotation[] annotations = aClass.getAnnotations();
+                for (Annotation annotation : annotations) {
+                    if (annotation instanceof HATVectorType) {
+                        isHatVectorType = true;
+                        break;
+                    }
+                }
             }
-            return null;
+        } catch (ClassNotFoundException _) {
         }
+        return isHatVectorType && isMethod(invokeOp, vectorOperation.methodName);
     }
 
     private boolean findIsSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -134,17 +133,18 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
         }
     }
 
-    private HATVectorBinaryOp buildVectorBinaryOp(HATVectorBinaryOp.OpType opType, String varName, TypeElement resultType, List<Value> outputOperands) {
+    private HATVectorBinaryOp buildVectorBinaryOp(HATVectorBinaryOp.OpType opType, String varName, TypeElement resultType, int witdh, List<Value> outputOperands) {
         return switch (opType) {
-            case ADD -> new HATVectorAddOp(varName, resultType, outputOperands);
-            case SUB -> new HATVectorSubOp(varName, resultType, outputOperands);
-            case MUL -> new HATVectorMulOp(varName, resultType, outputOperands);
-            case DIV -> new HATVectorDivOp(varName, resultType, outputOperands);
+            case ADD -> new HATVectorAddOp(varName, resultType, witdh, outputOperands);
+            case SUB -> new HATVectorSubOp(varName, resultType, witdh, outputOperands);
+            case MUL -> new HATVectorMulOp(varName, resultType, witdh, outputOperands);
+            case DIV -> new HATVectorDivOp(varName, resultType, witdh, outputOperands);
         };
     }
 
     private CoreOp.FuncOp dialectifyVectorLoad(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyVectorLoad" );
+        Map<Op, Utils.VectorMetaData> vectorMetaData = new HashMap<>();
         before(here,funcOp);
             Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
@@ -156,6 +156,9 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                                     if (isVectorOperation(invokeOp)) {
                                         consumer.accept(invokeOp);
                                         consumer.accept(varOp);
+                                        Utils.VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
+                                        vectorMetaData.put(invokeOp, vectorTypeInfo);
+                                        vectorMetaData.put(varOp, vectorTypeInfo);
                                     }
                                 }
                             }
@@ -164,7 +167,6 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                 });
 
         Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
-
 
         funcOp = OpTk.transform(here, funcOp,(blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
@@ -179,24 +181,24 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                     if (r.op() instanceof CoreOp.VarOp varOp) {
                         List<Value> inputOperandsVarOp = invokeOp.operands();
                         List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                        HATVectorOp memoryViewOp = new HATVectorLoadOp(varOp.varName(), varOp.resultType(), invokeOp.resultType(), 4, isShared, outputOperandsVarOp);
+                        Utils.VectorMetaData metaData = getVectorTypeInfo(invokeOp);
+                        HATVectorOp memoryViewOp = new HATVectorLoadOp(varOp.varName(), varOp.resultType(), invokeOp.resultType(), metaData.lanes(), isShared, outputOperandsVarOp);
                         Op.Result hatLocalResult = blockBuilder.op(memoryViewOp);
                         memoryViewOp.setLocation(varOp.location());
                         context.mapValue(invokeOp.result(), hatLocalResult);
                     }
                 }
             } else if (op instanceof CoreOp.VarOp varOp) {
-                // pass value
-                //context.mapValue(varOp.result(), context.getValue(varOp.operands().getFirst()));
                 List<Value> inputOperandsVarOp = varOp.operands();
                 List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                HATVectorOp memoryViewOp = new HATVectorVarOp(varOp.varName(), varOp.resultType(), 4, outputOperandsVarOp);
+
+                // It must be in the hashmap
+                Utils.VectorMetaData vmd = vectorMetaData.get(varOp);
+
+                HATVectorOp memoryViewOp = new HATVectorVarOp(varOp.varName(), varOp.resultType(), vmd.vectorTypeElement(), vmd.lanes(), outputOperandsVarOp);
                 Op.Result hatLocalResult = blockBuilder.op(memoryViewOp);
                 memoryViewOp.setLocation(varOp.location());
                 context.mapValue(varOp.result(), hatLocalResult);
-            } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                // pass value
-                context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
             }
             return blockBuilder;
         });
@@ -206,8 +208,9 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
     private CoreOp.FuncOp dialectifyVectorOf(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyVectorOf" );
+        Map<Op, Utils.VectorMetaData> vectorMetaData = new HashMap<>();
         before(here,funcOp);
-        Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
+        Stream<CodeElement<?, ?>> vectorNodes = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
                         if (isVectorOperation(invokeOp)) {
@@ -216,13 +219,16 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                             for (Op.Result result : uses) {
                                 if (result.op() instanceof CoreOp.VarOp varOp) {
                                     consumer.accept(varOp);
+                                    Utils.VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
+                                    vectorMetaData.put(invokeOp, vectorTypeInfo);
+                                    vectorMetaData.put(varOp, vectorTypeInfo);
                                 }
                             }
                         }
                     }
                 });
 
-        Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
+        Set<CodeElement<?, ?>> nodesInvolved = vectorNodes.collect(Collectors.toSet());
 
         funcOp = OpTk.transform(here, funcOp,(blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
@@ -231,14 +237,16 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
                 List<Value> inputOperandsVarOp = invokeOp.operands();
                 List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                HATVectorOfOp memoryViewOp = new HATVectorOfOp(invokeOp.resultType(), 4, outputOperandsVarOp);
+                Utils.VectorMetaData vmd = vectorMetaData.get(invokeOp);
+                HATVectorOfOp memoryViewOp = new HATVectorOfOp(invokeOp.resultType(), vmd.vectorTypeElement(), vmd.lanes(), outputOperandsVarOp);
                 Op.Result hatLocalResult = blockBuilder.op(memoryViewOp);
                 memoryViewOp.setLocation(invokeOp.location());
                 context.mapValue(invokeOp.result(), hatLocalResult);
             } else if (op instanceof CoreOp.VarOp varOp) {
                 List<Value> inputOperandsVarOp = varOp.operands();
                 List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                HATVectorOp memoryViewOp = new HATVectorVarOp(varOp.varName(), varOp.resultType(), 4, outputOperandsVarOp);
+                Utils.VectorMetaData vmd = vectorMetaData.get(varOp);
+                HATVectorOp memoryViewOp = new HATVectorVarOp(varOp.varName(), varOp.resultType(), vmd.vectorTypeElement(), vmd.lanes(), outputOperandsVarOp);
                 Op.Result hatLocalResult = blockBuilder.op(memoryViewOp);
                 memoryViewOp.setLocation(varOp.location());
                 context.mapValue(varOp.result(), hatLocalResult);
@@ -253,6 +261,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyVectorBinaryOps");
         before(here, funcOp);
         Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation = new HashMap<>();
+        Map<Op, Utils.VectorMetaData> vectorMetaData = new HashMap<>();
 
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
@@ -264,6 +273,9 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                                     if (isVectorOperation(invokeOp)) {
                                         HATVectorBinaryOp.OpType binaryOpType = getBinaryOpType(invokeOp);
                                         binaryOperation.put(invokeOp, binaryOpType);
+                                        Utils.VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
+                                        vectorMetaData.put(invokeOp, vectorTypeInfo);
+                                        vectorMetaData.put(varOp, vectorTypeInfo);
                                         consumer.accept(invokeOp);
                                         consumer.accept(varOp);
                                     }
@@ -285,7 +297,10 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                 for (Op.Result r : collect) {
                     if (r.op() instanceof CoreOp.VarOp varOp) {
                         HATVectorBinaryOp.OpType binaryOpType = binaryOperation.get(invokeOp);
-                        HATVectorOp memoryViewOp = buildVectorBinaryOp(binaryOpType, varOp.varName(), invokeOp.resultType(), outputOperands);
+
+                        Utils.VectorMetaData vmd = vectorMetaData.get(invokeOp);
+
+                        HATVectorOp memoryViewOp = buildVectorBinaryOp(binaryOpType, varOp.varName(), invokeOp.resultType(), vmd.lanes(), outputOperands);
                         Op.Result hatVectorOpResult = blockBuilder.op(memoryViewOp);
                         memoryViewOp.setLocation(varOp.location());
                         context.mapValue(invokeOp.result(), hatVectorOpResult);
@@ -295,7 +310,9 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
             } else if (op instanceof CoreOp.VarOp varOp) {
                 List<Value> inputOperandsVarOp = varOp.operands();
                 List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                HATVectorOp memoryViewOp = new HATVectorVarOp(varOp.varName(), varOp.resultType(), 4, outputOperandsVarOp);
+
+                Utils.VectorMetaData vmd = vectorMetaData.get(varOp);
+                HATVectorOp memoryViewOp = new HATVectorVarOp(varOp.varName(), varOp.resultType(), vmd.vectorTypeElement(), vmd.lanes(), outputOperandsVarOp);
                 Op.Result hatVectorResult = blockBuilder.op(memoryViewOp);
                 memoryViewOp.setLocation(varOp.location());
                 context.mapValue(varOp.result(), hatVectorResult);
@@ -309,15 +326,19 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
     private CoreOp.FuncOp dialectifyMutableOf(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyMutableOf" );
         before(here,funcOp);
+        Map<Op, Utils.VectorMetaData> vectorMetaData = new HashMap<>();
         Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
                         if (isVectorOperation(invokeOp)) {
                             consumer.accept(invokeOp);
+                            Utils.VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
+                            vectorMetaData.put(invokeOp, vectorTypeInfo);
                             Set<Op.Result> uses = invokeOp.result().uses();
                             for (Op.Result result : uses) {
                                 if (result.op() instanceof CoreOp.VarOp varOp) {
                                     consumer.accept(varOp);
+                                    vectorMetaData.put(varOp, vectorTypeInfo);
                                 }
                             }
                         }
@@ -333,15 +354,17 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
                 List<Value> inputOperandsVarOp = invokeOp.operands();
                 List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                String varName = findNameVector(invokeOp.operands().getFirst());
-                HATVectorMakeOfOp makeOf = new HATVectorMakeOfOp(varName, invokeOp.resultType(), 4, outputOperandsVarOp);
+                String varName = Utils.findNameVector(invokeOp.operands().getFirst());
+                Utils.VectorMetaData vmd = vectorMetaData.get(invokeOp);
+                HATVectorMakeOfOp makeOf = new HATVectorMakeOfOp(varName, invokeOp.resultType(), vmd.lanes(), outputOperandsVarOp);
                 Op.Result hatLocalResult = blockBuilder.op(makeOf);
                 makeOf.setLocation(invokeOp.location());
                 context.mapValue(invokeOp.result(), hatLocalResult);
             } else if (op instanceof CoreOp.VarOp varOp) {
                 List<Value> inputOperandsVarOp = varOp.operands();
                 List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
-                HATVectorOp memoryViewOp = new HATVectorVarOp(varOp.varName(), varOp.resultType(), 4, outputOperandsVarOp);
+                Utils.VectorMetaData vmd = vectorMetaData.get(varOp);
+                HATVectorOp memoryViewOp = new HATVectorVarOp(varOp.varName(), varOp.resultType(), vmd.vectorTypeElement(), vmd.lanes(), outputOperandsVarOp);
                 Op.Result hatLocalResult = blockBuilder.op(memoryViewOp);
                 memoryViewOp.setLocation(varOp.location());
                 context.mapValue(varOp.result(), hatLocalResult);
@@ -356,7 +379,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyBinaryWithConcatenation");
         before(here, funcOp);
         Map<JavaOp.InvokeOp, HATVectorBinaryOp.OpType> binaryOperation = new HashMap<>();
-        Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
+        Stream<CodeElement<?, ?>> vectorNodes = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
                         if (isVectorOperation(invokeOp)) {
@@ -380,7 +403,7 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                     }
                 });
 
-        Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
+        Set<CodeElement<?, ?>> nodesInvolved = vectorNodes.collect(Collectors.toSet());
         if (nodesInvolved.isEmpty()) {
             return funcOp;
         }
@@ -391,22 +414,25 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
                 List<Value> inputOperands = invokeOp.operands();
                 List<Value> outputOperands = context.getValues(inputOperands);
-                HATVectorOp memoryViewOp = buildVectorBinaryOp(binaryOperation.get(invokeOp), "null", invokeOp.resultType(), outputOperands);
+                Utils.VectorMetaData vectorMetaData = getVectorTypeInfo(invokeOp);
+                HATVectorOp memoryViewOp = buildVectorBinaryOp(binaryOperation.get(invokeOp), "null", invokeOp.resultType(), vectorMetaData.lanes(), outputOperands);
                 Op.Result hatVectorOpResult = blockBuilder.op(memoryViewOp);
                 memoryViewOp.setLocation(invokeOp.location());
                 context.mapValue(invokeOp.result(), hatVectorOpResult);
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                 List<Value> inputOperandsVarLoad = varLoadOp.operands();
                 List<Value> outputOperandsVarLoad = context.getValues(inputOperandsVarLoad);
-                String varLoadName = findNameVector(varLoadOp);
-                HATVectorOp memoryViewOp = new HATVectorVarLoadOp(varLoadName, varLoadOp.resultType(), outputOperandsVarLoad);
+                String varLoadName = Utils.findNameVector(varLoadOp);
+                int lanes = Utils.getWitdh(varLoadOp);
+                TypeElement vectorElementType = Utils.findVectorTypeElement(varLoadOp);
+                HATVectorOp memoryViewOp = new HATVectorVarLoadOp(varLoadName, varLoadOp.resultType(), vectorElementType, lanes, outputOperandsVarLoad);
                 Op.Result hatVectorResult = blockBuilder.op(memoryViewOp);
                 memoryViewOp.setLocation(varLoadOp.location());
                 context.mapValue(varLoadOp.result(), hatVectorResult);
             }
             return blockBuilder;
         });
-      after(here,funcOp);
+        after(here,funcOp);
         return funcOp;
     }
 

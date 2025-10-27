@@ -24,18 +24,21 @@
  */
 package hat.buffer;
 
+import hat.annotations.HATVectorType;
 import jdk.incubator.code.CodeReflection;
 
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
-public interface Float4 extends HatVector {
+@HATVectorType(primitiveType = "float", lanes = 4)
+public interface Float4 extends HATVector {
 
     float x();
     float y();
     float z();
     float w();
 
+    @HATVectorType(primitiveType = "float", lanes = 4)
     record MutableImpl(float x, float y, float z, float w) implements Float4 {
         public void x(float x) {}
         public void y(float y) {}
@@ -43,6 +46,7 @@ public interface Float4 extends HatVector {
         public void w(float w) {}
     }
 
+    @HATVectorType(primitiveType = "float", lanes = 4)
     record ImmutableImpl(float x, float y, float z, float w) implements Float4 {
     }
 

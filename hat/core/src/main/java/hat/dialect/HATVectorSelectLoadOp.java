@@ -39,7 +39,7 @@ public class HATVectorSelectLoadOp extends HATVectorOp {
     private final int lane;
 
     public HATVectorSelectLoadOp(String varName, TypeElement typeElement, int lane, List<Value> operands) {
-        super(varName, typeElement, -1, operands);
+        super(varName, typeElement, typeElement, -1, operands);
         this.elementType = typeElement;
         this.lane = lane;
     }

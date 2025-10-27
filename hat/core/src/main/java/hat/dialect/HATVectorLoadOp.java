@@ -41,7 +41,7 @@ public class HATVectorLoadOp extends HATVectorOp {
     private final boolean isSharedOrPrivate;
 
     public HATVectorLoadOp(String varName, TypeElement typeElement, TypeElement vectorType, int loadN, boolean isShared, List<Value> operands) {
-        super(varName, typeElement, loadN, operands);
+        super(varName, typeElement, typeElement, loadN, operands);
         this.typeElement = typeElement;
         this.loadN = loadN;
         this.vectorType = vectorType;
