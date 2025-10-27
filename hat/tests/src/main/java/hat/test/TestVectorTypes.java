@@ -67,12 +67,21 @@ public class TestVectorTypes {
     public static void vectorOps03(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
+
+            // Obtain a view of the input data as a float4 and
+            // store that view in private memory
             Float4 vA = a.float4View(index * 4);
+
+            // operate with the float4
             float scaleX = vA.x() * 10.0f;
             float scaleY = vA.y() * 20.0f;
             float scaleZ = vA.z() * 30.0f;
             float scaleW = vA.w() * 40.0f;
+
+            // Create a float4 within the device code
             Float4 vResult = Float4.of(scaleX, scaleY, scaleZ, scaleW);
+
+            // store the float4 from private memory to global memory
             b.storeFloat4View(vResult, index * 4);
         }
     }
