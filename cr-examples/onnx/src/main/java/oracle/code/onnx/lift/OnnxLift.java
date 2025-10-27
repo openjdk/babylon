@@ -31,25 +31,20 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.LongStream;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Location;
@@ -59,11 +54,9 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.extern.OpWriter;
-import oracle.code.onnx.OnnxOperators;
 import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
 import oracle.code.onnx.ir.OnnxOp;
@@ -76,245 +69,15 @@ import oracle.code.onnx.proto.OnnxModel;
 /**
  * Lifts ONNX model binary to ONNX code reflection model, extracts weights, and generates Java model source.
  */
-public class OnnxLift {
+public final class OnnxLift {
 
-    record LiftedModelWrapper(CoreOp.FuncOp func, List<String> names, List<OnnxModel.TensorProto> weights) {
+    private static final OpFactory ONNX_OP_FACTORY =
+            OpFactoryHelper.OP_FACTORY.get(ExplicitOnnxOps.class).andThen(OpFactoryHelper.OP_FACTORY.get(OnnxOps.class));
 
-        private Function<CodeItem, String> namer() {
-            var defNamer = OpWriter.CodeItemNamerOption.defaultValue().namer();
-            var namer = new HashMap<Value, Integer>();
-            return ci -> ci instanceof Value v ? names.get(namer.computeIfAbsent(v, _ -> namer.size())) : defNamer.apply(ci);
-        }
+    private static final Map<String, OnnxOp.OnnxSchema> ONNX_SCHEMA_REGISTRY =
+            collectSchemas(ExplicitOnnxOps.class, OnnxOps.class);
 
-        public String toText() {
-            return OpWriter.toText(func, OpWriter.CodeItemNamerOption.of(namer()));
-        }
-
-        public String toJava() {
-            var out = new StringBuilder();
-            var namer = namer();
-            var entryBlock = func.bodies().getFirst().entryBlock();
-            entryBlock.parameters().forEach(namer::apply);
-            out.append("""
-                    import java.io.IOException;
-                    import java.io.RandomAccessFile;
-                    import java.lang.foreign.Arena;
-                    import java.lang.foreign.MemorySegment;
-                    import java.nio.channels.FileChannel;
-                    import jdk.incubator.code.CodeReflection;
-                    import oracle.code.onnx.Tensor;
-
-                    import static java.util.Optional.*;
-                    import static oracle.code.onnx.OnnxOperators.*;
-                    import static oracle.code.onnx.Tensor.ElementType.*;
-
-                    public class Model {
-
-                        final Arena arena = Arena.ofAuto();
-
-                        MemorySegment mmap(String pathname) {
-                            try (var f = new RandomAccessFile(pathname, "r")) {
-                                return f.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, f.length(), arena);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-
-                        <T> Tensor<T> load(String path, Tensor.ElementType type, long... shape) {
-                            return new Tensor<>(arena, mmap(path), type, shape);
-                        }
-
-                    """);
-            int pSize = entryBlock.parameters().size();
-            int realParamsSize = pSize - weights().size();
-            var weightParams = entryBlock.parameters().subList(realParamsSize, pSize);
-            var wMap = weights.stream().collect(Collectors.toUnmodifiableMap(OnnxModel.TensorProto::name, Function.identity()));
-            for (int i = 0; i < weightParams.size(); i++) {
-                Block.Parameter wp = weightParams.get(i);
-                OnnxModel.TensorProto w = wMap.get(namer.apply(wp));
-                String name = toJavaName(w.name());
-                long[] dims = OnnxLift.joinLongArray(w.dims());
-                out.append("    final " + toJavaType(wp.type()) + " " + name + " = load(\""
-                        + name + "\", "
-                        + Tensor.ElementType.fromOnnxId(w.dataType()).name()
-                        + (dims.length > 0 ? (", " + longJoin(dims)) : "") + ");\n");
-            }
-            out.append("""
-
-                        @CodeReflection
-                        public Object mainGraph(
-                    """);
-            for (int i = 0; i < realParamsSize; i++) {
-                if (i > 0) {
-                    out.append(",\n");
-                }
-                var param = entryBlock.parameters().get(i);
-                out.append("            ").append(toJavaType(param.type())).append(' ').append(toJavaName(namer.apply(param)));
-            }
-            out.append(") {\n");
-            for (var op : entryBlock.ops()) {
-                if (!(op instanceof CoreOp.TupleLoadOp)) { // lazy tupple loads
-                    out.append("        ");
-                    if (!op.resultType().equals(JavaType.VOID)) {
-                        out.append(toJavaType(op.resultType())).append(' ').append(toJavaName(namer.apply(op.result()))).append(" = ");
-                    }
-
-                    switch (op) {
-                        case OnnxOp oo -> {
-                            String opName = op.externalizeOpName();
-                            out.append(opName.substring(opName.lastIndexOf('.') + 1)).append('(');
-                            var schema = getSchema(oo);
-                            var inputs = oo.onnxInputs();
-                            boolean first = true;
-                            for (var oi : schema.inputs()) {
-                                if (first) {
-                                    first = false;
-                                } else {
-                                    out.append(", ");
-                                }
-                                out.append(toJava(namer, inputs.get(oi)));
-                            }
-                            var attrs = oo.onnxAttributes();
-                            for (var oa : schema.attributes()) {
-                                if (first) {
-                                    first = false;
-                                } else {
-                                    out.append(", ");
-                                }
-                                var a = attrs.get(oa.name());
-                                if (a == null) {
-                                    out.append("empty()");
-                                } else if (oa.isOptional()) {
-                                    out.append("of(").append(toString(a)).append(')');
-                                } else {
-                                    out.append(toString(a));
-                                }
-                            }
-                            out.append(");\n");
-                        }
-                        case CoreOp.TupleOp to -> {
-                            out.append("List.of(");
-                            boolean first = true;
-                            for (var te : to.operands()) {
-                                if (first) {
-                                    first = false;
-                                } else {
-                                    out.append(", ");
-                                }
-                                out.append(toJava(namer, te));
-                            }
-                            out.append(");\n");
-                        }
-                        case CoreOp.ReturnOp ro -> {
-                            out.append("return ").append(toJava(namer, ro.operands().getFirst())).append(";\n");
-                        }
-                        default -> throw new UnsupportedOperationException(op.toText());
-                    }
-                } else {
-                    namer.apply(op.result());
-                }
-            }
-            out.append("    }\n}\n");
-            return out.toString();
-        }
-
-        private static String toString(Object o) {
-            return switch (o) {
-                case long[] la -> newArray(la);
-                case float[] fa -> newArray(fa);
-                case Long l -> l.toString() + "L";
-                case Float f -> f.toString() + "F";
-                case String s -> "\"" + s + "\"";
-                case Tensor t when t.shape().length == 0 && t.elementType() == Tensor.ElementType.BOOL ->
-                        "Tensor.ofScalar(" + t.data().get(ValueLayout.JAVA_BOOLEAN, 0) + ")";
-                case Tensor t when t.shape().length == 0 && t.elementType() == Tensor.ElementType.INT8 ->
-                        "Tensor.ofScalar((byte)" + t.data().get(ValueLayout.JAVA_BYTE, 0) + ")";
-                case Tensor t -> "Tensor.ofShape(" + toString(t.shape()) + ", "
-                    + switch (t.elementType()) {
-                        case FLOAT -> toString(t.data().toArray(ValueLayout.JAVA_FLOAT));
-                        case INT64 -> toString(t.data().toArray(ValueLayout.JAVA_LONG));
-                        default -> "HexFormat.of().parseHex(\"" + HexFormat.of().formatHex(t.data().toArray(ValueLayout.JAVA_BYTE))
-                                                            + "\"), " + t.elementType().name();
-                    } + ")";
-                default -> o.toString();
-            };
-        }
-
-        private static String newArray(long[] la) {
-            for (long l : la) {
-                if (l != 0l) {
-                    return "new long[] {" + longJoin(la) + "}";
-                }
-            }
-            return "new long[" + la.length + "]";
-        }
-
-        private static String longJoin(long[] la) {
-            return LongStream.of(la).mapToObj(d -> String.valueOf(d) + "L")
-                                     .collect(Collectors.joining(", "));
-        }
-
-        private static String newArray(float[] fa) {
-            for (float f : fa) {
-                if (f != 0f) {
-                    return IntStream.range(0, fa.length).mapToObj(i -> String.valueOf(fa[i]) + "F")
-                                    .collect(Collectors.joining(", ",  "new float[] {", "}"));
-                }
-            }
-            return "new float[" + fa.length + "]";
-        }
-
-        private static String tupleAccessor(Value tuple, int componentIndex) {
-            if (tuple instanceof Op.Result or && or.op() instanceof OnnxOp oo) {
-                String mName = oo.externalizeOpName();
-                mName = mName.substring(mName.lastIndexOf('.') + 1);
-                for (Method m : OnnxOperators.class.getMethods()) {
-                    if (m.getName().equals(mName)) {
-                        return m.getReturnType().getRecordComponents()[componentIndex].getAccessor().getName() + "()";
-                    }
-                }
-                throw new IllegalStateException(mName);
-            }
-            return "get(" + componentIndex + ")"; // fallback to List
-        }
-
-        private static String toJava(Function<CodeItem, String> namer, Object value) {
-            return switch (value) {
-                case Optional o when o.isEmpty() -> "empty()";
-                case Optional o -> "of(" + toJava(namer, o.get()) + ")";
-                case List l -> "List.of(" + l.stream().map(le -> toJava(namer, le)).collect(Collectors.joining(", ")) + ")";
-                case Op.Result or when or.op() instanceof CoreOp.TupleLoadOp tlo ->
-                    toJavaName(namer.apply(tlo.operands().getFirst())) + '.' + tupleAccessor(tlo.operands().getFirst(), tlo.index());
-                case Value v -> toJavaName(namer.apply(v));
-                default -> throw new UnsupportedOperationException(value.toString());
-            };
-        }
-
-        private static OnnxOp.OnnxSchema getSchema(OnnxOp oo) {
-            try {
-                return (OnnxOp.OnnxSchema) oo.getClass().getDeclaredField("SCHEMA").get(null);
-            } catch (ReflectiveOperationException ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-
-        private static String toJavaType(TypeElement t) {
-            return switch (t) {
-                case OnnxType.TensorType tt ->
-                    "Tensor<" + switch (tt.eType()) {
-                        case OnnxType.Float32Type _ -> "Float";
-                        case OnnxType.Int64Type _ -> "Long";
-                        case OnnxType.Int32Type _ -> "Integer";
-                        case OnnxType.UInt8Type _ -> "Byte";
-                        case OnnxType.BoolType _ -> "Boolean";
-                        default -> throw new UnsupportedOperationException(t.toString());
-                    } + ">";
-                default -> "var";
-            };
-        }
-    }
-
-    static OnnxType toOnnxType(OnnxModel.TypeProto tp) {
+    private static OnnxType toOnnxType(OnnxModel.TypeProto tp) {
         if (tp.tensorType() instanceof OnnxModel.TypeProto.Tensor t) {
             return toTensorType(t.elemType());
         } else if (tp.optionalType() instanceof OnnxModel.TypeProto.Optional o) {
@@ -329,7 +92,7 @@ public class OnnxLift {
         throw new IllegalArgumentException("No type specified.");
     }
 
-    static FunctionType toFunctionType(OnnxModel.GraphProto g) {
+    private static FunctionType toFunctionType(OnnxModel.GraphProto g) {
         var paramTypes = new ArrayList<TypeElement>();
         Set<String> dedup = new HashSet();
         for (OnnxModel.ValueInfoProto input : g.input()) {
@@ -349,7 +112,7 @@ public class OnnxLift {
         return CoreType.functionType(returnType, paramTypes);
     }
 
-    static OnnxType toKeyType(int kt) {
+    private static OnnxType toKeyType(int kt) {
         return switch (kt) {
             case 2 -> OnnxType.UINT8;
             case 3 -> OnnxType.INT8;
@@ -364,7 +127,7 @@ public class OnnxLift {
         };
     }
 
-    static OnnxType.TensorType toTensorType(int tt) {
+    private static OnnxType.TensorType toTensorType(int tt) {
         return switch (tt) {
             case 1 -> OnnxType.TENSOR_FLOAT32;
             case 2 -> OnnxType.TENSOR_UINT8;
@@ -393,11 +156,7 @@ public class OnnxLift {
         };
     }
 
-    static final OpFactory ONNX_OP_FACTORY = OpFactoryHelper.OP_FACTORY.get(ExplicitOnnxOps.class).andThen(OpFactoryHelper.OP_FACTORY.get(OnnxOps.class));
-
-    static final Map<String, OnnxOp.OnnxSchema> ONNX_SCHEMA_REGISTRY = collectSchemas(ExplicitOnnxOps.class, OnnxOps.class);
-
-    static Map<String, OnnxOp.OnnxSchema> collectSchemas(Class<?>... cls) {
+    private static Map<String, OnnxOp.OnnxSchema> collectSchemas(Class<?>... cls) {
         Map<String, OnnxOp.OnnxSchema> reg = new HashMap<>();
         for (Class<?> c : cls) {
             for (Class<?> nm : c.getNestMembers()) {
@@ -414,7 +173,102 @@ public class OnnxLift {
         return reg;
     }
 
-    static LiftedModelWrapper lift(OnnxModel.GraphProto g) {
+    private static OnnxType inferTypeVariableType(OnnxType type, OnnxOp op, OnnxModel.NodeProto n) {
+        if (type instanceof OnnxType.TypeVariable tv) {
+            if (tv.types().size() == 1) {
+                return tv.types().getFirst();
+            }
+            // search for the same type variable across inputs
+            for (var ie : op.onnxInputs().entrySet()) {
+                if (ie.getKey().type().equals(tv)) {
+                    if (ie.getValue() instanceof Value v && v.type() instanceof OnnxType ot) {
+                        return ot;
+                    } else if (ie.getValue() instanceof List l && !l.isEmpty() && l.getFirst() instanceof Value v && v.type() instanceof OnnxType ot) {
+                        return ot;
+                    }
+                }
+            }
+
+            // special cases
+            return switch (op) {
+                case OnnxOps.Cast c ->
+                    toTensorType((int)c.to());
+                case OnnxOps.ConstantOfShape _, OnnxOps.Constant _-> // get tensor type from tensor attribute
+                    n.attribute() != null
+                    && !n.attribute().isEmpty()
+                    && n.attribute().getFirst().t() instanceof OnnxModel.TensorProto tp
+                            ? toTensorType(tp.dataType())
+                            : OnnxType.TENSOR_FLOAT32; // default
+                default ->
+                    throw new IllegalArgumentException("Could not infer op type for: " + op.toText());
+            };
+        }
+        return type;
+    }
+
+    private static Object toAttributeValue(OnnxModel.AttributeProto a) {
+        return switch (a.type()) {
+            case FLOAT -> a.f();
+            case INT -> a.i();
+            case STRING -> new String(a.s());
+            case TENSOR -> toTensor(a.t());
+//    GRAPH = 5;
+//    SPARSE_TENSOR = 11;
+//    TYPE_PROTO = 13;
+            case FLOATS -> joinFloatArray(a.floats());
+            case INTS -> joinLongArray(a.ints());
+            case STRINGS -> a.strings();
+            case TENSORS -> a.tensors().stream().map(OnnxLift::toTensor).toArray(Tensor[]::new);
+//    GRAPHS = 10;
+//    SPARSE_TENSORS = 12;
+//    TYPE_PROTOS = 14;
+            default -> throw new UnsupportedOperationException("Unsupported " + a.type());
+        };
+    }
+
+    private static Tensor toTensor(OnnxModel.TensorProto tensorProto) {
+        // @@@ floatData, longData, stringData...
+        // @@@ externalData
+        // @@@ segments
+        return Tensor.ofShape(joinLongArray(tensorProto.dims()), tensorProto.rawData(), Tensor.ElementType.fromOnnxId(tensorProto.dataType()));
+    }
+
+    private static float[] joinFloatArray(List<float[]> floats) {
+        if (floats == null) return new float[0];
+        float[] join = new float[floats.stream().mapToInt(f -> f.length).sum()];
+        int i = 0;
+        for (float[] f : floats) {
+            System.arraycopy(f, 0, join, i, f.length);
+            i += f.length;
+        }
+        return join;
+    }
+
+    static long[] joinLongArray(List<long[]> longs) {
+        if (longs == null) return new long[0];
+        long[] join = new long[longs.stream().mapToInt(f -> f.length).sum()];
+        int i = 0;
+        for (long[] f : longs) {
+            System.arraycopy(f, 0, join, i, f.length);
+            i += f.length;
+        }
+        return join;
+    }
+
+    static Function<CodeItem, String> namer(List<String> names) {
+        var defNamer = OpWriter.CodeItemNamerOption.defaultValue().namer();
+        var namer = new HashMap<Value, Integer>();
+        return ci -> ci instanceof Value v ? names.get(namer.computeIfAbsent(v, _ -> namer.size())) : defNamer.apply(ci);
+    }
+
+    record LiftedModelWrapper(CoreOp.FuncOp func, List<String> names, List<OnnxModel.TensorProto> weights) {
+
+        String toText() {
+            return OpWriter.toText(func, OpWriter.CodeItemNamerOption.of(namer(names)));
+        }
+    }
+
+    private static LiftedModelWrapper lift(OnnxModel.GraphProto g) {
         var valueMap = new LinkedHashMap<String, Value>();
         var func = CoreOp.FuncOp.func(g.name(), toFunctionType(g)).body(fb -> {
 
@@ -561,95 +415,13 @@ public class OnnxLift {
         return new LiftedModelWrapper(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)), g.initializer());
     }
 
-    static OnnxType inferTypeVariableType(OnnxType type, OnnxOp op, OnnxModel.NodeProto n) {
-        if (type instanceof OnnxType.TypeVariable tv) {
-            if (tv.types().size() == 1) {
-                return tv.types().getFirst();
-            }
-            // search for the same type variable across inputs
-            for (var ie : op.onnxInputs().entrySet()) {
-                if (ie.getKey().type().equals(tv)) {
-                    if (ie.getValue() instanceof Value v && v.type() instanceof OnnxType ot) {
-                        return ot;
-                    } else if (ie.getValue() instanceof List l && !l.isEmpty() && l.getFirst() instanceof Value v && v.type() instanceof OnnxType ot) {
-                        return ot;
-                    }
-                }
-            }
-
-            // special cases
-            return switch (op) {
-                case OnnxOps.Cast c ->
-                    toTensorType((int)c.to());
-                case OnnxOps.ConstantOfShape _, OnnxOps.Constant _-> // get tensor type from tensor attribute
-                    n.attribute() != null
-                    && !n.attribute().isEmpty()
-                    && n.attribute().getFirst().t() instanceof OnnxModel.TensorProto tp
-                            ? toTensorType(tp.dataType())
-                            : OnnxType.TENSOR_FLOAT32; // default
-                default ->
-                    throw new IllegalArgumentException("Could not infer op type for: " + op.toText());
-            };
-        }
-        return type;
-    }
-
-    static Object toAttributeValue(OnnxModel.AttributeProto a) {
-        return switch (a.type()) {
-            case FLOAT -> a.f();
-            case INT -> a.i();
-            case STRING -> new String(a.s());
-            case TENSOR -> toTensor(a.t());
-//    GRAPH = 5;
-//    SPARSE_TENSOR = 11;
-//    TYPE_PROTO = 13;
-            case FLOATS -> joinFloatArray(a.floats());
-            case INTS -> joinLongArray(a.ints());
-            case STRINGS -> a.strings();
-            case TENSORS -> a.tensors().stream().map(OnnxLift::toTensor).toArray(Tensor[]::new);
-//    GRAPHS = 10;
-//    SPARSE_TENSORS = 12;
-//    TYPE_PROTOS = 14;
-            default -> throw new UnsupportedOperationException("Unsupported " + a.type());
-        };
-    }
-
-    static Tensor toTensor(OnnxModel.TensorProto tensorProto) {
-        // @@@ floatData, longData, stringData...
-        // @@@ externalData
-        // @@@ segments
-        return Tensor.ofShape(joinLongArray(tensorProto.dims()), tensorProto.rawData(), Tensor.ElementType.fromOnnxId(tensorProto.dataType()));
-    }
-
-    static float[] joinFloatArray(List<float[]> floats) {
-        if (floats == null) return new float[0];
-        float[] join = new float[floats.stream().mapToInt(f -> f.length).sum()];
-        int i = 0;
-        for (float[] f : floats) {
-            System.arraycopy(f, 0, join, i, f.length);
-            i += f.length;
-        }
-        return join;
-    }
-
-    static long[] joinLongArray(List<long[]> longs) {
-        if (longs == null) return new long[0];
-        long[] join = new long[longs.stream().mapToInt(f -> f.length).sum()];
-        int i = 0;
-        for (long[] f : longs) {
-            System.arraycopy(f, 0, join, i, f.length);
-            i += f.length;
-        }
-        return join;
-    }
-
     static String toJavaName(String name) {
         name = Pattern.compile("[^\\p{Alnum}]+(\\p{Alnum})").matcher(name).replaceAll(mr -> mr.group(1).toUpperCase());
         name = name.replace("Output", "");
         return Character.toLowerCase(name.charAt(0)) + name.substring(1);
     }
 
-    static String colorModelToANSI(String codeModel) {
+    private static String colorModelToANSI(String codeModel) {
         return codeModel.replaceAll("(%\\d+)([; ])", "\033[31m$1\033[0m$2")
                         .replaceAll(" : ([A-Za-z0-9:.<>\\[\\]\", ]+)", " : \033[32m$1\033[0m")
                         .replaceAll("\\)([A-Za-z0-9:.<>\\[\\]\", ]+) -> \\{", ")\033[32m$1\033[0m -> {")
@@ -657,7 +429,7 @@ public class OnnxLift {
                         .replaceAll("(\\^block_[0-9_]+)([;: ])", "\033[35m$1\033[0m$2");
     }
 
-    static void extractWeights(OnnxModel.ModelProto model, Path sourceFolder, Path targetFolder) throws IOException {
+    private static void extractWeights(OnnxModel.ModelProto model, Path sourceFolder, Path targetFolder) throws IOException {
         targetFolder.toFile().mkdirs();
         for (OnnxModel.TensorProto i : model.graph().initializer()) {
             Path weightFile = targetFolder.resolve(toJavaName(i.name()));
@@ -709,7 +481,7 @@ public class OnnxLift {
                 IO.println(colorModelToANSI(liftedModel.toText()));
 
                 Path java = targetFolder.resolve("Model.java");
-                Files.writeString(java, liftedModel.toJava());
+                Files.writeString(java, JavaTemplate.toJava(liftedModel));
                 IO.println(java + " generated.");
 
                 extractWeights(protoModel, source.getParent(), targetFolder);
