@@ -469,19 +469,20 @@ public final class OnnxLift {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            IO.println("Usage: OnnxLift <model.onnx> <target folder>");
+        if (args.length < 2 || args.length > 3) {
+            IO.println("Usage: OnnxLift <model.onnx> <target folder> [class simple name]");
         } else {
             Path source = Path.of(args[0]);
             Path targetFolder = Path.of(args[1]);
+            String className = args.length > 2 ? args[2] : "Model";
             try (var in = new RandomAccessFile(source.toFile(), "r")) {
                 OnnxModel.ModelProto protoModel = OnnxModel.readFrom(in.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, in.length()));
                 LiftedModelWrapper liftedModel = lift(protoModel.graph());
 
                 IO.println(colorModelToANSI(liftedModel.toText()));
 
-                Path java = targetFolder.resolve("Model.java");
-                Files.writeString(java, JavaTemplate.toJava(liftedModel));
+                Path java = targetFolder.resolve(className + ".java");
+                Files.writeString(java, JavaTemplate.toJava(liftedModel, className));
                 IO.println(java + " generated.");
 
                 extractWeights(protoModel, source.getParent(), targetFolder);

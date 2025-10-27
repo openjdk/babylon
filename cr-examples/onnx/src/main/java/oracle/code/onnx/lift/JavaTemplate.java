@@ -66,7 +66,7 @@ final class JavaTemplate {
         import static oracle.code.onnx.OnnxOperators.*;
         import static oracle.code.onnx.Tensor.ElementType.*;
 
-        public class Model {
+        public class %s {
 
             final Arena arena = Arena.ofAuto();
 
@@ -90,13 +90,14 @@ final class JavaTemplate {
         }
         """;
 
-    static String toJava(OnnxLift.LiftedModelWrapper model) {
+    static String toJava(OnnxLift.LiftedModelWrapper model, String className) {
         Block entryBlock = model.func().bodies().getFirst().entryBlock();
         List<Block.Parameter> parameters = entryBlock.parameters();
         Function<CodeItem, String> namer = OnnxLift.namer(model.names());
         parameters.forEach(namer::apply); // initialize namer with all parameters first
 
         return TEMPLATE.formatted(
+                className,
                 weightFields(namer, parameters, model.weights()),
                 parameters(namer, parameters, model.weights()),
                 body(namer, entryBlock.ops()));

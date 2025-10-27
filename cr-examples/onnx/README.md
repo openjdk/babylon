@@ -62,5 +62,5 @@ OnnxLift is an experimental tool for lifting ONNX binary models to ONNX code ref
 Running the OnnxLift:
 ```
 JAVA_HOME=<path to the Babylon JDK home>
-mvn package exec:java -Dexec.mainClass=oracle.code.onnx.lift.OnnxLift -Dexec.args="<model.onnx> <target folder>"
+mvn package exec:java -Dexec.mainClass=oracle.code.onnx.lift.OnnxLift -Dexec.args="<model.onnx> <target folder> [class simple name]"
 ```
