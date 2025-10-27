@@ -136,10 +136,7 @@ void main(String[] args) {
                 ├──violajones
                 │    ├──src/main/java
                 │    └──src/main/resources
-                ├──matmul
-                │    ├──src/main/java
-                │    └──src/main/resources
-                └──arrayview
+                └──matmul
                      ├──src/main/java
                      └──src/main/resources
        """;
@@ -312,7 +309,7 @@ void main(String[] args) {
     var examplesDir = dir.existingDir("examples");
 
 
-    Stream.of( "blackscholes", "squares", "matmul", "arrayview")
+    Stream.of( "blackscholes", "squares", "matmul")
             .parallel()
             .map(examplesDir::existingDir)
             .forEach(exampleDir->buildDir.mavenStyleBuild(

@@ -84,10 +84,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         Value index = hatVectorStoreView.operands().get(2);
 
         identifier("vstore" + hatVectorStoreView.storeN())
-                .oparen()
-                .varName(hatVectorStoreView)
-                .comma()
-                .space()
+                .oparen();
+        // if the value to be stored is an operation, recurse on the operation
+        if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp) {
+            recurse(buildContext, r.op());
+        } else {
+            varName(hatVectorStoreView);
+        }
+        comma().space()
                 .intConstZero()
                 .comma()
                 .space()
@@ -153,17 +157,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
-        identifier(hatVSelectLoadOp.varName())
-                .dot()
-                .identifier(hatVSelectLoadOp.mapLane());
+        if (hatVSelectLoadOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorLoadOp vLoadOp) {
+            recurse(buildContext, vLoadOp);
+        } else {
+            identifier(hatVSelectLoadOp.varName());
+        }
+        dot().identifier(hatVSelectLoadOp.mapLane());
         return self();
     }
 
     @Override
     public OpenCLHATKernelBuilder hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
-        identifier(hatVSelectStoreOp.varName())
-                .dot()
-                .identifier(hatVSelectStoreOp.mapLane())
+        if (hatVSelectStoreOp.operands().getFirst() instanceof Op.Result res && res.op() instanceof HATVectorLoadOp vLoadOp) {
+            recurse(buildContext, vLoadOp);
+        } else {
+            identifier(hatVSelectStoreOp.varName());
+        }
+        dot().identifier(hatVSelectStoreOp.mapLane())
                 .space().equals().space();
         if (hatVSelectStoreOp.resultValue() != null) {
             // We have detected a direct resolved result (resolved name)

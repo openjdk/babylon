@@ -28,20 +28,7 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
-import hat.dialect.HATF16AddOp;
-import hat.dialect.HATF16BinaryOp;
-import hat.dialect.HATF16DivOp;
-import hat.dialect.HATF16MulOp;
-import hat.dialect.HATF16SubOp;
-import hat.dialect.HATF16VarOp;
-import hat.dialect.HATMemoryOp;
-import hat.dialect.HATThreadOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorAddOp;
-import hat.dialect.HATVectorDivOp;
-import hat.dialect.HATVectorMulOp;
-import hat.dialect.HATVectorSubOp;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
 import hat.ifacemapper.MappableIface;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -49,11 +36,9 @@ import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -108,71 +93,6 @@ public class OpTk {
             list.removeLast();
         }
         return list.stream();
-    }
-
-    public static Value firstOperand(Op op) {
-        return op.operands().getFirst();
-    }
-
-    public static Value getValue(Block.Builder bb, Value value) {
-        return bb.context().getValueOrDefault(value, value);
-    }
-
-    public static boolean isBufferArray( Op op) {
-        // first check if the return is an array type
-        //if (op instanceof CoreOp.VarOp vop) {
-        //    if (!(vop.varValueType() instanceof ArrayType)) return false;
-        //} else if (!(op instanceof JavaOp.ArrayAccessOp)){
-        //    if (!(op.resultType() instanceof ArrayType)) return false;
-        //}
-
-        // then check if returned array is from a buffer access
-        while (!(op instanceof JavaOp.InvokeOp iop)) {
-            if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
-                op = r.op();
-            } else {
-                return false;
-            }
-        }
-
-        //if (iop.invokeDescriptor().refType() instanceof JavaType javaType) {
-        //    return isAssignable(l, javaType, MappableIface.class);
-        //}
-        //return false;
-        return iop.invokeDescriptor().name().toLowerCase().contains("arrayview");
-    }
-
-    public static boolean notGlobalVarOp( Op op) {
-        while (!(op instanceof JavaOp.InvokeOp iop)) {
-            if (!op.operands().isEmpty() && firstOperand(op) instanceof Op.Result r) {
-                op = r.op();
-            } else {
-                return false;
-            }
-        }
-
-        return iop.invokeDescriptor().name().toLowerCase().contains("local") ||
-                iop.invokeDescriptor().name().toLowerCase().contains("private");
-    }
-
-    public static boolean isBufferInitialize( Op op) {
-        // first check if the return is an array type
-        if (op instanceof CoreOp.VarOp vop) {
-            if (!(vop.varValueType() instanceof ArrayType)) return false;
-        } else if (!(op instanceof JavaOp.ArrayAccessOp)){
-            if (!(op.resultType() instanceof ArrayType)) return false;
-        }
-
-        return isBufferArray(op);
-    }
-
-    public static boolean isArrayView(MethodHandles.Lookup lookup, CoreOp.FuncOp entry) {
-        var here = CallSite.of(OpTk.class,"isArrayView");
-        return elements(here,entry).anyMatch((element) -> (
-                element instanceof JavaOp.InvokeOp iop &&
-                        iop.resultType() instanceof ArrayType &&
-                        iop.invokeDescriptor().refType() instanceof JavaType javaType &&
-                        isAssignable(lookup, javaType, MappableIface.class)));
     }
 
     public static CoreOp.ModuleOp createTransitiveInvokeModule(MethodHandles.Lookup lookup,
@@ -236,27 +156,6 @@ public class OpTk {
         }
 
         return CoreOp.module(funcs);
-    }
-
-    public static Class<?> primitiveTypeToClass(TypeElement type) {
-        assert type != null;
-        class PrimitiveHolder {
-            static final Map<PrimitiveType, Class<?>> primitiveToClass = Map.of(
-                    JavaType.BYTE, byte.class,
-                    JavaType.SHORT, short.class,
-                    JavaType.INT, int.class,
-                    JavaType.LONG, long.class,
-                    JavaType.FLOAT, float.class,
-                    JavaType.DOUBLE, double.class,
-                    JavaType.CHAR, char.class,
-                    JavaType.BOOLEAN, boolean.class
-            );
-        }
-        if (type instanceof PrimitiveType primitiveType) {
-            return PrimitiveHolder.primitiveToClass.get(primitiveType);
-        } else {
-            throw new RuntimeException("given type is not a PrimitiveType");
-        }
     }
 
     public static Type classTypeToTypeOrThrow(MethodHandles.Lookup lookup, ClassType classType) {
@@ -423,6 +322,7 @@ public class OpTk {
             case HATThreadOp o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
             case HATVectorSelectLoadOp o -> 0;      // same as VarLoadOp
+            case HATVectorLoadOp o -> 0;      // same as VarLoadOp
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;

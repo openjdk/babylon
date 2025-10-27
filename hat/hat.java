@@ -118,7 +118,6 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var backend_seq_java = Jar.of(project.id("backend{s}-java-seq"), core);
         var example_squares = Jar.of(project.id("example{s}-squares"), core);
         var example_matmul = Jar.of(project.id("example{s}-matmul"), core);
-        var example_arrayview = Jar.of(project.id("example{s}-arrayview"), core);
         var example_blackscholes = Jar.of(project.id("example{s}-blackscholes"), core);
         var example_view = Jar.of(project.id("example{s}-view"), core);
         var example_normmap = Jar.of(project.id("example{s}-normmap"), core); // will probabvly need shared when we hatify

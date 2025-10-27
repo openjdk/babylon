@@ -59,10 +59,8 @@ public interface F32ArrayPadded extends Buffer {
         return this;
     }
 
-    default float[] arrayView() {
-        float[] arr = new float[this.length()];
-        this.copyTo(arr);
-        return arr;
+    default Float4[] float4ArrayView() {
+        return null;
     }
 
     // This is an intrinsic for HAT to create views. It does not execute code
