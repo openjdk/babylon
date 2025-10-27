@@ -19,7 +19,7 @@ ONNXRT_DIR=$(dirname $(dirname $(dirname $(dirname $LIB_PATH))))
 INCLUDE_DIR=$ONNXRT_DIR/include/onnxruntime
 OUTPUT_DIR=../src/main/java
 
-# Run jextract
+## Run jextract
 jextract --target-package oracle.code.onnx.foreign \
   -l :$LIB_PATH \
   --use-system-load-library \
@@ -27,3 +27,11 @@ jextract --target-package oracle.code.onnx.foreign \
   @symbols \
   --output $OUTPUT_DIR \
   $INCLUDE_DIR/core/providers/coreml/coreml_provider_factory.h
+
+#jextract --target-package oracle.code.onnx.foreign \
+#  -l :$LIB_PATH \
+#  -I $INCLUDE_DIR \
+#  --header-class-name onnxruntime_c_api_h \
+#  --use-system-load-library \
+#  --output $OUTPUT_DIR \
+#  $INCLUDE_DIR/core/session/onnxruntime_c_api.h

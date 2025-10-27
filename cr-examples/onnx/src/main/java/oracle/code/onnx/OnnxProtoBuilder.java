@@ -428,10 +428,6 @@ public final class OnnxProtoBuilder {
                 attr.type(AttributeType.TENSOR);
                 attr.t(tensorProto(t));
             }
-            case String s -> {
-                attr.type(AttributeType.STRING);
-                attr.s(s.getBytes());
-            }
             default -> {
                 throw new UnsupportedOperationException(value.getClass().toString()); // @@@ ToDo
             }

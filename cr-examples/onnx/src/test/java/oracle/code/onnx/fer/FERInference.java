@@ -23,8 +23,8 @@
 
 package oracle.code.onnx.fer;
 
+import oracle.code.onnx.OnnxProvider;
 import oracle.code.onnx.OnnxRuntime;
-import oracle.code.onnx.provider.OnnxProvider;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -32,9 +32,11 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.net.URL;
+import java.util.Map;
 import java.util.Objects;
 
 import static oracle.code.onnx.fer.FERCoreMLDemo.IMAGE_SIZE;
+import static oracle.code.onnx.foreign.onnxruntime_c_api_h.*;
 
 public class FERInference {
 
@@ -48,8 +50,10 @@ public class FERInference {
     public float[] analyzeImage(Arena arena, OnnxProvider provider, URL url, boolean useCondensedModel) throws Exception {
         float[] imageData = transformToFloatArray(url);
         var sessionOptions = runtime.createSessionOptions(arena);
-        if (Objects.nonNull(provider))
-            provider.configure(sessionOptions);
+        sessionOptions.setExecutionMode(ORT_PARALLEL());
+        if (Objects.nonNull(provider)) {
+            runtime.appendExecutionProvider(arena, sessionOptions, provider);
+        }
         FERModel ferModel = new FERModel(arena);
         float[] rawScores = ferModel.classify(imageData, sessionOptions, useCondensedModel);
         return rawScores;

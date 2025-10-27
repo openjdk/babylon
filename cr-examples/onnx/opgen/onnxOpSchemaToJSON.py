@@ -22,11 +22,8 @@
 
 import json
 
-from onnx.defs import (
-    AttributeProto,
-    OpSchema,
-    get_all_schemas_with_history,
-)
+from onnx import AttributeProto
+from onnx.defs import OpSchema, get_all_schemas_with_history
 
 class OpSchemaEncoder(json.JSONEncoder):
     def default(self, obj):
