@@ -255,25 +255,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
-        identifier("make_" + hatVectorOp.buildType()).oparen();
-
-        List<Value> inputOperands = hatVectorOp.operands();
-        int i;
-        for (i = 0; i < (inputOperands.size() - 1); i++) {
-            var operand = inputOperands.get(i);
-            if ((operand instanceof Op.Result r)) {
-                recurse(buildContext, r.op());
-            }
-            comma().space();
-        }
-        // Last parameter
-        var operand = inputOperands.get(i);
-        if ((operand instanceof Op.Result r)) {
-            recurse(buildContext, r.op());
-        }
-        cparen();
+    public CudaHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
+        identifier("make_" + hatVectorOfOp.buildType()).oparen();
         return self();
     }
-
 }

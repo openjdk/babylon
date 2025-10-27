@@ -208,24 +208,8 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     }
 
     @Override
-    public OpenCLHatKernelBuilder hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
-        oparen().identifier(hatVectorOp.buildType()).cparen().oparen();
-
-        List<Value> inputOperands = hatVectorOp.operands();
-        int i;
-        for (i = 0; i < (inputOperands.size() - 1); i++) {
-            var operand = inputOperands.get(i);
-            if ((operand instanceof Op.Result r)) {
-                recurse(buildContext, r.op());
-            }
-            comma().space();
-        }
-        // Last parameter
-        var operand = inputOperands.get(i);
-        if ((operand instanceof Op.Result r)) {
-            recurse(buildContext, r.op());
-        }
-        cparen();
+    public OpenCLHatKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
+        oparen().identifier(hatVectorOfOp.buildType()).cparen().oparen();
         return self();
     }
 
