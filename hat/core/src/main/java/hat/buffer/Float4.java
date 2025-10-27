@@ -24,7 +24,10 @@
  */
 package hat.buffer;
 
+import jdk.incubator.code.CodeReflection;
+
 import java.util.function.BiFunction;
+import java.util.stream.IntStream;
 
 public interface Float4 extends HatVector {
 
@@ -46,25 +49,25 @@ public interface Float4 extends HatVector {
     /**
      * Make a Mutable implementation (for the device side - e.g., the GPU) from an immutable implementation.
      *
-     * @param float4Immutable
+     * @param float4
      * @return {@link Float4.MutableImpl}
      */
-    static Float4.MutableImpl makeMutable(ImmutableImpl float4Immutable) {
-        return new MutableImpl(float4Immutable.x(), float4Immutable.y(), float4Immutable.z(), float4Immutable.w());
+    static Float4.MutableImpl makeMutable(Float4 float4) {
+        return new MutableImpl(float4.x(), float4.y(), float4.z(), float4.w());
     }
 
     static Float4 of(float x, float y, float z, float w) {
         return new ImmutableImpl(x, y, z, w);
     }
 
+    // Not implemented for the GPU yet
     default Float4 lanewise(Float4 other, BiFunction<Float, Float, Float> f) {
         float[] backA = this.toArray();
         float[] backB = other.toArray();
         float[] backC = new float[backA.length];
-        for (int j = 0; j < backA.length; j++) {
-            var r = f.apply(backA[j],  backB[j]);
-            backC[j] = r;
-        }
+        IntStream.range(0, backA.length).forEach(j -> {
+            backC[j] = f.apply(backA[j], backB[j]);
+        });
         return of(backC[0], backC[1], backC[2], backC[3]);
     }
 
@@ -100,7 +103,8 @@ public interface Float4 extends HatVector {
         return Float4.div(this, vb);
     }
 
-    // Not implemented for the GPU yet.
+    // Not implemented for the GPU yet
+    @CodeReflection
     default float[] toArray() {
         return new float[] { x(), y(), z(), w() };
     }

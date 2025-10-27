@@ -237,6 +237,17 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
+    public static void vectorOps14(@RO KernelContext kernelContext, @RW F32ArrayPadded a) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            int index = kernelContext.gix;
+            Float4 vA = a.float4View(index * 4);
+            Float4.MutableImpl vB = Float4.makeMutable(vA);
+            vB.x(10.0f);
+            a.storeFloat4View(vB, index * 4);
+        }
+    }
+
+    @CodeReflection
     public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4), new LocalMesh1D(128));
@@ -319,6 +330,13 @@ public class TestVectorTypes {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void computeGraph14(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
+        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
+        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps14(kernelContext, a));
     }
 
     @HatTest
@@ -616,5 +634,24 @@ public class TestVectorTypes {
         );
         HatAsserts.assertEquals(expectedDiv, vF, 0.001f);
     }
+
+    @HatTest
+    public void testVectorTypes14() {
+        final int size = 1024;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+
+        Random r = new Random(73);
+        for (int i = 0; i < size; i++) {
+            arrayA.array(i, r.nextFloat());
+        }
+
+        accelerator.compute(cc -> TestVectorTypes.computeGraph14(cc, arrayA, size));
+
+        for (int i = 0; i < size; i += 4) {
+            HatAsserts.assertEquals(10.0f, arrayA.array(i), 0.001f);
+        }
+    }
+    
 }
 

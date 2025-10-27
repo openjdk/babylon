@@ -58,6 +58,7 @@ public class HATDialectifyTier implements Function<CoreOp.FuncOp,CoreOp.FuncOp> 
         hatPhases.add(new HATDialectifyVectorOpPhase.SubPhase(accelerator));
         hatPhases.add(new HATDialectifyVectorOpPhase.MulPhase(accelerator));
         hatPhases.add(new HATDialectifyVectorOpPhase.DivPhase(accelerator));
+        hatPhases.add(new HATDialectifyVectorOpPhase.MakeMutable(accelerator));
         hatPhases.add(new HATDialectifyVectorStorePhase.Float4StorePhase(accelerator));
 
         // Vector Select individual lines

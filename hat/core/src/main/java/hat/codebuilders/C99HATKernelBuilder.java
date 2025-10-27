@@ -33,6 +33,7 @@ import hat.dialect.HATGlobalSizeOp;
 import hat.dialect.HATGlobalThreadIdOp;
 import hat.dialect.HATLocalSizeOp;
 import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATVectorMakeOfOp;
 import hat.dialect.HATVectorOfOp;
 import hat.dialect.HATVectorVarLoadOp;
 import hat.ifacemapper.MappableIface;
@@ -275,6 +276,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    @Override
+    public T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorMakeOfOp hatVectorMakeOfOp) {
+        identifier(hatVectorMakeOfOp.varName());
+        return self();
+    }
 
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
         return kernelPrefix().voidType().space().funcName(funcOp);
