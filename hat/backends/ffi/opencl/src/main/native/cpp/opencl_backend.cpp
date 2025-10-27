@@ -73,6 +73,11 @@ bool OpenCLBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memoryS
 
 OpenCLBackend::OpenCLBackend(int configBits)
     : Backend(new Config(configBits), new OpenCLQueue(this)) {
+
+    if (config->info) {
+        std::cerr << "Opencl Driver =" << std::hex << configBits << std::dec << std::endl;
+    }
+
     cl_int status;
     cl_uint platformc = 0;
     OPENCL_CHECK(clGetPlatformIDs(0, nullptr, &platformc), "clGetPlatformIDs");
@@ -303,10 +308,6 @@ const char *OpenCLBackend::errorMsg(cl_int status) {
 }
 
 extern "C" long getBackend(int configBits) {
-    Backend::Config config(configBits);
-    if (config.info) {
-        std::cerr << "Opencl Driver =" << std::hex << configBits << std::dec << std::endl;
-    }
     return reinterpret_cast<long>(new OpenCLBackend(configBits));
 }
 
