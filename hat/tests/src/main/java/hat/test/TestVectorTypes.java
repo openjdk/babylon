@@ -24,7 +24,12 @@
  */
 package hat.test;
 
-import hat.*;
+import hat.Accelerator;
+import hat.ComputeContext;
+import hat.ComputeRange;
+import hat.GlobalMesh1D;
+import hat.KernelContext;
+import hat.LocalMesh1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32ArrayPadded;
@@ -652,6 +657,6 @@ public class TestVectorTypes {
             HatAsserts.assertEquals(10.0f, arrayA.array(i), 0.001f);
         }
     }
-    
+
 }
 
