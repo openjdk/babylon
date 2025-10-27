@@ -41,7 +41,7 @@ public final class HATVectorStoreView extends HATVectorOp {
     private final VectorType vectorType;
 
     public HATVectorStoreView(String varName, TypeElement elementType, int storeN, VectorType vectorType, boolean isSharedOrPrivate, List<Value> operands) {
-        super(varName, operands);
+        super(varName, elementType, storeN, operands);
         this.elementType = elementType;
         this.storeN = storeN;
         this.isSharedOrPrivate = isSharedOrPrivate;
@@ -71,15 +71,8 @@ public final class HATVectorStoreView extends HATVectorOp {
         return Map.of("hat.dialect.floatNStoreView." + varName(), elementType);
     }
 
-    public int storeN() {
-        return storeN;
-    }
-
     public boolean isSharedOrPrivate() {
         return this.isSharedOrPrivate;
     }
 
-    public String buildType() {
-        return vectorType.type();
-    }
 }

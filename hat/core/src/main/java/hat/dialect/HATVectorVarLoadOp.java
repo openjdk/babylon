@@ -38,7 +38,7 @@ public class HATVectorVarLoadOp extends HATVectorOp {
     private final TypeElement typeElement;
 
     public HATVectorVarLoadOp(String varName, TypeElement typeElement, List<Value> operands) {
-        super(varName, operands);
+        super(varName, typeElement, 0, operands);
         this.typeElement = typeElement;
     }
 

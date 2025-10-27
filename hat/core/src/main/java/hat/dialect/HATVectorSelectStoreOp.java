@@ -41,7 +41,7 @@ public class HATVectorSelectStoreOp extends HATVectorOp {
     private final CoreOp.VarOp resultVarOp;
 
     public HATVectorSelectStoreOp(String varName, TypeElement typeElement, int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
-        super(varName, operands);
+        super(varName, typeElement, -1, operands);
         this.elementType = typeElement;
         this.lane = lane;
         this.resultVarOp = resultVarOp;
@@ -70,13 +70,7 @@ public class HATVectorSelectStoreOp extends HATVectorOp {
     }
 
     public String mapLane() {
-        return switch (lane) {
-            case 0 -> "x";
-            case 1 -> "y";
-            case 2 -> "z";
-            case 3 -> "w";
-            default -> throw new InternalError("Invalid lane: " + lane);
-        };
+        return super.mapLane(lane);
     }
 
     public CoreOp.VarOp resultValue() {

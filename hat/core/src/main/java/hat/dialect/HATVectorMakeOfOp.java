@@ -39,7 +39,7 @@ public class HATVectorMakeOfOp extends HATVectorOp {
     private final int loadN;
 
     public HATVectorMakeOfOp(String varName, TypeElement typeElement, int loadN, List<Value> operands) {
-        super(varName, operands);
+        super(varName, typeElement, loadN, operands);
         this.typeElement = typeElement;
         this.loadN = loadN;
     }
@@ -63,14 +63,6 @@ public class HATVectorMakeOfOp extends HATVectorOp {
     @Override
     public Map<String, Object> externalize() {
         return Map.of("hat.dialect.makeOf." + varName(), typeElement);
-    }
-
-    public String buildType() {
-        // floatN
-        if (typeElement.toString().startsWith("hat.buffer.Float")) {
-            return "float" + loadN;
-        }
-        throw new RuntimeException("Unexpected vector type " + typeElement);
     }
 
 }

@@ -50,21 +50,20 @@ public abstract class HATVectorBinaryOp extends HATVectorOp {
 
     private final TypeElement elementType;
     private final OpType operationType;
-    private final int vectorN;
 
     public HATVectorBinaryOp(String varName, TypeElement typeElement, OpType operationType, List<Value> operands) {
-        super(varName, operands);
+        int l = typeElement.toString().length();
+        int vectorN = Integer.parseInt(typeElement.toString().substring(l - 1, l));
+        super(varName, typeElement, vectorN, operands);
         this.elementType = typeElement;
         this.operationType = operationType;
-        int l = typeElement.toString().length();
-        vectorN = Integer.parseInt(typeElement.toString().substring(l - 1, l));
+
     }
 
     public HATVectorBinaryOp(HATVectorBinaryOp op, CopyContext copyContext) {
         super(op, copyContext);
         this.elementType = op.elementType;
         this.operationType = op.operationType;
-        this.vectorN = op.vectorN;
     }
 
     @Override
@@ -72,23 +71,8 @@ public abstract class HATVectorBinaryOp extends HATVectorOp {
         return this.elementType;
     }
 
-  //  @Override
-    //public Map<String, Object> externalize() {
-     //   return Map.of("hat.dialect.floatNOp." + varName(), elementType);
-   // }
-
     public OpType operationType() {
         return operationType;
     }
 
-    public int vectorN() {
-        return vectorN;
-    }
-
-    public String buildType() {
-        if (elementType.toString().startsWith("hat.buffer.Float")) {
-            return "float" + vectorN;
-        }
-        throw new RuntimeException("Unexpected vector type " + elementType);
-    }
 }
