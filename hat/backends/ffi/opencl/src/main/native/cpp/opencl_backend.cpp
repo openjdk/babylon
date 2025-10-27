@@ -75,7 +75,7 @@ OpenCLBackend::OpenCLBackend(int configBits)
     : Backend(new Config(configBits), new OpenCLQueue(this)) {
 
     if (config->info) {
-        std::cerr << "Opencl Driver =" << std::hex << configBits << std::dec << std::endl;
+        std::cerr << "[INFO] Config Bits = " << std::hex << configBits << std::dec << std::endl;
     }
 
     cl_int status;
