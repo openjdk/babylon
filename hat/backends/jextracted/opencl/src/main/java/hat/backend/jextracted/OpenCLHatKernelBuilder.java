@@ -184,12 +184,10 @@ public class OpenCLHatKernelBuilder extends C99HATKernelBuilder<OpenCLHatKernelB
     @Override
     public OpenCLHatKernelBuilder hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
         oparen().typeName("half").cparen();
-        // typeName("convert_half").oparen();
         Value initValue = hatF16ConvOp.operands().getFirst();
         if (initValue instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
-        //cparen();
         return self();
     }
 
