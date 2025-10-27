@@ -217,6 +217,7 @@ public class PrefixSum {
                         HAT_GLOBAL_MEM KernelContext_t* kc,
                         HAT_GLOBAL_MEM S32Array_t* dataBuf
                     ){
+
                         HAT_LOCAL_MEM SharedS32x256Array_t scratchBuf;
                         const int gid = HAT_GIX*HAT_GSX-1;
                         scratchBuf.array[(long)HAT_LIX]=gid>0?dataBuf->array[(long)gid]:0;
@@ -250,7 +251,7 @@ public class PrefixSum {
                         return;
                     }
             """)
-    static void crossGroupScan(@RO KernelContext kc, @RW S32Array dataBuf) {
+    static void crossGroupScan(@RO KernelContext kc, @RW S32Array dataBuf) {/*
         var scratchBuf = SharedS32x256Array.createLocal();
         int[] data = dataBuf.arrayView();  // int[] scratch=scratchBuf.arrayView();
 
@@ -284,7 +285,7 @@ public class PrefixSum {
         } else if (gid > 0) {
             data[gid] = scratchBuf.array(kc.lix + 1); //  data[ gid] = scratch[kc.lix+1];
         }
-        kc.barrier();
+        kc.barrier(); */
     }
 
 
