@@ -37,23 +37,30 @@ package view;
 
 import view.f32.F32Mesh3D;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Main {
 
-    public static void main(String[] args) {
-        var vf = (args.length > 0 )
-                ? ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Rasterizer.DisplayMode.WIRE), () -> EliteMeshReader.load(args[0]))
+    public static void main(String[] argArr) {
+        var args = new ArrayList<>(List.of(argArr));
+      //  args.add("COBRA");
+        var viewFrame = (args.size() > 0 )
+                ? ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Rasterizer.DisplayMode.WIRE), () ->
+                    EliteMeshReader.load(args.getFirst())
+                )
                 : ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Rasterizer.DisplayMode.FILL), () -> {
-            for (int x = -2; x < 4; x += 2) {
-                for (int y = -2; y < 4; y += 2) {
-                    for (int z = -2; z < 4; z += 2) {
-                        F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
-                    }
-                }
-            }
-        });
+                     for (int x = -2; x < 6; x += 2) {
+                         for (int y = -2; y < 6; y += 2) {
+                             for (int z = -2; z < 6; z += 2) {
+                                 F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
+                             }
+                         }
+                     }
+                });
 
         while (true) {
-            vf.update();
+            viewFrame.update();
         }
     }
 

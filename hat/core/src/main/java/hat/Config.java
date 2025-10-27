@@ -108,8 +108,12 @@ public class Config {
         return SHOW_LOWERED_KERNEL_MODEL.isSet(this);
     }
     private static final Bit SHOW_COMPILATION_PHASES = Bit.nextBit(SHOW_LOWERED_KERNEL_MODEL, "SHOW_COMPILATION_PHASES", "Show HAT compilation phases");
+    private static final Bit PROFILE_CUDA_KERNEL = Bit.nextBit(SHOW_COMPILATION_PHASES, "PROFILE_CUDA_KERNEL", "Add -lineinfo to CUDA kernel compilation for profiling and debugging");
     public boolean showCompilationPhases() {
         return SHOW_COMPILATION_PHASES.isSet(this);
+    }
+    public boolean isProfileCUDAKernelEnabled() {
+        return PROFILE_CUDA_KERNEL.isSet(this);
     }
     public static final List<Bit> bitList = List.of(
             PLATFORM,
@@ -132,7 +136,8 @@ public class Config {
             NO_DIALECT,
             HEADLESS,
             SHOW_LOWERED_KERNEL_MODEL,
-            SHOW_COMPILATION_PHASES
+            SHOW_COMPILATION_PHASES,
+            PROFILE_CUDA_KERNEL
     );
 
     private int bits;

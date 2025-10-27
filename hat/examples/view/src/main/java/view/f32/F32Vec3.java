@@ -39,7 +39,7 @@ public class F32Vec3 {
             this.entries = new float[max * SIZE];
         }
     }
-    public static Pool pool = new Pool(10000);
+    public static Pool pool = new Pool(90000);
 
     public static int createVec3(float x, float y, float z) {
         pool.entries[pool.count * SIZE + X] = x;
