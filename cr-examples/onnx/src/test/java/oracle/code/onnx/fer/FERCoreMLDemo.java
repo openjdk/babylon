@@ -199,7 +199,7 @@ public class FERCoreMLDemo {
 
             try (var arena = Arena.ofConfined()) {
                 Map<String, String> options = Map.of("ModelFormat", "MLProgram",
-                        "MLComputeUnits", "CPUAndGPU");
+                        "MLComputeUnits", "CPUAndGPU", "EnableOnSubgraphs", "1");
                 OnnxProvider provider = new OnnxProvider("CoreML", options);
                 float[] probs = inference.analyzeImage(arena, provider, url, useCondensedModel);
                 String top3 = formatTopK(probs);
