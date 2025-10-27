@@ -50,7 +50,6 @@ public class FERInference {
     public float[] analyzeImage(Arena arena, OnnxProvider provider, URL url, boolean useCondensedModel) throws Exception {
         float[] imageData = transformToFloatArray(url);
         var sessionOptions = runtime.createSessionOptions(arena);
-        sessionOptions.setExecutionMode(ORT_PARALLEL());
         if (Objects.nonNull(provider)) {
             runtime.appendExecutionProvider(arena, sessionOptions, provider);
         }

@@ -198,8 +198,8 @@ public class FERCoreMLDemo {
             URL url = selectedUrls.get(i);
 
             try (var arena = Arena.ofConfined()) {
-                Map<String, String> options = Map.of("ModelFormat", COREML_FLAG_CREATE_MLPROGRAM(),
-                        "MLComputeUnits", COREML_FLAG_USE_CPU_AND_GPU());
+                Map<String, String> options = Map.of("ModelFormat", "MLProgram",
+                        "MLComputeUnits", "CPUAndGPU");
                 OnnxProvider provider = new OnnxProvider("CoreML", options);
                 float[] probs = inference.analyzeImage(arena, provider, url, useCondensedModel);
                 String top3 = formatTopK(probs);
