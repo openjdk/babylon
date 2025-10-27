@@ -31,20 +31,15 @@
  */
 package view;
 
+import hat.util.Regex;
+import hat.util.StreamMutable;
 import view.f32.F32Mesh3D;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 class EliteMeshReader {
-    static Regex remRegex = Regex.of("^ *REM(.*)$");
-    static Regex colonRegex = Regex.of("^ *(:) *$");
-    static Regex verticesRegex = Regex.of( "^ *(vertices) *$");
-    static Regex facesRegex = Regex.of("^ *(faces) *$");
-    static Regex hueLigSatRegex = Regex.of("^ *(hue-lig-sat) *$");
-
     static String hexRegexStr = "((?:-?&[0-9a-fA-F][0-9a-fA-F])|0)";
     static String commaRegexStr = " *, *";
     static String hexOrColorCommaRegexStr = "(" + hexRegexStr + "|(?:(?:[a-zA-Z][a-zA-Z0-9]*)))" + commaRegexStr;
@@ -52,78 +47,86 @@ class EliteMeshReader {
     static String decRegexStr = "([0-9]+)";
     static String decCommaRegexStr = decRegexStr + commaRegexStr;
 
-    static Regex face6Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "6" ,commaRegexStr, decCommaRegexStr.repeat(5), decRegexStr, " *$");
-    static Regex face5Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "5" ,commaRegexStr, decCommaRegexStr.repeat(4), decRegexStr, " *$");
-    static Regex face4Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "4" ,commaRegexStr, decCommaRegexStr.repeat(3), decRegexStr, " *$");
-    static Regex face3Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "3" ,commaRegexStr, decCommaRegexStr.repeat(2), decRegexStr, " *$");
+    static Regex face6Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "6", commaRegexStr, decCommaRegexStr.repeat(5), decRegexStr, " *$");
+    static Regex face5Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "5", commaRegexStr, decCommaRegexStr.repeat(4), decRegexStr, " *$");
+    static Regex face4Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "4", commaRegexStr, decCommaRegexStr.repeat(3), decRegexStr, " *$");
+    static Regex face3Regex = Regex.of("^ *", hexOrColorCommaRegexStr, hexCommaRegexStr.repeat(3), "3", commaRegexStr, decCommaRegexStr.repeat(2), decRegexStr, " *$");
 
-    static Regex frontLaserVertexRegex = Regex.of( "^ *" + hexRegexStr + " *$");
     static Regex vertexRegex = Regex.of("^ *" + hexCommaRegexStr + hexCommaRegexStr + hexRegexStr + " *$");
-    static Regex vertexCountRegex = Regex.of("^ *" + hexCommaRegexStr + hexRegexStr + " *$");
-    static Regex nameRegex = Regex.of("^ *([A-Za-z][0-9A-Za-z]+) *$");
     static Regex emptyRegex = Regex.of("^ *$");
+    static Regex remRegex = Regex.of("^ *REM(.*)$");
+    static Regex colonRegex = Regex.of("^ *(:) *$");
+    static Regex facesRegex = Regex.of("^ *(faces) *$");
 
-
-
-    enum State {AWAITING_NAME, AWAITING_LAZER, AWAITING_COUNTS, AWAITING_VERTICES, AWAITING_HUE_LIG_SAT, AWAITING_FACES}
+    interface State {
+        default String name(){
+            return this.getClass().getSimpleName();
+        }
+        record awaiting_name(Regex r) implements State {}
+        record awaiting_lazer(Regex r) implements State {}
+        record awaiting_counts(Regex r) implements State {}
+        record awaiting_vertices(Regex r) implements State {}
+        record awaiting_hue_lig_sat(Regex r) implements State {}
+        record awaiting_faces() implements State { }
+        record done() implements State {}
+        awaiting_name awaiting_name = new awaiting_name( Regex.of("^ *([A-Za-z][0-9A-Za-z]+) *$"));
+        awaiting_lazer awaiting_lazer = new awaiting_lazer(Regex.of("^ *" + hexRegexStr + " *$"));
+        awaiting_counts awaiting_counts = new awaiting_counts(Regex.of("^ *" + hexCommaRegexStr + hexRegexStr + " *$"));
+        awaiting_vertices awaiting_vertices = new awaiting_vertices(Regex.of("^ *(vertices) *$"));
+        awaiting_hue_lig_sat awaiting_hue_lig_sat = new awaiting_hue_lig_sat(Regex.of("^ *(hue-lig-sat) *$"));
+        awaiting_faces awaiting_faces = new awaiting_faces();
+        done done  = new done();
+        //St[] all = new St[]{awaiting_name, awaiting_lazer, awaiting_counts, awaiting_vertices, awaiting_hue_lig_sat, awaiting_faces};
+    }
 
     static void load(String name) {
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(EliteMeshReader.class.getResourceAsStream("/meshes/Elite.txt")));
-
-            State state = State.AWAITING_NAME;
-            F32Mesh3D mesh= null;
-            for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-                line = line.trim();
-                if (!Regex.any(line, remRegex,emptyRegex,colonRegex).matched()) {
-                    switch (state) {
-                        case AWAITING_NAME ->{
-                            if (nameRegex.is(line) instanceof Regex.OK ok && ok.string(1).equals(name)) {
-                                state = State.AWAITING_LAZER;
-                                mesh = F32Mesh3D.of(name);
-                            }
+        final var mesh = StreamMutable.of((F32Mesh3D) null);
+        final var st = StreamMutable.of((State) State.awaiting_name);
+        new BufferedReader(
+                new InputStreamReader(EliteMeshReader.class.getResourceAsStream("/meshes/Elite.txt"), StandardCharsets.UTF_8))
+                .lines()
+                .map(String::trim)
+                .forEach(line -> {
+                    switch(st.get()){
+                        case State.awaiting_name s when s.r().matches(line, whoseMatcher -> whoseMatcher.group(1).equals(name))->{
+                            st.set(State.awaiting_lazer);
+                            mesh.set(F32Mesh3D.of(name));
                         }
-                        case AWAITING_LAZER-> state = frontLaserVertexRegex.is(line).matched()?State.AWAITING_COUNTS:state;
-                        case AWAITING_COUNTS-> state  =vertexCountRegex.is(line).matched()?State.AWAITING_VERTICES:state;
-                        case AWAITING_VERTICES-> state = verticesRegex.is(line).matched()?State.AWAITING_FACES:state;
-                        case AWAITING_FACES->{
+                        case State.awaiting_lazer s-> st.setIf(s.r.matches(line), State.awaiting_counts);
+                        case State.awaiting_counts s-> st.setIf(s.r.matches(line), State.awaiting_vertices);
+                        case State.awaiting_vertices s-> st.setIf(s.r.matches(line), State.awaiting_faces);
+                        case State.awaiting_faces _-> {
                             if (vertexRegex.is(line) instanceof Regex.OK ok) {
-                                mesh.vec3(ok.f(1),  ok.f(2), ok.f(3));
-                            } else if (facesRegex.is(line).matched()) {
-                                state = State.AWAITING_HUE_LIG_SAT;
+                                mesh.get().vec3(ok.f(1), ok.f(2), ok.f(3));
+                            } else if (facesRegex.matchesOrThrow(line)) {
+                                st.set(State.awaiting_hue_lig_sat);
                             }
                         }
-                        case AWAITING_HUE_LIG_SAT-> {
-                            if (Regex.any(line,face6Regex,face5Regex,face4Regex,face3Regex) instanceof Regex.OK ok) {
-                                int v0 = mesh.vecEntries[ok.i(6)];
-                                int v1 = mesh.vecEntries[ok.i(7)];
-                                int v2 = mesh.vecEntries[ok.i(8)];
-
-                                if (ok.regex() == face3Regex){
-                                    mesh.tri(v0, v1, v2,  0x00ff00 );
-                                }else if (ok.regex() == face4Regex) {
-                                    mesh.quad(v0, v1,v2, mesh.vecEntries[ok.i(9)],  0xff0000);
-                                } else if (ok.regex()== face5Regex) {
-                                    mesh.pent(v0, v1, v2, mesh.vecEntries[ok.i(9)], mesh.vecEntries[ok.i(10)], 0x0000ff);
+                        case State.awaiting_hue_lig_sat s-> {
+                            if (Regex.any(line, face6Regex, face5Regex, face4Regex, face3Regex) instanceof Regex.OK ok) {
+                                int v0 = mesh.get().vecEntries[ok.i(6)];
+                                int v1 = mesh.get().vecEntries[ok.i(7)];
+                                int v2 = mesh.get().vecEntries[ok.i(8)];
+                                if (ok.regex() == face3Regex) {
+                                    mesh.get().tri(v0, v1, v2, 0x00ff00);
+                                } else if (ok.regex() == face4Regex) {
+                                    mesh.get().quad(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], 0xff0000);
+                                } else if (ok.regex() == face5Regex) {
+                                    mesh.get().pent(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], mesh.get().vecEntries[ok.i(10)], 0x0000ff);
                                 } else {
-                                    mesh.hex(v0, v1, v2, mesh.vecEntries[ok.i(9)], mesh.vecEntries[ok.i(10)], mesh.vecEntries[ok.i(11)], 0xfff000);
+                                    mesh.get().hex(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], mesh.get().vecEntries[ok.i(10)], mesh.get().vecEntries[ok.i(11)], 0xfff000);
                                 }
-                            } else if ((hueLigSatRegex.is(line).matched())) {
-                                mesh.fin();
-                                return;
-                            } else {
-                                System.out.println("In " + state + " skipping " + line);
+                            } else if (s.r().matches(line)) {
+                                mesh.get().fin();
+                                st.set(State.done);
+                            }else if (!remRegex.matches(line)){
+                                System.out.println("UNHANDLED "+line);
                             }
                         }
-                        default->  throw new IllegalStateException(("WHAt " + line));
-
+                        case State.done _-> {}
+                        case State _ when Regex.any(line, remRegex, emptyRegex, colonRegex).matched()->{}
+                        case State _ ->{}
                     }
-                }
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+                });
     }
 }

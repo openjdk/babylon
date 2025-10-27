@@ -24,7 +24,7 @@
 */
 /*
 You probably should not edit this this file!!!
-It was auto generated 2025-10-15 13:31:53.146 by hat.FFIConfigCreator
+It was auto generated 2025-10-24 13:27:45.800 by hat.FFIConfigCreator
 */
 #pragma once
 
@@ -74,10 +74,10 @@ struct BasicConfig{
     bool headless;
     bool showLoweredKernelModel;
     bool showCompilationPhases;
+    bool profileCudaKernel;
     int platform;
     int device;
     bool alwaysCopy;
-    bool profileCudaKernel;
     explicit BasicConfig(int configBits):
         configBits(configBits),
         minimizeCopies((configBits & MINIMIZE_COPIES_BIT)==MINIMIZE_COPIES_BIT),
@@ -123,7 +123,7 @@ struct BasicConfig{
                 std::cout << "native headless " << headless << std::endl;
                 std::cout << "native showLoweredKernelModel " << showLoweredKernelModel << std::endl;
                 std::cout << "native showCompilationPhases " << showCompilationPhases << std::endl;
-                std::cout << "native profilerCUDAKernel " << profileCudaKernel << std::endl;
+                std::cout << "native profileCudaKernel " << profileCudaKernel << std::endl;
                 std::cout << "native platform " << platform << std::endl;
                 std::cout << "native device " << device << std::endl;
             }
@@ -174,5 +174,6 @@ const char *BasicConfig::bitDescriptions[]={
     "Don't show UI",
     "Show (via OpWriter) Lowered Kernel Model",
     "Show HAT compilation phases",
+    "Add -lineinfo to CUDA kernel compilation for profiling and debugging",
 };
 #endif

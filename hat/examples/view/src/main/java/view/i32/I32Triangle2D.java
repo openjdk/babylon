@@ -29,7 +29,7 @@ public class I32Triangle2D {
     public static final int V0 = 0;
     public static final int V1 = 1;
     public static final int V2 = 2;
-    public static int MAX = 1000;
+    public static int MAX = 9000;
     public static int count = 0;
 
     public static int[] entries = new int[MAX * SIZE];

@@ -59,7 +59,7 @@ public class F32Triangle3D {
             this.entries = new int[max * SIZE];
         }
     }
-    public static Pool pool = new Pool(1600);
+    public static Pool pool = new Pool(12800);
 
 
     static int fillTriangle3D(int i, int v0, int v1, int v2, int rgb) {
