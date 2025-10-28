@@ -63,7 +63,7 @@ class ZPos implements Comparable<ZPos> {
     }
 
 
-    int create() {
+    F32Triangle2D create() {
         int r = ((rgb & 0xff0000) >> 16);
         int g = ((rgb & 0x00ff00) >> 8);
         int b = ((rgb & 0x0000ff) >> 0);

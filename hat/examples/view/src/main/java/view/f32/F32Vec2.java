@@ -25,23 +25,52 @@
  */
 package view.f32;
 
-public class F32Vec2 {
+import java.util.ArrayList;
+import java.util.List;
 
-    public  static final int X = 0;
-    public static final int Y = 1;
-    public static class Pool extends FloatPool{
-        Pool( int max) {
-            super(2, max);
+public interface F32Vec2 {
+    List<F32Vec2> arr = new ArrayList<>();
+    static void reset(int markedVec2) {
+        F32Vec2.pool.count = markedVec2;
+        while (arr.size()>markedVec2){
+            arr.removeLast();
         }
     }
-public static     Pool pool = new Pool(12800);
 
-    public static int createVec2(float x, float y) {
-        pool.entries[pool.count * pool.stride + X] = x;
-        pool.entries[pool.count * pool.stride + Y] = y;
-
-        return pool.count++;
+    float x(); void x(float x);
+    float y(); void y(float y);
+    int X = 0;
+    int Y = 1;
+    class Pool {
+        public final float entries[];
+        public final int stride=2;
+        public final int max=12800;
+        public int count =0 ;
+        Pool() {
+            this.entries = new float[max * stride];
+        }
     }
+    Pool pool = new Pool();
+
+    class Impl implements F32Vec2{
+        public int id;
+        float x,y;
+        public int  id() {return id;}
+        public void id(int id) {this.id= id;}
+        @Override public float x() {return x;}
+        @Override public void x(float x) {this.x = x;}
+        @Override public float y() {return y;}
+        @Override public void y(float y) {this.y = y;}
+        Impl(int id, float x, float y){id(id); x(x);y(y);}
+    }
+     static Impl createVec2(float x, float y) {
+        pool.entries[pool.count * pool.stride + X] = x;
+        pool.entries[pool.count++ * pool.stride + Y] = y;
+        var impl = new Impl(arr.size(), x,y);
+        arr.add(impl);
+        return impl;
+    }
+    /*
 
     static int mulScaler(int i, float s) {
         i *= pool.stride;
@@ -80,5 +109,5 @@ public static     Pool pool = new Pool(12800);
     static String asString(int i) {
         i *= pool.stride;
         return pool.entries[i + X] + "," + pool.entries[i + Y];
-    }
+    } */
 }

@@ -27,7 +27,20 @@ package view.f32;
 import java.util.ArrayList;
 import java.util.List;
 
-public interface F32Triangle3D {
+public interface F32Triangle3D{
+    List<F32Triangle3D> arr = new ArrayList<>();
+    static void reset(int marked) {
+        F32Triangle3D.pool.count = marked;
+        while (arr.size()>marked){
+            arr.removeLast();
+        }
+    }
+    /*
+    F32Vec3 v0(); void v0(F32Vec3 v0);
+    F32Vec3 v1(); void v1(F32Vec3 v1);
+    F32Vec3 v2(); void v2(F32Vec3 v2);
+    int rgb(); void rgb(int rgb);
+    */
     int V0 = 0;
     int V1 = 1;
     int V2 = 2;
@@ -70,17 +83,12 @@ public interface F32Triangle3D {
         return i;
     }
 
-    static Pool.Idx fillTriangle3D(Pool.Idx i, int v0, int v1, int v2, int rgb) {
-        i = Pool.Idx.of(i.idx() * pool.stride);
-        pool.entries[v0(i)] = v0;
-        pool.entries[v1(i)] = v1;
-        pool.entries[v2(i)] = v2;
-        pool.entries[rgb(i)] = rgb;
-        return i;
-    }
-
      static Pool.Idx of(int v0, int v1, int v2, int rgb) {
-        fillTriangle3D(Pool.Idx.of(pool.count), v0, v1, v2, rgb);
+         var i = Pool.Idx.of(pool.count * pool.stride);
+         pool.entries[v0(i)] = v0;
+         pool.entries[v1(i)] = v1;
+         pool.entries[v2(i)] = v2;
+         pool.entries[rgb(i)] = rgb;
         return Pool.Idx.of(pool.count++);
     }
 
@@ -157,6 +165,7 @@ public interface F32Triangle3D {
         int normalVec3 = normal(i);
         return F32Vec3.divScaler(normalVec3,  F32Vec3.sumOfSquares(normalVec3));
     }
+
     interface Impl extends F32Triangle3D {
         Pool.Idx id();
     }
