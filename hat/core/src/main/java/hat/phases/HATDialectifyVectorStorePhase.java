@@ -25,13 +25,13 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.annotations.HATVectorType;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorOp;
 import hat.dialect.Utils;
 import hat.optools.OpTk;
+import hat.types._V;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
@@ -40,7 +40,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -70,21 +69,13 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp, Value varValue) {
         if (varValue instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             TypeElement typeElement = varLoadOp.resultType();
-            boolean isHatVectorType = false;
+            Set<Class<?>> interfaces = Set.of();
             try {
                 Class<?> aClass = Class.forName(typeElement.toString());
-                if (!aClass.isPrimitive()) {
-                    Annotation[] annotations = aClass.getAnnotations();
-                    for (Annotation annotation : annotations) {
-                        if (annotation instanceof HATVectorType) {
-                            isHatVectorType = true;
-                            break;
-                        }
-                    }
-                }
+                interfaces = inspectAllInterfaces(aClass);
             } catch (ClassNotFoundException _) {
             }
-            return isHatVectorType && isMethod(invokeOp, vectorOperation.methodName);
+            return interfaces.contains(_V.class) && isMethod(invokeOp, vectorOperation.methodName);
         }
         return false;
     }

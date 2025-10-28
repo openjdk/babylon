@@ -25,26 +25,20 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.annotations.HATVectorType;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.Utils;
 import hat.optools.OpTk;
+import hat.types._V;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
-import java.lang.annotation.Annotation;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -78,21 +72,13 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
         String typeElement = invokeOp.invokeDescriptor().refType().toString();
-        boolean isHatVectorType = false;
+        Set<Class<?>> interfaces = Set.of();
         try {
-            Class<?> aClass = Class.forName(typeElement.toString());
-            if (!aClass.isPrimitive()) {
-                Annotation[] annotations = aClass.getAnnotations();
-                for (Annotation annotation : annotations) {
-                    if (annotation instanceof HATVectorType) {
-                        isHatVectorType = true;
-                        break;
-                    }
-                }
-            }
+            Class<?> aClass = Class.forName(typeElement);
+            interfaces = inspectAllInterfaces(aClass);
         } catch (ClassNotFoundException _) {
         }
-        return isHatVectorType && isVectorLane(invokeOp);
+        return interfaces.contains(_V.class) && isVectorLane(invokeOp);
     }
 
     private String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -140,7 +126,6 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
                             if (inputOperand instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                                 consumer.accept(invokeOp);
                                 consumer.accept(varLoadOp);
-                                Utils.VectorMetaData vectorMetaData = Utils.getVectorTypeInfo(invokeOp);;
                             }
                         }
                     }

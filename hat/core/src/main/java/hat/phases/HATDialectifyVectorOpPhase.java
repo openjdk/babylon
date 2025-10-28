@@ -25,7 +25,6 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.annotations.HATVectorType;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorAddOp;
@@ -41,7 +40,6 @@ import hat.dialect.HATVectorOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.optools.OpTk;
 import hat.types._V;
-import hat.types._V4;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
@@ -51,7 +49,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.annotation.Annotation;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,28 +103,13 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
         TypeElement typeElement = invokeOp.resultType();
-        boolean isHatVectorType = false;
+        Set<Class<?>> interfaces = Set.of();
         try {
             Class<?> aClass = Class.forName(typeElement.toString());
-//            Class<?>[] interfaces = aClass.getInterfaces();
-//            for (Class<?> anInterface : interfaces) {
-//                if (anInterface.equals(_V4.class)) {
-//                    isHatVectorType = true;
-//                }
-//            }
-
-            if (!aClass.isPrimitive()) {
-                Annotation[] annotations = aClass.getAnnotations();
-                for (Annotation annotation : annotations) {
-                    if (annotation instanceof HATVectorType) {
-                        isHatVectorType = true;
-                        break;
-                    }
-                }
-            }
+            interfaces = inspectAllInterfaces(aClass);
         } catch (ClassNotFoundException _) {
         }
-        return isHatVectorType && isMethod(invokeOp, vectorOperation.methodName);
+        return interfaces.contains(_V.class) && isMethod(invokeOp, vectorOperation.methodName);
     }
 
     private boolean findIsSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -240,13 +222,11 @@ public abstract class HATDialectifyVectorOpPhase implements HATDialect {
                             if (inputOperand instanceof Op.Result result) {
                                 if (result.op() instanceof JavaOp.InvokeOp invokeOp) {
                                     if (isVectorOperation(invokeOp)) {
-
                                         // Associate both ops to the vectorTypeInfo for easy
                                         // access to type and lanes
                                         VectorMetaData vectorTypeInfo = getVectorTypeInfo(invokeOp);
                                         vectorMetaData.put(invokeOp, vectorTypeInfo);
                                         vectorMetaData.put(varOp, vectorTypeInfo);
-
                                         consumer.accept(invokeOp);
                                         consumer.accept(varOp);
                                     }

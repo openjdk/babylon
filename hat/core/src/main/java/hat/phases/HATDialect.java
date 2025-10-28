@@ -31,6 +31,8 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Function;
 
 public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
@@ -63,6 +65,25 @@ public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
     default void after(OpTk.CallSite callSite, CoreOp.FuncOp funcOp){
         if (accelerator().backend.config().showCompilationPhases()) {
             IO.println("[INFO] Code model after " + callSite.clazz().getSimpleName()+": " + funcOp.toText());
+        }
+    }
+
+    default Set<Class<?>> inspectAllInterfaces(Class<?> klass) {
+        Set<Class<?>> interfaceSet = new HashSet<>();
+        while (klass != null) {
+            for (Class<?> interfaceClass : klass.getInterfaces()) {
+                inspectNewLevel(interfaceClass, interfaceSet);
+            }
+            klass = klass.getSuperclass();
+        }
+        return interfaceSet;
+    }
+
+    default void inspectNewLevel(Class<?> interaceClass, Set<Class<?>> interfaceSet) {
+        if (interfaceSet.add(interaceClass)) {
+            for (Class<?> superInterface : interaceClass.getInterfaces()) {
+                inspectNewLevel(superInterface, interfaceSet);
+            }
         }
     }
 }
