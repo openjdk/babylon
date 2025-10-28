@@ -125,7 +125,6 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
         }
     }
 
-
     // Code Model Pattern:
     //  %16 : java.type:"hat.buffer.Float4" = var.load %15 @loc="63:28";
     //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.buffer.Float4::x():float";

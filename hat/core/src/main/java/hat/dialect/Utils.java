@@ -9,6 +9,11 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 public class Utils {
 
@@ -38,6 +43,47 @@ public class Utils {
 
     public static VectorMetaData getVectorTypeInfo(JavaOp.InvokeOp invokeOp) {
         return getVectorMetaData(invokeOp.resultType());
+    }
+
+
+    public static CoreOp.FuncOp buildCodeModelFor(Class<?> klass, String methodName) {
+        Optional<Method> myFunction = Stream.of(klass.getDeclaredMethods())
+                .filter(m -> m.getName().equals(methodName))
+                .findFirst();
+        return myFunction.map(method -> Op.ofMethod(method).get()).orElse(null);
+    }
+
+    public static VectorMetaData getVectorTypeInfoWithCodeReflection(TypeElement typeElement) {
+        Class<?> aClass;
+        try {
+            aClass = Class.forName(typeElement.toString());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        CoreOp.FuncOp codeModel = buildCodeModelFor(aClass, "type");
+        AtomicReference<TypeElement> vectorElement = new AtomicReference<>();
+        codeModel.elements().forEach(codeElement -> {
+            IO.println(codeElement.toString());
+            if (codeElement instanceof CoreOp.ReturnOp returnOp) {
+                Value v = returnOp.operands().getFirst();
+                if (v instanceof Op.Result r && r.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+                    String primitiveTypeName = fieldLoadOp.fieldDescriptor().name();
+                    vectorElement.set(getVectorElementType(primitiveTypeName.toLowerCase()));
+                }
+            }
+        });
+
+        AtomicInteger lanes = new AtomicInteger(1);
+        CoreOp.FuncOp codeModel2 = buildCodeModelFor(aClass, "width");
+        codeModel2.elements().forEach(codeElement -> {
+            if (codeElement instanceof CoreOp.ReturnOp returnOp) {
+                Value v = returnOp.operands().getFirst();
+                if (v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp constantOp) {
+                    lanes.set((Integer) constantOp.value());
+                }
+            }
+        });
+        return new VectorMetaData(vectorElement.get(), lanes.get());
     }
 
     public static VectorMetaData getVectorMetaData(TypeElement typeElement) {
@@ -88,8 +134,6 @@ public class Utils {
             return null;
         }
     }
-
-
 
     public static String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return findNameVector(varLoadOp.operands().getFirst());
