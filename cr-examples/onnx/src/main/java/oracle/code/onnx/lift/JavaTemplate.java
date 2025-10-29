@@ -56,13 +56,15 @@ final class JavaTemplate {
     private static final String TEMPLATE = """
         import java.io.IOException;
         import java.io.RandomAccessFile;
-        import foreign.Arena;
-        import foreign.MemorySegment;
+        import java.lang.foreign.Arena;
+        import java.lang.foreign.MemorySegment;
         import java.nio.channels.FileChannel;
+        import java.util.HexFormat;
+        import java.util.List;
         import jdk.incubator.code.CodeReflection;
         import oracle.code.onnx.Tensor;
 
-        import static Optional.*;
+        import static java.util.Optional.*;
         import static oracle.code.onnx.OnnxOperators.*;
         import static oracle.code.onnx.Tensor.ElementType.*;
 
