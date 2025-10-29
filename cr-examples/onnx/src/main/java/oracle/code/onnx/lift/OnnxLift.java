@@ -354,17 +354,17 @@ public final class OnnxLift {
                             switch (t.elementType()) {
                                 case FLOAT -> attributes.put(OnnxOps.Constant.Attribute.value_float.name(), t.data().get(ValueLayout.JAVA_FLOAT, 0));
                                 case INT64 -> attributes.put(OnnxOps.Constant.Attribute.value_int.name(), t.data().get(ValueLayout.JAVA_LONG, 0));
-                                default -> attributes.put(OnnxOps.Constant.Attribute.value.name(), t);
+                                default -> throw new UnsupportedOperationException(t.elementType().name() + " Constant attribute tensor type");
                             }
                         }
                         case 1 -> { // 1d tensor
                             switch (t.elementType()) {
                                 case FLOAT -> attributes.put(OnnxOps.Constant.Attribute.value_floats.name(), t.data().toArray(ValueLayout.JAVA_FLOAT));
                                 case INT64 -> attributes.put(OnnxOps.Constant.Attribute.value_ints.name(), t.data().toArray(ValueLayout.JAVA_LONG));
-                                default -> attributes.put(OnnxOps.Constant.Attribute.value.name(), t);
+                                default -> throw new UnsupportedOperationException(t.elementType().name() + " Constant attribute tensor type");
                             }
                         }
-                        default ->  attributes.put(OnnxOps.Constant.Attribute.value.name(), t);
+                        default -> throw new UnsupportedOperationException("multidimensional Constant attribute tensor");
                     }
                 }
 

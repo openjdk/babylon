@@ -206,13 +206,7 @@ final class JavaTemplate {
             case Long l -> l.toString() + "L";
             case Float f -> f.toString() + "F";
             case String s -> "\"" + s + "\"";
-            case Tensor t when t.shape().length == 0 && t.elementType() == Tensor.ElementType.BOOL -> "Tensor.ofScalar(" + t.data().get(ValueLayout.JAVA_BOOLEAN, 0) + ")";
-            case Tensor t when t.shape().length == 0 && t.elementType() == Tensor.ElementType.INT8 -> "Tensor.ofScalar((byte)" + t.data().get(ValueLayout.JAVA_BYTE, 0) + ")";
-            case Tensor t -> "Tensor.ofShape(" + toString(t.shape()) + ", " + switch (t.elementType()) {
-                case FLOAT -> toString(t.data().toArray(ValueLayout.JAVA_FLOAT));
-                case INT64 -> toString(t.data().toArray(ValueLayout.JAVA_LONG));
-                default -> "HexFormat.of().parseHex(\"" + HexFormat.of().formatHex(t.data().toArray(ValueLayout.JAVA_BYTE)) + "\"), " + t.elementType().name();
-            } + ")";
+            case Tensor _ -> throw new UnsupportedOperationException();
             default -> o.toString();
         };
     }
