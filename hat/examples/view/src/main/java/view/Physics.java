@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,11 +22,10 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package view;
 
-package oracle.code.onnx.provider;
+public interface  Physics {
+    float thetaDelta = 0.0002f;
 
-import oracle.code.onnx.OnnxRuntime;
 
-public sealed interface OnnxProvider permits CoreMLProvider {
-    void configure(OnnxRuntime.SessionOptions sessionOptions);
 }

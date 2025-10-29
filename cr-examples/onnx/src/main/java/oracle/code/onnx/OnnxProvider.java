@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,21 +22,9 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32;
 
-//https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-public class translateMat4 extends mat4 {
-    public translateMat4(float x, float y, float z) {
-        super(
-                1f, 0f, 0f, 0f,
-                0f, 1f, 0f, 0f,
-                0f, 0f, 1f, 0f,
-                x, y, z, 1f
+package oracle.code.onnx;
 
-        );
-    }
+import java.util.Map;
 
-    public translateMat4(float v) {
-        this(v,v,v);
-    }
-}
+public record OnnxProvider(String name, Map<String, String> options) { }

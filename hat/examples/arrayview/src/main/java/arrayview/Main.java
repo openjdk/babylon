@@ -42,7 +42,7 @@ public class Main {
     public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
         if (kc.x<kc.maxX){
             int[] arr = s32Array.arrayView();
-            arr[kc.x] += arr[kc.x];
+            arr[kc.x] *= arr[kc.x];
         }
     }
 

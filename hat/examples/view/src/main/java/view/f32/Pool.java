@@ -24,8 +24,22 @@
  */
 package view.f32;
 
-public class rotationMat4 extends mat4 {
-    public rotationMat4(float thetaX, float thetaY, float thetaZ){
-        super( F32Mat4.mulMat4(F32Mat4.mulMat4(F32Mat4.createRotXMat4(thetaX), F32Mat4.createRotYMat4(thetaY)),F32Mat4.createRotZMat4(thetaZ)));
+public abstract class Pool {
+    public record Idx(int idx) {
+        static Idx of(int idx) {
+            return new Idx(idx);
+        }
+        int idx(int offset) {
+            return idx + offset;
+        }
+    }
+
+    public final int max;
+    public final int stride;
+    public int count = 0;
+
+    Pool(int stride, int max) {
+        this.stride = stride;
+        this.max = max;
     }
 }

@@ -22,33 +22,38 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view;
+package hat.util;
 
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-record Regex(Pattern pattern) {
-    interface Match {
+public record Regex(Pattern pattern) {
+    public interface Match {
         boolean matched();
     }
 
-    record OK(Regex regex, Matcher matcher, boolean matched) implements Match {
-        public static OK of(Regex regex, Matcher matcher) {
-            return new OK(regex, matcher, true);
-        }
-        float hex2Float(String s) {
-            return (s.startsWith("-"))? (-Integer.parseInt(s.substring(2), 16) / 64f): (Integer.parseInt(s.substring(1), 16) / 64f);
-        }
-        public float f(int idx) {
-            return hex2Float(string(idx));
+    public interface OK extends Match {
+        Regex regex();
+        Matcher matcher();
+        default  String string(int idx) {
+            return matcher().group(idx);
         }
 
-        public int i(int idx) {
+        default float asFloat(int idx) {
+            return Float.parseFloat(string(idx));
+        }
+
+        default  int asInt(int idx) {
             return Integer.parseInt(string(idx));
         }
+    }
 
-        public String string(int idx) {
-            return matcher.group(idx);
+
+    public record DefaultOk(Regex regex, Matcher matcher, boolean matched) implements OK {
+        public static OK of(Regex regex, Matcher matcher) {
+            return new DefaultOk(regex, matcher, true);
         }
     }
 
@@ -58,11 +63,11 @@ record Regex(Pattern pattern) {
         }
     }
 
-    static Regex of(String... strings) {
+    public static Regex of(String... strings) {
         return new Regex(Pattern.compile(String.join("", strings)));
     }
 
-    static Match any(String line, Regex... regexes) {
+    public static Match any(String line, Regex... regexes) {
         for (Regex r : regexes) {
             if (r.is(line) instanceof OK ok) {
                 return ok;
@@ -70,12 +75,33 @@ record Regex(Pattern pattern) {
         }
         return FAIL.of();
     }
-
-    Match is(String s) {
-        if (pattern.matcher(s) instanceof Matcher matcher && matcher.matches()) {
-            return OK.of(this, matcher);
+    public Match is(String s, Predicate<Matcher> matcherPredicate, BiFunction<Regex,Matcher,OK> factory) {
+        if (pattern.matcher(s) instanceof Matcher matcher && matcher.matches() && matcherPredicate.test(matcher)) {
+            return factory.apply(this, matcher);
         } else {
             return FAIL.of();
+        }
+    }
+    public Match is(String s, BiFunction<Regex,Matcher,OK> factory) {
+        return is(s, _->true,factory);
+    }
+    public Match is(String s, Predicate<Matcher> matcherPredicate) {
+        return is(s, matcherPredicate,(r,m)->new DefaultOk(r,m, true));
+    }
+    public Match is(String s) {
+        return is(s, _->true);
+    }
+    public boolean matches(String s, Predicate<Matcher> matcherPredicate) {
+        return is(s, matcherPredicate).matched();
+    }
+    public boolean matches(String s) {
+        return is(s).matched();
+    }
+    public boolean matchesOrThrow(String s) {
+        if(!is(s).matched()){
+            throw new RuntimeException("failed expected match");
+        }else{
+            return true;
         }
     }
 }

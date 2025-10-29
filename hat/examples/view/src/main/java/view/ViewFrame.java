@@ -25,19 +25,11 @@
 
 package view;
 
-import view.f32.F32Mat4;
-import view.f32.F32Mesh3D;
+import view.f32.F32Matrix4x4;
 import view.f32.F32Triangle3D;
 import view.f32.F32Vec3;
-import view.f32.mat4;
-import view.f32.projectionMat4;
-import view.f32.rotationMat4;
-import view.f32.scaleMat4;
-import view.f32.translateMat4;
-import view.f32.tri;
-import view.f32.vec3;
-import view.i32.I32Triangle2D;
-import view.i32.I32Vec2;
+import view.f32.Pool;
+import view.f32.F32Vec2;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -54,62 +46,33 @@ import java.util.Collections;
 import java.util.List;
 
 public class ViewFrame extends JFrame {
-    private final Rasterizer rasterizer;
+    private final Renderer renderer;
     private volatile Point point = null;
     private final Object doorBell;
     private final JComponent viewer;
     final long startMillis;
     long frames;
-    vec3 cameraVec3;
-    vec3 lookDirVec3;
-    mat4 projectionMat4;
-    vec3 centerVec3;
-    vec3 moveAwayVec3;
+    final F32Vec3.vec3 cameraVec3;
+    final F32Vec3.vec3 lookDirVec3;
+    final F32Matrix4x4.Projection projF32Mat4x4;
+    final F32Vec3.vec3 centerVec3;
+    final F32Vec3.vec3 moveAwayVec3;
 
-    static class Mark {
-        int markedTriangles3D;
-        int markedTriangles2D;
-        int markedVec2;
-        int markedVec3;
-        int markedMat4;
+    ModelHighWaterMark mark;
 
-        Mark() {
-            markedTriangles3D = F32Triangle3D.pool.count;
-            markedVec3 = F32Vec3.pool.count;
-            markedMat4 = F32Mat4.pool.count;
-            markedTriangles2D = I32Triangle2D.count;
-            markedVec2 = I32Vec2.count;
-        }
-
-        void resetAll() {
-            reset3D();
-            I32Triangle2D.count = markedTriangles2D;
-            I32Vec2.count = markedVec2;
-        }
-
-        void reset3D() {
-            F32Triangle3D.pool.count = markedTriangles3D;
-            F32Vec3.pool.count = markedVec3;
-            F32Mat4.pool.count = markedMat4;
-        }
-
-    }
-
-    Mark mark;
-
-    private ViewFrame(String name, Rasterizer rasterizer, Runnable sceneBuilder) {
+    private ViewFrame(String name, Renderer renderer, Runnable sceneBuilder) {
         super(name);
         startMillis = System.currentTimeMillis();
-        this.rasterizer = rasterizer;
+        this.renderer = renderer;
         this.doorBell = new Object();
 
         this.viewer = new JComponent() {
             @Override
             public void paintComponent(Graphics g) {
-                rasterizer.view.paint((Graphics2D) g);
+                renderer.view().paint((Graphics2D) g);
             }
         };
-        viewer.setPreferredSize(new Dimension(rasterizer.view.image.getWidth(), rasterizer.view.image.getHeight()));
+        viewer.setPreferredSize(new Dimension(renderer.view().image.getWidth(), renderer.view().image.getHeight()));
         viewer.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -128,23 +91,20 @@ public class ViewFrame extends JFrame {
             }
         });
 
-
         sceneBuilder.run();
 
-
-        cameraVec3 = vec3.of(0f, 0f, .0f);
-        lookDirVec3 = vec3.of(0f, 0f, 0f);//F32Vec3.createVec3(0, 0, 0);
-        projectionMat4 = new projectionMat4(rasterizer.view.image.getWidth(), rasterizer.view.image.getHeight(), 0.1f, 1000f, 60f);
-        projectionMat4 = projectionMat4.mul(new scaleMat4((float) rasterizer.view.image.getHeight() / 4));
-        projectionMat4 = projectionMat4.mul(new translateMat4((float) rasterizer.view.image.getHeight() / 2));
-
-        centerVec3 = vec3.of((float) rasterizer.view.image.getWidth() / 2, (float) rasterizer.view.image.getHeight() / 2, 0);
-        moveAwayVec3 = vec3.of(0f, 0f, 30f);
-        mark = new Mark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
+        cameraVec3 = F32Vec3.vec3.of(0f, 0f, .0f);
+        lookDirVec3 = F32Vec3.vec3.of(0f, 0f, 0f);
+        F32Matrix4x4.Projection projF32Mat4x4_1 = F32Matrix4x4.Projection.of(renderer.view().image, 0.1f, 1000f, 60f);
+        Pool.Idx projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1.id(), F32Matrix4x4.Scale.of(renderer.view().image.getHeight() / 4f).id());
+        projF32Mat4x4 = F32Matrix4x4.Projection.of(F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.Transformation.of(renderer.view().image.getHeight() / 2f).id()));
+        centerVec3 = F32Vec3.vec3.of(renderer.view().image.getWidth() / 2f,  renderer.view().image.getHeight() / 2f, 0);
+        moveAwayVec3 = F32Vec3.vec3.of(0f, 0f, 30f);
+        mark = new ModelHighWaterMark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
     }
 
-    public static ViewFrame of(String name, Rasterizer rasterizer, Runnable sceneBuilder){
-        return new ViewFrame(name,rasterizer,sceneBuilder);
+    public static ViewFrame of(String name, Renderer renderer, Runnable sceneBuilder){
+        return new ViewFrame(name, renderer,sceneBuilder);
     }
 
     Point waitForPoint(long timeout) {
@@ -174,23 +134,23 @@ public class ViewFrame extends JFrame {
 
     void update() {
         final long elapsedMillis = System.currentTimeMillis() - startMillis;
-        float theta = elapsedMillis * Rasterizer.thetaDelta;
+        float theta = elapsedMillis * Physics.thetaDelta;
 
         if ((frames++ % 50) == 0) {
-            System.out.println("Frames " + frames + " Theta = " + theta + " FPS = " + ((frames * 1000) / elapsedMillis) + " Vertices " + rasterizer.vec2EntriesCount);
+            System.out.println("Frames " + frames + " Theta = " + theta + " FPS = " + ((frames * 1000) / elapsedMillis) + " Vertices " + F32Vec2.pool.count);
         }
 
         mark.resetAll();
 
-        mat4 xyzRot4x4 = new rotationMat4(theta * 2, theta / 2, theta);
+        var xyzRot4x4 = new F32Matrix4x4.Rotation(theta * 2, theta / 2, theta);
 
-        Mark resetMark = new Mark();
+        ModelHighWaterMark resetMark = new ModelHighWaterMark();
 
         List<ZPos> zpos = new ArrayList<>();
         // Loop through the triangles
-        boolean showHidden = rasterizer.displayMode == Rasterizer.DisplayMode.WIRE_SHOW_HIDDEN;
+        boolean showHidden = renderer.displayMode() == Renderer.DisplayMode.WIRE_SHOW_HIDDEN;
 
-        for (tri t : tri.all()) {
+        for (F32Triangle3D.tri t : F32Triangle3D.tri.all()) {
             // here we rotate and then move into the Z plane.
             t = t.mul(xyzRot4x4).add(moveAwayVec3);
             float howVisible = 1f;
@@ -208,7 +168,7 @@ public class ViewFrame extends JFrame {
 
                 // We subtract the camera from our point on the triangle so we can compare
 
-                vec3 cameraDeltaVec3 = t.center().sub(cameraVec3); // clearly our default camera is 0,0,0
+                F32Vec3.vec3 cameraDeltaVec3 = t.center().sub(cameraVec3); // clearly our default camera is 0,0,0
 
                 //  howVisible = cameraDeltaVec3.mul( t.normalSumOfSquares()).sumOf();
                 howVisible = cameraDeltaVec3.dotProd(t.normal());
@@ -223,7 +183,7 @@ public class ViewFrame extends JFrame {
                 // now project the 3d triangle to 2d plane.
                 // Scale up to quarter screen height then add half height of screen
 
-                t = t.mul(projectionMat4);//  projection matrix also scales to screen and translate half a screen
+                t = t.mul(projF32Mat4x4);//  projection matrix also scales to screen and translate half a screen
 
                 zpos.add(new ZPos(t, howVisible));
             }
@@ -238,13 +198,8 @@ public class ViewFrame extends JFrame {
             z.create();
         }
 
-        rasterizer.triangle2DEntries = I32Triangle2D.entries;
-        rasterizer.triangle2DEntriesCount = I32Triangle2D.count;
-        rasterizer.vec2Entries = I32Vec2.entries;
-        rasterizer.vec2EntriesCount = I32Vec2.count;
-        rasterizer.colors = I32Triangle2D.colors;
-        rasterizer.execute(rasterizer.range);
-        rasterizer.view.update();
+        renderer.render();
+
         viewer.repaint();
     }
 }
