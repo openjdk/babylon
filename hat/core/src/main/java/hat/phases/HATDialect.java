@@ -31,6 +31,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
@@ -71,9 +72,7 @@ public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
     default Set<Class<?>> inspectAllInterfaces(Class<?> klass) {
         Set<Class<?>> interfaceSet = new HashSet<>();
         while (klass != null) {
-            for (Class<?> interfaceClass : klass.getInterfaces()) {
-                inspectNewLevel(interfaceClass, interfaceSet);
-            }
+            Arrays.stream(klass.getInterfaces()).forEach(interfaceClass -> inspectNewLevel(interfaceClass, interfaceSet));
             klass = klass.getSuperclass();
         }
         return interfaceSet;
@@ -81,9 +80,8 @@ public interface HATDialect  extends Function<CoreOp.FuncOp,CoreOp.FuncOp> {
 
     default void inspectNewLevel(Class<?> interaceClass, Set<Class<?>> interfaceSet) {
         if (interfaceSet.add(interaceClass)) {
-            for (Class<?> superInterface : interaceClass.getInterfaces()) {
-                inspectNewLevel(superInterface, interfaceSet);
-            }
+            // only if we add a new interface class, we inspect all interfaces that extends the current inspected class
+            Arrays.stream(interaceClass.getInterfaces()).forEach(superInterface -> inspectNewLevel(superInterface, interfaceSet));
         }
     }
 }
