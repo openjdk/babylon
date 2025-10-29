@@ -23,8 +23,6 @@
 
 package oracle.code.onnx.fer;
 
-import oracle.code.onnx.provider.CoreMLProvider;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -39,11 +37,12 @@ import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
-import static oracle.code.onnx.foreign.coreml_provider_factory_h.*;
+import oracle.code.onnx.OnnxProvider;
 
 public class FERCoreMLDemo {
 
@@ -65,7 +64,7 @@ public class FERCoreMLDemo {
     private JLabel[] resultLabels;
     private final FERInference inference;
 
-    private FERCoreMLDemo(boolean useCondensedModel) throws IOException {
+    private FERCoreMLDemo(boolean useCondensedModel) {
         this.inference = new FERInference();
         this.useCondensedModel = useCondensedModel;
     }
@@ -198,7 +197,11 @@ public class FERCoreMLDemo {
             URL url = selectedUrls.get(i);
 
             try (var arena = Arena.ofConfined()) {
-                CoreMLProvider provider = new CoreMLProvider(COREML_FLAG_USE_CPU_AND_GPU());
+                Map<String, String> options = Map.of("ModelFormat", "MLProgram",
+                        "MLComputeUnits", "CPUAndGPU", "EnableOnSubgraphs", "1",
+                        "AllowLowPrecisionAccumulationOnGPU", "1",
+                        "ModelCacheDirectory", FERCoreMLDemo.class.getResource(BASE_PATH).getPath());
+                OnnxProvider provider = new OnnxProvider("CoreML", options);
                 float[] probs = inference.analyzeImage(arena, provider, url, useCondensedModel);
                 String top3 = formatTopK(probs);
 
