@@ -22,13 +22,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32;
 
-//https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-public class projectionMat4 extends mat4 {
+/*
+ *  Based on mesh descriptions found here
+ *      https://6502disassembly.com/a2-elite/
+ *      https://6502disassembly.com/a2-elite/meshes.html
+ *
+ */
+package view;
 
-    public projectionMat4(float width, float height, float nearZ, float farZ, float fieldOfViewDeg){
-        super(F32Mat4.createProjectionMatrix(width, height,  nearZ, farZ,  fieldOfViewDeg));
-
+public interface Renderer {
+    enum DisplayMode {
+        FILL(false,true,false),
+        WIRE(true,false,false),
+        WIRE_SHOW_HIDDEN(true,false,true),
+        WIRE_AND_FILL(true, true, false);
+        final public boolean wire;
+        final public boolean filled;
+        final public boolean showHidden;
+        DisplayMode(boolean wire, boolean filled, boolean showHidden){
+            this.wire=wire;
+            this.filled=filled;
+            this.showHidden =showHidden;
+        }
     }
+    DisplayMode displayMode();
+    View view();
+    void render();
 }
