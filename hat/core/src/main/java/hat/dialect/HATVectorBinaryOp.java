@@ -51,8 +51,8 @@ public abstract class HATVectorBinaryOp extends HATVectorOp {
     private final TypeElement elementType;
     private final OpType operationType;
 
-    public HATVectorBinaryOp(String varName, TypeElement typeElement, OpType operationType, int witdh, List<Value> operands) {
-        super(varName, typeElement, typeElement, witdh, operands);
+    public HATVectorBinaryOp(String varName, TypeElement typeElement, OpType operationType, TypeElement vectorElementType, int width, List<Value> operands) {
+        super(varName, typeElement, vectorElementType, width, operands);
         this.elementType = typeElement;
         this.operationType = operationType;
 
