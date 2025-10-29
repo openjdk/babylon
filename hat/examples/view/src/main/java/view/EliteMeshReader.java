@@ -38,6 +38,7 @@ import view.f32.F32Mesh3D;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
 
 class EliteMeshReader {
     static String hexRegexStr = "((?:-?&[0-9a-fA-F][0-9a-fA-F])|0)";
@@ -78,6 +79,17 @@ class EliteMeshReader {
         done done  = new done();
         //St[] all = new St[]{awaiting_name, awaiting_lazer, awaiting_counts, awaiting_vertices, awaiting_hue_lig_sat, awaiting_faces};
     }
+    record F32x3(Regex regex, Matcher matcher, boolean matched) implements Regex.OK {
+        float f(int idx) {
+            var s = string(idx);
+            return (s.startsWith("-")) ?
+                    (-Integer.parseInt(s.substring(2), 16) / 64f) : (Integer.parseInt(s.substring(1), 16) / 64f);
+        }
+
+        F32x3(Regex r, Matcher m) {
+            this(r, m, true);
+        }
+    }
 
     static void load(String name) {
         final var mesh = StreamMutable.of((F32Mesh3D) null);
@@ -96,7 +108,7 @@ class EliteMeshReader {
                         case State.awaiting_counts s-> st.setIf(s.r.matches(line), State.awaiting_vertices);
                         case State.awaiting_vertices s-> st.setIf(s.r.matches(line), State.awaiting_faces);
                         case State.awaiting_faces _-> {
-                            if (vertexRegex.is(line) instanceof Regex.OK ok) {
+                            if (vertexRegex.is(line,F32x3::new) instanceof F32x3 ok) {
                                 mesh.get().vec3(ok.f(1), ok.f(2), ok.f(3));
                             } else if (facesRegex.matchesOrThrow(line)) {
                                 st.set(State.awaiting_hue_lig_sat);
@@ -104,17 +116,17 @@ class EliteMeshReader {
                         }
                         case State.awaiting_hue_lig_sat s-> {
                             if (Regex.any(line, face6Regex, face5Regex, face4Regex, face3Regex) instanceof Regex.OK ok) {
-                                int v0 = mesh.get().vecEntries[ok.i(6)];
-                                int v1 = mesh.get().vecEntries[ok.i(7)];
-                                int v2 = mesh.get().vecEntries[ok.i(8)];
+                                int v0 = mesh.get().vecEntries[ok.asInt(6)];
+                                int v1 = mesh.get().vecEntries[ok.asInt(7)];
+                                int v2 = mesh.get().vecEntries[ok.asInt(8)];
                                 if (ok.regex() == face3Regex) {
                                     mesh.get().tri(v0, v1, v2, 0x00ff00);
                                 } else if (ok.regex() == face4Regex) {
-                                    mesh.get().quad(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], 0xff0000);
+                                    mesh.get().quad(v0, v1, v2, mesh.get().vecEntries[ok.asInt(9)], 0xff0000);
                                 } else if (ok.regex() == face5Regex) {
-                                    mesh.get().pent(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], mesh.get().vecEntries[ok.i(10)], 0x0000ff);
+                                    mesh.get().pent(v0, v1, v2, mesh.get().vecEntries[ok.asInt(9)], mesh.get().vecEntries[ok.asInt(10)], 0x0000ff);
                                 } else {
-                                    mesh.get().hex(v0, v1, v2, mesh.get().vecEntries[ok.i(9)], mesh.get().vecEntries[ok.i(10)], mesh.get().vecEntries[ok.i(11)], 0xfff000);
+                                    mesh.get().hex(v0, v1, v2, mesh.get().vecEntries[ok.asInt(9)], mesh.get().vecEntries[ok.asInt(10)], mesh.get().vecEntries[ok.asInt(11)], 0xfff000);
                                 }
                             } else if (s.r().matches(line)) {
                                 mesh.get().fin();
