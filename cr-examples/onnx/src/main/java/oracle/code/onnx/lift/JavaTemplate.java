@@ -23,9 +23,7 @@
 
 package oracle.code.onnx.lift;
 
-import java.lang.foreign.ValueLayout;
 import java.lang.reflect.Method;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -59,7 +57,6 @@ final class JavaTemplate {
         import java.lang.foreign.Arena;
         import java.lang.foreign.MemorySegment;
         import java.nio.channels.FileChannel;
-        import java.util.HexFormat;
         import java.util.List;
         import jdk.incubator.code.CodeReflection;
         import oracle.code.onnx.Tensor;
