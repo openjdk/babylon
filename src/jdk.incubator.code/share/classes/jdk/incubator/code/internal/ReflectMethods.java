@@ -136,6 +136,7 @@ public class ReflectMethods extends TreeTranslator {
     private final TypeEnvs typeEnvs;
     private final Flow flow;
     private final CodeReflectionSymbols crSyms;
+    private final CodeModelSymbols cmSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
     private final CodeModelStorageOption codeModelStorageOption;
@@ -164,6 +165,7 @@ public class ReflectMethods extends TreeTranslator {
         typeEnvs = TypeEnvs.instance(context);
         flow = Flow.instance(context);
         crSyms = new CodeReflectionSymbols(context);
+        cmSyms = new CodeModelSymbols(context);
     }
 
     @Override
@@ -182,6 +184,8 @@ public class ReflectMethods extends TreeTranslator {
                 }
                 // create a static method that returns the op
                 classOps.add(opMethodDecl(methodName(symbolToMethodRef(tree.sym)), funcOp, codeModelStorageOption));
+                // create code model annotation
+                tree.sym.appendAttributes(com.sun.tools.javac.util.List.of(cmSyms.toCodeModelAttribute(funcOp)));
             }
         }
         super.visitMethodDef(tree);
