@@ -237,7 +237,7 @@ class EliteMeshReader {
         }
     }
 
-    public  void load(String name) {
+    public  void loadOld(String name) {
         final var mesh = StreamMutable.of((F32Mesh3D) null);
     final var sm = new State.Machine().awaiting_name();
         new BufferedReader(
@@ -284,7 +284,7 @@ class EliteMeshReader {
                     }
                 });
     }
-    public void newload(String name) {
+    public void loadNew(String name) {
         final var mesh = StreamMutable.of((F32.Mesh) null);
         final var sm = new State.Machine().awaiting_name();
         new BufferedReader(

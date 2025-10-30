@@ -47,10 +47,10 @@ public class Main {
         // args.add("COBRA");
         var eliteReader = new EliteMeshReader();
         boolean old = true;
-        var viewFrame = old ? ((args.size() > 0)
-
-                ? ViewFrameOld.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.WIRE), () -> eliteReader.load(args.getFirst()))
-                : ViewFrameOld.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.FILL), () -> {
+        var v = View.of(1024, 1024);
+        var wire = Rasterizer.of(v, Renderer.DisplayMode.WIRE);
+        var fill = Rasterizer.of(v, Renderer.DisplayMode.FILL);
+        Runnable cubeoctahedron =  () -> {
             for (int x = -2; x < 6; x += 2) {
                 for (int y = -2; y < 6; y += 2) {
                     for (int z = -2; z < 6; z += 2) {
@@ -58,18 +58,11 @@ public class Main {
                     }
                 }
             }
-        }))
-                : ((args.size() > 0) ? ViewFrameNew.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.WIRE), () -> eliteReader.load(args.getFirst()))
-                : ViewFrameNew.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.FILL), () -> {
-            for (int x = -2; x < 6; x += 2) {
-                for (int y = -2; y < 6; y += 2) {
-                    for (int z = -2; z < 6; z += 2) {
-                        F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
-                    }
-                }
-            }
-        }));
-
+        };
+        Runnable elite = old?()->eliteReader.loadOld(args.getFirst()): ()->eliteReader.loadNew(args.getFirst());
+        var viewFrame = old ?
+                (args.size() > 0 ? ViewFrameOld.of("view", wire, elite): ViewFrameOld.of("view", fill,cubeoctahedron))
+                : ((args.size() > 0) ? ViewFrameNew.of("view", wire,elite) : ViewFrameNew.of("view",fill, cubeoctahedron));
         while (true) {
             viewFrame.update();
         }
