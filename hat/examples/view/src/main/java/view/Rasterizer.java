@@ -63,6 +63,23 @@ public record Rasterizer(View view, DisplayMode displayMode) implements Renderer
         }
         view.offscreenRgb[gid] = col;
     }
+
+    private void accept32(int gid) {
+        int x = gid % view.image.getWidth();
+        int y = gid / view.image.getHeight();
+        int col = 0x404040;
+        for (F32.TriangleVec2 t: F32.TriangleVec2.arr) {
+            var v0 =  t.v0();
+            var v1 = t.v1();
+            var v2 = t.v2();
+            if (displayMode.filled && F32.TriangleVec2.intriangle(x, y, v0.x(), v0.y(), v1.x(),v1.y(),v2.x(),v2.y())) {
+                col = t.rgb();
+            } else if (displayMode.wire && F32.TriangleVec2.onedge(x, y, v0.x(), v0.y(), v1.x(),v1.y(),v2.x(),v2.y())) {
+                col =t.rgb();
+            }
+        }
+        view.offscreenRgb[gid] = col;
+    }
 @Override
     public void render() {
         IntStream.range(0, view.image.getHeight()*view.image.getWidth()).parallel().forEach(this::accept);

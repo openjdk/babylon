@@ -43,13 +43,8 @@ import static view.F32.normal;
 import static view.F32.dotprod;
 import static view.F32.sub;
 
-public class ViewFrame32 extends JFrame {
-    private final Renderer renderer;
-    private volatile Point point = null;
-    private final Object doorBell;
-    private final JComponent viewer;
-    final long startMillis;
-    long frames;
+public class ViewFrameNew extends ViewFrame {
+
     final F32.Vec3 cameraVec3;
     final F32.Vec3 lookDirVec3;
     final F32.Mat4x4 projF32Mat4x4;
@@ -58,38 +53,9 @@ public class ViewFrame32 extends JFrame {
 
     F32.ModelHighWaterMark mark;
 
-    private ViewFrame32(String name, Renderer renderer, Runnable sceneBuilder) {
-        super(name);
-        startMillis = System.currentTimeMillis();
-        this.renderer = renderer;
-        this.doorBell = new Object();
+    private ViewFrameNew(String name, Renderer renderer, Runnable sceneBuilder) {
+        super(name,  renderer, sceneBuilder);
 
-        this.viewer = new JComponent() {
-            @Override
-            public void paintComponent(Graphics g) {
-                renderer.view().paint((Graphics2D) g);
-            }
-        };
-        viewer.setPreferredSize(new Dimension(renderer.view().image.getWidth(), renderer.view().image.getHeight()));
-        viewer.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                ringDoorBell(e.getPoint());
-
-            }
-        });
-        getContentPane().add(viewer);
-        pack();
-        setLocationRelativeTo(null);
-        setVisible(true);
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent _windowEvent) {
-                System.exit(0);
-            }
-        });
-
-        sceneBuilder.run();
 
         cameraVec3 = F32.Vec3.of(0f, 0f, .0f);
         lookDirVec3 = F32.Vec3.of(0f, 0f, 0f);
@@ -101,36 +67,11 @@ public class ViewFrame32 extends JFrame {
         mark = new F32.ModelHighWaterMark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
     }
 
-    public static ViewFrame32 of(String name, Renderer renderer, Runnable sceneBuilder){
-        return new ViewFrame32(name, renderer,sceneBuilder);
+    public static ViewFrameNew of(String name, Renderer renderer, Runnable sceneBuilder){
+        return new ViewFrameNew(name, renderer,sceneBuilder);
     }
 
-    Point waitForPoint(long timeout) {
-        while (point == null) {
-            synchronized (doorBell) {
-                try {
-                    if (timeout > 0) {
-                        doorBell.wait(timeout);
-                    }
-                    update();
-                } catch (final InterruptedException ie) {
-                    ie.getStackTrace();
-                }
-            }
-        }
-        Point returnPoint = point;
-        point = null;
-        return returnPoint;
-    }
-
-    void ringDoorBell(Point point) {
-        this.point = point;
-        synchronized (doorBell) {
-            doorBell.notify();
-        }
-    }
-    static final float thetaDelta = 0.0002f;
-
+ @Override
     void update() {
         final long elapsedMillis = System.currentTimeMillis() - startMillis;
         float theta = elapsedMillis * thetaDelta;

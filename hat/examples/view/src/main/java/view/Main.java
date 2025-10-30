@@ -44,25 +44,34 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-       // args.add("COBRA");
-        EliteReader eliteReader = new EliteMeshReader();
-        var viewFrame = (args.size() > 0 )
-                ? ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.WIRE), () ->
-                        eliteReader.load(args.getFirst())
-                )
-                : ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.FILL), () -> {
-                     for (int x = -2; x < 6; x += 2) {
-                         for (int y = -2; y < 6; y += 2) {
-                             for (int z = -2; z < 6; z += 2) {
-                                 F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
-                             }
-                         }
-                     }
-                });
+        // args.add("COBRA");
+        var eliteReader = new EliteMeshReader();
+        boolean old = false;
+        var viewFrame = old ? ((args.size() > 0)
+
+                ? ViewFrameOld.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.WIRE), () -> eliteReader.load(args.getFirst()))
+                : ViewFrameOld.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.FILL), () -> {
+            for (int x = -2; x < 6; x += 2) {
+                for (int y = -2; y < 6; y += 2) {
+                    for (int z = -2; z < 6; z += 2) {
+                        F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
+                    }
+                }
+            }
+        }))
+                : ((args.size() > 0) ? ViewFrameNew.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.WIRE), () -> eliteReader.load(args.getFirst()))
+                : ViewFrameNew.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.FILL), () -> {
+            for (int x = -2; x < 6; x += 2) {
+                for (int y = -2; y < 6; y += 2) {
+                    for (int z = -2; z < 6; z += 2) {
+                        F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
+                    }
+                }
+            }
+        }));
 
         while (true) {
             viewFrame.update();
         }
     }
-
 }
