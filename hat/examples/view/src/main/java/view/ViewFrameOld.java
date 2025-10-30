@@ -139,7 +139,7 @@ public class ViewFrameOld extends ViewFrame {
             z.create();
         }
 
-        renderer.render();
+        renderer.render(true);
 
         viewer.repaint();
     }

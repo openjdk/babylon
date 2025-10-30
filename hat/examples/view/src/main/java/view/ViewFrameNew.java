@@ -25,6 +25,8 @@
 
 package view;
 
+import view.f32.F32Matrix4x4;
+
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import java.awt.Dimension;
@@ -80,11 +82,12 @@ public class ViewFrameNew extends ViewFrame {
             System.out.println("Frames " + frames + " Theta = " + theta + " FPS = " + ((frames * 1000) / elapsedMillis) );
         }
 
-        mark.resetAll();
+    //    mark.resetAll();
 
         var xyzRot4x4 =  F32.Mat4x4.Rotation.of(theta * 2, theta / 2, theta);
+     var xyzRot4x4Old = new F32Matrix4x4.Rotation(theta * 2, theta / 2, theta);
 
-        F32.ModelHighWaterMark resetMark = new F32.ModelHighWaterMark();
+      //  F32.ModelHighWaterMark resetMark = new F32.ModelHighWaterMark();
 
         List<F32.ZPos> zpos = new ArrayList<>();
         // Loop through the triangles
@@ -136,12 +139,12 @@ public class ViewFrameNew extends ViewFrame {
 
 
         Collections.sort(zpos);
-
+List<F32.TriangleVec2> ztri= new ArrayList<>();
         for (F32.ZPos z : zpos) {
-            z.create();
+            ztri.add(z.create());
         }
 
-        renderer.render();
+        renderer.render(false);
 
         viewer.repaint();
     }

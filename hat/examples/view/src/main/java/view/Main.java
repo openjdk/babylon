@@ -46,7 +46,7 @@ public class Main {
         var args = new ArrayList<>(List.of(argArr));
         // args.add("COBRA");
         var eliteReader = new EliteMeshReader();
-        boolean old = true;
+        boolean old =true;// Boolean.getBoolean("old");
         var v = View.of(1024, 1024);
         var wire = Rasterizer.of(v, Renderer.DisplayMode.WIRE);
         var fill = Rasterizer.of(v, Renderer.DisplayMode.FILL);
@@ -54,7 +54,11 @@ public class Main {
             for (int x = -2; x < 6; x += 2) {
                 for (int y = -2; y < 6; y += 2) {
                     for (int z = -2; z < 6; z += 2) {
-                        F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
+                        if (old) {
+                            F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
+                        }else{
+                            F32.Mesh.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
+                        }
                     }
                 }
             }

@@ -41,48 +41,44 @@ public record Rasterizer(View view, DisplayMode displayMode) implements Renderer
         return new Rasterizer(view, displayMode);
     }
 
-    private void accept(int gid) {
+    private void accept(int gid, boolean old) {
         int x = gid % view.image.getWidth();
         int y = gid / view.image.getHeight();
         int col = 0x404040;
-        for (int t = 0; t < F32Triangle2D.pool.count; t++) {
-            int v0 =  F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V0];
-            int v1 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V1];
-            int v2 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V2];
-            float x0 = F32Vec2.pool.entries[v0 * F32Vec2.pool.stride + F32Vec2.X];
-            float y0 = F32Vec2.pool.entries[v0 * F32Vec2.pool.stride + F32Vec2.Y];
-            float x1 = F32Vec2.pool.entries[v1 * F32Vec2.pool.stride + F32Vec2.X];
-            float y1 = F32Vec2.pool.entries[v1 * F32Vec2.pool.stride + F32Vec2.Y];
-            float x2 = F32Vec2.pool.entries[v2 * F32Vec2.pool.stride + F32Vec2.X];
-            float y2 = F32Vec2.pool.entries[v2 * F32Vec2.pool.stride + F32Vec2.Y];
-            if (displayMode.filled && F32Triangle2D.intriangle(x, y, x0, y0, x1, y1, x2, y2)) {
-                col = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB];
-            } else if (displayMode.wire && F32Triangle2D.onedge(x, y, x0, y0, x1, y1, x2, y2)) {
-                col = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB];
+        if (old){
+            for (int t = 0; t < F32Triangle2D.pool.count; t++) {
+                int v0 =  F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V0];
+                int v1 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V1];
+                int v2 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V2];
+                float x0 = F32Vec2.pool.entries[v0 * F32Vec2.pool.stride + F32Vec2.X];
+                float y0 = F32Vec2.pool.entries[v0 * F32Vec2.pool.stride + F32Vec2.Y];
+                float x1 = F32Vec2.pool.entries[v1 * F32Vec2.pool.stride + F32Vec2.X];
+                float y1 = F32Vec2.pool.entries[v1 * F32Vec2.pool.stride + F32Vec2.Y];
+                float x2 = F32Vec2.pool.entries[v2 * F32Vec2.pool.stride + F32Vec2.X];
+                float y2 = F32Vec2.pool.entries[v2 * F32Vec2.pool.stride + F32Vec2.Y];
+                if (displayMode.filled && F32Triangle2D.intriangle(x, y, x0, y0, x1, y1, x2, y2)) {
+                    col = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB];
+                } else if (displayMode.wire && F32Triangle2D.onedge(x, y, x0, y0, x1, y1, x2, y2)) {
+                    col = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB];
+                }
             }
-        }
-        view.offscreenRgb[gid] = col;
-    }
-
-    private void accept32(int gid) {
-        int x = gid % view.image.getWidth();
-        int y = gid / view.image.getHeight();
-        int col = 0x404040;
-        for (F32.TriangleVec2 t: F32.TriangleVec2.arr) {
-            var v0 =  t.v0();
-            var v1 = t.v1();
-            var v2 = t.v2();
-            if (displayMode.filled && F32.TriangleVec2.intriangle(x, y, v0.x(), v0.y(), v1.x(),v1.y(),v2.x(),v2.y())) {
-                col = t.rgb();
-            } else if (displayMode.wire && F32.TriangleVec2.onedge(x, y, v0.x(), v0.y(), v1.x(),v1.y(),v2.x(),v2.y())) {
-                col =t.rgb();
+        }else {
+            for (F32.TriangleVec2 t : F32.TriangleVec2.arr) {
+                var v0 = t.v0();
+                var v1 = t.v1();
+                var v2 = t.v2();
+                if (displayMode.filled && F32.TriangleVec2.intriangle(x, y, v0.x(), v0.y(), v1.x(), v1.y(), v2.x(), v2.y())) {
+                    col = t.rgb();
+                } else if (displayMode.wire && F32.TriangleVec2.onedge(x, y, v0.x(), v0.y(), v1.x(), v1.y(), v2.x(), v2.y())) {
+                    col = t.rgb();
+                }
             }
         }
         view.offscreenRgb[gid] = col;
     }
 @Override
-    public void render() {
-        IntStream.range(0, view.image.getHeight()*view.image.getWidth()).parallel().forEach(this::accept);
+    public void render(boolean old) {
+        IntStream.range(0, view.image.getHeight() * view.image.getWidth()).parallel().forEach(id->accept(id,old));
         view().update();
     }
 }

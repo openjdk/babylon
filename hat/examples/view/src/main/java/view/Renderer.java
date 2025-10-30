@@ -48,5 +48,5 @@ public interface Renderer {
     }
     DisplayMode displayMode();
     View view();
-    void render();
+    void render(boolean old);
 }
