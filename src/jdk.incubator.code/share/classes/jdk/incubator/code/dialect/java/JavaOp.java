@@ -200,13 +200,14 @@ public sealed abstract class JavaOp extends Op {
         final Body body;
         final boolean isQuotable;
 
-        static LambdaOp create(ExternalizedOp def) {
+        LambdaOp(ExternalizedOp def) {
             boolean isQuotable = def.extractAttributeValue(ATTRIBUTE_LAMBDA_IS_QUOTABLE,
                     false, v -> switch (v) {
                         case Boolean b -> b;
                         case null, default -> false;
                     });
-            return new LambdaOp(def.resultType(), def.bodyDefinitions().get(0), isQuotable);
+
+            this(def.resultType(), def.bodyDefinitions().get(0), isQuotable);
         }
 
         LambdaOp(LambdaOp that, CopyContext cc, OpTransformer ot) {
@@ -601,7 +602,7 @@ public sealed abstract class JavaOp extends Op {
         final MethodRef invokeDescriptor;
         final TypeElement resultType;
 
-        static InvokeOp create(ExternalizedOp def) {
+        InvokeOp(ExternalizedOp def) {
             // Required attribute
             MethodRef invokeDescriptor = def.extractAttributeValue(ATTRIBUTE_INVOKE_DESCRIPTOR,
                     true, v -> switch (v) {
@@ -637,7 +638,7 @@ public sealed abstract class JavaOp extends Op {
                     });
 
 
-            return new InvokeOp(ik, isVarArgs, def.resultType(), invokeDescriptor, def.operands());
+            this(ik, isVarArgs, def.resultType(), invokeDescriptor, def.operands());
         }
 
         InvokeOp(InvokeOp that, CopyContext cc) {
@@ -788,7 +789,7 @@ public sealed abstract class JavaOp extends Op {
         final ConstructorRef constructorDescriptor;
         final TypeElement resultType;
 
-        static NewOp create(ExternalizedOp def) {
+        NewOp(ExternalizedOp def) {
             // Required attribute
             ConstructorRef constructorDescriptor = def.extractAttributeValue(ATTRIBUTE_NEW_DESCRIPTOR,
                     true, v -> switch (v) {
@@ -804,7 +805,7 @@ public sealed abstract class JavaOp extends Op {
                         case null, default -> false;
                     });
 
-            return new NewOp(isVarArgs, def.resultType(), constructorDescriptor, def.operands());
+            this(isVarArgs, def.resultType(), constructorDescriptor, def.operands());
         }
 
         NewOp(NewOp that, CopyContext cc) {
@@ -909,7 +910,7 @@ public sealed abstract class JavaOp extends Op {
 
             final TypeElement resultType;
 
-            static FieldLoadOp create(ExternalizedOp def) {
+            FieldLoadOp(ExternalizedOp def) {
                 if (def.operands().size() > 1) {
                     throw new IllegalArgumentException("Operation must accept zero or one operand");
                 }
@@ -920,11 +921,10 @@ public sealed abstract class JavaOp extends Op {
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
-                if (def.operands().isEmpty()) {
-                    return new FieldLoadOp(def.resultType(), fieldDescriptor);
-                } else {
-                    return new FieldLoadOp(def.resultType(), fieldDescriptor, def.operands().get(0));
-                }
+
+                super(def.operands(), fieldDescriptor);
+
+                this.resultType = def.resultType();
             }
 
             FieldLoadOp(FieldLoadOp that, CopyContext cc) {
@@ -967,7 +967,7 @@ public sealed abstract class JavaOp extends Op {
                 implements JavaExpression, JavaStatement {
             static final String NAME = "field.store";
 
-            static FieldStoreOp create(ExternalizedOp def) {
+            FieldStoreOp(ExternalizedOp def) {
                 if (def.operands().isEmpty() || def.operands().size() > 2) {
                     throw new IllegalArgumentException("Operation must accept one or two operands");
                 }
@@ -978,11 +978,8 @@ public sealed abstract class JavaOp extends Op {
                             case null, default ->
                                     throw new UnsupportedOperationException("Unsupported field descriptor value:" + v);
                         });
-                if (def.operands().size() == 1) {
-                    return new FieldStoreOp(fieldDescriptor, def.operands().get(0));
-                } else {
-                    return new FieldStoreOp(fieldDescriptor, def.operands().get(0), def.operands().get(1));
-                }
+
+                super(def.operands(), fieldDescriptor);
             }
 
             FieldStoreOp(FieldStoreOp that, CopyContext cc) {
@@ -1156,7 +1153,7 @@ public sealed abstract class JavaOp extends Op {
 
         final TypeElement typeDescriptor;
 
-        static InstanceOfOp create(ExternalizedOp def) {
+        InstanceOfOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1166,7 +1163,8 @@ public sealed abstract class JavaOp extends Op {
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
-            return new InstanceOfOp(typeDescriptor, def.operands().get(0));
+
+            this(typeDescriptor, def.operands().get(0));
         }
 
         InstanceOfOp(InstanceOfOp that, CopyContext cc) {
@@ -1213,7 +1211,7 @@ public sealed abstract class JavaOp extends Op {
         final TypeElement resultType;
         final TypeElement typeDescriptor;
 
-        static CastOp create(ExternalizedOp def) {
+        CastOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
@@ -1223,7 +1221,8 @@ public sealed abstract class JavaOp extends Op {
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type descriptor value:" + v);
                     });
-            return new CastOp(def.resultType(), type, def.operands().get(0));
+
+            this(def.resultType(), type, def.operands().get(0));
         }
 
         CastOp(CastOp that, CopyContext cc) {
@@ -3129,10 +3128,6 @@ public sealed abstract class JavaOp extends Op {
         final Body update;
         final Body body;
 
-        static ForOp create(ExternalizedOp def) {
-            return new ForOp(def);
-        }
-
         ForOp(ExternalizedOp def) {
             this(def.bodyDefinitions().get(0),
                     def.bodyDefinitions().get(1),
@@ -3349,10 +3344,6 @@ public sealed abstract class JavaOp extends Op {
         final Body expression;
         final Body init;
         final Body body;
-
-        static EnhancedForOp create(ExternalizedOp def) {
-            return new EnhancedForOp(def);
-        }
 
         EnhancedForOp(ExternalizedOp def) {
             this(def.bodyDefinitions().get(0),
@@ -4136,10 +4127,6 @@ public sealed abstract class JavaOp extends Op {
         final List<Body> catchers;
         final Body finalizer;
 
-        static TryOp create(ExternalizedOp def) {
-            return new TryOp(def);
-        }
-
         TryOp(ExternalizedOp def) {
             List<Body.Builder> bodies = def.bodyDefinitions();
             Body.Builder first = bodies.getFirst();
@@ -4625,7 +4612,7 @@ public sealed abstract class JavaOp extends Op {
 
             final RecordTypeRef recordDescriptor;
 
-            static RecordPatternOp create(ExternalizedOp def) {
+            RecordPatternOp(ExternalizedOp def) {
                 RecordTypeRef recordDescriptor = def.extractAttributeValue(ATTRIBUTE_RECORD_DESCRIPTOR, true,
                         v -> switch (v) {
                             case RecordTypeRef rtd -> rtd;
@@ -4633,7 +4620,7 @@ public sealed abstract class JavaOp extends Op {
                                     throw new UnsupportedOperationException("Unsupported record type descriptor value:" + v);
                         });
 
-                return new RecordPatternOp(recordDescriptor, def.operands());
+                this(recordDescriptor, def.operands());
             }
 
             RecordPatternOp(RecordPatternOp that, CopyContext cc) {
@@ -4970,7 +4957,7 @@ public sealed abstract class JavaOp extends Op {
             case "array.store" -> new ArrayAccessOp.ArrayStoreOp(def);
             case "ashr" -> new AshrOp(def);
             case "assert" -> new AssertOp(def);
-            case "cast" -> CastOp.create(def);
+            case "cast" -> new CastOp(def);
             case "compl" -> new ComplOp(def);
             case "concat" -> new ConcatOp(def);
             case "conv" -> new ConvOp(def);
@@ -4978,12 +4965,12 @@ public sealed abstract class JavaOp extends Op {
             case "eq" -> new EqOp(def);
             case "exception.region.enter" -> new ExceptionRegionEnter(def);
             case "exception.region.exit" -> new ExceptionRegionExit(def);
-            case "field.load" -> FieldAccessOp.FieldLoadOp.create(def);
-            case "field.store" -> FieldAccessOp.FieldStoreOp.create(def);
+            case "field.load" -> new FieldAccessOp.FieldLoadOp(def);
+            case "field.store" -> new FieldAccessOp.FieldStoreOp(def);
             case "ge" -> new GeOp(def);
             case "gt" -> new GtOp(def);
-            case "instanceof" -> InstanceOfOp.create(def);
-            case "invoke" -> InvokeOp.create(def);
+            case "instanceof" -> new InstanceOfOp(def);
+            case "invoke" -> new InvokeOp(def);
             case "java.block" -> new BlockOp(def);
             case "java.break" -> new BreakOp(def);
             case "java.cand" -> new ConditionalAndOp(def);
@@ -4991,18 +4978,18 @@ public sealed abstract class JavaOp extends Op {
             case "java.continue" -> new ContinueOp(def);
             case "java.cor" -> new ConditionalOrOp(def);
             case "java.do.while" -> new DoWhileOp(def);
-            case "java.enhancedFor" -> EnhancedForOp.create(def);
-            case "java.for" -> ForOp.create(def);
+            case "java.enhancedFor" -> new EnhancedForOp(def);
+            case "java.for" -> new ForOp(def);
             case "java.if" -> new IfOp(def);
             case "java.labeled" -> new LabeledOp(def);
             case "java.switch.expression" -> new SwitchExpressionOp(def);
             case "java.switch.fallthrough" -> new SwitchFallthroughOp(def);
             case "java.switch.statement" -> new SwitchStatementOp(def);
             case "java.synchronized" -> new SynchronizedOp(def);
-            case "java.try" -> TryOp.create(def);
+            case "java.try" -> new TryOp(def);
             case "java.while" -> new WhileOp(def);
             case "java.yield" -> new YieldOp(def);
-            case "lambda" -> LambdaOp.create(def);
+            case "lambda" -> new LambdaOp(def);
             case "le" -> new LeOp(def);
             case "lshl" -> new LshlOp(def);
             case "lshr" -> new LshrOp(def);
@@ -5013,12 +5000,12 @@ public sealed abstract class JavaOp extends Op {
             case "mul" -> new MulOp(def);
             case "neg" -> new NegOp(def);
             case "neq" -> new NeqOp(def);
-            case "new" -> NewOp.create(def);
+            case "new" -> new NewOp(def);
             case "not" -> new NotOp(def);
             case "or" -> new OrOp(def);
             case "pattern.match" -> new PatternOps.MatchOp(def);
             case "pattern.match.all" -> new PatternOps.MatchAllPatternOp(def);
-            case "pattern.record" -> PatternOps.RecordPatternOp.create(def);
+            case "pattern.record" -> new PatternOps.RecordPatternOp(def);
             case "pattern.type" -> new PatternOps.TypePatternOp(def);
             case "sub" -> new SubOp(def);
             case "throw" -> new ThrowOp(def);
