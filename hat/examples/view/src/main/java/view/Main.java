@@ -46,7 +46,7 @@ public class Main {
         var args = new ArrayList<>(List.of(argArr));
         // args.add("COBRA");
         var eliteReader = new EliteMeshReader();
-        boolean old = false;
+        boolean old = true;
         var viewFrame = old ? ((args.size() > 0)
 
                 ? ViewFrameOld.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.WIRE), () -> eliteReader.load(args.getFirst()))
