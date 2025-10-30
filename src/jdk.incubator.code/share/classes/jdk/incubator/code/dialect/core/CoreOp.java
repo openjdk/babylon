@@ -111,6 +111,13 @@ public sealed abstract class CoreOp extends Op {
             this.body = that.body.transform(cc, ot).build(this);
         }
 
+        FuncOp(FuncOp that, String funcName, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            this.funcName = funcName;
+            this.body = that.body.transform(cc, ot).build(this);
+        }
+
         @Override
         public FuncOp transform(CopyContext cc, OpTransformer ot) {
             return new FuncOp(this, cc, ot);
@@ -118,13 +125,6 @@ public sealed abstract class CoreOp extends Op {
 
         public FuncOp transform(OpTransformer ot) {
             return new FuncOp(this, CopyContext.create(), ot);
-        }
-
-        FuncOp(FuncOp that, String funcName, CopyContext cc, OpTransformer ot) {
-            super(that, cc);
-
-            this.funcName = funcName;
-            this.body = that.body.transform(cc, ot).build(this);
         }
 
         public FuncOp transform(String funcName, OpTransformer ot) {
