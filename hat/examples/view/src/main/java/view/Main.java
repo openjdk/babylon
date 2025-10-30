@@ -45,9 +45,10 @@ public class Main {
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
        // args.add("COBRA");
+        EliteReader eliteReader = new EliteMeshReader();
         var viewFrame = (args.size() > 0 )
                 ? ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.WIRE), () ->
-                    EliteMeshReader.load(args.getFirst())
+                        eliteReader.load(args.getFirst())
                 )
                 : ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.FILL), () -> {
                      for (int x = -2; x < 6; x += 2) {

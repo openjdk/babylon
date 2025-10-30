@@ -22,10 +22,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
 package view;
 
-public interface  Physics {
-    float thetaDelta = 0.0002f;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 
+public class View32 {
+    final BufferedImage image;
+    int[] offscreenRgb;
 
+    private View32(int width, int height) {
+        image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        offscreenRgb = new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length];
+    }
+
+    static View32 of(int width, int height){
+        return new View32(width,height);
+    }
+
+    void paint(Graphics2D g) {
+        g.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), null);
+    }
+
+    void update() {
+        System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
+    }
 }
