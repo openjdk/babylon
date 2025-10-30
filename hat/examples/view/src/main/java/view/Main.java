@@ -44,24 +44,31 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-       // args.add("COBRA");
-        var viewFrame = (args.size() > 0 )
-                ? ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.WIRE), () ->
-                    EliteMeshReader.load(args.getFirst())
-                )
-                : ViewFrame.of("view", Rasterizer.of(View.of(1024, 1024), Renderer.DisplayMode.FILL), () -> {
-                     for (int x = -2; x < 6; x += 2) {
-                         for (int y = -2; y < 6; y += 2) {
-                             for (int z = -2; z < 6; z += 2) {
-                                 F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
-                             }
-                         }
-                     }
-                });
-
+        // args.add("COBRA");
+        var eliteReader = new EliteMeshReader();
+        boolean old =true;// Boolean.getBoolean("old");
+        var v = View.of(1024, 1024);
+        var wire = Rasterizer.of(v, Renderer.DisplayMode.WIRE);
+        var fill = Rasterizer.of(v, Renderer.DisplayMode.FILL);
+        Runnable cubeoctahedron =  () -> {
+            for (int x = -2; x < 6; x += 2) {
+                for (int y = -2; y < 6; y += 2) {
+                    for (int z = -2; z < 6; z += 2) {
+                        if (old) {
+                            F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
+                        }else{
+                            F32.Mesh.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
+                        }
+                    }
+                }
+            }
+        };
+        Runnable elite = old?()->eliteReader.loadOld(args.getFirst()): ()->eliteReader.loadNew(args.getFirst());
+        var viewFrame = old ?
+                (args.size() > 0 ? ViewFrameOld.of("view", wire, elite): ViewFrameOld.of("view", fill,cubeoctahedron))
+                : ((args.size() > 0) ? ViewFrameNew.of("view", wire,elite) : ViewFrameNew.of("view",fill, cubeoctahedron));
         while (true) {
             viewFrame.update();
         }
     }
-
 }
