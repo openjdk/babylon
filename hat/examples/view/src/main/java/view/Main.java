@@ -44,12 +44,11 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-        // args.add("COBRA");
+      //  args.add("COBRA");
         var eliteReader = new EliteMeshReader();
         boolean old =true;// Boolean.getBoolean("old");
-        var v = View.of(1024, 1024);
-        var wire = Rasterizer.of(v, Renderer.DisplayMode.WIRE);
-        var fill = Rasterizer.of(v, Renderer.DisplayMode.FILL);
+        var wire = Rasterizer.wireOf(1024, 1024);
+        var fill = Rasterizer.fillOf(1024, 1024);
         Runnable cubeoctahedron =  () -> {
             for (int x = -2; x < 6; x += 2) {
                 for (int y = -2; y < 6; y += 2) {
@@ -63,7 +62,7 @@ public class Main {
                 }
             }
         };
-        Runnable elite = old?()->eliteReader.loadOld(args.getFirst()): ()->eliteReader.loadNew(args.getFirst());
+        Runnable elite = ()->eliteReader.load(args.getFirst(), old);
         var viewFrame = old ?
                 (args.size() > 0 ? ViewFrameOld.of("view", wire, elite): ViewFrameOld.of("view", fill,cubeoctahedron))
                 : ((args.size() > 0) ? ViewFrameNew.of("view", wire,elite) : ViewFrameNew.of("view",fill, cubeoctahedron));

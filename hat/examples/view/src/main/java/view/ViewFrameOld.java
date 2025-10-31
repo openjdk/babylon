@@ -27,20 +27,11 @@ package view;
 
 import view.f32.F32Matrix4x4;
 import view.f32.F32Triangle3D;
+import view.f32.F32Vec2;
 import view.f32.F32Vec3;
 import view.f32.Pool;
-import view.f32.F32Vec2;
+import view.f32.ZPos;
 
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -56,23 +47,22 @@ public class ViewFrameOld extends ViewFrame {
     ModelHighWaterMark mark;
 
     private ViewFrameOld(String name, Renderer renderer, Runnable sceneBuilder) {
-        super(name,renderer,sceneBuilder);
-
-
+        super(name, renderer, sceneBuilder);
         cameraVec3 = F32Vec3.vec3.of(0f, 0f, .0f);
         lookDirVec3 = F32Vec3.vec3.of(0f, 0f, 0f);
-        F32Matrix4x4.Projection projF32Mat4x4_1 = F32Matrix4x4.Projection.of(renderer.view().image, 0.1f, 1000f, 60f);
-        Pool.Idx projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1.id(), F32Matrix4x4.Scale.of(renderer.view().image.getHeight() / 4f).id());
-        projF32Mat4x4 = F32Matrix4x4.Projection.of(F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.Transformation.of(renderer.view().image.getHeight() / 2f).id()));
-        centerVec3 = F32Vec3.vec3.of(renderer.view().image.getWidth() / 2f,  renderer.view().image.getHeight() / 2f, 0);
+        F32Matrix4x4.Projection projF32Mat4x4_1 = F32Matrix4x4.Projection.of(renderer.image(), 0.1f, 1000f, 60f);
+        Pool.Idx projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1.id(), F32Matrix4x4.Scale.of(renderer.width() / 4f).id());
+        projF32Mat4x4 = F32Matrix4x4.Projection.of(F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.Transformation.of(renderer.height() / 2f).id()));
+        centerVec3 = F32Vec3.vec3.of(renderer.width() / 2f, renderer.height() / 2f, 0);
         moveAwayVec3 = F32Vec3.vec3.of(0f, 0f, 30f);
         mark = new ModelHighWaterMark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
     }
 
-    public static ViewFrameOld of(String name, Renderer renderer, Runnable sceneBuilder){
-        return new ViewFrameOld(name, renderer,sceneBuilder);
+    public static ViewFrameOld of(String name, Renderer renderer, Runnable sceneBuilder) {
+        return new ViewFrameOld(name, renderer, sceneBuilder);
     }
-@Override
+
+    @Override
     void update() {
         final long elapsedMillis = System.currentTimeMillis() - startMillis;
         float theta = elapsedMillis * thetaDelta;

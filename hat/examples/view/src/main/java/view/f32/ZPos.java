@@ -23,13 +23,9 @@
  * questions.
  */
 
-package view;
+package view.f32;
 
-import view.f32.F32Triangle3D;
-import view.f32.F32Vec3;
-import view.f32.F32Triangle2D;
-
-class ZPos implements Comparable<ZPos> {
+public class ZPos implements Comparable<ZPos> {
     public enum ColourMode {NORMALIZED_COLOUR, NORMALIZED_INV_COLOUR, COLOUR, NORMALIZED_WHITE, NORMALIZED_INV_WHITE, WHITE}
     public static final ColourMode colourMode = ColourMode.COLOUR;
 
@@ -44,7 +40,7 @@ class ZPos implements Comparable<ZPos> {
         return Float.compare(z, zPos.z);
     }
 
-    ZPos(F32Triangle3D.tri t, float howVisible) {
+    public ZPos(F32Triangle3D.tri t, float howVisible) {
         F32Vec3.vec3 v0 = t.v0();
         F32Vec3.vec3 v1 = t.v1();
         F32Vec3.vec3 v2 = t.v2();
@@ -63,7 +59,7 @@ class ZPos implements Comparable<ZPos> {
     }
 
 
-    F32Triangle2D create() {
+    public F32Triangle2D create() {
         int r = ((rgb & 0xff0000) >> 16);
         int g = ((rgb & 0x00ff00) >> 8);
         int b = ((rgb & 0x0000ff) >> 0);

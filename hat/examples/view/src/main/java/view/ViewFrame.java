@@ -65,10 +65,10 @@ public abstract class ViewFrame extends JFrame {
         this.viewer = new JComponent() {
             @Override
             public void paintComponent(Graphics g) {
-                renderer.view().paint((Graphics2D) g);
+                renderer.paint((Graphics2D) g);
             }
         };
-        viewer.setPreferredSize(new Dimension(renderer.view().image.getWidth(), renderer.view().image.getHeight()));
+        viewer.setPreferredSize(new Dimension(renderer.width(), renderer.height()));
         viewer.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -86,9 +86,8 @@ public abstract class ViewFrame extends JFrame {
                 System.exit(0);
             }
         });
-
         sceneBuilder.run();
-          }
+    }
 
 
     static final float thetaDelta = 0.0002f;

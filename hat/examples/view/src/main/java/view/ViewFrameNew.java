@@ -61,10 +61,10 @@ public class ViewFrameNew extends ViewFrame {
 
         cameraVec3 = F32.Vec3.of(0f, 0f, .0f);
         lookDirVec3 = F32.Vec3.of(0f, 0f, 0f);
-        var projF32Mat4x4_1 = F32.Mat4x4.Projection.of(renderer.view().image, 0.1f, 1000f, 60f);
-        var projF32Mat4x4_2 = F32.Mat4x4.mul(projF32Mat4x4_1, F32.Mat4x4.Scale.of(renderer.view().image.getHeight() / 4f));
-        projF32Mat4x4 = F32.Mat4x4.mul(projF32Mat4x4_2, F32.Mat4x4.Transformation.of(renderer.view().image.getHeight() / 2f));
-        centerVec3 = F32.Vec3.of(renderer.view().image.getWidth() / 2f,  renderer.view().image.getHeight() / 2f, 0);
+        var projF32Mat4x4_1 = F32.Mat4x4.Projection.of(renderer.image(), 0.1f, 1000f, 60f);
+        var projF32Mat4x4_2 = F32.Mat4x4.mul(projF32Mat4x4_1, F32.Mat4x4.Scale.of(renderer.height() / 4f));
+        projF32Mat4x4 = F32.Mat4x4.mul(projF32Mat4x4_2, F32.Mat4x4.Transformation.of(renderer.height() / 2f));
+        centerVec3 = F32.Vec3.of(renderer.width() / 2f,  renderer.height() / 2f, 0);
         moveAwayVec3 = F32.Vec3.of(0f, 0f, 30f);
         mark = new F32.ModelHighWaterMark(); // mark all buffers.  transforms create new points so this allows us to garbage colect
     }

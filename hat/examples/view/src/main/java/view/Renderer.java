@@ -31,22 +31,35 @@
  */
 package view;
 
+import java.awt.Graphics2D;
+import java.awt.Image;
+
 public interface Renderer {
     enum DisplayMode {
-        FILL(false,true,false),
-        WIRE(true,false,false),
-        WIRE_SHOW_HIDDEN(true,false,true),
+        FILL(false, true, false),
+        WIRE(true, false, false),
+        WIRE_SHOW_HIDDEN(true, false, true),
         WIRE_AND_FILL(true, true, false);
         final public boolean wire;
         final public boolean filled;
         final public boolean showHidden;
-        DisplayMode(boolean wire, boolean filled, boolean showHidden){
-            this.wire=wire;
-            this.filled=filled;
-            this.showHidden =showHidden;
+
+        DisplayMode(boolean wire, boolean filled, boolean showHidden) {
+            this.wire = wire;
+            this.filled = filled;
+            this.showHidden = showHidden;
         }
     }
+
     DisplayMode displayMode();
-    View view();
+
     void render(boolean old);
+
+    void paint(Graphics2D g);
+
+    Image image();
+
+    int width();
+
+    int height();
 }

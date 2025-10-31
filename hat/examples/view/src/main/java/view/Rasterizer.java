@@ -34,20 +34,33 @@ package view;
 import view.f32.F32Triangle2D;
 import view.f32.F32Vec2;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.util.stream.IntStream;
 
-public record Rasterizer(View view, DisplayMode displayMode) implements Renderer {
-    static public Rasterizer of(View view, DisplayMode displayMode){
-        return new Rasterizer(view, displayMode);
+public record Rasterizer(int width, int height, BufferedImage image, int[] offscreenRgb,
+                         DisplayMode displayMode) implements Renderer {
+    static private Renderer of(int width, int height, DisplayMode displayMode) {
+        var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        return new Rasterizer(width, height, image, new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length], displayMode);
     }
 
-    private void accept(int gid, boolean old) {
-        int x = gid % view.image.getWidth();
-        int y = gid / view.image.getHeight();
+    static public Renderer wireOf(int width, int height) {
+        return of(width, height, DisplayMode.WIRE);
+    }
+
+    static public Renderer fillOf(int width, int height) {
+        return of(width, height, DisplayMode.FILL);
+    }
+
+    private void kernel(int gid, boolean old) {
+        int x = gid % width;
+        int y = gid / height;
         int col = 0x404040;
-        if (old){
+        if (old) {
             for (int t = 0; t < F32Triangle2D.pool.count; t++) {
-                int v0 =  F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V0];
+                int v0 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V0];
                 int v1 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V1];
                 int v2 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V2];
                 float x0 = F32Vec2.pool.entries[v0 * F32Vec2.pool.stride + F32Vec2.X];
@@ -62,7 +75,7 @@ public record Rasterizer(View view, DisplayMode displayMode) implements Renderer
                     col = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB];
                 }
             }
-        }else {
+        } else {
             for (F32.TriangleVec2 t : F32.TriangleVec2.arr) {
                 var v0 = t.v0();
                 var v1 = t.v1();
@@ -74,11 +87,19 @@ public record Rasterizer(View view, DisplayMode displayMode) implements Renderer
                 }
             }
         }
-        view.offscreenRgb[gid] = col;
+        offscreenRgb[gid] = col;
     }
-@Override
+
+    @Override
     public void render(boolean old) {
-        IntStream.range(0, view.image.getHeight() * view.image.getWidth()).parallel().forEach(id->accept(id,old));
-        view().update();
+        IntStream.range(0, width * height).parallel().forEach(id -> kernel(id, old));
+        System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
     }
+
+    @Override
+    public void paint(Graphics2D g) {
+        g.drawImage(image, 0, 0, width, height, null);
+    }
+
+
 }
