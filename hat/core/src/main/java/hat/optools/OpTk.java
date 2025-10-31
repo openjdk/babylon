@@ -32,6 +32,7 @@ import hat.dialect.HATF16DivOp;
 import hat.dialect.HATF16MulOp;
 import hat.dialect.HATF16SubOp;
 import hat.dialect.HATF16ToFloatConvOp;
+import hat.dialect.HATF16VarLoadOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATMemoryOp;
 import hat.dialect.HATThreadOp;
@@ -422,6 +423,7 @@ public class OpTk {
             case HATThreadOp o -> 0;
             case CoreOp.VarAccessOp.VarLoadOp o -> 0;
             case HATVectorSelectLoadOp o -> 0;      // same as VarLoadOp
+            case HATF16VarLoadOp o -> 0;
             case CoreOp.ConstantOp o -> 0;
             case JavaOp.LambdaOp o -> 0;
             case CoreOp.TupleOp o -> 0;

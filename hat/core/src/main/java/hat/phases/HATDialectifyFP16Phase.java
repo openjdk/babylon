@@ -281,14 +281,9 @@ public class HATDialectifyFP16Phase implements HATDialect {
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isMethod(invokeOp, "f16ToFloat") && invokeOp.resultType() == JavaType.FLOAT) {
-                            Set<Op.Result> uses = invokeOp.result().uses();
-                            for (Op.Result result : uses) {
-                                if (result.op() instanceof CoreOp.VarOp varOp) {
-                                    consumer.accept(varOp);
-                                    consumer.accept(invokeOp);
-                                }
-                            }
+                        if (isMethod(invokeOp, "f16ToFloat")
+                                && invokeOp.resultType() == JavaType.FLOAT) {
+                            consumer.accept(invokeOp);
                         }
                     }
                 }));
@@ -299,8 +294,6 @@ public class HATDialectifyFP16Phase implements HATDialect {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
                 createFloatFromF16(invokeOp, blockBuilder);
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                blockBuilder.op(varOp);
             }
             return blockBuilder;
         });

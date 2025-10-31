@@ -48,6 +48,19 @@ public interface F16 extends Buffer.Struct {
         };
     }
 
+    static F16 of(short value) {
+        return new F16() {
+            @Override
+            public short value() {
+                return value;
+            }
+
+            @Override
+            public void value(short value) {
+            }
+        };
+    }
+
     /**
      * Built-in that can be in HAT Kernel Java code to transform a float into a {@link F16} value.
      */
