@@ -112,6 +112,13 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (Tensor<T>) result;
     }
 
+    public record AttentionResult<T1, T2>(Tensor<T1> Y, Tensor<T1> present_key, Tensor<T2> present_value, Tensor<T1> qk_matmul_output) { }
+    public static <T1, T2, U> AttentionResult<T1, T2> Attention(Tensor<T1> Q, Tensor<T1> K, Tensor<T2> V, Optional<Tensor<U>> attn_mask, Optional<Tensor<T1>> past_key, Optional<Tensor<T2>> past_value, Optional<Tensor<Long>> nonpad_kv_seqlen, Optional<Long> qk_matmul_output_mode, Optional<Float> softcap, Optional<Long> softmax_precision, Optional<Float> scale, Optional<Long> is_causal, Optional<Long> q_num_heads, Optional<Long> kv_num_heads) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.Attention.class, List.of(Q, K, V, attn_mask, past_key, past_value, nonpad_kv_seqlen), List.of(qk_matmul_output_mode, softcap, softmax_precision, scale, is_causal, q_num_heads, kv_num_heads));
+        Object[] resultArray = (Object[]) result;
+        return new AttentionResult<>((Tensor<T1>)resultArray[0], (Tensor<T1>)resultArray[1], (Tensor<T2>)resultArray[2], (Tensor<T1>)resultArray[3]);
+    }
+
     public static <T> Tensor<T> AveragePool(Tensor<T> X, Optional<long[]> pads, Optional<long[]> dilations, Optional<String> auto_pad, Optional<Long> count_include_pad, Optional<Long> ceil_mode, Optional<long[]> strides, long[] kernel_shape) {
         Object result = OnnxInterpreter.interpret(OnnxOps.AveragePool.class, List.of(X), List.of(pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape));
         return (Tensor<T>) result;
@@ -164,13 +171,13 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (Tensor<T2>) result;
     }
 
-    public static <T1, T2> Tensor<T2> Cast(Tensor<T1> input, Optional<Long> saturate, long to) {
-        Object result = OnnxInterpreter.interpret(OnnxOps.Cast.class, List.of(input), List.of(saturate, to));
+    public static <T1, T2> Tensor<T2> Cast(Tensor<T1> input, Optional<Long> saturate, long to, Optional<String> round_mode) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.Cast.class, List.of(input), List.of(saturate, to, round_mode));
         return (Tensor<T2>) result;
     }
 
-    public static <T1, T2> Tensor<T2> CastLike(Tensor<T1> input, Tensor<T2> target_type, Optional<Long> saturate) {
-        Object result = OnnxInterpreter.interpret(OnnxOps.CastLike.class, List.of(input, target_type), List.of(saturate));
+    public static <T1, T2> Tensor<T2> CastLike(Tensor<T1> input, Tensor<T2> target_type, Optional<Long> saturate, Optional<String> round_mode) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.CastLike.class, List.of(input, target_type), List.of(saturate, round_mode));
         return (Tensor<T2>) result;
     }
 
@@ -279,9 +286,9 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (Tensor<T>) result;
     }
 
-    public static <T1, T2> Tensor<T2> DequantizeLinear(Tensor<T1> x, Tensor<T2> x_scale, Optional<Tensor<T1>> x_zero_point, Optional<Long> axis, Optional<Long> block_size) {
-        Object result = OnnxInterpreter.interpret(OnnxOps.DequantizeLinear.class, List.of(x, x_scale, x_zero_point), List.of(axis, block_size));
-        return (Tensor<T2>) result;
+    public static <T1, T2, T3> Tensor<T3> DequantizeLinear(Tensor<T1> x, Tensor<T2> x_scale, Optional<Tensor<T1>> x_zero_point, Optional<Long> output_dtype, Optional<Long> axis, Optional<Long> block_size) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.DequantizeLinear.class, List.of(x, x_scale, x_zero_point), List.of(output_dtype, axis, block_size));
+        return (Tensor<T3>) result;
     }
 
     public static <T> Tensor<T> Det(Tensor<T> X) {
@@ -723,9 +730,14 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (Tensor<T3>) result;
     }
 
-    public static <T1, T2> Tensor<T2> QuantizeLinear(Tensor<T1> x, Tensor<T1> y_scale, Optional<Tensor<T2>> y_zero_point, Optional<Long> output_dtype, Optional<Long> saturate, Optional<Long> axis, Optional<Long> block_size) {
-        Object result = OnnxInterpreter.interpret(OnnxOps.QuantizeLinear.class, List.of(x, y_scale, y_zero_point), List.of(output_dtype, saturate, axis, block_size));
-        return (Tensor<T2>) result;
+    public static <T1, T2, T3> Tensor<T3> QuantizeLinear(Tensor<T1> x, Tensor<T2> y_scale, Optional<Tensor<T3>> y_zero_point, Optional<Long> output_dtype, Optional<Long> saturate, Optional<Long> precision, Optional<Long> axis, Optional<Long> block_size) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.QuantizeLinear.class, List.of(x, y_scale, y_zero_point), List.of(output_dtype, saturate, precision, axis, block_size));
+        return (Tensor<T3>) result;
+    }
+
+    public static <T, V> Tensor<V> RMSNormalization(Tensor<T> X, Tensor<V> scale, Optional<Float> epsilon, Optional<Long> stash_type, Optional<Long> axis) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.RMSNormalization.class, List.of(X, scale), List.of(epsilon, stash_type, axis));
+        return (Tensor<V>) result;
     }
 
     public record RNNResult<T>(Tensor<T> Y, Tensor<T> Y_h) { }
@@ -843,6 +855,11 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     public static <T1> Tensor<T1> RoiAlign(Tensor<T1> X, Tensor<T1> rois, Tensor<Long> batch_indices, Optional<String> mode, Optional<Long> output_width, Optional<Float> spatial_scale, Optional<String> coordinate_transformation_mode, Optional<Long> sampling_ratio, Optional<Long> output_height) {
         Object result = OnnxInterpreter.interpret(OnnxOps.RoiAlign.class, List.of(X, rois, batch_indices), List.of(mode, output_width, spatial_scale, coordinate_transformation_mode, sampling_ratio, output_height));
         return (Tensor<T1>) result;
+    }
+
+    public static <T> Tensor<T> RotaryEmbedding(Tensor<T> X, Tensor<T> cos_cache, Tensor<T> sin_cache, Optional<Tensor<Long>> position_ids, Optional<Long> num_heads, Optional<Long> rotary_embedding_dim, Optional<Long> interleaved) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.RotaryEmbedding.class, List.of(X, cos_cache, sin_cache, position_ids), List.of(num_heads, rotary_embedding_dim, interleaved));
+        return (Tensor<T>) result;
     }
 
     public static <T> Tensor<T> Round(Tensor<T> X) {
@@ -1036,6 +1053,11 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (Tensor<T>) result;
     }
 
+    public static <T> Tensor<T> Swish(Tensor<T> X, Optional<Float> alpha) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.Swish.class, List.of(X), List.of(alpha));
+        return (Tensor<T>) result;
+    }
+
     public static <T> Tensor<T> Tan(Tensor<T> input) {
         Object result = OnnxInterpreter.interpret(OnnxOps.Tan.class, List.of(input), List.of());
         return (Tensor<T>) result;
@@ -1043,6 +1065,11 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
 
     public static <T> Tensor<T> Tanh(Tensor<T> input) {
         Object result = OnnxInterpreter.interpret(OnnxOps.Tanh.class, List.of(input), List.of());
+        return (Tensor<T>) result;
+    }
+
+    public static <T> Tensor<T> TensorScatter(Tensor<T> past_cache, Tensor<T> update, Optional<Tensor<Long>> write_indices, Optional<String> mode, Optional<Long> axis) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.TensorScatter.class, List.of(past_cache, update, write_indices), List.of(mode, axis));
         return (Tensor<T>) result;
     }
 

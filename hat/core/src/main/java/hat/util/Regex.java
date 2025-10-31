@@ -40,15 +40,12 @@ public record Regex(Pattern pattern) {
         default  String string(int idx) {
             return matcher().group(idx);
         }
-        static float hex2Float(String s) {
-            return (s.startsWith("-")) ?
-                    (-Integer.parseInt(s.substring(2), 16) / 64f): (Integer.parseInt(s.substring(1), 16) / 64f);
-        }
-        default float f(int idx) {
-            return hex2Float(string(idx));
+
+        default float asFloat(int idx) {
+            return Float.parseFloat(string(idx));
         }
 
-        default  int i(int idx) {
+        default  int asInt(int idx) {
             return Integer.parseInt(string(idx));
         }
     }
@@ -84,6 +81,9 @@ public record Regex(Pattern pattern) {
         } else {
             return FAIL.of();
         }
+    }
+    public Match is(String s, BiFunction<Regex,Matcher,OK> factory) {
+        return is(s, _->true,factory);
     }
     public Match is(String s, Predicate<Matcher> matcherPredicate) {
         return is(s, matcherPredicate,(r,m)->new DefaultOk(r,m, true));
