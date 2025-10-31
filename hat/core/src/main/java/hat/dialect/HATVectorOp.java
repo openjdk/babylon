@@ -25,22 +25,29 @@
 package hat.dialect;
 
 import jdk.incubator.code.CopyContext;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public abstract class HATVectorViewOp extends HATOp {
+public abstract class HATVectorOp extends HATOp {
 
     private String varName;
+    private final TypeElement typeElement;
+    private final int vectorN;
 
-    public HATVectorViewOp(String varName, List<Value> operands) {
+    public HATVectorOp(String varName, TypeElement typeElement, int vectorN, List<Value> operands) {
         super(operands);
         this.varName = varName;
+        this.typeElement = typeElement;
+        this.vectorN = vectorN;
     }
 
-    protected HATVectorViewOp(HATVectorViewOp that, CopyContext cc) {
+    protected HATVectorOp(HATVectorOp that, CopyContext cc) {
         super(that, cc);
         this.varName = that.varName;
+        this.typeElement = that.typeElement;
+        this.vectorN = that.vectorN;
     }
 
     public String varName() {
@@ -73,5 +80,17 @@ public abstract class HATVectorViewOp extends HATOp {
         public String type() {
             return type;
         }
+    }
+
+    public String buildType() {
+        // floatN
+        if (typeElement.toString().startsWith("hat.buffer.Float")) {
+            return "float" + vectorN;
+        }
+        throw new RuntimeException("Unexpected vector type " + typeElement);
+    }
+
+    public int vectorN() {
+        return vectorN;
     }
 }

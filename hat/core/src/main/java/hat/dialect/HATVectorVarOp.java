@@ -34,13 +34,13 @@ import jdk.incubator.code.dialect.core.VarType;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorVarOp extends HATVectorViewOp {
+public class HATVectorVarOp extends HATVectorOp {
 
     private final VarType typeElement;
     private final int loadN;
 
     public HATVectorVarOp(String varName, VarType typeElement, int loadN, List<Value> operands) {
-        super(varName, operands);
+        super(varName, typeElement, loadN, operands);
         this.typeElement = typeElement;
         this.loadN = loadN;
     }
@@ -66,6 +66,7 @@ public class HATVectorVarOp extends HATVectorViewOp {
         return Map.of("hat.dialect.vectorVarOp." + varName(), typeElement);
     }
 
+    @Override
     public String buildType() {
         // floatN
         if (typeElement.valueType().toString().startsWith("hat.buffer.Float")) {
@@ -73,5 +74,4 @@ public class HATVectorVarOp extends HATVectorViewOp {
         }
         throw new RuntimeException("Unexpected vector type " + typeElement);
     }
-
 }

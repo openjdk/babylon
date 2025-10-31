@@ -50,7 +50,8 @@ public interface Buffer extends MappableIface {
     default String getStateString(){
         return BufferState.of(this).getStateString();
     }
-  //  default boolean isDeviceDirty(){
+
+    //  default boolean isDeviceDirty(){
     //    return BufferState.of(this).isDeviceDirty();
    // }
    // default boolean isHostChecked(){

@@ -27,7 +27,7 @@ package hat.phases;
 import hat.Accelerator;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATVectorViewOp;
+import hat.dialect.HATVectorOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
@@ -85,7 +85,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findNameVector(varLoadOp);
         } else {
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorViewOp vectorViewOp) {
+            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp vectorViewOp) {
                 return vectorViewOp.varName();
             }
             return null;
@@ -141,7 +141,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
                     if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         List<Value> outputOperandsInvokeOp = context.getValues(inputInvokeOp);
                         int lane = getLane(invokeOp.invokeDescriptor().name());
-                        HATVectorViewOp vSelectOp;
+                        HATVectorOp vSelectOp;
                         String name = findNameVector(varLoadOp);
                         if (invokeOp.resultType() != JavaType.VOID) {
                             vSelectOp = new HATVectorSelectLoadOp(name, invokeOp.resultType(), lane, outputOperandsInvokeOp);
@@ -198,7 +198,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
                 if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                     List<Value> outputOperandsInvokeOp = context.getValues(inputInvokeOp);
                     int lane = getLane(invokeOp.invokeDescriptor().name());
-                    HATVectorViewOp vSelectOp;
+                    HATVectorOp vSelectOp;
                     String name = findNameVector(varLoadOp);
                     if (invokeOp.resultType() == JavaType.VOID) {
                         // The operand 1 in the store is the address (lane)

@@ -24,7 +24,12 @@
  */
 package hat.test;
 
-import hat.*;
+import hat.Accelerator;
+import hat.ComputeContext;
+import hat.ComputeRange;
+import hat.GlobalMesh1D;
+import hat.KernelContext;
+import hat.LocalMesh1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32ArrayPadded;
@@ -56,7 +61,7 @@ public class TestVectorTypes {
     public static void vectorOps02(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
+            Float4.MutableImpl vA = a.float4View(index * 4);
             float scaleX = vA.x() * 10.0f;
             vA.x(scaleX);
             b.storeFloat4View(vA, index * 4);
@@ -67,16 +72,22 @@ public class TestVectorTypes {
     public static void vectorOps03(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
+
+            // Obtain a view of the input data as a float4 and
+            // store that view in private memory
             Float4 vA = a.float4View(index * 4);
+
+            // operate with the float4
             float scaleX = vA.x() * 10.0f;
             float scaleY = vA.y() * 20.0f;
             float scaleZ = vA.z() * 30.0f;
             float scaleW = vA.w() * 40.0f;
-            vA.x(scaleX);
-            vA.y(scaleY);
-            vA.z(scaleZ);
-            vA.w(scaleW);
-            b.storeFloat4View(vA, index * 4);
+
+            // Create a float4 within the device code
+            Float4 vResult = Float4.of(scaleX, scaleY, scaleZ, scaleW);
+
+            // store the float4 from private memory to global memory
+            b.storeFloat4View(vResult, index * 4);
         }
     }
 
@@ -84,7 +95,7 @@ public class TestVectorTypes {
     public static void vectorOps04(@RO KernelContext kernelContext, @RO F32ArrayPadded a, @RW F32ArrayPadded b) {
         if (kernelContext.gix < kernelContext.gsx) {
             int index = kernelContext.gix;
-            Float4 vA = a.float4View(index * 4);
+            Float4.MutableImpl vA = a.float4View(index * 4);
             vA.x(vA.x() * 10.0f);
             vA.y(vA.y() * 20.0f);
             vA.z(vA.z() * 30.0f);
@@ -231,6 +242,17 @@ public class TestVectorTypes {
     }
 
     @CodeReflection
+    public static void vectorOps14(@RO KernelContext kernelContext, @RW F32ArrayPadded a) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            int index = kernelContext.gix;
+            Float4 vA = a.float4View(index * 4);
+            Float4.MutableImpl vB = Float4.makeMutable(vA);
+            vB.x(10.0f);
+            a.storeFloat4View(vB, index * 4);
+        }
+    }
+
+    @CodeReflection
     public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4), new LocalMesh1D(128));
@@ -313,6 +335,13 @@ public class TestVectorTypes {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
         cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void computeGraph14(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
+        // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
+        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps14(kernelContext, a));
     }
 
     @HatTest
@@ -569,4 +598,65 @@ public class TestVectorTypes {
             HatAsserts.assertEquals(arrayA.array(i), arrayB.array(i), 0.001f);
         }
     }
+
+    @HatTest
+    public void testVectorTypes13() {
+        // Test the CPU implementation of Float4
+        Float4 vA = Float4.of(1, 2, 3, 4);
+        Float4 vB = Float4.of(4, 3, 2, 1);
+        Float4 vC = Float4.add(vA, vB);
+        Float4 expectedSum = Float4.of(vA.x() + vB.x(),
+                vA.y() + vB.y(),
+                vA.z() + vB.z(),
+                vA.w() + vB.w()
+                );
+        HatAsserts.assertEquals(expectedSum, vC, 0.001f);
+
+        Float4 vD = Float4.sub(vA, vB);
+        Float4 expectedSub = Float4.of(
+                vA.x() - vB.x(),
+                vA.y() - vB.y(),
+                vA.z() - vB.z(),
+                vA.w() - vB.w()
+        );
+        HatAsserts.assertEquals(expectedSub, vD, 0.001f);
+
+        Float4 vE = Float4.mul(vA, vB);
+        Float4 expectedMul = Float4.of(
+                vA.x() * vB.x(),
+                vA.y() * vB.y(),
+                vA.z() * vB.z(),
+                vA.w() * vB.w()
+        );
+        HatAsserts.assertEquals(expectedMul, vE, 0.001f);
+
+        Float4 vF = Float4.div(vA, vB);
+        Float4 expectedDiv = Float4.of(
+                vA.x() / vB.x(),
+                vA.y() / vB.y(),
+                vA.z() / vB.z(),
+                vA.w() / vB.w()
+        );
+        HatAsserts.assertEquals(expectedDiv, vF, 0.001f);
+    }
+
+    @HatTest
+    public void testVectorTypes14() {
+        final int size = 1024;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        var arrayA = F32ArrayPadded.create(accelerator, size);
+
+        Random r = new Random(73);
+        for (int i = 0; i < size; i++) {
+            arrayA.array(i, r.nextFloat());
+        }
+
+        accelerator.compute(cc -> TestVectorTypes.computeGraph14(cc, arrayA, size));
+
+        for (int i = 0; i < size; i += 4) {
+            HatAsserts.assertEquals(10.0f, arrayA.array(i), 0.001f);
+        }
+    }
+
 }
+

@@ -33,40 +33,36 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorSelectLoadOp extends HATVectorOp {
+public class HATVectorMakeOfOp extends HATVectorOp {
 
-    private final TypeElement elementType;
-    private final int lane;
+    private final TypeElement typeElement;
+    private final int loadN;
 
-    public HATVectorSelectLoadOp(String varName, TypeElement typeElement, int lane, List<Value> operands) {
-        super(varName, typeElement, -1, operands);
-        this.elementType = typeElement;
-        this.lane = lane;
+    public HATVectorMakeOfOp(String varName, TypeElement typeElement, int loadN, List<Value> operands) {
+        super(varName, typeElement, loadN, operands);
+        this.typeElement = typeElement;
+        this.loadN = loadN;
     }
 
-    public HATVectorSelectLoadOp(HATVectorSelectLoadOp that, CopyContext cc) {
-        super(that, cc);
-        this.elementType = that.elementType;
-        this.lane = that.lane;
+    public HATVectorMakeOfOp(HATVectorMakeOfOp op, CopyContext copyContext) {
+        super(op, copyContext);
+        this.typeElement = op.typeElement;
+        this.loadN = op.loadN;
     }
 
     @Override
     public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HATVectorSelectLoadOp(this, copyContext);
+        return new HATVectorMakeOfOp(this, copyContext);
     }
 
     @Override
     public TypeElement resultType() {
-        return elementType;
+        return typeElement;
     }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vselect." + lane, elementType);
-    }
-
-    public String mapLane() {
-        return super.mapLane(lane);
+        return Map.of("hat.dialect.makeOf." + varName(), typeElement);
     }
 
 }

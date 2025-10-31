@@ -28,10 +28,11 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorOfOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
 import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorVarOp;
 import jdk.incubator.code.Op;
@@ -248,6 +249,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (operand instanceof Op.Result r) {
             recurse(buildContext, r.op());
         }
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
+        identifier("make_" + hatVectorOfOp.buildType()).oparen();
         return self();
     }
 }

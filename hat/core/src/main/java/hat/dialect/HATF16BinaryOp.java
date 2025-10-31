@@ -25,8 +25,6 @@
 package hat.dialect;
 
 import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 

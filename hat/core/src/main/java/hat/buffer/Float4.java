@@ -24,8 +24,10 @@
  */
 package hat.buffer;
 
-import hat.Accelerator;
-import hat.ifacemapper.Schema;
+import jdk.incubator.code.CodeReflection;
+
+import java.util.function.BiFunction;
+import java.util.stream.IntStream;
 
 public interface Float4 extends HatVector {
 
@@ -33,50 +35,76 @@ public interface Float4 extends HatVector {
     float y();
     float z();
     float w();
-    void x(float x);
-    void y(float y);
-    void z(float z);
-    void w(float w);
 
-    Schema<Float4> schema = Schema.of(Float4.class,
-            float4->float4.fields("x","y","z","w"));
+    record MutableImpl(float x, float y, float z, float w) implements Float4 {
+        public void x(float x) {}
+        public void y(float y) {}
+        public void z(float z) {}
+        public void w(float w) {}
+    }
 
-    static Float4 create(Accelerator accelerator) {
-        return schema.allocate(accelerator, 1);
+    record ImmutableImpl(float x, float y, float z, float w) implements Float4 {
+    }
+
+    /**
+     * Make a Mutable implementation (for the device side - e.g., the GPU) from an immutable implementation.
+     *
+     * @param float4
+     * @return {@link Float4.MutableImpl}
+     */
+    static Float4.MutableImpl makeMutable(Float4 float4) {
+        return new MutableImpl(float4.x(), float4.y(), float4.z(), float4.w());
+    }
+
+    static Float4 of(float x, float y, float z, float w) {
+        return new ImmutableImpl(x, y, z, w);
+    }
+
+    // Not implemented for the GPU yet
+    default Float4 lanewise(Float4 other, BiFunction<Float, Float, Float> f) {
+        float[] backA = this.toArray();
+        float[] backB = other.toArray();
+        float[] backC = new float[backA.length];
+        IntStream.range(0, backA.length).forEach(j -> {
+            backC[j] = f.apply(backA[j], backB[j]);
+        });
+        return of(backC[0], backC[1], backC[2], backC[3]);
     }
 
     static Float4 add(Float4 vA, Float4 vB) {
-        return null;
+        return vA.lanewise(vB, Float::sum);
     }
 
     static Float4 sub(Float4 vA, Float4 vB) {
-        return null;
+        return vA.lanewise(vB, (a, b) -> a - b);
     }
 
     static Float4 mul(Float4 vA, Float4 vB) {
-        return null;
+        return vA.lanewise(vB, (a, b) -> a * b);
     }
 
     static Float4 div(Float4 vA, Float4 vB) {
-        return null;
+        return vA.lanewise(vB, (a, b) -> a / b);
     }
 
     default Float4 add(Float4 vb) {
-        return null;
+        return Float4.add(this, vb);
     }
 
     default Float4 sub(Float4 vb) {
-        return null;
+        return Float4.sub(this, vb);
     }
 
     default Float4 mul(Float4 vb) {
-        return null;
+        return Float4.mul(this, vb);
     }
 
     default Float4 div(Float4 vb) {
-        return null;
+        return Float4.div(this, vb);
     }
 
+    // Not implemented for the GPU yet
+    @CodeReflection
     default float[] toArray() {
         return new float[] { x(), y(), z(), w() };
     }

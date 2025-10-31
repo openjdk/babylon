@@ -33,7 +33,7 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorLoadOp extends HATVectorViewOp {
+public class HATVectorLoadOp extends HATVectorOp {
 
     private final TypeElement typeElement;
     private final TypeElement vectorType;
@@ -41,7 +41,7 @@ public class HATVectorLoadOp extends HATVectorViewOp {
     private final boolean isSharedOrPrivate;
 
     public HATVectorLoadOp(String varName, TypeElement typeElement, TypeElement vectorType, int loadN, boolean isShared, List<Value> operands) {
-        super(varName, operands);
+        super(varName, typeElement, loadN, operands);
         this.typeElement = typeElement;
         this.loadN = loadN;
         this.vectorType = vectorType;
@@ -71,12 +71,8 @@ public class HATVectorLoadOp extends HATVectorViewOp {
         return Map.of("hat.dialect.vectorLoadView." + varName(), typeElement);
     }
 
-    public TypeElement vectorType() {
-        return vectorType;
-    }
-
-    public int loadN() {
-        return loadN;
+    public boolean isSharedOrPrivate() {
+        return this.isSharedOrPrivate;
     }
 
     public String buildType() {
@@ -85,9 +81,5 @@ public class HATVectorLoadOp extends HATVectorViewOp {
             return "float" + loadN;
         }
         throw new RuntimeException("Unexpected vector type " + vectorType);
-    }
-
-    public boolean isSharedOrPrivate() {
-        return this.isSharedOrPrivate;
     }
 }

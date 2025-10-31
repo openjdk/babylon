@@ -33,7 +33,7 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public final class HATVectorStoreView extends HATVectorViewOp {
+public final class HATVectorStoreView extends HATVectorOp {
 
     private final TypeElement elementType;
     private final int storeN;
@@ -41,7 +41,7 @@ public final class HATVectorStoreView extends HATVectorViewOp {
     private final VectorType vectorType;
 
     public HATVectorStoreView(String varName, TypeElement elementType, int storeN, VectorType vectorType, boolean isSharedOrPrivate, List<Value> operands) {
-        super(varName, operands);
+        super(varName, elementType, storeN, operands);
         this.elementType = elementType;
         this.storeN = storeN;
         this.isSharedOrPrivate = isSharedOrPrivate;
@@ -71,15 +71,13 @@ public final class HATVectorStoreView extends HATVectorViewOp {
         return Map.of("hat.dialect.floatNStoreView." + varName(), elementType);
     }
 
-    public int storeN() {
-        return storeN;
-    }
-
     public boolean isSharedOrPrivate() {
         return this.isSharedOrPrivate;
     }
 
+    @Override
     public String buildType() {
+        // floatN
         return vectorType.type();
     }
 }
