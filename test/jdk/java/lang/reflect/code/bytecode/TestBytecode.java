@@ -553,6 +553,11 @@ public class TestBytecode {
         return piece * piece;
     }
 
+    @CodeReflection
+    static String functionLambda(String s) {
+        return ((Function<String, String>)e -> e.substring(1)).apply(s);
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {

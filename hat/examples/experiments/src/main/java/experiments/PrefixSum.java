@@ -355,7 +355,7 @@ public class PrefixSum {
         cc.dispatchKernel(GROUP_SIZE, kc -> sumKernel(kc, data));
       //  results.add(view(data));
         results.add(view(seq));
-        boolean brokenBytecodeGen = true;
+        boolean brokenBytecodeGen = false;
         if (brokenBytecodeGen){
             for (var r:results){
                 System.out.println(r.substring(0, 120));

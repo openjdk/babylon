@@ -507,6 +507,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
         return typeName("short");
     }
 
+    public final T halfType() {
+        return typeName("half");
+    }
 
     @Override
     public final T comment(String text) {
@@ -531,6 +534,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>> extends TextBuilder<
     public final T symbol(String text) {
         return emitText(text);
     }
+
     @Override
     public final T typeName(String text) {
         return emitText(text);

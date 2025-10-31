@@ -63,13 +63,18 @@ public interface F32ArrayPadded extends Buffer {
         return null;
     }
 
-    // This is an intrinsic for HAT to create views. It does not execute code
-    // on the host side, at least for now.
-    default Float4 float4View(int index) {
-        return null;
+    default Float4.MutableImpl float4View(int index) {
+//        MemorySegment memorySegment = Buffer.getMemorySegment(this);
+//        float f1 = memorySegment.get(JAVA_FLOAT, ARRAY_OFFSET + index + 0);
+//        float f2 = memorySegment.get(JAVA_FLOAT, ARRAY_OFFSET + index + 1);
+//        float f3 = memorySegment.get(JAVA_FLOAT, ARRAY_OFFSET + index + 2);
+//        float f4 = memorySegment.get(JAVA_FLOAT, ARRAY_OFFSET + index + 3);
+//        return Float4.makeMutable(Float4.of(f1, f2, f3, f4));
+        return  null;
     }
 
-    // This is an intrinsic for HAT to store views. It does not execute code
-    default void storeFloat4View(Float4 v, int index) {}
+    default void storeFloat4View(Float4 v, int index) {
+//        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, v.toArray(), index, 4);
+    }
 
 }
