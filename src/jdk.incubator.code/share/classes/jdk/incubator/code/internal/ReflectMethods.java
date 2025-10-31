@@ -136,6 +136,7 @@ public class ReflectMethods extends TreeTranslator {
     private final TypeEnvs typeEnvs;
     private final Flow flow;
     private final CodeReflectionSymbols crSyms;
+    private final CodeModelSymbols cmSyms;
     private final boolean dumpIR;
     private final boolean lineDebugInfo;
     private final CodeModelStorageOption codeModelStorageOption;
@@ -164,6 +165,7 @@ public class ReflectMethods extends TreeTranslator {
         typeEnvs = TypeEnvs.instance(context);
         flow = Flow.instance(context);
         crSyms = new CodeReflectionSymbols(context);
+        cmSyms = new CodeModelSymbols(context);
     }
 
     @Override
@@ -360,11 +362,12 @@ public class ReflectMethods extends TreeTranslator {
     // @@@ Retain enum for when we might add another storage to test
     // and compare
     private enum CodeModelStorageOption {
-        CODE_BUILDER;
+        CODE_BUILDER,
+        CODE_MODEL_ATTRIBUTE;
 
         public static CodeModelStorageOption parse(String s) {
             if (s == null) {
-                return CodeModelStorageOption.CODE_BUILDER;
+                return CodeModelStorageOption.CODE_MODEL_ATTRIBUTE;
             }
             return CodeModelStorageOption.valueOf(s);
         }
@@ -377,15 +380,25 @@ public class ReflectMethods extends TreeTranslator {
         var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
         currentClassSym.members().enter(ms);
 
-        // Create the method body
-        // Code model is stored as code that builds the code model
-        // using the builder API and public APIs
-        var opBuilder = OpBuilder.createBuilderFunction(op,
-                b -> b.op(JavaOp.fieldLoad(
-                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-        var codeModelTranslator = new CodeModelTranslator();
-        var body = codeModelTranslator.translateFuncOp(opBuilder, ms);
-
+        var body = switch (codeModelStorageOption) {
+            case CODE_BUILDER -> {
+                // Create the method body
+                // Code model is stored as code that builds the code model
+                // using the builder API and public APIs
+                var opBuilder = OpBuilder.createBuilderFunction(op,
+                        b -> b.op(JavaOp.fieldLoad(
+                                FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
+                var codeModelTranslator = new CodeModelTranslator();
+                yield codeModelTranslator.translateFuncOp(opBuilder, ms);
+            }
+            case CODE_MODEL_ATTRIBUTE -> {
+                // create code model annotation
+                ms.appendAttributes(com.sun.tools.javac.util.List.of(cmSyms.toCodeModelAttribute(op)));
+                // create method building the model from annotation
+                // return OpParser.fromCallerAnnotation();
+                yield make.Return(make.App(make.Ident(cmSyms.fromCallerAnnotation)));
+            }
+        };
         var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
         return md;
     }

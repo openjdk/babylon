@@ -31,6 +31,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.internal.CodeModel;
 import jdk.incubator.code.extern.impl.Tokens.TokenKind;
 import jdk.incubator.code.extern.impl.DescParser;
 import jdk.incubator.code.extern.impl.Lexer;
@@ -44,6 +45,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * A parser of serialized code models from their textual form.
@@ -164,6 +167,93 @@ public final class OpParser {
     }
 
     /**
+     * Parse a code model from its serialized annotation form obtained from the caller method.
+     *
+     * @return the function operation
+     * @throws IllegalArgumentException if parsing fails
+     */
+    public static Op fromCallerAnnotation() {
+        var st = Thread.currentThread().getStackTrace();
+        if (st.length > 2) {
+            var ste = st[2];
+            try {
+                var cm = Class.forName(ste.getClassName())
+                        .getDeclaredMethod(ste.getMethodName())
+                        .getAnnotation(CodeModel.class);
+                if (cm != null) {
+                    DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
+                    Context c = new Context(f.opFactory(), f.typeElementFactory());
+                    OpNode n = new CodeModelParser(cm.bodies()).parseOpNode(cm.funcOp());
+                    Op op = nodeToOp(n, VOID, c, null);
+                    op.seal();
+                    return op;
+                }
+            } catch (ReflectiveOperationException  ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+        return null;
+    }
+
+    static final class CodeModelParser {
+
+        final CodeModel.Body[] allBodies;
+        int valueIndex, blockIndex;
+
+        public CodeModelParser(CodeModel.Body[] allBodies) {
+            this.allBodies = allBodies;
+            valueIndex = -1;
+            blockIndex = -1;
+        }
+
+        OpNode parseOpNode(CodeModel.Op op) {
+            Map<String, Object> attrMap = new HashMap<>();
+            String[] attributes = op.attributes();
+            if (!op.defaultAttribute().isEmpty()) {
+                attrMap.put("", parseAttributeValue(op.defaultAttribute()));
+            }
+            var loc = op.location();
+            if (loc.length == 2) {
+                attrMap.put("loc", new Location(op.sourceRef().isEmpty() ? null : op.sourceRef(), loc[0], loc[1]));
+            }
+            for (int i = 0; i < attributes.length; i+=2) {
+                attrMap.put(attributes[i], parseAttributeValue(attributes[i + 1]));
+            }
+            return new OpNode(
+                    op.resultType().isEmpty() ? null : new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(op.resultType())),
+                    op.name(),
+                    toStrings(op.operands()),
+                    Stream.of(op.successors()).map(br -> new SuccessorNode(String.valueOf(br.block()), toStrings(br.arguments()))).toList(),
+                    attrMap,
+                    IntStream.of(op.bodyDefinitions()).mapToObj(bi -> parseBodyNode(bi)).toList());
+        }
+
+        BodyNode parseBodyNode(int bodyIndex) {
+            CodeModel.Body body = allBodies[bodyIndex];
+            return new BodyNode(
+                    parseExTypeElem(body.yieldType()),
+                    Stream.of(body.blocks()).map(bl -> new BlockNode(
+                            String.valueOf(++blockIndex),
+                            Stream.of(bl.paramTypes()).map(pt -> new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(pt))).toList(),
+                            Stream.of(bl.ops()).map(this::parseOpNode).toList())).toList());
+        }
+    }
+
+    static List<String> toStrings(int[] indexes) {
+        return IntStream.of(indexes).mapToObj(String::valueOf).toList();
+    }
+
+    static ExternalizedTypeElement parseExTypeElem(String desc) {
+        return JavaTypeUtils.inflate(DescParser.parseExTypeElem(desc));
+    }
+
+    static Object parseAttributeValue(String value) {
+        Scanner sc = Scanner.factory().newScanner(value);
+        sc.nextToken();
+        return new OpParser(sc).parseAttributeValue();
+    }
+
+    /**
      * Parse a Java code model, modeling a method body or quoted lambda body, from
      * its serialized textual form obtained from an input string.
      * <p>
@@ -194,7 +284,6 @@ public final class OpParser {
         Context c = new Context(opFactory, typeFactory);
         return opNodes.stream().map(n -> nodeToOp(n, VOID, c, null)).toList();
     }
-
 
     static final class Context {
         final Context parent;
