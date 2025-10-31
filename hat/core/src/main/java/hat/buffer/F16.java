@@ -32,7 +32,6 @@ public interface F16 extends Buffer.Struct {
     short value();
     void value(short value);
 
-
     /**
      * Intrinsic for the HAT compiler to create a new half.
      */

@@ -643,14 +643,12 @@ public class Main {
 
             // A) Load data into shared memory for array A
             for (int loadOffset = 0; loadOffset < BM; loadOffset += strideA) {
-                F16 valA = matrixA.array(((innerRowA + loadOffset) * size + innerColA) + aFrom);
-                tileA.array((innerRowA + loadOffset) * BK + innerColA, valA.value());
+                tileA.array((innerRowA + loadOffset) * BK + innerColA, matrixA.array(((innerRowA + loadOffset) * size + innerColA) + aFrom).value());
             }
 
             // B) Load data matrixB into shared memory for array B
             for (int loadOffset = 0; loadOffset < BK; loadOffset += strideB) {
-                F16 valB = matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom);
-                tileB.array((innerRowB + loadOffset) * BN + innerColB, valB.value());
+                tileB.array((innerRowB + loadOffset) * BN + innerColB, matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom).value());
             }
             kc.barrier();
 
@@ -686,8 +684,7 @@ public class Main {
         for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
             for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
                 F16 sum = F16.of(threadResults.array(resIdxM * TN + resIdxN));
-                F16 resultC = matrixC.array((((threadRow * TM + resIdxM) * size + threadCol * TN + resIdxN) + (cFrom)));
-                resultC.value(sum.value());
+                matrixC.array((((threadRow * TM + resIdxM) * size + threadCol * TN + resIdxN) + (cFrom))).value(sum.value());
 
             }
         }
@@ -996,7 +993,7 @@ public class Main {
                         if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
                             gotValue = matrixCPad.array(i * size + j);
                         } else if (configuration == Configuration._2DREGISTER_TILING_FP16) {
-                            gotValue = F16.f16ToFloat(matrixCHalf.array(i * size + j));
+                            gotValue = Float.float16ToFloat(matrixCHalf.array(i * size + j).value());
                         } else {
                             gotValue = matrixC.array(i * size + j);
                         }
