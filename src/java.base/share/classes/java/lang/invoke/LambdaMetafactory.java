@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.lang.reflect.Array;
 import java.util.Objects;
 
+import jdk.internal.misc.VM;
 import jdk.internal.vm.annotation.AOTSafeClassInitializer;
 
 /**
@@ -345,6 +346,11 @@ public final class LambdaMetafactory {
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
         AbstractValidatingLambdaMetafactory mf;
+        MethodHandle quotableOpGetter = null;
+        if (isQuotable(factoryType.returnType())) {
+            // Getter that returns the op of a Quotable instance
+            quotableOpGetter = findQuotableOpGetter(caller, implementation);
+        }
         mf = new InnerClassLambdaMetafactory(Objects.requireNonNull(caller),
                                              Objects.requireNonNull(factoryType),
                                              Objects.requireNonNull(interfaceMethodName),
@@ -354,7 +360,7 @@ public final class LambdaMetafactory {
                                              false,
                                              EMPTY_CLASS_ARRAY,
                                              EMPTY_MT_ARRAY,
-                                 null);
+                                             quotableOpGetter);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
     }
@@ -502,8 +508,7 @@ public final class LambdaMetafactory {
         int flags = extractArg(args, argIndex++, Integer.class);
         Class<?>[] altInterfaces = EMPTY_CLASS_ARRAY;
         MethodType[] altMethods = EMPTY_MT_ARRAY;
-        // Getter that returns the op of a Quotable instance
-        MethodHandle quotableOpGetter = null;
+        boolean isQuotable = isQuotable(factoryType.returnType());
         if ((flags & FLAG_MARKERS) != 0) {
             int altInterfaceCount = extractArg(args, argIndex++, Integer.class);
             if (altInterfaceCount < 0) {
@@ -512,13 +517,19 @@ public final class LambdaMetafactory {
             if (altInterfaceCount > 0) {
                 altInterfaces = extractArgs(args, argIndex, Class.class, altInterfaceCount);
                 for (Class<?> altInterface : altInterfaces) {
-                    if (altInterface.equals(CodeReflectionSupport.QUOTABLE_CLASS)) {
-                        quotableOpGetter = findQuotableOpGetter(caller, implementation);
+                    if (isQuotable(altInterface)) {
+                        isQuotable = true;
                     }
                 }
                 argIndex += altInterfaceCount;
             }
         }
+        MethodHandle quotableOpGetter = null;
+        if (isQuotable) {
+            // Getter that returns the op of a Quotable instance
+            quotableOpGetter = findQuotableOpGetter(caller, implementation);
+        }
+
         if ((flags & FLAG_BRIDGES) != 0) {
             int altMethodCount = extractArg(args, argIndex++, Integer.class);
             if (altMethodCount < 0) {
@@ -557,6 +568,12 @@ public final class LambdaMetafactory {
                                                   quotableOpGetter);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
+    }
+
+    private static boolean isQuotable(Class<?> clazz) {
+        return VM.isModuleSystemInited() &&
+                !clazz.getModule().equals(LambdaMetafactory.class.getModule()) &&
+                CodeReflectionSupport.QUOTABLE_CLASS.isAssignableFrom(clazz);
     }
 
     private static MethodHandle findQuotableOpGetter(MethodHandles.Lookup lookup, MethodHandle impl) {

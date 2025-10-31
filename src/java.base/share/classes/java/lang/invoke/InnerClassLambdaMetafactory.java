@@ -27,6 +27,7 @@ package java.lang.invoke;
 
 import jdk.internal.constant.ClassOrInterfaceDescImpl;
 import jdk.internal.misc.CDS;
+import jdk.internal.misc.VM;
 import jdk.internal.util.ClassFileDumper;
 import sun.invoke.util.VerifyAccess;
 
