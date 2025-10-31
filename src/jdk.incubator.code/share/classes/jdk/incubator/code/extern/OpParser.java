@@ -198,12 +198,24 @@ public final class OpParser {
         }
 
         OpNode parseOpNode(CodeModel.Op op) {
+            Map<String, Object> attrMap = new HashMap<>();
+            String[] attributes = op.attributes();
+            if (!op.defaultAttribute().isEmpty()) {
+                attrMap.put("", parseAttributeValue(op.defaultAttribute()));
+            }
+            var loc = op.location();
+            if (loc.length == 2) {
+                attrMap.put("loc", new Location(op.sourceRef().isEmpty() ? null : op.sourceRef(), loc[0], loc[1]));
+            }
+            for (int i = 0; i < attributes.length; i+=2) {
+                attrMap.put(attributes[i], parseAttributeValue(attributes[i + 1]));
+            }
             return new OpNode(
                     op.resultType().isEmpty() ? null : new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(op.resultType())),
                     op.name(),
                     toStrings(op.operands()),
                     Stream.of(op.successors()).map(br -> new SuccessorNode(String.valueOf(br.block()), toStrings(br.arguments()))).toList(),
-                    Stream.of(op.attributes()).gather(Gatherers.windowFixed(2)).collect(Collectors.toMap(List::getFirst, l -> parseAttributeValue(l.get(1)))),
+                    attrMap,
                     IntStream.of(op.bodyDefinitions()).mapToObj(bi -> parseBodyNode(bi)).toList());
         }
 

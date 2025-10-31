@@ -38,9 +38,12 @@ public @interface CodeModel {
 
     @interface Op {
         String name();
-        int[] operands();
+        int[] operands() default {};
         BlockReference[] successors() default {};
         String resultType() default "";
+        String defaultAttribute() default "";
+        String sourceRef() default "";
+        int[] location() default {};
         String[] attributes() default {};
         int[] bodyDefinitions() default {};
     }
@@ -51,12 +54,12 @@ public @interface CodeModel {
     }
 
     @interface Block {
-        String[] paramTypes();
+        String[] paramTypes() default {};
         Op[] ops();
     }
 
     @interface BlockReference {
         int block();
-        int[] arguments();
+        int[] arguments() default {};
     }
 }
