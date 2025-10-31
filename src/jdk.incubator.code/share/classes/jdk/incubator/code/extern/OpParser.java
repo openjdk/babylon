@@ -44,6 +44,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * A parser of serialized code models from their textual form.
@@ -164,6 +166,46 @@ public final class OpParser {
     }
 
     /**
+     * Parse a code model from its serialized annotation form.
+     *
+     * @param cm the input code model annotation
+     * @return the function operation
+     * @throws IllegalArgumentException if parsing fails
+     */
+    public static CoreOp.FuncOp fromJavaCodeModelAnnotation(CodeModel cm) {
+        DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
+        Context c = new Context(f.opFactory(), f.typeElementFactory());
+        OpNode n = parseOpNode(-1, cm.funcOp(), cm.bodies());
+        Op op = nodeToOp(n, VOID, c, null);
+        if (!(op instanceof CoreOp.FuncOp fop)) {
+            throw new IllegalArgumentException("Op is not a FuncOp: " + op);
+        }
+        return fop;
+    }
+
+    static OpNode parseOpNode(int opIndex, CodeModel.Op op, CodeModel.Body[] allBodies) {
+        return new OpNode(
+                op.resultType().isEmpty() ? null : new ValueNode(String.valueOf(opIndex), parseExTypeElem(op.resultType())),
+                op.name(),
+                toStrings(op.operands()),
+                Stream.of(op.successors()).map(br -> new SuccessorNode(String.valueOf(br.block()), toStrings(br.arguments()))).toList(),
+                null, // attributes
+                IntStream.of(op.bodyDefinitions()).mapToObj(bi -> parseBodyNode(bi, allBodies)).toList());
+    }
+
+    static BodyNode parseBodyNode(int bodyIndex, CodeModel.Body[] allBodies) {
+        return null;
+    }
+
+    static List<String> toStrings(int[] indexes) {
+        return IntStream.of(indexes).mapToObj(String::valueOf).toList();
+    }
+
+    static ExternalizedTypeElement parseExTypeElem(String desc) {
+        return JavaTypeUtils.inflate(DescParser.parseExTypeElem(desc));
+    }
+
+    /**
      * Parse a Java code model, modeling a method body or quoted lambda body, from
      * its serialized textual form obtained from an input string.
      * <p>
@@ -194,7 +236,6 @@ public final class OpParser {
         Context c = new Context(opFactory, typeFactory);
         return opNodes.stream().map(n -> nodeToOp(n, VOID, c, null)).toList();
     }
-
 
     static final class Context {
         final Context parent;
