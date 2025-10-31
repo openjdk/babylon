@@ -49,7 +49,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.extern.OpWriter.AttributeMapper;
+import jdk.incubator.code.extern.impl.AttributeMapper;
 
 
 /**
