@@ -34,6 +34,7 @@ import hat.LocalMesh1D;
 import hat.LocalMesh2D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
+import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
@@ -46,7 +47,6 @@ import jdk.incubator.code.CodeReflection;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.buffer.F16Array.F16;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 

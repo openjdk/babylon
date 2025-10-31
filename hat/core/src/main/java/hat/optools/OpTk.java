@@ -25,11 +25,9 @@
 package hat.optools;
 
 import hat.ComputeContext;
-import hat.Config;
 import hat.buffer.KernelBufferContext;
 import hat.callgraph.CallGraph;
 import hat.dialect.HATF16AddOp;
-import hat.dialect.HATF16BinaryOp;
 import hat.dialect.HATF16DivOp;
 import hat.dialect.HATF16MulOp;
 import hat.dialect.HATF16SubOp;

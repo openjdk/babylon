@@ -29,7 +29,9 @@ import hat.ComputeContext;
 import hat.ComputeRange;
 import hat.GlobalMesh1D;
 import hat.KernelContext;
+import hat.annotations.Kernel;
 import hat.backend.Backend;
+import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.ifacemapper.MappableIface.RO;
 import hat.ifacemapper.MappableIface.RW;
@@ -40,29 +42,41 @@ import jdk.incubator.code.CodeReflection;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static hat.buffer.F16Array.F16;
-
 public class TestF16Type {
 
     @CodeReflection
+//    @Kernel("""
+//            HAT_KERNEL void copy01(
+//                HAT_GLOBAL_MEM KernelContext_t* kernelContext,
+//                HAT_GLOBAL_MEM F16Array_t* a,
+//                HAT_GLOBAL_MEM F16Array_t* b
+//            ){
+//                if(HAT_GIX<HAT_GSX){
+//                    HAT_GLOBAL_MEM F16_t* ha = &a->array[(long)HAT_GIX];
+//                    HAT_GLOBAL_MEM F16_t* hb = &b->array[(long)HAT_GIX];
+//                    (&b->array[(long)HAT_GIX])->value=ha->value;
+//                }
+//                return;
+//            }
+//            """)
     public static void copy01(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
-            F16Array.F16 ha = a.array(kernelContext.gix);
-            F16Array.F16 hb = b.array(kernelContext.gix);
+            F16 ha = a.array(kernelContext.gix);
+            F16 hb = b.array(kernelContext.gix);
             // The following expression does not work
-            //b.array(kernelContext.gix).value(ha.value());
-            hb.value(ha.value());
+            b.array(kernelContext.gix).value(ha.value());
+            //hb.value(ha.value());
         }
     }
 
     @CodeReflection
     public static void f16Ops_02(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
-            F16Array.F16 ha = a.array(kernelContext.gix);
-            F16Array.F16 hb = b.array(kernelContext.gix);
+            F16 ha = a.array(kernelContext.gix);
+            F16 hb = b.array(kernelContext.gix);
 
-            F16Array.F16 result = F16.add(ha, hb);
-            F16Array.F16 hC = c.array(kernelContext.gix);
+            F16 result = F16.add(ha, hb);
+            F16 hC = c.array(kernelContext.gix);
             hC.value(result.value());
         }
     }
@@ -70,11 +84,11 @@ public class TestF16Type {
     @CodeReflection
     public static void f16Ops_03(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
-            F16Array.F16 ha = a.array(kernelContext.gix);
-            F16Array.F16 hb = b.array(kernelContext.gix);
+            F16 ha = a.array(kernelContext.gix);
+            F16 hb = b.array(kernelContext.gix);
 
-            F16Array.F16 result = F16.add(ha, F16.add(hb, hb));
-            F16Array.F16 hC = c.array(kernelContext.gix);
+            F16 result = F16.add(ha, F16.add(hb, hb));
+            F16 hC = c.array(kernelContext.gix);
             hC.value(result.value());
         }
     }
@@ -82,15 +96,15 @@ public class TestF16Type {
     @CodeReflection
     public static void f16Ops_04(@RO KernelContext kernelContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
         if (kernelContext.gix < kernelContext.gsx) {
-            F16Array.F16 ha = a.array(kernelContext.gix);
-            F16Array.F16 hb = b.array(kernelContext.gix);
+            F16 ha = a.array(kernelContext.gix);
+            F16 hb = b.array(kernelContext.gix);
 
-            F16Array.F16 r1 = F16.mul(ha, hb);
-            F16Array.F16 r2 = F16.div(ha, hb);
-            F16Array.F16 r3 = F16.sub(ha, hb);
-            F16Array.F16 r4 = F16.add(r1, r2);
-            F16Array.F16 r5 = F16.add(r4, r3);
-            F16Array.F16 hC = c.array(kernelContext.gix);
+            F16 r1 = F16.mul(ha, hb);
+            F16 r2 = F16.div(ha, hb);
+            F16 r3 = F16.sub(ha, hb);
+            F16 r4 = F16.add(r1, r2);
+            F16 r5 = F16.add(r4, r3);
+            F16 hC = c.array(kernelContext.gix);
             hC.value(r5.value());
         }
     }
@@ -98,8 +112,8 @@ public class TestF16Type {
     @CodeReflection
     public static void f16Ops_05(@RO KernelContext kernelContext, @RW F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
-            F16Array.F16 ha = a.array(kernelContext.gix);
-            F16Array.F16 initVal = F16.of( 2.1f);
+            F16 ha = a.array(kernelContext.gix);
+            F16 initVal = F16.of( 2.1f);
             ha.value(initVal.value());
         }
     }
@@ -107,8 +121,8 @@ public class TestF16Type {
     @CodeReflection
     public static void f16Ops_06(@RO KernelContext kernelContext, @RW F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
-            F16Array.F16 initVal = F16.of( kernelContext.gix);
-            F16Array.F16 ha = a.array(kernelContext.gix);
+            F16 initVal = F16.of( kernelContext.gix);
+            F16 ha = a.array(kernelContext.gix);
             ha.value(initVal.value());
         }
     }
@@ -116,8 +130,8 @@ public class TestF16Type {
     @CodeReflection
     public static void f16Ops_08(@RO KernelContext kernelContext, @RW F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
-            F16Array.F16 initVal = F16.floatToF16(kernelContext.gix);
-            F16Array.F16 ha = a.array(kernelContext.gix);
+            F16 initVal = F16.floatToF16(kernelContext.gix);
+            F16 ha = a.array(kernelContext.gix);
             ha.value(initVal.value());
         }
     }
@@ -125,10 +139,10 @@ public class TestF16Type {
     @CodeReflection
     public static void f16Ops_09(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
-            F16Array.F16 ha = a.array(kernelContext.gix);
+            F16 ha = a.array(kernelContext.gix);
             float f = F16.f16ToFloat(ha);
-            F16Array.F16 result = F16.floatToF16(f);
-            F16Array.F16 hb = b.array(kernelContext.gix);
+            F16 result = F16.floatToF16(f);
+            F16 hb = b.array(kernelContext.gix);
             hb.value(result.value());
         }
     }
@@ -136,10 +150,10 @@ public class TestF16Type {
     @CodeReflection
     public static void f16Ops_10(@RO KernelContext kernelContext, @RO F16Array a) {
         if (kernelContext.gix < kernelContext.gsx) {
-            F16Array.F16 ha = a.array(kernelContext.gix);
+            F16 ha = a.array(kernelContext.gix);
             F16 f16 = F16.of(1.1f);
             float f = F16.f16ToFloat(f16);
-            F16Array.F16 result = F16.floatToF16(f);
+            F16 result = F16.floatToF16(f);
             ha.value(result.value());
         }
     }
@@ -295,13 +309,13 @@ public class TestF16Type {
             short gotResult = arrayC.array(i).value();
 
             // CPU Computation
-            F16Array.F16 ha = arrayA.array(i);
-            F16Array.F16 hb = arrayB.array(i);
-            F16Array.F16 r1 = F16.mul(ha, hb);
-            F16Array.F16 r2 = F16.div(ha, hb);
-            F16Array.F16 r3 = F16.sub(ha, hb);
-            F16Array.F16 r4 = F16.add(r1, r2);
-            F16Array.F16 r5 = F16.add(r4, r3);
+            F16 ha = arrayA.array(i);
+            F16 hb = arrayB.array(i);
+            F16 r1 = F16.mul(ha, hb);
+            F16 r2 = F16.div(ha, hb);
+            F16 r3 = F16.sub(ha, hb);
+            F16 r4 = F16.add(r1, r2);
+            F16 r5 = F16.add(r4, r3);
 
             HatAsserts.assertEquals(Float.float16ToFloat(r5.value()), Float.float16ToFloat(gotResult), 0.01f);
         }

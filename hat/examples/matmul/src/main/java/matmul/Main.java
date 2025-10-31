@@ -32,10 +32,9 @@ import hat.GlobalMesh2D;
 import hat.KernelContext;
 import hat.LocalMesh1D;
 import hat.LocalMesh2D;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
+import hat.buffer.F16;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.buffer.F32ArrayPadded;
@@ -47,7 +46,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.Random;
 import java.util.stream.IntStream;
 
-import static hat.buffer.F16Array.F16;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 
@@ -503,95 +501,95 @@ public class Main {
     }
 
     @CodeReflection
-    @Preformatted("""
-            typedef struct SharedMemoryHalf_s{
-                short array[1024];
-            }SharedMemoryHalf_t;
-
-            typedef struct PrivateArrayHalf_s{
-                short array[16];
-            }PrivateArrayHalf_t;
-
-            typedef struct FlatPrivateHalf_s{
-                short array[4];
-            }FlatPrivateHalf_t;
-            """)
-    @Kernel("""
-    HAT_KERNEL void matrixMultiplyKernel2DRegisterTilingHalf(
-            HAT_GLOBAL_MEM KernelContext_t* kc,
-            HAT_GLOBAL_MEM F16Array_t* matrixA,
-            HAT_GLOBAL_MEM F16Array_t* matrixB,
-            HAT_GLOBAL_MEM F16Array_t* matrixC,
-            int size
-    ){
-    const int BM = 64;
-    const int BN = 64;
-    const int BK = 16;
-    const int TM = 4;
-    const int TN = 4;
-    const int bx = HAT_BIX;
-    const int by = HAT_BIY;
-    const int totalResultsBlockTile = BM*BN;
-    const int numThreadsBlockTile = totalResultsBlockTile/(TM*TN);
-    const int linearLocalId = HAT_LIY*HAT_LSX+HAT_LIX;
-    const int threadCol = HAT_LIX;
-    const int threadRow = HAT_LIY;
-        HAT_LOCAL_MEM SharedMemoryHalf_t tileA;
-        HAT_LOCAL_MEM SharedMemoryHalf_t tileB;
-        int aFrom = (by*BM)*size;
-        int bFrom = bx*BN;
-    const int v = bx*BN;
-    const int cFrom = (by*BM)*size+v;
-    const int innerRowA = linearLocalId/BK;
-    const int innerColA = linearLocalId%BK;
-    const int strideA = numThreadsBlockTile/BK;
-    const int innerRowB = linearLocalId/BN;
-    const int innerColB = linearLocalId%BN;
-    const int strideB = numThreadsBlockTile/BN;
-        PrivateArrayHalf_t threadResults;
-        FlatPrivateHalf_t regM;
-        FlatPrivateHalf_t regN;
-        for(int i = 0; i<TN*TN; i=i+1){
-            threadResults.array[(long)i]=(half)0;
-        }
-        for(int bkIdx = 0; bkIdx<size; bkIdx=bkIdx+BK){
-            for(int loadOffset = 0; loadOffset<BM; loadOffset=loadOffset+strideA){
-                tileA.array[(long)((innerRowA+loadOffset)*BK+innerColA)]=(&matrixA->array[(long)(((innerRowA+loadOffset)*size+innerColA)+aFrom)])->value;
-            }
-            for(int loadOffset = 0; loadOffset<BK; loadOffset=loadOffset+strideB){
-                tileB.array[(long)((innerRowB+loadOffset)*BN+innerColB)]=(&matrixB->array[(long)(((innerRowB+loadOffset)*size+innerColB)+bFrom)])->value;
-            }
-            HAT_BARRIER;
-            aFrom=aFrom+BK;
-        const int f = BK*size;
-            bFrom=bFrom+f;
-            for(int dotIdx = 0; dotIdx<BK; dotIdx=dotIdx+1){
-                for(int i = 0; i<TM; i=i+1){
-                    regM.array[(long)i]=tileA.array[(long)((threadRow*TM+i)*BK+dotIdx)];
-                }
-                for(int i = 0; i<TN; i=i+1){
-                    regN.array[(long)i]=tileB.array[(long)((dotIdx*BN+threadCol*TN)+i)];
-                }
-                for(int resIdxM = 0; resIdxM<TM; resIdxM=resIdxM+1){
-                    for(int resIdxN = 0; resIdxN<TN; resIdxN=resIdxN+1){
-                        half val = (half)((int)regM.array[(long)resIdxM]*(int)regN.array[(long)resIdxN]);
-                        half acc = (half)threadResults.array[(long)(resIdxM*TN+resIdxN)];
-                        acc=(acc + val);
-                        threadResults.array[(long)(resIdxM*TN+resIdxN)]=acc;
-                    }
-                }
-            }
-            HAT_BARRIER;
-        }
-        for(int resIdxM = 0; resIdxM<TM; resIdxM=resIdxM+1){
-            for(int resIdxN = 0; resIdxN<TN; resIdxN=resIdxN+1){
-                half value = (half)threadResults.array[(long)(resIdxM*TN+resIdxN)];
-                (&matrixC->array[(long)((((threadRow*TM+resIdxM)*size+threadCol*TN)+resIdxN)+cFrom)])->value=value;
-            }
-        }
-        return;
-    }
-    """)
+//    @Preformatted("""
+//            typedef struct SharedMemoryHalf_s{
+//                short array[1024];
+//            }SharedMemoryHalf_t;
+//
+//            typedef struct PrivateArrayHalf_s{
+//                short array[16];
+//            }PrivateArrayHalf_t;
+//
+//            typedef struct FlatPrivateHalf_s{
+//                short array[4];
+//            }FlatPrivateHalf_t;
+//            """)
+//    @Kernel("""
+//    HAT_KERNEL void matrixMultiplyKernel2DRegisterTilingHalf(
+//            HAT_GLOBAL_MEM KernelContext_t* kc,
+//            HAT_GLOBAL_MEM F16Array_t* matrixA,
+//            HAT_GLOBAL_MEM F16Array_t* matrixB,
+//            HAT_GLOBAL_MEM F16Array_t* matrixC,
+//            int size
+//    ){
+//    const int BM = 64;
+//    const int BN = 64;
+//    const int BK = 16;
+//    const int TM = 4;
+//    const int TN = 4;
+//    const int bx = HAT_BIX;
+//    const int by = HAT_BIY;
+//    const int totalResultsBlockTile = BM*BN;
+//    const int numThreadsBlockTile = totalResultsBlockTile/(TM*TN);
+//    const int linearLocalId = HAT_LIY*HAT_LSX+HAT_LIX;
+//    const int threadCol = HAT_LIX;
+//    const int threadRow = HAT_LIY;
+//        HAT_LOCAL_MEM SharedMemoryHalf_t tileA;
+//        HAT_LOCAL_MEM SharedMemoryHalf_t tileB;
+//        int aFrom = (by*BM)*size;
+//        int bFrom = bx*BN;
+//    const int v = bx*BN;
+//    const int cFrom = (by*BM)*size+v;
+//    const int innerRowA = linearLocalId/BK;
+//    const int innerColA = linearLocalId%BK;
+//    const int strideA = numThreadsBlockTile/BK;
+//    const int innerRowB = linearLocalId/BN;
+//    const int innerColB = linearLocalId%BN;
+//    const int strideB = numThreadsBlockTile/BN;
+//        PrivateArrayHalf_t threadResults;
+//        FlatPrivateHalf_t regM;
+//        FlatPrivateHalf_t regN;
+//        for(int i = 0; i<TN*TN; i=i+1){
+//            threadResults.array[(long)i]=(half)0;
+//        }
+//        for(int bkIdx = 0; bkIdx<size; bkIdx=bkIdx+BK){
+//            for(int loadOffset = 0; loadOffset<BM; loadOffset=loadOffset+strideA){
+//                tileA.array[(long)((innerRowA+loadOffset)*BK+innerColA)]=(&matrixA->array[(long)(((innerRowA+loadOffset)*size+innerColA)+aFrom)])->value;
+//            }
+//            for(int loadOffset = 0; loadOffset<BK; loadOffset=loadOffset+strideB){
+//                tileB.array[(long)((innerRowB+loadOffset)*BN+innerColB)]=(&matrixB->array[(long)(((innerRowB+loadOffset)*size+innerColB)+bFrom)])->value;
+//            }
+//            HAT_BARRIER;
+//            aFrom=aFrom+BK;
+//        const int f = BK*size;
+//            bFrom=bFrom+f;
+//            for(int dotIdx = 0; dotIdx<BK; dotIdx=dotIdx+1){
+//                for(int i = 0; i<TM; i=i+1){
+//                    regM.array[(long)i]=tileA.array[(long)((threadRow*TM+i)*BK+dotIdx)];
+//                }
+//                for(int i = 0; i<TN; i=i+1){
+//                    regN.array[(long)i]=tileB.array[(long)((dotIdx*BN+threadCol*TN)+i)];
+//                }
+//                for(int resIdxM = 0; resIdxM<TM; resIdxM=resIdxM+1){
+//                    for(int resIdxN = 0; resIdxN<TN; resIdxN=resIdxN+1){
+//                        half val = (half)((int)regM.array[(long)resIdxM]*(int)regN.array[(long)resIdxN]);
+//                        half acc = (half)threadResults.array[(long)(resIdxM*TN+resIdxN)];
+//                        acc=(acc + val);
+//                        threadResults.array[(long)(resIdxM*TN+resIdxN)]=acc;
+//                    }
+//                }
+//            }
+//            HAT_BARRIER;
+//        }
+//        for(int resIdxM = 0; resIdxM<TM; resIdxM=resIdxM+1){
+//            for(int resIdxN = 0; resIdxN<TN; resIdxN=resIdxN+1){
+//                half value = (half)threadResults.array[(long)(resIdxM*TN+resIdxN)];
+//                (&matrixC->array[(long)((((threadRow*TM+resIdxM)*size+threadCol*TN)+resIdxN)+cFrom)])->value=value;
+//            }
+//        }
+//        return;
+//    }
+//    """)
     public static void matrixMultiplyKernel2DRegisterTilingHalf(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
@@ -636,7 +634,8 @@ public class Main {
 
         // initialize values
         for (int i = 0; i < (TN * TN); i++) {
-            threadResults.array(i, F16.of(0.0f).value());
+            F16 init = F16.of(0.0f);
+            threadResults.array(i, init.value());
         }
 
         // Each thread loops over the tiles
@@ -644,14 +643,14 @@ public class Main {
 
             // A) Load data into shared memory for array A
             for (int loadOffset = 0; loadOffset < BM; loadOffset += strideA) {
-                tileA.array((innerRowA + loadOffset) * BK + innerColA,
-                        matrixA.array(((innerRowA + loadOffset) * size + innerColA) + aFrom).value());
+                F16 valA = matrixA.array(((innerRowA + loadOffset) * size + innerColA) + aFrom);
+                tileA.array((innerRowA + loadOffset) * BK + innerColA, valA.value());
             }
 
             // B) Load data matrixB into shared memory for array B
             for (int loadOffset = 0; loadOffset < BK; loadOffset += strideB) {
-                tileB.array((innerRowB + loadOffset) * BN + innerColB,
-                        matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom).value());
+                F16 valB = matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom);
+                tileB.array((innerRowB + loadOffset) * BN + innerColB, valB.value());
             }
             kc.barrier();
 
@@ -686,8 +685,10 @@ public class Main {
         // Essentially, each thread compute a small block of TM * TN sub-block size.
         for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
             for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
-                F16 value = F16.of(threadResults.array(resIdxM * TN + resIdxN));
-                matrixC.array((((threadRow * TM + resIdxM) * size + threadCol * TN + resIdxN) + (cFrom))).value(value.value());
+                F16 sum = F16.of(threadResults.array(resIdxM * TN + resIdxN));
+                F16 resultC = matrixC.array((((threadRow * TM + resIdxM) * size + threadCol * TN + resIdxN) + (cFrom)));
+                resultC.value(sum.value());
+
             }
         }
     }

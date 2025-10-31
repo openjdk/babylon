@@ -24,6 +24,7 @@
  */
 package hat.codebuilders;
 
+import hat.buffer.F16;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATLocalVarOp;
@@ -45,8 +46,6 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-
-import static hat.buffer.F16Array.F16;
 
 public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements BabylonOpBuilder<T> {
 
@@ -487,7 +486,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                  of course we could return
                           cascade->tree + treeIdx;
                  */
+
                     if (OpTk.javaReturnType(invokeOp) instanceof ClassType) { // isAssignable?
+                        oparen();
                         ampersand();
                         /* This is way more complicated I think we need to determine the expression type.
                          * sumOfThisStage=sumOfThisStage+&left->anon->value; from    sumOfThisStage += left.anon().value();
@@ -509,6 +510,10 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
                     funcName(invokeOp);
+
+                   if (OpTk.javaReturnType(invokeOp) instanceof ClassType) {
+                       cparen();
+                   }
 
                     if (OpTk.javaReturnTypeIsVoid(invokeOp)) {
                         //   setter

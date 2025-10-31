@@ -25,7 +25,7 @@
 package hat.phases;
 
 import hat.Accelerator;
-import hat.buffer.F16Array;
+import hat.buffer.F16;
 import hat.dialect.HATF16AddOp;
 import hat.dialect.HATF16BinaryOp;
 import hat.dialect.HATF16ConvOp;
@@ -50,8 +50,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static hat.buffer.F16Array.F16;
 
 public class HATDialectifyFP16Phase implements HATDialect {
 
@@ -78,7 +76,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
 
     private boolean isFP16Operation(JavaOp.InvokeOp invokeOp, String methodName) {
         String invokeClassName = invokeOp.invokeDescriptor().refType().toString();
-        boolean isFP16Operation = invokeClassName.replace("$", ".").startsWith(F16Array.F16.class.getCanonicalName());
+        boolean isFP16Operation = invokeClassName.replace("$", ".").startsWith(F16.class.getCanonicalName());
         return isFP16Operation
                 && OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp)
                 && invokeOp.invokeDescriptor().name().equals(methodName);
