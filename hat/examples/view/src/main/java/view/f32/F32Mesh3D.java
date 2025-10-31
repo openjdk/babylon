@@ -40,7 +40,7 @@ public class F32Mesh3D {
     final int MAX = 400;
 
     public int triCount = 0;
-    public int triEntries[] = new int[MAX * SIZE];
+    public F32Triangle3D.Pool.Idx triEntries[] = new F32Triangle3D.Pool.Idx[MAX * SIZE];
     public int triCenterVec3s[] = new int[MAX *SIZE];
     public int normalEntries[] = new int[MAX *SIZE];
     public int v0Vec3s[] = new int[MAX *SIZE];
@@ -49,7 +49,7 @@ public class F32Mesh3D {
 
 
     public F32Mesh3D tri(int v0, int v1, int v2, int rgb) {
-        int tri = F32Triangle3D.createTriangle3D(v0, v1, v2, rgb);
+        var tri = F32Triangle3D.of(v0, v1, v2, rgb);
 
         triEntries[triCount]= tri;
         normalEntries[triCount] = F32Triangle3D.normal(tri);
@@ -69,7 +69,7 @@ public class F32Mesh3D {
     public void fin(){
         int meshCenterVec3 = F32Vec3.divScaler(triSum, triCount);
         for (int t = 0; t < triCount; t++ ) {
-            int tri = triEntries[t];
+            var tri = triEntries[t];
             int v0Norm = normalEntries[t]; // from v0
             int v0 = v0Vec3s[t];
             int v0CenterDiff = F32Vec3.subVec3(meshCenterVec3, v0);
@@ -199,9 +199,6 @@ http://paulbourke.net/dataformats/obj/
         int v10 = vec3(x + (s * .30631556f), y + (s * .56712254f), z + (s * .1276f));
         int v11 = vec3(x + (s * .48592068f), y + (s * .56712254f), z + (s * .30720512f));
         int v12 = vec3(x + (s * .48592068f), y + (s * .38751743f), z + (s * .4868103f));
-
-
-
 
         tri(v1, v2, v3, 0xff0000);
         tri(v4, v2, v5, 0x7f8000);

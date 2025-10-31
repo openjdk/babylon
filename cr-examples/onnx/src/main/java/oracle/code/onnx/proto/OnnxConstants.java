@@ -77,7 +77,7 @@ public final class OnnxConstants {
         IR_VERSION_2019_9_19(0x0000000000000006),
 
         /// IR VERSION 7 published on May 8, 2020
-        /// - Add support to allow function body graph to rely on multiple external opreator sets.
+        /// - Add support to allow function body graph to rely on multiple external operator sets.
         /// - Add a list to promote inference graph's initializers to global and
         ///   mutable variables. Global variables are visible in all graphs of the
         ///   stored models.
@@ -100,12 +100,16 @@ public final class OnnxConstants {
         IR_VERSION_2023_5_5(0x0000000000000009),
 
         /// IR VERSION 10 published on March 25, 2024
-        /// Added UINT4, INT4.
+        /// Added UINT4, INT4, overload field for functions and metadata_props on multiple proto definitions.
         IR_VERSION_2024_3_25(0x000000000000000A),
 
-        /// IR VERSION 11 published on TBD
-        /// Added FLOAT4E2M1.
-        IR_VERSION(0x000000000000000B),
+        /// IR VERSION 11 published on May 12, 2025
+        /// Added FLOAT4E2M1, multi-device protobuf classes.
+        IR_VERSION_2025_05_12(0x000000000000000B),
+
+        /// IR VERSION 12 published on TBD
+        /// Added FLOAT8E8M0.
+        IR_VERSION(0x000000000000000C),
         ;
 
         final int value;
@@ -247,6 +251,10 @@ public final class OnnxConstants {
 
         /// 4-bit floating point data types
         FLOAT4E2M1(23),
+
+        /// E8M0 type used as the scale for microscaling (MX) formats:
+        /// https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf
+        FLOAT8E8M0(24),
         ;
 
         final int value;

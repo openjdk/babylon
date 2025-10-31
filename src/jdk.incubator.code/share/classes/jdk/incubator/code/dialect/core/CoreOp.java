@@ -90,7 +90,7 @@ public sealed abstract class CoreOp extends Op {
         final String funcName;
         final Body body;
 
-        static FuncOp create(ExternalizedOp def) {
+        FuncOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
@@ -100,11 +100,15 @@ public sealed abstract class CoreOp extends Op {
                         case String s -> s;
                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
-            return new FuncOp(funcName, def.bodyDefinitions().get(0));
+
+            this(funcName, def.bodyDefinitions().get(0));
         }
 
-        FuncOp(FuncOp that, CopyContext cc, OpTransformer oa) {
-            this(that, that.funcName, cc, oa);
+        FuncOp(FuncOp that, CopyContext cc, OpTransformer ot) {
+            super(that, cc);
+
+            this.funcName = that.funcName;
+            this.body = that.body.transform(cc, ot).build(this);
         }
 
         FuncOp(FuncOp that, String funcName, CopyContext cc, OpTransformer ot) {
@@ -184,14 +188,14 @@ public sealed abstract class CoreOp extends Op {
         final String funcName;
         final TypeElement resultType;
 
-        static FuncCallOp create(ExternalizedOp def) {
+        FuncCallOp(ExternalizedOp def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
                     v -> switch (v) {
                         case String s -> s;
                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
                     });
 
-            return new FuncCallOp(funcName, def.resultType(), def.operands());
+            this(funcName, def.resultType(), def.operands());
         }
 
         FuncCallOp(FuncCallOp that, CopyContext cc) {
@@ -241,12 +245,12 @@ public sealed abstract class CoreOp extends Op {
         final SequencedMap<String, FuncOp> table;
         final Body body;
 
-        static ModuleOp create(ExternalizedOp def) {
+        ModuleOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            return new ModuleOp(def.bodyDefinitions().get(0));
+            this(def.bodyDefinitions().get(0));
         }
 
         ModuleOp(ModuleOp that, CopyContext cc, OpTransformer ot) {
@@ -759,14 +763,15 @@ public sealed abstract class CoreOp extends Op {
         final Object value;
         final TypeElement type;
 
-        static ConstantOp create(ExternalizedOp def) {
+        ConstantOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
 
             Object value = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE, true,
                     v -> processConstantValue(def.resultType(), v));
-            return new ConstantOp(def.resultType(), value);
+
+            this(def.resultType(), value);
         }
 
         static Object processConstantValue(TypeElement t, Object value) {
@@ -871,7 +876,7 @@ public sealed abstract class CoreOp extends Op {
         final String varName;
         final VarType resultType;
 
-        static VarOp create(ExternalizedOp def) {
+        VarOp(ExternalizedOp def) {
             if (def.operands().size() > 1) {
                 throw new IllegalStateException("Operation must have zero or one operand");
             }
@@ -882,14 +887,11 @@ public sealed abstract class CoreOp extends Op {
                         case null -> "";
                         default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
                     });
-            // @@@ Cannot use canonical constructor because type is wrapped
-            return new VarOp(def, name);
-        }
 
-        VarOp(ExternalizedOp def, String varName) {
+            // @@@ Cannot use canonical constructor because type is wrapped
             super(def.operands());
 
-            this.varName = varName;
+            this.varName = name;
             this.resultType = (VarType) def.resultType();
         }
 
@@ -1115,7 +1117,7 @@ public sealed abstract class CoreOp extends Op {
 
         final int index;
 
-        static TupleLoadOp create(ExternalizedOp def) {
+        TupleLoadOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalStateException("Operation must have one operand");
             }
@@ -1125,7 +1127,8 @@ public sealed abstract class CoreOp extends Op {
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });
-            return new TupleLoadOp(def.operands().get(0), index);
+
+            this(def.operands().get(0), index);
         }
 
         TupleLoadOp(TupleLoadOp that, CopyContext cc) {
@@ -1172,7 +1175,7 @@ public sealed abstract class CoreOp extends Op {
 
         final int index;
 
-        static TupleWithOp create(ExternalizedOp def) {
+        TupleWithOp(ExternalizedOp def) {
             if (def.operands().size() != 2) {
                 throw new IllegalStateException("Operation must have two operands");
             }
@@ -1182,7 +1185,8 @@ public sealed abstract class CoreOp extends Op {
                         case Integer i -> i;
                         case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
                     });
-            return new TupleWithOp(def.operands().get(0), index, def.operands().get(1));
+
+            this(def.operands().get(0), index, def.operands().get(1));
         }
 
         TupleWithOp(TupleWithOp that, CopyContext cc) {
@@ -1230,17 +1234,17 @@ public sealed abstract class CoreOp extends Op {
             case "cbranch" -> new ConditionalBranchOp(def);
             case "closure" -> new ClosureOp(def);
             case "closure.call" -> new ClosureCallOp(def);
-            case "constant" -> ConstantOp.create(def);
-            case "func" -> FuncOp.create(def);
-            case "func.call" -> FuncCallOp.create(def);
-            case "module" -> ModuleOp.create(def);
+            case "constant" -> new ConstantOp(def);
+            case "func" -> new FuncOp(def);
+            case "func.call" -> new FuncCallOp(def);
+            case "module" -> new ModuleOp(def);
             case "quoted" -> new QuotedOp(def);
             case "return" -> new ReturnOp(def);
             case "tuple" -> new TupleOp(def);
-            case "tuple.load" -> TupleLoadOp.create(def);
-            case "tuple.with" -> TupleWithOp.create(def);
+            case "tuple.load" -> new TupleLoadOp(def);
+            case "tuple.with" -> new TupleWithOp(def);
             case "unreachable" -> new UnreachableOp(def);
-            case "var" -> VarOp.create(def);
+            case "var" -> new VarOp(def);
             case "var.load" -> new VarAccessOp.VarLoadOp(def);
             case "var.store" -> new VarAccessOp.VarStoreOp(def);
             case "yield" -> new YieldOp(def);

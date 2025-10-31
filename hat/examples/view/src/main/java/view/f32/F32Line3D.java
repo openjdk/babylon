@@ -24,83 +24,79 @@
  */
 package view.f32;
 
-public class F32Line3D {
-    static final int SIZE = 1;
-    static final int V0 = 0;
-    static final int V1 = 1;
-    static final int RGB = 2;
+public interface  F32Line3D {
 
-    public static class Pool {
-        public final int max;
-        public int count = 0;
-        public final int entries[];
-        Pool(int max) {
-            this.max = max;
-            this.entries = new int[max * SIZE];
+    int V0 = 0;
+    int V1 = 1;
+    int RGB = 2;
+
+    class Pool extends IndexPool{
+        Pool( int max) {
+            super(1,max);
         }
     }
-    public static Pool pool = new Pool(2000);
+   Pool pool = new Pool(2000);
 
 
     static int fillLine3D(int i, int v0, int v1, int rgb) {
-        i *= SIZE;
+        i *= pool.stride;
         pool.entries[i + V0] = v0;
         pool.entries[i + V1] = v1;
         pool.entries[i + RGB] = rgb;
         return i;
     }
 
-    public static int createLine3D(int v0, int v1, int rgb) {
+     static int createLine3D(int v0, int v1, int rgb) {
         fillLine3D(pool.count, v0, v1,rgb);
         return pool.count++;
     }
 
     static String asString(int i) {
-        i *= SIZE;
+        i *= pool.stride;
         return F32Vec3.asString(pool.entries[i + V0]) + " -> " + F32Vec3.asString(pool.entries[i + V1]) + " =" + String.format("0x%8x", pool.entries[i + RGB]);
     }
 
 
 
-    public static int addVec3(int i, int v3) {
-        i *= SIZE;
+     static int addVec3(int i, int v3) {
+        i *= pool.stride;
         return createLine3D(F32Vec3.addVec3(pool.entries[i + V0], v3), F32Vec3.addVec3(pool.entries[i + V1], v3), pool.entries[i + RGB]);
     }
 
-    public static int mulScaler(int i, float s) {
-        i *= SIZE;
+     static int mulScaler(int i, float s) {
+        i *= pool.stride;
         return createLine3D(F32Vec3.mulScaler(pool.entries[i + V0], s), F32Vec3.mulScaler(pool.entries[i + V1], s), pool.entries[i + RGB]);
     }
 
-    public static int addScaler(int i, float s) {
-        i *= SIZE;
+     static int addScaler(int i, float s) {
+        i *= pool.stride;
         return createLine3D(F32Vec3.addScaler(pool.entries[i + V0], s), F32Vec3.addScaler(pool.entries[i + V1], s), pool.entries[i + RGB]);
     }
 
-    public static int getCentre(int i){
+     static int getCentre(int i){
         // the average of all the vertices
         return F32Vec3.divScaler(getVectorSum(i), 3);
     }
 
-    public static int getVectorSum(int i){
+     static int getVectorSum(int i){
         // the sum of all the vertices
         return F32Vec3.addVec3(getV0(i), getV1(i));
     }
 
 
-    public static int getV0(int i) {
-        i *= SIZE;
+     static int getV0(int i) {
+        i *= pool.stride;
         return F32Line3D.pool.entries[i + F32Line3D.V0];
     }
 
-    public static int getV1(int i) {
-        i *= SIZE;
+     static int getV1(int i) {
+        i *= pool.stride;
         return F32Line3D.pool.entries[i + F32Line3D.V1];
     }
 
 
-    public static int getRGB(int i) {
-        i *= SIZE;
+     static int getRGB(int i) {
+        i *= pool.stride;
         return F32Line3D.pool.entries[i + F32Line3D.RGB];
     }
 
