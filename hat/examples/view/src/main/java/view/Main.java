@@ -44,7 +44,7 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-        args.add("ANACONDA");
+        //args.add("ANACONDA");
         var eliteReader = new EliteMeshReader();
         boolean old =true;// Boolean.getBoolean("old");
         var wire = Rasterizer.wireOf(1024, 1024);
@@ -63,9 +63,7 @@ public class Main {
             }
         };
         Runnable elite = ()->eliteReader.load(args.getFirst(), old);
-        var viewFrame = old ?
-                (args.size() > 0 ? ViewFrameOld.of("view", wire, elite): ViewFrameOld.of("view", fill,cubeoctahedron))
-                : ((args.size() > 0) ? ViewFrameNew.of("view", wire,elite) : ViewFrameNew.of("view",fill, cubeoctahedron));
+        ViewFrame viewFrame = (args.size() > 0 ? ViewFrame.of("view",old,wire, elite): ViewFrame.of("view",old, fill,cubeoctahedron));
         while (true) {
             viewFrame.update();
         }
