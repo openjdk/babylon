@@ -34,6 +34,9 @@ package view;
 import view.f32.F32Triangle2D;
 import view.f32.F32Vec2;
 
+import javax.swing.JComponent;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
@@ -56,12 +59,54 @@ public record Graphics2DRenderer(int width, int height, DisplayMode displayMode)
 
     @Override
     public void render(boolean old) {
-       // IntStream.range(0, width * height).parallel().forEach(id -> kernel(id, old));
-        //System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
+
     }
 
     @Override
-    public void paint(Graphics2D g) {/*
+    public void paint(Graphics2D g) {
+        boolean old = true;
+        g.setColor(Color.BLACK);
+        g.fillRect(0,width,0,height);
+        Color color =new Color(0x404040);
+
+        if (old) {
+            for (int t = 0; t < F32Triangle2D.pool.count; t++) {
+                int v0 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V0];
+                int v1 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V1];
+                int v2 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V2];
+                float x0 = F32Vec2.pool.entries[v0 * F32Vec2.pool.stride + F32Vec2.X];
+                float y0 = F32Vec2.pool.entries[v0 * F32Vec2.pool.stride + F32Vec2.Y];
+                float x1 = F32Vec2.pool.entries[v1 * F32Vec2.pool.stride + F32Vec2.X];
+                float y1 = F32Vec2.pool.entries[v1 * F32Vec2.pool.stride + F32Vec2.Y];
+                float x2 = F32Vec2.pool.entries[v2 * F32Vec2.pool.stride + F32Vec2.X];
+                float y2 = F32Vec2.pool.entries[v2 * F32Vec2.pool.stride + F32Vec2.Y];
+                color =new Color( F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB]);
+                g.setColor(color);
+                g.drawLine((int)(width*x0),(int)(height*y0),(int)(width*x1),(int)(height*y1));
+                // if (displayMode.filled && F32Triangle2D.intriangle(x, y, x0, y0, x1, y1, x2, y2)) {
+                color =new Color( F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB]);
+                //} else if (displayMode.wire && F32Triangle2D.onedge(x, y, x0, y0, x1, y1, x2, y2)) {
+                //  color = new Color(F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB]);
+                // }
+
+            }
+        } else {
+            /*for (F32.TriangleVec2 t : F32.TriangleVec2.arr) {
+                var v0 = t.v0();
+                var v1 = t.v1();
+                var v2 = t.v2();
+                if (displayMode.filled && F32.TriangleVec2.intriangle(x, y, v0.x(), v0.y(), v1.x(), v1.y(), v2.x(), v2.y())) {
+                    col = t.rgb();
+                } else if (displayMode.wire && F32.TriangleVec2.onedge(x, y, v0.x(), v0.y(), v1.x(), v1.y(), v2.x(), v2.y())) {
+                    col = t.rgb();
+                }
+            } */
+        }
+
+        // IntStream.range(0, width * height).parallel().forEach(id -> kernel(id, old));
+        //System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
+
+        /*
         g.drawImage(image, 0, 0, width, height, null); */
     }
 

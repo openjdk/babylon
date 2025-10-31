@@ -44,10 +44,12 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-        //args.add("ANACONDA");
+        args.add("ANACONDA");
         var eliteReader = new EliteMeshReader();
         boolean old =true;// Boolean.getBoolean("old");
-        var wire = RasterizingRenderer.wireOf(1024, 1024);
+        var wire =
+              //  Graphics2DRenderer.wireOf(1024,1024);
+                RasterizingRenderer.wireOf(1024, 1024);
         var fill = RasterizingRenderer.fillOf(1024, 1024);
         Runnable cubeoctahedron =  () -> {
             for (int x = -2; x < 6; x += 2) {
