@@ -22,8 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.buffer;
+package hat.types;
 
-public interface HatVector extends Buffer {
+import jdk.incubator.code.CodeReflection;
 
+public interface _V4 extends _V {
+
+    @CodeReflection
+    @Override
+    default int width() {
+        return 4;
+    }
 }

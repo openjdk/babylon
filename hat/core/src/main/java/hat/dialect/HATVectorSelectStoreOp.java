@@ -41,7 +41,7 @@ public class HATVectorSelectStoreOp extends HATVectorOp {
     private final CoreOp.VarOp resultVarOp;
 
     public HATVectorSelectStoreOp(String varName, TypeElement typeElement, int lane, CoreOp.VarOp resultVarOp, List<Value> operands) {
-        super(varName, typeElement, -1, operands);
+        super(varName, typeElement, typeElement, -1, operands);
         this.elementType = typeElement;
         this.lane = lane;
         this.resultVarOp = resultVarOp;

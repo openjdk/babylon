@@ -39,7 +39,7 @@ public class HATVectorMakeOfOp extends HATVectorOp {
     private final int loadN;
 
     public HATVectorMakeOfOp(String varName, TypeElement typeElement, int loadN, List<Value> operands) {
-        super(varName, typeElement, loadN, operands);
+        super(varName, typeElement, typeElement, loadN, operands);
         this.typeElement = typeElement;
         this.loadN = loadN;
     }

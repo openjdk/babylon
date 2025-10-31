@@ -32,15 +32,17 @@ import java.util.List;
 
 public abstract class HATVectorOp extends HATOp {
 
-    private String varName;
-    private final TypeElement typeElement;
-    private final int vectorN;
+    protected String varName;
+    protected final TypeElement typeElement;
+    protected final int vectorN;
+    protected final TypeElement vectorElementType;
 
-    public HATVectorOp(String varName, TypeElement typeElement, int vectorN, List<Value> operands) {
+    public HATVectorOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int vectorN, List<Value> operands) {
         super(operands);
         this.varName = varName;
         this.typeElement = typeElement;
         this.vectorN = vectorN;
+        this.vectorElementType = vectorElementType;
     }
 
     protected HATVectorOp(HATVectorOp that, CopyContext cc) {
@@ -48,6 +50,7 @@ public abstract class HATVectorOp extends HATOp {
         this.varName = that.varName;
         this.typeElement = that.typeElement;
         this.vectorN = that.vectorN;
+        this.vectorElementType = that.vectorElementType;
     }
 
     public String varName() {
@@ -68,26 +71,8 @@ public abstract class HATVectorOp extends HATOp {
         };
     }
 
-    public enum VectorType {
-        FLOAT4("float4");
-
-        private final String type;
-
-        VectorType(String type) {
-            this.type = type;
-        }
-
-        public String type() {
-            return type;
-        }
-    }
-
     public String buildType() {
-        // floatN
-        if (typeElement.toString().startsWith("hat.buffer.Float")) {
-            return "float" + vectorN;
-        }
-        throw new RuntimeException("Unexpected vector type " + typeElement);
+        return vectorElementType.toString() + vectorN;
     }
 
     public int vectorN() {

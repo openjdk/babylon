@@ -22,40 +22,8 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.dialect;
+package hat.buffer;
 
-import jdk.incubator.code.CopyContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
-
-import java.util.List;
-import java.util.Map;
-
-public class HATVectorVarLoadOp extends HATVectorOp {
-
-    public HATVectorVarLoadOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int width, List<Value> operands) {
-        super(varName, typeElement, vectorElementType, width, operands);
-    }
-
-    public HATVectorVarLoadOp(HATVectorVarLoadOp op, CopyContext copyContext) {
-        super(op, copyContext);
-    }
-
-    @Override
-    public Op transform(CopyContext copyContext, OpTransformer opTransformer) {
-        return new HATVectorVarLoadOp(this, copyContext);
-    }
-
-    @Override
-    public TypeElement resultType() {
-        return typeElement;
-    }
-
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.vectorVarLoadOp." + varName(), typeElement);
-    }
+public interface HATVector {
 
 }

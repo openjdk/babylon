@@ -24,17 +24,26 @@
  */
 package hat.buffer;
 
+import hat.types._V4;
 import jdk.incubator.code.CodeReflection;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
-public interface Float4 extends HatVector {
+public interface Float4 extends _V4 {
 
     float x();
     float y();
     float z();
     float w();
+
+    @CodeReflection
+    @Override
+    default PrimitiveType type() {
+        return JavaType.FLOAT;
+    }
 
     record MutableImpl(float x, float y, float z, float w) implements Float4 {
         public void x(float x) {}
@@ -104,7 +113,6 @@ public interface Float4 extends HatVector {
     }
 
     // Not implemented for the GPU yet
-    @CodeReflection
     default float[] toArray() {
         return new float[] { x(), y(), z(), w() };
     }
