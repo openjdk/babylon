@@ -108,8 +108,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
 
         csbrace().cparen().osbrace().intConstZero().csbrace()
-                .space().equals().space()
-                .varName(hatVectorStoreView);
+                .space().equals().space();
+        // if the value to be stored is an operation, recurse on the operation
+        if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorBinaryOp) {
+            recurse(buildContext, r.op());
+        } else {
+            varName(hatVectorStoreView);
+        }
 
         return self();
     }

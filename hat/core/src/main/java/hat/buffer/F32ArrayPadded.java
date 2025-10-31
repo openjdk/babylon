@@ -59,7 +59,7 @@ public interface F32ArrayPadded extends Buffer {
         return this;
     }
 
-    default Float4[] float4ArrayView() {
+    default Float4.MutableImpl[] float4ArrayView() {
         return null;
     }
 
