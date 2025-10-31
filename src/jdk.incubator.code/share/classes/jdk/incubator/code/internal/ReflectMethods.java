@@ -182,10 +182,14 @@ public class ReflectMethods extends TreeTranslator {
                     // dump the method IR if requested
                     log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
-                // create a static method that returns the op
-                classOps.add(opMethodDecl(methodName(symbolToMethodRef(tree.sym)), funcOp, codeModelStorageOption));
-                // create code model annotation
-                tree.sym.appendAttributes(com.sun.tools.javac.util.List.of(cmSyms.toCodeModelAnnotation(funcOp)));
+                switch (codeModelStorageOption) {
+                    case CODE_MODEL_ATTRIBUTE ->
+                        // create code model annotation
+                        tree.sym.appendAttributes(com.sun.tools.javac.util.List.of(cmSyms.toCodeModelAttribute(funcOp)));
+                    case CODE_BUILDER ->
+                        // create a static method that returns the op
+                        classOps.add(opMethodDecl(methodName(symbolToMethodRef(tree.sym)), funcOp, codeModelStorageOption));
+                }
             }
         }
         super.visitMethodDef(tree);
@@ -364,11 +368,12 @@ public class ReflectMethods extends TreeTranslator {
     // @@@ Retain enum for when we might add another storage to test
     // and compare
     private enum CodeModelStorageOption {
-        CODE_BUILDER;
+        CODE_BUILDER,
+        CODE_MODEL_ATTRIBUTE;
 
         public static CodeModelStorageOption parse(String s) {
             if (s == null) {
-                return CodeModelStorageOption.CODE_BUILDER;
+                return CodeModelStorageOption.CODE_MODEL_ATTRIBUTE;
             }
             return CodeModelStorageOption.valueOf(s);
         }

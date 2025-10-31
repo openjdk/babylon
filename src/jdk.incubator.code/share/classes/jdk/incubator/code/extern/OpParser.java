@@ -177,13 +177,12 @@ public final class OpParser {
     public static CoreOp.FuncOp fromJavaCodeModelAnnotation(CodeModel cm) {
         DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
         Context c = new Context(f.opFactory(), f.typeElementFactory());
-        System.out.println(cm);
         OpNode n = new CodeModelParser(cm.bodies()).parseOpNode(cm.funcOp());
-        System.out.println(n);
         Op op = nodeToOp(n, VOID, c, null);
         if (!(op instanceof CoreOp.FuncOp fop)) {
             throw new IllegalArgumentException("Op is not a FuncOp: " + op);
         }
+        fop.seal();
         return fop;
     }
 

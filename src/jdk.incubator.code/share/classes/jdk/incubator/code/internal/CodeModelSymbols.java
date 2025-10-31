@@ -25,10 +25,8 @@
 
 package jdk.incubator.code.internal;
 
-import java.util.ArrayDeque;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Queue;
 
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Flags;
@@ -90,7 +88,6 @@ public final class CodeModelSymbols {
                        blockReferenceBlock,
                        blockReferenceArguments,
                        opName,
-                       opLocation,
                        opOperands,
                        opSuccessors,
                        opResultType,
@@ -131,7 +128,6 @@ public final class CodeModelSymbols {
         blockReferenceBlock = atypes.methodType("block", syms.intType, blockReferenceType);
         blockReferenceArguments = atypes.methodType("arguments", intArrayType, blockReferenceType);
         opName = atypes.methodType("name", syms.stringType, opType);
-        opLocation = atypes.methodType("location", syms.stringType, opType);
         opOperands = atypes.methodType("operands", intArrayType, opType);
         opSuccessors = atypes.methodType("successors", blockReferenceArrayType, opType);
         opResultType = atypes.methodType("resultType", syms.stringType, opType);
@@ -150,9 +146,6 @@ public final class CodeModelSymbols {
     Attribute.Compound op(Op op, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, ListBuffer<Attribute> bodyAttributes) {
         var lb = new ListBuffer<Pair<MethodSymbol, Attribute>>();
         lb.add(Pair.of(opName, stringConstant(op.externalizeOpName())));
-        if (op.location() != null) {
-            lb.add(Pair.of(opLocation, stringConstant(op.location().toString())));
-        }
         lb.add(Pair.of(opOperands, intArray(List.from(op.operands()).map(valueIndexer::indexOf))));
         if (!op.successors().isEmpty()) {
             lb.add(Pair.of(opSuccessors, new Attribute.Array(blockReferenceArrayType, successors(List.from(op.successors()), valueIndexer, blockIndexer))));
@@ -161,12 +154,17 @@ public final class CodeModelSymbols {
             valueIndexer.indexOf(op.result());
             lb.add(Pair.of(opResultType, stringConstant(op.resultType().externalize().toString())));
         }
-        if (!op.externalize().isEmpty()) {
-            lb.add(Pair.of(opAttributes, new Attribute.Array(stringArrayType,
-                    List.from(op.externalize().entrySet().stream().<String>mapMulti((e, t) -> {
-                        t.accept(e.getKey());
-                        t.accept(AttributeMapper.toString(e.getValue()));
-                    }).map(this::stringConstant).toList()))));
+        ListBuffer<Attribute> attrs = new ListBuffer<>();
+        op.externalize().entrySet().forEach(me -> {
+            attrs.add(stringConstant(me.getKey()));
+            attrs.add(stringConstant(AttributeMapper.toString(me.getValue())));
+        });
+        if (op.location() != null) {
+            attrs.add(stringConstant("loc"));
+            attrs.add(stringConstant(AttributeMapper.toString(op.location())));
+        }
+        if (!attrs.isEmpty()) {
+            lb.add(Pair.of(opAttributes, new Attribute.Array(stringArrayType, attrs.toList())));
         }
         if (!op.bodies().isEmpty()) {
             var bodies = List.from(op.bodies());
@@ -208,8 +206,7 @@ public final class CodeModelSymbols {
         return lb.toList();
     }
 
-    Attribute.Compound toCodeModelAnnotation(CoreOp.FuncOp funcOp) {
-        System.out.println(funcOp.toText());
+    Attribute.Compound toCodeModelAttribute(CoreOp.FuncOp funcOp) {
         Indexer<Value> valueIndexer = new Indexer<>();
         Indexer<Block> blockIndexer = new Indexer<>();
         Indexer<Body> bodyIndexer = new Indexer<>();

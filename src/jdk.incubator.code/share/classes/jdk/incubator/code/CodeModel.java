@@ -38,7 +38,6 @@ public @interface CodeModel {
 
     @interface Op {
         String name();
-        String location() default "";
         int[] operands();
         BlockReference[] successors() default {};
         String resultType() default "";
