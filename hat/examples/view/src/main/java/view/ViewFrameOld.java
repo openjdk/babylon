@@ -27,9 +27,7 @@ package view;
 
 import view.f32.F32Matrix4x4;
 import view.f32.F32Triangle3D;
-import view.f32.F32Vec2;
 import view.f32.F32Vec3;
-import view.f32.Pool;
 import view.f32.ZPos;
 
 import java.util.ArrayList;
@@ -37,7 +35,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class ViewFrameOld extends ViewFrame {
-
     final F32Vec3.vec3 cameraVec3;
     final F32Vec3.vec3 lookDirVec3;
     final F32Matrix4x4.Projection projF32Mat4x4;
@@ -50,8 +47,8 @@ public class ViewFrameOld extends ViewFrame {
         super(name, renderer, sceneBuilder);
         cameraVec3 = F32Vec3.vec3.of(0f, 0f, .0f);
         lookDirVec3 = F32Vec3.vec3.of(0f, 0f, 0f);
-        F32Matrix4x4.Projection projF32Mat4x4_1 = F32Matrix4x4.Projection.of(renderer.image(), 0.1f, 1000f, 60f);
-        Pool.Idx projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1.id(), F32Matrix4x4.Scale.of(renderer.width() / 4f).id());
+        var projF32Mat4x4_1 = F32Matrix4x4.Projection.of(renderer.image(), 0.1f, 1000f, 60f);
+        var projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1.id(), F32Matrix4x4.Scale.of(renderer.width() / 4f).id());
         projF32Mat4x4 = F32Matrix4x4.Projection.of(F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.Transformation.of(renderer.height() / 2f).id()));
         centerVec3 = F32Vec3.vec3.of(renderer.width() / 2f, renderer.height() / 2f, 0);
         moveAwayVec3 = F32Vec3.vec3.of(0f, 0f, 30f);
@@ -68,7 +65,7 @@ public class ViewFrameOld extends ViewFrame {
         float theta = elapsedMillis * thetaDelta;
 
         if ((frames++ % 50) == 0) {
-            System.out.println("Frames " + frames + " Theta = " + theta + " FPS = " + ((frames * 1000) / elapsedMillis) + " Vertices " + F32Vec2.pool.count);
+            System.out.println("Frames " + frames + " Theta = " + theta + " FPS = " + ((frames * 1000) / elapsedMillis));
         }
 
         mark.resetAll();

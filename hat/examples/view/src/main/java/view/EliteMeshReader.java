@@ -237,9 +237,10 @@ class EliteMeshReader {
         }
     }
 
-    private  void loadOld(String name) {
-        final var mesh = StreamMutable.of((F32Mesh3D) null);
-    final var sm = new State.Machine().awaiting_name();
+    void load(String name, boolean old) {
+        final var oldMesh = StreamMutable.of((F32Mesh3D) null);
+        final var newMesh = StreamMutable.of((F32.Mesh) null);
+        final var sm = new State.Machine().awaiting_name();
         new BufferedReader(
                 new InputStreamReader(EliteMeshReader.class.getResourceAsStream("/meshes/Elite.txt"), StandardCharsets.UTF_8))
                 .lines()
@@ -248,44 +249,98 @@ class EliteMeshReader {
                     switch(sm.state){
                         case State.awaiting_name s when s.r().matches(line, whoseMatcher -> whoseMatcher.group(1).equals(name))->{
                             sm.awaiting_lazer();
-                            mesh.set(F32Mesh3D.of(name));
+                            if (old) {
+                                oldMesh.set(F32Mesh3D.of(name));
+                            }else{
+                                newMesh.set(F32.Mesh.of(name));
+                            }
                         }
                         case State.awaiting_lazer s when s.r().matches(line) -> sm.awaiting_counts();
                         case State.awaiting_counts s when s.r().matches(line) -> sm.awaiting_vertices();
                         case State.awaiting_vertices s when s.r().matches(line) -> sm.awaiting_faces();
-                        case State.awaiting_faces _ when State.vertexRegex.is(line, F32x3::new) instanceof F32x3 f32x3 ->
-                                mesh.get().vec3(f32x3.f(1), f32x3.f(2), f32x3.f(3));
-                        case State.awaiting_faces _ when State.facesRegex.matchesOrThrow(line) ->
-                                sm.awaiting_hue_lig_sat();
-                        case State.awaiting_hue_lig_sat s-> {
-                            if (Regex.any(line, State.face6Regex, State.face5Regex, State.face4Regex, State.face3Regex) instanceof Regex.OK ok) {
-                                int v0 = mesh.get().vecEntries[ok.asInt(6)];
-                                int v1 = mesh.get().vecEntries[ok.asInt(7)];
-                                int v2 = mesh.get().vecEntries[ok.asInt(8)];
-                                if (ok.regex() == State.face3Regex) {
-                                    mesh.get().tri(v0, v1, v2, 0x00ff00);
-                                } else if (ok.regex() == State.face4Regex) {
-                                    mesh.get().quad(v0, v1, v2, mesh.get().vecEntries[ok.asInt(9)], 0xff0000);
-                                } else if (ok.regex() == State.face5Regex) {
-                                    mesh.get().pent(v0, v1, v2, mesh.get().vecEntries[ok.asInt(9)], mesh.get().vecEntries[ok.asInt(10)], 0x0000ff);
-                                } else {
-                                    mesh.get().hex(v0, v1, v2, mesh.get().vecEntries[ok.asInt(9)], mesh.get().vecEntries[ok.asInt(10)], mesh.get().vecEntries[ok.asInt(11)], 0xfff000);
-                                }
-                            } else if (s.r().matches(line)) {
-                                mesh.get().fin();
-                                sm.done();
-                            }else if (!State.remRegex.matches(line)){
-                                System.out.println("UNHANDLED "+line);
+                        case State.awaiting_faces _ when State.vertexRegex.is(line, F32x3::new) instanceof F32x3 f32x3 ->{
+                            if (old) {
+                                oldMesh.get().vec3(f32x3.f(1), f32x3.f(2), f32x3.f(3));
+                            }else{
+                                newMesh.get().vec3(f32x3.f(1), f32x3.f(2), f32x3.f(3));
                             }
                         }
+                        case State.awaiting_faces _ when State.facesRegex.matchesOrThrow(line) ->
+                                sm.awaiting_hue_lig_sat();
+                        case State.awaiting_hue_lig_sat _ when State.face6Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
+                            if (old) {
+                                oldMesh.get().hex(
+                                        oldMesh.get().vecEntries[s32xN.asInt(6)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(7)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(8)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(9)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(10)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(11)],
+                                        0xff7f00);
+                            }else {
+                                var h = hex.of(newMesh.get().vecEntries,s32xN);
+                                newMesh.get().hex(h.v0(),h.v1(),h.v2(),h.v3(),h.v4(),h.v5(), 0xff7f00);
+                            }
+                        }
+                        case State.awaiting_hue_lig_sat _ when State.face5Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
+                               if (old) {
+                                   oldMesh.get().pent(
+                                           oldMesh.get().vecEntries[s32xN.asInt(6)],
+                                           oldMesh.get().vecEntries[s32xN.asInt(7)],
+                                           oldMesh.get().vecEntries[s32xN.asInt(8)],
+                                           oldMesh.get().vecEntries[s32xN.asInt(9)],
+                                           oldMesh.get().vecEntries[s32xN.asInt(10)],
+                                           0x7fff00);
+                               }else{
+                                   var h = pent.of(newMesh.get().vecEntries,s32xN);
+                                   newMesh.get().pent(h.v0(),h.v1(),h.v2(),h.v3(),h.v4(), 0xfff000);
+                               }
+                        }
+                        case State.awaiting_hue_lig_sat _ when State.face4Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
+                            if (old) {
+                                oldMesh.get().quad(
+                                        oldMesh.get().vecEntries[s32xN.asInt(6)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(7)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(8)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(9)],
+                                        0x00ff7f);
+                            }else{
+                                var h = quad.of(newMesh.get().vecEntries,s32xN);
+                                newMesh.get().quad(h.v0(),h.v1(),h.v2(),h.v3(), 0xfff000);
+                            }
+                        }
+                        case State.awaiting_hue_lig_sat _ when State.face3Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
+                            if (old){
+                                oldMesh.get().tri(
+                                        oldMesh.get().vecEntries[s32xN.asInt(6)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(7)],
+                                        oldMesh.get().vecEntries[s32xN.asInt(8)],
+                                        0x007fff);
+                            }else{
+                                var h = tri.of(newMesh.get().vecEntries,s32xN);
+                                newMesh.get().tri(h.v0(),h.v1(),h.v2(), 0xfff000);
+                            }
+                        }
+                        case State.awaiting_hue_lig_sat s when s.r().matches(line) -> {
+                            if (old) {
+                                oldMesh.get().fin();
+                            }else{
+                                newMesh.get().fin();
+                            }
+                            sm.done();
+                        }
+                        case State.awaiting_hue_lig_sat _ when !State.remRegex.matches(line) ->
+                                System.out.println("UNHANDLED " + line);
+
                         case State.done _-> {}
                         case State _ when Regex.any(line, State.remRegex, State.emptyRegex, State.colonRegex).matched()->{}
                         case State _ ->{}
                     }
                 });
     }
+    /*
     private  void loadNew(String name) {
-        final var mesh = StreamMutable.of((F32.Mesh) null);
+        final var newMesh = StreamMutable.of((F32.Mesh) null);
         final var sm = new State.Machine().awaiting_name();
         new BufferedReader(
                 new InputStreamReader(EliteMeshReader.class.getResourceAsStream("/meshes/Elite.txt"), StandardCharsets.UTF_8))
@@ -293,36 +348,35 @@ class EliteMeshReader {
                 .map(String::trim)
                 .forEach(line -> {
                     switch (sm.state) {
-                        case State.awaiting_name s when s.r().matches(line, whoseMatcher ->
-                                whoseMatcher.group(1).equals(name)) -> {
+                        case State.awaiting_name s when s.r().matches(line, whoseMatcher -> whoseMatcher.group(1).equals(name)) -> {
                             sm.awaiting_lazer();
-                            mesh.set(F32.Mesh.of(name));
+                            newMesh.set(F32.Mesh.of(name));
                         }
                         case State.awaiting_lazer s when s.r().matches(line) -> sm.awaiting_counts();
                         case State.awaiting_counts s when s.r().matches(line) -> sm.awaiting_vertices();
                         case State.awaiting_vertices s when s.r().matches(line) -> sm.awaiting_faces();
                         case State.awaiting_faces _ when State.vertexRegex.is(line, F32x3::new) instanceof F32x3 f32x3 ->
-                                mesh.get().vec3(f32x3.f(1), f32x3.f(2), f32x3.f(3));
+                                newMesh.get().vec3(f32x3.f(1), f32x3.f(2), f32x3.f(3));
                         case State.awaiting_faces _ when State.facesRegex.matchesOrThrow(line) ->
                                 sm.awaiting_hue_lig_sat();
                         case State.awaiting_hue_lig_sat _ when State.face6Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
-                            var h = hex.of(mesh.get().vecEntries,s32xN);
-                            mesh.get().hex(h.v0(),h.v1(),h.v2(),h.v3(),h.v4(),h.v5(), 0xfff000);
+                            var h = hex.of(newMesh.get().vecEntries,s32xN);
+                            newMesh.get().hex(h.v0(),h.v1(),h.v2(),h.v3(),h.v4(),h.v5(), 0xfff000);
                         }
                         case State.awaiting_hue_lig_sat _ when State.face5Regex.is(line, S32xN::new) instanceof S32xN s32xN -> {
-                            var h = hex.of(mesh.get().vecEntries,s32xN);
-                            mesh.get().pent(h.v0(),h.v1(),h.v2(),h.v3(),h.v4(), 0xfff000);
+                            var h = hex.of(newMesh.get().vecEntries,s32xN);
+                            newMesh.get().pent(h.v0(),h.v1(),h.v2(),h.v3(),h.v4(), 0xfff000);
                         }
                         case State.awaiting_hue_lig_sat _ when State.face4Regex.is(line,S32xN::new) instanceof S32xN s32xN ->{
-                            var h = quad.of(mesh.get().vecEntries,s32xN);
-                            mesh.get().quad(h.v0(),h.v1(),h.v2(),h.v3(), 0xfff000);
+                            var h = quad.of(newMesh.get().vecEntries,s32xN);
+                            newMesh.get().quad(h.v0(),h.v1(),h.v2(),h.v3(), 0xfff000);
                         }
                         case State.awaiting_hue_lig_sat _ when State.face3Regex.is(line, S32xN::new) instanceof S32xN s32xN -> {
-                            var h = tri.of(mesh.get().vecEntries,s32xN);
-                            mesh.get().tri(h.v0(),h.v1(),h.v2(), 0xfff000);
+                            var h = tri.of(newMesh.get().vecEntries,s32xN);
+                            newMesh.get().tri(h.v0(),h.v1(),h.v2(), 0xfff000);
                         }
                         case State.awaiting_hue_lig_sat s when s.r().matches(line) -> {
-                            mesh.get().fin();
+                            newMesh.get().fin();
                             sm.done();
                         }
                         case State.awaiting_hue_lig_sat _ when !State.remRegex.matches(line) ->
@@ -331,15 +385,8 @@ class EliteMeshReader {
                         }
                         case State _ when Regex.any(line, State.remRegex, State.emptyRegex, State.colonRegex).matched() -> {
                         }
-                        case State _ -> {/*no state change*/ }
+                        case State _ -> { }
                     }
                 });
-    }
-    void load(String name,boolean old){
-        if (old){
-            loadOld(name);
-        }else {
-            loadNew(name);
-        }
-    }
+    }*/
 }

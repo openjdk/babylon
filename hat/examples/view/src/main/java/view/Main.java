@@ -44,7 +44,7 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-      //  args.add("COBRA");
+        args.add("ANACONDA");
         var eliteReader = new EliteMeshReader();
         boolean old =true;// Boolean.getBoolean("old");
         var wire = Rasterizer.wireOf(1024, 1024);
