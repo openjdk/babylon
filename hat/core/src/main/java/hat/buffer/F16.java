@@ -82,6 +82,10 @@ public interface F16 extends Buffer.Struct {
         return F16.of(f16ToFloat(ha) + f16ToFloat(hb));
     }
 
+    static float add(float ha, F16 hb) {
+        return ha + f16ToFloat(hb);
+    }
+
     static F16 sub(F16 ha, F16 hb) {
         return F16.of(f16ToFloat(ha) - f16ToFloat(hb));
     }
