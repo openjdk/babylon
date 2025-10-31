@@ -147,7 +147,7 @@ public final class CodeModelSymbols {
         return new Attribute.Array(intArrayType, ints.map(i -> new Attribute.Constant(syms.intType, i)));
     }
 
-    Attribute.Compound op(Op op, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, Queue<Body> backlog) {
+    Attribute.Compound op(Op op, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, ListBuffer<Attribute> bodyAttributes) {
         var lb = new ListBuffer<Pair<MethodSymbol, Attribute>>();
         lb.add(Pair.of(opName, stringConstant(op.externalizeOpName())));
         if (op.location() != null) {
@@ -158,6 +158,7 @@ public final class CodeModelSymbols {
             lb.add(Pair.of(opSuccessors, new Attribute.Array(blockReferenceArrayType, successors(List.from(op.successors()), valueIndexer, blockIndexer))));
         }
         if (op.resultType() != JavaType.VOID) {
+            valueIndexer.indexOf(op.result());
             lb.add(Pair.of(opResultType, stringConstant(op.resultType().externalize().toString())));
         }
         if (!op.externalize().isEmpty()) {
@@ -168,30 +169,28 @@ public final class CodeModelSymbols {
                     }).map(this::stringConstant).toList()))));
         }
         if (!op.bodies().isEmpty()) {
-            lb.add(Pair.of(opBodyDefinitions, intArray(List.from(op.bodies()).map(bodyIndexer::indexOf))));
-            backlog.addAll(op.bodies());
+            var bodies = List.from(op.bodies());
+            bodies(bodies, valueIndexer, blockIndexer, bodyIndexer, bodyAttributes);
+            lb.add(Pair.of(opBodyDefinitions, intArray(bodies.map(bodyIndexer::indexOf))));
         }
         return new Attribute.Compound(opType, lb.toList());
     }
 
-    List<Attribute> bodies(Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, Queue<Body> backlog) {
-        var lb = new ListBuffer<Attribute>();
-        while (!backlog.isEmpty()) {
-            Body body = backlog.poll();
-            body.blocks().forEach(blockIndexer::indexOf);
-            lb.add(new Attribute.Compound(bodyType, List.of(Pair.of(bodyYieldType, stringConstant(body.yieldType().externalize().toString())),
-                Pair.of(bodyBlocks, new Attribute.Array(blockArrayType, blocks(List.from(body.blocks()), valueIndexer, blockIndexer, bodyIndexer, backlog))))));
+    void bodies(List<Body> bodies, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, ListBuffer<Attribute> bodyAttributes) {
+        for (Body body : bodies) {
+            bodyAttributes.add(new Attribute.Compound(bodyType, List.of(Pair.of(bodyYieldType, stringConstant(body.yieldType().externalize().toString())),
+                Pair.of(bodyBlocks, new Attribute.Array(blockArrayType, blocks(List.from(body.blocks()), valueIndexer, blockIndexer, bodyIndexer, bodyAttributes))))));
 
         }
-        return lb.toList();
     }
 
-    List<Attribute> blocks(List<Block> blocks, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, Queue<Body> backlog) {
+    List<Attribute> blocks(List<Block> blocks, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, ListBuffer<Attribute> bodyAttributes) {
         var lb = new ListBuffer<Attribute>();
         for (Block block : blocks) {
+            blockIndexer.indexOf(block);
             lb.add(new Attribute.Compound(blockType,
                     List.of(Pair.of(blockParamTypes, new Attribute.Array(stringArrayType, List.from(block.parameterTypes()).map(pt -> stringConstant(pt.externalize().toString())))),
-                    Pair.of(blockOps, new Attribute.Array(opArrayType, List.from(block.ops()).map(op -> op(op, valueIndexer, blockIndexer, bodyIndexer, backlog)))))));
+                    Pair.of(blockOps, new Attribute.Array(opArrayType, List.from(block.ops()).map(op -> op(op, valueIndexer, blockIndexer, bodyIndexer, bodyAttributes)))))));
         }
         return lb.toList();
     }
@@ -210,9 +209,9 @@ public final class CodeModelSymbols {
         Indexer<Value> valueIndexer = new Indexer<>();
         Indexer<Block> blockIndexer = new Indexer<>();
         Indexer<Body> bodyIndexer = new Indexer<>();
-        Queue<Body> backlog = new ArrayDeque<>();
+        ListBuffer<Attribute> bodies = new ListBuffer<>();
         return new Attribute.Compound(codeModelType, List.of(
-                Pair.of(modelFuncOp, op(funcOp, valueIndexer, blockIndexer, bodyIndexer, backlog)),
-                Pair.of(modelBodies, new Attribute.Array(bodyArrayType, bodies(valueIndexer, blockIndexer, bodyIndexer, backlog)))));
+                Pair.of(modelFuncOp, op(funcOp, valueIndexer, blockIndexer, bodyIndexer, bodies)),
+                Pair.of(modelBodies, new Attribute.Array(bodyArrayType, bodies.toList()))));
     }
 }

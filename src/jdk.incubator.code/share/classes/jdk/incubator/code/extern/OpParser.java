@@ -44,6 +44,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Gatherers;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -175,7 +177,9 @@ public final class OpParser {
     public static CoreOp.FuncOp fromJavaCodeModelAnnotation(CodeModel cm) {
         DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
         Context c = new Context(f.opFactory(), f.typeElementFactory());
-        OpNode n = parseOpNode(-1, cm.funcOp(), cm.bodies());
+        System.out.println(cm);
+        OpNode n = new CodeModelParser(cm.bodies()).parseOpNode(cm.funcOp());
+        System.out.println(n);
         Op op = nodeToOp(n, VOID, c, null);
         if (!(op instanceof CoreOp.FuncOp fop)) {
             throw new IllegalArgumentException("Op is not a FuncOp: " + op);
@@ -183,18 +187,36 @@ public final class OpParser {
         return fop;
     }
 
-    static OpNode parseOpNode(int opIndex, CodeModel.Op op, CodeModel.Body[] allBodies) {
-        return new OpNode(
-                op.resultType().isEmpty() ? null : new ValueNode(String.valueOf(opIndex), parseExTypeElem(op.resultType())),
-                op.name(),
-                toStrings(op.operands()),
-                Stream.of(op.successors()).map(br -> new SuccessorNode(String.valueOf(br.block()), toStrings(br.arguments()))).toList(),
-                null, // attributes
-                IntStream.of(op.bodyDefinitions()).mapToObj(bi -> parseBodyNode(bi, allBodies)).toList());
-    }
+    static final class CodeModelParser {
 
-    static BodyNode parseBodyNode(int bodyIndex, CodeModel.Body[] allBodies) {
-        return null;
+        final CodeModel.Body[] allBodies;
+        int valueIndex, blockIndex;
+
+        public CodeModelParser(CodeModel.Body[] allBodies) {
+            this.allBodies = allBodies;
+            valueIndex = -1;
+            blockIndex = -1;
+        }
+
+        OpNode parseOpNode(CodeModel.Op op) {
+            return new OpNode(
+                    op.resultType().isEmpty() ? null : new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(op.resultType())),
+                    op.name(),
+                    toStrings(op.operands()),
+                    Stream.of(op.successors()).map(br -> new SuccessorNode(String.valueOf(br.block()), toStrings(br.arguments()))).toList(),
+                    Stream.of(op.attributes()).gather(Gatherers.windowFixed(2)).collect(Collectors.toMap(List::getFirst, l -> parseAttributeValue(l.get(1)))),
+                    IntStream.of(op.bodyDefinitions()).mapToObj(bi -> parseBodyNode(bi)).toList());
+        }
+
+        BodyNode parseBodyNode(int bodyIndex) {
+            CodeModel.Body body = allBodies[bodyIndex];
+            return new BodyNode(
+                    parseExTypeElem(body.yieldType()),
+                    Stream.of(body.blocks()).map(bl -> new BlockNode(
+                            String.valueOf(++blockIndex),
+                            Stream.of(bl.paramTypes()).map(pt -> new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(pt))).toList(),
+                            Stream.of(bl.ops()).map(this::parseOpNode).toList())).toList());
+        }
     }
 
     static List<String> toStrings(int[] indexes) {
@@ -203,6 +225,12 @@ public final class OpParser {
 
     static ExternalizedTypeElement parseExTypeElem(String desc) {
         return JavaTypeUtils.inflate(DescParser.parseExTypeElem(desc));
+    }
+
+    static Object parseAttributeValue(String value) {
+        Scanner sc = Scanner.factory().newScanner(value);
+        sc.nextToken();
+        return new OpParser(sc).parseAttributeValue();
     }
 
     /**
