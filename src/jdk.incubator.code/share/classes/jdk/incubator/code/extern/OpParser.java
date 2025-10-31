@@ -31,6 +31,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.internal.CodeModel;
 import jdk.incubator.code.extern.impl.Tokens.TokenKind;
 import jdk.incubator.code.extern.impl.DescParser;
 import jdk.incubator.code.extern.impl.Lexer;
@@ -180,29 +181,18 @@ public final class OpParser {
                         .getDeclaredMethod(ste.getMethodName())
                         .getAnnotation(CodeModel.class);
                 if (cm != null) {
-                    return fromAnnotation(cm);
+                    DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
+                    Context c = new Context(f.opFactory(), f.typeElementFactory());
+                    OpNode n = new CodeModelParser(cm.bodies()).parseOpNode(cm.funcOp());
+                    Op op = nodeToOp(n, VOID, c, null);
+                    op.seal();
+                    return op;
                 }
             } catch (ReflectiveOperationException  ex) {
                 throw new RuntimeException(ex);
             }
         }
         return null;
-    }
-
-    /**
-     * Parse a code model from its serialized annotation form.
-     *
-     * @param cm the input code model annotation
-     * @return the function operation
-     * @throws IllegalArgumentException if parsing fails
-     */
-    public static Op fromAnnotation(CodeModel cm) {
-        DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
-        Context c = new Context(f.opFactory(), f.typeElementFactory());
-        OpNode n = new CodeModelParser(cm.bodies()).parseOpNode(cm.funcOp());
-        Op op = nodeToOp(n, VOID, c, null);
-        op.seal();
-        return op;
     }
 
     static final class CodeModelParser {

@@ -23,7 +23,7 @@
  * questions.
  */
 
-package jdk.incubator.code;
+package jdk.incubator.code.internal;
 
 import java.lang.annotation.*;
 
