@@ -123,6 +123,28 @@ public class TestF16Type {
     }
 
     @CodeReflection
+    public static void f16Ops_09(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            F16Array.F16 ha = a.array(kernelContext.gix);
+            float f = F16.f16ToFloat(ha);
+            F16Array.F16 result = F16.floatToF16(f);
+            F16Array.F16 hb = b.array(kernelContext.gix);
+            hb.value(result.value());
+        }
+    }
+
+    @CodeReflection
+    public static void f16Ops_10(@RO KernelContext kernelContext, @RO F16Array a) {
+        if (kernelContext.gix < kernelContext.gsx) {
+            F16Array.F16 ha = a.array(kernelContext.gix);
+            F16 f16 = F16.of(1.1f);
+            float f = F16.f16ToFloat(f16);
+            F16Array.F16 result = F16.floatToF16(f);
+            ha.value(result.value());
+        }
+    }
+
+    @CodeReflection
     public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
         computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.copy01(kernelContext, a, b));
@@ -162,6 +184,18 @@ public class TestF16Type {
     public static void compute08(@RO ComputeContext computeContext, @RW F16Array a) {
         ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
         computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.f16Ops_08(kernelContext, a));
+    }
+
+    @CodeReflection
+    public static void compute09(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
+        computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.f16Ops_09(kernelContext, a, b));
+    }
+
+    @CodeReflection
+    public static void compute10(@RO ComputeContext computeContext, @RW F16Array a) {
+        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
+        computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.f16Ops_10(kernelContext, a));
     }
 
     @HatTest
@@ -348,6 +382,41 @@ public class TestF16Type {
         for (int i = 0; i < arrayA.length(); i++) {
             short val = arrayA.array(i).value();
             HatAsserts.assertEquals(i, Float.float16ToFloat(val), 0.01f);
+        }
+    }
+
+    @HatTest
+    public void testF16_09() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 16;
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F16Array arrayB = F16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(F16.floatToF16(r.nextFloat()).value());
+        }
+
+        accelerator.compute(computeContext -> TestF16Type.compute09(computeContext, arrayA, arrayB));
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            F16 val = arrayB.array(i);
+            HatAsserts.assertEquals(arrayA.array(i).value(), val.value());
+        }
+    }
+
+    @HatTest
+    public void testF16_10() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 256;
+        F16Array arrayA = F16Array.create(accelerator, size);
+
+        accelerator.compute(computeContext -> TestF16Type.compute10(computeContext, arrayA));
+
+        for (int i = 0; i < arrayA.length(); i++) {
+            F16 val = arrayA.array(i);
+            HatAsserts.assertEquals(1.1f, F16.f16ToFloat(val), 0.01f);
         }
     }
 

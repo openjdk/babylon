@@ -38,8 +38,10 @@ public interface F16Array extends Buffer {
         short value();
         void value(short value);
 
-        // Intrinsic for the HAT compiler to create a
-        // new half
+
+        /**
+         * Intrinsic for the HAT compiler to create a new half.
+         */
         static F16 of(float value) {
             return new F16() {
                 @Override
@@ -53,6 +55,9 @@ public interface F16Array extends Buffer {
             };
         }
 
+        /**
+         * Built-in that can be used on GPUs to transform a float into a F16 value.
+         */
         static F16 floatToF16(float value) {
             return of(value);
         }

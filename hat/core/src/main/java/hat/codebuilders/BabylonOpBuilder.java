@@ -28,6 +28,7 @@ import hat.dialect.HATBarrierOp;
 import hat.dialect.HATBlockThreadIdOp;
 import hat.dialect.HATF16BinaryOp;
 import hat.dialect.HATF16ConvOp;
+import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATF16VarLoadOp;
 import hat.dialect.HATF16VarOp;
 import hat.dialect.HATVectorMakeOfOp;
@@ -147,6 +148,8 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
 
     T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorMakeOfOp hatVectorMakeOfOp);
 
+    T hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp);
+
     default T recurse(ScopedCodeBuilderContext buildContext, Op op) {
         switch (op) {
             case CoreOp.VarAccessOp.VarLoadOp $ -> varLoadOp(buildContext, $);
@@ -195,6 +198,7 @@ public interface BabylonOpBuilder<T extends HATCodeBuilderWithContext<?>> {
             case HATF16VarLoadOp $ -> hatF16VarLoadOp(buildContext, $);
             case HATF16ConvOp $ -> hatF16ConvOp(buildContext, $);
             case HATVectorMakeOfOp $ -> hatVectorMakeOf(buildContext, $);
+            case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp(buildContext, $);
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

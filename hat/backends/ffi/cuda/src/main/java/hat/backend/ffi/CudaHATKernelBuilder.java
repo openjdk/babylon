@@ -28,6 +28,7 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.dialect.HATF16ConvOp;
+import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATVectorBinaryOp;
 import hat.dialect.HATVectorLoadOp;
 import hat.dialect.HATVectorOfOp;
@@ -228,6 +229,20 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value param =  hatF16ConvOp.operands().getFirst();
         if (param instanceof Op.Result r) {
             recurse(buildContext, r.op());
+        }
+        cparen();
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatF16ToFloatConvOp(ScopedCodeBuilderContext builderContext, HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+        identifier("__half2float").oparen();
+        Value param =  hatF16ToFloatConvOp.operands().getFirst();
+        if (param instanceof Op.Result r) {
+            recurse(builderContext, r.op());
+        }
+        if (!hatF16ToFloatConvOp.isLocal()) {
+            rarrow().identifier("value");
         }
         cparen();
         return self();
