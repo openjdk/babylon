@@ -178,9 +178,11 @@ public final class CodeModelSymbols {
 
     void bodies(List<Body> bodies, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, ListBuffer<Attribute> bodyAttributes) {
         for (Body body : bodies) {
+            bodyIndexer.indexOf(body);
+            var nested = new ListBuffer<Attribute>();
             bodyAttributes.add(new Attribute.Compound(bodyType, List.of(Pair.of(bodyYieldType, stringConstant(body.yieldType().externalize().toString())),
-                Pair.of(bodyBlocks, new Attribute.Array(blockArrayType, blocks(List.from(body.blocks()), valueIndexer, blockIndexer, bodyIndexer, bodyAttributes))))));
-
+                Pair.of(bodyBlocks, new Attribute.Array(blockArrayType, blocks(List.from(body.blocks()), valueIndexer, blockIndexer, bodyIndexer, nested))))));
+            bodyAttributes.appendList(nested);
         }
     }
 
@@ -188,6 +190,7 @@ public final class CodeModelSymbols {
         var lb = new ListBuffer<Attribute>();
         for (Block block : blocks) {
             blockIndexer.indexOf(block);
+            block.parameters().forEach(valueIndexer::indexOf);
             lb.add(new Attribute.Compound(blockType,
                     List.of(Pair.of(blockParamTypes, new Attribute.Array(stringArrayType, List.from(block.parameterTypes()).map(pt -> stringConstant(pt.externalize().toString())))),
                     Pair.of(blockOps, new Attribute.Array(opArrayType, List.from(block.ops()).map(op -> op(op, valueIndexer, blockIndexer, bodyIndexer, bodyAttributes)))))));
@@ -206,6 +209,7 @@ public final class CodeModelSymbols {
     }
 
     Attribute.Compound toCodeModelAnnotation(CoreOp.FuncOp funcOp) {
+        System.out.println(funcOp.toText());
         Indexer<Value> valueIndexer = new Indexer<>();
         Indexer<Block> blockIndexer = new Indexer<>();
         Indexer<Body> bodyIndexer = new Indexer<>();
