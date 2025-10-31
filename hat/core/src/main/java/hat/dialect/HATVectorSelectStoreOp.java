@@ -76,4 +76,5 @@ public class HATVectorSelectStoreOp extends HATVectorOp {
     public CoreOp.VarOp resultValue() {
         return resultVarOp;
     }
+
 }

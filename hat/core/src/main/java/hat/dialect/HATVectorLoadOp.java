@@ -74,4 +74,12 @@ public class HATVectorLoadOp extends HATVectorOp {
     public boolean isSharedOrPrivate() {
         return this.isSharedOrPrivate;
     }
+
+    public String buildType() {
+        // floatN
+        if (vectorType.toString().startsWith("hat.buffer.Float")) {
+            return "float" + loadN;
+        }
+        throw new RuntimeException("Unexpected vector type " + vectorType);
+    }
 }

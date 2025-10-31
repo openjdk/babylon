@@ -75,4 +75,9 @@ public final class HATVectorStoreView extends HATVectorOp {
         return this.isSharedOrPrivate;
     }
 
+    @Override
+    public String buildType() {
+        // floatN
+        return vectorType.type();
+    }
 }
