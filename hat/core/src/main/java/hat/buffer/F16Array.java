@@ -40,12 +40,11 @@ public interface F16Array extends Buffer {
 
         // Intrinsic for the HAT compiler to create a
         // new half
-        String F16_INSTANCE_OF = "of";
         static F16 of(float value) {
             return new F16() {
                 @Override
                 public short value() {
-                    return floatToF16(value);
+                    return Float.floatToFloat16(value);
                 }
 
                 @Override
@@ -54,28 +53,28 @@ public interface F16Array extends Buffer {
             };
         }
 
-        static short floatToF16(float value) {
-            return Float.floatToFloat16(value);
+        static F16 floatToF16(float value) {
+            return of(value);
         }
 
-        static float f16ToFloat(short value) {
-            return Float.float16ToFloat(value);
+        static float f16ToFloat(F16 value) {
+            return Float.float16ToFloat(value.value());
         }
 
         static F16 add(F16 ha, F16 hb) {
-            return F16.of(f16ToFloat(ha.value()) + f16ToFloat(hb.value()));
+            return F16.of(f16ToFloat(ha) + f16ToFloat(hb));
         }
 
         static F16 sub(F16 ha, F16 hb) {
-            return F16.of(f16ToFloat(ha.value()) - f16ToFloat(hb.value()));
+            return F16.of(f16ToFloat(ha) - f16ToFloat(hb));
         }
 
         static F16 mul(F16 ha, F16 hb) {
-            return F16.of(f16ToFloat(ha.value()) * f16ToFloat(hb.value()));
+            return F16.of(f16ToFloat(ha) * f16ToFloat(hb));
         }
 
         static F16 div(F16 ha, F16 hb) {
-            return F16.of(f16ToFloat(ha.value()) / f16ToFloat(hb.value()));
+            return F16.of(f16ToFloat(ha) / f16ToFloat(hb));
         }
     }
 

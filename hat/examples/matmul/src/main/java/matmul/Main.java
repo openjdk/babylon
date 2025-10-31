@@ -636,7 +636,7 @@ public class Main {
 
         // initialize values
         for (int i = 0; i < (TN * TN); i++) {
-            threadResults.array(i, F16.floatToF16(0.0f));
+            threadResults.array(i, F16.of(0.0f).value());
         }
 
         // Each thread loops over the tiles
@@ -835,8 +835,8 @@ public class Main {
             for (int j = 0; j < size; j++) {
                 float sum = 0;
                 for (int k = 0; k < size; k++) {
-                    float a = F16.f16ToFloat(matrixA.array((long) i * size + k).value());
-                    float b = F16.floatToF16(matrixB.array((long) k * size + j).value());
+                    float a = F16.f16ToFloat(matrixA.array((long) i * size + k));
+                    float b = F16.f16ToFloat(matrixB.array((long) k * size + j));
                     sum += a * b;
                 }
                 matrixC.array((long) i * size + j, sum);
@@ -929,8 +929,8 @@ public class Main {
                 matrixBHalf = F16Array.create(accelerator, size * size);
                 matrixCHalf = F16Array.create(accelerator, size * size);
                 for (int j = 0; j < matrixAHalf.length(); j++) {
-                    matrixAHalf.array(j).value(F16.floatToF16(r.nextFloat()));
-                    matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()));
+                    matrixAHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
+                    matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
                 }
             } else {
                 matrixBHalf = null;
@@ -995,7 +995,7 @@ public class Main {
                         if (configuration == Configuration._2DREGISTER_TILING_VECTORIZED) {
                             gotValue = matrixCPad.array(i * size + j);
                         } else if (configuration == Configuration._2DREGISTER_TILING_FP16) {
-                            gotValue = F16.f16ToFloat(matrixCHalf.array(i * size + j).value());
+                            gotValue = F16.f16ToFloat(matrixCHalf.array(i * size + j));
                         } else {
                             gotValue = matrixC.array(i * size + j);
                         }

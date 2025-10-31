@@ -441,8 +441,8 @@ public class TestMatMul {
         Random r = new Random(19);
 
         for (int j = 0; j < matrixA.length(); j++) {
-            matrixA.array(j).value(F16.floatToF16(r.nextFloat()));
-            matrixB.array(j).value(F16.floatToF16(r.nextFloat()));
+            matrixA.array(j).value(F16.floatToF16(r.nextFloat()).value());
+            matrixB.array(j).value(F16.floatToF16(r.nextFloat()).value());
         }
 
         accelerator.compute(cc ->

@@ -226,6 +226,11 @@ public class HATDialectifyFP16Phase implements HATDialect {
         return funcOp;
     }
 
+    private boolean isInitMethodForF16(JavaOp.InvokeOp invokeOp) {
+        return (isFP16Operation(invokeOp, "of")
+                || isFP16Operation(invokeOp, "floatToF16"));
+    }
+
     private CoreOp.FuncOp dialectifyF16Init(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "dialectifyF16Init");
         before(here,funcOp);
@@ -233,7 +238,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
         Stream<CodeElement<?, ?>> halfOps = funcOp.elements()
                 .mapMulti(((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if (isFP16Operation(invokeOp, F16.F16_INSTANCE_OF) && invokeOp.resultType() != JavaType.VOID) {
+                        if (isInitMethodForF16(invokeOp) && invokeOp.resultType() != JavaType.VOID) {
                             Set<Op.Result> uses = invokeOp.result().uses();
                             for (Op.Result result : uses) {
                                 if (result.op() instanceof CoreOp.VarOp varOp) {
