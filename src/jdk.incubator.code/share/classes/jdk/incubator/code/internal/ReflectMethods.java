@@ -182,14 +182,8 @@ public class ReflectMethods extends TreeTranslator {
                     // dump the method IR if requested
                     log.note(MethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
-                switch (codeModelStorageOption) {
-                    case CODE_MODEL_ATTRIBUTE ->
-                        // create code model annotation
-                        tree.sym.appendAttributes(com.sun.tools.javac.util.List.of(cmSyms.toCodeModelAttribute(funcOp)));
-                    case CODE_BUILDER ->
-                        // create a static method that returns the op
-                        classOps.add(opMethodDecl(methodName(symbolToMethodRef(tree.sym)), funcOp, codeModelStorageOption));
-                }
+                // create a static method that returns the op
+                classOps.add(opMethodDecl(methodName(symbolToMethodRef(tree.sym)), funcOp, codeModelStorageOption));
             }
         }
         super.visitMethodDef(tree);
@@ -386,15 +380,25 @@ public class ReflectMethods extends TreeTranslator {
         var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
         currentClassSym.members().enter(ms);
 
-        // Create the method body
-        // Code model is stored as code that builds the code model
-        // using the builder API and public APIs
-        var opBuilder = OpBuilder.createBuilderFunction(op,
-                b -> b.op(JavaOp.fieldLoad(
-                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-        var codeModelTranslator = new CodeModelTranslator();
-        var body = codeModelTranslator.translateFuncOp(opBuilder, ms);
-
+        var body = switch (codeModelStorageOption) {
+            case CODE_BUILDER -> {
+                // Create the method body
+                // Code model is stored as code that builds the code model
+                // using the builder API and public APIs
+                var opBuilder = OpBuilder.createBuilderFunction(op,
+                        b -> b.op(JavaOp.fieldLoad(
+                                FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
+                var codeModelTranslator = new CodeModelTranslator();
+                yield codeModelTranslator.translateFuncOp(opBuilder, ms);
+            }
+            case CODE_MODEL_ATTRIBUTE -> {
+                // create code model annotation
+                ms.appendAttributes(com.sun.tools.javac.util.List.of(cmSyms.toCodeModelAttribute(op)));
+                // create method building the model from annotation
+                // return OpParser.fromCallerAnnotation();
+                yield make.Return(make.App(make.Ident(cmSyms.fromCallerAnnotation)));
+            }
+        };
         var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
         return md;
     }

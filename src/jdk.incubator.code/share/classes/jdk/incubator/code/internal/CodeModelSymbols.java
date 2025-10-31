@@ -78,7 +78,8 @@ public final class CodeModelSymbols {
                blockType,
                blockReferenceType,
                blockReferenceArrayType,
-               opType;
+               opType,
+               opParserType;
 
     final MethodSymbol modelFuncOp,
                        modelBodies,
@@ -96,7 +97,8 @@ public final class CodeModelSymbols {
                        opSourceRef,
                        opLocation,
                        opAttributes,
-                       opBodyDefinitions;
+                       opBodyDefinitions,
+                       fromCallerAnnotation;
 
     CodeModelSymbols(Context context) {
         syms = Symtab.instance(context);
@@ -114,6 +116,7 @@ public final class CodeModelSymbols {
         blockReferenceArrayType = types.makeArrayType(blockReferenceType);
         opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.CodeModel$Op");
         opArrayType = types.makeArrayType(opType);
+        opParserType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.extern.OpParser");
         var atypes = new Object() {
             MethodSymbol methodType(String name, Type restype, Type owner) {
                 return new MethodSymbol(
@@ -140,6 +143,11 @@ public final class CodeModelSymbols {
         opLocation = atypes.methodType("location", intArrayType, opType);
         opAttributes = atypes.methodType("attributes", stringArrayType, opType);
         opBodyDefinitions = atypes.methodType("bodyDefinitions", intArrayType, opType);
+        var opT = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
+        fromCallerAnnotation = new MethodSymbol(Flags.PUBLIC | Flags.STATIC,
+                                        names.fromString("fromCallerAnnotation"),
+                                        new MethodType(List.nil(), opT, List.nil(), syms.methodClass),
+                                        opParserType.tsym);
     }
 
     Attribute.Constant stringConstant(String s) {

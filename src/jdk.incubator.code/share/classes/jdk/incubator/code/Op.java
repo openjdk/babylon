@@ -39,7 +39,6 @@ import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.extern.OpWriter;
 import jdk.internal.access.SharedSecrets;
 
@@ -547,10 +546,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     private static Optional<FuncOp> createCodeModel(Method method) {
-        if (method.getAnnotation(CodeModel.class) instanceof CodeModel cm) {
-            return Optional.of(OpParser.fromJavaCodeModelAnnotation(cm));
-        }
-        // fallback to the builder storage
         char[] sig = MethodRef.method(method).toString().toCharArray();
         for (int i = 0; i < sig.length; i++) {
             switch (sig[i]) {

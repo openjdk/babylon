@@ -44,8 +44,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Gatherers;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -168,22 +166,43 @@ public final class OpParser {
     }
 
     /**
+     * Parse a code model from its serialized annotation form obtained from the caller method.
+     *
+     * @return the function operation
+     * @throws IllegalArgumentException if parsing fails
+     */
+    public static Op fromCallerAnnotation() {
+        var st = Thread.currentThread().getStackTrace();
+        if (st.length > 2) {
+            var ste = st[2];
+            try {
+                var cm = Class.forName(ste.getClassName())
+                        .getDeclaredMethod(ste.getMethodName())
+                        .getAnnotation(CodeModel.class);
+                if (cm != null) {
+                    return fromAnnotation(cm);
+                }
+            } catch (ReflectiveOperationException  ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+        return null;
+    }
+
+    /**
      * Parse a code model from its serialized annotation form.
      *
      * @param cm the input code model annotation
      * @return the function operation
      * @throws IllegalArgumentException if parsing fails
      */
-    public static CoreOp.FuncOp fromJavaCodeModelAnnotation(CodeModel cm) {
+    public static Op fromAnnotation(CodeModel cm) {
         DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
         Context c = new Context(f.opFactory(), f.typeElementFactory());
         OpNode n = new CodeModelParser(cm.bodies()).parseOpNode(cm.funcOp());
         Op op = nodeToOp(n, VOID, c, null);
-        if (!(op instanceof CoreOp.FuncOp fop)) {
-            throw new IllegalArgumentException("Op is not a FuncOp: " + op);
-        }
-        fop.seal();
-        return fop;
+        op.seal();
+        return op;
     }
 
     static final class CodeModelParser {
