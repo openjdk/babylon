@@ -185,7 +185,7 @@ public class ReflectMethods extends TreeTranslator {
                 // create a static method that returns the op
                 classOps.add(opMethodDecl(methodName(symbolToMethodRef(tree.sym)), funcOp, codeModelStorageOption));
                 // create code model annotation
-                tree.sym.appendAttributes(com.sun.tools.javac.util.List.of(cmSyms.toCodeModelAttribute(funcOp)));
+                tree.sym.appendAttributes(com.sun.tools.javac.util.List.of(cmSyms.toCodeModelAnnotation(funcOp)));
             }
         }
         super.visitMethodDef(tree);
