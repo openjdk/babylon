@@ -944,7 +944,7 @@ public final class BytecodeGenerator {
                                                                   "lambda$" + lambdaIndex,
                                                                   mtd.insertParameterTypes(0, captureTypes)),
                                         mtd,
-                                        LambdaMetafactory.FLAG_QUOTABLE,
+                                        0,
                                         MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
                                                 className,
                                                 "op$lambda$" + lambdaIndex,

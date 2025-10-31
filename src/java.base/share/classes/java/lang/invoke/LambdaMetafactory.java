@@ -26,6 +26,7 @@
 package java.lang.invoke;
 
 import java.io.Serializable;
+import java.lang.invoke.InnerClassLambdaMetafactory.CodeReflectionSupport;
 import java.util.Arrays;
 import java.lang.reflect.Array;
 import java.util.Objects;
@@ -270,10 +271,6 @@ public final class LambdaMetafactory {
      */
     public static final int FLAG_BRIDGES = 1 << 2;
 
-    /** Flag for {@link #altMetafactory} indicating the lambda object
-     * must be inspectable using code reflection. */
-    public static final int FLAG_QUOTABLE = 1 << 3;
-
     private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
     private static final MethodType[] EMPTY_MT_ARRAY = new MethodType[0];
 
@@ -403,7 +400,6 @@ public final class LambdaMetafactory {
      *                          Class... altInterfaces,       // IF flags has MARKERS set
      *                          int altMethodCount,           // IF flags has BRIDGES set
      *                          MethodType... altMethods      // IF flags has BRIDGES set
-     *                          MethodHandle quotableField    // IF flags has QUOTABLE set
      *                          )
      * }</pre>
      *
@@ -427,10 +423,6 @@ public final class LambdaMetafactory {
      *     <li>{@code altMethods} is a variable-length list of additional
      *     methods signatures to implement, whose length equals {@code altMethodCount},
      *     and is present if and only if the {@code FLAG_BRIDGES} flag is set.</li>
-     *     <li>{@code quotableField} is a
-     *     {@linkplain MethodHandles.Lookup#findGetter(Class, String, Class) getter} method handle
-     *     that is used to retrieve the string representation of the quotable lambda's associated
-     *     intermediate representation.</li>
      * </ul>
      *
      * <p>Each class named by {@code altInterfaces} is subject to the same
@@ -519,6 +511,11 @@ public final class LambdaMetafactory {
             }
             if (altInterfaceCount > 0) {
                 altInterfaces = extractArgs(args, argIndex, Class.class, altInterfaceCount);
+                for (Class<?> altInterface : altInterfaces) {
+                    if (altInterface.equals(CodeReflectionSupport.QUOTABLE_CLASS)) {
+                        quotableOpGetter = findQuotableOpGetter(caller, implementation);
+                    }
+                }
                 argIndex += altInterfaceCount;
             }
         }
@@ -531,9 +528,6 @@ public final class LambdaMetafactory {
                 altMethods = extractArgs(args, argIndex, MethodType.class, altMethodCount);
                 argIndex += altMethodCount;
             }
-        }
-        if ((flags & FLAG_QUOTABLE) != 0) {
-            quotableOpGetter = extractArg(args, argIndex++, MethodHandle.class);
         }
         if (argIndex < args.length) {
             throw new IllegalArgumentException("too many arguments");
@@ -563,6 +557,21 @@ public final class LambdaMetafactory {
                                                   quotableOpGetter);
         mf.validateMetafactoryArgs();
         return mf.buildCallSite();
+    }
+
+    private static MethodHandle findQuotableOpGetter(MethodHandles.Lookup lookup, MethodHandle impl) {
+        try {
+            String implName = lookup.revealDirect(impl).getName();
+            String[] implNameParts = implName.split("=");
+            if (implNameParts.length == 2) {
+                return lookup.findStatic(lookup.lookupClass(), implNameParts[1],
+                        MethodType.methodType(CodeReflectionSupport.OP_CLASS));
+            } else {
+                return null;
+            }
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
     }
 
     private static <T> T extractArg(Object[] args, int index, Class<T> type) {

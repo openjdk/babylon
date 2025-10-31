@@ -500,6 +500,7 @@ import sun.invoke.util.Wrapper;
         static final Class<?> QUOTED_CLASS;
         static final MethodHandle QUOTED_EXTRACT_OP_MH;
         static final Class<?> FUNC_OP_CLASS;
+        static final Class<?> OP_CLASS;
 
         static {
             try {
@@ -507,6 +508,7 @@ import sun.invoke.util.Wrapper;
                 ClassLoader cl = layer.findLoader("jdk.incubator.code");
                 QUOTED_CLASS = cl.loadClass("jdk.incubator.code.Quoted");
                 FUNC_OP_CLASS = cl.loadClass("jdk.incubator.code.dialect.core.CoreOp$FuncOp");
+                OP_CLASS = cl.loadClass("jdk.incubator.code.Op");
                 QUOTED_EXTRACT_OP_MH = Lookup.IMPL_LOOKUP.findStatic(QUOTED_CLASS, "extractOp",
                         MethodType.methodType(QUOTED_CLASS, FUNC_OP_CLASS, Object[].class));
             } catch (Throwable ex) {

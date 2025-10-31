@@ -835,9 +835,8 @@ public class LambdaToMethod extends TreeTranslator {
 
         List<Symbol> bridges = bridges(tree);
         boolean isSerializable = isSerializable(tree);
-        boolean isQuotable = isQuotable(tree);
         boolean needsAltMetafactory = tree.target.isIntersection() ||
-                isSerializable || isQuotable || bridges.length() > 1;
+                isSerializable || bridges.length() > 1;
 
         dumpStats(tree, needsAltMetafactory, nonDedupedRefSym);
 
@@ -858,7 +857,6 @@ public class LambdaToMethod extends TreeTranslator {
                 }
             }
             int flags = isSerializable ? FLAG_SERIALIZABLE : 0;
-            flags |= isQuotable ? FLAG_QUOTABLE : 0;
             boolean hasMarkers = markers.nonEmpty();
             boolean hasBridges = bridges.nonEmpty();
             if (hasMarkers) {
@@ -880,10 +878,6 @@ public class LambdaToMethod extends TreeTranslator {
                         staticArgs = staticArgs.append(((MethodType)s.erasure(types)));
                     }
                 }
-            }
-            if (isQuotable) {
-                MethodSymbol opMethodSym = tree.codeModel;
-                staticArgs = staticArgs.append(opMethodSym.asHandle());
             }
             if (isSerializable) {
                 int prevPos = make.pos;
@@ -949,10 +943,6 @@ public class LambdaToMethod extends TreeTranslator {
             return true;
         }
         return types.asSuper(tree.target, syms.serializableType.tsym) != null;
-    }
-
-    boolean isQuotable(JCFunctionalExpression tree) {
-        return tree.codeModel != null;
     }
 
     void dumpStats(JCFunctionalExpression tree, boolean needsAltMetafactory, Symbol sym) {
@@ -1106,6 +1096,10 @@ public class LambdaToMethod extends TreeTranslator {
             buf.append(syntheticMethodNameComponent(owner));
             buf.append("$");
             buf.append(kInfo.syntheticNameIndex(buf, 0));
+            if (tree.codeModel != null) {
+                buf.append("=");
+                buf.append(tree.codeModel.name);
+            }
             return names.fromString(buf.toString());
         }
 
@@ -1145,6 +1139,10 @@ public class LambdaToMethod extends TreeTranslator {
             // The above appended name components may not be unique, append
             // a count based on the above name components.
             buf.append(kInfo.syntheticNameIndex(buf, 1));
+            if (tree.codeModel != null) {
+                buf.append("=");
+                buf.append(tree.codeModel.name);
+            }
             String result = buf.toString();
             //System.err.printf("serializedLambdaName: %s -- %s\n", result, disam);
             return names.fromString(result);

@@ -640,6 +640,7 @@ public class TransTypes extends TreeTranslator {
         return interfaceParameterIsIntersectionOrUnionType(tree) ||
                 tree.hasKind(ReferenceKind.SUPER) ||
                 needsVarArgsConversion(tree) ||
+                tree.codeModel != null ||
                 isArrayOp(tree) ||
                 (!target.runtimeUseNestAccess() && isPrivateInOtherClass(tree)) ||
                 isProtectedInSuperClassOfEnclosingClassInOtherPackage(tree.sym, env.enclClass.sym) ||
