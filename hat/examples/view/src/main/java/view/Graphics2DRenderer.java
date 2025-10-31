@@ -31,35 +31,39 @@
  */
 package view;
 
+import view.f32.F32Triangle2D;
+import view.f32.F32Vec2;
+
 import java.awt.Graphics2D;
-import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
+import java.util.stream.IntStream;
 
-public interface Renderer {
-    enum DisplayMode {
-        FILL(false, true, false),
-        WIRE(true, false, false),
-        WIRE_SHOW_HIDDEN(true, false, true),
-        WIRE_AND_FILL(true, true, false);
-        final public boolean wire;
-        final public boolean filled;
-        final public boolean showHidden;
+public record Graphics2DRenderer(int width, int height, DisplayMode displayMode) implements Renderer {
+    static private Renderer of(int width, int height, DisplayMode displayMode) {
 
-        DisplayMode(boolean wire, boolean filled, boolean showHidden) {
-            this.wire = wire;
-            this.filled = filled;
-            this.showHidden = showHidden;
-        }
+        return new Graphics2DRenderer(width, height,displayMode);
     }
 
-    DisplayMode displayMode();
+    static public Renderer wireOf(int width, int height) {
+        return of(width, height, DisplayMode.WIRE);
+    }
 
-    void render(boolean old);
+    static public Renderer fillOf(int width, int height) {
+        return of(width, height, DisplayMode.FILL);
+    }
 
-    void paint(Graphics2D g);
 
-  //  Image image();
+    @Override
+    public void render(boolean old) {
+       // IntStream.range(0, width * height).parallel().forEach(id -> kernel(id, old));
+        //System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
+    }
 
-    int width();
+    @Override
+    public void paint(Graphics2D g) {/*
+        g.drawImage(image, 0, 0, width, height, null); */
+    }
 
-    int height();
+
 }

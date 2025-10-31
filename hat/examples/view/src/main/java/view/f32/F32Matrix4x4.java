@@ -215,7 +215,7 @@ public interface F32Matrix4x4 {
             return new Projection(id);
         }
 
-        static Projection of(float width, float height, float near, float far, float fieldOfViewDeg) {
+        public static Projection of(float width, float height, float near, float far, float fieldOfViewDeg) {
             float aspectRatio = height / width;
             float fieldOfViewRadians = (float) (1.0f / Math.tan((fieldOfViewDeg * 0.5f) / 180.0 * Math.PI));
             return of(F32Matrix4x4.of(
@@ -226,9 +226,9 @@ public interface F32Matrix4x4 {
 
         }
 
-        public static Projection of(Image image, float nearZ, float farZ, float fieldOfViewDeg){
-            return of(image.getWidth(null),image.getHeight(null), nearZ,farZ,fieldOfViewDeg);
-        }
+       // public static Projection of(int width, int height, float nearZ, float farZ, float fieldOfViewDeg){
+         //   return of(width,height, nearZ,farZ,fieldOfViewDeg);
+        //}
     }
 
 }

@@ -47,8 +47,8 @@ public class Main {
         //args.add("ANACONDA");
         var eliteReader = new EliteMeshReader();
         boolean old =true;// Boolean.getBoolean("old");
-        var wire = Rasterizer.wireOf(1024, 1024);
-        var fill = Rasterizer.fillOf(1024, 1024);
+        var wire = RasterizingRenderer.wireOf(1024, 1024);
+        var fill = RasterizingRenderer.fillOf(1024, 1024);
         Runnable cubeoctahedron =  () -> {
             for (int x = -2; x < 6; x += 2) {
                 for (int y = -2; y < 6; y += 2) {

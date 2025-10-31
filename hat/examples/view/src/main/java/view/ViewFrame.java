@@ -127,7 +127,7 @@ public class ViewFrame extends JFrame {
         if (old) {
             cameraVec3Old = F32Vec3.vec3.of(originX, originY, originZ);
            // lookDirVec3Old = F32Vec3.vec3.of(originX, originY, originZ);
-            var projF32Mat4x4_1 = F32Matrix4x4.Projection.of(renderer.image(), nearZ,farZ, fieldOfViewDegrees);
+            var projF32Mat4x4_1 = F32Matrix4x4.Projection.of(renderer.width(),renderer.height(), nearZ,farZ, fieldOfViewDegrees);
             var projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1.id(), F32Matrix4x4.Scale.of(quarterHeight).id());
             projF32Mat4x4Old = F32Matrix4x4.Projection.of(F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.Transformation.of(halfHeight).id()));
          //   centerVec3Old = F32Vec3.vec3.of(halfWidth, halfHeight, originZ);
@@ -136,7 +136,7 @@ public class ViewFrame extends JFrame {
         }else{
             cameraVec3New = F32.Vec3.of(originX, originY, originZ);
            // lookDirVec3New = F32.Vec3.of(originX, originY, originZ);
-            var projF32Mat4x4_1 = F32.Mat4x4.Projection.of(renderer.image(), nearZ, farZ, fieldOfViewDegrees);
+            var projF32Mat4x4_1 = F32.Mat4x4.Projection.of(renderer.width(),renderer.height(), nearZ, farZ, fieldOfViewDegrees);
             var projF32Mat4x4_2 = F32.Mat4x4.mul(projF32Mat4x4_1, F32.Mat4x4.Scale.of(quarterHeight));
             projF32Mat4x4New = F32.Mat4x4.mul(projF32Mat4x4_2, F32.Mat4x4.Transformation.of(halfHeight));
           //  centerVec3New = F32.Vec3.of(halfWidth, halfHeight, originZ);

@@ -39,11 +39,10 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.util.stream.IntStream;
 
-public record Rasterizer(int width, int height, BufferedImage image, int[] offscreenRgb,
-                         DisplayMode displayMode) implements Renderer {
+public record RasterizingRenderer(int width, int height,  DisplayMode displayMode, BufferedImage image, int[] offscreenRgb) implements Renderer {
     static private Renderer of(int width, int height, DisplayMode displayMode) {
         var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        return new Rasterizer(width, height, image, new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length], displayMode);
+        return new RasterizingRenderer(width, height, displayMode, image, new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length]);
     }
 
     static public Renderer wireOf(int width, int height) {
