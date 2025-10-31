@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-public class Utils {
+public class HATPhaseUtils {
 
     public static TypeElement getVectorElementType(String primitive) {
         return switch (primitive) {
@@ -59,26 +59,32 @@ public class Utils {
     public static VectorMetaData getVectorTypeInfo(JavaOp.InvokeOp invokeOp, int param) {
         Value varValue = invokeOp.operands().get(param);
         if (varValue instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            //return getVectorMetaData(varLoadOp.resultType());
             return getVectorTypeInfoWithCodeReflection(varLoadOp.resultType());
         }
         return null;
     }
 
     public static VectorMetaData getVectorTypeInfo(JavaOp.InvokeOp invokeOp) {
-        //return getVectorMetaData(invokeOp.resultType());
         return getVectorTypeInfoWithCodeReflection(invokeOp.resultType());
     }
 
-
     private static CoreOp.FuncOp buildCodeModelFor(Class<?> klass, String methodName) {
-        Optional<Method> myFunction = Stream.of(klass.getMethods())
+        Optional<Method> methodFunction = Stream.of(klass.getMethods())
                 .filter(m -> m.getName().equals(methodName))
                 .findFirst();
-        Method method = myFunction.get();
-        return Op.ofMethod(method).get();
+        return Op.ofMethod(methodFunction.get()).get();
     }
 
+    /**
+     * This method inspects the Vector Type Methods to obtain two methods for code-model:
+     * 1) Method `type` to obtain the primitive base type of the vector type.
+     * 2) Method `width` to obtain the number of lanes.
+     *
+     * @param typeElement
+     *  {@link TypeElement}
+     * @return
+     * {@link VectorMetaData}
+     */
     public static VectorMetaData getVectorTypeInfoWithCodeReflection(TypeElement typeElement) {
         Class<?> aClass;
         try {
@@ -111,23 +117,6 @@ public class Utils {
         });
         return new VectorMetaData(vectorElement.get(), lanes.get());
     }
-
-//    public static VectorMetaData getVectorMetaData(TypeElement typeElement) {
-//        try {
-//            Class<?> aClass = Class.forName(typeElement.toString());
-//            if (!aClass.isPrimitive()) {
-//                Annotation[] annotations = aClass.getAnnotations();
-//                for (Annotation annotation : annotations) {
-//                    if (annotation instanceof HATVectorType hatVectorType) {
-//                        return new VectorMetaData(getVectorElementType(hatVectorType.primitiveType()), hatVectorType.lanes());
-//                    }
-//                }
-//            }
-//        } catch (ClassNotFoundException _) {
-//        }
-//        return null;
-//    }
-
 
     public static int getWitdh(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return getWitdh(varLoadOp.operands().getFirst());

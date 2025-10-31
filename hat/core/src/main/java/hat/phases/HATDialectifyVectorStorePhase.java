@@ -29,7 +29,7 @@ import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorStoreView;
 import hat.dialect.HATVectorOp;
-import hat.dialect.Utils;
+import hat.dialect.HATPhaseUtils;
 import hat.optools.OpTk;
 import hat.types._V;
 import jdk.incubator.code.CodeElement;
@@ -135,7 +135,7 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
 
                 boolean isSharedOrPrivate = findIsSharedOrPrivateSpace(invokeOp.operands().get(0));
 
-                Utils.VectorMetaData vectorMetaData  = Utils.getVectorTypeInfo(invokeOp, 1);
+                HATPhaseUtils.VectorMetaData vectorMetaData  = HATPhaseUtils.getVectorTypeInfo(invokeOp, 1);
                 TypeElement vectorElementType = vectorMetaData.vectorTypeElement();
                 HATVectorOp storeView = new HATVectorStoreView(name, invokeOp.resultType(), vectorMetaData.lanes(), vectorElementType, isSharedOrPrivate,  outputOperandsVarOp);
                 Op.Result hatLocalResult = blockBuilder.op(storeView);

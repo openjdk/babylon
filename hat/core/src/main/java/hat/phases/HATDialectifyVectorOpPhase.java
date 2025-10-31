@@ -57,8 +57,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static hat.dialect.Utils.*;
-import static hat.dialect.Utils.getVectorTypeInfo;
+import static hat.dialect.HATPhaseUtils.VectorMetaData;
+import static hat.dialect.HATPhaseUtils.findNameVector;
+import static hat.dialect.HATPhaseUtils.findVectorTypeElement;
+import static hat.dialect.HATPhaseUtils.getVectorTypeInfo;
+import static hat.dialect.HATPhaseUtils.getWitdh;
 
 public abstract class HATDialectifyVectorOpPhase implements HATDialect {
 
