@@ -33,18 +33,14 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorVarLoadOp extends HATVectorViewOp {
+public class HATVectorVarLoadOp extends HATVectorOp {
 
-    private final TypeElement typeElement;
-
-    public HATVectorVarLoadOp(String varName, TypeElement typeElement, List<Value> operands) {
-        super(varName, operands);
-        this.typeElement = typeElement;
+    public HATVectorVarLoadOp(String varName, TypeElement typeElement, TypeElement vectorElementType, int width, List<Value> operands) {
+        super(varName, typeElement, vectorElementType, width, operands);
     }
 
     public HATVectorVarLoadOp(HATVectorVarLoadOp op, CopyContext copyContext) {
         super(op, copyContext);
-        this.typeElement = op.typeElement;
     }
 
     @Override

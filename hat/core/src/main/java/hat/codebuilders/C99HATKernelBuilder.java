@@ -33,6 +33,8 @@ import hat.dialect.HATGlobalSizeOp;
 import hat.dialect.HATGlobalThreadIdOp;
 import hat.dialect.HATLocalSizeOp;
 import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATVectorMakeOfOp;
+import hat.dialect.HATVectorOfOp;
 import hat.dialect.HATVectorVarLoadOp;
 import hat.ifacemapper.MappableIface;
 import hat.optools.FuncOpParams;
@@ -274,6 +276,35 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    @Override
+    public T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorMakeOfOp hatVectorMakeOfOp) {
+        identifier(hatVectorMakeOfOp.varName());
+        return self();
+    }
+
+    public abstract T genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp);
+
+    @Override
+    public T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
+        genVectorIdentifier(buildContext, hatVectorOp);
+
+        List<Value> inputOperands = hatVectorOp.operands();
+        int i;
+        for (i = 0; i < (inputOperands.size() - 1); i++) {
+            var operand = inputOperands.get(i);
+            if ((operand instanceof Op.Result r)) {
+                recurse(buildContext, r.op());
+            }
+            comma().space();
+        }
+        // Last parameter
+        var operand = inputOperands.get(i);
+        if ((operand instanceof Op.Result r)) {
+            recurse(buildContext, r.op());
+        }
+        cparen();
+        return self();
+    }
 
     public T kernelDeclaration(CoreOp.FuncOp funcOp) {
         return kernelPrefix().voidType().space().funcName(funcOp);

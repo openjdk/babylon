@@ -28,8 +28,10 @@ import hat.Accelerator;
 import hat.dialect.HATLocalVarOp;
 import hat.dialect.HATPrivateVarOp;
 import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorViewOp;
+import hat.dialect.HATVectorOp;
+import hat.dialect.HATPhaseUtils;
 import hat.optools.OpTk;
+import hat.types._V;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
@@ -56,8 +58,6 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
         this.vectorOperation = vectorOperation;
     }
 
-
-
     public enum StoreView {
         FLOAT4_STORE("storeFloat4View");
         final String methodName;
@@ -67,13 +67,15 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
     }
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp, Value varValue) {
-        if (varValue instanceof Op.Result r
-                && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        if (varValue instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             TypeElement typeElement = varLoadOp.resultType();
-            boolean isHatVectorType = typeElement.toString().startsWith("hat.buffer.Float");/// UGGHHH!
-            return isHatVectorType
-                    && OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp)
-                    && isMethod(invokeOp, vectorOperation.methodName);
+            Set<Class<?>> interfaces = Set.of();
+            try {
+                Class<?> aClass = Class.forName(typeElement.toString());
+                interfaces = inspectAllInterfaces(aClass);
+            } catch (ClassNotFoundException _) {
+            }
+            return interfaces.contains(_V.class) && isMethod(invokeOp, vectorOperation.methodName);
         }
         return false;
     }
@@ -85,8 +87,8 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
     private String findNameVector(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findNameVector(varLoadOp);
-        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorViewOp hatVectorViewOp) {
-            return hatVectorViewOp.varName();
+        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
+            return hatVectorOp.varName();
         }else{
             return null;
         }
@@ -110,33 +112,32 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "apply");
         before(here,funcOp);
-        Stream<CodeElement<?, ?>> float4NodesInvolved = funcOp.elements()
+        Stream<CodeElement<?, ?>> vectorNodesInvolved = funcOp.elements()
                 .mapMulti((codeElement, consumer) -> {
                     if (codeElement instanceof JavaOp.InvokeOp invokeOp) {
-                        if ((invokeOp.operands().size() >= 3)
-                                && (isVectorOperation(invokeOp, invokeOp.operands().get(1)))) {
+                        if ((invokeOp.operands().size() >= 3) && (isVectorOperation(invokeOp, invokeOp.operands().get(1)))) {
                             consumer.accept(invokeOp);
                         }
                     }
                 });
 
-        Set<CodeElement<?, ?>> nodesInvolved = float4NodesInvolved.collect(Collectors.toSet());
+        Set<CodeElement<?, ?>> nodesInvolved = vectorNodesInvolved.collect(Collectors.toSet());
            funcOp = OpTk.transform(here, funcOp, (blockBuilder, op) -> {
             CopyContext context = blockBuilder.context();
             if (!nodesInvolved.contains(op)) {
                 blockBuilder.op(op);
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                // Don't insert the invoke node
                 List<Value> inputOperandsVarOp = invokeOp.operands();
                 List<Value> outputOperandsVarOp = context.getValues(inputOperandsVarOp);
+
                 // Find the name of the vector view variable
-                Value v = invokeOp.operands().get(1);
-                String name = findNameVector(v);
+                String name = findNameVector(invokeOp.operands().get(1));
+
                 boolean isSharedOrPrivate = findIsSharedOrPrivateSpace(invokeOp.operands().get(0));
 
-                HATVectorViewOp storeView = switch (vectorOperation) {
-                    case FLOAT4_STORE -> new HATVectorStoreView(name, invokeOp.resultType(), 4, HATVectorViewOp.VectorType.FLOAT4, isSharedOrPrivate,  outputOperandsVarOp);
-                };
+                HATPhaseUtils.VectorMetaData vectorMetaData  = HATPhaseUtils.getVectorTypeInfo(invokeOp, 1);
+                TypeElement vectorElementType = vectorMetaData.vectorTypeElement();
+                HATVectorOp storeView = new HATVectorStoreView(name, invokeOp.resultType(), vectorMetaData.lanes(), vectorElementType, isSharedOrPrivate,  outputOperandsVarOp);
                 Op.Result hatLocalResult = blockBuilder.op(storeView);
                 storeView.setLocation(invokeOp.location());
                 context.mapValue(invokeOp.result(), hatLocalResult);
@@ -146,7 +147,7 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
             }
             return blockBuilder;
         });
-       after(here, funcOp);
+        after(here, funcOp);
         return funcOp;
     }
 
@@ -154,6 +155,5 @@ public abstract  class HATDialectifyVectorStorePhase implements HATDialect {
         public Float4StorePhase(Accelerator accelerator) {
             super(accelerator, StoreView.FLOAT4_STORE);
         }
-
     }
 }

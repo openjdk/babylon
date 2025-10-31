@@ -33,27 +33,18 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public final class HATVectorStoreView extends HATVectorViewOp {
+public final class HATVectorStoreView extends HATVectorOp {
 
-    private final TypeElement elementType;
-    private final int storeN;
     private final boolean isSharedOrPrivate;
-    private final VectorType vectorType;
 
-    public HATVectorStoreView(String varName, TypeElement elementType, int storeN, VectorType vectorType, boolean isSharedOrPrivate, List<Value> operands) {
-        super(varName, operands);
-        this.elementType = elementType;
-        this.storeN = storeN;
+    public HATVectorStoreView(String varName, TypeElement elementType, int storeN, TypeElement vectorElementType, boolean isSharedOrPrivate, List<Value> operands) {
+        super(varName, elementType, vectorElementType, storeN, operands);
         this.isSharedOrPrivate = isSharedOrPrivate;
-        this.vectorType = vectorType;
     }
 
     public HATVectorStoreView(HATVectorStoreView op, CopyContext copyContext) {
         super(op, copyContext);
-        this.elementType = op.elementType;
-        this.storeN = op.storeN;
         this.isSharedOrPrivate = op.isSharedOrPrivate;
-        this.vectorType = op.vectorType;
     }
 
     @Override
@@ -63,23 +54,16 @@ public final class HATVectorStoreView extends HATVectorViewOp {
 
     @Override
     public TypeElement resultType() {
-        return elementType;
+        return super.typeElement;
     }
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect.floatNStoreView." + varName(), elementType);
-    }
-
-    public int storeN() {
-        return storeN;
+        return Map.of("hat.dialect." + vectorElementType.toString() + vectorN() + "StoreView." + varName(), typeElement);
     }
 
     public boolean isSharedOrPrivate() {
         return this.isSharedOrPrivate;
     }
 
-    public String buildType() {
-        return vectorType.type();
-    }
 }
