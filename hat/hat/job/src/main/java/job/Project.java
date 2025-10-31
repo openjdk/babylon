@@ -27,7 +27,6 @@ package job;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -54,6 +53,19 @@ public class Project {
 
     public Path dir(String s) {
         return rootPath().resolve(s);
+    }
+
+    public CMake cmakeAndJar(String strId, Dependency... dependencies) {
+        return CMake.of(id(strId),dependencies);
+    }
+    public Jar jar(String strId, Dependency... dependencies) {
+        return Jar.of(id(strId),dependencies);
+    }
+    public Jar jar(String strId, Set<Path> excludedFiles, Dependency... dependencies) {
+        return Jar.of(id(strId),excludedFiles,dependencies);
+    }
+    public JExtract jextract(String strId, Dependency... dependencies){
+        return JExtract.extract(id(strId),dependencies);
     }
 
     enum IdType {Unknown, CMakeAndJar, Jar,CMake,CMakeInfo,JExtract,Custom}
