@@ -38,23 +38,29 @@ public interface F32Triangle2D {
 
     int rgb();
 
-    int V0 = 0;
-    int V1 = 1;
-    int V2 = 2;
-    int RGB = 3;
+
 
 
     class F32Triangle2DPool extends Pool<F32Triangle2DPool> {
+        public static int V0 = 0;
+        public static int V1 = 1;
+        public static int V2 = 2;
+        public static int RGB = 3;
+        public record Idx(F32Triangle2DPool pool, int idx) implements Pool.Idx<F32Triangle2DPool>{
+            int v0(){return pool.stride * idx+V0;}
+            int v1(){return pool.stride * idx+V1;}
+            int v2(){return pool.stride * idx+V2;}
+            int rgb(){return pool.stride * idx+RGB;}
+        }
         public final int entries[];
         F32Triangle2DPool(int max) {
-
             super(4, max);
             this.entries = new int[max * stride];
         }
 
         @Override
-        Idx<F32Triangle2DPool> idx(int idx) {
-            return new Idx<>(this, idx);
+        Idx idx(int idx) {
+            return new Idx(this, idx);
         }
     }
 
@@ -68,7 +74,7 @@ public interface F32Triangle2D {
         v *= F32Vec2.f32Vec2Pool.stride;
         v0 *= F32Vec2.f32Vec2Pool.stride;
         v1 *= F32Vec2.f32Vec2Pool.stride;
-        return (F32Vec2.f32Vec2Pool.entries[v1 + F32Vec2.Y] - F32Vec2.f32Vec2Pool.entries[v0 + F32Vec2.Y] * (F32Vec2.f32Vec2Pool.entries[v + F32Vec2.X] - F32Vec2.f32Vec2Pool.entries[v0 + F32Vec2.X]) + (-F32Vec2.f32Vec2Pool.entries[v1 + F32Vec2.X] + F32Vec2.f32Vec2Pool.entries[v0 + F32Vec2.X]) * (F32Vec2.f32Vec2Pool.entries[v + F32Vec2.Y] - F32Vec2.f32Vec2Pool.entries[v0 + F32Vec2.Y]));
+        return (F32Vec2.f32Vec2Pool.entries[v1 + F32Vec2.F32Vec2Pool.Y] - F32Vec2.f32Vec2Pool.entries[v0 + F32Vec2.F32Vec2Pool.Y] * (F32Vec2.f32Vec2Pool.entries[v + F32Vec2.F32Vec2Pool.X] - F32Vec2.f32Vec2Pool.entries[v0 + F32Vec2.F32Vec2Pool.X]) + (-F32Vec2.f32Vec2Pool.entries[v1 + F32Vec2.F32Vec2Pool.X] + F32Vec2.f32Vec2Pool.entries[v0 + F32Vec2.F32Vec2Pool.X]) * (F32Vec2.f32Vec2Pool.entries[v + F32Vec2.F32Vec2Pool.Y] - F32Vec2.f32Vec2Pool.entries[v0 + F32Vec2.F32Vec2Pool.Y]));
     }
 
     static boolean intriangle(float x, float y, float x0, float y0, float x1, float y1, float x2, float y2) {
@@ -106,10 +112,10 @@ public interface F32Triangle2D {
         var impl = side(x0, y0, x1, y1, x2, y2) > 0 // We need the triangle to be clock wound
                 ? new F32Triangle2DImpl(f32Triangle2DPool.count, F32Vec2.of(x0, y0), F32Vec2.of(x1, y1), F32Vec2.of(x2, y2), col)
                 : new F32Triangle2DImpl(f32Triangle2DPool.count, F32Vec2.of(x0, y0), F32Vec2.of(x2, y2), F32Vec2.of(x1, y1), col);
-        f32Triangle2DPool.entries[f32Triangle2DPool.count * f32Triangle2DPool.stride + V0] = ((F32Vec2.F32Vec2Impl) impl.v0).id();//F32Vec2.createVec2(x0,y0).id;
-        f32Triangle2DPool.entries[f32Triangle2DPool.count * f32Triangle2DPool.stride + V1] = ((F32Vec2.F32Vec2Impl) impl.v1).id();
-        f32Triangle2DPool.entries[f32Triangle2DPool.count * f32Triangle2DPool.stride + V2] = ((F32Vec2.F32Vec2Impl) impl.v2).id();
-        f32Triangle2DPool.entries[f32Triangle2DPool.count++ * f32Triangle2DPool.stride + RGB] = impl.rgb();
+        f32Triangle2DPool.entries[f32Triangle2DPool.count * f32Triangle2DPool.stride + F32Triangle2DPool.V0] = ((F32Vec2.F32Vec2Impl) impl.v0).id();//F32Vec2.createVec2(x0,y0).id;
+        f32Triangle2DPool.entries[f32Triangle2DPool.count * f32Triangle2DPool.stride + F32Triangle2DPool.V1] = ((F32Vec2.F32Vec2Impl) impl.v1).id();
+        f32Triangle2DPool.entries[f32Triangle2DPool.count * f32Triangle2DPool.stride + F32Triangle2DPool.V2] = ((F32Vec2.F32Vec2Impl) impl.v2).id();
+        f32Triangle2DPool.entries[f32Triangle2DPool.count++ * f32Triangle2DPool.stride + F32Triangle2DPool.RGB] = impl.rgb();
         return impl;
     }
 

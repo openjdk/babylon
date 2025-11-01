@@ -28,32 +28,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public interface F32Triangle3D{
-   // List<F32Triangle3D> arr = new ArrayList<>();
     static void reset(int marked) {
         F32Triangle3D.f32Triangle3DPool.count = marked;
-     //   while (arr.size()>marked){
-       //     arr.removeLast();
-      //  }
     }
 
-    int V0 = 0;
-    int V1 = 1;
-    int V2 = 2;
-    int RGB = 3;
 
-    static  int v0(F32Triangle3DPool.Idx<F32Triangle3DPool> idx){
-        return idx.idx(V0);
-    }
-    static int v1(F32Triangle3DPool.Idx<F32Triangle3DPool> idx){
-        return idx.idx(V1);
-    }
-    static int v2(F32Triangle3DPool.Idx<F32Triangle3DPool> idx){
-        return idx.idx(V2);
-    }
-    static int rgb(F32Triangle3DPool.Idx<F32Triangle3DPool> idx){
-        return idx.idx(RGB);
-    }
+
+
     class F32Triangle3DPool extends Pool<F32Triangle3DPool> {
+       static  int V0 = 0;
+       static int V1 = 1;
+       static  int V2 = 2;
+       static  int RGB = 3;
+        public record Idx(F32Triangle3DPool pool, int idx) implements Pool.Idx<F32Triangle3DPool> {
+            int v0(){return pool.stride * idx+V0;}
+            int v1(){return pool.stride * idx+V1;}
+            int v2(){return pool.stride * idx+V2;}
+            int rgb(){return pool.stride * idx+RGB;}
+
+        }
         public final int entries[];
         F32Triangle3DPool(int max) {
             super(4, max);
@@ -61,9 +54,21 @@ public interface F32Triangle3D{
         }
 
         @Override
-        Idx<F32Triangle3DPool> idx(int idx) {
-            return new Idx<>(this, idx);
+        Idx idx(int idx) {
+            return new Idx(this, idx);
         }
+    }
+    static  int v0(F32Triangle3DPool.Idx idx){
+        return idx.idx(F32Triangle3DPool.V0);
+    }
+    static int v1(F32Triangle3DPool.Idx idx){
+        return idx.idx(F32Triangle3DPool.V1);
+    }
+    static int v2(F32Triangle3DPool.Idx idx){
+        return idx.idx(F32Triangle3DPool.V2);
+    }
+    static int rgb(F32Triangle3DPool.Idx idx){
+        return idx.idx(F32Triangle3DPool.RGB);
     }
     F32Triangle3DPool f32Triangle3DPool = new F32Triangle3DPool(12800);
 
@@ -77,15 +82,15 @@ public interface F32Triangle3D{
              v2               v1
    */
 
-     static F32Triangle3DPool.Idx<F32Triangle3DPool> rewind(F32Triangle3DPool.Idx<F32Triangle3DPool> i) {
+     static F32Triangle3DPool.Idx rewind(F32Triangle3DPool.Idx i) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
-        int temp = f32Triangle3DPool.entries[i.idx(V1)];
+        int temp = f32Triangle3DPool.entries[i.idx(F32Triangle3DPool.V1)];
         f32Triangle3DPool.entries[v1(i)] =  f32Triangle3DPool.entries[v2(i)];
         f32Triangle3DPool.entries[v2(i)] = temp;
         return i;
     }
 
-     static F32Triangle3DPool.Idx<F32Triangle3DPool> of(int v0, int v1, int v2, int rgb) {
+     static F32Triangle3DPool.Idx of(int v0, int v1, int v2, int rgb) {
          var i = f32Triangle3DPool.idx(f32Triangle3DPool.count * f32Triangle3DPool.stride);//pool.count * pool.stride
          f32Triangle3DPool.entries[v0(i)] = v0;
          f32Triangle3DPool.entries[v1(i)] = v1;
@@ -94,64 +99,64 @@ public interface F32Triangle3D{
         return f32Triangle3DPool.idx(f32Triangle3DPool.count++);//pool.count++
     }
 
-    static String asString(F32Triangle3DPool.Idx<F32Triangle3DPool> i) {
+    static String asString(F32Triangle3DPool.Idx i) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
         return F32Vec3.asString(f32Triangle3DPool.entries[v0(i)]) + " -> " + F32Vec3.asString(f32Triangle3DPool.entries[v1(i)]) + " -> " + F32Vec3.asString(f32Triangle3DPool.entries[v2(i)]) + " =" + String.format("0x%8x", f32Triangle3DPool.entries[rgb(i)]);
     }
 
-     static F32Triangle3DPool.Idx<F32Triangle3DPool> mulMat4(F32Triangle3DPool.Idx<F32Triangle3DPool> i, F32Matrix4x4.F32Matrix4x4Pool.Idx  m4) {
+     static F32Triangle3DPool.Idx mulMat4(F32Triangle3DPool.Idx i, F32Matrix4x4.F32Matrix4x4Pool.Idx  m4) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
         return of(F32Vec3.mulMat4(f32Triangle3DPool.entries[v0(i)], m4), F32Vec3.mulMat4(f32Triangle3DPool.entries[v1(i)], m4), F32Vec3.mulMat4(f32Triangle3DPool.entries[v2(i)], m4), f32Triangle3DPool.entries[rgb(i)]);
     }
 
-     static F32Triangle3DPool.Idx<F32Triangle3DPool> addVec3(F32Triangle3DPool.Idx<F32Triangle3DPool> i, int v3) {
+     static F32Triangle3DPool.Idx addVec3(F32Triangle3DPool.Idx i, int v3) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
         return of(F32Vec3.addVec3(f32Triangle3DPool.entries[v0(i)], v3), F32Vec3.addVec3(f32Triangle3DPool.entries[v1(i)], v3), F32Vec3.addVec3(f32Triangle3DPool.entries[v2(i)], v3), f32Triangle3DPool.entries[rgb(i)]);
     }
 
-     static F32Triangle3DPool.Idx<F32Triangle3DPool> mulScaler(F32Triangle3DPool.Idx<F32Triangle3DPool> i, float s) {
+     static F32Triangle3DPool.Idx mulScaler(F32Triangle3DPool.Idx i, float s) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
         return of(F32Vec3.mulScaler(f32Triangle3DPool.entries[v0(i)], s), F32Vec3.mulScaler(f32Triangle3DPool.entries[v1(i)], s), F32Vec3.mulScaler(f32Triangle3DPool.entries[v2(i)], s), f32Triangle3DPool.entries[rgb(i)]);
     }
 
-     static F32Triangle3DPool.Idx<F32Triangle3DPool> addScaler(F32Triangle3DPool.Idx<F32Triangle3DPool> i, float s) {
+     static F32Triangle3DPool.Idx addScaler(F32Triangle3DPool.Idx i, float s) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
         return of(F32Vec3.addScaler(f32Triangle3DPool.entries[v0(i)], s), F32Vec3.addScaler(f32Triangle3DPool.entries[v1(i)], s), F32Vec3.addScaler(f32Triangle3DPool.entries[v2(i)], s), f32Triangle3DPool.entries[rgb(i)]);
     }
 
-     static int getCentre(F32Triangle3DPool.Idx<F32Triangle3DPool> i){
+     static int getCentre(F32Triangle3DPool.Idx i){
         // the average of all the vertices
         return F32Vec3.divScaler(getVectorSum(i), 3);
     }
 
-     static int getVectorSum(F32Triangle3DPool.Idx<F32Triangle3DPool> i){
+     static int getVectorSum(F32Triangle3DPool.Idx i){
         // the sum of all the vertices
         return F32Vec3.addVec3(F32Vec3.addVec3(getV0(i), getV1(i)), getV2(i));
     }
 
 
-     static int getV0(F32Triangle3DPool.Idx<F32Triangle3DPool> i) {
+     static int getV0(F32Triangle3DPool.Idx i) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
-        return F32Triangle3D.f32Triangle3DPool.entries[i.idx() + F32Triangle3D.V0];
+        return F32Triangle3D.f32Triangle3DPool.entries[i.idx() + F32Triangle3D.F32Triangle3DPool.V0];
     }
 
-     static int getV1(F32Triangle3DPool.Idx<F32Triangle3DPool> i) {
+     static int getV1(F32Triangle3DPool.Idx i) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
-        return F32Triangle3D.f32Triangle3DPool.entries[i.idx(F32Triangle3D.V1)];
+        return F32Triangle3D.f32Triangle3DPool.entries[i.idx(F32Triangle3D.F32Triangle3DPool.V1)];
     }
 
-     static int getV2(F32Triangle3DPool.Idx<F32Triangle3DPool> i) {
+     static int getV2(F32Triangle3DPool.Idx i) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
-        return F32Triangle3D.f32Triangle3DPool.entries[i.idx(F32Triangle3D.V2)];
+        return F32Triangle3D.f32Triangle3DPool.entries[i.idx(F32Triangle3D.F32Triangle3DPool.V2)];
     }
 
-     static int getRGB(F32Triangle3DPool.Idx<F32Triangle3DPool> i) {
+     static int getRGB(F32Triangle3DPool.Idx i) {
         i = f32Triangle3DPool.idx(i.idx() * f32Triangle3DPool.stride);//i.idx() * pool.stride
-        return F32Triangle3D.f32Triangle3DPool.entries[i.idx(F32Triangle3D.RGB)];
+        return F32Triangle3D.f32Triangle3DPool.entries[i.idx(F32Triangle3D.F32Triangle3DPool.RGB)];
     }
 
 
-     static int normal(F32Triangle3DPool.Idx<F32Triangle3DPool> i) {
+     static int normal(F32Triangle3DPool.Idx i) {
 
         int v0 = F32Triangle3D.getV0(i);
         int v1 = F32Triangle3D.getV1(i);
@@ -163,12 +168,12 @@ public interface F32Triangle3D{
         return F32Vec3.crossProd(line1Vec3, line2Vec3);
     }
 
-     static int normalSumOfSquares(F32Triangle3DPool.Idx<F32Triangle3DPool> i) {
+     static int normalSumOfSquares(F32Triangle3DPool.Idx i) {
         int normalVec3 = normal(i);
         return F32Vec3.divScaler(normalVec3,  F32Vec3.sumOfSquares(normalVec3));
     }
 
-    record F32Triangle3DImpl(F32Triangle3DPool.Idx<F32Triangle3DPool> id) implements F32Triangle3D {
+    record F32Triangle3DImpl(F32Triangle3DPool.Idx id) implements F32Triangle3D {
 
         public static List<F32Triangle3DImpl> all() {
                 List<F32Triangle3DImpl> all = new ArrayList<>();
