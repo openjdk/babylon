@@ -44,9 +44,12 @@ public interface F32Triangle2D {
     int RGB = 3;
 
 
-    class F32Triangle2DPool extends IndexPool<F32Triangle2DPool> {
+    class F32Triangle2DPool extends Pool<F32Triangle2DPool> {
+        public final int entries[];
         F32Triangle2DPool(int max) {
+
             super(4, max);
+            this.entries = new int[max * stride];
         }
 
         @Override

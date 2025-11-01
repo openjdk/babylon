@@ -53,9 +53,11 @@ public interface F32Triangle3D{
     static int rgb(F32Triangle3DPool.Idx<F32Triangle3DPool> idx){
         return idx.idx(RGB);
     }
-    class F32Triangle3DPool extends IndexPool<F32Triangle3DPool> {
+    class F32Triangle3DPool extends Pool<F32Triangle3DPool> {
+        public final int entries[];
         F32Triangle3DPool(int max) {
             super(4, max);
+            this.entries = new int[max * stride];
         }
 
         @Override
