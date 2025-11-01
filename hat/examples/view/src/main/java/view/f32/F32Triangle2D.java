@@ -30,7 +30,7 @@ import java.util.List;
 public interface F32Triangle2D {
     List<F32Triangle2D> arr = new ArrayList<>();
     static void reset(int marked) {
-        F32Triangle2D.pool.count = marked;
+        F32Triangle2D.f32Triangle2DPool.count = marked;
         while (arr.size()>marked){
             arr.removeLast();
         }
@@ -65,22 +65,27 @@ public interface F32Triangle2D {
     int RGB=3;
 
 
-    class Pool extends IndexPool{
-        Pool( int max) {
+    class F32Triangle2DPool extends IndexPool<F32Triangle2DPool>{
+        F32Triangle2DPool(int max) {
             super(4, max);
         }
+
+        @Override
+        Idx<F32Triangle2DPool> idx(int idx) {
+            return new Idx<>(this, idx);
+        }
     }
-    Pool pool = new Pool(9000);
+    F32Triangle2DPool f32Triangle2DPool = new F32Triangle2DPool(9000);
 
       static float side(float x, float y, float x0, float y0, float x1, float y1) {
         return (y1 - y0) * (x - x0) + (-x1 + x0) * (y - y0);
     }
 
      static float side(int v, int v0, int v1) {
-        v*= F32Vec2.pool.stride;
-        v0*= F32Vec2.pool.stride;
-        v1*= F32Vec2.pool.stride;
-        return (F32Vec2.pool.entries[v1+ F32Vec2.Y] - F32Vec2.pool.entries[v0+ F32Vec2.Y] * (F32Vec2.pool.entries[v+ F32Vec2.X] - F32Vec2.pool.entries[v0+ F32Vec2.X]) + (-F32Vec2.pool.entries[v1+ F32Vec2.X] + F32Vec2.pool.entries[v0+ F32Vec2.X]) * (F32Vec2.pool.entries[v+ F32Vec2.Y] - F32Vec2.pool.entries[v0+ F32Vec2.Y]));
+        v*= F32Vec2.f32Vec2Pool.stride;
+        v0*= F32Vec2.f32Vec2Pool.stride;
+        v1*= F32Vec2.f32Vec2Pool.stride;
+        return (F32Vec2.f32Vec2Pool.entries[v1+ F32Vec2.Y] - F32Vec2.f32Vec2Pool.entries[v0+ F32Vec2.Y] * (F32Vec2.f32Vec2Pool.entries[v+ F32Vec2.X] - F32Vec2.f32Vec2Pool.entries[v0+ F32Vec2.X]) + (-F32Vec2.f32Vec2Pool.entries[v1+ F32Vec2.X] + F32Vec2.f32Vec2Pool.entries[v0+ F32Vec2.X]) * (F32Vec2.f32Vec2Pool.entries[v+ F32Vec2.Y] - F32Vec2.f32Vec2Pool.entries[v0+ F32Vec2.Y]));
     }
 
      static boolean intriangle(float x, float y, float x0, float y0, float x1, float y1, float x2, float y2) {
@@ -114,10 +119,10 @@ public interface F32Triangle2D {
          var impl =side(x0, y0, x1, y1, x2, y2)>0 // We need the triangle to be clock wound
                 ?new Impl(arr.size(),F32Vec2.createVec2(x0,y0),F32Vec2.createVec2(x1,y1),F32Vec2.createVec2(x2,y2),col )
                 :new Impl(arr.size(),F32Vec2.createVec2(x0,y0),F32Vec2.createVec2(x2,y2),F32Vec2.createVec2(x1,y1),col );
-        pool.entries[pool.count * pool.stride + V0] = ((F32Vec2.Impl)impl.v0).id();//F32Vec2.createVec2(x0,y0).id;
-        pool.entries[pool.count * pool.stride + V1] = ((F32Vec2.Impl)impl.v1).id();
-        pool.entries[pool.count * pool.stride + V2] = ((F32Vec2.Impl)impl.v2).id();
-         pool.entries[pool.count++ * pool.stride + RGB]= impl.rgb();
+        f32Triangle2DPool.entries[f32Triangle2DPool.count * f32Triangle2DPool.stride + V0] = ((F32Vec2.F32Vec2Impl)impl.v0).id();//F32Vec2.createVec2(x0,y0).id;
+        f32Triangle2DPool.entries[f32Triangle2DPool.count * f32Triangle2DPool.stride + V1] = ((F32Vec2.F32Vec2Impl)impl.v1).id();
+        f32Triangle2DPool.entries[f32Triangle2DPool.count * f32Triangle2DPool.stride + V2] = ((F32Vec2.F32Vec2Impl)impl.v2).id();
+         f32Triangle2DPool.entries[f32Triangle2DPool.count++ * f32Triangle2DPool.stride + RGB]= impl.rgb();
         return impl;
     }
 

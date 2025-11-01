@@ -44,7 +44,7 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-        args.add("ANACONDA");
+       // args.add("ANACONDA");
         var eliteReader = new EliteMeshReader();
         boolean old =true;// Boolean.getBoolean("old");
         var wire =

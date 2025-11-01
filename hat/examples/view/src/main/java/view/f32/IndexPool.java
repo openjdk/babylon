@@ -24,7 +24,7 @@
  */
 package view.f32;
 
-public class IndexPool extends Pool {
+public abstract class IndexPool<T extends IndexPool<T>> extends Pool<T> {
 
     public final int entries[];
 

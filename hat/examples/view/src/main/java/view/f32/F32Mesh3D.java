@@ -40,7 +40,7 @@ public class F32Mesh3D {
     final int MAX = 400;
 
     public int triCount = 0;
-    public F32Triangle3D.Pool.Idx triEntries[] = new F32Triangle3D.Pool.Idx[MAX * SIZE];
+    public F32Triangle3D.F32Triangle3DPool.Idx triEntries[] = new F32Triangle3D.F32Triangle3DPool.Idx[MAX * SIZE];
     public int triCenterVec3s[] = new int[MAX *SIZE];
     public int normalEntries[] = new int[MAX *SIZE];
     public int v0Vec3s[] = new int[MAX *SIZE];
@@ -168,14 +168,7 @@ public class F32Mesh3D {
         quad(g, h, a, d, 0xffa500);//bottom
         return this;
     }
-
-
-
-
-
     /*
-
-
 http://paulbourke.net/dataformats/obj/
 
      */

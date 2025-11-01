@@ -34,13 +34,8 @@ package view;
 import view.f32.F32Triangle2D;
 import view.f32.F32Vec2;
 
-import javax.swing.JComponent;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
-import java.util.stream.IntStream;
 
 public record Graphics2DRenderer(int width, int height, DisplayMode displayMode) implements Renderer {
     static private Renderer of(int width, int height, DisplayMode displayMode) {
@@ -70,21 +65,21 @@ public record Graphics2DRenderer(int width, int height, DisplayMode displayMode)
         Color color =new Color(0x404040);
 
         if (old) {
-            for (int t = 0; t < F32Triangle2D.pool.count; t++) {
-                int v0 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V0];
-                int v1 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V1];
-                int v2 = F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.V2];
-                float x0 = F32Vec2.pool.entries[v0 * F32Vec2.pool.stride + F32Vec2.X];
-                float y0 = F32Vec2.pool.entries[v0 * F32Vec2.pool.stride + F32Vec2.Y];
-                float x1 = F32Vec2.pool.entries[v1 * F32Vec2.pool.stride + F32Vec2.X];
-                float y1 = F32Vec2.pool.entries[v1 * F32Vec2.pool.stride + F32Vec2.Y];
-                float x2 = F32Vec2.pool.entries[v2 * F32Vec2.pool.stride + F32Vec2.X];
-                float y2 = F32Vec2.pool.entries[v2 * F32Vec2.pool.stride + F32Vec2.Y];
-                color =new Color( F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB]);
+            for (int t = 0; t < F32Triangle2D.f32Triangle2DPool.count; t++) {
+                int v0 = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.V0];
+                int v1 = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.V1];
+                int v2 = F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.V2];
+                float x0 = F32Vec2.f32Vec2Pool.entries[v0 * F32Vec2.f32Vec2Pool.stride + F32Vec2.X];
+                float y0 = F32Vec2.f32Vec2Pool.entries[v0 * F32Vec2.f32Vec2Pool.stride + F32Vec2.Y];
+                float x1 = F32Vec2.f32Vec2Pool.entries[v1 * F32Vec2.f32Vec2Pool.stride + F32Vec2.X];
+                float y1 = F32Vec2.f32Vec2Pool.entries[v1 * F32Vec2.f32Vec2Pool.stride + F32Vec2.Y];
+                float x2 = F32Vec2.f32Vec2Pool.entries[v2 * F32Vec2.f32Vec2Pool.stride + F32Vec2.X];
+                float y2 = F32Vec2.f32Vec2Pool.entries[v2 * F32Vec2.f32Vec2Pool.stride + F32Vec2.Y];
+                color =new Color( F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.RGB]);
                 g.setColor(color);
                 g.drawLine((int)(width*x0),(int)(height*y0),(int)(width*x1),(int)(height*y1));
                 // if (displayMode.filled && F32Triangle2D.intriangle(x, y, x0, y0, x1, y1, x2, y2)) {
-                color =new Color( F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB]);
+                color =new Color( F32Triangle2D.f32Triangle2DPool.entries[F32Triangle2D.f32Triangle2DPool.stride * t + F32Triangle2D.RGB]);
                 //} else if (displayMode.wire && F32Triangle2D.onedge(x, y, x0, y0, x1, y1, x2, y2)) {
                 //  color = new Color(F32Triangle2D.pool.entries[F32Triangle2D.pool.stride * t + F32Triangle2D.RGB]);
                 // }

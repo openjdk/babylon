@@ -24,11 +24,12 @@
  */
 package view.f32;
 
-public abstract class Pool {
-    public record Idx(int idx) {
-        static Idx of(int idx) {
-            return new Idx(idx);
-        }
+public abstract class Pool<T extends Pool<T>> {
+    interface Id<T extends Pool<T>>{
+        T pool();
+        int idx();
+    }
+    public   record Idx<T extends Pool<T>>(T pool,int idx) implements Id<T> {
         int idx(int offset) {
             return idx + offset;
         }
@@ -42,4 +43,6 @@ public abstract class Pool {
         this.stride = stride;
         this.max = max;
     }
+
+    abstract   Idx<T> idx(int idx);
 }

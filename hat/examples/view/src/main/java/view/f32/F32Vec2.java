@@ -31,7 +31,7 @@ import java.util.List;
 public interface F32Vec2 {
     List<F32Vec2> arr = new ArrayList<>();
     static void reset(int markedVec2) {
-        F32Vec2.pool.count = markedVec2;
+        F32Vec2.f32Vec2Pool.count = markedVec2;
         while (arr.size()>markedVec2){
             arr.removeLast();
         }
@@ -41,18 +41,24 @@ public interface F32Vec2 {
     float y(); void y(float y);
     int X = 0;
     int Y = 1;
-    class Pool {
-        public final float entries[];
-        public final int stride=2;
-        public final int max=12800;
-        public int count =0 ;
-        Pool() {
-            this.entries = new float[max * stride];
+    class F32Vec2Pool extends FloatPool<F32Vec2Pool> {
+      //  public final float entries[];
+        //public final int stride=2;
+       // public final int max=12800;
+      //  public int count =0 ;
+        F32Vec2Pool() {
+            super(2,12800);
+            //this.entries = new float[max * stride];
+        }
+
+        @Override
+        Idx<F32Vec2Pool> idx(int idx) {
+            return new Idx<>(this, idx);
         }
     }
-    Pool pool = new Pool();
+    F32Vec2Pool f32Vec2Pool = new F32Vec2Pool();
 
-    class Impl implements F32Vec2{
+    class F32Vec2Impl implements F32Vec2{
         public int id;
         float x,y;
         public int  id() {return id;}
@@ -61,17 +67,17 @@ public interface F32Vec2 {
         @Override public void x(float x) {this.x = x;}
         @Override public float y() {return y;}
         @Override public void y(float y) {this.y = y;}
-        Impl(int id, float x, float y){id(id); x(x);y(y);}
+        F32Vec2Impl(int id, float x, float y){id(id); x(x);y(y);}
     }
-     static Impl createVec2(float x, float y) {
-        pool.entries[pool.count * pool.stride + X] = x;
-        pool.entries[pool.count++ * pool.stride + Y] = y;
-        var impl = new Impl(arr.size(), x,y);
+     static F32Vec2Impl createVec2(float x, float y) {
+        f32Vec2Pool.entries[f32Vec2Pool.count * f32Vec2Pool.stride + X] = x;
+        f32Vec2Pool.entries[f32Vec2Pool.count++ * f32Vec2Pool.stride + Y] = y;
+        var impl = new F32Vec2Impl(arr.size(), x,y);
         arr.add(impl);
         return impl;
     }
-    /*
 
+/*
     static int mulScaler(int i, float s) {
         i *= pool.stride;
         return createVec2(pool.entries[i + X] * s, pool.entries[i + Y] * s);
@@ -109,5 +115,5 @@ public interface F32Vec2 {
     static String asString(int i) {
         i *= pool.stride;
         return pool.entries[i + X] + "," + pool.entries[i + Y];
-    } */
+    }  */
 }

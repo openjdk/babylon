@@ -24,8 +24,6 @@
  */
 package view.f32;
 
-import java.awt.Image;
-
 public interface F32Matrix4x4 {
      int X0Y0 = 0;
      int X1Y0 = 1;
@@ -44,84 +42,91 @@ public interface F32Matrix4x4 {
      int X2Y3 = 14;
      int X3Y3 = 15;
 
-   class Pool extends FloatPool {
-        Pool( int max) {
+   class F32Matrix4x4Pool extends FloatPool<F32Matrix4x4Pool> {
+        F32Matrix4x4Pool(int max) {
            super(16,max);
         }
-    }
 
-    Pool pool = new Pool(100);
+       @Override
+       Idx<F32Matrix4x4Pool> idx(int idx) {
+           return new Idx<>(this, idx);
+       }
+   }
+
+    F32Matrix4x4Pool f32matrix4x4Pool = new F32Matrix4x4Pool(100);
     interface Impl extends F32Matrix4x4 {
-        Pool.Idx id();
+        F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> id();
     }
 
-    static Pool.Idx of(float x0y0, float x1y0, float x2y0, float x3y0,
-                       float x0y1, float x1y1, float x2y1, float x3y1,
-                       float x0y2, float x1y2, float x2y2, float x3y2,
-                       float x0y3, float x1y3, float x2y3, float x3y3) {
-        pool.entries[pool.count * pool.stride + X0Y0] = x0y0;
-        pool.entries[pool.count * pool.stride + X1Y0] = x1y0;
-        pool.entries[pool.count * pool.stride + X2Y0] = x2y0;
-        pool.entries[pool.count * pool.stride + X3Y0] = x3y0;
-        pool.entries[pool.count * pool.stride + X0Y1] = x0y1;
-        pool.entries[pool.count * pool.stride + X1Y1] = x1y1;
-        pool.entries[pool.count * pool.stride + X2Y1] = x2y1;
-        pool.entries[pool.count * pool.stride + X3Y1] = x3y1;
-        pool.entries[pool.count * pool.stride + X0Y2] = x0y2;
-        pool.entries[pool.count * pool.stride + X1Y2] = x1y2;
-        pool.entries[pool.count * pool.stride + X2Y2] = x2y2;
-        pool.entries[pool.count * pool.stride + X3Y2] = x3y2;
-        pool.entries[pool.count * pool.stride + X0Y3] = x0y3;
-        pool.entries[pool.count * pool.stride + X1Y3] = x1y3;
-        pool.entries[pool.count * pool.stride + X2Y3] = x2y3;
-        pool.entries[pool.count * pool.stride + X3Y3] = x3y3;
-        return Pool.Idx.of(pool.count++);
+    static F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> of(float x0y0, float x1y0, float x2y0, float x3y0,
+                                                     float x0y1, float x1y1, float x2y1, float x3y1,
+                                                     float x0y2, float x1y2, float x2y2, float x3y2,
+                                                     float x0y3, float x1y3, float x2y3, float x3y3) {
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X0Y0] = x0y0;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X1Y0] = x1y0;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X2Y0] = x2y0;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X3Y0] = x3y0;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X0Y1] = x0y1;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X1Y1] = x1y1;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X2Y1] = x2y1;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X3Y1] = x3y1;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X0Y2] = x0y2;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X1Y2] = x1y2;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X2Y2] = x2y2;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X3Y2] = x3y2;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X0Y3] = x0y3;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X1Y3] = x1y3;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X2Y3] = x2y3;
+        f32matrix4x4Pool.entries[f32matrix4x4Pool.count * f32matrix4x4Pool.stride + X3Y3] = x3y3;
+        return f32matrix4x4Pool.idx(f32matrix4x4Pool.count++);//Pool.Idx.of(pool.count++);
     }
   //  https://stackoverflow.com/questions/28075743/how-do-i-compose-a-rotation-matrix-with-human-readable-angles-from-scratch/28084380#28084380
-     static Pool.Idx mulMat4(Pool.Idx lhs, Pool.Idx rhs) {
-        lhs = Pool.Idx.of(lhs.idx() *pool.stride);
-        rhs = Pool.Idx.of(rhs.idx()*pool.stride);
+     static F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> mulMat4(F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> lhs, F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> rhs) {
+        lhs = f32matrix4x4Pool.idx(lhs.idx() * f32matrix4x4Pool.stride);//Pool.Idx.of(lhs.idx() *pool.stride);
+        rhs = f32matrix4x4Pool.idx(rhs.idx()* f32matrix4x4Pool.stride);//Pool.Idx.of(rhs.idx()*pool.stride);
         return of(
-                pool.entries[lhs.idx() + X0Y0] * pool.entries[rhs.idx() + X0Y0] + pool.entries[lhs.idx() + X1Y0] * pool.entries[rhs.idx() + X0Y1] + pool.entries[lhs.idx() + X2Y0] * pool.entries[rhs.idx() + X0Y2] + pool.entries[lhs.idx() + X3Y0] * pool.entries[rhs.idx() + X0Y3],
-                pool.entries[lhs.idx() + X0Y0] * pool.entries[rhs.idx() + X1Y0] + pool.entries[lhs.idx() + X1Y0] * pool.entries[rhs.idx() + X1Y1] + pool.entries[lhs.idx() + X2Y0] * pool.entries[rhs.idx() + X1Y2] + pool.entries[lhs.idx() + X3Y0] * pool.entries[rhs.idx() + X1Y3],
-                pool.entries[lhs.idx() + X0Y0] * pool.entries[rhs.idx() + X2Y0] + pool.entries[lhs.idx() + X1Y0] * pool.entries[rhs.idx() + X2Y1] + pool.entries[lhs.idx() + X2Y0] * pool.entries[rhs.idx() + X2Y2] + pool.entries[lhs.idx() + X3Y0] * pool.entries[rhs.idx() + X2Y3],
-                pool.entries[lhs.idx() + X0Y0] * pool.entries[rhs.idx() + X3Y0] + pool.entries[lhs.idx() + X1Y0] * pool.entries[rhs.idx() + X3Y1] + pool.entries[lhs.idx() + X2Y0] * pool.entries[rhs.idx() + X3Y2] + pool.entries[lhs.idx() + X3Y0] * pool.entries[rhs.idx() + X3Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y0] * f32matrix4x4Pool.entries[rhs.idx() + X0Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y0] * f32matrix4x4Pool.entries[rhs.idx() + X0Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y0] * f32matrix4x4Pool.entries[rhs.idx() + X0Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y0] * f32matrix4x4Pool.entries[rhs.idx() + X0Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y0] * f32matrix4x4Pool.entries[rhs.idx() + X1Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y0] * f32matrix4x4Pool.entries[rhs.idx() + X1Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y0] * f32matrix4x4Pool.entries[rhs.idx() + X1Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y0] * f32matrix4x4Pool.entries[rhs.idx() + X1Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y0] * f32matrix4x4Pool.entries[rhs.idx() + X2Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y0] * f32matrix4x4Pool.entries[rhs.idx() + X2Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y0] * f32matrix4x4Pool.entries[rhs.idx() + X2Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y0] * f32matrix4x4Pool.entries[rhs.idx() + X2Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y0] * f32matrix4x4Pool.entries[rhs.idx() + X3Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y0] * f32matrix4x4Pool.entries[rhs.idx() + X3Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y0] * f32matrix4x4Pool.entries[rhs.idx() + X3Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y0] * f32matrix4x4Pool.entries[rhs.idx() + X3Y3],
 
-                pool.entries[lhs.idx() + X0Y1] * pool.entries[rhs.idx() + X0Y0] + pool.entries[lhs.idx() + X1Y1] * pool.entries[rhs.idx() + X0Y1] + pool.entries[lhs.idx() + X2Y1] * pool.entries[rhs.idx() + X0Y2] + pool.entries[lhs.idx() + X3Y1] * pool.entries[rhs.idx() + X0Y3],
-                pool.entries[lhs.idx() + X0Y1] * pool.entries[rhs.idx() + X1Y0] + pool.entries[lhs.idx() + X1Y1] * pool.entries[rhs.idx() + X1Y1] + pool.entries[lhs.idx() + X2Y1] * pool.entries[rhs.idx() + X1Y2] + pool.entries[lhs.idx() + X3Y1] * pool.entries[rhs.idx() + X1Y3],
-                pool.entries[lhs.idx() + X0Y1] * pool.entries[rhs.idx() + X2Y0] + pool.entries[lhs.idx() + X1Y1] * pool.entries[rhs.idx() + X2Y1] + pool.entries[lhs.idx() + X2Y1] * pool.entries[rhs.idx() + X2Y2] + pool.entries[lhs.idx() + X3Y1] * pool.entries[rhs.idx() + X2Y3],
-                pool.entries[lhs.idx() + X0Y1] * pool.entries[rhs.idx() + X3Y0] + pool.entries[lhs.idx() + X1Y1] * pool.entries[rhs.idx() + X3Y1] + pool.entries[lhs.idx() + X2Y1] * pool.entries[rhs.idx() + X3Y2] + pool.entries[lhs.idx() + X3Y1] * pool.entries[rhs.idx() + X3Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y1] * f32matrix4x4Pool.entries[rhs.idx() + X0Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y1] * f32matrix4x4Pool.entries[rhs.idx() + X0Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y1] * f32matrix4x4Pool.entries[rhs.idx() + X0Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y1] * f32matrix4x4Pool.entries[rhs.idx() + X0Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y1] * f32matrix4x4Pool.entries[rhs.idx() + X1Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y1] * f32matrix4x4Pool.entries[rhs.idx() + X1Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y1] * f32matrix4x4Pool.entries[rhs.idx() + X1Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y1] * f32matrix4x4Pool.entries[rhs.idx() + X1Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y1] * f32matrix4x4Pool.entries[rhs.idx() + X2Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y1] * f32matrix4x4Pool.entries[rhs.idx() + X2Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y1] * f32matrix4x4Pool.entries[rhs.idx() + X2Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y1] * f32matrix4x4Pool.entries[rhs.idx() + X2Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y1] * f32matrix4x4Pool.entries[rhs.idx() + X3Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y1] * f32matrix4x4Pool.entries[rhs.idx() + X3Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y1] * f32matrix4x4Pool.entries[rhs.idx() + X3Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y1] * f32matrix4x4Pool.entries[rhs.idx() + X3Y3],
 
-                pool.entries[lhs.idx() + X0Y2] * pool.entries[rhs.idx() + X0Y0] + pool.entries[lhs.idx() + X1Y2] * pool.entries[rhs.idx() + X0Y1] + pool.entries[lhs.idx() + X2Y2] * pool.entries[rhs.idx() + X0Y2] + pool.entries[lhs.idx() + X3Y2] * pool.entries[rhs.idx() + X0Y3],
-                pool.entries[lhs.idx() + X0Y2] * pool.entries[rhs.idx() + X1Y0] + pool.entries[lhs.idx() + X1Y2] * pool.entries[rhs.idx() + X1Y1] + pool.entries[lhs.idx() + X2Y2] * pool.entries[rhs.idx() + X1Y2] + pool.entries[lhs.idx() + X3Y2] * pool.entries[rhs.idx() + X1Y3],
-                pool.entries[lhs.idx() + X0Y2] * pool.entries[rhs.idx() + X2Y0] + pool.entries[lhs.idx() + X1Y2] * pool.entries[rhs.idx() + X2Y1] + pool.entries[lhs.idx() + X2Y2] * pool.entries[rhs.idx() + X2Y2] + pool.entries[lhs.idx() + X3Y2] * pool.entries[rhs.idx() + X2Y3],
-                pool.entries[lhs.idx() + X0Y2] * pool.entries[rhs.idx() + X3Y0] + pool.entries[lhs.idx() + X1Y2] * pool.entries[rhs.idx() + X3Y1] + pool.entries[lhs.idx() + X2Y2] * pool.entries[rhs.idx() + X3Y2] + pool.entries[lhs.idx() + X3Y2] * pool.entries[rhs.idx() + X3Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y2] * f32matrix4x4Pool.entries[rhs.idx() + X0Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y2] * f32matrix4x4Pool.entries[rhs.idx() + X0Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y2] * f32matrix4x4Pool.entries[rhs.idx() + X0Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y2] * f32matrix4x4Pool.entries[rhs.idx() + X0Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y2] * f32matrix4x4Pool.entries[rhs.idx() + X1Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y2] * f32matrix4x4Pool.entries[rhs.idx() + X1Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y2] * f32matrix4x4Pool.entries[rhs.idx() + X1Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y2] * f32matrix4x4Pool.entries[rhs.idx() + X1Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y2] * f32matrix4x4Pool.entries[rhs.idx() + X2Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y2] * f32matrix4x4Pool.entries[rhs.idx() + X2Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y2] * f32matrix4x4Pool.entries[rhs.idx() + X2Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y2] * f32matrix4x4Pool.entries[rhs.idx() + X2Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y2] * f32matrix4x4Pool.entries[rhs.idx() + X3Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y2] * f32matrix4x4Pool.entries[rhs.idx() + X3Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y2] * f32matrix4x4Pool.entries[rhs.idx() + X3Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y2] * f32matrix4x4Pool.entries[rhs.idx() + X3Y3],
 
-                pool.entries[lhs.idx() + X0Y3] * pool.entries[rhs.idx() + X0Y0] + pool.entries[lhs.idx() + X1Y3] * pool.entries[rhs.idx() + X0Y1] + pool.entries[lhs.idx() + X2Y3] * pool.entries[rhs.idx() + X0Y2] + pool.entries[lhs.idx() + X3Y3] * pool.entries[rhs.idx() + X0Y3],
-                pool.entries[lhs.idx() + X0Y3] * pool.entries[rhs.idx() + X1Y0] + pool.entries[lhs.idx() + X1Y3] * pool.entries[rhs.idx() + X1Y1] + pool.entries[lhs.idx() + X2Y3] * pool.entries[rhs.idx() + X1Y2] + pool.entries[lhs.idx() + X3Y3] * pool.entries[rhs.idx() + X1Y3],
-                pool.entries[lhs.idx() + X0Y3] * pool.entries[rhs.idx() + X2Y0] + pool.entries[lhs.idx() + X1Y3] * pool.entries[rhs.idx() + X2Y1] + pool.entries[lhs.idx() + X2Y3] * pool.entries[rhs.idx() + X2Y2] + pool.entries[lhs.idx() + X3Y3] * pool.entries[rhs.idx() + X2Y3],
-                pool.entries[lhs.idx() + X0Y3] * pool.entries[rhs.idx() + X3Y0] + pool.entries[lhs.idx() + X1Y3] * pool.entries[rhs.idx() + X3Y1] + pool.entries[lhs.idx() + X2Y3] * pool.entries[rhs.idx() + X3Y2] + pool.entries[lhs.idx() + X3Y3] * pool.entries[rhs.idx() + X3Y3]
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y3] * f32matrix4x4Pool.entries[rhs.idx() + X0Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y3] * f32matrix4x4Pool.entries[rhs.idx() + X0Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y3] * f32matrix4x4Pool.entries[rhs.idx() + X0Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y3] * f32matrix4x4Pool.entries[rhs.idx() + X0Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y3] * f32matrix4x4Pool.entries[rhs.idx() + X1Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y3] * f32matrix4x4Pool.entries[rhs.idx() + X1Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y3] * f32matrix4x4Pool.entries[rhs.idx() + X1Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y3] * f32matrix4x4Pool.entries[rhs.idx() + X1Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y3] * f32matrix4x4Pool.entries[rhs.idx() + X2Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y3] * f32matrix4x4Pool.entries[rhs.idx() + X2Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y3] * f32matrix4x4Pool.entries[rhs.idx() + X2Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y3] * f32matrix4x4Pool.entries[rhs.idx() + X2Y3],
+                f32matrix4x4Pool.entries[lhs.idx() + X0Y3] * f32matrix4x4Pool.entries[rhs.idx() + X3Y0] + f32matrix4x4Pool.entries[lhs.idx() + X1Y3] * f32matrix4x4Pool.entries[rhs.idx() + X3Y1] + f32matrix4x4Pool.entries[lhs.idx() + X2Y3] * f32matrix4x4Pool.entries[rhs.idx() + X3Y2] + f32matrix4x4Pool.entries[lhs.idx() + X3Y3] * f32matrix4x4Pool.entries[rhs.idx() + X3Y3]
 
         );
     }
 
 
      static String asString(int i) {
-        i *= pool.stride;
-        return String.format("|%5.2f, %5.2f, %5.2f, %5.2f|\n" +
-                        "|%5.2f, %5.2f, %5.2f, %5.2f|\n" +
-                        "|%5.2f, %5.2f, %5.2f, %5.2f|\n" +
-                        "|%5.2f, %5.2f, %5.2f, %5.2f|\n",
-                pool.entries[i + X0Y0], pool.entries[i + X1Y0], pool.entries[i + X2Y0], pool.entries[i + X3Y0],
-                pool.entries[i + X0Y1], pool.entries[i + X1Y1], pool.entries[i + X2Y1], pool.entries[i + X3Y1],
-                pool.entries[i + X0Y2], pool.entries[i + X1Y2], pool.entries[i + X2Y2], pool.entries[i + X3Y2],
-                pool.entries[i + X0Y3], pool.entries[i + X1Y3], pool.entries[i + X2Y3], pool.entries[i + X3Y3]);
+        i *= f32matrix4x4Pool.stride;
+        return String.format("""
+                        |%5.2f, %5.2f, %5.2f, %5.2f|
+                        |%5.2f, %5.2f, %5.2f, %5.2f|
+                        |%5.2f, %5.2f, %5.2f, %5.2f|
+                        |%5.2f, %5.2f, %5.2f, %5.2f|
+                        """,
+                f32matrix4x4Pool.entries[i + X0Y0], f32matrix4x4Pool.entries[i + X1Y0], f32matrix4x4Pool.entries[i + X2Y0], f32matrix4x4Pool.entries[i + X3Y0],
+                f32matrix4x4Pool.entries[i + X0Y1], f32matrix4x4Pool.entries[i + X1Y1], f32matrix4x4Pool.entries[i + X2Y1], f32matrix4x4Pool.entries[i + X3Y1],
+                f32matrix4x4Pool.entries[i + X0Y2], f32matrix4x4Pool.entries[i + X1Y2], f32matrix4x4Pool.entries[i + X2Y2], f32matrix4x4Pool.entries[i + X3Y2],
+                f32matrix4x4Pool.entries[i + X0Y3], f32matrix4x4Pool.entries[i + X1Y3], f32matrix4x4Pool.entries[i + X2Y3], f32matrix4x4Pool.entries[i + X3Y3]);
     }
 
 
 
     //https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
-    record Transformation(Pool.Idx id) implements Impl {
+    record Transformation(F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> id) implements Impl {
         public Transformation(float x, float y, float z) {
             this(F32Matrix4x4.of(
                     1f, 0f, 0f, 0f,
@@ -137,7 +142,7 @@ public interface F32Matrix4x4 {
 
     // https://medium.com/swlh/understanding-3d-matrix-transforms-with-pixijs-c76da3f8bd8
 
-    record Scale(Pool.Idx id) implements Impl {
+    record Scale(F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> id) implements Impl {
         Scale(float x, float y, float z) {
             this(F32Matrix4x4.of(
                     x, 0f, 0f, 0f,
@@ -152,9 +157,9 @@ public interface F32Matrix4x4 {
         }
     }
 
-    record Rotation(Pool.Idx id) implements Impl {
+    record Rotation(F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> id) implements Impl {
 
-        static Pool.Idx ofX(float thetaRadians) {
+        static F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> ofX(float thetaRadians) {
             float sinTheta = (float) Math.sin(thetaRadians);
             float cosTheta = (float) Math.cos(thetaRadians);
             return of(
@@ -166,7 +171,7 @@ public interface F32Matrix4x4 {
             );
         }
 
-        static Pool.Idx ofZ(float thetaRadians) {
+        static F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> ofZ(float thetaRadians) {
             float sinTheta = (float) Math.sin(thetaRadians);
             float cosTheta = (float) Math.cos(thetaRadians);
             return of(
@@ -177,7 +182,7 @@ public interface F32Matrix4x4 {
             );
         }
 
-        static Pool.Idx ofY(float thetaRadians) {
+        static F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> ofY(float thetaRadians) {
             float sinTheta = (float) Math.sin(thetaRadians);
             float cosTheta = (float) Math.cos(thetaRadians);
             return of(
@@ -210,8 +215,8 @@ public interface F32Matrix4x4 {
                       [x,y,z]
 
                */
-    record Projection(Pool.Idx id) implements Impl {
-        public static Projection of(Pool.Idx id) {
+    record Projection(F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> id) implements Impl {
+        public static Projection of(F32Matrix4x4Pool.Idx<F32Matrix4x4Pool> id) {
             return new Projection(id);
         }
 
