@@ -33,17 +33,13 @@ public interface F32Vec3 {
         F32Vec3Pool(int stride, int max) {
            super(stride,max);
         }
-
          @Override
          Idx<F32Vec3Pool> idx(int idx) {
              return new Idx<F32Vec3Pool>(this, idx);
          }
-
      }
     F32Vec3Pool f32Vec3Pool = new F32Vec3Pool(3, 90000);
-    interface Impl extends F32Vec3 {
-        F32Vec3Pool.Idx<F32Vec3Pool> id();
-    }
+
 
     static int createVec3(float x, float y, float z) {
         f32Vec3Pool.entries[f32Vec3Pool.count * f32Vec3Pool.stride + X] = x;
@@ -192,27 +188,25 @@ public interface F32Vec3 {
         i *= f32Vec3Pool.stride;
         return f32Vec3Pool.entries[i + Z];
     }
-
-    record vec3(view.f32.Pool.Idx<F32Vec3Pool> id) implements Impl{
-        public static vec3 of(view.f32.Pool.Idx<F32Vec3Pool> id){
-            return new vec3(id);
+    record F32Vec3Impl(Pool.Idx<F32Vec3Pool> id) implements F32Vec3 {
+        public static F32Vec3Impl of(view.f32.Pool.Idx<F32Vec3Pool> id){
+            return new F32Vec3Impl(id);
         }
-        public static vec3 of(float x, float y, float z){
-
+        public static F32Vec3Impl of(float x, float y, float z){
             return of(f32Vec3Pool.idx(F32Vec3.createVec3(x,y,z)));//Pool.Idx.of(F32Vec3.createVec3(x,y,z)));
         }
 
-        public vec3 sub(vec3 v) {
-            return of(f32Vec3Pool.idx(subVec3(id.idx(), v.id.idx())));//of(Pool.Idx.of(subVec3(id.idx(), v.id.idx())));
+        public F32Vec3Impl sub(F32Vec3Impl v) {
+            return F32Vec3Impl.of(f32Vec3Pool.idx(subVec3(id.idx(), v.id.idx())));//of(Pool.Idx.of(subVec3(id.idx(), v.id.idx())));
         }
-        public vec3 add(vec3 v) {
-            return of(f32Vec3Pool.idx(addVec3(id.idx(),v.id.idx())));//Pool.Idx.of(addVec3(id.idx(), v.id.idx())));
+        public F32Vec3Impl add(F32Vec3Impl v) {
+            return F32Vec3Impl.of(f32Vec3Pool.idx(addVec3(id.idx(),v.id.idx())));//Pool.Idx.of(addVec3(id.idx(), v.id.idx())));
         }
-        public vec3 mul(vec3 v) {
-            return of(f32Vec3Pool.idx(mulVec3(id.idx(), v.id.idx())));//Pool.Idx.of(mulVec3(id.idx(), v.id.idx())));
+        public F32Vec3Impl mul(F32Vec3Impl v) {
+            return F32Vec3Impl.of(f32Vec3Pool.idx(mulVec3(id.idx(), v.id.idx())));//Pool.Idx.of(mulVec3(id.idx(), v.id.idx())));
         }
 
-        public float dotProd(vec3 v){
+        public float dotProd(F32Vec3Impl v){
             return F32Vec3.dotProd(id.idx(), v.id.idx());
         }
         public float sumOf(){

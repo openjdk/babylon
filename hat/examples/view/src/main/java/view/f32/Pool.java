@@ -28,12 +28,11 @@ public abstract class Pool<T extends Pool<T>> {
     interface Id<T extends Pool<T>>{
         T pool();
         int idx();
-    }
-    public   record Idx<T extends Pool<T>>(T pool,int idx) implements Id<T> {
-        int idx(int offset) {
-            return idx + offset;
+        default int idx(int offset){
+            return idx()+offset;
         }
     }
+    public   record Idx<T extends Pool<T>>(T pool,int idx) implements Id<T> { }
 
     public final int max;
     public final int stride;
@@ -44,5 +43,5 @@ public abstract class Pool<T extends Pool<T>> {
         this.max = max;
     }
 
-    abstract   Idx<T> idx(int idx);
+    abstract Idx<T> idx(int idx);
 }

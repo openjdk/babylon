@@ -32,7 +32,7 @@ public record ModelHighWaterMark(
         int markedMat4) {
 
     public ModelHighWaterMark() {
-        this(F32Triangle3D.f32Triangle3DPool.count, F32Triangle2D.arr.size(), F32Vec2.arr.size(), F32Vec3.f32Vec3Pool.count, F32Matrix4x4.f32matrix4x4Pool.count);
+        this(F32Triangle3D.f32Triangle3DPool.count, F32Triangle2D.f32Triangle2DPool.count, F32Vec2.f32Vec2Pool.count, F32Vec3.f32Vec3Pool.count, F32Matrix4x4.f32matrix4x4Pool.count);
     }
 
     public void resetAll() {

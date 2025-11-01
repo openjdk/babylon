@@ -28,12 +28,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public interface F32Triangle3D{
-    List<F32Triangle3D> arr = new ArrayList<>();
+   // List<F32Triangle3D> arr = new ArrayList<>();
     static void reset(int marked) {
         F32Triangle3D.f32Triangle3DPool.count = marked;
-        while (arr.size()>marked){
-            arr.removeLast();
-        }
+     //   while (arr.size()>marked){
+       //     arr.removeLast();
+      //  }
     }
 
     int V0 = 0;
@@ -166,63 +166,59 @@ public interface F32Triangle3D{
         return F32Vec3.divScaler(normalVec3,  F32Vec3.sumOfSquares(normalVec3));
     }
 
-    interface Impl extends F32Triangle3D {
-        F32Triangle3DPool.Idx<F32Triangle3DPool> id();
-    }
+    record F32Triangle3DImpl(F32Triangle3DPool.Idx<F32Triangle3DPool> id) implements F32Triangle3D {
 
-    record tri(F32Triangle3DPool.Idx<F32Triangle3DPool> id) implements Impl {
-
-        public static List<tri> all() {
-                List<tri> all = new ArrayList<>();
+        public static List<F32Triangle3DImpl> all() {
+                List<F32Triangle3DImpl> all = new ArrayList<>();
                 for (int t = 0; t < f32Triangle3DPool.count; t++) {
-                    all.add(new tri(f32Triangle3DPool.idx(t))/*Pool.Idx.of(t))*/);
+                    all.add(new F32Triangle3DImpl(f32Triangle3DPool.idx(t))/*Pool.Idx.of(t))*/);
                 }
                 return all;
             }
 
-            public tri mul(F32Matrix4x4.Impl m) {
-                return new tri(mulMat4(id, m.id()));
+            public F32Triangle3DImpl mul(F32Matrix4x4.Impl m) {
+                return new F32Triangle3DImpl(mulMat4(id, m.id()));
             }
 
-            public tri add(F32Vec3.vec3 v) {
-                return new tri(addVec3(id, v.id().idx()));
+            public F32Triangle3DImpl add(F32Vec3.F32Vec3Impl v) {
+                return new F32Triangle3DImpl(addVec3(id, v.id().idx()));
 
             }
 
-            public F32Vec3.vec3 normalSumOfSquares() {
-                return new F32Vec3.vec3(F32Vec3.f32Vec3Pool.idx(F32Triangle3D.normalSumOfSquares(id)));
+            public F32Vec3.F32Vec3Impl normalSumOfSquares() {
+                return new F32Vec3.F32Vec3Impl(F32Vec3.f32Vec3Pool.idx(F32Triangle3D.normalSumOfSquares(id)));
             }
 
-            public F32Vec3.vec3 normal() {
-                return new F32Vec3.vec3(F32Vec3.f32Vec3Pool.idx(F32Triangle3D.normal(id)));
+            public F32Vec3.F32Vec3Impl normal() {
+                return new F32Vec3.F32Vec3Impl(F32Vec3.f32Vec3Pool.idx(F32Triangle3D.normal(id)));
             }
 
-            public F32Vec3.vec3 v0() {
-                return new F32Vec3.vec3(F32Vec3.f32Vec3Pool.idx(getV0(id)));
+            public F32Vec3.F32Vec3Impl v0() {
+                return new F32Vec3.F32Vec3Impl(F32Vec3.f32Vec3Pool.idx(getV0(id)));
             }
 
-            public F32Vec3.vec3 v1() {
-                return new F32Vec3.vec3(F32Vec3.f32Vec3Pool.idx(getV1(id)));
+            public F32Vec3.F32Vec3Impl v1() {
+                return new F32Vec3.F32Vec3Impl(F32Vec3.f32Vec3Pool.idx(getV1(id)));
             }
 
-            public F32Vec3.vec3 v2() {
-                return new F32Vec3.vec3(F32Vec3.f32Vec3Pool.idx(getV2(id)));
+            public F32Vec3.F32Vec3Impl v2() {
+                return new F32Vec3.F32Vec3Impl(F32Vec3.f32Vec3Pool.idx(getV2(id)));
             }
 
-            public tri mul(float s) {
-                return new tri(mulScaler(id, s));
+            public F32Triangle3DImpl mul(float s) {
+                return new F32Triangle3DImpl(mulScaler(id, s));
             }
 
-            public tri add(float s) {
-                return new tri(addScaler(id, s));
+            public F32Triangle3DImpl add(float s) {
+                return new F32Triangle3DImpl(addScaler(id, s));
             }
 
             public int rgb() {
                 return getRGB(id);
             }
 
-            public F32Vec3.vec3 center() {
-                return new F32Vec3.vec3(F32Vec3.f32Vec3Pool.idx(getCentre(id)));
+            public F32Vec3.F32Vec3Impl center() {
+                return new F32Vec3.F32Vec3Impl(F32Vec3.f32Vec3Pool.idx(getCentre(id)));
             }
         }
 }

@@ -25,11 +25,9 @@
 package view.f32;
 
 public abstract class IndexPool<T extends IndexPool<T>> extends Pool<T> {
-
     public final int entries[];
-
     IndexPool(int stride, int max) {
       super(stride,max);
-        this.entries = new int[max * stride];
+      this.entries = new int[max * stride];
     }
 }
