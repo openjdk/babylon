@@ -48,9 +48,13 @@ public interface F32Triangle2D {
         public static int RGB = 3;
         public record Idx(F32Triangle2DPool pool, int idx) implements Pool.Idx<F32Triangle2DPool>{
             int v0(){return pool.stride * idx+V0;}
+            int v0Entry(){return pool.entries[v0()];}
             int v1(){return pool.stride * idx+V1;}
+            int v1Entry(){return pool.entries[v1()];}
             int v2(){return pool.stride * idx+V2;}
+            int v2Entry(){return pool.entries[v2()];}
             int rgb(){return pool.stride * idx+RGB;}
+            int rgbEntry(){return pool.entries[rgb()];}
         }
         public final int entries[];
         F32Triangle2DPool(int max) {

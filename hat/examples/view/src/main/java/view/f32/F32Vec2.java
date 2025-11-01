@@ -38,7 +38,10 @@ public interface F32Vec2 {
         static public int X = 0;
         static public int Y = 1;
         record Idx(F32Vec2Pool pool, int idx) implements Pool.Idx<F32Vec2Pool>{
-
+            int x(){return pool.stride * idx+X;}
+            float xEntry(){return pool.entries[x()];}
+            int y(){return pool.stride * idx+Y;}
+            float yEntry(){return pool.entries[y()];}
         }
         F32Vec2Pool() {
             super(2,12800);

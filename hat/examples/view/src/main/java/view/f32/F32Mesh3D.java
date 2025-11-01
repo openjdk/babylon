@@ -55,7 +55,7 @@ public class F32Mesh3D {
         normalEntries[triCount] = F32Triangle3D.normal(tri);
         int triCentreVec3 = F32Triangle3D.getCentre(tri);
         triCenterVec3s[triCount]=triCentreVec3;
-        v0Vec3s[triCount]=F32Triangle3D.getV0(tri);
+        v0Vec3s[triCount]=F32Triangle3D.f32Triangle3DPool.entries[tri.v0()];
         if (triCount == 0) {
             triSum = triCentreVec3;
         } else {

@@ -31,7 +31,14 @@ public interface F32Vec3 {
          public static int X = 0;
          public static  int Y = 1;
          public static  int Z = 2;
-         record Idx(F32Vec3Pool pool, int idx) implements Pool.Idx<F32Vec3Pool>{ }
+         record Idx(F32Vec3Pool pool, int idx) implements Pool.Idx<F32Vec3Pool>{
+             int x(){return pool.stride * idx+X;}
+             float xEntry(){return pool.entries[x()];}
+             int y(){return pool.stride * idx+Y;}
+             float yEntry(){return pool.entries[y()];}
+             int z(){return pool.stride * idx+Z;}
+             float zEntry(){return pool.entries[z()];}
+         }
         F32Vec3Pool(int stride, int max) {
            super(stride,max);
         }
