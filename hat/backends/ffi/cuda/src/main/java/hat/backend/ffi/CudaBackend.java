@@ -373,7 +373,7 @@ public class CudaBackend extends C99FFIBackend {
     public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = Config.PTX.isSet(config()) ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph, args);
-            if (Config.SHOW_CODE.isSet(config())) {
+            if (config().showCode()) {
                 System.out.println(code);
             }
             var compilationUnit = backendBridge.compile(code);
@@ -398,7 +398,6 @@ public class CudaBackend extends C99FFIBackend {
         var builder = new PTXHATKernelBuilder();
         StringBuilder out = new StringBuilder();
         StringBuilder invokedMethods = new StringBuilder();
-        CoreOp.FuncOp lowered = OpTk.lower(kernelCallGraph.entrypoint.funcOp());
         var paramTable = new FuncOpParams(kernelCallGraph.entrypoint.funcOp());
         HashMap<String, Object> argsMap = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
@@ -408,21 +407,25 @@ public class CudaBackend extends C99FFIBackend {
         out.append(builder.getText());
         builder.clear();
 
-        kernelCallGraph.moduleOp.functionTable().forEach((_, funcOp) -> {
-            CoreOp.FuncOp loweredFunc = OpTk.lower(funcOp);
+        var here = OpTk.CallSite.of(CudaBackend.class, "createPTX");
+
+        kernelCallGraph.getModuleOp().functionTable().forEach((_, funcOp) -> {
+            // TODO did we just trash any sidetables?
+            CoreOp.FuncOp loweredFunc = OpTk.lower(here, funcOp);
             loweredFunc = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,loweredFunc, argsMap, usedMathFns);
             invokedMethods.append(createFunction(new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
         });
 
-        lowered = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,lowered, argsMap, usedMathFns);
+        CoreOp.FuncOp lowered = OpTk.lower(here, kernelCallGraph.entrypoint.funcOp());
+        CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.computeContext.accelerator.lookup,lowered, argsMap, usedMathFns);
         for (String s : usedMathFns) {
             out.append("\n").append(mathFns.get(s)).append("\n");
         }
 
         out.append(invokedMethods);
 
-        out.append(createFunction(builder.nl().nl(), lowered, true));
-        if (Config.SHOW_KERNEL_MODEL.isSet(config())){
+        out.append(createFunction(builder.nl().nl(), loweredPtx, true));
+        if (config().showKernelModel()){
             System.out.println("ptx follows\n"+out);
         }
 
@@ -430,7 +433,8 @@ public class CudaBackend extends C99FFIBackend {
     }
 
       static  public CoreOp.FuncOp transformPTXPtrs(MethodHandles.Lookup lookup,CoreOp.FuncOp func, HashMap<String, Object> argsMap, Set<String> usedMathFns) {
-        return func.transform((block, op) -> {
+        var here = OpTk.CallSite.of(CudaBackend.class, "transformPTXPtrs");
+        return OpTk.transform(here, func,(block, op) -> {
             CopyContext cc = block.context();
             // use first operand of invoke to figure out schema
             if (op instanceof JavaOp.InvokeOp invokeOp){
@@ -461,7 +465,8 @@ public class CudaBackend extends C99FFIBackend {
     }
 
     static public String createFunction(PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
-        CoreOp.FuncOp ssa = SSA.transform(lowered);
+        var here = OpTk.CallSite.of(CudaBackend.class, "createFucntion" );
+        CoreOp.FuncOp ssa = OpTk.SSATransform(here, lowered);
 
 
         // building fn info (name, params)

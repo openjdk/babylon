@@ -26,18 +26,33 @@ package hat.tools.text;
 
 import hat.codebuilders.ScopedCodeBuilderContext;
 import hat.codebuilders.HATCodeBuilderWithContext;
-import hat.dialect.HatBlockThreadIdOp;
-import hat.dialect.HatGlobalThreadIdOp;
-import hat.dialect.HatGlobalSizeOp;
-import hat.dialect.HatLocalSizeOp;
-import hat.dialect.HatLocalThreadIdOp;
+import hat.dialect.HATBlockThreadIdOp;
+import hat.dialect.HATF16ConvOp;
+import hat.dialect.HATVectorMakeOfOp;
+import hat.dialect.HATVectorOfOp;
+import hat.dialect.HATVectorOp;
+import hat.dialect.HATVectorSelectLoadOp;
+import hat.dialect.HATVectorSelectStoreOp;
+import hat.dialect.HATF16BinaryOp;
+import hat.dialect.HATF16VarLoadOp;
+import hat.dialect.HATF16VarOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorStoreView;
+import hat.dialect.HATGlobalThreadIdOp;
+import hat.dialect.HATGlobalSizeOp;
+import hat.dialect.HATLocalSizeOp;
+import hat.dialect.HATLocalThreadIdOp;
+import hat.dialect.HATVectorVarLoadOp;
+import hat.dialect.HATVectorVarOp;
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
-public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+public class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+
     @Override
     public T type(ScopedCodeBuilderContext buildContext, JavaType javaType) {
             try {
@@ -96,32 +111,110 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
     }
 
     @Override
-    public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HatGlobalThreadIdOp globalThreadIdOp) {
+    public T hatGlobalThreadOp(ScopedCodeBuilderContext buildContext, HATGlobalThreadIdOp globalThreadIdOp) {
         blockInlineComment("Thread ID access");
         return self();
     }
 
     @Override
-    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HatGlobalSizeOp hatGlobalThreadIdOp) {
+    public T hatGlobalSizeOp(ScopedCodeBuilderContext buildContext, HATGlobalSizeOp hatGlobalThreadIdOp) {
         blockInlineComment("GlobalSize");
         return self();
     }
 
     @Override
-    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HatLocalThreadIdOp hatLocalThreadIdOp) {
+    public T hatLocalThreadIdOp(ScopedCodeBuilderContext buildContext, HATLocalThreadIdOp hatLocalThreadIdOp) {
         blockInlineComment("Local Thread ID");
         return self();
     }
 
     @Override
-    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HatLocalSizeOp hatLocalSizeOp) {
+    public T hatLocalSizeOp(ScopedCodeBuilderContext buildContext, HATLocalSizeOp hatLocalSizeOp) {
         blockInlineComment("Local Size");
         return self();
     }
 
     @Override
-    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HatBlockThreadIdOp hatBlockThreadIdOp) {
+    public T hatBlockThreadIdOp(ScopedCodeBuilderContext buildContext, HATBlockThreadIdOp hatBlockThreadIdOp) {
         blockInlineComment("Block ID ");
+        return self();
+    }
+
+    @Override
+    public T hatVectorVarOp(ScopedCodeBuilderContext buildContext, HATVectorVarOp hatVectorVarOp) {
+        blockComment("Vector Variable Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatVectorStoreOp(ScopedCodeBuilderContext buildContext, HATVectorStoreView hatVectorStoreView) {
+        blockComment("Store Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatBinaryVectorOp(ScopedCodeBuilderContext buildContext, HATVectorBinaryOp hatVectorBinaryOp) {
+        blockComment("Binary Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatVectorLoadOp(ScopedCodeBuilderContext buildContext, HATVectorLoadOp hatVectorLoadOp) {
+        blockComment("Load Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatSelectLoadOp(ScopedCodeBuilderContext buildContext, HATVectorSelectLoadOp hatVSelectLoadOp) {
+        blockComment("Select Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatSelectStoreOp(ScopedCodeBuilderContext buildContext, HATVectorSelectStoreOp hatVSelectStoreOp) {
+        blockComment("Select Vector Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatVectorVarLoadOp(ScopedCodeBuilderContext buildContext, HATVectorVarLoadOp hatVectorVarLoadOp) {
+        blockComment("Vector Variable Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatF16VarOp(ScopedCodeBuilderContext buildContext, HATF16VarOp hatF16VarOp) {
+        blockComment("F16 Variable Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+        blockComment("Binary F16 Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatF16VarLoadOp(ScopedCodeBuilderContext buildContext, HATF16VarLoadOp hatF16VarLoadOp) {
+        blockComment("F16 Load Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatF16ConvOp(ScopedCodeBuilderContext buildContext, HATF16ConvOp hatF16ConvOp) {
+        blockComment("F16 Conv Op Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatVectorOfOps(ScopedCodeBuilderContext buildContext, HATVectorOfOp hatVectorOp) {
+        blockComment("Vector Of Ops Not Implemented");
+        return self();
+    }
+
+    @Override
+    public T hatVectorMakeOf(ScopedCodeBuilderContext builderContext, HATVectorMakeOfOp hatVectorMakeOfOp) {
+        blockComment("Vector Make Of Op Not Implemented");
         return self();
     }
 
@@ -136,5 +229,4 @@ public  class JavaHATCodeBuilder<T extends JavaHATCodeBuilder<T>> extends HATCod
         });
         return self();
     }
-
 }

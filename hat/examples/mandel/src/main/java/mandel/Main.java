@@ -81,15 +81,12 @@ public class Main {
         final int zoomFrames = 200;
 
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-
-        // TODO: lets use Config going forward
-        boolean headless = Boolean.getBoolean("headless") ||( args.length>0 && args[0].equals("--headless"))
-                || Config.HEADLESS.isSet(accelerator.backend.config());
+        boolean headless = accelerator.config().headless(args.length>0?args[0]:null);
         S32Array2D s32Array2D = S32Array2D.create(accelerator, width, height);
 
         int[] palletteArray = new int[maxIterations];
 
-        if (headless){
+        if (accelerator.config().headless(args.length>0?args[0]:null)){
             for (int i = 1; i < maxIterations; i++) {
                 palletteArray[i]=(i/8+1);// 0-7?
             }

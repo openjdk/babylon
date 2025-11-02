@@ -33,7 +33,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import java.lang.invoke.MethodHandles;
 
 
-public  abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
+public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> extends HATCodeBuilderWithContext<T> {
 
     public T computeDeclaration(TypeElement typeElement, String name) {
         return typeName(typeElement.toString()).space().identifier(name);

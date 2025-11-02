@@ -65,12 +65,24 @@ public class Config {
 
     public static final Bit PLATFORM =  Bit.of(0,4, "PLATFORM", "FFI ONLY platform id (0-15)");
     public static final Bit DEVICE = Bit.nextBit(PLATFORM, 4, "DEVICE","FFI ONLY device id (0-15)");
-    public static final Bit MINIMIZE_COPIES =  Bit.nextBit(DEVICE, "MINIMIZE_COPIES","FFI ONLY Try to minimize copies");
+    private static final Bit MINIMIZE_COPIES =  Bit.nextBit(DEVICE, "MINIMIZE_COPIES","FFI ONLY Try to minimize copies");
+    public boolean minimizeCopies() {
+        return MINIMIZE_COPIES.isSet(this);
+    }
     public static final Bit TRACE = Bit.nextBit(MINIMIZE_COPIES,"TRACE", "FFI ONLY trace code");
     public static final Bit PROFILE = Bit.nextBit(TRACE, "PROFILE", "FFI ONLY Turn on profiling");
-    public static final Bit SHOW_CODE = Bit.nextBit(PROFILE,"SHOW_CODE","Show generated code (PTX/OpenCL/CUDA)");
-    public static final Bit SHOW_KERNEL_MODEL = Bit.nextBit(SHOW_CODE,"SHOW_KERNEL_MODEL", "Show (via OpWriter) Kernel Model");
-    public static final Bit SHOW_COMPUTE_MODEL = Bit.nextBit(SHOW_KERNEL_MODEL,"SHOW_COMPUTE_MODEL", "Show (via OpWriter) Compute Model");
+    private static final Bit SHOW_CODE = Bit.nextBit(PROFILE,"SHOW_CODE","Show generated code (PTX/OpenCL/CUDA)");
+    public boolean showCode() {
+        return SHOW_CODE.isSet(this);
+    }
+    private static final Bit SHOW_KERNEL_MODEL = Bit.nextBit(SHOW_CODE,"SHOW_KERNEL_MODEL", "Show (via OpWriter) Kernel Model");
+    public boolean showKernelModel() {
+        return SHOW_COMPUTE_MODEL.isSet(this);
+    }
+    private static final Bit SHOW_COMPUTE_MODEL = Bit.nextBit(SHOW_KERNEL_MODEL,"SHOW_COMPUTE_MODEL", "Show (via OpWriter) Compute Model");
+    public boolean showComputeModel() {
+        return SHOW_COMPUTE_MODEL.isSet(this);
+    }
     public static final Bit INFO = Bit.nextBit(SHOW_COMPUTE_MODEL, "INFO", "FFI ONLY Show platform and device info");
     public static final Bit TRACE_COPIES = Bit.nextBit(INFO, "TRACE_COPIES", "FFI ONLY trace copies");
     public static final Bit TRACE_SKIPPED_COPIES = Bit.nextBit(TRACE_COPIES, "TRACE_SKIPPED_COPIES", "FFI ONLY Trace skipped copies (see MINIMIZE_COPIES) ");
@@ -80,12 +92,29 @@ public class Config {
     public static final Bit SHOW_STATE = Bit.nextBit(SHOW_WHY, "SHOW_STATE", "Show iface buffer state changes");
     public static final Bit PTX = Bit.nextBit(SHOW_STATE, "PTX", "FFI (NVIDIA) ONLY pass PTX rather than C99 CUDA code");
     public static final Bit INTERPRET = Bit.nextBit(PTX, "INTERPRET", "Interpret the code model rather than converting to bytecode");
-    public static final Bit NO_BUFFER_TAGGING = Bit.nextBit(INTERPRET, "NO_BUFFER_TAGGING", "Skip AUTO buffer tagging (rely on annotations)");
-    public static final Bit NO_DIALECT = Bit.nextBit(NO_BUFFER_TAGGING, "NO_DIALECT", "Skip generating HAT dialect ops");
-    public static final Bit NO_MODULE_OP = Bit.nextBit(NO_DIALECT, "NO_MODULE_OP", "Use original callgraph (not using Module Op)");
-    public static final Bit HEADLESS = Bit.nextBit(NO_MODULE_OP, "HEADLESS", "Don't show UI");
-
-
+    private static final Bit NO_DIALECT = Bit.nextBit(INTERPRET, "NO_DIALECT", "Skip generating HAT dialect ops");
+    public boolean interpret() {
+        return INTERPRET.isSet(this);
+    }
+    private static final Bit HEADLESS = Bit.nextBit(NO_DIALECT, "HEADLESS", "Don't show UI");
+    public boolean headless() {
+        return HEADLESS.isSet(this)|| Boolean.getBoolean("headless");
+    }
+    public boolean headless(String arg) {
+        return headless()|"--headless".equals(arg);
+    }
+    private static final Bit SHOW_LOWERED_KERNEL_MODEL = Bit.nextBit(HEADLESS,"SHOW_LOWERED_KERNEL_MODEL", "Show (via OpWriter) Lowered Kernel Model");
+    public boolean showLoweredKernelModel() {
+        return SHOW_LOWERED_KERNEL_MODEL.isSet(this);
+    }
+    private static final Bit SHOW_COMPILATION_PHASES = Bit.nextBit(SHOW_LOWERED_KERNEL_MODEL, "SHOW_COMPILATION_PHASES", "Show HAT compilation phases");
+    private static final Bit PROFILE_CUDA_KERNEL = Bit.nextBit(SHOW_COMPILATION_PHASES, "PROFILE_CUDA_KERNEL", "Add -lineinfo to CUDA kernel compilation for profiling and debugging");
+    public boolean showCompilationPhases() {
+        return SHOW_COMPILATION_PHASES.isSet(this);
+    }
+    public boolean isProfileCUDAKernelEnabled() {
+        return PROFILE_CUDA_KERNEL.isSet(this);
+    }
     public static final List<Bit> bitList = List.of(
             PLATFORM,
             DEVICE,
@@ -104,10 +133,11 @@ public class Config {
             SHOW_STATE,
             PTX,
             INTERPRET,
-            NO_BUFFER_TAGGING,
             NO_DIALECT,
-            NO_MODULE_OP,
-            HEADLESS
+            HEADLESS,
+            SHOW_LOWERED_KERNEL_MODEL,
+            SHOW_COMPILATION_PHASES,
+            PROFILE_CUDA_KERNEL
     );
 
     private int bits;

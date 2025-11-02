@@ -8,11 +8,5 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="core" />
-    <orderEntry type="module" module-name="backend_spirv" />
-    <orderEntry type="module" module-name="backend_opencl" />
-    <orderEntry type="module" module-name="backend_ptx" />
-    <orderEntry type="module" module-name="backend_mock" />
-    <orderEntry type="module" module-name="backend_ffi_opencl" />
-    <orderEntry type="module" module-name="backend_ffi_shared" />
   </component>
 </module>

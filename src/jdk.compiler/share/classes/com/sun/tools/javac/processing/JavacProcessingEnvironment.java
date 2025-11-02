@@ -123,7 +123,6 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
     private final Modules modules;
     private final Types types;
     private final Annotate annotate;
-    private final Lint lint;
 
     /**
      * Holds relevant state history of which processors have been
@@ -207,14 +206,13 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
         printProcessorInfo = options.isSet(Option.XPRINTPROCESSORINFO);
         printRounds = options.isSet(Option.XPRINTROUNDS);
         verbose = options.isSet(Option.VERBOSE);
-        lint = Lint.instance(context);
         compiler = JavaCompiler.instance(context);
         if (options.isSet(Option.PROC, "only") || options.isSet(Option.XPRINT)) {
             compiler.shouldStopPolicyIfNoError = CompileState.PROCESS;
         }
         fatalErrors = options.isSet("fatalEnterError");
         showResolveErrors = options.isSet("showResolveErrors");
-        werror = options.isSet(Option.WERROR);
+        werror = compiler.isWerror(PROCESSING);
         fileManager = context.get(JavaFileManager.class);
         platformAnnotations = initPlatformAnnotations();
 
@@ -627,7 +625,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
         private Set<String> supportedOptionNames;
 
         ProcessorState(Processor p, Log log, Source source, DeferredCompletionFailureHandler dcfh,
-                       boolean allowModules, ProcessingEnvironment env, Lint lint) {
+                       boolean allowModules, ProcessingEnvironment env) {
             processor = p;
             contributed = false;
 
@@ -648,10 +646,9 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
                     boolean patternAdded = supportedAnnotationStrings.add(annotationPattern);
 
                     supportedAnnotationPatterns.
-                        add(importStringToPattern(allowModules, annotationPattern,
-                                                  processor, log, lint));
+                        add(importStringToPattern(allowModules, annotationPattern, processor, log));
                     if (!patternAdded) {
-                        lint.logIfEnabled(LintWarnings.ProcDuplicateSupportedAnnotation(annotationPattern,
+                        log.warning(LintWarnings.ProcDuplicateSupportedAnnotation(annotationPattern,
                                                                               p.getClass().getName()));
                     }
                 }
@@ -664,7 +661,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
                 // and "foo.bar.*".
                 if (supportedAnnotationPatterns.contains(MatchingUtils.validImportStringToPattern("*")) &&
                     supportedAnnotationPatterns.size() > 1) {
-                    lint.logIfEnabled(LintWarnings.ProcRedundantTypesWithWildcard(p.getClass().getName()));
+                    log.warning(LintWarnings.ProcRedundantTypesWithWildcard(p.getClass().getName()));
                 }
 
                 supportedOptionNames = new LinkedHashSet<>();
@@ -672,8 +669,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
                     if (checkOptionName(optionName, log)) {
                         boolean optionAdded = supportedOptionNames.add(optionName);
                         if (!optionAdded) {
-                            lint.logIfEnabled(LintWarnings.ProcDuplicateOptionName(optionName,
-                                                                         p.getClass().getName()));
+                            log.warning(LintWarnings.ProcDuplicateOptionName(optionName, p.getClass().getName()));
                         }
                     }
                 }
@@ -760,8 +756,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
                     ProcessorState ps = new ProcessorState(psi.processorIterator.next(),
                                                            log, source, dcfh,
                                                            Feature.MODULES.allowedInSource(source),
-                                                           JavacProcessingEnvironment.this,
-                                                           lint);
+                                                           JavacProcessingEnvironment.this);
                     psi.procStateList.add(ps);
                     return ps;
                 } else
@@ -889,7 +884,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
         }
         unmatchedAnnotations.remove("");
 
-        if (lint.isEnabled(PROCESSING) && unmatchedAnnotations.size() > 0) {
+        if (unmatchedAnnotations.size() > 0) {
             // Remove annotations processed by javac
             unmatchedAnnotations.keySet().removeAll(platformAnnotations);
             if (unmatchedAnnotations.size() > 0) {
@@ -1650,7 +1645,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
      * regex matching that string.  If the string is not a valid
      * import-style string, return a regex that won't match anything.
      */
-    private static Pattern importStringToPattern(boolean allowModules, String s, Processor p, Log log, Lint lint) {
+    private static Pattern importStringToPattern(boolean allowModules, String s, Processor p, Log log) {
         String module;
         String pkg;
         int slash = s.indexOf('/');
@@ -1663,7 +1658,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
         } else {
             String moduleName = s.substring(0, slash);
             if (!SourceVersion.isName(moduleName)) {
-                return warnAndNoMatches(s, p, log, lint);
+                return warnAndNoMatches(s, p, log);
             }
             module = Pattern.quote(moduleName + "/");
             // And warn if module is specified if modules aren't supported, conditional on -Xlint:proc?
@@ -1672,12 +1667,12 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
         if (MatchingUtils.isValidImportString(pkg)) {
             return Pattern.compile(module + MatchingUtils.validImportStringToPatternString(pkg));
         } else {
-            return warnAndNoMatches(s, p, log, lint);
+            return warnAndNoMatches(s, p, log);
         }
     }
 
-    private static Pattern warnAndNoMatches(String s, Processor p, Log log, Lint lint) {
-        lint.logIfEnabled(LintWarnings.ProcMalformedSupportedString(s, p.getClass().getName()));
+    private static Pattern warnAndNoMatches(String s, Processor p, Log log) {
+        log.warning(LintWarnings.ProcMalformedSupportedString(s, p.getClass().getName()));
         return noMatches; // won't match any valid identifier
     }
 

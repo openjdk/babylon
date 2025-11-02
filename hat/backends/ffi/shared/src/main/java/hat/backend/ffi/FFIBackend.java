@@ -65,9 +65,10 @@ public abstract class FFIBackend extends FFIBackendDriver {
     }
 
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
+        var here = OpTk.CallSite.of(FFIBackend.class, "dispatchCompute");
         if (computeContext.computeCallGraph.entrypoint.lowered == null) {
             computeContext.computeCallGraph.entrypoint.lowered =
-                    OpTk.lower(computeContext.computeCallGraph.entrypoint.funcOp());
+                    OpTk.lower(here, computeContext.computeCallGraph.entrypoint.funcOp());
         }
 
         backendBridge.computeStart();
@@ -129,14 +130,16 @@ public abstract class FFIBackend extends FFIBackendDriver {
     // This code should be common with jextracted-shared probably should be pushed down into another lib?
     protected CoreOp.FuncOp injectBufferTracking(CallGraph.ResolvedMethodCall computeMethod) {
         CoreOp.FuncOp transformedFuncOp = computeMethod.funcOp();
-        if (Config.MINIMIZE_COPIES.isSet(config())) {
-            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
+        var here = OpTk.CallSite.of(FFIBackend.class,"injectBufferTracking");
+        if (config().minimizeCopies()) {
+            if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint before injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
             var lookup = computeMethod.callGraph.computeContext.accelerator.lookup;
             var paramTable = new FuncOpParams(computeMethod.funcOp());
-            transformedFuncOp = computeMethod.funcOp().transform((bldr, op) -> {
+
+            transformedFuncOp = OpTk.transform(here, computeMethod.funcOp(),(bldr, op) -> {
                 if (op instanceof JavaOp.InvokeOp invokeOp) {
                     Value cc = bldr.context().getValue(paramTable.list().getFirst().parameter);
                     if (OpTk.isIfaceBufferMethod(lookup, invokeOp)&& OpTk.javaReturnType(invokeOp).equals(JavaType.VOID)) {                    // iface.v(newV)
@@ -202,12 +205,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
                 }
                 return bldr;
             });
-            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
+            if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint after injecting buffer tracking...");
                 System.out.println(transformedFuncOp.toText());
             }
         }else{
-            if (Config.SHOW_COMPUTE_MODEL.isSet(config())) {
+            if (config().showComputeModel()) {
                 System.out.println("COMPUTE entrypoint (we will not be injecting buffer tracking...)...");
                 System.out.println(transformedFuncOp.toText());
             }

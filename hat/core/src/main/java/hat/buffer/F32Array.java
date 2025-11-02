@@ -28,16 +28,15 @@ import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
 import java.lang.foreign.MemorySegment;
-import java.lang.foreign.StructLayout;
-import java.lang.invoke.MethodHandles;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface F32Array extends Buffer {
     int length();
     float array(long idx);
     void array(long idx, float f);
+
+    int ARRAY_OFFSET = 4;
 
     Schema<F32Array> schema = Schema.of(F32Array.class, s32Array ->
             s32Array.arrayLen("length").array("array"));
@@ -47,7 +46,7 @@ public interface F32Array extends Buffer {
     }
 
     default F32Array copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, 4, length());
+        MemorySegment.copy(floats, 0, Buffer.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, length());
         return this;
     }
 
@@ -56,7 +55,7 @@ public interface F32Array extends Buffer {
     }
 
     default F32Array copyTo(float[] floats) {
-        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, 4, floats, 0, length());
+        MemorySegment.copy(Buffer.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, length());
         return this;
     }
 

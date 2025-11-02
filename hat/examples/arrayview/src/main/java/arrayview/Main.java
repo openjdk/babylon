@@ -28,18 +28,13 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.backend.Backend;
-import hat.buffer.Buffer;
 import hat.buffer.S32Array;
-import hat.buffer.S32Array2D;
-import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 
-import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
 
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
-import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
 public class Main {
 

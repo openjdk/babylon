@@ -28,7 +28,6 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.Config;
-import hat.backend.ffi.OpenCLBackend;
 import static hat.Config.*;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.Schema;
@@ -40,6 +39,7 @@ import java.lang.invoke.MethodHandles;
 import jdk.incubator.code.CodeReflection;
 import java.util.Random;
 
+import static hat.backend.Backend.FIRST;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public class Mesh {
@@ -137,12 +137,7 @@ public class Mesh {
 
 
     public static void main(String[] args) {
-        Accelerator accelerator = new Accelerator(MethodHandles.lookup()
-                ,new OpenCLBackend(fromBits(Config.PROFILE,  Config.TRACE)));
-                //,new DebugBackend(
-                //DebugBackend.HowToRunCompute.REFLECT,
-                //DebugBackend.HowToRunKernel.BABYLON_INTERPRETER));
-      //  MeshData.schema.toText(t -> System.out.print(t));
+        Accelerator accelerator = new Accelerator(MethodHandles.lookup(),FIRST);
 
         var boundSchema = new BoundSchema<>(MeshData.schema, 100, 10);
         var meshDataNew = boundSchema.allocate(accelerator.lookup,accelerator);

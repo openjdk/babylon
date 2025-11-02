@@ -186,6 +186,10 @@ public class Accelerator implements BufferAllocator, BufferTracker {
      */
     public interface QuotableComputeContextConsumer extends Quotable, Consumer<ComputeContext> {
     }
+    // convenience
+    public Config config(){
+        return backend.config();
+    }
 
     /**
      * This method provides the Accelerator with the {@code Compute Entrypoint} from a Compute class.

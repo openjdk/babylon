@@ -26,21 +26,17 @@ package hat.buffer;
 
 import hat.Accelerator;
 import hat.BufferTagger;
-import hat.ComputeContext;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
 
 import java.lang.annotation.Annotation;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandles;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
 import java.util.List;
 
 import static hat.buffer.ArgArray.Arg.Value.Buf.UNKNOWN_BYTE;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface ArgArray extends Buffer {
     interface Arg extends Buffer.Struct{

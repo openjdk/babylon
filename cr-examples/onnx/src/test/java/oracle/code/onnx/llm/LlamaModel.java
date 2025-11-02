@@ -101,8 +101,8 @@ public final class LlamaModel {
     @CodeReflection
     public ForwardResponse forward(Tensor<Long> inputIds, Tensor<Long> attentionMask, Tensor<Float>[] pastKey, Tensor<Float>[] pastValue) {
 
-        Tensor<Integer> amSL = Cast(Sub(ReduceSum(attentionMask, of(flat1), empty(), empty()), flat1), empty(), OnnxType.INT32.id());
-        Tensor<Integer> amTSL = Cast(Gather(Shape(attentionMask, empty(), empty()), scalar1, of(0l)), empty(), OnnxType.INT32.id());
+        Tensor<Integer> amSL = Cast(Sub(ReduceSum(attentionMask, of(flat1), empty(), empty()), flat1), empty(), OnnxType.INT32.id(), empty());
+        Tensor<Integer> amTSL = Cast(Gather(Shape(attentionMask, empty(), empty()), scalar1, of(0l)), empty(), OnnxType.INT32.id(), empty());
         Tensor<Float> skipBias = Gather(tokensWeights, inputIds, empty());
         Tensor<Float> input = LayerNormalization(skipBias, initWeight, empty(), of(EPSILON), of(1l), of(-1l)).Y();
 

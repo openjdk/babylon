@@ -609,6 +609,24 @@ public abstract sealed class OnnxType implements TypeElement {
         }
     }
 
+
+    public static final class Float8e8m0Type extends OnnxElementType {
+        static final String NAME = "float8e8m0";
+
+        Float8e8m0Type() {
+        }
+
+        @Override
+        public ExternalizedTypeElement externalize() {
+            return new ExternalizedTypeElement(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 23;
+        }
+    }
+
     public static final class Float4e2m1Type extends OnnxElementType {
         static final String NAME = "float4e2m1";
 
@@ -884,6 +902,7 @@ public abstract sealed class OnnxType implements TypeElement {
 
     public static final Float4e2m1Type FLOAT4E2M1 = new Float4e2m1Type();
     public static final Float8e5m2Type FLOAT8E5M2 = new Float8e5m2Type();
+    public static final Float8e8m0Type FLOAT8E8M0 = new Float8e8m0Type();
     public static final Float8e4m3fnType FLOAT8E4M3FN = new Float8e4m3fnType();
     public static final Float8e4m3fnuzType FLOAT8E4M3FNUZ = new Float8e4m3fnuzType();
     public static final Float8e5m2fnuzType FLOAT8E5M2FNUZ = new Float8e5m2fnuzType();
@@ -914,6 +933,7 @@ public abstract sealed class OnnxType implements TypeElement {
 
     public static final TensorType TENSOR_FLOAT4E2M1 = new TensorType(FLOAT4E2M1);
     public static final TensorType TENSOR_FLOAT8E5M2 = new TensorType(FLOAT8E5M2);
+    public static final TensorType TENSOR_FLOAT8E8M0 = new TensorType(FLOAT8E8M0);
     public static final TensorType TENSOR_FLOAT8E4M3FN = new TensorType(FLOAT8E4M3FN);
     public static final TensorType TENSOR_FLOAT8E4M3FNUZ = new TensorType(FLOAT8E4M3FNUZ);
     public static final TensorType TENSOR_FLOAT8E5M2FNUZ = new TensorType(FLOAT8E5M2FNUZ);
@@ -948,6 +968,7 @@ public abstract sealed class OnnxType implements TypeElement {
 
     public static Float4e2m1Type float4e2m1() { return FLOAT4E2M1; }
     public static Float8e5m2Type float8e5m2() { return FLOAT8E5M2; }
+    public static Float8e8m0Type float8e8m0() { return FLOAT8E8M0; }
     public static Float8e4m3fnType float8e4m3fn() { return FLOAT8E4M3FN; }
     public static Float8e4m3fnuzType float8e4m3fnuz() { return FLOAT8E4M3FNUZ; }
     public static Float8e5m2fnuzType float8e5m2fnuz() { return FLOAT8E5M2FNUZ; }
@@ -979,7 +1000,8 @@ public abstract sealed class OnnxType implements TypeElement {
             case Float8e5m2Type t -> OnnxType.TENSOR_FLOAT8E5M2;
             case Float8e4m3fnType t -> OnnxType.TENSOR_FLOAT8E4M3FN;
             case Float8e4m3fnuzType t -> OnnxType.TENSOR_FLOAT8E4M3FNUZ;
-            case Float8e5m2fnuzType float8e5m2fnuzType -> OnnxType.TENSOR_FLOAT8E5M2FNUZ;
+            case Float8e5m2fnuzType t -> OnnxType.TENSOR_FLOAT8E5M2FNUZ;
+            case Float8e8m0Type t -> OnnxType.TENSOR_FLOAT8E8M0;
 
             case Complex64Type t -> OnnxType.TENSOR_COMPLEX64;
             case Complex128Type t -> OnnxType.TENSOR_COMPLEX128;

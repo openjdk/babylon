@@ -8,15 +8,12 @@ JAVA_HOME=<path to the Babylon JDK home>
 mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.mnist.MNISTDemo
 ```
 
-### ONNX Runtime with CoreML running facial emotion recognition from Java source.
 
-For demo purposes, we isolated the CoreML generated bindings and an FFM only `OnnxRuntime` in `oracle.code.onnx.coreml.foreign`.
+## ONNX Runtime with CoreML running facial emotion recognition from Java source
 
-Running the FER demo:
-```
-JAVA_HOME=<path to the Babylon JDK home>
-mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.fer.FERCoreMLDemo
-```
+### Running the demo FFM only
+
+For demo purposes, we isolated an FFM only `OnnxRuntime` in `oracle.code.onnx.coreml`.
 
 Babylon JDK is based on current OpenJDK mainline.
 This means that the FFM compatible parts of the `onnx` project can be ran with JDK 25 or OpenJDK 26 Early Access Builds.
@@ -27,9 +24,27 @@ JAVA_HOME=<path to JDK 25>
 ./run-jdk.sh
 ```
 
+Running the FER demo:
+
+```
+JAVA_HOME=<path to the Babylon JDK home>
+mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.fer.FERCoreMLDemo
+```
+
+#### Running the CodeReflection Demo
+
+Download the `.data` file from [emotion-ferplus-8.onnx.data](https://github.com/ammbra/fer-model-weights/raw/refs/heads/main/emotion-ferplus-8.onnx.data) and place it under `cr-examples/onnx/src/test/resources/oracle/code/onnx/fer` folder.
+
+Running the FER demo:
+```
+JAVA_HOME=<path to the Babylon JDK home>
+mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.fer.FERCoreMLDemo
+```
+
 #### How to (Re)Generate the CoreML Java Bindings
 
-Build and install custom ONNX Runtime with CoreML enabled (for Mac users):
+The following instructions are for Mac users only as the CoreML Execution Provider (EP) requires iOS devices with iOS 13 or higher, or Mac computers with macOS 10.15 or higher.
+Build and install custom ONNX Runtime with CoreML enabled:
 
 ```
 git clone --recursive https://github.com/microsoft/onnxruntime.git
@@ -39,13 +54,13 @@ cd onnxruntime
 pwd
 ```
 
-Inside `cr-examples/onnx` project you will find the `setup.sh` script that takes as argument the path to your cloned `onnxruntime` and uses `jextract` to regenerate the binaries.
+Inside `cr-examples/onnx/opgen` project you will find the `setup.sh` script that takes as argument the path to your cloned `onnxruntime` and uses `jextract` to regenerate the binaries.
 Prior to running it make sure that `jextract` is in your system `$PATH` :
 
 ```shell
 jextract --version
 ```
-Provide the path to your cloned `onnxruntime` and the script will regenerate the CoreML Java bindings inside the `oracle.code.onnx.coreml.foreign`:
+Provide the path to your cloned `onnxruntime` and the script will regenerate the CoreML Java bindings inside the `oracle.code.onnx.foreign`:
 
 ```
 sh setup.sh path/to/cloned/onnxruntime
@@ -54,11 +69,21 @@ sh setup.sh path/to/cloned/onnxruntime
 ### ONNX GenAI running large language model from Java source.
 
 Setup:
- - Download [onnxruntime-genai](https://github.com/microsoft/onnxruntime-genai/releases) native library coresponding to your system/architecture, unzip and put it into `cr-examples/onnx/lib` folder.
- - Download `model.onnx.data`, `tokenizer.json` and `tokenizer_config.json` data files from [Llama-3.2-1B-Instruct-ONNX](https://huggingface.co/onnx-community/Llama-3.2-1B-Instruct-ONNX/tree/main/cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4) and put them into `cr-examples/onnx/src/test/resources/oracle/code/onnx/llm` folder.
+- Download [onnxruntime-genai](https://github.com/microsoft/onnxruntime-genai/releases) native library coresponding to your system/architecture, unzip and put it into `cr-examples/onnx/lib` folder.
+- Download `model.onnx.data`, `tokenizer.json` and `tokenizer_config.json` data files from [Llama-3.2-1B-Instruct-ONNX](https://huggingface.co/onnx-community/Llama-3.2-1B-Instruct-ONNX/tree/main/cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4) and put them into `cr-examples/onnx/src/test/resources/oracle/code/onnx/llm` folder.
 
 Running the Llama demo:
 ```
 JAVA_HOME=<path to the Babylon JDK home>
 mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.llm.LlamaDemo
+```
+
+### Lifting ONNX model from binary to Java source.
+
+OnnxLift is an experimental tool for lifting ONNX binary models to ONNX code reflection model, extraction of weights, and generation of Java model source.
+
+Running the OnnxLift:
+```
+JAVA_HOME=<path to the Babylon JDK home>
+mvn package exec:java -Dexec.mainClass=oracle.code.onnx.lift.OnnxLift -Dexec.args="<model.onnx> <target folder> [class simple name]"
 ```

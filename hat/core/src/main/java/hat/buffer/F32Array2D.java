@@ -27,18 +27,11 @@ package hat.buffer;
 import hat.Accelerator;
 import hat.ifacemapper.Schema;
 
-import java.lang.foreign.StructLayout;
-import java.lang.invoke.MethodHandles;
-
-import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
-
 public interface F32Array2D extends Buffer {
+
     int width();
 
-
     int height();
-
 
     float array(long idx);
 
@@ -68,5 +61,4 @@ public interface F32Array2D extends Buffer {
         }
         return arr;
     }
-
 }

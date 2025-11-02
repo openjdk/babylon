@@ -49,9 +49,9 @@ questions.
         <module>violajones</module>
         <module>squares</module>
         <module>matmul</module>
+        <module>view</module>
         <module>life</module>
         <module>experiments</module>
-        <module>arrayview</module>
     </modules>
     <profiles>
         <profile>

@@ -55,12 +55,17 @@ CudaSource::CudaSource(char *text)
     : Text(text, false) {
 }
 
-CudaSource::CudaSource(size_t len, char *text, bool isCopy)
+CudaSource::CudaSource(size_t len, char *text, bool isCopy, bool lineinfo)
     : Text(len, text, isCopy) {
+    _lineInfo = lineinfo;
 }
 
 CudaSource::CudaSource()
     : Text(0) {
+}
+
+bool CudaSource::lineInfo() const {
+    return _lineInfo;
 }
 
 uint64_t timeSinceEpochMillisec() {
@@ -80,7 +85,9 @@ CudaBackend::CudaBackend(int configBits)
 
     if (initStatus == CUDA_SUCCESS) {
         CUDA_CHECK(cuDeviceGetCount(&deviceCount), "cuDeviceGetCount");
-        std::cout << "CudaBackend device count = " << deviceCount << std::endl;
+        if (config->info) {
+            std::cout << "CudaBackend device count = " << deviceCount << std::endl;
+        }
         CUDA_CHECK(cuDeviceGet(&device, 0), "cuDeviceGet");
         #if defined(CUDA_VERSION) && CUDA_VERSION >= 12080
             CUctxCreateParams ctxCreateParams = {};
@@ -89,7 +96,9 @@ CudaBackend::CudaBackend(int configBits)
             // Invoke previous implementation with 3 parameters
             CUDA_CHECK(cuCtxCreate(&context, 0, device), "cuCtxCreate");
         #endif
-        std::cout << "CudaBackend context created ok (id=" << context << ")" << std::endl;
+        if (config->info) {
+            std::cout << "CudaBackend context created ok (id=" << context << ")" << std::endl;
+        }
         dynamic_cast<CudaQueue *>(queue)->init();
     } else {
         CUDA_CHECK(initStatus, "cuInit() failed we seem to have the runtime library but no device");
@@ -140,16 +149,24 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
     cudaSource->write(cudaPath);
     if ((pid = fork()) == 0) { //child
         const auto path = "/usr/local/cuda/bin/nvcc";
-        const char *argv[] {
-            "/usr/local/cuda/bin/nvcc",
-            "-ptx",
-            "-Wno-deprecated-gpu-targets",
-            cudaPath.c_str(),
-            "-o",
-            ptxPath.c_str(),
-            nullptr
-        };
-        const int stat = execvp(path, (char *const *) argv);
+        std::vector<std::string> command;
+        command.push_back(path);
+        command.push_back("-ptx");
+        command.push_back("-Wno-deprecated-gpu-targets");
+        command.push_back(cudaPath);
+        if (cudaSource->lineInfo()) {
+            command.push_back("-lineinfo");
+        }
+        command.push_back("-o");
+        command.push_back(ptxPath);
+
+        // conver to char*[]
+        const char* args[command.size() + 1];
+        for (int i = 0; i < command.size(); i++) {
+            args[i] = command[i].c_str();
+        }
+        args[command.size()] = nullptr;
+        const int stat = execvp(path, (char *const *) args);
         std::cerr << " nvcc stat = " << stat << " errno=" << errno << " '" << std::strerror(errno) << "'" << std::endl;
         std::exit(errno);
     } else if (pid < 0) {// fork failed.
@@ -232,7 +249,7 @@ Backend::CompilationUnit *CudaBackend::compile(const int len, char *source) {
         if (config->trace) {
             std::cout << "compiling from provided  cuda " << std::endl;
         }
-        CudaSource cudaSource(len , source, false);
+        CudaSource cudaSource(len , source, false, config->profileCudaKernel);
         return compile(cudaSource);
     }
 }

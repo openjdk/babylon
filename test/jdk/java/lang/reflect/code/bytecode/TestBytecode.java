@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,11 +23,8 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.bytecode.BytecodeLift;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.interpreter.Interpreter;
 import jdk.internal.classfile.components.ClassPrinter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -556,6 +553,11 @@ public class TestBytecode {
         return piece * piece;
     }
 
+    @CodeReflection
+    static String functionLambda(String s) {
+        return ((Function<String, String>)e -> e.substring(1)).apply(s);
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
@@ -631,60 +633,6 @@ public class TestBytecode {
             argIndexes[i++]++;
             while (i < argn) argIndexes[i++] = 0;
         }
-    }
-
-    @ParameterizedTest
-    @MethodSource("testMethods")
-    public void testLift(TestData d) throws Throwable {
-        CoreOp.FuncOp flift;
-        try {
-            flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
-        } catch (Throwable e) {
-            ClassPrinter.toYaml(ClassFile.of().parse(TestBytecode.class.getResourceAsStream("TestBytecode.class").readAllBytes())
-                    .methods().stream().filter(m -> m.methodName().equalsString(d.testMethod().getName())).findAny().get(),
-                    ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
-            System.out.println("Lift failed, compiled model:");
-            Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
-            throw e;
-        }
-        try {
-            Object receiver1, receiver2;
-            if (d.testMethod.accessFlags().contains(AccessFlag.STATIC)) {
-                receiver1 = null;
-                receiver2 = null;
-            } else {
-                receiver1 = new TestBytecode();
-                receiver2 = new TestBytecode();
-            }
-            permutateAllArgs(d.testMethod.getParameterTypes(), args ->
-                    assertEquals(d.testMethod.invoke(receiver2, args), invokeAndConvert(flift, receiver1, args)));
-        } catch (Throwable e) {
-            System.out.println("Compiled model:");
-            Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
-            System.out.println("Lifted model:");
-            System.out.println(flift.toText());
-            throw e;
-        }
-    }
-
-    private static Object invokeAndConvert(CoreOp.FuncOp func, Object receiver, Object... args) {
-        List argl = new ArrayList(args.length + 1);
-        if (receiver != null) argl.add(receiver);
-        argl.addAll(Arrays.asList(args));
-        Object ret = Interpreter.invoke(MethodHandles.lookup(), func, argl);
-        if (ret instanceof Integer i) {
-            TypeElement rt = func.invokableType().returnType();
-            if (rt.equals(JavaType.BOOLEAN)) {
-                return i != 0;
-            } else if (rt.equals(JavaType.BYTE)) {
-                return i.byteValue();
-            } else if (rt.equals(JavaType.CHAR)) {
-                return (short)i.intValue();
-            } else if (rt.equals(JavaType.SHORT)) {
-                return i.shortValue();
-            }
-        }
-        return ret;
     }
 
     @ParameterizedTest

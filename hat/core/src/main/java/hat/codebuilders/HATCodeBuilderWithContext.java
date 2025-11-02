@@ -24,10 +24,14 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.HatBarrierOp;
-import hat.dialect.HatLocalVarOp;
-import hat.dialect.HatMemoryOp;
-import hat.dialect.HatPrivateVarOp;
+import hat.dialect.HATBarrierOp;
+import hat.dialect.HATF16VarOp;
+import hat.dialect.HATLocalVarOp;
+import hat.dialect.HATMemoryOp;
+import hat.dialect.HATPrivateVarOp;
+import hat.dialect.HATVectorBinaryOp;
+import hat.dialect.HATVectorLoadOp;
+import hat.dialect.HATVectorVarOp;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.MappableIface;
 import hat.ifacemapper.Schema;
@@ -41,6 +45,8 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+
+import static hat.buffer.F16Array.F16;
 
 public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithContext<T>> extends HATCodeBuilder<T> implements BabylonOpBuilder<T> {
 
@@ -59,7 +65,11 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
-            case HatMemoryOp $ -> varName($);
+            case HATMemoryOp $ -> varName($);
+            case HATVectorVarOp $ -> varName($);
+            case HATVectorLoadOp $ -> varName($);
+            case HATVectorBinaryOp $ -> varName($);
+            case HATF16VarOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -68,13 +78,17 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
 
     @Override
     public T varStoreOp(ScopedCodeBuilderContext buildContext, CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
-        CoreOp.VarOp varOp = (CoreOp.VarOp) buildContext.scope.resolve(varStoreOp.operands().getFirst());
-        varName(varOp).equals();
+        Op op = buildContext.scope.resolve(varStoreOp.operands().getFirst());
+        if (op instanceof CoreOp.VarOp varOp) {
+            varName(varOp).equals();
+        } else if (op instanceof HATF16VarOp hatf16VarOp) {
+            varName(hatf16VarOp).equals();
+        }
         parenthesisIfNeeded(buildContext, varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
         return self();
     }
 
-    public record LocalArrayDeclaration(ClassType classType, HatMemoryOp varOp) {}
+    public record LocalArrayDeclaration(ClassType classType, HATMemoryOp varOp) {}
 
     private void varDeclarationWithInitialization(ScopedCodeBuilderContext buildContext, CoreOp.VarOp varOp) {
         if (buildContext.isVarOpFinal(varOp)) {
@@ -95,14 +109,14 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HatLocalVarOp hatLocalVarOp) {
+    public T hatLocalVarOp(ScopedCodeBuilderContext buildContext, HATLocalVarOp hatLocalVarOp) {
         LocalArrayDeclaration localArrayDeclaration = new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp);
         localDeclaration(localArrayDeclaration);
         return self();
     }
 
     @Override
-    public T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HatPrivateVarOp hatLocalVarOp) {
+    public T hatPrivateVarOp(ScopedCodeBuilderContext buildContext, HATPrivateVarOp hatLocalVarOp) {
         LocalArrayDeclaration localArrayDeclaration = new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp);
         privateDeclaration(localArrayDeclaration);
         return self();
@@ -206,8 +220,6 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         });
         return self();
     }
-
-
 
     @Override
     public T funcCallOp(ScopedCodeBuilderContext buildContext, CoreOp.FuncCallOp funcCallOp) {
@@ -328,16 +340,23 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         return self();
     }
 
+    private boolean isHalfType(Schema.IfaceType ifaceType) {
+        return ifaceType.iface.getName().equals(F16.class.getName());
+    }
 
     public T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
         typedefKeyword().space().structOrUnion(ifaceType instanceof Schema.IfaceType.Struct)
                 .space().suffix_s(ifaceType.iface.getSimpleName()).braceNlIndented(_ -> {
                     int fieldCount = ifaceType.fields.size();
                     var fieldIdx = StreamMutable.of(0);
-                    separated(ifaceType.fields,(_)->nl(), field->{
-                        boolean isLast =fieldIdx.get() == fieldCount - 1;
+                    separated(ifaceType.fields, (_) -> nl(), field -> {
+                        boolean isLast = fieldIdx.get() == fieldCount - 1;
                         if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
-                            typeName(primitiveField.type.getSimpleName());
+                            if (isHalfType(ifaceType)) {
+                                typeName(F16.HAT_MAPPING_TYPE);
+                            } else {
+                                typeName(primitiveField.type.getSimpleName());
+                            }
                             space().typeName(primitiveField.name);
                             if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
                                 if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray fieldControlledArray) {
@@ -355,7 +374,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                             if (!done[0]) {
                                                 throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                             }
-                                        }else {
+                                        } else {
                                             throw new IllegalStateException("bound schema is null  !");
                                         }
                                     }
@@ -384,8 +403,8 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                                             if (!done[0]) {
                                                 throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                             }
-                                        }else {
-                                        throw new IllegalStateException("bound schema is null  !");
+                                        } else {
+                                            throw new IllegalStateException("bound schema is null  !");
                                         }
                                     }
                                 } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
@@ -400,7 +419,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                             throw new IllegalStateException("hmm");
                         }
                         semicolon();
-                        fieldIdx.set(fieldIdx.get()+1);
+                        fieldIdx.set(fieldIdx.get() + 1);
                     });
                 }).suffix_t(ifaceType.iface.getSimpleName()).semicolon().nl().nl();
         return self();
@@ -411,7 +430,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
     }
 
     @Override
-    public T barrier(ScopedCodeBuilderContext buildContext, HatBarrierOp barrierOp) {
+    public T barrier(ScopedCodeBuilderContext buildContext, HATBarrierOp barrierOp) {
         return syncBlockThreads();
     }
 
@@ -482,7 +501,7 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
                     if (instanceResult.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         Op resolve = buildContext.scope.resolve(varLoadOp.operands().getFirst());
                         //if (localDataStructures.contains(resolve)) {
-                        if (resolve instanceof HatMemoryOp) {
+                        if (resolve instanceof HATMemoryOp) {
                             isLocalOrPrivateDS = true;
                         }
                     }
@@ -605,7 +624,9 @@ public abstract class HATCodeBuilderWithContext<T extends HATCodeBuilderWithCont
         }
         return suffix_t(name);
     }
+
     public T declareParam(ScopedCodeBuilderContext buildContext, FuncOpParams.Info param){
-        return   type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
+        return  type(buildContext,(JavaType) param.parameter.type()).space().varName(param.varOp);
     }
+
 }

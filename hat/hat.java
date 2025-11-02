@@ -25,7 +25,8 @@
 
 import job.*;
 
-static String logo = """
+static void logo(){
+    System.out.println("""
         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣀⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
         ⠀⠀⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣤⣀⠀⠀⠀⠀⠀⠀⠀
         ⠀⠀⠀⠀⠀⠀⠀ ⠙⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠀⠀⠀⠀⠀⠀⠀
@@ -36,8 +37,10 @@ static String logo = """
         ⠀⢸⣿⣿⣿⣿⣿⣦⣄⡉⠛⠛⠛⠿⠿⠿⠿⠛⠛⠛⢉⣁⣤⣾⣿⣿⣿⣿⡷⠀
         ⠀⠀⠙⢿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⣾⣿⣿⣿⣿⣿⣿⣿⡿⠛⠁⠀
         ⠀⠀⠀⠀⠈⠙⠛⠿⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠿⠿⠛⠛⠉⠁⠀⠀⠀⠀
-        """;
-static String help = """
+        """);
+}
+static void help(){
+    System.out.println("""
         Usage  bld|clean|run ...
              bld:
                    Compile all buildable (based on capabilities) available jars and native code.
@@ -60,107 +63,123 @@ static String help = """
              exp:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] [-DXXX ... ] experimentClassName  args
                       exp ffi-opencl QuotedConstantArgs
 
-             test:  [ffi|my|seq]-[opencl|java|cuda|mock|hip]
-                      test ffi-opencl
+             test-suite:  [ffi|my|seq]-[opencl|java|cuda|mock|hip]
+                      test-suite ffi-opencl
+
+             test:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] classToTest (also classToTest#method)
+                      test ffi-opencl  hat.test.TestMatMul
 
           sanity:  Check source files for copyright and WS issues (tabs and trailing EOL WS)
-        """;
+        """);
+}
+
+static  void logoAndHelp(){
+    logo();
+    help();
+}
 
 
 public static void main(String[] argArr) throws IOException, InterruptedException {
     var args = new ArrayList<>(List.of(argArr));
     if (args.isEmpty()) {
-        System.out.println(help);
+        help();
     } else {
-        Path hatDir = Path.of(System.getProperty("user.dir"));
-        var project = new Project(hatDir, Reporter.progressAndErrors);
-        var cmake = project.isAvailable("cmake", "--version");
+        var hat = new Project(Path.of(System.getProperty("user.dir")), Reporter.progressAndErrors);
+        var cmake = hat.isAvailable("cmake", "--version");
         if (!cmake.isAvailable()) {
             System.out.println("We need cmake, to check the availability of opencl, cuda etc so we wont be able to build much  ");
         }
-        var jextract = project.isAvailable("jextract", "--version");
+        var jextract = hat.isAvailable("jextract", "--version");
         if (!jextract.isAvailable()) {
             System.out.println("We will need jextract to create jextracted backends and for examples requiring opengl ");
         }
 
-        // A user defined optional dependency.  Anything depending on this will only build if it is true
-        // In our case we pull the value from the headless system property
-        var ui = new Opt(project.id("ui"), !Boolean.getBoolean("headless"));
+        // This is an example of a user defined optional dependency.
+        // Anything depending on this will only build if (In this case) the property is true
+        // So in our case if the headless system property
+        var ui = new Opt(hat.id("ui"), !Boolean.getBoolean("headless")); //-Dheadless=true|false
 
-        // These dependencies are only 'true' on the appropriate platform.
-        // So any target that depends on one of these, will only build on that platform
-        var mac = new Mac(project.id("os-mac"));
-        var linux = new Linux(project.id("os-linux"));
-        // var windows = new Windows(project.id("os-windows")); maybe one day
+        // These dependencies are  'true' on the appropriate platform.
+        // So any target depending on one these, will only build on that platform
+        var mac = new Mac(hat.id("os-mac"));
+        var linux = new Linux(hat.id("os-linux"));
 
         // These next three 'optional' dependencies use cmake to determine availability.  We delegate to cmake which
         //    a) determines if capability is available,
         //    b) if they are, they extract from cmake vars (see conf/cmake-info/OpenCL/properties for example) information export headers and libs needed by JExtract
-        var openclCmakeInfo = new OpenCL(project.id("cmake-info-opencl"), cmake);
-        var openglCmakeInfo = new OpenGL(project.id("cmake-info-opengl"), cmake);
-        var cudaCmakeInfo = new Cuda(project.id("cmake-info-cuda"), cmake);
+        var openclCmakeInfo = new OpenCL(hat.id("cmake-info-opencl"), cmake);
+        var openglCmakeInfo = new OpenGL(hat.id("cmake-info-opengl"), cmake);
+        var cudaCmakeInfo = new Cuda(hat.id("cmake-info-cuda"), cmake);
 
         // Now we just create jars and shared libs and declare dependencies
-        var core = Jar.of(project.id("core"));
-        var tools = Jar.of(project.id("tools"), core);
-        var tests = Jar.of(project.id("tests"), core, tools);
-        var backend_ffi_native = CMake.of(project.id("backend{s}-ffi"), core, cmake);
-        var ffiSharedBackend = Jar.of(project.id("backend{s}-ffi-shared"), backend_ffi_native);
-        var backend_ffi_cuda = Jar.of(project.id("backend{s}-ffi-cuda"), ffiSharedBackend);
-        var backend_ffi_opencl = Jar.of(project.id("backend{s}-ffi-opencl"), ffiSharedBackend);
-        var backend_ffi_mock = Jar.of(project.id("backend{s}-ffi-mock"), ffiSharedBackend);
+        var core = hat.jar("core");
+        var tools = hat.jar("tools", core);
+        var tests = hat.jar("tests", core, tools);
+
+        var backend_ffi_native = hat.cmakeAndJar("backend{s}-ffi", core, cmake);
+        var ffiSharedBackend = hat.jar("backend{s}-ffi-shared", backend_ffi_native);
+        var backend_ffi_cuda = hat.jar("backend{s}-ffi-cuda", ffiSharedBackend);
+        var backend_ffi_opencl = hat.jar("backend{s}-ffi-opencl", ffiSharedBackend);
+        var backend_ffi_mock = hat.jar("backend{s}-ffi-mock", ffiSharedBackend);
 
         // These examples just rely on core
-        var backend_mt_java = Jar.of(project.id("backend{s}-java-mt"), core);
-        var backend_seq_java = Jar.of(project.id("backend{s}-java-seq"), core);
-        var example_squares = Jar.of(project.id("example{s}-squares"), core);
-        var example_matmul = Jar.of(project.id("example{s}-matmul"), core);
-        var example_arrayview = Jar.of(project.id("example{s}-arrayview"), core);
-        var example_blackscholes = Jar.of(project.id("example{s}-blackscholes"), core);
-        var example_normmap = Jar.of(project.id("example{s}-normmap"), core); // will probabvly need shared when we hatify
+        var backend_mt_java = hat.jar("backend{s}-java-mt", core);
+        var backend_seq_java = hat.jar("backend{s}-java-seq", core);
+        var example_squares = hat.jar("example{s}-squares", core);
+        var example_matmul = hat.jar("example{s}-matmul", core);
+        var example_blackscholes = hat.jar("example{s}-blackscholes", core);
+        var example_view = hat.jar("example{s}-view", core);
+        var example_normmap = hat.jar("example{s}-normmap", core); // will probabvly need shared when we hatify
 
         // example_shared allows us to break out common UI functions, views, even loops etc
-        var example_shared = Jar.of(project.id("example{s}-shared"), ui, core);
+        var example_shared = hat.jar("example{s}-shared", ui, core);
 
         // These examples use example_shared, so they are UI based
-        var example_mandel = Jar.of(project.id("example{s}-mandel"), example_shared);
-        var example_life = Jar.of(project.id("example{s}-life"), example_shared);
-        var example_heal = Jar.of(project.id("example{s}-heal"), example_shared);
-        var example_violajones = Jar.of(project.id("example{s}-violajones"), example_shared);
+        var example_mandel = hat.jar("example{s}-mandel", example_shared);
+        var example_life = hat.jar("example{s}-life", example_shared);
+        var example_heal = hat.jar("example{s}-heal", example_shared);
+        var example_violajones = hat.jar("example{s}-violajones", example_shared);
 
         // experiments include code that expects an opencl backend, this is not idea, but we can accomodate
-        var example_experiments = Jar.of(project.id("example{s}-experiments"), backend_ffi_opencl);
+        var example_experiments = hat.jar("example{s}-experiments", core);
 
         // Now we have the more complex nonsense for nbody (which needs opengl and opencl extracted)
-        var wrapped_shared = Jar.of(project.id("wrap{s}-shared"));
-        var jextracted_opencl = JExtract.extract(project.id("extract{ions|ed}-opencl"), jextract, openclCmakeInfo, core);
-        var wrapped_jextracted_opencl = Jar.of(project.id("wrap{s}-opencl"), jextracted_opencl, wrapped_shared);
-        var jextracted_opengl = JExtract.extract(project.id("extract{ions|ed}-opengl"), jextract, ui, openglCmakeInfo, core);
+        var wrapped_shared = hat.jar("wrap{s}-shared");
+        var jextracted_opencl = hat.jextract("extract{ions|ed}-opencl", jextract, openclCmakeInfo, core);
+        var wrapped_jextracted_opencl = hat.jar("wrap{s}-opencl", jextracted_opencl, wrapped_shared);
+        var backend_jextracted_shared = hat.jar("backend{s}-jextracted-shared", core);
+        var backend_jextracted_opencl = hat.jar("backend{s}-jextracted-opencl", wrapped_jextracted_opencl, backend_jextracted_shared);
+        var jextracted_opengl = hat.jextract("extract{ions|ed}-opengl", jextract, ui, openglCmakeInfo, core);
 
         // Sigh... We have different src exclusions for wrapped opengl depending on the OS
-        var excludedOpenGLWrapSrc = project.rootPath().resolve(
+        var excludedOpenGLWrapSrc = hat.rootPath().resolve(
                 "wraps/opengl/src/main/java/wrap/opengl/GL" + (mac.isAvailable() ? "Callback" : "Func") + "EventHandler.java");
 
-        var wrapped_jextracted_opengl = Jar.of(project.id("wrap{s}-opengl"), Set.of(excludedOpenGLWrapSrc), jextracted_opengl, wrapped_shared);
+        var wrapped_jextracted_opengl = hat.jar("wrap{s}-opengl", Set.of(excludedOpenGLWrapSrc), jextracted_opengl, wrapped_shared);
 
         // Finally we have everything needed for nbody
-        var example_nbody = Jar.of(project.id("example{s}-nbody"), ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
+        var example_nbody = hat.jar("example{s}-nbody", ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
+        class Stats {
+            int passed = 0;
+            int failed = 0;
+        }
+        var testEngine = "hat.test.engine.HatTestEngine";
 
         while (!args.isEmpty()) {
             var arg = args.removeFirst();
             switch (arg) {
-                case "help" -> System.out.println(logo + "\n" + help);
-                case "clean" -> project.clean();
+                case "help" -> logoAndHelp();
+                case "clean" -> hat.clean();
                 case "dot" -> {
-                    var dag = project.all();
+                    var dag = hat.all();
                     var available = dag.available();
                     Files.writeString(Path.of("bld.dot") , available.toDot());
                     System.out.println("Consider...\n    dot bld.dot -Tsvg > bld.svg");
                 }
                 case "bld" -> {
-                    var dag = project.all();
+                    var dag = hat.all();
                     var available = dag.available();
-                    project.build(available);
+                    hat.build(available);
                 }
                 case "sanity" -> {
                     final  var copyrightPattern = Pattern.compile("^.*Copyright.*202[0-9].*(Intel|Oracle).*$");
@@ -169,9 +188,10 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     final  var textSuffix  = Pattern.compile("^(.*\\.(java|cpp|h|hpp|md)|pom.xml)$");
                     final  var sourceSuffix  = Pattern.compile("^(.*\\.(java|cpp|h|hpp)|pom.xml)$");
 
-                    Stream.of("core","tools","examples","backends","docs","wraps")
-                            .map(hatDir::resolve)
+                    Stream.of("hat","core","tools","examples","backends","docs","wraps")
+                            .map(hat.rootPath()::resolve)
                             .forEach(dir-> {
+                                System.out.println("Checking "+dir);
                                 Util.recurse(dir,
                                    (d)-> true, // we do this for all subdirs
                                    (f)-> textSuffix.matcher(f.getFileName().toString()).matches() && Util.grepLines(tabOrEolWsPattern, f),
@@ -193,44 +213,46 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                             vmOpts.add(args.removeFirst());
                         }
                         var runnableName = args.removeFirst();
-                        if (project.get(backendName) instanceof Jar backend) {
-                            if (project.get(runnableName) instanceof Jar runnable) {
+                        if (hat.get(backendName) instanceof Jar backend) {
+                            if (hat.get(runnableName) instanceof Jar runnable) {
                                 if (runnableName.equals("nbody") && mac.isAvailable()) {  // nbody (anything on mac using OpenGL
                                     vmOpts.add("-XstartOnFirstThread");
                                 }
                                 runnable.run(runnableName + ".Main", new job.Dag(runnable, backend).ordered(), vmOpts,args);
                             } else {
-                                System.err.println("Failed to find runnable " + runnableName);
+                                System.err.println("Found backend "+ backendName  +" but failed to find runnable/example " + runnableName);
                             }
                         } else {
-                            System.err.println("Failed to find " + backendName);
+                            System.err.println("Failed to find backend " + backendName);
                         }
                     } else {
                         System.err.println("For run we expect 'run backend runnable' ");
                     }
                     args.clear(); //!! :)
                 }
-                case "test" -> {
+                case "test-suite" -> {
                     if (args.size() > 0) {
                         var backendName = args.removeFirst();
-                        if (project.get(backendName) instanceof Jar backend) {
-                           class Stats {
-                               int passed = 0;
-                               int failed = 0;
+
+                        if (hat.get(backendName) instanceof Jar backend) {
+                           var vmOpts = new ArrayList<String>(List.of());
+                           while (!args.isEmpty() && args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
+                               vmOpts.add(args.removeFirst());
                            }
                            var test_reports_txt = Paths.get("test_report.txt");
                            Files.deleteIfExists(test_reports_txt); // because we will append to it in the next loop
-                           var suiteRe = Pattern.compile("(oracle/code/hat/Test[a-zA-Z0-9]*).class");
+                           var suiteRe = Pattern.compile("(hat/test/Test[a-zA-Z0-9]*).class");
                            var jarFile = new JarFile(tests.jarFile().toString());
-                           var testEngine = "oracle.code.hat.engine.HatTestEngine";
                            var entries = jarFile.entries();
                            var orderedDag  = new job.Dag(tests, backend).ordered();
                            while (entries.hasMoreElements()) {
                               if (suiteRe.matcher(entries.nextElement().getName()) instanceof Matcher matched && matched.matches()){
-                                  tests.run(testEngine, orderedDag, List.of(),List.of(matched.group(1).replace('/','.')));
+                                  tests.run(testEngine, orderedDag, vmOpts,List.of(matched.group(1).replace('/','.')));
                               }
                            }
-                           System.out.println("\n\n"+logo+"                 HAT Test Report ");
+                            System.out.println("\n\n");
+                           logo();
+                           System.out.println("                 HAT Test Report ");
                            System.out.println("************************************************");
                            var pattern = Pattern.compile( "passed: (\\d+), failed: (\\d+)");
                            var stats = new Stats();
@@ -247,7 +269,31 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                            System.err.println("Failed to find backend   " + backendName);
                         }
                     } else {
-                        System.err.println("For test we require a backend ");
+                        System.err.println("For test-suite we require a backend ");
+                    }
+                    args.clear(); //!! :)
+                }
+                case "test" -> {
+                    if (args.size() >= 2) {
+                        var backendName = args.removeFirst();
+                        var classAndMethod = args.removeFirst();
+                        if (hat.get(backendName) instanceof Jar backend) {
+                            var vmOpts = new ArrayList<String>(List.of());
+                            while (!args.isEmpty() && args.getFirst() instanceof String  possibleVmOpt &&  possibleVmOpt.startsWith("-")){
+                                vmOpts.add(args.removeFirst());
+                            }
+
+                            var orderedDag  = new job.Dag(tests, backend).ordered();
+                            tests.run(testEngine, orderedDag, vmOpts, List.of(classAndMethod));
+
+                        } else {
+                            System.err.println("Failed to find backend   " + backendName);
+                        }
+                    } else {
+                        System.err.println("For test we require a backend and a TestClass.");
+                        System.err.println("Examples: ");
+                        System.err.println("$ test ffi-opencl hat.test.TestMatMul");
+                        System.err.println("$ test ffi-opencl hat.test.TestMatMul#method");
                     }
                     args.clear(); //!! :)
                 }
@@ -260,8 +306,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                             vmOpts.add(args.removeFirst());
                         }
                         var className = args.removeFirst();
-                        if (project.get(backendName) instanceof Jar backend) {
-                            if (project.get(runnableName) instanceof Jar runnable) {
+                        if (hat.get(backendName) instanceof Jar backend) {
+                            if (hat.get(runnableName) instanceof Jar runnable) {
                                 runnable.run(runnableName + "."+className, new job.Dag(runnable, backend).ordered(), vmOpts,args);
                             } else {
                                 System.err.println("Failed to find runnable " + runnableName);
@@ -275,8 +321,8 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     args.clear(); //!! :)
                 }
                 default -> {
-                    System.out.println("'" + arg + "' was unexpected ");
-                    System.out.println(help);
+                    System.err.println("'" + arg + "' was unexpected ");
+                    help();
                     args.clear();
                 }
             }

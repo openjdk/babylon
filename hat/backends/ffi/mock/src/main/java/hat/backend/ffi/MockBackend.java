@@ -57,7 +57,7 @@ public class MockBackend extends FFIBackend {
         // Here we receive a callgraph from the kernel entrypoint
         // The first time we see this we need to convert the kernel entrypoint
         // and rechable methods to a form that our mock backend can execute.
-        kernelCallGraph.moduleOp.functionTable().forEach((_, funcOp) -> {
+        kernelCallGraph.getModuleOp().functionTable().forEach((_, funcOp) -> {
         });
     }
 }
