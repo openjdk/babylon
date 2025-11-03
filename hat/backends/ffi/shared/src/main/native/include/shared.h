@@ -361,12 +361,8 @@ public:
 
 class KernelContext {
 public:
-    int x;
-    int maxX;
-    int y;
-    int maxY;
-    int z;
-    int maxZ;
+
+    // Dimensions of the kernel (1D, 2D or 3D)
     int dimensions;
 
     // global index

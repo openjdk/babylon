@@ -40,24 +40,6 @@ public interface KernelBufferContext extends Buffer {
     //| get_num_groups(0) | gridDim.x                             | bsx      |
     // ----------------------------------------------------------------------|
 
-    int x();
-    void x(int x);
-
-    int y();
-    void y(int y);
-
-    int z();
-    void z(int z);
-
-    int maxX();
-    void maxX(int maxX);
-
-    int maxY();
-    void maxY(int maxY);
-
-    int maxZ();
-    void maxZ(int maxZ);
-
     int dimensions();
     void dimensions(int numDimensions);
 
@@ -103,22 +85,17 @@ public interface KernelBufferContext extends Buffer {
     Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class,
             kernelContext -> kernelContext
                     .fields(
-                            "x", "maxX", "y", "maxY", "z", "maxZ", "dimensions",  // Initial version: to be deprecated
-                            "gix", "giy", "giz",  // global accesses
-                            "gsx", "gsy", "gsz",  // global sizes
-                            "lix", "liy", "liz",  // local (thread-ids)
-                            "lsx", "lsy", "lsz",  // block size
-                            "bix", "biy", "biz"   // block id
+                            "dimensions",  // Dimension (1D, 2D or 3D)
+                            "gix", "giy", "giz",   // global thread-id accesses
+                            "gsx", "gsy", "gsz",   // global sizes
+                            "lix", "liy", "liz",   // local (thread-ids)
+                            "lsx", "lsy", "lsz",   // block size
+                            "bix", "biy", "biz"    // block id
                     ));
 
     static KernelBufferContext createDefault(Accelerator accelerator) {
         KernelBufferContext kernelBufferContext =  schema.allocate(accelerator);
-        kernelBufferContext.x(0);
-        kernelBufferContext.maxX(0);
-        kernelBufferContext.y(0);
-        kernelBufferContext.maxY(0);
-        kernelBufferContext.z(0);
-        kernelBufferContext.maxZ(0);
+        
         kernelBufferContext.dimensions(3);
 
         kernelBufferContext.gix(0);

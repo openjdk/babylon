@@ -375,7 +375,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     }
 
     if (compilationUnit->backend->config->trace) {
-        std::cout << "kernelContext = " << kernelContext->maxX << std::endl;
+        std::cout << "kernelContext = <" << kernelContext->gsx << "," << kernelContext->gsy << "," << kernelContext->gsz << ">" << std::endl;
     }
 
     // We 'double dispatch' back to the kernel to actually do the dispatch
