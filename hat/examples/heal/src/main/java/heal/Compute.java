@@ -48,6 +48,7 @@ package heal;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.NDRange;
 import hat.buffer.F32Array;
 import hat.buffer.S32Array2D;
 
@@ -249,7 +250,7 @@ public class Compute {
 
         F32Array sumArrayF32 = F32Array.create(cc.accelerator, searchArea.area());
 
-        cc.dispatchKernel(searchArea.area(),
+        cc.dispatchKernel(NDRange.of(searchArea.area()),
                 kc -> bestFitKernel(kc,  s32Array2D, searchArea, selectionBox, xyrgbList, sumArrayF32)
         );
 

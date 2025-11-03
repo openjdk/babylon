@@ -110,28 +110,27 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         this.accelerator.backend.computeContextHandoff(this);
     }
 
-    /**
-     * Called from within compute reachable code to dispatch a kernel.
-     *
-     * @param range
-     * @param quotableKernelContextConsumer
-     */
-    public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        dispatchKernel(range, 0, 0, 1, quotableKernelContextConsumer);
-    }
+//    /**
+//     * Called from within compute reachable code to dispatch a kernel.
+//     *
+//     * @param range
+//     * @param quotableKernelContextConsumer
+//     */
+//    public void dispatchKernel(int range, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+//        dispatchKernel(range, 0, 0, 1, quotableKernelContextConsumer);
+//    }
 
-    public void dispatchKernel(int rangeX, int rangeY, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        dispatchKernel(rangeX, rangeY, 0, 2, quotableKernelContextConsumer);
-    }
-
-    public void dispatchKernel(int rangeX, int rangeY, int rangeZ, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        dispatchKernel(rangeX, rangeY, rangeZ, 3, quotableKernelContextConsumer);
-    }
+//    public void dispatchKernel(int rangeX, int rangeY, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+//        dispatchKernel(rangeX, rangeY, 0, 2, quotableKernelContextConsumer);
+//    }
+//
+//    public void dispatchKernel(int rangeX, int rangeY, int rangeZ, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+//        dispatchKernel(rangeX, rangeY, rangeZ, 3, quotableKernelContextConsumer);
+//    }
 
     public void dispatchKernel(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         dispatchKernelWithComputeRange(computeRange, quotableKernelContextConsumer);
     }
-
 
     record CallGraph(Quoted quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
@@ -146,25 +145,25 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         return new CallGraph(quoted, lambdaOp, methodRef, kernelCallGraph);
     }
 
-    private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
-        CallGraph cg = getKernelCallGraph(quotableKernelContextConsumer);
-        try {
-            Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
-            NDRange ndRange;
-            switch (dimNumber) {
-                case 1 -> ndRange = accelerator.range(rangeX);
-                case 2 -> ndRange = accelerator.range(rangeX, rangeY);
-                case 3 -> ndRange = accelerator.range(rangeX, rangeY, rangeZ);
-                default -> throw new RuntimeException("[Error] Unexpected dimension value: " + dimNumber + ". Allowed dimensions <1, 2, 3>");
-            }
-            args[0] = ndRange;
-            accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);
-        } catch (Throwable t) {
-            System.out.print("what?" + cg.methodRef + " " + t);
-            t.printStackTrace();
-            throw t;
-        }
-    }
+//    private void dispatchKernel(int rangeX, int rangeY, int rangeZ, int dimNumber, QuotableKernelContextConsumer quotableKernelContextConsumer) {
+//        CallGraph cg = getKernelCallGraph(quotableKernelContextConsumer);
+//        try {
+//            Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
+//            NDRange ndRange;
+//            switch (dimNumber) {
+//                case 1 -> ndRange = accelerator.range(rangeX);
+//                case 2 -> ndRange = accelerator.range(rangeX, rangeY);
+//                case 3 -> ndRange = accelerator.range(rangeX, rangeY, rangeZ);
+//                default -> throw new RuntimeException("[Error] Unexpected dimension value: " + dimNumber + ". Allowed dimensions <1, 2, 3>");
+//            }
+//            args[0] = ndRange;
+//            accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);
+//        } catch (Throwable t) {
+//            System.out.print("what?" + cg.methodRef + " " + t);
+//            t.printStackTrace();
+//            throw t;
+//        }
+//    }
 
     private void dispatchKernelWithComputeRange(ComputeRange computeRange, QuotableKernelContextConsumer quotableKernelContextConsumer) {
         CallGraph cg = getKernelCallGraph(quotableKernelContextConsumer);

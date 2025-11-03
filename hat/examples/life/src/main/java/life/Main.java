@@ -27,6 +27,7 @@ package life;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
@@ -215,7 +216,7 @@ public class Main {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
             int range = grid.width() * grid.height();
             while (viewer.stillRunning()) {
-                cc.dispatchKernel(range, kc -> Compute.life(kc, ctrl, grid));
+                cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid));
 
                 int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
 

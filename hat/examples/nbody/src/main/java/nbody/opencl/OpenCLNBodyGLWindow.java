@@ -29,6 +29,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
 import hat.ifacemapper.BufferState;
+import hat.NDRange;
 import jdk.incubator.code.CodeReflection;
 import nbody.Mode;
 import nbody.NBodyGLWindow;
@@ -101,7 +102,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         float cdelT = delT;
         float cespSqr = espSqr;
 
-        cc.dispatchKernel(universe.length(), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
+        cc.dispatchKernel(NDRange.of(universe.length()), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
     }
 
 

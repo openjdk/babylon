@@ -36,4 +36,8 @@ public class NDRange {
     public NDRange(Accelerator accelerator) {
         this.accelerator = accelerator;
     }
+
+    public static ComputeRange of(int val) {
+        return new ComputeRange(new GlobalMesh1D(val));
+    }
 }

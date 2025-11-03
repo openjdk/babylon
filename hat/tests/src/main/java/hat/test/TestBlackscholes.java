@@ -27,6 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.ifacemapper.MappableIface;
@@ -86,7 +87,7 @@ public class TestBlackscholes {
 
     @CodeReflection
     public static void blackScholes(@MappableIface.RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @MappableIface.RO F32Array S, @MappableIface.RO F32Array X, @MappableIface.RO F32Array T, float r, float v) {
-        cc.dispatchKernel(call.length(),
+        cc.dispatchKernel(NDRange.of(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }
