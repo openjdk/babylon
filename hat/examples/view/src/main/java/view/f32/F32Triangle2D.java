@@ -112,7 +112,7 @@ public interface F32Triangle2D {
     record F32Triangle2DImpl(int id, F32Vec2 v0, F32Vec2 v1, F32Vec2 v2, int rgb) implements F32Triangle2D {
     }
 
-    static F32Triangle2DImpl createTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int col) {
+    static F32Triangle2DImpl createTriangle(float x0, float y0, float x1, float y1, float x2, float y2, int col) {
         var impl = side(x0, y0, x1, y1, x2, y2) > 0 // We need the triangle to be clock wound
                 ? new F32Triangle2DImpl(f32Triangle2DPool.count, F32Vec2.of(x0, y0), F32Vec2.of(x1, y1), F32Vec2.of(x2, y2), col)
                 : new F32Triangle2DImpl(f32Triangle2DPool.count, F32Vec2.of(x0, y0), F32Vec2.of(x2, y2), F32Vec2.of(x1, y1), col);

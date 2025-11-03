@@ -29,7 +29,7 @@ public class ZPos implements Comparable<ZPos> {
     public enum ColourMode {NORMALIZED_COLOUR, NORMALIZED_INV_COLOUR, COLOUR, NORMALIZED_WHITE, NORMALIZED_INV_WHITE, WHITE}
     public static final ColourMode colourMode = ColourMode.COLOUR;
 
-    int x0, y0, x1, y1, x2, y2;
+    float x0, y0, x1, y1, x2, y2;
     float z0, z1, z2;
     float z;
     float howVisible;
@@ -40,18 +40,18 @@ public class ZPos implements Comparable<ZPos> {
         return Float.compare(z, zPos.z);
     }
 
-    public ZPos(F32Triangle3D.F32Triangle3DImpl t, float howVisible) {
-        F32Vec3.F32Vec3Impl v0 = t.v0();
-        F32Vec3.F32Vec3Impl v1 = t.v1();
-        F32Vec3.F32Vec3Impl v2 = t.v2();
-        x0 = (int) v0.x();
-        y0 = (int) v0.y();
+    public ZPos(F32Triangle3D t, float howVisible) {
+        F32Vec3 v0 = t.v0();
+        F32Vec3 v1 = t.v1();
+        F32Vec3 v2 = t.v2();
+        x0 = v0.x();
+        y0 = v0.y();
         z0 = v0.z();
-        x1 = (int) v1.x();
-        y1 = (int) v1.y();
+        x1 = v1.x();
+        y1 =  v1.y();
         z1 = v1.z();
-        x2 = (int) v2.x();
-        y2 = (int) v2.y();
+        x2 =  v2.x();
+        y2 =  v2.y();
         z2 = v2.z();
         this.rgb = t.rgb();
         this.howVisible = howVisible;
