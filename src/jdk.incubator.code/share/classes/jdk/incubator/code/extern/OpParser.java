@@ -27,6 +27,10 @@ package jdk.incubator.code.extern;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.invoke.CallSite;
+import java.lang.invoke.ConstantCallSite;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -166,33 +170,30 @@ public final class OpParser {
         return parse(factory.opFactory(), factory.typeElementFactory(), in);
     }
 
-    /**
-     * Parse a code model from its serialized annotation form obtained from the caller method.
-     *
-     * @return the function operation
-     * @throws IllegalArgumentException if parsing fails
-     */
-    public static Op fromCallerAnnotation() {
-        var st = Thread.currentThread().getStackTrace();
-        if (st.length > 2) {
-            var ste = st[2];
-            try {
-                var cm = Class.forName(ste.getClassName())
-                        .getDeclaredMethod(ste.getMethodName())
-                        .getAnnotation(CodeModel.class);
-                if (cm != null) {
-                    DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
-                    Context c = new Context(f.opFactory(), f.typeElementFactory());
-                    OpNode n = new CodeModelParser(cm.bodies()).parseOpNode(cm.funcOp());
-                    Op op = nodeToOp(n, VOID, c, null);
-                    op.seal();
-                    return op;
-                }
-            } catch (ReflectiveOperationException  ex) {
-                throw new RuntimeException(ex);
+    public static CallSite fromAnnotation(MethodHandles.Lookup lookup,
+                                          String methodName,
+                                          MethodType callSiteType) throws ReflectiveOperationException {
+        return new ConstantCallSite(
+                MethodHandles.insertArguments(
+                        MethodHandles.lookup().findStatic(OpParser.class, "fromAnnotation", MethodType.methodType(Op.class, Class.class, String.class)),
+                        0,
+                        lookup.lookupClass(), methodName));
+    }
+
+    static Op fromAnnotation(Class<?> cls, String method) {
+        try {
+            if (cls.getDeclaredMethod(method).getAnnotation(CodeModel.class) instanceof CodeModel cm) {
+                DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
+                Context c = new Context(f.opFactory(), f.typeElementFactory());
+                OpNode n = new CodeModelParser(cm.bodies()).parseOpNode(cm.funcOp());
+                Op op = nodeToOp(n, VOID, c, null);
+                op.seal();
+                return op;
             }
+            return null;
+        } catch (NoSuchMethodException ex) {
+            throw new RuntimeException(ex);
         }
-        return null;
     }
 
     static final class CodeModelParser {

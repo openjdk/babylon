@@ -396,11 +396,12 @@ public class ReflectMethods extends TreeTranslator {
                 ms.appendAttributes(com.sun.tools.javac.util.List.of(cmSyms.toCodeModelAttribute(op)));
                 // create method building the model from annotation
                 // return OpParser.fromCallerAnnotation();
-                yield make.Return(make.App(make.Ident(cmSyms.fromCallerAnnotation)));
+                yield make.Return(make.App(make.Ident(cmSyms.indyType(methodName))));
             }
         };
         var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
         return md;
+
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {

@@ -30,15 +30,18 @@ import java.util.Map;
 
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.code.Symbol.DynamicMethodSymbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.ModuleSymbol;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.code.Types;
+import com.sun.tools.javac.jvm.PoolConstant.LoadableConstant;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
+import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 import com.sun.tools.javac.util.Pair;
 
@@ -79,7 +82,8 @@ public final class CodeModelSymbols {
                blockReferenceType,
                blockReferenceArrayType,
                opType,
-               opParserType;
+               opParserType,
+               fromAnnotation;
 
     final MethodSymbol modelFuncOp,
                        modelBodies,
@@ -98,7 +102,7 @@ public final class CodeModelSymbols {
                        opLocation,
                        opAttributes,
                        opBodyDefinitions,
-                       fromCallerAnnotation;
+                       bsmFromAnnotation;
 
     CodeModelSymbols(Context context) {
         syms = Symtab.instance(context);
@@ -144,10 +148,21 @@ public final class CodeModelSymbols {
         opAttributes = atypes.methodType("attributes", stringArrayType, opType);
         opBodyDefinitions = atypes.methodType("bodyDefinitions", intArrayType, opType);
         var opT = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
-        fromCallerAnnotation = new MethodSymbol(Flags.PUBLIC | Flags.STATIC,
-                                        names.fromString("fromCallerAnnotation"),
-                                        new MethodType(List.nil(), opT, List.nil(), syms.methodClass),
-                                        opParserType.tsym);
+        fromAnnotation = new MethodType(List.nil(), opT, List.nil(), syms.methodClass);
+        bsmFromAnnotation = new MethodSymbol(Flags.PUBLIC | Flags.STATIC,
+                names.fromString("fromAnnotation"),
+                new MethodType(List.of(syms.methodHandleLookupType, syms.stringType, syms.methodTypeType),
+                        syms.enterClass(syms.java_base, "java.lang.invoke.CallSite"), List.nil(), syms.methodClass),
+                opParserType.tsym);
+    }
+
+    DynamicMethodSymbol indyType(Name methodName) {
+        return new DynamicMethodSymbol(
+                methodName,
+                syms.noSymbol,
+                bsmFromAnnotation.asHandle(),
+                fromAnnotation,
+                new LoadableConstant[0]);
     }
 
     Attribute.Constant stringConstant(String s) {
