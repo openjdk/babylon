@@ -27,7 +27,19 @@ package view.f32;
 import java.util.ArrayList;
 import java.util.List;
 
-public interface F32Triangle3D{
+public interface F32Triangle3D {
+    F32Vec3 v0();
+
+    F32Vec3 v1();
+
+    F32Vec3 v2();
+
+    int rgb();
+
+    default String asString() {
+        return v0().asString() + " -> " + v1().asString() + " -> " + v2().asString() + " =" + String.format("0x%8x", rgb());
+    }
+
     class F32Triangle3DPool extends Pool<F32Triangle3DPool> {
        static  int V0 = 0;
        static int V1 = 1;
@@ -90,8 +102,12 @@ public interface F32Triangle3D{
      static F32Triangle3DPool.Idx mulMat4(F32Triangle3DPool.Idx i, F32Matrix4x4.F32Matrix4x4Pool.Idx  m4) {
         return of(F32Vec3.mulMat4(i.v0Entry(), m4), F32Vec3.mulMat4(i.v1Entry(), m4), F32Vec3.mulMat4(i.v2Entry(), m4), i.rgbEntry());
     }
+    static F32Triangle3DPool.Idx mulMat4(F32Triangle3DPool.Idx i, F32Matrix4x4  m4) {
+        return of(F32Vec3.mulMat4(i.v0Entry(), m4), F32Vec3.mulMat4(i.v1Entry(), m4), F32Vec3.mulMat4(i.v2Entry(), m4), i.rgbEntry());
+    }
 
-     static F32Triangle3DPool.Idx addVec3(F32Triangle3DPool.Idx i, int v3) {
+
+    static F32Triangle3DPool.Idx addVec3(F32Triangle3DPool.Idx i, int v3) {
         return of(F32Vec3.addVec3(i.v0Entry(), v3), F32Vec3.addVec3(i.v1Entry(), v3), F32Vec3.addVec3(i.v2Entry(), v3), i.rgbEntry());
     }
 
@@ -132,8 +148,8 @@ public interface F32Triangle3D{
                 return all;
             }
 
-            public F32Triangle3DImpl mul(F32Matrix4x4.Impl m) {
-                return new F32Triangle3DImpl(mulMat4(id, m.id()));
+            public F32Triangle3DImpl mul(F32Matrix4x4 m) {
+                return new F32Triangle3DImpl(mulMat4(id, m));
             }
 
             public F32Triangle3DImpl add(F32Vec3.F32Vec3Impl v) {

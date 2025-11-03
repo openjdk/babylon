@@ -229,7 +229,7 @@ http://paulbourke.net/dataformats/obj/
     }
 
     public int vec3(float x, float y, float z) {
-        int newVec = F32Vec3.createVec3(x,y, z);
+        int newVec = F32Vec3.f32Vec3Pool.of(x,y, z).idx();
         vecEntries[vecCount++]=newVec;
     //    if (vecCount == 1 ){
          //   vecSum =newVec;
