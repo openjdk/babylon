@@ -27,8 +27,9 @@ package hat.phases;
 import hat.Accelerator;
 import hat.dialect.HATVectorSelectLoadOp;
 import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATVectorViewOp;
+import hat.dialect.HATVectorOp;
 import hat.optools.OpTk;
+import hat.types._V;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
@@ -70,11 +71,14 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
     }
 
     private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
-        String invokeClass = invokeOp.invokeDescriptor().refType().toString();
-        boolean isHatVectorType = invokeClass.startsWith("hat.buffer.Float");
-        return isHatVectorType
-                && OpTk.isIfaceBufferMethod(accelerator.lookup, invokeOp)
-                && (isVectorLane(invokeOp));
+        String typeElement = invokeOp.invokeDescriptor().refType().toString();
+        Set<Class<?>> interfaces = Set.of();
+        try {
+            Class<?> aClass = Class.forName(typeElement);
+            interfaces = inspectAllInterfaces(aClass);
+        } catch (ClassNotFoundException _) {
+        }
+        return interfaces.contains(_V.class) && isVectorLane(invokeOp);
     }
 
     private String findNameVector(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -85,7 +89,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findNameVector(varLoadOp);
         } else {
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorViewOp vectorViewOp) {
+            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp vectorViewOp) {
                 return vectorViewOp.varName();
             }
             return null;
@@ -107,11 +111,9 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
         }
     }
 
-
     // Code Model Pattern:
     //  %16 : java.type:"hat.buffer.Float4" = var.load %15 @loc="63:28";
     //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.buffer.Float4::x():float";
-
     private CoreOp.FuncOp vloadSelectPhase(CoreOp.FuncOp funcOp) {
         var here = OpTk.CallSite.of(this.getClass(), "vloadSelectPhase");
         before(here, funcOp);
@@ -141,7 +143,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
                     if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                         List<Value> outputOperandsInvokeOp = context.getValues(inputInvokeOp);
                         int lane = getLane(invokeOp.invokeDescriptor().name());
-                        HATVectorViewOp vSelectOp;
+                        HATVectorOp vSelectOp;
                         String name = findNameVector(varLoadOp);
                         if (invokeOp.resultType() != JavaType.VOID) {
                             vSelectOp = new HATVectorSelectLoadOp(name, invokeOp.resultType(), lane, outputOperandsInvokeOp);
@@ -198,7 +200,7 @@ public class HATDialectifyVectorSelectPhase implements HATDialect {
                 if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                     List<Value> outputOperandsInvokeOp = context.getValues(inputInvokeOp);
                     int lane = getLane(invokeOp.invokeDescriptor().name());
-                    HATVectorViewOp vSelectOp;
+                    HATVectorOp vSelectOp;
                     String name = findNameVector(varLoadOp);
                     if (invokeOp.resultType() == JavaType.VOID) {
                         // The operand 1 in the store is the address (lane)

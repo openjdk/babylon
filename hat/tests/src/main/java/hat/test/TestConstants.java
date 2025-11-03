@@ -46,10 +46,10 @@ public class TestConstants {
     @CodeReflection
     public static void vectorWithConstants(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
         final int BM = 100;
-        if (kc.x < kc.gsx) {
-            final int valueA = arrayA.array(kc.x);
-            final int valueB = arrayB.array(kc.x);
-            arrayC.array(kc.x, (BM + valueA + valueB));
+        if (kc.gix < kc.gsx) {
+            final int valueA = arrayA.array(kc.gix);
+            final int valueB = arrayB.array(kc.gix);
+            arrayC.array(kc.gix, (BM + valueA + valueB));
         }
     }
 
@@ -95,11 +95,11 @@ public class TestConstants {
 
     @CodeReflection
     public static void vectorWithConstants2(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        if (kc.x < kc.gsx) {
-            final int valueA = arrayA.array(kc.x);
-            final int valueB = arrayB.array(kc.x);
+        if (kc.gix < kc.gsx) {
+            final int valueA = arrayA.array(kc.gix);
+            final int valueB = arrayB.array(kc.gix);
             final int result = compute(valueA, valueB);
-            arrayC.array(kc.x, result);
+            arrayC.array(kc.gix, result);
         }
     }
 

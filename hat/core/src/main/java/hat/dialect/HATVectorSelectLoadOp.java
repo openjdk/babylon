@@ -33,13 +33,13 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public class HATVectorSelectLoadOp extends HATVectorViewOp {
+public class HATVectorSelectLoadOp extends HATVectorOp {
 
     private final TypeElement elementType;
     private final int lane;
 
     public HATVectorSelectLoadOp(String varName, TypeElement typeElement, int lane, List<Value> operands) {
-        super(varName, operands);
+        super(varName, typeElement, typeElement, -1, operands);
         this.elementType = typeElement;
         this.lane = lane;
     }
@@ -66,12 +66,7 @@ public class HATVectorSelectLoadOp extends HATVectorViewOp {
     }
 
     public String mapLane() {
-        return switch (lane) {
-            case 0 -> "x";
-            case 1 -> "y";
-            case 2 -> "z";
-            case 3 -> "w";
-            default -> throw new InternalError("Invalid lane: " + lane);
-        };
+        return super.mapLane(lane);
     }
+
 }

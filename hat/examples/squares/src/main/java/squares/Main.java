@@ -44,9 +44,9 @@ public class Main {
 
     @CodeReflection
     public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
-        if (kc.x<kc.maxX){
-           int value = s32Array.array(kc.x);     // arr[cc.x]
-           s32Array.array(kc.x, squareit(value));  // arr[cc.x]=value*value
+        if (kc.gix < kc.gsx){
+           int value = s32Array.array(kc.gix);       // arr[cc.x]
+           s32Array.array(kc.gix, squareit(value));  // arr[cc.x]=value*value
         }
     }
 
@@ -57,9 +57,7 @@ public class Main {
         );
     }
 
-
-    public static void main(String[] args) {
-
+    static void main(String[] args) {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
         var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {

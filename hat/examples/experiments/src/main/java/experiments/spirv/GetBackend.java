@@ -92,16 +92,16 @@ public class GetBackend {
          */
         @CodeReflection
         static void kernel(KernelContext kid, F32Array a, F32Array b, F32Array c) {
-            for (int j = 0; j < kid.maxX; j++) {
+            for (int j = 0; j < kid.gsx; j++) {
                 float sum = 0f;
-                for (int k = 0; k < kid.maxX; k++) {
+                for (int k = 0; k < kid.gsx; k++) {
                     //sum += a[kid.x * kid.max + k] * b[k * kid.max + j];
-                    sum += a.array(kid.x * kid.maxX + k) * b.array(k * kid.maxX + j);
+                    sum += a.array(kid.gix * kid.gsx + k) * b.array(k * kid.gsx + j);
                     //sum += a[kid.x * kid.max + k] * b[k * kid.max + j];
-                    sum += a.array(kid.x * kid.maxX + k) * b.array(k * kid.maxX + j);
+                    sum += a.array(kid.gix * kid.gsx + k) * b.array(k * kid.gsx + j);
                 }
                 //c[kid.x * kid.max + j] = sum;
-                c.array(kid.x * kid.maxX + j, sum);
+                c.array(kid.gix * kid.gsx + j, sum);
             }
         }
 

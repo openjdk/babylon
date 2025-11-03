@@ -48,7 +48,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / (TN * TF);
-        data.array(context.x, c);
+        data.array(context.gix, c);
     }
 
     @CodeReflection
@@ -57,7 +57,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / ((TN * TF) / (TN * TN));
-        data.array(context.x, c);
+        data.array(context.gix, c);
     }
 
     @CodeReflection
@@ -66,7 +66,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX * (TF + 2) / ((TN * TF) / (TN * TN));
-        data.array(context.x, c);
+        data.array(context.gix, c);
     }
 
     @CodeReflection

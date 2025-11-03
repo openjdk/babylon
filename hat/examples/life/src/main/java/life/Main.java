@@ -201,8 +201,8 @@ public class Main {
 
         @CodeReflection
         public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
-            if (kc.x < kc.maxX) {
-                Compute.lifePerIdx(kc.x, control, cellGrid);
+            if (kc.gix < kc.gsx) {
+                Compute.lifePerIdx(kc.gix, control, cellGrid);
             }
         }
 
