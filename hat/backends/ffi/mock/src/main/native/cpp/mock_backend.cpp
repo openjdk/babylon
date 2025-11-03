@@ -26,59 +26,78 @@
 
 class MockBackend final : public Backend {
 public:
-
-
     class MockProgram final : public Backend::CompilationUnit {
         class MockKernel final : public Backend::CompilationUnit::Kernel {
         public:
             MockKernel(Backend::CompilationUnit *compilationUnit, char *name)
-                    : Backend::CompilationUnit::Kernel(compilationUnit, name) {
+                : Backend::CompilationUnit::Kernel(compilationUnit, name) {
             }
+
             ~MockKernel() override = default;
-            bool setArg(KernelArg *arg, Buffer *buffer) override{
-                return false ;
+
+            bool setArg(KernelArg *arg, Buffer *buffer) override {
+                return false;
             }
-            bool setArg(KernelArg *arg) override{
-                return false ;
+
+            bool setArg(KernelArg *arg) override {
+                return false;
             }
         };
 
     public:
-        MockProgram(Backend *backend, char *src, char *log, bool ok )
-                : Backend::CompilationUnit(backend, src,log, ok) {
+        MockProgram(Backend *backend, char *src, char *log, bool ok)
+            : Backend::CompilationUnit(backend, src, log, ok) {
         }
 
         ~MockProgram() override = default;
 
-        Kernel* getKernel(int nameLen, char *name) override {
+        Kernel *getKernel(int nameLen, char *name) override {
             return new MockKernel(this, name);
         }
     };
-    class MockQueue final : public Backend::Queue{
+
+    class MockQueue final : public Backend::Queue {
     public:
-        void wait()override{};
-        void release()override{};
-        void computeStart()override{};
-        void computeEnd()override{};
-        void dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) override{
+        void wait() override {
+        };
+
+        void release() override {
+        };
+
+        void computeStart() override {
+        };
+
+        void computeEnd() override {
+        };
+
+        void dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) override {
             std::cout << "mock dispatch() " << std::endl;
             size_t dims = 1;
-            if (backend->config->trace | backend->config->traceEnqueues){
-                std::cout << "enqueued kernel dispatch \""<< kernel->name <<"\" globalSize=" << kernelContext->maxX << std::endl;
+            if (backend->config->trace | backend->config->traceEnqueues) {
+                std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << kernelContext->gsx <<
+                        std::endl;
             }
-
         }
-        void copyToDevice(Buffer *buffer) override{}
-        void copyFromDevice(Buffer *buffer) override{};
-        explicit MockQueue(Backend *backend):Queue(backend){}
-        ~MockQueue() override =default;
-    };
-public:
 
-    explicit MockBackend(int configBits): Backend(new Config(configBits), new MockQueue(this)) {}
+        void copyToDevice(Buffer *buffer) override {
+        }
+
+        void copyFromDevice(Buffer *buffer) override {
+        };
+
+        explicit MockQueue(Backend *backend) : Queue(backend) {
+        }
+
+        ~MockQueue() override = default;
+    };
+
+public:
+    explicit MockBackend(int configBits) : Backend(new Config(configBits), new MockQueue(this)) {
+    }
 
     ~MockBackend() override = default;
-    Buffer * getOrCreateBuffer(BufferState *bufferState) override{
+
+    Buffer *getOrCreateBuffer(BufferState *bufferState) override {
         Buffer *buffer = nullptr;
 
         /* if (bufferState->vendorPtr == 0L || bufferState->state == BufferState::NEW_STATE){
@@ -94,8 +113,9 @@ public:
           }*/
         return buffer;
     }
+
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override {
-        std::cout << "attempting  to get buffer from Mockbackend "<<std::endl;
+        std::cout << "attempting  to get buffer from Mockbackend " << std::endl;
         return false;
     }
 
@@ -104,27 +124,27 @@ public:
         std::cout << "mock info()" << std::endl;
     }
 
-    void computeStart() override{
+    void computeStart() override {
         std::cout << "mock compute start()" << std::endl;
     }
 
-    void computeEnd() override{
+    void computeEnd() override {
         std::cout << "mock compute start()" << std::endl;
     }
 
-    CompilationUnit *compile(int len, char *source) override{
+    CompilationUnit *compile(int len, char *source) override {
         std::cout << "mock compileProgram()" << std::endl;
         size_t srcLen = ::strlen(source);
         char *src = new char[srcLen + 1];
-        ::strncpy(src, source, srcLen);
+        strncpy(src, source, srcLen);
         src[srcLen] = '\0';
         std::cout << "native compiling " << src << std::endl;
-        auto *mockProgram = new MockProgram(this,src, nullptr, false);
+        auto *mockProgram = new MockProgram(this, src, nullptr, false);
         return mockProgram;
     }
 };
 
 extern "C" long getBackend(int mode) {
     long backendHandle = reinterpret_cast<long>(new MockBackend(mode));
-     return backendHandle;
+    return backendHandle;
 }

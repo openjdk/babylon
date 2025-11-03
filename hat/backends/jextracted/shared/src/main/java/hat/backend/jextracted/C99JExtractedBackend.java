@@ -66,7 +66,7 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {
-            kernelContext.maxX(ndRange.kid.maxX);
+            kernelContext.gsx(ndRange.kid.gsx);
             args[0] = this.kernelContext;
             ArgArray.update(argArray,kernelCallGraph,  args);
          //   c99NativeBackend.ndRange(kernelHandle, this.argArray);

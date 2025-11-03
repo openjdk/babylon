@@ -83,16 +83,16 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         }
 
         private void setGlobalMesh(hat.KernelContext kc) {
-            kernelBufferContext.maxX(kc.maxX);
-            kernelBufferContext.maxY(kc.maxY);
-            kernelBufferContext.maxZ(kc.maxZ);
+            kernelBufferContext.gsx(kc.gsx);
+            kernelBufferContext.gsy(kc.gsy);
+            kernelBufferContext.gsz(kc.gsz);
             kernelBufferContext.dimensions(kc.getDimensions());
         }
 
         private void setGlobalMesh(ThreadMesh threadMesh) {
-            kernelBufferContext.maxX(threadMesh.getX());
-            kernelBufferContext.maxY(threadMesh.getY());
-            kernelBufferContext.maxZ(threadMesh.getZ());
+            kernelBufferContext.gsx(threadMesh.getX());
+            kernelBufferContext.gsy(threadMesh.getY());
+            kernelBufferContext.gsz(threadMesh.getZ());
             kernelBufferContext.dimensions(threadMesh.getDims());
         }
 

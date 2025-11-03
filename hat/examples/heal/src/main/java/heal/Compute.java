@@ -236,7 +236,7 @@ public class Compute {
                                      @RO Box selectionBox,
                                      @RO XYRGBList xyrgbList,
                                      @RO F32Array sumArray) {
-        bestFitCore(kc.x, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
+        bestFitCore(kc.gix, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
     }
 
     @CodeReflection

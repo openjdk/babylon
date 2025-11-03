@@ -155,14 +155,14 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
         threadsPerBlockZ = estimateThreadsPerBlock(dimensions);
     }
 
-    int blocksPerGridX = (kernelContext->maxX + threadsPerBlockX - 1) / threadsPerBlockX;
+    int blocksPerGridX = (kernelContext->gsx + threadsPerBlockX - 1) / threadsPerBlockX;
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
     if (dimensions > 1) {
-        blocksPerGridY = (kernelContext->maxY + threadsPerBlockY - 1) / threadsPerBlockY;
+        blocksPerGridY = (kernelContext->gsy + threadsPerBlockY - 1) / threadsPerBlockY;
     }
     if (dimensions > 2) {
-        blocksPerGridZ = (kernelContext->maxZ + threadsPerBlockZ - 1) / threadsPerBlockZ;
+        blocksPerGridZ = (kernelContext->gsz + threadsPerBlockZ - 1) / threadsPerBlockZ;
     }
 
     // Enable debug information with trace. Use HAT=INFO

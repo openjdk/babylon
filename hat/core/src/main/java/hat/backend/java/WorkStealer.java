@@ -77,7 +77,7 @@ public class WorkStealer {
 
                         while ((myChunk = taskCount.getAndIncrement()) < (range / chunkSize) + 1) {
 
-                            for (ndRange.kid.x = myChunk * chunkSize; ndRange.kid.x < (myChunk + 1) * chunkSize && ndRange.kid.x < range; ndRange.kid.x++) {
+                            for (ndRange.kid.gix = myChunk * chunkSize; ndRange.kid.gix < (myChunk + 1) * chunkSize && ndRange.kid.gix < range; ndRange.kid.gix++) {
 
                                 rangeConsumer.accept(ndRange);
                             }
@@ -111,14 +111,14 @@ public class WorkStealer {
         if (threadCount > 1) {
             rendezvous(setupBarrier);
             this.taskCount.set(0);
-            this.range = ndRange.kid.maxX;
+            this.range = ndRange.kid.gsx;
             this.rangeConsumer = rangeConsumer;
 
             rendezvous(startBarrier);
             // This should start all threads
             rendezvous(doneBarrier);
         } else {
-            for (ndRange.kid.x = 0; ndRange.kid.x < range; ndRange.kid.x++) {
+            for (ndRange.kid.gix = 0; ndRange.kid.gix < range; ndRange.kid.gix++) {
                 rangeConsumer.accept(ndRange);
             }
         }
