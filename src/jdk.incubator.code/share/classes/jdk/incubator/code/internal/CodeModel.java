@@ -185,7 +185,7 @@ public @interface CodeModel {
          * Indices of the arguments passed to the target block’s parameters. Argument indices are local to the
          * referencing context.
          *
-         * @see jdk.incubator.code.Block.Reference#arguments() 
+         * @see jdk.incubator.code.Block.Reference#arguments()
          */
         int[] arguments() default {};
     }

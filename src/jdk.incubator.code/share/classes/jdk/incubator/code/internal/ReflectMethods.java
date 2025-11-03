@@ -361,8 +361,31 @@ public class ReflectMethods extends TreeTranslator {
 
     // @@@ Retain enum for when we might add another storage to test
     // and compare
+    /**
+     * Defines how the generated code model for a reflected method or lambda is persisted in the containing class.
+     * <p>
+     * The storage strategy can be selected via the compiler option {@code codeModelStorageOption}. If the option is not
+     * provided, the default is {@link #CODE_BUILDER}.
+     */
     private enum CodeModelStorageOption {
+
+        /**
+         * Store the model as builder code.
+         * <p>
+         * With this strategy, the compiler emits a private static synthetic method whose body contains Java statements
+         * that reconstruct the code model using the public builder API (via {@code OpBuilder}). At runtime, invoking
+         * the method executes the builder code and returns the model.
+         */
         CODE_BUILDER,
+
+        /**
+         * Store the model as a classfile attribute and load it at runtime.
+         * <p>
+         * With this strategy, the compiler attaches a code-model attribute to the method (via
+         * {@code cmSyms.toCodeModelAttribute(op)}). The synthesized helper method then returns the model by invoking a
+         * bootstrap (via the {@link indyType} for the method name) that reads and materializes the attribute at
+         * runtime.
+         */
         CODE_MODEL_ATTRIBUTE;
 
         public static CodeModelStorageOption parse(String s) {
