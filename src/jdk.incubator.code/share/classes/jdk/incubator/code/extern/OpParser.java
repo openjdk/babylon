@@ -174,6 +174,10 @@ public final class OpParser {
                                           String methodName,
                                           MethodType callSiteType) throws ReflectiveOperationException {
         return new ConstantCallSite(
+                // caching implementation
+//                MethodHandles.constant(Op.class, fromAnnotation(lookup.lookupClass(), methodName)));
+
+                // non-caching implementation
                 MethodHandles.insertArguments(
                         MethodHandles.lookup().findStatic(OpParser.class, "fromAnnotation", MethodType.methodType(Op.class, Class.class, String.class)),
                         0,
