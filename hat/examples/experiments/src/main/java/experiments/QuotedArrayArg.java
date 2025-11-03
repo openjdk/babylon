@@ -36,7 +36,7 @@ import java.lang.invoke.MethodHandles;
 public class QuotedArrayArg {
     @CodeReflection
     public static void addScalerKernel(@MappableIface.RO KernelContext kc, @MappableIface.RO S32Array in, @MappableIface.WO S32Array out, int scaler) {
-        out.array(kc.x, in.array(kc.x) + scaler);
+        out.array(kc.gix, in.array(kc.gix) + scaler);
     }
 
     @CodeReflection

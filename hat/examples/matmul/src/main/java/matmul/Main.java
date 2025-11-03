@@ -82,13 +82,13 @@ public class Main {
      */
     @CodeReflection
     public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
-            if (kc.y < kc.maxY) {
+        if (kc.gix < kc.gsx) {
+            if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + kc.y));
+                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + kc.giy));
                 }
-                matrixC.array(kc.x * size + kc.y, acc);
+                matrixC.array(kc.gix * size + kc.giy, acc);
             }
         }
     }
@@ -104,13 +104,13 @@ public class Main {
      */
     @CodeReflection
     public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
-            if (kc.y < kc.maxY) {
+        if (kc.gix < kc.gsx) {
+            if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.y * size + k) * matrixB.array(k * size + kc.x));
+                    acc += (matrixA.array(kc.giy * size + k) * matrixB.array(k * size + kc.gix));
                 }
-                matrixC.array(kc.y * size + kc.x, acc);
+                matrixC.array(kc.giy * size + kc.gix, acc);
             }
         }
     }
@@ -464,7 +464,7 @@ public class Main {
     public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
         float acc = 0.0f;
         for (int k = 0; k < size; k++) {
-            acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
+            acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
         }
         return acc;
     }
@@ -480,13 +480,13 @@ public class Main {
      */
     @CodeReflection
     public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
+                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
                 }
-                matrixC.array(kc.x * size + j, acc);
+                matrixC.array(kc.gix * size + j, acc);
             }
         }
     }
@@ -496,10 +496,10 @@ public class Main {
      */
     @CodeReflection
     public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = compute(kc, matrixA, matrixB, size, j);
-                matrixC.array(kc.x * size + j, acc);
+                matrixC.array(kc.gix * size + j, acc);
             }
         }
     }

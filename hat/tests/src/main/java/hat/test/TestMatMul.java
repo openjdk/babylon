@@ -56,42 +56,42 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
-            if (kc.y < kc.maxY) {
+        if (kc.gix < kc.gsx) {
+            if (kc.gix < kc.gsy) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + kc.y));
+                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + kc.giy));
                 }
-                matrixC.array(kc.x * size + kc.y, acc);
+                matrixC.array(kc.gix * size + kc.giy, acc);
             }
         }
     }
 
     @CodeReflection
     public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
-            if (kc.y < kc.maxY) {
+        if (kc.gix < kc.gsx) {
+            if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.y * size + k) * matrixB.array(k * size + kc.x));
+                    acc += (matrixA.array(kc.giy * size + k) * matrixB.array(k * size + kc.gix));
                 }
-                matrixC.array(kc.y * size + kc.x, acc);
+                matrixC.array(kc.giy * size + kc.gix, acc);
             }
         }
     }
 
     @CodeReflection
     public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
-            if (kc.y < kc.maxY) {
+        if (kc.gix < kc.gsx) {
+            if (kc.giy < kc.gsy) {
                 F16 acc = F16.of(0.0f);
                 for (int k = 0; k < size; k++) {
-                    F16 valA = matrixA.array(kc.y * size + k);
-                    F16 valB = matrixB.array(k * size + kc.x);
+                    F16 valA = matrixA.array(kc.giy * size + k);
+                    F16 valB = matrixB.array(k * size + kc.gix);
                     F16 valc = F16.mul(valA, valB);
                     acc = F16.add(acc, valc);
                 }
-                F16 resultC = matrixC.array(kc.y * size + kc.x);
+                F16 resultC = matrixC.array(kc.giy * size + kc.gix);
                 resultC.value(acc.value());
             }
         }
@@ -165,30 +165,30 @@ public class TestMatMul {
     public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
         float acc = 0.0f;
         for (int k = 0; k < size; k++) {
-            acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
+            acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
         }
         return acc;
     }
 
     @CodeReflection
     public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
+                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
                 }
-                matrixC.array(kc.x * size + j, acc);
+                matrixC.array(kc.gix * size + j, acc);
             }
         }
     }
 
     @CodeReflection
     public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = compute(kc, matrixA, matrixB, size, j);
-                matrixC.array(kc.x * size + j, acc);
+                matrixC.array(kc.gix * size + j, acc);
             }
         }
     }
@@ -284,8 +284,6 @@ public class TestMatMul {
             }
         }
     }
-
-
 
     @HatTest
     public void testMatrixMultiply1D() {

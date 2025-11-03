@@ -43,8 +43,8 @@ public class MinBufferTest {
     public static class Compute {
         @CodeReflection
         public static void inc(@RO KernelContext kc, @RW S32Array s32Array, int len) {
-            if (kc.x < kc.maxX) {
-                s32Array.array(kc.x, s32Array.array(kc.x) + 1);
+            if (kc.gix < kc.gsx) {
+                s32Array.array(kc.gix, s32Array.array(kc.gix) + 1);
             }
         }
 

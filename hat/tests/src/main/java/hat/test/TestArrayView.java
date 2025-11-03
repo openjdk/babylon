@@ -46,9 +46,9 @@ public class TestArrayView {
     // simple square kernel example using S32Array's ArrayView
     @CodeReflection
     public static void squareKernel(@RO  KernelContext kc, @RW S32Array s32Array) {
-        if (kc.x<kc.maxX){
+        if (kc.gix < kc.gsx){
             int[] arr = s32Array.arrayView();
-            arr[kc.x] *= arr[kc.x];
+            arr[kc.gix] *= arr[kc.gix];
         }
     }
 
@@ -77,9 +77,9 @@ public class TestArrayView {
 
     @CodeReflection
     public static void square2DKernel(@RO  KernelContext kc, @RW S32Array2D s32Array2D) {
-        if (kc.x<kc.maxX){
+        if (kc.gix < kc.gsx){
             int[][] arr = s32Array2D.arrayView();
-            arr[kc.x][kc.y] *= arr[kc.x][kc.y];
+            arr[kc.gix][kc.giy] *= arr[kc.gix][kc.giy];
         }
     }
 
@@ -224,8 +224,8 @@ public class TestArrayView {
 
         @CodeReflection
         public static void life(@RO KernelContext kc, @RO Control control, @RW CellGrid cellGrid) {
-            if (kc.x < kc.maxX) {
-                Compute.lifePerIdx(kc.x, control, cellGrid);
+            if (kc.gix < kc.gsx) {
+                Compute.lifePerIdx(kc.gix, control, cellGrid);
             }
         }
 
@@ -324,13 +324,13 @@ public class TestArrayView {
 
     @CodeReflection
     public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             int[] pal = pallette.arrayView();
             int[][] s32 = s32Array2D.arrayView();
             float width = s32Array2D.width();
             float height = s32Array2D.height();
-            float x = ((kc.x % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
-            float y = ((kc.x / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
+            float x = ((kc.gix % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
+            float y = ((kc.gix / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
             float zx = x;
             float zy = y;
             float new_zx;
@@ -342,7 +342,7 @@ public class TestArrayView {
                 colorIdx++;
             }
             int color = colorIdx < pal.length ? pal[colorIdx] : 0;
-            s32[kc.x % s32Array2D.width()][kc.x / s32Array2D.width()] = color;
+            s32[kc.gix % s32Array2D.width()][kc.gix / s32Array2D.width()] = color;
         }
     }
 
@@ -414,21 +414,21 @@ public class TestArrayView {
                                           @RO F32Array tArray,
                                           float r,
                                           float v) {
-        if (kc.x<kc.maxX){
+        if (kc.gix<kc.gsx){
             float[] callArr = call.arrayView();
             float[] putArr = put.arrayView();
             float[] sArr = sArray.arrayView();
             float[] xArr = xArray.arrayView();
             float[] tArr = tArray.arrayView();
 
-            float expNegRt = (float) Math.exp(-r * tArr[kc.x]);
-            float d1 = (float) ((Math.log(sArr[kc.x] / xArr[kc.x]) + (r + v * v * .5f) * tArr[kc.x]) / (v * Math.sqrt(tArr[kc.x])));
-            float d2 = (float) (d1 - v * Math.sqrt(tArr[kc.x]));
+            float expNegRt = (float) Math.exp(-r * tArr[kc.gix]);
+            float d1 = (float) ((Math.log(sArr[kc.gix] / xArr[kc.gix]) + (r + v * v * .5f) * tArr[kc.gix]) / (v * Math.sqrt(tArr[kc.gix])));
+            float d2 = (float) (d1 - v * Math.sqrt(tArr[kc.gix]));
             float cnd1 = CND(d1);
             float cnd2 = CND(d2);
-            float value = sArr[kc.x] * cnd1 - expNegRt * xArr[kc.x] * cnd2;
-            callArr[kc.x] = value;
-            putArr[kc.x] = expNegRt * xArr[kc.x] * (1 - cnd2) - sArr[kc.x] * (1 - cnd1);
+            float value = sArr[kc.gix] * cnd1 - expNegRt * xArr[kc.gix] * cnd2;
+            callArr[kc.gix] = value;
+            putArr[kc.gix] = expNegRt * xArr[kc.gix] * (1 - cnd2) - sArr[kc.gix] * (1 - cnd1);
         }
     }
 
@@ -551,20 +551,20 @@ public class TestArrayView {
     @CodeReflection
     public static void squareKernelWithPrivateAndLocal(@RO  KernelContext kc, @RW S32Array s32Array) {
         SharedMemory shared = SharedMemory.createLocal();
-        if (kc.x<kc.maxX){
+        if (kc.gix < kc.gsx){
             int[] arr = s32Array.arrayView();
-            arr[kc.x] += arr[kc.x];
+            arr[kc.gix] += arr[kc.gix];
             // int[] a = new int[4];
             // a[1] = 4;
 
             PrivateArray priv = PrivateArray.createPrivate();
             int[] privView = priv.privateArrayView();
             privView[0] = 1;
-            arr[kc.x] += privView[0];
+            arr[kc.gix] += privView[0];
 
             int[] sharedView = shared.localArrayView();
             sharedView[0] = 16;
-            arr[kc.x] += sharedView[0];
+            arr[kc.gix] += sharedView[0];
         }
     }
 

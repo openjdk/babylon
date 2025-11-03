@@ -44,11 +44,11 @@ public class TestMandel {
 
     @CodeReflection
     public static void mandel(@RO KernelContext kc, @RW S32Array2D s32Array2D, @RO S32Array pallette, float offsetx, float offsety, float scale) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             float width = s32Array2D.width();
             float height = s32Array2D.height();
-            float x = ((kc.x % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
-            float y = ((kc.x / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
+            float x = ((kc.gix % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
+            float y = ((kc.gix / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
             float zx = x;
             float zy = y;
             float new_zx;
@@ -60,7 +60,7 @@ public class TestMandel {
                 colorIdx++;
             }
             int color = colorIdx < pallette.length() ? pallette.array(colorIdx) : 0;
-            s32Array2D.array(kc.x, color);
+            s32Array2D.array(kc.gix, color);
         }
     }
 

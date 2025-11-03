@@ -102,7 +102,7 @@ public class DebugBackend extends BackendAdaptor {
         switch (howToRunKernel){
             case REFLECT: {
                 KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-                for (ndRange.kid.x = 0; ndRange.kid.x < ndRange.kid.maxX; ndRange.kid.x++) {
+                for (ndRange.kid.gix = 0; ndRange.kid.gix < ndRange.kid.gsx; ndRange.kid.gix++) {
                     try {
                         args[0] = ndRange.kid;
                         kernelEntrypoint.method.invoke(null, args);

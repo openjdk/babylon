@@ -38,8 +38,8 @@ public class ForTests {
 
         @CodeReflection
         static void breakAndContinue(KernelContext kc, F32Array a) {
-            long i = kc.x;
-            long size = kc.maxX;
+            long i = kc.gix;
+            long size = kc.gsx;
             outer:
             for (long j = 0; j < size; j++) {
                 float sum = 0f;

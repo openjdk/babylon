@@ -118,9 +118,9 @@ public class Mesh {
     public static class Compute {
         @CodeReflection
         public static void initPoints(KernelContext kc, MeshData mesh) {
-            if (kc.x < kc.maxX) {
-                MeshData.Point3D point = mesh.point(kc.x);
-                point.x(kc.x);
+            if (kc.gix < kc.gsx) {
+                MeshData.Point3D point = mesh.point(kc.gix);
+                point.x(kc.gix);
                 point.y(0);
                 point.z(0);
             }

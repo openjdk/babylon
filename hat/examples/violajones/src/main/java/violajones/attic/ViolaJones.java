@@ -331,7 +331,7 @@ public class ViolaJones {
             WorkStealer.usingAllProcessors(accelerator)
                     .forEachInRange(accelerator.range(scaleTable.multiScaleAccumulativeRange()), r -> {
                         ReferenceJavaViolaJones.findFeatures(
-                                r.kid.x,
+                                r.kid.gix,
                                 xmlCascade,//cascade,//haarCascade, //or cascade
                                 integralImageF32,
                                 integralSqImageF32,

@@ -71,9 +71,9 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
-        Universe.Body me = universe.body(kc.x);
+        Universe.Body me = universe.body(kc.gix);
 
-        for (int i = 0; i < kc.maxX; i++) {
+        for (int i = 0; i < kc.gsx; i++) {
             Universe.Body otherBody = universe.body(i);
             float dx = otherBody.x() - me.x();
             float dy = otherBody.y() - me.y();

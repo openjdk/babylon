@@ -96,7 +96,7 @@ public class MatrixMultiply {
             //   OpenCL kc.x -> get_global_id(0)
             //   CUDA   kc.x -> blockIdx.x*blockDim.x+threadIdx.x
             //   SPIRV  kc.x -> builtin GlobalInvocationId.x?
-            long i = kc.x;
+            long i = kc.gix;
             long size = sz;
 
             for (long j = 0; j < size; j++) {
