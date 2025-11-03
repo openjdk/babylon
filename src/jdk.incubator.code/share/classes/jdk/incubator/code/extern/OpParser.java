@@ -170,6 +170,23 @@ public final class OpParser {
         return parse(factory.opFactory(), factory.typeElementFactory(), in);
     }
 
+    /**
+     * Produces a bootstrap call site that returns a code model operation defined by an annotated method on the lookup
+     * class.
+     * <p>
+     * The target of the returned {@link ConstantCallSite} invokes {@link #fromAnnotation(Class, String)} with the
+     * {@code lookup} class and the provided {@code methodName}. The method identified by {@code methodName} must be
+     * declared on {@code lookup.lookupClass()} and annotated with {@link CodeModel}.
+     * <p>
+     * Note: The current implementation binds a static method handle and does not cache the constructed {@link Op}
+     * across invocations; callers should cache if needed.
+     *
+     * @param lookup the lookup context used to identify the host class
+     * @param methodName the name of the annotated method on the lookup class
+     * @param callSiteType the invokedynamic call site type (ignored by this bootstrap except for linkage)
+     * @return a constant call site whose target, when invoked, yields the {@link Op} for the annotated method
+     * @throws ReflectiveOperationException if the bootstrap cannot create the target method handle
+     */
     public static CallSite fromAnnotation(MethodHandles.Lookup lookup,
                                           String methodName,
                                           MethodType callSiteType) throws ReflectiveOperationException {
@@ -228,7 +245,7 @@ public final class OpParser {
                     op.resultType().isEmpty() ? null : new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(op.resultType())),
                     op.name(),
                     toStrings(op.operands()),
-                    Stream.of(op.successors()).map(br -> new SuccessorNode(String.valueOf(br.block()), toStrings(br.arguments()))).toList(),
+                    Stream.of(op.successors()).map(br -> new SuccessorNode(String.valueOf(br.targetBlock()), toStrings(br.arguments()))).toList(),
                     attrMap,
                     IntStream.of(op.bodyDefinitions()).mapToObj(bi -> parseBodyNode(bi)).toList());
         }

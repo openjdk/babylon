@@ -55,10 +55,15 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.impl.AttributeMapper;
 
 
-/**
- * This class (lazily) initialized the symbols in the jdk.incubator.code module,
- * whose symbol is not yet available when Symtab is first constructed.
- */
+ /**
+  * Initializes and provides javac symbols and helper builders to encode a
+  * jdk.incubator.code model as a javac attribute compatible with the
+  * {@link CodeModel} annotation format.
+  * <p>
+  * Instances of this class set up the necessary symbol and type handles and
+  * offer utilities to transform high-level code model elements (ops, bodies,
+  * blocks, successors) into {@link Attribute} representations.
+  */
 public final class CodeModelSymbols {
 
     final class Indexer<T> {
@@ -91,7 +96,7 @@ public final class CodeModelSymbols {
                        bodyBlocks,
                        blockParamTypes,
                        blockOps,
-                       blockReferenceBlock,
+                       blockReferenceTargetBlock,
                        blockReferenceArguments,
                        opName,
                        opOperands,
@@ -104,7 +109,13 @@ public final class CodeModelSymbols {
                        opBodyDefinitions,
                        bsmFromAnnotation;
 
-    CodeModelSymbols(Context context) {
+    /**
+     * Constructs and initializes symbol/type handles used to build CodeModel attributes. This performs module/class
+     * symbol lookups and synthesizes method signatures to align with the CodeModel annotation schema.
+     *
+     * @param context the javac compilation context
+     */
+    public CodeModelSymbols(Context context) {
         syms = Symtab.instance(context);
         Names names = Names.instance(context);
         Types types = Types.instance(context);
@@ -136,7 +147,7 @@ public final class CodeModelSymbols {
         bodyBlocks = atypes.methodType("blocks", blockArrayType, bodyType);
         blockParamTypes = atypes.methodType("paramTypes", stringArrayType, blockType);
         blockOps = atypes.methodType("ops", opArrayType, blockType);
-        blockReferenceBlock = atypes.methodType("block", syms.intType, blockReferenceType);
+        blockReferenceTargetBlock = atypes.methodType("targetBlock", syms.intType, blockReferenceType);
         blockReferenceArguments = atypes.methodType("arguments", intArrayType, blockReferenceType);
         opName = atypes.methodType("name", syms.stringType, opType);
         opOperands = atypes.methodType("operands", intArrayType, opType);
@@ -156,7 +167,31 @@ public final class CodeModelSymbols {
                 opParserType.tsym);
     }
 
-    DynamicMethodSymbol indyType(Name methodName) {
+    /**
+     * Produces the top-level CodeModel attribute for a function operation, including the root op and the flattened set
+     * of referenced bodies.
+     *
+     * @param funcOp the function operation to encode
+     * @return the compound attribute suitable for storage in the CodeModel annotation
+     */
+    public Attribute.Compound toCodeModelAttribute(CoreOp.FuncOp funcOp) {
+        Indexer<Value> valueIndexer = new Indexer<>();
+        Indexer<Block> blockIndexer = new Indexer<>();
+        Indexer<Body> bodyIndexer = new Indexer<>();
+        ListBuffer<Attribute> bodies = new ListBuffer<>();
+        return new Attribute.Compound(codeModelType, List.of(
+                Pair.of(modelFuncOp, op(funcOp, valueIndexer, blockIndexer, bodyIndexer, bodies)),
+                Pair.of(modelBodies, new Attribute.Array(bodyArrayType, bodies.toList()))));
+    }
+
+    /**
+     * Creates an invokedynamic bootstrap-bound dynamic method symbol for a given name, using the {@code fromAnnotation}
+     * bootstrap.
+     *
+     * @param methodName the dynamic method name
+     * @return a {@link DynamicMethodSymbol} configured with the bootstrap and signature
+     */
+    public DynamicMethodSymbol indyType(Name methodName) {
         return new DynamicMethodSymbol(
                 methodName,
                 syms.noSymbol,
@@ -241,22 +276,12 @@ public final class CodeModelSymbols {
         var lb = new ListBuffer<Attribute>();
         for (Block.Reference succ : successors) {
             var args = new ListBuffer<Pair<MethodSymbol, Attribute>>();
-            args.add(Pair.of(blockReferenceBlock, new Attribute.Constant(syms.intType, blockIndexer.indexOf(succ.targetBlock()))));
+            args.add(Pair.of(blockReferenceTargetBlock, new Attribute.Constant(syms.intType, blockIndexer.indexOf(succ.targetBlock()))));
             if (!succ.arguments().isEmpty()) {
                 args.add(Pair.of(blockReferenceArguments, intArray(List.from(succ.arguments()).map(valueIndexer::indexOf))));
             }
             lb.add(new Attribute.Compound(blockReferenceType, args.toList()));
         }
         return lb.toList();
-    }
-
-    Attribute.Compound toCodeModelAttribute(CoreOp.FuncOp funcOp) {
-        Indexer<Value> valueIndexer = new Indexer<>();
-        Indexer<Block> blockIndexer = new Indexer<>();
-        Indexer<Body> bodyIndexer = new Indexer<>();
-        ListBuffer<Attribute> bodies = new ListBuffer<>();
-        return new Attribute.Compound(codeModelType, List.of(
-                Pair.of(modelFuncOp, op(funcOp, valueIndexer, blockIndexer, bodyIndexer, bodies)),
-                Pair.of(modelBodies, new Attribute.Array(bodyArrayType, bodies.toList()))));
     }
 }
