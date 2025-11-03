@@ -130,15 +130,8 @@ public class KernelContext {
         return this.computeRange;
     }
 
-    public boolean hasComputeRange() {
-        return this.computeRange != null;
-    }
-
     public boolean hasLocalMesh() {
-        if (hasComputeRange()) {
-            return this.computeRange.getLocalMesh() != null;
-        }
-        return false;
+        return this.computeRange.getLocalMesh() != null;
     }
 
     public void barrier() {

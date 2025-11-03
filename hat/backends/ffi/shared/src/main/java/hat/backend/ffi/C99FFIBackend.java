@@ -82,13 +82,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
 
-        private void setGlobalMesh(hat.KernelContext kc) {
-            kernelBufferContext.gsx(kc.gsx);
-            kernelBufferContext.gsy(kc.gsy);
-            kernelBufferContext.gsz(kc.gsz);
-            kernelBufferContext.dimensions(kc.getDimensions());
-        }
-
         private void setGlobalMesh(ThreadMesh threadMesh) {
             kernelBufferContext.gsx(threadMesh.getX());
             kernelBufferContext.gsy(threadMesh.getY());
@@ -109,29 +102,16 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         }
 
         private void setupComputeRange(NDRange ndRange) {
-
             ComputeRange computeRange = ndRange.kid.getComputeRange();
-            boolean isComputeRangeDefined = ndRange.kid.hasComputeRange();
             boolean isLocalMeshDefined = ndRange.kid.hasLocalMesh();
-
-            ThreadMesh globalMesh = null;
-            ThreadMesh localMesh = null;
-            if (isComputeRangeDefined) {
-                globalMesh = computeRange.getGlobalMesh();
-                localMesh = computeRange.getLocalMesh();
-            }
-
-            if (!isComputeRangeDefined) {
-                setGlobalMesh(ndRange.kid);
-            } else {
-                setGlobalMesh(globalMesh);
-            }
-            if (isComputeRangeDefined && isLocalMeshDefined) {
+            ThreadMesh globalMesh = computeRange.getGlobalMesh();
+            ThreadMesh localMesh = computeRange.getLocalMesh();
+            setGlobalMesh(globalMesh);
+            if (isLocalMeshDefined) {
                 setLocalMesh(localMesh);
             } else {
                 setDefaultLocalMesh();
             }
-
         }
 
         public void dispatch(NDRange ndRange, Object[] args) {

@@ -86,17 +86,17 @@ public class Accelerator implements BufferAllocator, BufferTracker {
         return ndRange;
     }
 
-    public NDRange range(int maxX, int maxY) {
-        NDRange ndRange = new NDRange(this);
-        ndRange.kid = new KernelContext(ndRange, maxX, maxY);
-        return ndRange;
-    }
-
-    public NDRange range(int maxX, int maxY, int maxZ) {
-        NDRange ndRange = new NDRange(this);
-        ndRange.kid = new KernelContext(ndRange, maxX, maxY, maxZ);
-        return ndRange;
-    }
+//    public NDRange range(int maxX, int maxY) {
+//        NDRange ndRange = new NDRange(this);
+//        ndRange.kid = new KernelContext(ndRange, maxX, maxY);
+//        return ndRange;
+//    }
+//
+//    public NDRange range(int maxX, int maxY, int maxZ) {
+//        NDRange ndRange = new NDRange(this);
+//        ndRange.kid = new KernelContext(ndRange, maxX, maxY, maxZ);
+//        return ndRange;
+//    }
 
     public NDRange range(ComputeRange computeRange) {
         NDRange ndRange = new NDRange(this);
