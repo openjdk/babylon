@@ -367,7 +367,7 @@ public class ReflectMethods extends TreeTranslator {
 
         public static CodeModelStorageOption parse(String s) {
             if (s == null) {
-                return CodeModelStorageOption.CODE_MODEL_ATTRIBUTE;
+                return CodeModelStorageOption.CODE_BUILDER;
             }
             return CodeModelStorageOption.valueOf(s);
         }
