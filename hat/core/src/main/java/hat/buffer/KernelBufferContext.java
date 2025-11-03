@@ -41,6 +41,7 @@ public interface KernelBufferContext extends Buffer {
     // ----------------------------------------------------------------------|
 
     int dimensions();
+
     void dimensions(int numDimensions);
 
     // Global: new names
@@ -84,8 +85,7 @@ public interface KernelBufferContext extends Buffer {
 
     Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class,
             kernelContext -> kernelContext
-                    .fields(
-                            "dimensions",  // Dimension (1D, 2D or 3D)
+                    .fields("dimensions",  // Dimension (1D, 2D or 3D)
                             "gix", "giy", "giz",   // global thread-id accesses
                             "gsx", "gsy", "gsz",   // global sizes
                             "lix", "liy", "liz",   // local (thread-ids)
@@ -94,10 +94,8 @@ public interface KernelBufferContext extends Buffer {
                     ));
 
     static KernelBufferContext createDefault(Accelerator accelerator) {
-        KernelBufferContext kernelBufferContext =  schema.allocate(accelerator);
-        
+        KernelBufferContext kernelBufferContext = schema.allocate(accelerator);
         kernelBufferContext.dimensions(3);
-
         kernelBufferContext.gix(0);
         kernelBufferContext.giy(0);
         kernelBufferContext.giz(0);
