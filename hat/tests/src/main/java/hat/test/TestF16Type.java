@@ -117,37 +117,37 @@ public class TestF16Type {
 
     @CodeReflection
     public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
-        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        NDRange ndRange = NDRange.of(new Global1D(a.length()));
         computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.copy01(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void compute02(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
-        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        NDRange ndRange = NDRange.of(new Global1D(a.length()));
         computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_02(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void compute03(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
-        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        NDRange ndRange = NDRange.of(new Global1D(a.length()));
         computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_03(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void compute04(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
-        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        NDRange ndRange = NDRange.of(new Global1D(a.length()));
         computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_04(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void compute05(@RO ComputeContext computeContext, @RW F16Array a) {
-        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        NDRange ndRange = NDRange.of(new Global1D(a.length()));
         computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_05(kernelContext, a));
     }
 
     @CodeReflection
     public static void compute06(@RO ComputeContext computeContext, @RW F16Array a) {
-        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        NDRange ndRange = NDRange.of(new Global1D(a.length()));
         computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_06(kernelContext, a));
     }
 

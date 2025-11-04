@@ -65,7 +65,7 @@ public class LocalIds {
     @CodeReflection
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
         // 2 groups of 16 threads each
-        NDRange ndRange = new NDRange(new Global1D(32), new Local1D(BLOCK_SIZE));
+        NDRange ndRange = NDRange.of(new Global1D(32), new Local1D(BLOCK_SIZE));
         cc.dispatchKernel(ndRange, kc -> assign(kc, arrayA, arrayB, arrayC));
     }
 

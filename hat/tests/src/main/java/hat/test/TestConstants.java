@@ -55,7 +55,7 @@ public class TestConstants {
 
     @CodeReflection
     public static void vectorWithConstants(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        NDRange ndRange = new NDRange(new Global1D(arrayA.length()));
+        NDRange ndRange = NDRange.of(new Global1D(arrayA.length()));
         cc.dispatchKernel(ndRange, kc -> vectorWithConstants(kc, arrayA, arrayB, arrayC));
     }
 
@@ -105,7 +105,7 @@ public class TestConstants {
 
     @CodeReflection
     public static void vectorWithConstants2(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        NDRange ndRange = new NDRange(new Global1D(arrayA.length()));
+        NDRange ndRange = NDRange.of(new Global1D(arrayA.length()));
         cc.dispatchKernel(ndRange, kc -> vectorWithConstants2(kc, arrayA, arrayB, arrayC));
     }
 

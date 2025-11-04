@@ -331,7 +331,7 @@ public class ViolaJones {
         if (true) {
             long start = System.currentTimeMillis();
             WorkStealer.usingAllProcessors()
-                    .forEachInRange(accelerator.range(new NDRange(new Global1D(scaleTable.multiScaleAccumulativeRange()))), kc -> {
+                    .forEachInRange(accelerator.range(NDRange.of(new Global1D(scaleTable.multiScaleAccumulativeRange()))), kc -> {
                         ReferenceJavaViolaJones.findFeatures(
                                 kc.gix,
                                 xmlCascade,//cascade,//haarCascade, //or cascade

@@ -35,16 +35,12 @@ package hat;
  */
 public class NDRange {
 
-    private final Range global;
-    private final Range local;
-
     /**
      * Total number of threads to run in 1D.
      * @param global {@link Global1D}
      */
-    public NDRange(Global1D global) {
-        this.global = global;
-        this.local = null;
+    public static NDRange of(Global1D global) {
+        return new NDRange(global);
     }
 
     /**
@@ -52,20 +48,17 @@ public class NDRange {
      * @param global {@link Global1D}
      * @param local {@link Local1D}
      */
-    public NDRange(Global1D global, Local1D local) {
-        this.global = global;
-        this.local = local;
+    public static NDRange of(Global1D global, Local1D local) {
+        return new NDRange(global, local);
     }
-
 
     /**
      * Defines a compute range for a 2D mesh. The parameter specifies the
      * global mesh (total number of threads to run).
      * @param global {@link Global2D}
      */
-    public NDRange(Global2D global) {
-        this.global = global;
-        this.local = null;
+    public static NDRange of(Global2D global) {
+        return new NDRange(global);
     }
 
     /**
@@ -74,9 +67,8 @@ public class NDRange {
      * @param global {@link Global2D}
      * @param local {@link Local2D}
      */
-    public NDRange(Global2D global, Local2D local) {
-        this.global = global;
-        this.local = local;
+    public static NDRange of(Global2D global, Local2D local) {
+        return new NDRange(global, local);
     }
 
     /**
@@ -84,9 +76,8 @@ public class NDRange {
      * global mesh (total number of threads to run).
      * @param global {@link Global3D}
      */
-    public NDRange(Global3D global) {
-        this.global = global;
-        this.local = null;
+    public static NDRange of(Global3D global) {
+        return new NDRange(global);
     }
 
     /**
@@ -95,9 +86,8 @@ public class NDRange {
      * @param global {@link Global3D}
      * @param local {@link Local3D}
      */
-    public NDRange(Global3D global, Local3D local) {
-        this.global = global;
-        this.local = local;
+    public static NDRange of(Global3D global, Local3D local) {
+        return new NDRange(global, local);
     }
 
     /**
@@ -144,5 +134,38 @@ public class NDRange {
      */
     public static NDRange of(int numThreadsGlobal, int numThreadLocal) {
         return new NDRange(new Global1D(numThreadsGlobal), new Local1D(numThreadLocal));
+    }
+
+    private final Range global;
+    private final Range local;
+
+    private NDRange(Global1D global) {
+        this.global = global;
+        this.local = null;
+    }
+
+    private NDRange(Global1D global, Local1D local) {
+        this.global = global;
+        this.local = local;
+    }
+
+    private NDRange(Global2D global) {
+        this.global = global;
+        this.local = null;
+    }
+
+    private NDRange(Global2D global, Local2D local) {
+        this.global = global;
+        this.local = local;
+    }
+
+    private NDRange(Global3D global) {
+        this.global = global;
+        this.local = null;
+    }
+
+    private NDRange(Global3D global, Local3D local) {
+        this.global = global;
+        this.local = local;
     }
 }
