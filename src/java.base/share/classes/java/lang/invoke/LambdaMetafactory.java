@@ -346,10 +346,9 @@ public final class LambdaMetafactory {
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
         AbstractValidatingLambdaMetafactory mf;
-        MethodHandle quotableOpGetter = null;
-        if (isQuotable(factoryType.returnType())) {
-            // Getter that returns the op of a Quotable instance
-            quotableOpGetter = findQuotableOpGetter(caller, implementation);
+        MethodHandle quotableOpGetter = findQuotableOpGetter(caller, interfaceMethodName);
+        if (quotableOpGetter != null) {
+            interfaceMethodName = interfaceMethodName.substring(1, interfaceMethodName.indexOf('='));
         }
         mf = new InnerClassLambdaMetafactory(Objects.requireNonNull(caller),
                                              Objects.requireNonNull(factoryType),
@@ -508,7 +507,6 @@ public final class LambdaMetafactory {
         int flags = extractArg(args, argIndex++, Integer.class);
         Class<?>[] altInterfaces = EMPTY_CLASS_ARRAY;
         MethodType[] altMethods = EMPTY_MT_ARRAY;
-        boolean isQuotable = isQuotable(factoryType.returnType());
         if ((flags & FLAG_MARKERS) != 0) {
             int altInterfaceCount = extractArg(args, argIndex++, Integer.class);
             if (altInterfaceCount < 0) {
@@ -516,18 +514,12 @@ public final class LambdaMetafactory {
             }
             if (altInterfaceCount > 0) {
                 altInterfaces = extractArgs(args, argIndex, Class.class, altInterfaceCount);
-                for (Class<?> altInterface : altInterfaces) {
-                    if (isQuotable(altInterface)) {
-                        isQuotable = true;
-                    }
-                }
                 argIndex += altInterfaceCount;
             }
         }
-        MethodHandle quotableOpGetter = null;
-        if (isQuotable) {
-            // Getter that returns the op of a Quotable instance
-            quotableOpGetter = findQuotableOpGetter(caller, implementation);
+        MethodHandle quotableOpGetter = findQuotableOpGetter(caller, interfaceMethodName);
+        if (quotableOpGetter != null) {
+            interfaceMethodName = interfaceMethodName.substring(1, interfaceMethodName.indexOf('='));
         }
 
         if ((flags & FLAG_BRIDGES) != 0) {
@@ -570,25 +562,19 @@ public final class LambdaMetafactory {
         return mf.buildCallSite();
     }
 
-    private static boolean isQuotable(Class<?> clazz) {
-        return VM.isModuleSystemInited() &&
-                !clazz.getModule().equals(LambdaMetafactory.class.getModule()) &&
-                CodeReflectionSupport.QUOTABLE_CLASS.isAssignableFrom(clazz);
-    }
-
-    private static MethodHandle findQuotableOpGetter(MethodHandles.Lookup lookup, MethodHandle impl) {
-        try {
-            String implName = lookup.revealDirect(impl).getName();
-            String[] implNameParts = implName.split("=");
-            if (implNameParts.length == 2) {
-                return lookup.findStatic(lookup.lookupClass(), implNameParts[1],
-                        MethodType.methodType(CodeReflectionSupport.OP_CLASS));
-            } else {
-                return null;
+    private static MethodHandle findQuotableOpGetter(MethodHandles.Lookup lookup, String interfaceMethodName) {
+        if (interfaceMethodName.charAt(0) == '`') {
+            try {
+                String[] implNameParts = interfaceMethodName.split("=");
+                if (implNameParts.length == 2) {
+                    return lookup.findStatic(lookup.lookupClass(), implNameParts[1],
+                            MethodType.methodType(CodeReflectionSupport.OP_CLASS));
+                }
+            } catch (ReflectiveOperationException ex) {
+                // ignore
             }
-        } catch (ReflectiveOperationException ex) {
-            return null;
         }
+        return null;
     }
 
     private static <T> T extractArg(Object[] args, int index, Class<T> type) {

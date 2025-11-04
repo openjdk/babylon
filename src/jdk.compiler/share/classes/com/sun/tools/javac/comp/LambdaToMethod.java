@@ -891,7 +891,14 @@ public class LambdaToMethod extends TreeTranslator {
             }
         }
 
-        return makeIndyCall(tree, syms.lambdaMetafactory, metafactoryName, staticArgs, indyType, indy_args, samSym.name);
+        Name lambdaName = samSym.name;
+        if (tree.codeModel != null) {
+            lambdaName = names.fromString("`")
+                    .append(lambdaName)
+                    .append(names.fromString("="))
+                    .append(tree.codeModel.name);
+        }
+        return makeIndyCall(tree, syms.lambdaMetafactory, metafactoryName, staticArgs, indyType, indy_args, lambdaName);
     }
 
     /**
@@ -1096,10 +1103,6 @@ public class LambdaToMethod extends TreeTranslator {
             buf.append(syntheticMethodNameComponent(owner));
             buf.append("$");
             buf.append(kInfo.syntheticNameIndex(buf, 0));
-            if (tree.codeModel != null) {
-                buf.append("=");
-                buf.append(tree.codeModel.name);
-            }
             return names.fromString(buf.toString());
         }
 
@@ -1139,10 +1142,6 @@ public class LambdaToMethod extends TreeTranslator {
             // The above appended name components may not be unique, append
             // a count based on the above name components.
             buf.append(kInfo.syntheticNameIndex(buf, 1));
-            if (tree.codeModel != null) {
-                buf.append("=");
-                buf.append(tree.codeModel.name);
-            }
             String result = buf.toString();
             //System.err.printf("serializedLambdaName: %s -- %s\n", result, disam);
             return names.fromString(result);
