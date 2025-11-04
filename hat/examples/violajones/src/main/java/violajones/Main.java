@@ -48,10 +48,10 @@ public class Main {
 
         boolean headless = accelerator.config().headless(args.length>0?args[0]:null);
         String imageName = (args.length>2 && args[1].equals("--image"))?args[2]:System.getProperty("image", "Nasa1996");
-
+        String cascadeName =System.getProperty("cascade", "haarcascade_frontalface_default");
         BufferedImage nasa1996 = ImageIO.read(ViolaJones.class.getResourceAsStream("/images/"+imageName+".jpg"));
         XMLHaarCascadeModel xmlCascade = XMLHaarCascadeModel.load(
-                ViolaJonesRaw.class.getResourceAsStream("/cascades/haarcascade_frontalface_default.xml"));
+                ViolaJonesRaw.class.getResourceAsStream("/cascades/"+cascadeName+".xml"));
         var cascade = Cascade.createFrom(accelerator,xmlCascade);
 
         S08x3RGBImage rgbImage = S08x3RGBImage.create(accelerator, nasa1996.getWidth(),nasa1996.getHeight());

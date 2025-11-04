@@ -40,7 +40,7 @@ public class F32Mesh3D {
     final int MAX = 400;
 
     public int triCount = 0;
-    public F32Triangle3D.Pool.Idx triEntries[] = new F32Triangle3D.Pool.Idx[MAX * SIZE];
+    public F32Triangle3D.F32Triangle3DPool.Idx triEntries[] = new F32Triangle3D.F32Triangle3DPool.Idx[MAX * SIZE];
     public int triCenterVec3s[] = new int[MAX *SIZE];
     public int normalEntries[] = new int[MAX *SIZE];
     public int v0Vec3s[] = new int[MAX *SIZE];
@@ -55,7 +55,7 @@ public class F32Mesh3D {
         normalEntries[triCount] = F32Triangle3D.normal(tri);
         int triCentreVec3 = F32Triangle3D.getCentre(tri);
         triCenterVec3s[triCount]=triCentreVec3;
-        v0Vec3s[triCount]=F32Triangle3D.getV0(tri);
+        v0Vec3s[triCount]=F32Triangle3D.f32Triangle3DPool.entries[tri.v0()];
         if (triCount == 0) {
             triSum = triCentreVec3;
         } else {
@@ -168,14 +168,7 @@ public class F32Mesh3D {
         quad(g, h, a, d, 0xffa500);//bottom
         return this;
     }
-
-
-
-
-
     /*
-
-
 http://paulbourke.net/dataformats/obj/
 
      */
@@ -236,7 +229,7 @@ http://paulbourke.net/dataformats/obj/
     }
 
     public int vec3(float x, float y, float z) {
-        int newVec = F32Vec3.createVec3(x,y, z);
+        int newVec = F32Vec3.f32Vec3Pool.of(x,y, z).idx();
         vecEntries[vecCount++]=newVec;
     //    if (vecCount == 1 ){
          //   vecSum =newVec;

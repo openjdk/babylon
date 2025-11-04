@@ -22,31 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package view.f32;
 
-package view;
+public record ModelHighWaterMark(
+        int markedTriangles3D,
+        int markedTriangles2D,
+        int markedVec2,
+        int markedVec3,
+        int markedMat4) {
 
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
-
-public class View {
-    final BufferedImage image;
-    int[] offscreenRgb;
-
-    private View(int width, int height) {
-        image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        offscreenRgb = new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length];
+    public ModelHighWaterMark() {
+        this(F32Triangle3D.f32Triangle3DPool.count, F32Triangle2D.f32Triangle2DPool.count, F32Vec2.f32Vec2Pool.count, F32Vec3.f32Vec3Pool.count, F32Matrix4x4.f32matrix4x4Pool.count);
     }
 
-    static View of(int width, int height){
-        return new View(width,height);
+    public void resetAll() {
+        reset3D();
+        F32Triangle2D.reset(markedTriangles2D);
+        F32Vec2.reset(markedVec2);
     }
 
-    void paint(Graphics2D g) {
-        g.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), null);
-    }
-
-    void update() {
-        System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
+    public void reset3D() {
+        F32Triangle3D.f32Triangle3DPool.count = markedTriangles3D;
+        F32Vec3.f32Vec3Pool.count = markedVec3;
+        F32Matrix4x4.f32matrix4x4Pool.count = markedMat4;
     }
 }
