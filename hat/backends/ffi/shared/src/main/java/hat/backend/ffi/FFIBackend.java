@@ -72,7 +72,7 @@ public abstract class FFIBackend extends FFIBackendDriver {
         }
 
         backendBridge.computeStart();
-        if (Config.INTERPRET.isSet(config())) {
+        if (config().interpret()) {
             Interpreter.invoke(computeContext.accelerator.lookup, computeContext.computeCallGraph.entrypoint.lowered, args);
         } else {
             try {

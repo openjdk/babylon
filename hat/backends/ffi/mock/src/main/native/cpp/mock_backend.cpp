@@ -120,8 +120,8 @@ public:
     }
 
 
-    void info() override {
-        std::cout << "mock info()" << std::endl;
+    void showDeviceInfo() override {
+        std::cout << "mock showDeviceInfo()" << std::endl;
     }
 
     void computeStart() override {

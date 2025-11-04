@@ -29,6 +29,6 @@ import hat.Config;
 public class CudaDeviceInfo {
     public static void main(String[] args) {
         CudaBackend backend = new CudaBackend(Config.fromIntBits(0));
-        backend.backendBridge.info();
+        backend.backendBridge.showDeviceInfo();
     }
 }
