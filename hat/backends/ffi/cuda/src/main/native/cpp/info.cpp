@@ -27,6 +27,6 @@
 
 int main(int argc, char **argv) {
     CudaBackend cudaBackend(0);
-    cudaBackend.info();
+    cudaBackend.showDeviceInfo();
 }
 

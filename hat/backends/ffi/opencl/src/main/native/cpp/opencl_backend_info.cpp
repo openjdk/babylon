@@ -113,7 +113,7 @@ PlatformInfo::~PlatformInfo(){
     delete [] name;
 }
 
-void OpenCLBackend::info() {
+void OpenCLBackend::showDeviceInfo() {
     const PlatformInfo platformInfo(this);
     std::cerr << "platform{" << std::endl;
     std::cerr << "   CL_PLATFORM_VENDOR..\"" << platformInfo.vendorName <<"\""<< std::endl;

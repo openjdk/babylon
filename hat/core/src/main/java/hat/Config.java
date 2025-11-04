@@ -69,8 +69,8 @@ public class Config {
     public boolean minimizeCopies() {
         return MINIMIZE_COPIES.isSet(this);
     }
-    public static final Bit TRACE = Bit.nextBit(MINIMIZE_COPIES,"TRACE", "FFI ONLY trace code");
-    public static final Bit PROFILE = Bit.nextBit(TRACE, "PROFILE", "FFI ONLY Turn on profiling");
+    private static final Bit TRACE = Bit.nextBit(MINIMIZE_COPIES,"TRACE", "FFI ONLY trace code");
+    private static final Bit PROFILE = Bit.nextBit(TRACE, "PROFILE", "FFI ONLY Turn on profiling");
     private static final Bit SHOW_CODE = Bit.nextBit(PROFILE,"SHOW_CODE","Show generated code (PTX/OpenCL/CUDA)");
     public boolean showCode() {
         return SHOW_CODE.isSet(this);
@@ -83,20 +83,24 @@ public class Config {
     public boolean showComputeModel() {
         return SHOW_COMPUTE_MODEL.isSet(this);
     }
-    public static final Bit INFO = Bit.nextBit(SHOW_COMPUTE_MODEL, "INFO", "FFI ONLY Show platform and device info");
-    public static final Bit TRACE_COPIES = Bit.nextBit(INFO, "TRACE_COPIES", "FFI ONLY trace copies");
-    public static final Bit TRACE_SKIPPED_COPIES = Bit.nextBit(TRACE_COPIES, "TRACE_SKIPPED_COPIES", "FFI ONLY Trace skipped copies (see MINIMIZE_COPIES) ");
-    public static final Bit TRACE_ENQUEUES = Bit.nextBit(TRACE_SKIPPED_COPIES,"TRACE_ENQUEUES", "FFI ONLY trace enqueued tasks");
-    public static final Bit TRACE_CALLS= Bit.nextBit(TRACE_ENQUEUES, "TRACE_CALLS", "FFI ONLY trace calls (enter/leave)");
-    public static final Bit SHOW_WHY = Bit.nextBit(TRACE_CALLS, "SHOW_WHY", "FFI ONLY show why we decided to copy buffer (H to D)");
-    public static final Bit SHOW_STATE = Bit.nextBit(SHOW_WHY, "SHOW_STATE", "Show iface buffer state changes");
-    public static final Bit PTX = Bit.nextBit(SHOW_STATE, "PTX", "FFI (NVIDIA) ONLY pass PTX rather than C99 CUDA code");
-    public static final Bit INTERPRET = Bit.nextBit(PTX, "INTERPRET", "Interpret the code model rather than converting to bytecode");
-    private static final Bit NO_DIALECT = Bit.nextBit(INTERPRET, "NO_DIALECT", "Skip generating HAT dialect ops");
+    private static final Bit SHOW_DEVICE_INFO = Bit.nextBit(SHOW_COMPUTE_MODEL, "SHOW_DEVICE_INFO", "FFI show platform and device info");
+    public static final Bit INFO = Bit.nextBit(SHOW_DEVICE_INFO, "INFO", "INFO level logging");
+    public static final Bit WARN = Bit.nextBit(INFO, "WARN", "WARN(ing) level logging ");
+    public static final Bit UNIT = Bit.nextBit(WARN, "UNIT", "UNIT test level logging  ");
+    private static final Bit TRACE_COPIES = Bit.nextBit(UNIT, "TRACE_COPIES", "FFI ONLY trace copies");
+    private static final Bit TRACE_SKIPPED_COPIES = Bit.nextBit(TRACE_COPIES, "TRACE_SKIPPED_COPIES", "FFI ONLY Trace skipped copies (see MINIMIZE_COPIES) ");
+    private static final Bit TRACE_ENQUEUES = Bit.nextBit(TRACE_SKIPPED_COPIES,"TRACE_ENQUEUES", "FFI ONLY trace enqueued tasks");
+    private static final Bit TRACE_CALLS= Bit.nextBit(TRACE_ENQUEUES, "TRACE_CALLS", "FFI ONLY trace calls (enter/leave)");
+    private static final Bit SHOW_WHY = Bit.nextBit(TRACE_CALLS, "SHOW_WHY", "FFI ONLY show why we decided to copy buffer (H to D)");
+    private static final Bit SHOW_STATE = Bit.nextBit(SHOW_WHY, "SHOW_STATE", "Show iface buffer state changes");
+    public boolean showState(){return SHOW_STATE.isSet(this);}
+    private static final Bit PTX = Bit.nextBit(SHOW_STATE, "PTX", "FFI (NVIDIA) ONLY pass PTX rather than C99 CUDA code");
+    public boolean ptx(){return PTX.isSet(this);}
+    private static final Bit INTERPRET = Bit.nextBit(PTX, "INTERPRET", "Interpret the code model rather than converting to bytecode");
     public boolean interpret() {
         return INTERPRET.isSet(this);
     }
-    private static final Bit HEADLESS = Bit.nextBit(NO_DIALECT, "HEADLESS", "Don't show UI");
+    private static final Bit HEADLESS = Bit.nextBit(INTERPRET, "HEADLESS", "Don't show UI");
     public boolean headless() {
         return HEADLESS.isSet(this)|| Boolean.getBoolean("headless");
     }
@@ -108,11 +112,12 @@ public class Config {
         return SHOW_LOWERED_KERNEL_MODEL.isSet(this);
     }
     private static final Bit SHOW_COMPILATION_PHASES = Bit.nextBit(SHOW_LOWERED_KERNEL_MODEL, "SHOW_COMPILATION_PHASES", "Show HAT compilation phases");
-    private static final Bit PROFILE_CUDA_KERNEL = Bit.nextBit(SHOW_COMPILATION_PHASES, "PROFILE_CUDA_KERNEL", "Add -lineinfo to CUDA kernel compilation for profiling and debugging");
     public boolean showCompilationPhases() {
         return SHOW_COMPILATION_PHASES.isSet(this);
     }
-    public boolean isProfileCUDAKernelEnabled() {
+    private static final Bit PROFILE_CUDA_KERNEL = Bit.nextBit(SHOW_COMPILATION_PHASES, "PROFILE_CUDA_KERNEL", "Add -lineinfo to CUDA kernel compilation for profiling and debugging");
+
+    public boolean isProfileCUDAKernel() {
         return PROFILE_CUDA_KERNEL.isSet(this);
     }
     public static final List<Bit> bitList = List.of(
@@ -124,7 +129,10 @@ public class Config {
             SHOW_CODE,
             SHOW_KERNEL_MODEL,
             SHOW_COMPUTE_MODEL,
+            SHOW_DEVICE_INFO,
             INFO,
+            WARN,
+            UNIT,
             TRACE_COPIES,
             TRACE_SKIPPED_COPIES,
             TRACE_ENQUEUES,
@@ -133,7 +141,6 @@ public class Config {
             SHOW_STATE,
             PTX,
             INTERPRET,
-            NO_DIALECT,
             HEADLESS,
             SHOW_LOWERED_KERNEL_MODEL,
             SHOW_COMPILATION_PHASES,

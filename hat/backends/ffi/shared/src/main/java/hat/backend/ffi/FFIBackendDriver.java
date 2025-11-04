@@ -108,7 +108,7 @@ public abstract class FFIBackendDriver extends Backend {
         final FFILib.VoidHandleMethodPtr computeStart_MPtr;
         final FFILib.VoidHandleMethodPtr computeEnd_MPtr;
 
-        final FFILib.VoidHandleMethodPtr info_MPtr;
+        final FFILib.VoidHandleMethodPtr showDeviceInfo_MPtr;
         final FFILib.BooleanHandleAddressLongMethodPtr getBufferFromDeviceIfDirty_MPtr;
         BackendBridge(FFILib ffiLib, Config config) {
             this.ffiLib = ffiLib;
@@ -118,7 +118,7 @@ public abstract class FFIBackendDriver extends Backend {
             }
             this.handle = getBackend(config.bits());
             this.compile_MPtr = ffiLib.longHandleIntAddressFunc("compile");
-            this.info_MPtr = ffiLib.voidHandleFunc("info");
+            this.showDeviceInfo_MPtr = ffiLib.voidHandleFunc("showDeviceInfo");
             this.computeStart_MPtr = ffiLib.voidHandleFunc("computeStart");
             this.computeEnd_MPtr = ffiLib.voidHandleFunc("computeEnd");
             this.getBufferFromDeviceIfDirty_MPtr = ffiLib.booleanHandleAddressLongFunc("getBufferFromDeviceIfDirty");
@@ -155,8 +155,8 @@ public abstract class FFIBackendDriver extends Backend {
         public void computeEnd() {
             computeEnd_MPtr.invoke(handle);
         }
-        public void info() {
-            info_MPtr.invoke(handle);
+        public void showDeviceInfo() {
+            showDeviceInfo_MPtr.invoke(handle);
         }
     }
 

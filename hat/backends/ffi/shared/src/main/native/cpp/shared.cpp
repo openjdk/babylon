@@ -101,12 +101,13 @@ void Sled::show(std::ostream &out, void *argArray) {
 }
 
 
-extern "C" void info(long backendHandle) {
+extern "C" void showDeviceInfo(long backendHandle) {
+        std::cout << "DEBUGGGGGGG through backendHandle to backend.showDeviceInfo()" << std::endl;
     if (INFO) {
-        std::cout << "trampolining through backendHandle to backend.info()" << std::endl;
+        std::cout << "trampolining through backendHandle to backend.showDeviceInfo()" << std::endl;
     }
     auto *backend = reinterpret_cast<Backend *>(backendHandle);
-    backend->info();
+    backend->showDeviceInfo();
 }
 
 extern "C" void computeStart(long backendHandle) {

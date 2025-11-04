@@ -110,7 +110,7 @@ CudaBackend::~CudaBackend() {
     CUDA_CHECK(cuCtxDestroy(context), "cuCtxDestroy");
 }
 
-void CudaBackend::info() {
+void CudaBackend::showDeviceInfo() {
     char name[100];
     CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");
 
