@@ -42,30 +42,30 @@ public class WorkStealer {
     CyclicBarrier setupBarrier;
     CyclicBarrier startBarrier;
     CyclicBarrier doneBarrier;
-    Consumer<NDRange> rangeConsumer;
+    Consumer<KernelContext> rangeConsumer;
 
     volatile int range;
     volatile boolean running = true;
     final int chunkSize = 1024;
-    private NDRange[] ranges;
+    private KernelContext[] ranges;
 
-    public WorkStealer(Accelerator accelerator, int threadCount) {
+    public WorkStealer(int threadCount) {
         super();
       //  System.out.println("new workstealer!");
         this.threadCount = threadCount;
         if (threadCount > 1) {
             taskCount = new AtomicInteger(0);
             threads = new Thread[threadCount];
-            this.ranges = new NDRange[threadCount];
+            this.ranges = new KernelContext[threadCount];
             setupBarrier = new CyclicBarrier(threadCount + 1);
             startBarrier = new CyclicBarrier(threadCount + 1);
             doneBarrier = new CyclicBarrier(threadCount + 1);
             for (int i = 0; i < threadCount; i++) {
                 final int fini = i;
-                ranges[fini] = new NDRange(accelerator);
+                ranges[fini] = new KernelContext(range);
                 threads[fini] = new Thread(() -> {
 
-                    NDRange ndRange = ranges[fini];
+                    hat.KernelContext kernelContext = ranges[fini];
                     while (running) {
                         rendezvous(setupBarrier);
                         //  System.out.println("Thread #"+Thread.currentThread()+" waiting start");
@@ -73,13 +73,9 @@ public class WorkStealer {
                         //  System.out.println("Thread #"+Thread.currentThread()+" started");
 
                         int myChunk;
-                        ndRange.kid = new KernelContext(ndRange, range);
-
                         while ((myChunk = taskCount.getAndIncrement()) < (range / chunkSize) + 1) {
-
-                            for (ndRange.kid.gix = myChunk * chunkSize; ndRange.kid.gix < (myChunk + 1) * chunkSize && ndRange.kid.gix < range; ndRange.kid.gix++) {
-
-                                rangeConsumer.accept(ndRange);
+                            for (kernelContext.gix = myChunk * chunkSize; kernelContext.gix < (myChunk + 1) * chunkSize && kernelContext.gix < range; kernelContext.gix++) {
+                                rangeConsumer.accept(kernelContext);
                             }
                         }
                         //  System.out.println("Thread #"+Thread.currentThread()+" done");
@@ -99,27 +95,27 @@ public class WorkStealer {
 
     }
 
-    public static WorkStealer of(Accelerator accelerator, int threads) {
-        return new WorkStealer(accelerator, threads);
+    public static WorkStealer of(int threads) {
+        return new WorkStealer(threads);
     }
 
-    public static WorkStealer usingAllProcessors(Accelerator accelerator) {
-        return WorkStealer.of(accelerator, Runtime.getRuntime().availableProcessors());
+    public static WorkStealer usingAllProcessors() {
+        return WorkStealer.of(Runtime.getRuntime().availableProcessors());
     }
 
-    public void forEachInRange(NDRange ndRange, Consumer<NDRange> rangeConsumer) {
+    public void forEachInRange(KernelContext kernelContext, Consumer<KernelContext> rangeConsumer) {
         if (threadCount > 1) {
             rendezvous(setupBarrier);
             this.taskCount.set(0);
-            this.range = ndRange.kid.gsx;
+            this.range = kernelContext.gsx;
             this.rangeConsumer = rangeConsumer;
 
             rendezvous(startBarrier);
             // This should start all threads
             rendezvous(doneBarrier);
         } else {
-            for (ndRange.kid.gix = 0; ndRange.kid.gix < range; ndRange.kid.gix++) {
-                rangeConsumer.accept(ndRange);
+            for (kernelContext.gix = 0; kernelContext.gix < range; kernelContext.gix++) {
+                rangeConsumer.accept(kernelContext);
             }
         }
     }

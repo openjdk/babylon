@@ -27,7 +27,7 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.NDRange;
+import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 
 public class OpenCLBackend extends C99FFIBackend {
@@ -51,7 +51,7 @@ public class OpenCLBackend extends C99FFIBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createC99(kernelCallGraph,  args);
             if (config().showCode()) {
@@ -65,7 +65,7 @@ public class OpenCLBackend extends C99FFIBackend {
                 throw new IllegalStateException("opencl failed to compile ");
             }
         });
-        compiledKernel.dispatch(ndRange, args);
+        compiledKernel.dispatch(kernelContext, args);
     }
 
     String createC99(KernelCallGraph kernelCallGraph,  Object[] args){

@@ -328,10 +328,10 @@ public class ViolaJones {
 
         if (true) {
             long start = System.currentTimeMillis();
-            WorkStealer.usingAllProcessors(accelerator)
-                    .forEachInRange(accelerator.range(scaleTable.multiScaleAccumulativeRange()), r -> {
+            WorkStealer.usingAllProcessors()
+                    .forEachInRange(accelerator.range(scaleTable.multiScaleAccumulativeRange()), kc -> {
                         ReferenceJavaViolaJones.findFeatures(
-                                r.kid.gix,
+                                kc.gix,
                                 xmlCascade,//cascade,//haarCascade, //or cascade
                                 integralImageF32,
                                 integralSqImageF32,

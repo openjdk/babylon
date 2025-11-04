@@ -27,6 +27,7 @@ package hat.backend;
 
 import hat.ComputeContext;
 import hat.Config;
+import hat.KernelContext;
 import hat.NDRange;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
@@ -73,5 +74,5 @@ public  abstract class Backend implements BufferAllocator {
 
     public abstract void dispatchCompute(ComputeContext computeContext, Object... args);
 
-    public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args);
+    public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args);
 }

@@ -40,7 +40,7 @@ package hat;
  */
 public class KernelContext {
 
-    public final NDRange ndRange;
+    //public final NDRange ndRange;
 
     // Global accesses
     public int gix;
@@ -70,8 +70,8 @@ public class KernelContext {
 
     private ComputeRange computeRange;
 
-    public KernelContext(NDRange ndRange, ComputeRange computeRange) {
-        this.ndRange = ndRange;
+    public KernelContext(ComputeRange computeRange) {
+        //this.ndRange = ndRange;
         this.computeRange = computeRange;
         this.gsx = computeRange.getGlobalMesh().getX();
         this.gsy = computeRange.getGlobalMesh().getY();
@@ -81,11 +81,10 @@ public class KernelContext {
 
     /**
      * 1D Kernel
-     * @param ndRange {@link NDRange}
      * @param maxX Global number of threads for the first dimension (1D)
      */
-    public KernelContext(NDRange ndRange, int maxX) {
-        this.ndRange = ndRange;
+    public KernelContext(int maxX) {
+        //this.ndRange = ndRange;
         this.gsx = maxX;
         this.gsy = 0;
         this.gsz = 0;
@@ -94,12 +93,10 @@ public class KernelContext {
 
     /**
      * 1D Kernel
-     * @param ndRange {@link NDRange}
      * @param maxX Global number of threads for the first dimension (1D)
      * @param maxY Global number of threads for the second dimension (2D)
      */
-    public KernelContext(NDRange ndRange, int maxX, int maxY) {
-        this.ndRange = ndRange;
+    public KernelContext(int maxX, int maxY) {
         this.gsx = maxX;
         this.gsy = maxY;
         this.gsz = 0;
@@ -108,13 +105,11 @@ public class KernelContext {
 
     /**
      * 1D Kernel
-     * @param ndRange {@link NDRange}
      * @param maxX Global number of threads for the first dimension (1D)
      * @param maxY Global number of threads for the second dimension (2D)
      * @param maxZ Global number of threads for the second dimension (3D)
      */
-    public KernelContext(NDRange ndRange, int maxX, int maxY, int maxZ) {
-        this.ndRange = ndRange;
+    public KernelContext(int maxX, int maxY, int maxZ) {
         this.gsx = maxX;
         this.gsy = maxY;
         this.gsz = maxZ;

@@ -169,9 +169,9 @@ public class ComputeContext implements BufferAllocator, BufferTracker {
         CallGraph cg = getKernelCallGraph(quotableKernelContextConsumer);
         try {
             Object[] args = OpTk.getQuotableCapturedValues(cg.lambdaOp,cg.quoted, cg.kernelCallGraph.entrypoint.method);
-            NDRange ndRange = accelerator.range(computeRange);
-            args[0] = ndRange;
-            accelerator.backend.dispatchKernel(cg.kernelCallGraph, ndRange, args);
+            KernelContext kernelContext = accelerator.range(computeRange);
+            args[0] = kernelContext;
+            accelerator.backend.dispatchKernel(cg.kernelCallGraph, kernelContext, args);
         } catch (Throwable t) {
             System.out.print("what?" + cg.methodRef + " " + t);
             t.printStackTrace();

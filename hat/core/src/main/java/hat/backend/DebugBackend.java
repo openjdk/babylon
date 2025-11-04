@@ -24,10 +24,9 @@
  */
 package hat.backend;
 
-import hat.BufferTagger;
 import hat.ComputeContext;
 import hat.Config;
-import hat.NDRange;
+import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
 
@@ -35,8 +34,6 @@ import java.lang.reflect.InvocationTargetException;
 
 import hat.optools.OpTk;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.interpreter.Interpreter;
@@ -96,15 +93,15 @@ public class DebugBackend extends BackendAdaptor {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
 
         var here = OpTk.CallSite.of(DebugBackend.class, "dispatchKernel");
         switch (howToRunKernel){
             case REFLECT: {
                 KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-                for (ndRange.kid.gix = 0; ndRange.kid.gix < ndRange.kid.gsx; ndRange.kid.gix++) {
+                for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
                     try {
-                        args[0] = ndRange.kid;
+                        args[0] = kernelContext;
                         kernelEntrypoint.method.invoke(null, args);
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);

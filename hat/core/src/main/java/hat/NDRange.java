@@ -29,13 +29,13 @@ package hat;
  */
 public class NDRange {
 
-    public final Accelerator accelerator;
+    //public final Accelerator accelerator;
 
-    public KernelContext kid;
+    // public KernelContext kid;
 
-    public NDRange(Accelerator accelerator) {
-        this.accelerator = accelerator;
-    }
+    //public NDRange() {
+        //this.accelerator = accelerator;
+    //}
 
     public static ComputeRange of(int val) {
         return new ComputeRange(new GlobalMesh1D(val));

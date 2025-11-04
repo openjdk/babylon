@@ -27,6 +27,7 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
+import hat.KernelContext;
 import hat.NDRange;
 import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
@@ -52,7 +53,7 @@ public class MockBackend extends FFIBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         System.out.println("Mock dispatch kernel");
         // Here we receive a callgraph from the kernel entrypoint
         // The first time we see this we need to convert the kernel entrypoint
