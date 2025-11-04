@@ -46,10 +46,17 @@ public @interface CodeModel {
     Body[] bodies();
 
     /**
+     * The collection of types referenced by operations, blocks, bodies and types in this model. The indexing of these
+     * entries is local to this array.
+     */
+    Type[] types();
+
+    /**
      * Describes an operation in the code reflection model. An operation may reference operands, attributes, successors,
      * and types.
      *
      * @see jdk.incubator.code.Op
+     * @see jdk.incubator.code.extern.ExternalizedOp
      */
     @interface Op {
 
@@ -77,11 +84,11 @@ public @interface CodeModel {
         BlockReference[] successors() default {};
 
         /**
-         * Result type for this operation, if applicable.
+         * Index of the result type for this operation within the enclosing {@link Body#types()} array.
          *
          * @see jdk.incubator.code.Op#resultType()
          */
-        String resultType() default "";
+        int resultType() default -1;
 
         /**
          * Optional default attribute value for this operation.
@@ -131,11 +138,11 @@ public @interface CodeModel {
     @interface Body {
 
         /**
-         * Type produced by this body.
+         * Index of the type produced by this body within the enclosing {@link Body#types()} array.
          *
          * @see jdk.incubator.code.Body#yieldType()
          */
-        String yieldType();
+        int yieldType();
 
         /**
          * Blocks contained within this body. Block indices are local to this array.
@@ -153,11 +160,11 @@ public @interface CodeModel {
     @interface Block {
 
         /**
-         * Types of block parameters, if any.
+         * Indexes of the block parameter types within the enclosing {@link Body#types()} array.
          *
          * @see jdk.incubator.code.Block#parameterTypes()
          */
-        String[] paramTypes() default {};
+        int[] paramTypes() default {};
 
         /**
          * Operations contained in this block, evaluated in order.
@@ -188,5 +195,31 @@ public @interface CodeModel {
          * @see jdk.incubator.code.Block.Reference#arguments()
          */
         int[] arguments() default {};
+    }
+
+    /**
+     * Describes a type used in the code reflection model. A type is identified by an externalized name and may
+     * carry zero or more nested type arguments to represent parameterized or composite types.
+     *
+     * @see jdk.incubator.code.TypeElement
+     * @see jdk.incubator.code.extern.ExternalizedTypeElement
+     */
+    @interface Type {
+
+        /**
+         * Fully qualified, stable identifier of the type. This is the externalized form used to serialize and restore
+         * the type.
+         *
+         * @return the externalized type identifier
+         */
+        String identifier();
+
+        /**
+         * Indexes of the of type arguments within the enclosing {@link Body#types()} array.
+         * For non-parameterized types, this array is empty.
+         *
+         * @return the type arguments, or an empty array if none
+         */
+        int[] arguments();
     }
 }

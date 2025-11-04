@@ -25,7 +25,6 @@
 
 package jdk.incubator.code.internal;
 
-import java.util.IdentityHashMap;
 import java.util.Map;
 
 import com.sun.tools.javac.code.Attribute;
@@ -44,14 +43,17 @@ import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 import com.sun.tools.javac.util.Pair;
+import java.util.HashMap;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Location;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizedTypeElement;
 import jdk.incubator.code.extern.impl.AttributeMapper;
 
 
@@ -67,7 +69,7 @@ import jdk.incubator.code.extern.impl.AttributeMapper;
 public final class CodeModelSymbols {
 
     final class Indexer<T> {
-        final Map<T, Integer> map = new IdentityHashMap<>();
+        final Map<T, Integer> map = new HashMap<>();
 
         int indexOf(T t) {
             return map.computeIfAbsent(t, _ -> map.size());
@@ -87,11 +89,14 @@ public final class CodeModelSymbols {
                blockReferenceType,
                blockReferenceArrayType,
                opType,
+               typeType,
+               typeArrayType,
                opParserType,
                fromAnnotation;
 
     final MethodSymbol modelFuncOp,
                        modelBodies,
+                       modelTypes,
                        bodyYieldType,
                        bodyBlocks,
                        blockParamTypes,
@@ -107,6 +112,8 @@ public final class CodeModelSymbols {
                        opLocation,
                        opAttributes,
                        opBodyDefinitions,
+                       typeIdentifier,
+                       typeArguments,
                        bsmFromAnnotation;
 
     /**
@@ -131,6 +138,8 @@ public final class CodeModelSymbols {
         blockReferenceArrayType = types.makeArrayType(blockReferenceType);
         opType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.internal.CodeModel$Op");
         opArrayType = types.makeArrayType(opType);
+        typeType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.internal.CodeModel$Type");
+        typeArrayType = types.makeArrayType(typeType);
         opParserType = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.extern.OpParser");
         var atypes = new Object() {
             MethodSymbol methodType(String name, Type restype, Type owner) {
@@ -143,21 +152,24 @@ public final class CodeModelSymbols {
         };
         modelFuncOp = atypes.methodType("funcOp", opType, codeModelType);
         modelBodies = atypes.methodType("bodies", bodyArrayType, codeModelType);
-        bodyYieldType = atypes.methodType("yieldType", syms.stringType, bodyType);
+        modelTypes = atypes.methodType("types", typeArrayType, codeModelType);
+        bodyYieldType = atypes.methodType("yieldType", syms.intType, bodyType);
         bodyBlocks = atypes.methodType("blocks", blockArrayType, bodyType);
-        blockParamTypes = atypes.methodType("paramTypes", stringArrayType, blockType);
+        blockParamTypes = atypes.methodType("paramTypes", intArrayType, blockType);
         blockOps = atypes.methodType("ops", opArrayType, blockType);
         blockReferenceTargetBlock = atypes.methodType("targetBlock", syms.intType, blockReferenceType);
         blockReferenceArguments = atypes.methodType("arguments", intArrayType, blockReferenceType);
         opName = atypes.methodType("name", syms.stringType, opType);
         opOperands = atypes.methodType("operands", intArrayType, opType);
         opSuccessors = atypes.methodType("successors", blockReferenceArrayType, opType);
-        opResultType = atypes.methodType("resultType", syms.stringType, opType);
+        opResultType = atypes.methodType("resultType", syms.intType, opType);
         opDefaultAttribute = atypes.methodType("defaultAttribute", syms.stringType, opType);
         opSourceRef = atypes.methodType("sourceRef", syms.stringType, opType);
         opLocation = atypes.methodType("location", intArrayType, opType);
         opAttributes = atypes.methodType("attributes", stringArrayType, opType);
         opBodyDefinitions = atypes.methodType("bodyDefinitions", intArrayType, opType);
+        typeIdentifier = atypes.methodType("identifier", syms.stringType, typeType);
+        typeArguments = atypes.methodType("arguments", intArrayType, typeType);
         var opT = syms.enterClass(jdk_incubator_code, "jdk.incubator.code.Op");
         fromAnnotation = new MethodType(List.nil(), opT, List.nil(), syms.methodClass);
         bsmFromAnnotation = new MethodSymbol(Flags.PUBLIC | Flags.STATIC,
@@ -178,10 +190,13 @@ public final class CodeModelSymbols {
         Indexer<Value> valueIndexer = new Indexer<>();
         Indexer<Block> blockIndexer = new Indexer<>();
         Indexer<Body> bodyIndexer = new Indexer<>();
-        ListBuffer<Attribute> bodies = new ListBuffer<>();
+        Indexer<ExternalizedTypeElement> typeIndexer = new Indexer<>();
+        ListBuffer<Attribute> allBodies = new ListBuffer<>();
+        ListBuffer<Attribute> allTypes = new ListBuffer<>();
         return new Attribute.Compound(codeModelType, List.of(
-                Pair.of(modelFuncOp, op(funcOp, valueIndexer, blockIndexer, bodyIndexer, bodies)),
-                Pair.of(modelBodies, new Attribute.Array(bodyArrayType, bodies.toList()))));
+                Pair.of(modelFuncOp, op(funcOp, valueIndexer, blockIndexer, bodyIndexer, typeIndexer, allBodies, allTypes)),
+                Pair.of(modelBodies, new Attribute.Array(bodyArrayType, allBodies.toList())),
+                Pair.of(modelTypes, new Attribute.Array(typeArrayType, allTypes.toList()))));
     }
 
     /**
@@ -208,7 +223,13 @@ public final class CodeModelSymbols {
         return new Attribute.Array(intArrayType, ints.map(i -> new Attribute.Constant(syms.intType, i)));
     }
 
-    Attribute.Compound op(Op op, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, ListBuffer<Attribute> bodyAttributes) {
+    Attribute.Compound op(Op op,
+                          Indexer<Value> valueIndexer,
+                          Indexer<Block> blockIndexer,
+                          Indexer<Body> bodyIndexer,
+                          Indexer<ExternalizedTypeElement> typeIndexer,
+                          ListBuffer<Attribute> allBodies,
+                          ListBuffer<Attribute> allTypes) {
         var lb = new ListBuffer<Pair<MethodSymbol, Attribute>>();
         lb.add(Pair.of(opName, stringConstant(op.externalizeOpName())));
         if (!op.operands().isEmpty()) {
@@ -219,7 +240,7 @@ public final class CodeModelSymbols {
         }
         if (op.resultType() != JavaType.VOID) {
             valueIndexer.indexOf(op.result());
-            lb.add(Pair.of(opResultType, stringConstant(op.resultType().externalize().toString())));
+            lb.add(Pair.of(opResultType, type(op.resultType().externalize(), typeIndexer, allTypes)));
         }
         if (op.location() instanceof Location loc) {
             if (loc.sourceRef() != null) {
@@ -241,38 +262,63 @@ public final class CodeModelSymbols {
         }
         if (!op.bodies().isEmpty()) {
             var bodies = List.from(op.bodies());
-            bodies(bodies, valueIndexer, blockIndexer, bodyIndexer, bodyAttributes);
+            bodies(bodies, valueIndexer, blockIndexer, bodyIndexer, typeIndexer, allBodies, allTypes);
             lb.add(Pair.of(opBodyDefinitions, intArray(bodies.map(bodyIndexer::indexOf))));
         }
         return new Attribute.Compound(opType, lb.toList());
     }
 
-    void bodies(List<Body> bodies, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, ListBuffer<Attribute> bodyAttributes) {
-        for (Body body : bodies) {
+    void bodies(List<Body> opBodies,
+                Indexer<Value> valueIndexer,
+                Indexer<Block> blockIndexer,
+                Indexer<Body> bodyIndexer,
+                Indexer<ExternalizedTypeElement> typeIndexer,
+                ListBuffer<Attribute> allBodies,
+                ListBuffer<Attribute> allTypes) {
+        for (Body body : opBodies) {
             bodyIndexer.indexOf(body);
             var nested = new ListBuffer<Attribute>();
-            bodyAttributes.add(new Attribute.Compound(bodyType, List.of(Pair.of(bodyYieldType, stringConstant(body.yieldType().externalize().toString())),
-                Pair.of(bodyBlocks, new Attribute.Array(blockArrayType, blocks(List.from(body.blocks()), valueIndexer, blockIndexer, bodyIndexer, nested))))));
-            bodyAttributes.appendList(nested);
+            allBodies.add(new Attribute.Compound(bodyType, List.of(Pair.of(bodyYieldType, type(body.yieldType().externalize(), typeIndexer, allTypes)),
+                Pair.of(bodyBlocks, new Attribute.Array(blockArrayType, blocks(List.from(body.blocks()), valueIndexer, blockIndexer, bodyIndexer, typeIndexer, nested, allTypes))))));
+            allBodies.appendList(nested);
         }
     }
 
-    List<Attribute> blocks(List<Block> blocks, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer, Indexer<Body> bodyIndexer, ListBuffer<Attribute> bodyAttributes) {
+    List<Attribute> blocks(List<Block> blocks,
+                           Indexer<Value> valueIndexer,
+                           Indexer<Block> blockIndexer,
+                           Indexer<Body> bodyIndexer,
+                           Indexer<ExternalizedTypeElement> typeIndexer,
+                           ListBuffer<Attribute> allBodies,
+                           ListBuffer<Attribute> allTypes) {
         var lb = new ListBuffer<Attribute>();
         for (Block block : blocks) {
             blockIndexer.indexOf(block);
             block.parameters().forEach(valueIndexer::indexOf);
             var args = new ListBuffer<Pair<MethodSymbol, Attribute>>();
-            args.add(Pair.of(blockOps, new Attribute.Array(opArrayType, List.from(block.ops()).map(op -> op(op, valueIndexer, blockIndexer, bodyIndexer, bodyAttributes)))));
+            args.add(Pair.of(blockOps, new Attribute.Array(opArrayType, List.from(block.ops()).map(op -> op(op, valueIndexer, blockIndexer, bodyIndexer, typeIndexer, allBodies, allTypes)))));
             if (!block.parameterTypes().isEmpty()) {
-                args.add(Pair.of(blockParamTypes, new Attribute.Array(stringArrayType, List.from(block.parameterTypes()).map(pt -> stringConstant(pt.externalize().toString())))));
+                args.add(Pair.of(blockParamTypes, new Attribute.Array(stringArrayType, List.from(block.parameterTypes()).map(pt -> type(pt.externalize(), typeIndexer, allTypes)))));
             }
             lb.add(new Attribute.Compound(blockType, args.toList()));
         }
         return lb.toList();
     }
 
-    List<Attribute> successors(List<Block.Reference> successors, Indexer<Value> valueIndexer, Indexer<Block> blockIndexer) {
+    Attribute.Constant type(ExternalizedTypeElement type,
+                            Indexer<ExternalizedTypeElement> typeIndexer,
+                            ListBuffer<Attribute> allTypes) {
+        var args = type.arguments().stream().map(et -> type(et, typeIndexer, allTypes)).toArray(Attribute[]::new);
+        int index = allTypes.size();
+        allTypes.add(new Attribute.Compound(typeType, List.of(
+                Pair.of(typeIdentifier, stringConstant(type.identifier())),
+                Pair.of(typeArguments, new Attribute.Array(intArrayType, args)))));
+        return new Attribute.Constant(syms.intType, index);
+    }
+
+    List<Attribute> successors(List<Block.Reference> successors,
+                               Indexer<Value> valueIndexer,
+                               Indexer<Block> blockIndexer) {
         var lb = new ListBuffer<Attribute>();
         for (Block.Reference succ : successors) {
             var args = new ListBuffer<Pair<MethodSymbol, Attribute>>();

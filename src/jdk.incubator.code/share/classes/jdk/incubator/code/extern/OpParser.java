@@ -206,7 +206,7 @@ public final class OpParser {
             if (cls.getDeclaredMethod(method).getAnnotation(CodeModel.class) instanceof CodeModel cm) {
                 DialectFactory f = JavaOp.JAVA_DIALECT_FACTORY;
                 Context c = new Context(f.opFactory(), f.typeElementFactory());
-                OpNode n = new CodeModelParser(cm.bodies()).parseOpNode(cm.funcOp());
+                OpNode n = new CodeModelParser(cm.bodies(), cm.types()).parseOpNode(cm.funcOp());
                 Op op = nodeToOp(n, VOID, c, null);
                 op.seal();
                 return op;
@@ -220,10 +220,12 @@ public final class OpParser {
     static final class CodeModelParser {
 
         final CodeModel.Body[] allBodies;
+        final CodeModel.Type[] allTypes;
         int valueIndex, blockIndex;
 
-        public CodeModelParser(CodeModel.Body[] allBodies) {
+        public CodeModelParser(CodeModel.Body[] allBodies, CodeModel.Type[] allTypes) {
             this.allBodies = allBodies;
+            this.allTypes = allTypes;
             valueIndex = -1;
             blockIndex = -1;
         }
@@ -242,7 +244,7 @@ public final class OpParser {
                 attrMap.put(attributes[i], parseAttributeValue(attributes[i + 1]));
             }
             return new OpNode(
-                    op.resultType().isEmpty() ? null : new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(op.resultType())),
+                    op.resultType() < 0 ? null : new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(op.resultType())),
                     op.name(),
                     toStrings(op.operands()),
                     Stream.of(op.successors()).map(br -> new SuccessorNode(String.valueOf(br.targetBlock()), toStrings(br.arguments()))).toList(),
@@ -256,17 +258,18 @@ public final class OpParser {
                     parseExTypeElem(body.yieldType()),
                     Stream.of(body.blocks()).map(bl -> new BlockNode(
                             String.valueOf(++blockIndex),
-                            Stream.of(bl.paramTypes()).map(pt -> new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(pt))).toList(),
+                            IntStream.of(bl.paramTypes()).mapToObj(pt -> new ValueNode(String.valueOf(++valueIndex), parseExTypeElem(pt))).toList(),
                             Stream.of(bl.ops()).map(this::parseOpNode).toList())).toList());
+        }
+
+        ExternalizedTypeElement parseExTypeElem(int typeIndex) {
+            var type = allTypes[typeIndex];
+            return new ExternalizedTypeElement(type.identifier(), IntStream.of(type.arguments()).mapToObj(this::parseExTypeElem).toList());
         }
     }
 
     static List<String> toStrings(int[] indexes) {
         return IntStream.of(indexes).mapToObj(String::valueOf).toList();
-    }
-
-    static ExternalizedTypeElement parseExTypeElem(String desc) {
-        return JavaTypeUtils.inflate(DescParser.parseExTypeElem(desc));
     }
 
     static Object parseAttributeValue(String value) {
