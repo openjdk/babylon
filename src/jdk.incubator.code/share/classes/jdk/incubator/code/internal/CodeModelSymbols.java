@@ -309,10 +309,12 @@ public final class CodeModelSymbols {
                             Indexer<ExternalizedTypeElement> typeIndexer,
                             ListBuffer<Attribute> allTypes) {
         var args = type.arguments().stream().map(et -> type(et, typeIndexer, allTypes)).toArray(Attribute[]::new);
-        int index = allTypes.size();
-        allTypes.add(new Attribute.Compound(typeType, List.of(
-                Pair.of(typeIdentifier, stringConstant(type.identifier())),
-                Pair.of(typeArguments, new Attribute.Array(intArrayType, args)))));
+        int index = typeIndexer.indexOf(type);
+        if (index == allTypes.size()) {
+            allTypes.add(new Attribute.Compound(typeType, List.of(
+                    Pair.of(typeIdentifier, stringConstant(type.identifier())),
+                    Pair.of(typeArguments, new Attribute.Array(intArrayType, args)))));
+        }
         return new Attribute.Constant(syms.intType, index);
     }
 
