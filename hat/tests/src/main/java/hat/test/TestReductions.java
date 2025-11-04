@@ -26,10 +26,10 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
+import hat.Global1D;
 import hat.KernelContext;
-import hat.LocalMesh1D;
+import hat.Local1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.S32Array;
@@ -127,15 +127,15 @@ public class TestReductions {
     @CodeReflection
     private static void reduceGlobal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
         // 2 groups of 16 threads each
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32), new LocalMesh1D(16));
-        cc.dispatchKernel(computeRange, kc -> reduceGlobal(kc, input, partialSums));
+        NDRange ndRange = new NDRange(new Global1D(32), new Local1D(16));
+        cc.dispatchKernel(ndRange, kc -> reduceGlobal(kc, input, partialSums));
     }
 
     @CodeReflection
     private static void reduceLocal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.RW S32Array partialSums) {
         // 2 groups of 16 threads each
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32), new LocalMesh1D(16));
-        cc.dispatchKernel(computeRange, kc -> reduceLocal(kc, input, partialSums));
+        NDRange ndRange = new NDRange(new Global1D(32), new Local1D(16));
+        cc.dispatchKernel(ndRange, kc -> reduceLocal(kc, input, partialSums));
     }
 
     @HatTest

@@ -24,7 +24,7 @@
  */
 package hat;
 
-public record LocalMesh2D(int x, int y) implements ThreadMesh {
+public record Global1D(int x) implements Range {
 
     @Override
     public int getX() {
@@ -33,7 +33,7 @@ public record LocalMesh2D(int x, int y) implements ThreadMesh {
 
     @Override
     public int getY() {
-        return y;
+        return 1;
     }
 
     @Override
@@ -43,11 +43,11 @@ public record LocalMesh2D(int x, int y) implements ThreadMesh {
 
     @Override
     public int getDims() {
-        return 2;
+        return 1;
     }
 
     @Override
     public String toString() {
-        return "<2D LocalMesh: " + getX() + "," + getY() + ">";
+        return "<Global1D: " + getX() + ">";
     }
 }

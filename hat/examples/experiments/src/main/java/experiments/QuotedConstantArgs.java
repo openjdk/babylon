@@ -26,7 +26,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface;
@@ -42,7 +42,7 @@ public class QuotedConstantArgs {
 
     @CodeReflection
     static public void addScalerCompute(final ComputeContext computeContext, S32Array in, S32Array out, int scaler) {
-        computeContext.dispatchKernel(ComputeRange.of(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
+        computeContext.dispatchKernel(NDRange.of(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
     }
 
     public static void main(String[] args) {

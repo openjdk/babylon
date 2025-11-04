@@ -26,12 +26,12 @@ package matmul;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
-import hat.GlobalMesh2D;
+import hat.NDRange;
+import hat.Global1D;
+import hat.Global2D;
 import hat.KernelContext;
-import hat.LocalMesh1D;
-import hat.LocalMesh2D;
+import hat.Local1D;
+import hat.Local2D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
@@ -506,8 +506,8 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(globalSize), new LocalMesh1D(16));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = new NDRange(new Global1D(globalSize), new Local1D(16));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
@@ -516,39 +516,39 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int size) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size), new LocalMesh1D(16));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = new NDRange(new Global1D(size), new Local1D(16));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = new NDRange(new Global2D(globalSize, globalSize), new Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = new NDRange(new Global2D(globalSize, globalSize), new Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = new NDRange(new Global2D(globalSize, globalSize), new Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, int globalSize) {
-        ComputeRange cudaRange = new ComputeRange(new GlobalMesh2D(256, 256), new LocalMesh2D(16, 16));
+        NDRange cudaRange = new NDRange(new Global2D(256, 256), new Local2D(16, 16));
         cc.dispatchKernel(cudaRange,
                 kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -556,7 +556,7 @@ public class Main {
 
     @CodeReflection
     public static void matrixMultiply2DRegisterTilingVectorizedAccesses(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW  F32ArrayPadded matrixC, int globalSize) {
-        ComputeRange cudaRange = new ComputeRange(new GlobalMesh2D(256, 256), new LocalMesh2D(16, 16));
+        NDRange cudaRange = new NDRange(new Global2D(256, 256), new Local2D(16, 16));
         cc.dispatchKernel(cudaRange,
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, globalSize)
         );

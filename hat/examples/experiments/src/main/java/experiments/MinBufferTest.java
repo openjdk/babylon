@@ -26,7 +26,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.S32Array;
 
@@ -50,7 +50,7 @@ public class MinBufferTest {
         @CodeReflection
         public static void add(ComputeContext cc, @RW S32Array s32Array, int len, int n) {
             for (int i = 0; i < n; i++) {
-                cc.dispatchKernel(ComputeRange.of(len), kc -> inc(kc, s32Array, len));
+                cc.dispatchKernel(NDRange.of(len), kc -> inc(kc, s32Array, len));
                 System.out.println(i);//s32Array.array(0));
             }
         }

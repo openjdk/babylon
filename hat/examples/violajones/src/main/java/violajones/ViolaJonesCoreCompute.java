@@ -25,7 +25,7 @@
 package violajones;
 
 import hat.ComputeContext;
-import hat.ComputeRange;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.F32Array2D;
 import hat.buffer.S08x3RGBImage;
@@ -314,15 +314,15 @@ public class ViolaJonesCoreCompute {
 
         F32Array2D greyImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(ComputeRange.of(width * height), kc -> rgbToGreyKernel(kc, s08X3RGBImage, greyImage));
+        cc.dispatchKernel(NDRange.of(width * height), kc -> rgbToGreyKernel(kc, s08X3RGBImage, greyImage));
 
         F32Array2D integralImage = createF32Array2D(cc, width, height);
         F32Array2D integralSqImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(ComputeRange.of(width), kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
-        cc.dispatchKernel(ComputeRange.of(height), kc -> integralRowKernel(kc, integralImage, integralSqImage));
+        cc.dispatchKernel(NDRange.of(width), kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
+        cc.dispatchKernel(NDRange.of(height), kc -> integralRowKernel(kc, integralImage, integralSqImage));
 
-        cc.dispatchKernel(ComputeRange.of(scaleTable.multiScaleAccumulativeRange()), kc ->
+        cc.dispatchKernel(NDRange.of(scaleTable.multiScaleAccumulativeRange()), kc ->
                 findFeaturesKernel(kc, cascade, integralImage, integralSqImage, scaleTable, resultTable));
 
     }

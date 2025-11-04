@@ -26,8 +26,8 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
+import hat.Global1D;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
@@ -117,38 +117,38 @@ public class TestF16Type {
 
     @CodeReflection
     public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
-        computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.copy01(kernelContext, a, b));
+        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.copy01(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void compute02(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
-        computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.f16Ops_02(kernelContext, a, b, c));
+        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_02(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void compute03(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
-        computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.f16Ops_03(kernelContext, a, b, c));
+        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_03(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void compute04(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
-        computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.f16Ops_04(kernelContext, a, b, c));
+        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_04(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void compute05(@RO ComputeContext computeContext, @RW F16Array a) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
-        computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.f16Ops_05(kernelContext, a));
+        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_05(kernelContext, a));
     }
 
     @CodeReflection
     public static void compute06(@RO ComputeContext computeContext, @RW F16Array a) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(a.length()));
-        computeContext.dispatchKernel(computeRange, kernelContext -> TestF16Type.f16Ops_06(kernelContext, a));
+        NDRange ndRange = new NDRange(new Global1D(a.length()));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_06(kernelContext, a));
     }
 
     @HatTest

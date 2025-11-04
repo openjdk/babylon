@@ -26,10 +26,10 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
+import hat.Global1D;
 import hat.KernelContext;
-import hat.LocalMesh1D;
+import hat.Local1D;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 import hat.ifacemapper.MappableIface.RO;
@@ -65,8 +65,8 @@ public class LocalIds {
     @CodeReflection
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
         // 2 groups of 16 threads each
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32), new LocalMesh1D(BLOCK_SIZE));
-        cc.dispatchKernel(computeRange, kc -> assign(kc, arrayA, arrayB, arrayC));
+        NDRange ndRange = new NDRange(new Global1D(32), new Local1D(BLOCK_SIZE));
+        cc.dispatchKernel(ndRange, kc -> assign(kc, arrayA, arrayB, arrayC));
     }
 
     public static void main(String[] args) {

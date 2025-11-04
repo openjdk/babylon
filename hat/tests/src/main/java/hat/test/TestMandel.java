@@ -26,8 +26,8 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
+import hat.Global1D;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -66,8 +66,8 @@ public class TestMandel {
 
     @CodeReflection
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(s32Array2D.width() & s32Array2D.height()));
-        computeContext.dispatchKernel(computeRange,
+        NDRange ndRange = new NDRange(new Global1D(s32Array2D.width() & s32Array2D.height()));
+        computeContext.dispatchKernel(ndRange,
                 kc -> {
                     TestMandel.mandel(kc, s32Array2D, pallete, x, y, scale);
                 });

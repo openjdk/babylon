@@ -26,8 +26,8 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
+import hat.Global1D;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
@@ -73,8 +73,8 @@ public class TestPrivate {
 
     @CodeReflection
     private static void myCompute(@RO ComputeContext computeContext, @RW F32Array data) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(32));
-        computeContext.dispatchKernel(computeRange,
+        NDRange ndRange = new NDRange(new Global1D(32));
+        computeContext.dispatchKernel(ndRange,
                 kernelContext -> compute(kernelContext, data)
         );
     }

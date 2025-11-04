@@ -26,7 +26,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
+import hat.NDRange;
 import hat.KernelContext;
 
 import hat.ifacemapper.BoundSchema;
@@ -128,7 +128,7 @@ public class Mesh {
 
         @CodeReflection
         public static void buildMesh(ComputeContext cc, MeshData meshData) {
-            cc.dispatchKernel(ComputeRange.of(meshData.points()),
+            cc.dispatchKernel(NDRange.of(meshData.points()),
                     kc -> initPoints(kc, meshData)
             );
 

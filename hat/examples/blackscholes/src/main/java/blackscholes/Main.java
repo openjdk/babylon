@@ -27,7 +27,7 @@ package blackscholes;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -92,7 +92,7 @@ public class Main {
 
     @CodeReflection
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
-        cc.dispatchKernel(ComputeRange.of(call.length()),
+        cc.dispatchKernel(NDRange.of(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }

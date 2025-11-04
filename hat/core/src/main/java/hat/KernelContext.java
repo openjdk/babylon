@@ -40,8 +40,6 @@ package hat;
  */
 public class KernelContext {
 
-    //public final NDRange ndRange;
-
     // Global accesses
     public int gix;
     public int giy;
@@ -68,15 +66,14 @@ public class KernelContext {
 
     final int dimensions;
 
-    private ComputeRange computeRange;
+    private NDRange ndRange;
 
-    public KernelContext(ComputeRange computeRange) {
-        //this.ndRange = ndRange;
-        this.computeRange = computeRange;
-        this.gsx = computeRange.getGlobalMesh().getX();
-        this.gsy = computeRange.getGlobalMesh().getY();
-        this.gsz = computeRange.getGlobalMesh().getZ();
-        this.dimensions = computeRange.getGlobalMesh().getDims();
+    public KernelContext(NDRange ndRange) {
+        this.ndRange = ndRange;
+        this.gsx = ndRange.getGlobal().getX();
+        this.gsy = ndRange.getGlobal().getY();
+        this.gsz = ndRange.getGlobal().getZ();
+        this.dimensions = ndRange.getGlobal().getDims();
     }
 
     /**
@@ -84,7 +81,6 @@ public class KernelContext {
      * @param maxX Global number of threads for the first dimension (1D)
      */
     public KernelContext(int maxX) {
-        //this.ndRange = ndRange;
         this.gsx = maxX;
         this.gsy = 0;
         this.gsz = 0;
@@ -121,12 +117,12 @@ public class KernelContext {
         return this.dimensions;
     }
 
-    public ComputeRange getComputeRange() {
-        return this.computeRange;
+    public NDRange getNdRange() {
+        return this.ndRange;
     }
 
     public boolean hasLocalMesh() {
-        return this.computeRange.getLocalMesh() != null;
+        return this.ndRange.getLocal() != null;
     }
 
     public void barrier() {

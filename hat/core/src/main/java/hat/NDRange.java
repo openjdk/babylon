@@ -28,107 +28,121 @@ package hat;
  * A compute range holds the number of threads to run on an accelerator.
  * A compute range has two main properties:
  * - The global number of threads: this means the total number of threads to run per dimension.
- * This is specified by instancing a new object of type {@link ThreadMesh}.
- * - A local group size: this is specified by instancing an object of type {@link ThreadMesh}.
+ * This is specified by instancing a new object of type {@link Range}.
+ * - A local group size: this is specified by instancing an object of type {@link Range}.
  * A local group size is optional. If it is not specified, the HAT runtime may device a default
  * value.
  */
-public class ComputeRange {
+public class NDRange {
 
-    private final ThreadMesh globalMesh;
-    private final ThreadMesh localMesh;
+    private final Range global;
+    private final Range local;
 
     /**
      * Total number of threads to run in 1D.
-     * @param globalMesh {@link GlobalMesh1D}
+     * @param global {@link Global1D}
      */
-    public ComputeRange(GlobalMesh1D globalMesh) {
-        this.globalMesh = globalMesh;
-        this.localMesh = null;
+    public NDRange(Global1D global) {
+        this.global = global;
+        this.local = null;
     }
 
     /**
      * Total number of threads to run in 1D for global and local mesh.
-     * @param globalMesh {@link GlobalMesh1D}
-     * @param localMesh {@link LocalMesh1D}
+     * @param global {@link Global1D}
+     * @param local {@link Local1D}
      */
-    public ComputeRange(GlobalMesh1D globalMesh, LocalMesh1D localMesh) {
-        this.globalMesh = globalMesh;
-        this.localMesh = localMesh;
+    public NDRange(Global1D global, Local1D local) {
+        this.global = global;
+        this.local = local;
     }
 
 
     /**
      * Defines a compute range for a 2D mesh. The parameter specifies the
      * global mesh (total number of threads to run).
-     * @param globalMesh {@link GlobalMesh2D}
+     * @param global {@link Global2D}
      */
-    public ComputeRange(GlobalMesh2D globalMesh) {
-        this.globalMesh = globalMesh;
-        this.localMesh = null;
+    public NDRange(Global2D global) {
+        this.global = global;
+        this.local = null;
     }
 
     /**
      * Defines a compute range for a 2D mesh. The parameters specify the
      * global mesh (total number of threads to run) and the local mesh.
-     * @param globalMesh {@link GlobalMesh2D}
-     * @param localMesh {@link LocalMesh2D}
+     * @param global {@link Global2D}
+     * @param local {@link Local2D}
      */
-    public ComputeRange(GlobalMesh2D globalMesh, LocalMesh2D localMesh) {
-        this.globalMesh = globalMesh;
-        this.localMesh = localMesh;
+    public NDRange(Global2D global, Local2D local) {
+        this.global = global;
+        this.local = local;
     }
 
     /**
      * Defines a compute range for a 3D mesh. The parameter specifies the
      * global mesh (total number of threads to run).
-     * @param globalMesh {@link GlobalMesh3D}
+     * @param global {@link Global3D}
      */
-    public ComputeRange(GlobalMesh3D globalMesh) {
-        this.globalMesh = globalMesh;
-        this.localMesh = null;
+    public NDRange(Global3D global) {
+        this.global = global;
+        this.local = null;
     }
 
     /**
      * Defines a compute range for a 3D mesh. The parameters specify the
      * global mesh (total number of threads to run) and the local mesh.
-     * @param globalMesh {@link GlobalMesh3D}
-     * @param localMesh {@link LocalMesh3D}
+     * @param global {@link Global3D}
+     * @param local {@link Local3D}
      */
-    public ComputeRange(GlobalMesh3D globalMesh, LocalMesh3D localMesh) {
-        this.globalMesh = globalMesh;
-        this.localMesh = localMesh;
+    public NDRange(Global3D global, Local3D local) {
+        this.global = global;
+        this.local = local;
     }
 
     /**
      * Factory method to run a single thread on a target accelerator. Although for some accelerators this could be
      * beneficial (e.g., FPGAs), in general, use only for debugging purposes.
      */
-    public static final ComputeRange SINGLE_THREADED = new ComputeRange(new GlobalMesh1D(1));
-
-    public static ComputeRange of(int val) {
-        return new ComputeRange(new GlobalMesh1D(val));
-    }
+    public static final NDRange SINGLE_THREADED = new NDRange(new Global1D(1));
 
     /**
      * Obtain the total number of threads per dimension. The number of threads
-     * per dimension is stored in a {@link ThreadMesh}
-     * @return {@link ThreadMesh}
+     * per dimension is stored in a {@link Range}
+     * @return {@link Range}
      */
-    public ThreadMesh getGlobalMesh() {
-        return globalMesh;
+    public Range getGlobal() {
+        return global;
     }
 
     /**
      * Obtain the local group size per dimension. The group size per dimension is stored
-     * in a {@link ThreadMesh}.
-     * @return {@link ThreadMesh}
+     * in a {@link Range}.
+     * @return {@link Range}
      */
-    public ThreadMesh getLocalMesh() {
-        return localMesh;
+    public Range getLocal() {
+        return local;
     }
 
     public boolean isSpecificRange() {
         return false;
+    }
+
+    /**
+     * Utility method to create a 1D program with only global thread size.
+     * @param numThreadsGlobal
+     * @return {@link NDRange}
+     */
+    public static NDRange of(int numThreadsGlobal) {
+        return new NDRange(new Global1D(numThreadsGlobal));
+    }
+
+    /**
+     * Utility method to create a 1D program with global and local thread sizes.
+     * @param numThreadsGlobal
+     * @return {@link NDRange}
+     */
+    public static NDRange of(int numThreadsGlobal, int numThreadLocal) {
+        return new NDRange(new Global1D(numThreadsGlobal), new Local1D(numThreadLocal));
     }
 }

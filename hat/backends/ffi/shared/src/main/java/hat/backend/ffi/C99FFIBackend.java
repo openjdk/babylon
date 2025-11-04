@@ -25,10 +25,10 @@
 
 package hat.backend.ffi;
 
-import hat.ComputeRange;
+import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
-import hat.ThreadMesh;
+import hat.Range;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
@@ -80,17 +80,17 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
 
-        private void setGlobalMesh(ThreadMesh threadMesh) {
-            kernelBufferContext.gsx(threadMesh.getX());
-            kernelBufferContext.gsy(threadMesh.getY());
-            kernelBufferContext.gsz(threadMesh.getZ());
-            kernelBufferContext.dimensions(threadMesh.getDims());
+        private void setGlobalMesh(Range ndRange) {
+            kernelBufferContext.gsx(ndRange.getX());
+            kernelBufferContext.gsy(ndRange.getY());
+            kernelBufferContext.gsz(ndRange.getZ());
+            kernelBufferContext.dimensions(ndRange.getDims());
         }
 
-        private void setLocalMesh(ThreadMesh threadMesh) {
-            kernelBufferContext.lsx(threadMesh.getX());
-            kernelBufferContext.lsy(threadMesh.getY());
-            kernelBufferContext.lsz(threadMesh.getZ());
+        private void setLocalMesh(Range NDRange) {
+            kernelBufferContext.lsx(NDRange.getX());
+            kernelBufferContext.lsy(NDRange.getY());
+            kernelBufferContext.lsz(NDRange.getZ());
         }
 
         private void setDefaultLocalMesh() {
@@ -100,10 +100,10 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         }
 
         private void setupComputeRange(KernelContext kernelContext) {
-            ComputeRange computeRange = kernelContext.getComputeRange();
+            NDRange ndRange = kernelContext.getNdRange();
             boolean isLocalMeshDefined = kernelContext.hasLocalMesh();
-            ThreadMesh globalMesh = computeRange.getGlobalMesh();
-            ThreadMesh localMesh = computeRange.getLocalMesh();
+            Range globalMesh = ndRange.getGlobal();
+            Range localMesh = ndRange.getLocal();
             setGlobalMesh(globalMesh);
             if (isLocalMeshDefined) {
                 setLocalMesh(localMesh);

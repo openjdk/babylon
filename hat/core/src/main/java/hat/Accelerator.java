@@ -80,30 +80,8 @@ public class Accelerator implements BufferAllocator, BufferTracker {
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
-    public KernelContext range(int max) {
-        //NDRange ndRange = new NDRange();
-        //ndRange.kid = new KernelContext(max);
-        //return ndRange;
-        return new KernelContext(max);
-    }
-
-//    public NDRange range(int maxX, int maxY) {
-//        NDRange ndRange = new NDRange(this);
-//        ndRange.kid = new KernelContext(ndRange, maxX, maxY);
-//        return ndRange;
-//    }
-//
-//    public NDRange range(int maxX, int maxY, int maxZ) {
-//        NDRange ndRange = new NDRange(this);
-//        ndRange.kid = new KernelContext(ndRange, maxX, maxY, maxZ);
-//        return ndRange;
-//    }
-
-    public KernelContext range(ComputeRange computeRange) {
-        //NDRange ndRange = new NDRange();
-        //ndRange.kid = new KernelContext(ndRange, computeRange);
-        //return ndRange;
-        return new KernelContext(computeRange);
+    public KernelContext range(NDRange ndRange) {
+        return new KernelContext(ndRange);
     }
 
     protected Accelerator(MethodHandles.Lookup lookup, ServiceLoader.Provider<Backend> provider) {

@@ -26,7 +26,7 @@ package squares;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -53,7 +53,7 @@ public class Main {
 
     @CodeReflection
     public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(ComputeRange.of(s32Array.length()),
+        cc.dispatchKernel(NDRange.of(s32Array.length()),
                 kc -> squareKernel(kc, s32Array)
         );
     }

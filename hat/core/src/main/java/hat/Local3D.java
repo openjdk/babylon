@@ -24,7 +24,7 @@
  */
 package hat;
 
-public record GlobalMesh3D(int x, int y, int z) implements ThreadMesh {
+public record Local3D(int x, int y, int z) implements Range {
     @Override
     public int getX() {
         return x;
@@ -43,5 +43,10 @@ public record GlobalMesh3D(int x, int y, int z) implements ThreadMesh {
     @Override
     public int getDims() {
         return 3;
+    }
+
+    @Override
+    public String toString() {
+        return "<Local3D: " + getX() + "," + getY() + "." + getZ() + ">";
     }
 }
