@@ -28,8 +28,6 @@ package hat.backend.ffi;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
-import hat.NDRange;
-import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
 
 public class MockBackend extends FFIBackend {

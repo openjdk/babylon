@@ -28,8 +28,6 @@ package hat.backend.ffi;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
-import hat.NDRange;
-import hat.callgraph.CallGraph;
 import hat.callgraph.KernelCallGraph;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
@@ -39,7 +37,6 @@ import hat.optools.OpTk;
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 

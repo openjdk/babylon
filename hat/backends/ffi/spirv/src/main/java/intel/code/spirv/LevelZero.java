@@ -53,7 +53,6 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.callgraph.KernelEntrypoint;
 import hat.callgraph.KernelCallGraph;
@@ -161,7 +160,7 @@ public class LevelZero {
         return backendArena;
     }
 
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         CoreOp.FuncOp funcOp = kernelEntrypoint.funcOpWrapper().op();
         String kernelName = funcOp.funcName();
@@ -170,9 +169,9 @@ public class LevelZero {
         String path = "/tmp/" + kernelName + ".spv";
         SpirvModuleGenerator.writeModuleToFile(spirvBinary, path);
         // System.out.println("generated module \n" + SpirvModuleGenerator.disassembleModule(spirvBinary));
-        args[0] = ndRange.kid;
+        args[0] = kernelContext;
         List<Arg> kernelArgs = collectArgs(funcOp, args);
-        int[] globalSizes = new int[] {ndRange.kid.maxX, 1, 1};
+        int[] globalSizes = new int[] {kernelContext.gsx, 1, 1};
         int[] localSizes = new int[] {512, 1, 1};
         KernelGeometry geometry = new KernelGeometry(globalSizes, localSizes);
         MemorySegment commandListHandle = createCommandList(spirvBinary, kernelName, geometry, kernelArgs);

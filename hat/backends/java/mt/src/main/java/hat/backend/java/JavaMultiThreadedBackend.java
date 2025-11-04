@@ -25,16 +25,10 @@
 
 package hat.backend.java;
 
-import hat.Accelerator;
 import hat.KernelContext;
-import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
-import hat.optools.OpTk;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 

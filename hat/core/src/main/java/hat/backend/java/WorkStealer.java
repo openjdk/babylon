@@ -25,9 +25,7 @@
  */
 package hat.backend.java;
 
-import hat.Accelerator;
 import hat.KernelContext;
-import hat.NDRange;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;

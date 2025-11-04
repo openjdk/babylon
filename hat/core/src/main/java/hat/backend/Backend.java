@@ -28,7 +28,6 @@ package hat.backend;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
-import hat.NDRange;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
 import hat.buffer.BufferAllocator;

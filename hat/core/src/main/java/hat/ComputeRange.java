@@ -106,6 +106,10 @@ public class ComputeRange {
      */
     public static final ComputeRange SINGLE_THREADED = new ComputeRange(new GlobalMesh1D(1));
 
+    public static ComputeRange of(int val) {
+        return new ComputeRange(new GlobalMesh1D(val));
+    }
+
     /**
      * Obtain the total number of threads per dimension. The number of threads
      * per dimension is stored in a {@link ThreadMesh}

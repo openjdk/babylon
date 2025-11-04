@@ -26,8 +26,8 @@ package experiments.spirv;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.ComputeRange;
 import hat.KernelContext;
-import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -108,7 +108,7 @@ public class GetBackend {
 
         @CodeReflection
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
-            computeContext.dispatchKernel(NDRange.of(size * size), kc -> MatrixMultiply.kernel(kc, a, b, c));
+            computeContext.dispatchKernel(ComputeRange.of(size * size), kc -> MatrixMultiply.kernel(kc, a, b, c));
         }
 
     }
