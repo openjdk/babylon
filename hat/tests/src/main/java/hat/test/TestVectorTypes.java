@@ -26,10 +26,10 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
+import hat.Global1D;
 import hat.KernelContext;
-import hat.LocalMesh1D;
+import hat.Local1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32ArrayPadded;
@@ -266,100 +266,100 @@ public class TestVectorTypes {
     @CodeReflection
     public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4), new LocalMesh1D(128));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps01(kernelContext, a, b, c));
+        NDRange ndRange = NDRange.of(new Global1D(size/4), new Local1D(128));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps01(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph02(@RO ComputeContext cc, @RW F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps02(kernelContext, a, b));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps02(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph03(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps03(kernelContext, a, b));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps03(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph04(@RO ComputeContext cc, @RO F32ArrayPadded a, @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps04(kernelContext, a, b));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps04(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph05(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps05(kernelContext, a, b, c));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps05(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph06(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps06(kernelContext, a, b, c));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps06(kernelContext, a, b, c));
     }
 
 
     @CodeReflection
     public static void computeGraph07(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps07(kernelContext, a, b, c));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps07(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph08(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps08(kernelContext, a, b, c));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps08(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph09(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @RW F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps09(kernelContext, a, b, c));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps09(kernelContext, a, b, c));
     }
 
     @CodeReflection
     public static void computeGraph10(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps10(kernelContext, a, b));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps10(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph11(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps11(kernelContext, a, b));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps11(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph12(@RO ComputeContext cc, @RO F32ArrayPadded a,  @RW F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
     }
 
     @CodeReflection
     public static void computeGraph14(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps14(kernelContext, a));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps14(kernelContext, a));
     }
 
     @CodeReflection
     public static void computeGraph15(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size/4));
-        cc.dispatchKernel(computeRange, kernelContext -> TestVectorTypes.vectorOps15(kernelContext, a));
+        NDRange ndRange = NDRange.of(new Global1D(size/4));
+        cc.dispatchKernel(ndRange, kernelContext -> TestVectorTypes.vectorOps15(kernelContext, a));
     }
 
     @HatTest

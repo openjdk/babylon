@@ -26,9 +26,9 @@ package life;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.Buffer;
-import hat.ifacemapper.BufferState;
 import hat.ifacemapper.Schema;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
@@ -37,10 +37,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
-import java.util.List;
-import java.util.stream.IntStream;
 
-import static hat.backend.Backend.FIRST;
 import static hat.ifacemapper.MappableIface.RO;
 import static hat.ifacemapper.MappableIface.RW;
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
@@ -215,7 +212,7 @@ public class Main {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
             int range = grid.width() * grid.height();
             while (viewer.stillRunning()) {
-                cc.dispatchKernel(range, kc -> Compute.life(kc, ctrl, grid));
+                cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid));
 
                 int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
 

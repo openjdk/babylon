@@ -25,28 +25,22 @@
 
 package hat.backend.java;
 
-
-import hat.NDRange;
+import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.KernelEntrypoint;
-import hat.optools.OpTk;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
-
 
 public class JavaSequentialBackend extends JavaBackend {
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         if (kernelCallGraph.usesArrayView) {
             throw new RuntimeException("Java support for ArrayView not implemented");
         }
         KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        for (ndRange.kid.gix = 0; ndRange.kid.gix < ndRange.kid.gsx; ndRange.kid.gix++) {
+        for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
             try {
-                args[0] = ndRange.kid;
+                args[0] = kernelContext;
                 kernelEntrypoint.method.invoke(null, args);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
@@ -56,7 +50,4 @@ public class JavaSequentialBackend extends JavaBackend {
 
         }
     }
-
-
-
 }

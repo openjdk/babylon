@@ -26,6 +26,7 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.*;
@@ -54,7 +55,7 @@ public class TestArrayView {
 
     @CodeReflection
     public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(s32Array.length(),
+        cc.dispatchKernel(NDRange.of(s32Array.length()),
                 kc -> squareKernel(kc, s32Array)
         );
     }
@@ -85,7 +86,7 @@ public class TestArrayView {
 
     @CodeReflection
     public static void square2D(@RO ComputeContext cc, @RW S32Array2D s32Array2D) {
-        cc.dispatchKernel(s32Array2D.width() * s32Array2D.height(),
+        cc.dispatchKernel(NDRange.of(s32Array2D.width() * s32Array2D.height()),
                 kc -> square2DKernel(kc, s32Array2D)
         );
     }
@@ -232,7 +233,7 @@ public class TestArrayView {
         @CodeReflection
         static public void compute(final @RO ComputeContext cc, @RO Control ctrl, @RW CellGrid grid) {
             int range = grid.width() * grid.height();
-            cc.dispatchKernel(range, kc -> Compute.life(kc, ctrl, grid));
+            cc.dispatchKernel(NDRange.of(range), kc -> Compute.life(kc, ctrl, grid));
         }
     }
 
@@ -351,7 +352,7 @@ public class TestArrayView {
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
 
         computeContext.dispatchKernel(
-                s32Array2D.width()*s32Array2D.height(), //0..S32Array2D.size()
+                NDRange.of(s32Array2D.width()*s32Array2D.height()), //0..S32Array2D.size()
                 kc -> mandel(kc, s32Array2D, pallete, x, y, scale));
     }
 
@@ -462,7 +463,7 @@ public class TestArrayView {
 
     @CodeReflection
     public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
-        cc.dispatchKernel(call.length(),
+        cc.dispatchKernel(NDRange.of(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
     }
@@ -570,7 +571,7 @@ public class TestArrayView {
 
     @CodeReflection
     public static void privateAndLocal(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(s32Array.length(),
+        cc.dispatchKernel(NDRange.of(s32Array.length()),
                 kc -> squareKernelWithPrivateAndLocal(kc, s32Array)
         );
     }

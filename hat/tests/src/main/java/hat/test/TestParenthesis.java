@@ -26,8 +26,8 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
+import hat.Global1D;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -71,20 +71,20 @@ public class TestParenthesis {
 
     @CodeReflection
     public static void compute(@RO ComputeContext cc, @RW S32Array data) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(data.length()));
-        cc.dispatchKernel(computeRange,kc -> compute(kc, data));
+        NDRange ndRange = NDRange.of(new Global1D(data.length()));
+        cc.dispatchKernel(ndRange,kc -> compute(kc, data));
     }
 
     @CodeReflection
     public static void compute2(@RO ComputeContext cc, @RW S32Array data) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(data.length()));
-        cc.dispatchKernel(computeRange,kc -> compute2(kc, data));
+        NDRange ndRange = NDRange.of(new Global1D(data.length()));
+        cc.dispatchKernel(ndRange,kc -> compute2(kc, data));
     }
 
     @CodeReflection
     public static void compute3(@RO ComputeContext cc, @RW S32Array data) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(data.length()));
-        cc.dispatchKernel(computeRange,kc -> compute3(kc, data));
+        NDRange ndRange = NDRange.of(new Global1D(data.length()));
+        cc.dispatchKernel(ndRange,kc -> compute3(kc, data));
     }
 
     @HatTest

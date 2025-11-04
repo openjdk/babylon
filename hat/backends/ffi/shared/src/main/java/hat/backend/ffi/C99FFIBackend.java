@@ -25,11 +25,10 @@
 
 package hat.backend.ffi;
 
-import hat.ComputeRange;
+import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
-import hat.ThreadMesh;
-import hat.NDRange;
+import hat.Range;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
@@ -49,7 +48,6 @@ import hat.phases.HATFinalDetectionPhase;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.java.ClassType;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,24 +80,17 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
 
-        private void setGlobalMesh(hat.KernelContext kc) {
-            kernelBufferContext.gsx(kc.gsx);
-            kernelBufferContext.gsy(kc.gsy);
-            kernelBufferContext.gsz(kc.gsz);
-            kernelBufferContext.dimensions(kc.getDimensions());
+        private void setGlobalMesh(Range ndRange) {
+            kernelBufferContext.gsx(ndRange.getX());
+            kernelBufferContext.gsy(ndRange.getY());
+            kernelBufferContext.gsz(ndRange.getZ());
+            kernelBufferContext.dimensions(ndRange.getDims());
         }
 
-        private void setGlobalMesh(ThreadMesh threadMesh) {
-            kernelBufferContext.gsx(threadMesh.getX());
-            kernelBufferContext.gsy(threadMesh.getY());
-            kernelBufferContext.gsz(threadMesh.getZ());
-            kernelBufferContext.dimensions(threadMesh.getDims());
-        }
-
-        private void setLocalMesh(ThreadMesh threadMesh) {
-            kernelBufferContext.lsx(threadMesh.getX());
-            kernelBufferContext.lsy(threadMesh.getY());
-            kernelBufferContext.lsz(threadMesh.getZ());
+        private void setLocalMesh(Range NDRange) {
+            kernelBufferContext.lsx(NDRange.getX());
+            kernelBufferContext.lsy(NDRange.getY());
+            kernelBufferContext.lsz(NDRange.getZ());
         }
 
         private void setDefaultLocalMesh() {
@@ -108,36 +99,23 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             kernelBufferContext.lsz(0);
         }
 
-        private void setupComputeRange(NDRange ndRange) {
-
-            ComputeRange computeRange = ndRange.kid.getComputeRange();
-            boolean isComputeRangeDefined = ndRange.kid.hasComputeRange();
-            boolean isLocalMeshDefined = ndRange.kid.hasLocalMesh();
-
-            ThreadMesh globalMesh = null;
-            ThreadMesh localMesh = null;
-            if (isComputeRangeDefined) {
-                globalMesh = computeRange.getGlobalMesh();
-                localMesh = computeRange.getLocalMesh();
-            }
-
-            if (!isComputeRangeDefined) {
-                setGlobalMesh(ndRange.kid);
-            } else {
-                setGlobalMesh(globalMesh);
-            }
-            if (isComputeRangeDefined && isLocalMeshDefined) {
+        private void setupComputeRange(KernelContext kernelContext) {
+            NDRange ndRange = kernelContext.getNdRange();
+            boolean isLocalMeshDefined = kernelContext.hasLocalMesh();
+            Range globalMesh = ndRange.getGlobal();
+            Range localMesh = ndRange.getLocal();
+            setGlobalMesh(globalMesh);
+            if (isLocalMeshDefined) {
                 setLocalMesh(localMesh);
             } else {
                 setDefaultLocalMesh();
             }
-
         }
 
-        public void dispatch(NDRange ndRange, Object[] args) {
-            setupComputeRange(ndRange);
+        public void dispatch(KernelContext kernelContext, Object[] args) {
+            setupComputeRange(kernelContext);
             args[0] = this.kernelBufferContext;
-            ArgArray.update(argArray,kernelCallGraph, args);
+            ArgArray.update(argArray, kernelCallGraph, args);
             kernelBridge.ndRange(this.argArray);
         }
     }
@@ -146,9 +124,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         var here = OpTk.CallSite.of(C99FFIBackend.class, "createCode");
-
-
-
         builder.defines().types();
         Set<Schema.IfaceType> already = new LinkedHashSet<>();
         Arrays.stream(args)
@@ -167,8 +142,6 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         var annotation = kernelCallGraph.entrypoint.method.getAnnotation(Kernel.class);
 
         if (annotation!=null){
-
-
             var typedef = kernelCallGraph.entrypoint.method.getAnnotation(TypeDef.class);
             if (typedef!=null){
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
@@ -183,7 +156,7 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
             builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(annotation.value());
-        }else {
+        } else {
             List<TypeElement> localIFaceList = new ArrayList<>();
 
             kernelCallGraph.getModuleOp()

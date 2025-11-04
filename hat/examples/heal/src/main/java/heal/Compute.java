@@ -47,11 +47,11 @@ package heal;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.F32Array;
 import hat.buffer.S32Array2D;
 
-import javax.swing.JTextField;
 import java.awt.Point;
 
 import static hat.ifacemapper.MappableIface.*;
@@ -249,7 +249,7 @@ public class Compute {
 
         F32Array sumArrayF32 = F32Array.create(cc.accelerator, searchArea.area());
 
-        cc.dispatchKernel(searchArea.area(),
+        cc.dispatchKernel(NDRange.of(searchArea.area()),
                 kc -> bestFitKernel(kc,  s32Array2D, searchArea, selectionBox, xyrgbList, sumArrayF32)
         );
 

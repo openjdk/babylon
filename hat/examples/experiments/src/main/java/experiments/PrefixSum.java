@@ -26,6 +26,7 @@ package experiments;
 
 import hat.Accelerator;
 import hat.ComputeContext;
+import hat.NDRange;
 import hat.annotations.Kernel;
 import hat.KernelContext;
 import hat.annotations.Preformatted;
@@ -38,7 +39,6 @@ import hat.ifacemapper.MappableIface.RW;
 import hat.ifacemapper.Schema;
 import jdk.incubator.code.CodeReflection;
 
-import javax.print.DocFlavor;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
@@ -348,11 +348,11 @@ public class PrefixSum {
         }
         results.add(view(ref));
         results.add(view(data));
-        cc.dispatchKernel(data.length(), kc -> groupScan(kc, data));
+        cc.dispatchKernel(NDRange.of(data.length()), kc -> groupScan(kc, data));
         results.add(view(data));
-        cc.dispatchKernel(GROUP_SIZE, kc -> crossGroupScan(kc, data));
+        cc.dispatchKernel(NDRange.of(GROUP_SIZE), kc -> crossGroupScan(kc, data));
         results.add(view(data));
-        cc.dispatchKernel(GROUP_SIZE, kc -> sumKernel(kc, data));
+        cc.dispatchKernel(NDRange.of(GROUP_SIZE), kc -> sumKernel(kc, data));
       //  results.add(view(data));
         results.add(view(seq));
         boolean brokenBytecodeGen = false;
