@@ -53,7 +53,7 @@ public interface Renderer {
 
     DisplayMode displayMode();
 
-    void render(boolean old);
+    void render();
 
     void paint(Graphics2D g);
 
