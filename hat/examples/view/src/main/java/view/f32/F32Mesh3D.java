@@ -35,50 +35,39 @@ public class F32Mesh3D {
     public static F32Mesh3D of(String name){
         return new F32Mesh3D(name);
     }
-    final int SIZE = 1; // triangle, triCenter, normal
-
     final int MAX = 400;
 
-    public int triCount = 0;
-    public F32Triangle3D.F32Triangle3DPool.Idx triEntries[] = new F32Triangle3D.F32Triangle3DPool.Idx[MAX * SIZE];
-    public int triCenterVec3s[] = new int[MAX *SIZE];
-    public int normalEntries[] = new int[MAX *SIZE];
-    public int v0Vec3s[] = new int[MAX *SIZE];
-    public int vecCount = 0;
-    public int vecEntries[] = new int[MAX * SIZE];
+    public record Face ( F32Triangle3D.F32Triangle3DPool.Idx triangle, int centerVec3Idx, int normalIdx, int v0VecIdx){
+        static Face of (F32Triangle3D.F32Triangle3DPool.Idx tri){
+           return  new Face(tri,  F32Triangle3D.getCentre(tri),F32Triangle3D.normal(tri),F32Triangle3D.f32Triangle3DPool.entries[tri.v0()]);
+        }
+    };
 
+
+    public int faceCount = 0;
+    public Face[] faces = new Face[MAX];
+
+    public int vecCount = 0;
+    public int vecEntries[] = new int[MAX];
 
     public F32Mesh3D tri(int v0, int v1, int v2, int rgb) {
-        var tri = F32Triangle3D.of(v0, v1, v2, rgb);
-
-        triEntries[triCount]= tri;
-        normalEntries[triCount] = F32Triangle3D.normal(tri);
-        int triCentreVec3 = F32Triangle3D.getCentre(tri);
-        triCenterVec3s[triCount]=triCentreVec3;
-        v0Vec3s[triCount]=F32Triangle3D.f32Triangle3DPool.entries[tri.v0()];
-        if (triCount == 0) {
-            triSum = triCentreVec3;
-        } else {
-            triSum = F32Vec3.addVec3(triSum, triCentreVec3);
-        }
-        triCount++;
+        Face face =Face.of(F32Triangle3D.of(v0, v1, v2, rgb));
+        triSum = (faceCount == 0)?face.centerVec3Idx: F32Vec3.addVec3(triSum, face.centerVec3Idx);
+        faces[faceCount++] = face;
         return this;
     }
 
 
     public void fin(){
-        int meshCenterVec3 = F32Vec3.divScaler(triSum, triCount);
-        for (int t = 0; t < triCount; t++ ) {
-            var tri = triEntries[t];
-            int v0Norm = normalEntries[t]; // from v0
-            int v0 = v0Vec3s[t];
-            int v0CenterDiff = F32Vec3.subVec3(meshCenterVec3, v0);
-            float normDotProd = F32Vec3.dotProd(v0CenterDiff, v0Norm);
+        int meshCenterVec3 = F32Vec3.divScaler(triSum, faceCount);
+        for (int t = 0; t < faceCount; t++ ) {
+            Face face = faces[t];
+            int v0CenterDiff = F32Vec3.subVec3(meshCenterVec3,face.v0VecIdx );
+            float normDotProd = F32Vec3.dotProd(v0CenterDiff, face.normalIdx);
             if (normDotProd >0f) { // the normal from the center from the triangle was pointing out, so re wind it
-                F32Triangle3D.rewind(tri);
+                F32Triangle3D.rewind(face.triangle);
             }
         }
-
         cube(F32Vec3.getX(meshCenterVec3),F32Vec3.getY(meshCenterVec3), F32Vec3.getZ(meshCenterVec3), .1f );
     }
 
