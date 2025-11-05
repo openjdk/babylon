@@ -53,7 +53,7 @@ public class Main {
 
     @CodeReflection
     public static void square(@RO ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(NDRange.of(s32Array.length()),
+        cc.dispatchKernel(NDRange.of(NDRange.Global1D.of(s32Array.length())),
                 kc -> squareKernel(kc, s32Array)
         );
     }

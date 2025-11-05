@@ -28,7 +28,6 @@ package hat.backend.ffi;
 import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
-import hat.Range;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
@@ -80,17 +79,54 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator,kernelCallGraph,  ndRangeAndArgs);
         }
 
-        private void setGlobalMesh(Range ndRange) {
-            kernelBufferContext.gsx(ndRange.getX());
-            kernelBufferContext.gsy(ndRange.getY());
-            kernelBufferContext.gsz(ndRange.getZ());
-            kernelBufferContext.dimensions(ndRange.getDims());
+        private void setGlobalMesh(NDRange.Global global) {
+            kernelBufferContext.gsy(1);
+            kernelBufferContext.gsz(1);
+            switch (global) {
+                case NDRange.Global1D global1D -> {
+                    kernelBufferContext.gsx(global1D.x());
+                    kernelBufferContext.dimensions(global1D.dimension());
+                }
+                case NDRange.Global2D global2D -> {
+                    kernelBufferContext.gsx(global2D.x());
+                    kernelBufferContext.gsy(global2D.y());
+                    kernelBufferContext.dimensions(global2D.dimension());
+                }
+                case NDRange.Global3D global3D -> {
+                    kernelBufferContext.gsx(global3D.x());
+                    kernelBufferContext.gsy(global3D.y());
+                    kernelBufferContext.gsz(global3D.z());
+                    kernelBufferContext.dimensions(global3D.dimension());
+                }
+                case null, default -> {
+                    throw new IllegalArgumentException("Unknown global range " + global.getClass());
+                }
+            }
         }
 
-        private void setLocalMesh(Range NDRange) {
-            kernelBufferContext.lsx(NDRange.getX());
-            kernelBufferContext.lsy(NDRange.getY());
-            kernelBufferContext.lsz(NDRange.getZ());
+        private void setLocalMesh(NDRange.Local local) {
+            kernelBufferContext.lsy(1);
+            kernelBufferContext.lsz(1);
+            switch (local) {
+                case NDRange.Local1D local1D -> {
+                    kernelBufferContext.lsx(local1D.x());
+                    kernelBufferContext.dimensions(local1D.dimension());
+                }
+                case NDRange.Local2D local2D -> {
+                    kernelBufferContext.lsx(local2D.x());
+                    kernelBufferContext.lsy(local2D.y());
+                    kernelBufferContext.dimensions(local2D.dimension());
+                }
+                case NDRange.Local3D local3D -> {
+                    kernelBufferContext.lsx(local3D.x());
+                    kernelBufferContext.lsy(local3D.y());
+                    kernelBufferContext.lsz(local3D.z());
+                    kernelBufferContext.dimensions(local3D.dimension());
+                }
+                case null, default -> {
+                    throw new IllegalArgumentException("Unknown global range " + local.getClass());
+                }
+            }
         }
 
         private void setDefaultLocalMesh() {
@@ -100,13 +136,16 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
         }
 
         private void setupComputeRange(KernelContext kernelContext) {
-            NDRange ndRange = kernelContext.getNdRange();
+            NDRange ndRange = kernelContext.getNDRange();
+            if (!(ndRange instanceof NDRange.Range range)) {
+                throw new IllegalArgumentException("NDRange must be of type NDRange.Range");
+            }
             boolean isLocalMeshDefined = kernelContext.hasLocalMesh();
-            Range globalMesh = ndRange.getGlobal();
-            Range localMesh = ndRange.getLocal();
-            setGlobalMesh(globalMesh);
+            NDRange.Global global = range.global();
+            NDRange.Local local = range.local();
+            setGlobalMesh(global);
             if (isLocalMeshDefined) {
-                setLocalMesh(localMesh);
+                setLocalMesh(local);
             } else {
                 setDefaultLocalMesh();
             }

@@ -25,147 +25,128 @@
 package hat;
 
 /**
- * A compute range holds the number of threads to run on an accelerator.
- * A compute range has two main properties:
- * - The global number of threads: this means the total number of threads to run per dimension.
- * This is specified by instancing a new object of type {@link Range}.
- * - A local group size: this is specified by instancing an object of type {@link Range}.
+ * An NDRange specifies the number of threads to deploy on an hardware accelerator.
+ * An NDRange has two main properties:
+ * <ul>
+ * <li>The global number of threads: this means the total number of threads to run per dimension.
+ * This is specified by instancing a new object of type {@link Global}.</li>
+ * <li>A local group size: this is specified by instancing an object of type {@link Local}.</li>
  * A local group size is optional. If it is not specified, the HAT runtime may device a default
  * value.
+ * </ul>
  */
-public class NDRange {
+public interface NDRange {
 
-    /**
-     * Total number of threads to run in 1D.
-     * @param global {@link Global1D}
-     */
-    public static NDRange of(Global1D global) {
-        return new NDRange(global);
+    int dimension();
+    interface _1D extends NDRange {
+        @Override
+        default int dimension() {
+            return 1;
+        }
+    }
+    interface _2D extends NDRange {
+        @Override
+        default int dimension() {
+            return 2;
+        }
+    }
+    interface _3D extends NDRange {
+        @Override
+        default int dimension() {
+            return 3;
+        }
     }
 
-    /**
-     * Total number of threads to run in 1D for global and local mesh.
-     * @param global {@link Global1D}
-     * @param local {@link Local1D}
-     */
-    public static NDRange of(Global1D global, Local1D local) {
-        return new NDRange(global, local);
+    interface _1DX extends _1D {
+        int x();
     }
 
-    /**
-     * Defines a compute range for a 2D mesh. The parameter specifies the
-     * global mesh (total number of threads to run).
-     * @param global {@link Global2D}
-     */
-    public static NDRange of(Global2D global) {
-        return new NDRange(global);
+    interface _2DXY extends _2D {
+        int x();
+        int y();
     }
 
-    /**
-     * Defines a compute range for a 2D mesh. The parameters specify the
-     * global mesh (total number of threads to run) and the local mesh.
-     * @param global {@link Global2D}
-     * @param local {@link Local2D}
-     */
-    public static NDRange of(Global2D global, Local2D local) {
-        return new NDRange(global, local);
+    interface _3DXZ extends _3D {
+        int x();
+        int y();
+        int z();
     }
 
-    /**
-     * Defines a compute range for a 3D mesh. The parameter specifies the
-     * global mesh (total number of threads to run).
-     * @param global {@link Global3D}
-     */
-    public static NDRange of(Global3D global) {
-        return new NDRange(global);
+    interface Global {}
+
+    record Global1D(int x) implements _1DX, Global{
+        public static Global1D of(int x) {
+            return new Global1D(x);
+        }
+    }
+    record Global2D(int x, int y) implements _2DXY, Global {
+        public static Global2D of(int x, int y) {
+            return new Global2D(x, y);
+        }
+    }
+    record Global3D(int x, int y, int z) implements _3DXZ, Global {
+        public static Global3D of(int x, int y, int z) {
+            return new Global3D(x, y, z);
+        }
     }
 
-    /**
-     * Defines a compute range for a 3D mesh. The parameters specify the
-     * global mesh (total number of threads to run) and the local mesh.
-     * @param global {@link Global3D}
-     * @param local {@link Local3D}
-     */
-    public static NDRange of(Global3D global, Local3D local) {
-        return new NDRange(global, local);
+    interface Local{}
+
+    record Local1D(int x) implements _1DX, Local {
+        public static Local of(int x) {
+            return new Local1D(x);
+        }
+    }
+    record Local2D(int x, int y) implements _2DXY, Local {
+        public static Local of(int x, int y) {
+            return new Local2D(x, y);
+        }
+    }
+    record Local3D(int x, int y, int z) implements _3DXZ, Local {
+        public static Local of(int x, int y, int z) {
+            return new Local3D(x, y, z);
+        }
     }
 
-    /**
-     * Factory method to run a single thread on a target accelerator. Although for some accelerators this could be
-     * beneficial (e.g., FPGAs), in general, use only for debugging purposes.
-     */
-    public static final NDRange SINGLE_THREADED = new NDRange(new Global1D(1));
-
-    /**
-     * Obtain the total number of threads per dimension. The number of threads
-     * per dimension is stored in a {@link Range}
-     * @return {@link Range}
-     */
-    public Range getGlobal() {
-        return global;
+    interface Range extends NDRange {
+        Global global();
+        Local local();
     }
 
-    /**
-     * Obtain the local group size per dimension. The group size per dimension is stored
-     * in a {@link Range}.
-     * @return {@link Range}
-     */
-    public Range getLocal() {
-        return local;
+    record NDRange1D(Global1D global, Local1D local) implements Range, _1D { }
+
+    record NDRange2D(Global2D global, Local2D local) implements Range, _2D { }
+
+    record NDRange3D(Global3D global, Local3D local) implements Range, _3D { }
+
+    static NDRange1D of(int x) {
+        return new NDRange1D(new Global1D(x), null);
     }
 
-    public boolean isSpecificRange() {
-        return false;
+    static NDRange1D of(Global1D global) {
+        return new NDRange1D(global, null);
     }
 
-    /**
-     * Utility method to create a 1D program with only global thread size.
-     * @param numThreadsGlobal
-     * @return {@link NDRange}
-     */
-    public static NDRange of(int numThreadsGlobal) {
-        return new NDRange(new Global1D(numThreadsGlobal));
+    static NDRange1D of(Global1D global, Local1D local) {
+        return new NDRange1D(global, local);
     }
 
-    /**
-     * Utility method to create a 1D program with global and local thread sizes.
-     * @param numThreadsGlobal
-     * @return {@link NDRange}
-     */
-    public static NDRange of(int numThreadsGlobal, int numThreadLocal) {
-        return new NDRange(new Global1D(numThreadsGlobal), new Local1D(numThreadLocal));
+
+    static NDRange2D of(Global2D global) {
+        return new NDRange2D(global, null);
     }
 
-    private final Range global;
-    private final Range local;
-
-    private NDRange(Global1D global) {
-        this.global = global;
-        this.local = null;
+    static NDRange2D of(Global2D global, Local2D local) {
+        return new NDRange2D(global, local);
     }
 
-    private NDRange(Global1D global, Local1D local) {
-        this.global = global;
-        this.local = local;
+
+    static NDRange3D of(Global3D global) {
+        return new NDRange3D(global, null);
     }
 
-    private NDRange(Global2D global) {
-        this.global = global;
-        this.local = null;
+    static NDRange3D of(Global3D global, Local3D local) {
+        return new NDRange3D(global, local);
     }
 
-    private NDRange(Global2D global, Local2D local) {
-        this.global = global;
-        this.local = local;
-    }
-
-    private NDRange(Global3D global) {
-        this.global = global;
-        this.local = null;
-    }
-
-    private NDRange(Global3D global, Local3D local) {
-        this.global = global;
-        this.local = local;
-    }
 }

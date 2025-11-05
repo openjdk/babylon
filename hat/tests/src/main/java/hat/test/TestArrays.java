@@ -27,7 +27,6 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.Global1D;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -59,7 +58,7 @@ public class TestArrays {
 
     @CodeReflection
     public static void square(@RO ComputeContext cc, @RW S32Array array) {
-        NDRange ndRange = NDRange.of(new Global1D(array.length()));
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(array.length()));
         cc.dispatchKernel(ndRange,
                 kc -> squareKernel(kc, array)
         );
@@ -76,7 +75,7 @@ public class TestArrays {
 
     @CodeReflection
     public static void vectorAdd(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        NDRange ndRange = NDRange.of(new Global1D(arrayA.length()));
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(arrayA.length()));
         cc.dispatchKernel(ndRange,
                 kc -> vectorAddition(kc, arrayA, arrayB, arrayC)
         );
@@ -94,7 +93,7 @@ public class TestArrays {
 
     @CodeReflection
     public static void computeSaxpy(@RO ComputeContext cc, @RO F32Array arrayA, @RO F32Array arrayB, @RW F32Array arrayC, float alpha) {
-        NDRange ndRange = NDRange.of(new Global1D(arrayA.length()));
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(arrayA.length()));
         cc.dispatchKernel(ndRange,
                 kc -> saxpy(kc, arrayA, arrayB, arrayC, alpha)
         );

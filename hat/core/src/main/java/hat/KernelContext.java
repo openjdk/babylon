@@ -70,10 +70,27 @@ public class KernelContext {
 
     public KernelContext(NDRange ndRange) {
         this.ndRange = ndRange;
-        this.gsx = ndRange.getGlobal().getX();
-        this.gsy = ndRange.getGlobal().getY();
-        this.gsz = ndRange.getGlobal().getZ();
-        this.dimensions = ndRange.getGlobal().getDims();
+        switch (ndRange) {
+            case NDRange.NDRange1D ndRange1D -> {
+                this.gsx = ndRange1D.global().x();
+                this.gsy = 1;
+                this.gsz = 1;
+            }
+            case NDRange.NDRange2D ndRange2D -> {
+                this.gsx = ndRange2D.global().x();
+                this.gsy = ndRange2D.global().y();
+                this.gsz = 1;
+            }
+            case NDRange.NDRange3D ndRange3D -> {
+                this.gsx = ndRange3D.global().x();
+                this.gsy = ndRange3D.global().y();
+                this.gsz = ndRange3D.global().z();
+            }
+            case null, default -> {
+                throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
+            }
+        }
+        this.dimensions = ndRange.dimension();
     }
 
     /**
@@ -117,12 +134,19 @@ public class KernelContext {
         return this.dimensions;
     }
 
-    public NDRange getNdRange() {
+    public NDRange getNDRange() {
         return this.ndRange;
     }
 
     public boolean hasLocalMesh() {
-        return this.ndRange.getLocal() != null;
+        switch (ndRange) {
+            case NDRange.Range range -> {
+                return range.local() != null;
+            }
+            case null, default -> {
+                throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
+            }
+        }
     }
 
     public void barrier() {
