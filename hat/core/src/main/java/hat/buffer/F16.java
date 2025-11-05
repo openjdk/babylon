@@ -97,4 +97,20 @@ public interface F16 extends Buffer.Struct {
     static F16 div(F16 ha, F16 hb) {
         return F16.of(f16ToFloat(ha) / f16ToFloat(hb));
     }
+
+    default F16 add(F16 ha) {
+        return F16.add(this, ha);
+    }
+
+    default F16 sub(F16 ha) {
+        return F16.sub(this, ha);
+    }
+
+    default F16 mul(F16 ha) {
+        return F16.mul(this, ha);
+    }
+
+    default F16 div(F16 ha) {
+        return F16.div(this, ha);
+    }
 }
