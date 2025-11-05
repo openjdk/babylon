@@ -46,7 +46,7 @@ public class Main {
         var args = new ArrayList<>(List.of(argArr));
      //   args.add("ANACONDA");
         var eliteReader = new EliteMeshReader();
-        boolean old =true;// Boolean.getBoolean("old");
+
         var wire =
               //  Graphics2DRenderer.wireOf(1024,1024);
                 RasterizingRenderer.wireOf(1024, 1024);
@@ -55,17 +55,15 @@ public class Main {
             for (int x = -2; x < 6; x += 2) {
                 for (int y = -2; y < 6; y += 2) {
                     for (int z = -2; z < 6; z += 2) {
-                        if (old) {
+
                             F32Mesh3D.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
-                        }else{
-                            F32.Mesh.of("cubeoctahedron").cubeoctahedron(x, y, z, 2).fin();
-                        }
+
                     }
                 }
             }
         };
-        Runnable elite = ()->eliteReader.load(args.getFirst(), old);
-        ViewFrame viewFrame = (args.size() > 0 ? ViewFrame.of("view",old,wire, elite): ViewFrame.of("view",old, fill,cubeoctahedron));
+        Runnable elite = ()->eliteReader.load(args.getFirst());
+        ViewFrame viewFrame = (args.size() > 0 ? ViewFrame.of("view",wire, elite): ViewFrame.of("view", fill,cubeoctahedron));
         while (true) {
             viewFrame.update();
         }
