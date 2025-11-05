@@ -270,12 +270,12 @@ class EliteMeshReader {
                         case State.awaiting_hue_lig_sat _ when State.face6Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
                             if (old) {
                                 oldMesh.get().hex(
-                                        oldMesh.get().vecEntries[s32xN.asInt(6)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(7)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(8)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(9)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(10)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(11)],
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(9)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(10)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(11)).idx(),
                                         0xff7f00);
                             }else {
                                 var h = hex.of(newMesh.get().vecEntries,s32xN);
@@ -285,11 +285,11 @@ class EliteMeshReader {
                         case State.awaiting_hue_lig_sat _ when State.face5Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
                                if (old) {
                                    oldMesh.get().pent(
-                                           oldMesh.get().vecEntries[s32xN.asInt(6)],
-                                           oldMesh.get().vecEntries[s32xN.asInt(7)],
-                                           oldMesh.get().vecEntries[s32xN.asInt(8)],
-                                           oldMesh.get().vecEntries[s32xN.asInt(9)],
-                                           oldMesh.get().vecEntries[s32xN.asInt(10)],
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(6)).idx(),
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(7)).idx(),
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(8)).idx(),
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(9)).idx(),
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(10)).idx(),
                                            0x7fff00);
                                }else{
                                    var h = pent.of(newMesh.get().vecEntries,s32xN);
@@ -299,10 +299,10 @@ class EliteMeshReader {
                         case State.awaiting_hue_lig_sat _ when State.face4Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
                             if (old) {
                                 oldMesh.get().quad(
-                                        oldMesh.get().vecEntries[s32xN.asInt(6)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(7)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(8)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(9)],
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(9)).idx(),
                                         0x00ff7f);
                             }else{
                                 var h = quad.of(newMesh.get().vecEntries,s32xN);
@@ -312,9 +312,9 @@ class EliteMeshReader {
                         case State.awaiting_hue_lig_sat _ when State.face3Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
                             if (old){
                                 oldMesh.get().tri(
-                                        oldMesh.get().vecEntries[s32xN.asInt(6)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(7)],
-                                        oldMesh.get().vecEntries[s32xN.asInt(8)],
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)).idx(),
                                         0x007fff);
                             }else{
                                 var h = tri.of(newMesh.get().vecEntries,s32xN);
