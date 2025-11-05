@@ -53,6 +53,7 @@ public class ViewFrame extends JFrame {
     final JComponent viewer;
     final long startMillis;
     long frames;
+
     void ringDoorBell(Point point) {
         this.point = point;
         synchronized (doorBell) {
@@ -107,21 +108,21 @@ public class ViewFrame extends JFrame {
         float originZ = 0f;
         float originY = 0f;
         float originX = 0f;
-        float moveAwayZ=30f;
-        float halfHeight = renderer.height()/2f;
-        float quarterHeight = renderer.height()/4f;//??
+        float moveAwayZ = 30f;
+        float halfHeight = renderer.height() / 2f;
+        float quarterHeight = renderer.height() / 4f;//??
 
-            cameraVec3Old = F32Vec3.F32Vec3Impl.of(originX, originY, originZ);
-            var projF32Mat4x4_1 = F32Matrix4x4.projection(renderer.width(),renderer.height(), nearZ,farZ, fieldOfViewDegrees);
-            var projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1, F32Matrix4x4.scale(quarterHeight));
-            projF32Mat4x4Old = F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.transformation(halfHeight));
-            moveAwayVec3Old = F32Vec3.F32Vec3Impl.of(originX, originY, moveAwayZ);
-            markOld = new ModelHighWaterMark();// mark all buffers.  transforms create new points so this allows us to garbage colect
+        cameraVec3Old = F32Vec3.F32Vec3Impl.of(originX, originY, originZ);
+        var projF32Mat4x4_1 = F32Matrix4x4.projection(renderer.width(), renderer.height(), nearZ, farZ, fieldOfViewDegrees);
+        var projF32Mat4x4_2 = F32Matrix4x4.mulMat4(projF32Mat4x4_1, F32Matrix4x4.scale(quarterHeight));
+        projF32Mat4x4Old = F32Matrix4x4.mulMat4(projF32Mat4x4_2, F32Matrix4x4.transformation(halfHeight));
+        moveAwayVec3Old = F32Vec3.F32Vec3Impl.of(originX, originY, moveAwayZ);
+        markOld = new ModelHighWaterMark();// mark all buffers.  transforms create new points so this allows us to garbage colect
 
     }
 
-    public static ViewFrame of(String name,  Renderer renderer, Runnable sceneBuilder) {
-        return new ViewFrame(name,  renderer, sceneBuilder);
+    public static ViewFrame of(String name, Renderer renderer, Runnable sceneBuilder) {
+        return new ViewFrame(name, renderer, sceneBuilder);
     }
 
 
@@ -132,64 +133,59 @@ public class ViewFrame extends JFrame {
             System.out.println("Frames " + frames + " Theta = " + theta + " FPS = " + ((frames * 1000) / elapsedMillis));
         }
 
-        // Loop through the triangles
+
         boolean showHidden = renderer.displayMode() == Renderer.DisplayMode.WIRE_SHOW_HIDDEN;
+        markOld.resetAll();
+        var xyzRot4x4 = new F32Matrix4x4.Rotation(theta * 2, theta / 2, theta);
+        ModelHighWaterMark resetMark = new ModelHighWaterMark();
+        List<ZPos> zpos = new ArrayList<>();
+        // Loop through the triangles
+        for (F32Triangle3D t : F32Triangle3D.F32Triangle3DImpl.all()) {
+            // here we rotate and then move into the Z plane.
+
+            t = F32Triangle3D.addVec3(F32Triangle3D.mulMat4(t, xyzRot4x4), moveAwayVec3Old);
+            float howVisible = 1f;
+            boolean isVisible = showHidden;
+            if (!showHidden) {
+                // here we determine whether the camera can see the plane that the translated triangle is on.
+                // so we need the normal to the triangle in the coordinate system
+
+                // Now we work out where the camera is relative to a line projected from the plane to the camera
+                // if camera is at 0,0,0 clearly this is a no-op
+
+                // We need a point on the triangle it looks like assume we can use any, I choose the center of the triangle
+                // intuition suggests the one with the minimal Z is best no?
+
+                // We subtract the camera from our point on the triangle so we can compare
+
+                F32Vec3 cameraDeltaVec3 = F32Vec3.subVec3(F32Triangle3D.getCentre(t), cameraVec3Old);// clearly our default camera is 0,0,0
 
 
-            markOld.resetAll();
-            var xyzRot4x4 =new F32Matrix4x4.Rotation(theta * 2, theta / 2, theta);
-            ModelHighWaterMark resetMark = new ModelHighWaterMark();
-            List<ZPos> zpos = new ArrayList<>();
-            for (F32Triangle3D t : F32Triangle3D.F32Triangle3DImpl.all()) {
-                // here we rotate and then move into the Z plane.
-                t = F32Triangle3D.mulMat4(t,xyzRot4x4);
-                t =  F32Triangle3D.addVec3(t,moveAwayVec3Old);
-                float howVisible = 1f;
-                boolean isVisible = showHidden;
-                if (!showHidden) {
-                    // here we determine whether the camera can see the plane that the translated triangle is on.
-                    // so we need the normal to the triangle in the coordinate system
+                //  howVisible = cameraDeltaVec3.mul( t.normalSumOfSquares()).sumOf();
 
-                    // Now we work out where the camera is relative to a line projected from the plane to the camera
-                    // if camera is at 0,0,0 clearly this is a no-op
-
-                    // We need a point on the triangle it looks like assume we can use any, I choose the center of the triangle
-                    // intuition suggests the one with the minimal Z is best no?
-
-                    // We subtract the camera from our point on the triangle so we can compare
-
-                    F32Vec3 cameraDeltaVec3 = F32Triangle3D.getCentre( t);
-                    cameraDeltaVec3 = F32Vec3.subVec3(cameraDeltaVec3,cameraVec3Old);// clearly our default camera is 0,0,0
-
-
-                    //  howVisible = cameraDeltaVec3.mul( t.normalSumOfSquares()).sumOf();
-
-                    howVisible = F32Vec3.dotProd(cameraDeltaVec3,F32Triangle3D.normal(t));
-                    // howVisible is a 'scalar'
-                    // it's magnitude indicating how much it is 'facing away from' the camera.
-                    // it's sign indicates if the camera can indeed see the location.
-                    isVisible = howVisible < 0.0;
-                }
-
-                if (isVisible) {
-                    // Projected triangle is still in unit 1 space!!
-                    // now project the 3d triangle to 2d plane.
-                    // Scale up to quarter screen height then add half height of screen
-
-                    t = F32Triangle3D.mulMat4( t,projF32Mat4x4Old);//  projection matrix also scales to screen and translate half a screen
-
-                    zpos.add(new ZPos(t, howVisible));
-                }
-                resetMark.reset3D(); // do not move this up.
-            }
-            Collections.sort(zpos);
-            for (ZPos z : zpos) {
-                z.create();
+                howVisible = F32Vec3.dotProd(cameraDeltaVec3, F32Triangle3D.normal(t));
+                // howVisible is a 'scalar'
+                // it's magnitude indicating how much it is 'facing away from' the camera.
+                // it's sign indicates if the camera can indeed see the location.
+                isVisible = howVisible < 0.0;
             }
 
+            if (isVisible) {
+                // Projected triangle is still in unit 1 space!!
+                // now project the 3d triangle to 2d plane.
+                // Scale up to quarter screen height then add half height of screen
 
+                t = F32Triangle3D.mulMat4(t, projF32Mat4x4Old);//  projection matrix also scales to screen and translate half a screen
+
+                zpos.add(new ZPos(t, howVisible));
+            }
+            resetMark.reset3D(); // do not move this up.
+        }
+        Collections.sort(zpos);
+        for (ZPos z : zpos) {
+            z.create();
+        }
         renderer.render();
-
         viewer.repaint();
     }
 }
