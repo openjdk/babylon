@@ -65,15 +65,15 @@ public class F32Mesh3D {
                 triSumIdx.set(F32Vec3.addVec3(F32Vec3.f32Vec3Pool.idx(triSumIdx.get()), face.centerVec3Idx).idx());
             }
         });
-        int meshCenterVec3 = F32Vec3.divScaler(F32Vec3.f32Vec3Pool.idx(triSumIdx.get()), faces.size()).idx();
+        var meshCenterVec3 = F32Vec3.divScaler(F32Vec3.f32Vec3Pool.idx(triSumIdx.get()), faces.size());
         faces.forEach(face ->{
-            int v0CenterDiff = F32Vec3.subVec3(F32Vec3.f32Vec3Pool.idx(meshCenterVec3),face.v0VecIdx) .idx();
-            float normDotProd = F32Vec3.dotProd(F32Vec3.f32Vec3Pool.idx(v0CenterDiff), face.normalIdx);
+            var v0CenterDiff = F32Vec3.subVec3(meshCenterVec3,face.v0VecIdx);
+            float normDotProd = F32Vec3.dotProd(v0CenterDiff, face.normalIdx);
             if (normDotProd >0f) { // the normal from the center from the triangle was pointing out, so re wind it
                 F32Triangle3D.rewind(face.triangle);
             }
         });
-        cube(F32Vec3.getX(meshCenterVec3),F32Vec3.getY(meshCenterVec3), F32Vec3.getZ(meshCenterVec3), .1f );
+        cube(meshCenterVec3.x(),meshCenterVec3.y(), meshCenterVec3.z(), .1f );
     }
 
     public F32Mesh3D quad(int v0, int v1, int v2, int v3, int rgb) {
