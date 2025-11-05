@@ -109,15 +109,15 @@ public interface F32Triangle3D {
 
 
     static F32Triangle3D addVec3(F32Triangle3D i, int v3) {
-        return f32Triangle3DPool.of(F32Vec3.addVec3(i.v0().idx(), v3), F32Vec3.addVec3(i.v1().idx(), v3), F32Vec3.addVec3(i.v2().idx(), v3), i.rgb());
+        return f32Triangle3DPool.of(F32Vec3.addVec3(i.v0(), F32Vec3.f32Vec3Pool.idx(v3)), F32Vec3.addVec3(i.v1(), F32Vec3.f32Vec3Pool.idx(v3)), F32Vec3.addVec3(i.v2(), F32Vec3.f32Vec3Pool.idx(v3)), i.rgb());
     }
 
      static F32Triangle3D mulScaler(F32Triangle3D i, float s) {
-        return f32Triangle3DPool.of(F32Vec3.mulScaler(i.v0().idx(), s), F32Vec3.mulScaler(i.v1().idx(), s), F32Vec3.mulScaler(i.v2().idx(), s), i.rgb());
+        return f32Triangle3DPool.of(F32Vec3.mulScaler(i.v0(), s), F32Vec3.mulScaler(i.v1(), s), F32Vec3.mulScaler(i.v2(), s), i.rgb());
     }
 
      static F32Triangle3D addScaler(F32Triangle3D i, float s) {
-        return f32Triangle3DPool.of(F32Vec3.addScaler(i.v0().idx(), s), F32Vec3.addScaler(i.v1().idx(), s), F32Vec3.addScaler(i.v2().idx(), s), i.rgb());
+        return f32Triangle3DPool.of(F32Vec3.addScaler(i.v0(), s), F32Vec3.addScaler(i.v1(), s), F32Vec3.addScaler(i.v2(), s), i.rgb());
     }
 
      static int getCentre(F32Triangle3D i){// the average of all the vertices
@@ -125,19 +125,19 @@ public interface F32Triangle3D {
     }
 
      static int getVectorSum(F32Triangle3D i){// the sum of all the vertices
-        return F32Vec3.addVec3(F32Vec3.addVec3(i.v0().idx(), i.v1().idx()),i.v2().idx());
+        return F32Vec3.addVec3(F32Vec3.addVec3(i.v0(), i.v1()),i.v2()).idx();
     }
 
 
      static int normal(F32Triangle3D i) {
-        int line1Vec3 = F32Vec3.subVec3(i.v1().idx(), i.v0().idx());
-        int line2Vec3 = F32Vec3.subVec3(i.v2().idx(),  i.v0().idx());
-        return F32Vec3.crossProd(line1Vec3, line2Vec3);
+        var line1Vec3 = F32Vec3.subVec3(i.v1(), i.v0());
+        var line2Vec3 = F32Vec3.subVec3(i.v2(),  i.v0());
+        return F32Vec3.crossProd(line1Vec3, line2Vec3).idx();
     }
 
      static int normalSumOfSquares(F32Triangle3D i) {
         int normalVec3 = normal(i);
-        return F32Vec3.divScaler(F32Vec3.f32Vec3Pool.idx(normalVec3),  F32Vec3.sumOfSquares(normalVec3)).idx();
+        return F32Vec3.divScaler(F32Vec3.f32Vec3Pool.idx(normalVec3),  F32Vec3.sumOfSquares(F32Vec3.f32Vec3Pool.idx(normalVec3))).idx();
     }
 
     record F32Triangle3DImpl(F32Triangle3D id) implements F32Triangle3D {
@@ -153,8 +153,8 @@ public interface F32Triangle3D {
             return new F32Triangle3DImpl(mulMat4(id, m));
             }
 
-            public F32Triangle3DImpl add(F32Vec3.F32Vec3Impl v) {
-                return new F32Triangle3DImpl(addVec3(id, v.id().idx()));
+            public F32Triangle3DImpl add(F32Vec3 v) {
+                return new F32Triangle3DImpl(addVec3(id, v.idx()));
 
             }
 

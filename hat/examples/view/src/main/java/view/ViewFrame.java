@@ -66,11 +66,11 @@ public class ViewFrame extends JFrame {
 
     static final float thetaDelta = 0.0002f;
 
-    F32Vec3.F32Vec3Impl cameraVec3Old;
+    F32Vec3 cameraVec3Old;
    // F32Vec3.vec3 lookDirVec3Old;
     F32Matrix4x4 projF32Mat4x4Old;
    // F32Vec3.vec3 centerVec3Old;
-    F32Vec3.F32Vec3Impl moveAwayVec3Old;
+    F32Vec3 moveAwayVec3Old;
 
     ModelHighWaterMark markOld;
 

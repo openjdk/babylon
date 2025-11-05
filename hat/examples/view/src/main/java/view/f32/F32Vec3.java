@@ -79,64 +79,44 @@ public interface F32Vec3 {
             o = F32Vec3.divScaler(o, w);
         }
         return o;
-
     }
 
-    static int mulScaler(int i, float s) {
-        i *= f32Vec3Pool.stride;
-        return f32Vec3Pool.of(f32Vec3Pool.entries[i +F32Vec3Pool.X] * s, f32Vec3Pool.entries[i +F32Vec3Pool.Y] * s, f32Vec3Pool.entries[i +F32Vec3Pool.Z] * s).idx;
+    static F32Vec3 mulScaler(F32Vec3 i, float s) {
+        return f32Vec3Pool.of(i.x() * s, i.y() * s, i.z() * s);
     }
 
-    static int addScaler(int i, float s) {
-        i *= f32Vec3Pool.stride;
-        return f32Vec3Pool.of(f32Vec3Pool.entries[i +F32Vec3Pool.X] + s, f32Vec3Pool.entries[i +F32Vec3Pool.Y] + s, f32Vec3Pool.entries[i +F32Vec3Pool.Z] + s).idx;
+    static F32Vec3 addScaler(F32Vec3 i, float s) {
+
+        return f32Vec3Pool.of(i.x() + s, i.y() + s, i.z() + s);
     }
+
     static F32Vec3 divScaler(F32Vec3 i, float s) {
 
         return f32Vec3Pool.of(i.x() / s, i.y() / s, i.z() / s);
     }
-   // static int divScaler(int i, float s) {
-     //   i *= f32Vec3Pool.stride;
-       // return f32Vec3Pool.of(f32Vec3Pool.entries[i +F32Vec3Pool.X] / s, f32Vec3Pool.entries[i +F32Vec3Pool.Y] / s, f32Vec3Pool.entries[i +F32Vec3Pool.Z] / s).idx;
-   // }
 
-     static int addVec3(int lhs, int rhs) {
-        lhs *= f32Vec3Pool.stride;
-        rhs *= f32Vec3Pool.stride;
-        return f32Vec3Pool.of(f32Vec3Pool.entries[lhs +F32Vec3Pool.X] + f32Vec3Pool.entries[rhs +F32Vec3Pool.X], f32Vec3Pool.entries[lhs +F32Vec3Pool.Y] +
-                f32Vec3Pool.entries[rhs +F32Vec3Pool.Y], f32Vec3Pool.entries[lhs +F32Vec3Pool.Z] + f32Vec3Pool.entries[rhs +F32Vec3Pool.Z]).idx;
-    }
+    static F32Vec3 addVec3(F32Vec3 lhs, F32Vec3 rhs) {
+        return f32Vec3Pool.of(lhs.x() + rhs.x(), lhs.y() + rhs.y(), lhs.z() + rhs.z());  }
 
-    static int subVec3(int lhs, int rhs) {
-        lhs *= f32Vec3Pool.stride;
-        rhs *= f32Vec3Pool.stride;
-        return f32Vec3Pool.of(f32Vec3Pool.entries[lhs +F32Vec3Pool.X] - f32Vec3Pool.entries[rhs +F32Vec3Pool.X], f32Vec3Pool.entries[lhs +F32Vec3Pool.Y]
-                - f32Vec3Pool.entries[rhs +F32Vec3Pool.Y], f32Vec3Pool.entries[lhs +F32Vec3Pool.Z] - f32Vec3Pool.entries[rhs +F32Vec3Pool.Z]).idx;
+    static F32Vec3 subVec3(F32Vec3 lhs, F32Vec3 rhs) {
+        return f32Vec3Pool.of(lhs.x() - rhs.x(), lhs.y() - rhs.y(), lhs.z() - rhs.z());
     }
-     static int mulVec3(int lhs, int rhs) {
-        lhs *= f32Vec3Pool.stride;
-        rhs *= f32Vec3Pool.stride;
-        return f32Vec3Pool.of(f32Vec3Pool.entries[lhs +F32Vec3Pool.X] * f32Vec3Pool.entries[rhs +F32Vec3Pool.X], f32Vec3Pool.entries[lhs +F32Vec3Pool.Y]
-                * f32Vec3Pool.entries[rhs +F32Vec3Pool.Y], f32Vec3Pool.entries[lhs +F32Vec3Pool.Z] * f32Vec3Pool.entries[rhs +F32Vec3Pool.Z]).idx;
-    }
-    static int divVec3(int lhs, int rhs) {
-        lhs *= f32Vec3Pool.stride;
-        rhs *= f32Vec3Pool.stride;
-        return f32Vec3Pool.of(f32Vec3Pool.entries[lhs +F32Vec3Pool.X] / f32Vec3Pool.entries[rhs +F32Vec3Pool.X],
-                f32Vec3Pool.entries[lhs +F32Vec3Pool.Y] / f32Vec3Pool.entries[rhs +F32Vec3Pool.Y], f32Vec3Pool.entries[lhs +F32Vec3Pool.Z] / f32Vec3Pool.entries[rhs +F32Vec3Pool.Z]).idx;
+    static F32Vec3 mulVec3(F32Vec3 lhs, F32Vec3 rhs) {
+        return f32Vec3Pool.of(lhs.x() * rhs.x(), lhs.y() * rhs.y(), lhs.z() * rhs.z());
     }
 
-
-    static float sumOfSquares(int i) {
-        i *= f32Vec3Pool.stride;
-        return f32Vec3Pool.entries[i +F32Vec3Pool.X] * f32Vec3Pool.entries[i +F32Vec3Pool.X] + f32Vec3Pool.entries[i +F32Vec3Pool.Y] * f32Vec3Pool.entries[i +F32Vec3Pool.Y] + f32Vec3Pool.entries[i +F32Vec3Pool.Z] * f32Vec3Pool.entries[i +F32Vec3Pool.Z];
-    }
-     static float sumOf(int i) {
-        i *= f32Vec3Pool.stride;
-        return f32Vec3Pool.entries[i +F32Vec3Pool.X]  + f32Vec3Pool.entries[i +F32Vec3Pool.Y] + f32Vec3Pool.entries[i +F32Vec3Pool.Z] ;
+    static F32Vec3 divVec3(F32Vec3 lhs, F32Vec3 rhs) {
+        return f32Vec3Pool.of(lhs.x() / rhs.x(), lhs.y() / rhs.y(), lhs.z() / rhs.z());
     }
 
-    static float hypot(int i) {
+    static float sumOfSquares(F32Vec3 i) {
+        return i.x() * i.x() + i.y() * i.y() + i.z() * i.z();
+    }
+     static float sumOf(F32Vec3 i) {
+        return i.x()  + i.y() + i.z() ;
+    }
+
+    static float hypot(F32Vec3 i) {
         return (float) Math.sqrt(sumOfSquares(i));
     }
 
@@ -156,13 +136,11 @@ public interface F32Vec3 {
 
      */
 
-    static int crossProd(int lhs, int rhs) {
-        lhs *= f32Vec3Pool.stride;
-        rhs *= f32Vec3Pool.stride;
+    static F32Vec3 crossProd(F32Vec3 lhs, F32Vec3 rhs) {
         return f32Vec3Pool.of(
-                f32Vec3Pool.entries[lhs +F32Vec3Pool.Y] * f32Vec3Pool.entries[rhs +F32Vec3Pool.Z] - f32Vec3Pool.entries[lhs +F32Vec3Pool.Z] * f32Vec3Pool.entries[rhs +F32Vec3Pool.X],
-                f32Vec3Pool.entries[lhs +F32Vec3Pool.Z] * f32Vec3Pool.entries[rhs +F32Vec3Pool.X] - f32Vec3Pool.entries[lhs +F32Vec3Pool.X] * f32Vec3Pool.entries[rhs +F32Vec3Pool.Z],
-                f32Vec3Pool.entries[lhs +F32Vec3Pool.X] * f32Vec3Pool.entries[rhs +F32Vec3Pool.Y] - f32Vec3Pool.entries[lhs +F32Vec3Pool.Y] * f32Vec3Pool.entries[rhs +F32Vec3Pool.X]).idx;
+                lhs.y()  * rhs.z() - lhs.z() * rhs.x(),
+                lhs.z() * rhs.x() - lhs.x() * rhs.z(),
+                lhs.x() * rhs.y() - lhs.y() * rhs.x());
 
     }
 
@@ -180,18 +158,8 @@ public interface F32Vec3 {
 
      */
 
-    static float dotProd(int lhs, int rhs) {
-        lhs *= f32Vec3Pool.stride;
-        rhs *= f32Vec3Pool.stride;
-
-       return f32Vec3Pool.entries[lhs +F32Vec3Pool.X] * f32Vec3Pool.entries[rhs +F32Vec3Pool.X] + f32Vec3Pool.entries[lhs +F32Vec3Pool.Y] * f32Vec3Pool.entries[rhs +F32Vec3Pool.Y] +
-               f32Vec3Pool.entries[lhs +F32Vec3Pool.Z] * f32Vec3Pool.entries[rhs +F32Vec3Pool.Z];
-
-    }
-
-    static String asString(int i) {
-        i *= f32Vec3Pool.stride;
-        return f32Vec3Pool.entries[i +F32Vec3Pool.X] + "," + f32Vec3Pool.entries[i +F32Vec3Pool.Y] + "," + f32Vec3Pool.entries[i +F32Vec3Pool.Z];
+    static float dotProd(F32Vec3 lhs, F32Vec3 rhs) {
+       return lhs.x() * rhs.x() + lhs.y() * rhs.y() +lhs.z() * rhs.z();
     }
 
      static float getX(int i) {
@@ -212,25 +180,21 @@ public interface F32Vec3 {
         public static F32Vec3Impl of(F32Vec3 id){
             return new F32Vec3Impl(id);
         }
-        public static F32Vec3Impl of(float x, float y, float z){
-            return of(f32Vec3Pool.idx(F32Vec3.f32Vec3Pool.of(x,y,z).idx()));//Pool.Idx.of(F32Vec3.createVec3(x,y,z)));
+        public static F32Vec3 of(float x, float y, float z){
+            return of(f32Vec3Pool.idx(F32Vec3.f32Vec3Pool.of(x,y,z).idx()));
         }
 
-        public F32Vec3Impl sub(F32Vec3Impl v) {
-            return F32Vec3Impl.of(f32Vec3Pool.idx(subVec3(id.idx(), v.id.idx())));//of(Pool.Idx.of(subVec3(id.idx(), v.id.idx())));
+        public F32Vec3Impl sub(F32Vec3 v) {
+            return F32Vec3Impl.of(f32Vec3Pool.idx(subVec3(id, v).idx()));//of(Pool.Idx.of(subVec3(id.idx(), v.id.idx())));
         }
+
         public F32Vec3Impl add(F32Vec3Impl v) {
-            return F32Vec3Impl.of(f32Vec3Pool.idx(addVec3(id.idx(),v.id.idx())));//Pool.Idx.of(addVec3(id.idx(), v.id.idx())));
+            return F32Vec3Impl.of(f32Vec3Pool.idx(addVec3(id,v.id).idx()));//Pool.Idx.of(addVec3(id.idx(), v.id.idx())));
         }
-        public F32Vec3Impl mul(F32Vec3Impl v) {
-            return F32Vec3Impl.of(f32Vec3Pool.idx(mulVec3(id.idx(), v.id.idx())));//Pool.Idx.of(mulVec3(id.idx(), v.id.idx())));
-        }
+
 
         public float dotProd(F32Vec3Impl v){
-            return F32Vec3.dotProd(id.idx(), v.id.idx());
-        }
-        public float sumOf(){
-            return F32Vec3.sumOf(id.idx());
+            return F32Vec3.dotProd(id, v.id);
         }
 
         public float x() {
