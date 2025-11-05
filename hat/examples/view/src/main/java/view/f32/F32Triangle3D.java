@@ -43,10 +43,11 @@ public interface F32Triangle3D {
     }
 
     class F32Triangle3DPool extends Pool<F32Triangle3DPool> {
-       static  int V0 = 0;
-       static int V1 = 1;
-       static  int V2 = 2;
-       static  int RGB = 3;
+        static  int V0 = 0;
+        static int V1 = 1;
+        static  int V2 = 2;
+        static  int RGB = 3;
+
         public record Idx(F32Triangle3DPool pool, int idx) implements Pool.Idx<F32Triangle3DPool>,F32Triangle3D {
             int v0Idx(){return pool.stride * idx+V0;}
            public F32Vec3 v0(){return pool.entries[v0Idx()];}
@@ -75,16 +76,10 @@ public interface F32Triangle3D {
             entries[i.v0Idx()] = v0;
             entries[i.v1Idx()] = v1;
             entries[i.v2Idx()] = v2;
-            if (rgb == 0){
-                throw new IllegalStateException("rgb = 0");
-            }
             rgbs[i.rgbIdx()] = rgb;
             return i;
         }
         public F32Triangle3D of(int v0Idx, int v1Idx, int v2Idx, int rgb) {
-            if (rgb == 0){
-                throw new IllegalStateException("rgb is 0");
-            }
           return of(F32Vec3.f32Vec3Pool.idx(v0Idx),F32Vec3.f32Vec3Pool.idx(v1Idx),F32Vec3.f32Vec3Pool.idx(v2Idx),rgb);
         }
     }
@@ -108,35 +103,15 @@ public interface F32Triangle3D {
         return i;
     }
 
-   //  static F32Triangle3D of(F32Vec3 v0, F32Vec3 v1, F32Vec3 v2, int rgb) {
-     //    var i = f32Triangle3DPool.idx(f32Triangle3DPool.count++);//pool.count * pool.stride
-       //  f32Triangle3DPool.entries[i.v0Idx()] = v0;
-       //  f32Triangle3DPool.entries[i.v1Idx()] = v1;
-       //  f32Triangle3DPool.entries[i.v2Idx()] = v2;
-       //  f32Triangle3DPool.rgbs[i.rgbIdx()] = rgb;
-       // return i;
-   // }
-   // static F32Triangle3D of(int v0, int v1, int v2, int rgb) {
-     // return f32Triangle3DPool.of(F32Vec3.F32Vec3Impl.of(v0),F32Vec3.F32Vec3Impl.of(v1),F32Vec3.F32Vec3Impl.of(v2),rgb);
-
-   // }
-
-
      static F32Triangle3D mulMat4(F32Triangle3D i, F32Matrix4x4.F32Matrix4x4Pool.Idx  m4) {
         return f32Triangle3DPool.of(F32Vec3.mulMat4(i.v0().idx(), m4), F32Vec3.mulMat4(i.v1().idx(), m4), F32Vec3.mulMat4(i.v2().idx(), m4), i.rgb());
     }
     static F32Triangle3D mulMat4(F32Triangle3D i, F32Matrix4x4  m4) {
-        if (i.rgb()==0){
-            throw new IllegalStateException("i.rgb == 0");
-        }
         return f32Triangle3DPool.of(F32Vec3.mulMat4(i.v0().idx(), m4), F32Vec3.mulMat4(i.v1().idx(), m4), F32Vec3.mulMat4(i.v2().idx(), m4), i.rgb());
     }
 
 
     static F32Triangle3D addVec3(F32Triangle3D i, int v3) {
-        if (i.rgb() == 0){
-            throw new IllegalStateException("i.rgb() == 0");
-        }
         return f32Triangle3DPool.of(F32Vec3.addVec3(i.v0().idx(), v3), F32Vec3.addVec3(i.v1().idx(), v3), F32Vec3.addVec3(i.v2().idx(), v3), i.rgb());
     }
 
@@ -178,16 +153,10 @@ public interface F32Triangle3D {
             }
 
             public F32Triangle3DImpl mul(F32Matrix4x4 m) {
-                if (id.rgb() == 0){
-                    throw new RuntimeException("rgb() is 0");
-                }
             return new F32Triangle3DImpl(mulMat4(id, m));
             }
 
             public F32Triangle3DImpl add(F32Vec3.F32Vec3Impl v) {
-                if (id.rgb() == 0){
-                    throw new RuntimeException("rgb() is 0");
-                }
                 return new F32Triangle3DImpl(addVec3(id, v.id().idx()));
 
             }
