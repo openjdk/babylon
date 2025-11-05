@@ -41,22 +41,26 @@ public class FERInference {
 
     private final OnnxRuntime runtime;
 
-    public FERInference() {
+	public FERInference() {
         runtime = OnnxRuntime.getInstance();
     }
 
-    public float[] analyzeImage(Arena arena, OnnxProvider provider, URL url, boolean useCondensedModel) throws Exception {
+    public float[] analyzeImage(Arena arena, OnnxRuntime.SessionOptions sessionOptions, URL url, boolean isCondensed) throws Exception {
         float[] imageData = transformToFloatArray(url);
-        var sessionOptions = runtime.createSessionOptions(arena);
-        if (Objects.nonNull(provider)) {
-            runtime.appendExecutionProvider(arena, sessionOptions, provider);
-        }
-        FERModel ferModel = new FERModel(arena);
-        float[] rawScores = ferModel.classify(imageData, sessionOptions, useCondensedModel);
+		FERModel ferModel = new FERModel(arena);
+        float[] rawScores = ferModel.classify(imageData, sessionOptions, isCondensed);
         return rawScores;
     }
 
-    private float[] transformToFloatArray(URL imgUrl) throws IOException {
+	public OnnxRuntime.SessionOptions prepareSessionOptions(Arena arena, OnnxProvider provider) {
+		var sessionOptions = runtime.createSessionOptions(arena);
+		if (Objects.nonNull(provider)) {
+			runtime.appendExecutionProvider(arena, sessionOptions, provider);
+		}
+		return sessionOptions;
+	}
+
+	private float[] transformToFloatArray(URL imgUrl) throws IOException {
         BufferedImage src = ImageIO.read(imgUrl);
         if (src == null) {
             throw new IOException("Unsupported or corrupt image: " + imgUrl);
