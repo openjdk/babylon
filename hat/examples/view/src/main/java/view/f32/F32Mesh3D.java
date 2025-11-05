@@ -24,22 +24,19 @@
  */
 package view.f32;
 
+import hat.util.StreamMutable;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class F32Mesh3D {
     String name;
-
-    int triSum;
-
     private F32Mesh3D(String name){
         this.name = name;
     }
     public static F32Mesh3D of(String name){
         return new F32Mesh3D(name);
     }
-    final int MAX = 400;
-
     public record Face ( F32Triangle3D.F32Triangle3DPool.Idx triangle, int centerVec3Idx, int normalIdx, int v0VecIdx){
         static Face of (F32Triangle3D.F32Triangle3DPool.Idx tri){
            return  new Face(tri,  F32Triangle3D.getCentre(tri),F32Triangle3D.normal(tri),F32Triangle3D.f32Triangle3DPool.entries[tri.v0()]);
@@ -52,14 +49,23 @@ public class F32Mesh3D {
 
     public Face tri(int v0Idx, int v1Idx, int v2Idx, int rgb) {
         Face face =Face.of(F32Triangle3D.of(v0Idx, v1Idx, v2Idx, rgb));
-        triSum = (faces.isEmpty())?face.centerVec3Idx: F32Vec3.addVec3(triSum, face.centerVec3Idx);
         faces.add(face);
         return face;
     }
 
 
     public void fin(){
-        int meshCenterVec3 = F32Vec3.divScaler(triSum, faces.size());
+        var  triSumIdx = StreamMutable.of(0);
+        var first  = StreamMutable.of(true);
+        faces.forEach(face ->{
+            if (first.get().equals(true)){
+                triSumIdx.set(face.centerVec3Idx);
+                first.set(false);
+            }else {
+                triSumIdx.set(F32Vec3.addVec3(triSumIdx.get(), face.centerVec3Idx));
+            }
+        });
+        int meshCenterVec3 = F32Vec3.divScaler(triSumIdx.get(), faces.size());
         faces.forEach(face ->{
             int v0CenterDiff = F32Vec3.subVec3(meshCenterVec3,face.v0VecIdx );
             float normDotProd = F32Vec3.dotProd(v0CenterDiff, face.normalIdx);
@@ -217,7 +223,7 @@ http://paulbourke.net/dataformats/obj/
     }
 
     public  F32Vec3.F32Vec3Pool.Idx  vec3(float x, float y, float z) {
-        F32Vec3.F32Vec3Pool.Idx newVec = F32Vec3.f32Vec3Pool.of(x,y, z);
+        var newVec = F32Vec3.f32Vec3Pool.of(x,y, z);
         vecEntries.add(newVec);
         return newVec;
     }
