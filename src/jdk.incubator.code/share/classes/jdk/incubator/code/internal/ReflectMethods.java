@@ -1046,7 +1046,7 @@ public class ReflectMethods extends TreeTranslator {
                         }
                     }
                 }
-                case INTERFACE, CLASS, ENUM -> {
+                case INTERFACE, CLASS, RECORD, ENUM -> {
                     result = null;
                 }
                 default -> {
@@ -1106,7 +1106,7 @@ public class ReflectMethods extends TreeTranslator {
                             }
                         }
                     }
-                    case INTERFACE, CLASS, ENUM -> {
+                    case INTERFACE, CLASS, RECORD, ENUM -> {
                         result = null;
                     }
                     default -> {

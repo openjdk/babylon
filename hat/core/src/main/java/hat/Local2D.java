@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,31 +22,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package hat;
 
-package view;
+public record Local2D(int x, int y) implements Range {
 
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
-
-public class View {
-    final BufferedImage image;
-    int[] offscreenRgb;
-
-    private View(int width, int height) {
-        image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        offscreenRgb = new int[((DataBufferInt) image.getRaster().getDataBuffer()).getData().length];
+    @Override
+    public int getX() {
+        return x;
     }
 
-    static View of(int width, int height){
-        return new View(width,height);
+    @Override
+    public int getY() {
+        return y;
     }
 
-    void paint(Graphics2D g) {
-        g.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), null);
+    @Override
+    public int getZ() {
+        return 1;
     }
 
-    void update() {
-        System.arraycopy(offscreenRgb, 0, ((DataBufferInt) image.getRaster().getDataBuffer()).getData(), 0, offscreenRgb.length);
+    @Override
+    public int getDims() {
+        return 2;
+    }
+
+    @Override
+    public String toString() {
+        return "<Local2D: " + getX() + "," + getY() + ">";
     }
 }

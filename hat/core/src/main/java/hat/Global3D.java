@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,14 +22,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view.f32;
+package hat;
 
-public class IndexPool extends Pool {
+public record Global3D(int x, int y, int z) implements Range {
+    @Override
+    public int getX() {
+        return x;
+    }
 
-    public final int entries[];
+    @Override
+    public int getY() {
+        return y;
+    }
 
-    IndexPool(int stride, int max) {
-      super(stride,max);
-        this.entries = new int[max * stride];
+    @Override
+    public int getZ() {
+        return z;
+    }
+
+    @Override
+    public int getDims() {
+        return 3;
+    }
+
+    @Override
+    public String toString() {
+        return "<Global3D: " + getX() + "," + getY() + "." + getZ() + ">";
     }
 }

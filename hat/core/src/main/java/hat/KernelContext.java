@@ -24,9 +24,6 @@
  */
 package hat;
 
-import hat.buffer.F32Array;
-import hat.buffer.S32Array;
-
 /**
  * Created by a dispatch call to a kernel from within a Compute method and 'conceptually' passed to a kernel.
  * <p>
@@ -42,16 +39,6 @@ import hat.buffer.S32Array;
  * @author Gary Frost
  */
 public class KernelContext {
-
-    public final NDRange ndRange;
-
-    public int x;    // proposal to rename to gix
-    public int y;    // proposal to rename to giy
-    public int z;    // proposal to rename to giz
-
-    final public int maxX;
-    final public int maxY;
-    final public int maxZ;
 
     // Global accesses
     public int gix;
@@ -79,30 +66,21 @@ public class KernelContext {
 
     final int dimensions;
 
-    private ComputeRange computeRange;
+    private NDRange ndRange;
 
-    public KernelContext(NDRange ndRange, ComputeRange computeRange) {
+    public KernelContext(NDRange ndRange) {
         this.ndRange = ndRange;
-        this.computeRange = computeRange;
-        this.maxX = computeRange.getGlobalMesh().getX();
-        this.maxY = computeRange.getGlobalMesh().getY();
-        this.maxZ = computeRange.getGlobalMesh().getZ();
-        this.gsx = computeRange.getGlobalMesh().getX();
-        this.gsy = computeRange.getGlobalMesh().getY();
-        this.gsz = computeRange.getGlobalMesh().getZ();
-        this.dimensions = computeRange.getGlobalMesh().getDims();
+        this.gsx = ndRange.getGlobal().getX();
+        this.gsy = ndRange.getGlobal().getY();
+        this.gsz = ndRange.getGlobal().getZ();
+        this.dimensions = ndRange.getGlobal().getDims();
     }
 
     /**
      * 1D Kernel
-     * @param ndRange {@link NDRange}
      * @param maxX Global number of threads for the first dimension (1D)
      */
-    public KernelContext(NDRange ndRange, int maxX) {
-        this.ndRange = ndRange;
-        this.maxX = maxX;
-        this.maxY = 0;
-        this.maxZ = 0;
+    public KernelContext(int maxX) {
         this.gsx = maxX;
         this.gsy = 0;
         this.gsz = 0;
@@ -111,36 +89,23 @@ public class KernelContext {
 
     /**
      * 1D Kernel
-     * @param ndRange {@link NDRange}
      * @param maxX Global number of threads for the first dimension (1D)
      * @param maxY Global number of threads for the second dimension (2D)
      */
-    public KernelContext(NDRange ndRange, int maxX, int maxY) {
-        this.ndRange = ndRange;
-        this.maxX = maxX;
-        this.maxY = maxY;
-        this.maxZ = 0;
-
+    public KernelContext(int maxX, int maxY) {
         this.gsx = maxX;
         this.gsy = maxY;
         this.gsz = 0;
-
         this.dimensions = 2;
     }
 
     /**
      * 1D Kernel
-     * @param ndRange {@link NDRange}
      * @param maxX Global number of threads for the first dimension (1D)
      * @param maxY Global number of threads for the second dimension (2D)
      * @param maxZ Global number of threads for the second dimension (3D)
      */
-    public KernelContext(NDRange ndRange, int maxX, int maxY, int maxZ) {
-        this.ndRange = ndRange;
-        this.maxX = maxX;
-        this.maxY = maxY;
-        this.maxZ = maxZ;
-
+    public KernelContext(int maxX, int maxY, int maxZ) {
         this.gsx = maxX;
         this.gsy = maxY;
         this.gsz = maxZ;
@@ -152,19 +117,12 @@ public class KernelContext {
         return this.dimensions;
     }
 
-    public ComputeRange getComputeRange() {
-        return this.computeRange;
-    }
-
-    public boolean hasComputeRange() {
-        return this.computeRange != null;
+    public NDRange getNdRange() {
+        return this.ndRange;
     }
 
     public boolean hasLocalMesh() {
-        if (hasComputeRange()) {
-            return this.computeRange.getLocalMesh() != null;
-        }
-        return false;
+        return this.ndRange.getLocal() != null;
     }
 
     public void barrier() {

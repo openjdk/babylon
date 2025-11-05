@@ -26,7 +26,6 @@ package hat.backend;
 
 import hat.ComputeContext;
 import hat.KernelContext;
-import hat.NDRange;
 import hat.buffer.Buffer;
 import hat.ifacemapper.BoundSchema;
 import hat.ifacemapper.SegmentMapper;
@@ -57,7 +56,7 @@ public class SpirvBackend extends JavaBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
-        levelZero.dispatchKernel(kernelCallGraph, ndRange, args);
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+        levelZero.dispatchKernel(kernelCallGraph, kernelContext, args);
     }
 }

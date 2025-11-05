@@ -26,8 +26,8 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
+import hat.NDRange;
+import hat.Global1D;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -46,17 +46,17 @@ public class TestConstants {
     @CodeReflection
     public static void vectorWithConstants(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
         final int BM = 100;
-        if (kc.x < kc.gsx) {
-            final int valueA = arrayA.array(kc.x);
-            final int valueB = arrayB.array(kc.x);
-            arrayC.array(kc.x, (BM + valueA + valueB));
+        if (kc.gix < kc.gsx) {
+            final int valueA = arrayA.array(kc.gix);
+            final int valueB = arrayB.array(kc.gix);
+            arrayC.array(kc.gix, (BM + valueA + valueB));
         }
     }
 
     @CodeReflection
     public static void vectorWithConstants(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(arrayA.length()));
-        cc.dispatchKernel(computeRange, kc -> vectorWithConstants(kc, arrayA, arrayB, arrayC));
+        NDRange ndRange = NDRange.of(new Global1D(arrayA.length()));
+        cc.dispatchKernel(ndRange, kc -> vectorWithConstants(kc, arrayA, arrayB, arrayC));
     }
 
     /**
@@ -95,18 +95,18 @@ public class TestConstants {
 
     @CodeReflection
     public static void vectorWithConstants2(@RO KernelContext kc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        if (kc.x < kc.gsx) {
-            final int valueA = arrayA.array(kc.x);
-            final int valueB = arrayB.array(kc.x);
+        if (kc.gix < kc.gsx) {
+            final int valueA = arrayA.array(kc.gix);
+            final int valueB = arrayB.array(kc.gix);
             final int result = compute(valueA, valueB);
-            arrayC.array(kc.x, result);
+            arrayC.array(kc.gix, result);
         }
     }
 
     @CodeReflection
     public static void vectorWithConstants2(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @RW S32Array arrayC) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(arrayA.length()));
-        cc.dispatchKernel(computeRange, kc -> vectorWithConstants2(kc, arrayA, arrayB, arrayC));
+        NDRange ndRange = NDRange.of(new Global1D(arrayA.length()));
+        cc.dispatchKernel(ndRange, kc -> vectorWithConstants2(kc, arrayA, arrayB, arrayC));
     }
 
     /**

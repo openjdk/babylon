@@ -22,34 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package view;
+package view.f32;
 
-import view.f32.F32Matrix4x4;
-import view.f32.F32Triangle2D;
-import view.f32.F32Triangle3D;
-import view.f32.F32Vec2;
-import view.f32.F32Vec3;
-
-record ModelHighWaterMark(
+public record ModelHighWaterMark(
         int markedTriangles3D,
         int markedTriangles2D,
         int markedVec2,
         int markedVec3,
         int markedMat4) {
 
-    ModelHighWaterMark() {
-        this(F32Triangle3D.pool.count, F32Triangle2D.arr.size(), F32Vec2.arr.size(), F32Vec3.pool.count, F32Matrix4x4.pool.count);
+    public ModelHighWaterMark() {
+        this(F32Triangle3D.f32Triangle3DPool.count, F32Triangle2D.f32Triangle2DPool.count, F32Vec2.f32Vec2Pool.count, F32Vec3.f32Vec3Pool.count, F32Matrix4x4.f32matrix4x4Pool.count);
     }
 
-    void resetAll() {
+    public void resetAll() {
         reset3D();
         F32Triangle2D.reset(markedTriangles2D);
         F32Vec2.reset(markedVec2);
     }
 
-    void reset3D() {
-        F32Triangle3D.pool.count = markedTriangles3D;
-        F32Vec3.pool.count = markedVec3;
-        F32Matrix4x4.pool.count = markedMat4;
+    public void reset3D() {
+        F32Triangle3D.f32Triangle3DPool.count = markedTriangles3D;
+        F32Vec3.f32Vec3Pool.count = markedVec3;
+        F32Matrix4x4.f32matrix4x4Pool.count = markedMat4;
     }
 }

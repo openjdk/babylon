@@ -26,12 +26,12 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.ComputeRange;
-import hat.GlobalMesh1D;
-import hat.GlobalMesh2D;
+import hat.NDRange;
+import hat.Global1D;
+import hat.Global2D;
 import hat.KernelContext;
-import hat.LocalMesh1D;
-import hat.LocalMesh2D;
+import hat.Local1D;
+import hat.Local2D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F16;
@@ -56,42 +56,42 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiplyKernel2D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
-            if (kc.y < kc.maxY) {
+        if (kc.gix < kc.gsx) {
+            if (kc.gix < kc.gsy) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + kc.y));
+                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + kc.giy));
                 }
-                matrixC.array(kc.x * size + kc.y, acc);
+                matrixC.array(kc.gix * size + kc.giy, acc);
             }
         }
     }
 
     @CodeReflection
     public static void matrixMultiplyKernel2DLI(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
-            if (kc.y < kc.maxY) {
+        if (kc.gix < kc.gsx) {
+            if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.y * size + k) * matrixB.array(k * size + kc.x));
+                    acc += (matrixA.array(kc.giy * size + k) * matrixB.array(k * size + kc.gix));
                 }
-                matrixC.array(kc.y * size + kc.x, acc);
+                matrixC.array(kc.giy * size + kc.gix, acc);
             }
         }
     }
 
     @CodeReflection
     public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
-            if (kc.y < kc.maxY) {
+        if (kc.gix < kc.gsx) {
+            if (kc.giy < kc.gsy) {
                 F16 acc = F16.of(0.0f);
                 for (int k = 0; k < size; k++) {
-                    F16 valA = matrixA.array(kc.y * size + k);
-                    F16 valB = matrixB.array(k * size + kc.x);
+                    F16 valA = matrixA.array(kc.giy * size + k);
+                    F16 valB = matrixB.array(k * size + kc.gix);
                     F16 valc = F16.mul(valA, valB);
                     acc = F16.add(acc, valc);
                 }
-                F16 resultC = matrixC.array(kc.y * size + kc.x);
+                F16 resultC = matrixC.array(kc.giy * size + kc.gix);
                 resultC.value(acc.value());
             }
         }
@@ -165,38 +165,38 @@ public class TestMatMul {
     public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
         float acc = 0.0f;
         for (int k = 0; k < size; k++) {
-            acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
+            acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
         }
         return acc;
     }
 
     @CodeReflection
     public static void matrixMultiplyKernel1D(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.x * size + k) * matrixB.array(k * size + j));
+                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
                 }
-                matrixC.array(kc.x * size + j, acc);
+                matrixC.array(kc.gix * size + j, acc);
             }
         }
     }
 
     @CodeReflection
     public static void matrixMultiplyKernel1DWithFunctionCalls(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        if (kc.x < kc.maxX) {
+        if (kc.gix < kc.gsx) {
             for (int j = 0; j < size; j++) {
                 float acc = compute(kc, matrixA, matrixB, size, j);
-                matrixC.array(kc.x * size + j, acc);
+                matrixC.array(kc.gix * size + j, acc);
             }
         }
     }
 
     @CodeReflection
     public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(globalSize), new LocalMesh1D(16));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new Global1D(globalSize), new Local1D(16));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
@@ -205,40 +205,40 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int size) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh1D(size));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new Global1D(size));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new Global2D(globalSize, globalSize), new Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new Global2D(globalSize, globalSize), new Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2DLIF16(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @RW F16Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new Global2D(globalSize, globalSize), new Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DLIF16(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW F32Array matrixC, int globalSize) {
-        ComputeRange computeRange = new ComputeRange(new GlobalMesh2D(globalSize, globalSize), new LocalMesh2D(BLOCK_SIZE, BLOCK_SIZE));
-        cc.dispatchKernel(computeRange,
+        NDRange ndRange = NDRange.of(new Global2D(globalSize, globalSize), new Local2D(BLOCK_SIZE, BLOCK_SIZE));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
@@ -284,8 +284,6 @@ public class TestMatMul {
             }
         }
     }
-
-
 
     @HatTest
     public void testMatrixMultiply1D() {
@@ -742,16 +740,16 @@ public class TestMatMul {
 
     @CodeReflection
     public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @RW  F32Array matrixC, final int size) {
-        ComputeRange cudaRange = new ComputeRange(new GlobalMesh2D(256, 256), new LocalMesh2D(16, 16));
-        cc.dispatchKernel(cudaRange,
+        NDRange ndRange = NDRange.of(new Global2D(256, 256), new Local2D(16, 16));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DRegisterTiling(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @CodeReflection
     public static void matrixMultiply2DRegisterTilingVectorized(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @RW  F32ArrayPadded matrixC, final int size) {
-        ComputeRange cudaRange = new ComputeRange(new GlobalMesh2D(256, 256), new LocalMesh2D(16, 16));
-        cc.dispatchKernel(cudaRange,
+        NDRange ndRange = NDRange.of(new Global2D(256, 256), new Local2D(16, 16));
+        cc.dispatchKernel(ndRange,
                 kc -> matrixMultiplyKernel2DRegisterTilingVectorized(kc, matrixA, matrixB, matrixC, size)
         );
     }

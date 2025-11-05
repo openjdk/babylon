@@ -28,7 +28,7 @@ package hat.backend.jextracted;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.Config;
-import hat.NDRange;
+import hat.KernelContext;
 //import hat.backend.ffi.C99FFIBackend;
 import hat.callgraph.KernelCallGraph;
 import hat.ifacemapper.Schema;
@@ -66,7 +66,7 @@ public class OpenCLBackend extends C99JExtractedBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
         //System.out.println("OpenCL backend dispatching kernel " + kernelCallGraph.entrypoint.method);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createCode(kernelCallGraph, new OpenCLHatKernelBuilder(), args);
@@ -79,7 +79,7 @@ public class OpenCLBackend extends C99JExtractedBackend {
                 throw new IllegalStateException("opencl failed to compile ");
             }
         });
-        compiledKernel.dispatch(ndRange,args);
+        compiledKernel.dispatch(kernelContext,args);
 
     }
 }

@@ -517,11 +517,6 @@ public interface F32 {
                         0f, fieldOfViewRadians, 0f, 0f,
                         0f, 0f, far / (far - near), (-far * near) / (far - near),
                         0f, 0f, (-far * near) / (far - near), 0f);
-
-            }
-
-            public static Projection of(Image image, float nearZ, float farZ, float fieldOfViewDeg) {
-                return of(image.getWidth(null), image.getHeight(null), nearZ, farZ, fieldOfViewDeg);
             }
         }
 

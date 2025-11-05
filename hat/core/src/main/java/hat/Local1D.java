@@ -24,7 +24,7 @@
  */
 package hat;
 
-public record LocalMesh1D(int x) implements ThreadMesh {
+public record Local1D(int x) implements Range {
 
     @Override
     public int getX() {
@@ -48,6 +48,6 @@ public record LocalMesh1D(int x) implements ThreadMesh {
 
     @Override
     public String toString() {
-        return "<1D LocalMesh: " + getX() + ">";
+        return "<Local1D: " + getX() + ">";
     }
 }
