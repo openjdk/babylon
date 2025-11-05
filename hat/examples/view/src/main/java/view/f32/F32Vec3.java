@@ -28,38 +28,39 @@ public interface F32Vec3 {
     float x();
     float y();
     float z();
+    int idx();
     default String asString() {
         return x() + "," + y() + "," + z();
     }
 
 
-class F32Vec3Pool extends FloatPool<F32Vec3Pool> {
-    public static int X = 0;
-    public static  int Y = 1;
-    public static  int Z = 2;
-    public record Idx(F32Vec3Pool pool, int idx) implements Pool.Idx<F32Vec3Pool>,F32Vec3{
-        private int xIdx(){return pool.stride * idx+X;}
-        @Override public float x(){return pool.entries[xIdx()];}
-        private int yIdx(){return pool.stride * idx+Y;}
-        @Override public float y(){return pool.entries[yIdx()];}
-        private int  zIdx(){return pool.stride * idx+Z;}
-        @Override public float z(){return pool.entries[zIdx()];}
-    }
-    F32Vec3Pool( int max) {
-        super(3,max);
-    }
-    @Override
-    Idx idx(int idx) {
-        return new Idx(this, idx);
-    }
-    F32Vec3Pool.Idx of(float x, float y, float z) {
-        F32Vec3Pool.Idx i =idx(count++);
-        entries[i.xIdx()] = x;
-        entries[i.yIdx()] = y;
-        entries[i.zIdx()] = z;
-        return i;
-    }
-}
+     class F32Vec3Pool extends FloatPool<F32Vec3Pool> {
+              public static int X = 0;
+              public static  int Y = 1;
+              public static  int Z = 2;
+         public record Idx(F32Vec3Pool pool, int idx) implements Pool.Idx<F32Vec3Pool>,F32Vec3{
+             private int xIdx(){return pool.stride * idx+X;}
+             @Override public float x(){return pool.entries[xIdx()];}
+             private int yIdx(){return pool.stride * idx+Y;}
+             @Override public float y(){return pool.entries[yIdx()];}
+             private int  zIdx(){return pool.stride * idx+Z;}
+             @Override public float z(){return pool.entries[zIdx()];}
+         }
+        F32Vec3Pool( int max) {
+           super(3,max);
+        }
+         @Override
+         Idx idx(int idx) {
+             return new Idx(this, idx);
+         }
+          F32Vec3Pool.Idx of(float x, float y, float z) {
+             F32Vec3Pool.Idx i =idx(count++);
+             entries[i.xIdx()] = x;
+             entries[i.yIdx()] = y;
+             entries[i.zIdx()] = z;
+             return i;
+         }
+     }
     F32Vec3Pool f32Vec3Pool = new F32Vec3Pool( 90000);
 
     // return another vec3 after multiplying by m4
@@ -221,8 +222,8 @@ class F32Vec3Pool extends FloatPool<F32Vec3Pool> {
         i *= f32Vec3Pool.stride;
         return f32Vec3Pool.entries[i +F32Vec3Pool.Z];
     }
-    record F32Vec3Impl(Pool.Idx<F32Vec3Pool> id) implements F32Vec3 {
-        public static F32Vec3Impl of(view.f32.Pool.Idx<F32Vec3Pool> id){
+    record F32Vec3Impl(F32Vec3 id) implements F32Vec3 {
+        public static F32Vec3Impl of(F32Vec3 id){
             return new F32Vec3Impl(id);
         }
         public static F32Vec3Impl of(float x, float y, float z){
@@ -255,5 +256,6 @@ class F32Vec3Pool extends FloatPool<F32Vec3Pool> {
         public float z() {
             return getZ(id.idx());
         }
+        public int idx(){return id.idx();}
     }
 }

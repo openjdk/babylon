@@ -166,6 +166,9 @@ public class ViewFrame extends JFrame {
             ModelHighWaterMark resetMark = new ModelHighWaterMark();
             List<ZPos> zpos = new ArrayList<>();
             for (F32Triangle3D.F32Triangle3DImpl t : F32Triangle3D.F32Triangle3DImpl.all()) {
+                if (t.rgb()==0){
+                    throw new RuntimeException("ti.rgb == 0");
+                }
                 // here we rotate and then move into the Z plane.
                 t = t.mul(xyzRot4x4).add(moveAwayVec3Old);
                 float howVisible = 1f;

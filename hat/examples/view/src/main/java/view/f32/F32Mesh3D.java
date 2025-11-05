@@ -37,18 +37,18 @@ public class F32Mesh3D {
     public static F32Mesh3D of(String name){
         return new F32Mesh3D(name);
     }
-    public record Face ( F32Triangle3D.F32Triangle3DPool.Idx triangle, int centerVec3Idx, int normalIdx, int v0VecIdx){
-        static Face of (F32Triangle3D.F32Triangle3DPool.Idx tri){
-           return  new Face(tri,  F32Triangle3D.getCentre(tri),F32Triangle3D.normal(tri),F32Triangle3D.f32Triangle3DPool.entries[tri.v0()]);
+    public record Face ( F32Triangle3D triangle, int centerVec3Idx, int normalIdx, int v0VecIdx){
+        static Face of (F32Triangle3D tri){
+           return  new Face(tri,  F32Triangle3D.getCentre(tri),F32Triangle3D.normal(tri),tri.v0().idx());
         }
     }
 
     public List<Face> faces = new ArrayList<>();
 
-    public List<F32Vec3.F32Vec3Pool.Idx> vecEntries = new ArrayList<>();// F32Vec3.F32Vec3Pool.Idx[MAX];
+    public List<F32Vec3> vecEntries = new ArrayList<>();// F32Vec3.F32Vec3Pool.Idx[MAX];
 
     public Face tri(int v0Idx, int v1Idx, int v2Idx, int rgb) {
-        Face face =Face.of(F32Triangle3D.of(v0Idx, v1Idx, v2Idx, rgb));
+        Face face =Face.of(F32Triangle3D.f32Triangle3DPool.of(v0Idx, v1Idx, v2Idx, rgb));
         faces.add(face);
         return face;
     }
