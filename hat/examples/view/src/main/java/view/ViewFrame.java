@@ -165,12 +165,10 @@ public class ViewFrame extends JFrame {
             var xyzRot4x4 =new F32Matrix4x4.Rotation(theta * 2, theta / 2, theta);
             ModelHighWaterMark resetMark = new ModelHighWaterMark();
             List<ZPos> zpos = new ArrayList<>();
-            for (F32Triangle3D.F32Triangle3DImpl t : F32Triangle3D.F32Triangle3DImpl.all()) {
-                if (t.rgb()==0){
-                    throw new RuntimeException("ti.rgb == 0");
-                }
+            for (F32Triangle3D t : F32Triangle3D.F32Triangle3DImpl.all()) {
                 // here we rotate and then move into the Z plane.
-                t = t.mul(xyzRot4x4).add(moveAwayVec3Old);
+                t = F32Triangle3D.mulMat4(t,xyzRot4x4);
+                t =  F32Triangle3D.addVec3(t,moveAwayVec3Old);
                 float howVisible = 1f;
                 boolean isVisible = showHidden;
                 if (!showHidden) {
@@ -185,10 +183,13 @@ public class ViewFrame extends JFrame {
 
                     // We subtract the camera from our point on the triangle so we can compare
 
-                    F32Vec3.F32Vec3Impl cameraDeltaVec3 = t.center().sub(cameraVec3Old); // clearly our default camera is 0,0,0
+                    F32Vec3 cameraDeltaVec3 = F32Triangle3D.getCentre( t);
+                    cameraDeltaVec3 = F32Vec3.subVec3(cameraDeltaVec3,cameraVec3Old);// clearly our default camera is 0,0,0
+
 
                     //  howVisible = cameraDeltaVec3.mul( t.normalSumOfSquares()).sumOf();
-                    howVisible = cameraDeltaVec3.dotProd(t.normal());
+
+                    howVisible = F32Vec3.dotProd(cameraDeltaVec3,F32Triangle3D.normal(t));
                     // howVisible is a 'scalar'
                     // it's magnitude indicating how much it is 'facing away from' the camera.
                     // it's sign indicates if the camera can indeed see the location.
@@ -200,7 +201,7 @@ public class ViewFrame extends JFrame {
                     // now project the 3d triangle to 2d plane.
                     // Scale up to quarter screen height then add half height of screen
 
-                    t = t.mul(projF32Mat4x4Old);//  projection matrix also scales to screen and translate half a screen
+                    t = F32Triangle3D.mulMat4( t,projF32Mat4x4Old);//  projection matrix also scales to screen and translate half a screen
 
                     zpos.add(new ZPos(t, howVisible));
                 }

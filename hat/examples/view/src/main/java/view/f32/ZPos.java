@@ -42,7 +42,7 @@ public class ZPos implements Comparable<ZPos> {
 
     public ZPos(F32Triangle3D t, float howVisible) {
         F32Vec3 v0 = t.v0();
-        F32Vec3  v1 = t.v1();
+        F32Vec3 v1 = t.v1();
         F32Vec3 v2 = t.v2();
         x0 = v0.x();
         y0 = v0.y();

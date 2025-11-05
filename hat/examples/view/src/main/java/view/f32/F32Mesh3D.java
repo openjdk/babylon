@@ -48,7 +48,7 @@ public class F32Mesh3D {
     public List<F32Vec3> vecEntries = new ArrayList<>();// F32Vec3.F32Vec3Pool.Idx[MAX];
 
     public Face tri(int v0Idx, int v1Idx, int v2Idx, int rgb) {
-        Face face =Face.of(F32Triangle3D.f32Triangle3DPool.of(v0Idx, v1Idx, v2Idx, rgb));
+        Face face =Face.of(F32Triangle3D.f32Triangle3DPool.of(F32Vec3.f32Vec3Pool.idx(v0Idx), F32Vec3.f32Vec3Pool.idx(v1Idx), F32Vec3.f32Vec3Pool.idx(v2Idx), rgb));
         faces.add(face);
         return face;
     }

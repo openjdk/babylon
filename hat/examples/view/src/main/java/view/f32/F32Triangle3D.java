@@ -102,10 +102,6 @@ public interface F32Triangle3D {
             rgbs[i.rgbIdx()] = rgb;
             return i;
         }
-
-        public F32Triangle3D of(int v0Idx, int v1Idx, int v2Idx, int rgb) {
-            return of(F32Vec3.f32Vec3Pool.idx(v0Idx), F32Vec3.f32Vec3Pool.idx(v1Idx), F32Vec3.f32Vec3Pool.idx(v2Idx), rgb);
-        }
     }
 
     F32Triangle3DPool f32Triangle3DPool = new F32Triangle3DPool(12800);
@@ -170,29 +166,9 @@ public interface F32Triangle3D {
             return all;
         }
 
-        public F32Triangle3DImpl mul(F32Matrix4x4 m) {
-            return new F32Triangle3DImpl(mulMat4(id, m));
-        }
-
-        public F32Triangle3DImpl add(F32Vec3 v) {
-            return new F32Triangle3DImpl(addVec3(id, v));
-        }
-
-        public F32Vec3.F32Vec3Impl normal() {
-            return new F32Vec3.F32Vec3Impl(F32Triangle3D.normal(id));
-        }
-
-        public F32Triangle3DImpl add(float s) {
-            return new F32Triangle3DImpl(addScaler(id, s));
-        }
-
         @Override
         public int idx() {
             return id.idx();
-        }
-
-        public F32Vec3.F32Vec3Impl center() {
-            return new F32Vec3.F32Vec3Impl(getCentre(id));
         }
 
         public F32Vec3 v0() {

@@ -162,49 +162,26 @@ public interface F32Vec3 {
        return lhs.x() * rhs.x() + lhs.y() * rhs.y() +lhs.z() * rhs.z();
     }
 
-     static float getX(int i) {
-        i *= f32Vec3Pool.stride;
-        return f32Vec3Pool.entries[i +F32Vec3Pool.X];
-    }
-
-     static float getY(int i) {
-        i *= f32Vec3Pool.stride;
-        return f32Vec3Pool.entries[i +F32Vec3Pool.Y];
-    }
-
-     static float getZ(int i) {
-        i *= f32Vec3Pool.stride;
-        return f32Vec3Pool.entries[i +F32Vec3Pool.Z];
-    }
     record F32Vec3Impl(F32Vec3 id) implements F32Vec3 {
         public static F32Vec3Impl of(F32Vec3 id){
             return new F32Vec3Impl(id);
         }
         public static F32Vec3 of(float x, float y, float z){
-            return of(f32Vec3Pool.idx(F32Vec3.f32Vec3Pool.of(x,y,z).idx()));
+            return of(f32Vec3Pool.of(x,y,z));
         }
 
-        public F32Vec3Impl sub(F32Vec3 v) {
-            return F32Vec3Impl.of(f32Vec3Pool.idx(subVec3(id, v).idx()));//of(Pool.Idx.of(subVec3(id.idx(), v.id.idx())));
-        }
-
-        public F32Vec3Impl add(F32Vec3Impl v) {
-            return F32Vec3Impl.of(f32Vec3Pool.idx(addVec3(id,v.id).idx()));//Pool.Idx.of(addVec3(id.idx(), v.id.idx())));
-        }
-
-
-        public float dotProd(F32Vec3Impl v){
-            return F32Vec3.dotProd(id, v.id);
+        public F32Vec3 add(F32Vec3Impl v) {
+            return addVec3(id,v);
         }
 
         public float x() {
-            return getX(id.idx());
+            return id.x();
         }
         public float y() {
-            return getY(id.idx());
+            return id.y();
         }
         public float z() {
-            return getZ(id.idx());
+            return id.z();
         }
         public int idx(){return id.idx();}
     }
