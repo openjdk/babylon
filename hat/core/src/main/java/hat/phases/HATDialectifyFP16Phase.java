@@ -43,6 +43,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -50,6 +51,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static hat.dialect.HATPhaseUtils.*;
 
 public class HATDialectifyFP16Phase implements HATDialect {
 
@@ -98,6 +101,23 @@ public class HATDialectifyFP16Phase implements HATDialect {
         }
     }
 
+    private boolean isOperandF32(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return isOperandF32(varLoadOp.operands().get(0));
+    }
+
+    private boolean isOperandF32(Value v) {
+        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return isOperandF32(varLoadOp);
+        } else {
+            if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.VarOp varOp) {
+                VarType varType = varOp.resultType();
+                TypeElement typeElement = varType.valueType();
+                return typeElement == JavaType.FLOAT;
+            }
+            return false;
+        }
+    }
+
     private void createF16VarOp(CoreOp.VarOp varOp, Block.Builder blockBuilder) {
         List<Value> operands = varOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
@@ -119,7 +139,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
     private void createFloatFromF16(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder) {
         List<Value> operands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
-        boolean isLocal = HATPhaseUtils.findF16IsLocal(operands.getFirst());
+        boolean isLocal = findF16IsLocal(operands.getFirst());
         HATF16ToFloatConvOp convOp1 = new HATF16ToFloatConvOp(JavaType.FLOAT, isLocal, outputOperands);
         Op.Result op1 = blockBuilder.op(convOp1);
         convOp1.setLocation(invokeOp.location());
@@ -139,20 +159,28 @@ public class HATDialectifyFP16Phase implements HATDialect {
     private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, OpMethod method) {
         List<Value> operands = invokeOp.operands();
         List<Value> outputOperands = blockBuilder.context().getValues(operands);
+
         // Obtain the memory mapping for each operand
         // if it comes from global memory, HAT replaces with a global* pointer to the inner struct,
         // then, we will need to operate half using a->value, instead of half value directly.
         boolean isFirstOperandReference = findReference(invokeOp.operands().getFirst());
         boolean isSecondOperandReference = findReference(invokeOp.operands().get(1));
 
+        byte valF32Conversion = 0x00;
+        if (!isFirstOperandReference && isOperandF32(invokeOp.operands().getFirst())) {
+            valF32Conversion = HATF16BinaryOp.FIRST_OP;
+        } else if (!isSecondOperandReference && isOperandF32(invokeOp.operands().get(1))) {
+            valF32Conversion = HATF16BinaryOp.LAST_OP;
+        }
+
         TypeElement typeElement = invokeOp.resultType();
         List<Boolean> refList = List.of(isFirstOperandReference, isSecondOperandReference);
 
         HATF16BinaryOp binaryOp = switch (method) {
-            case ADD -> new HATF16AddOp(typeElement, refList, outputOperands);
-            case SUB -> new HATF16SubOp(typeElement, refList, outputOperands);
-            case MUL -> new HATF16MulOp(typeElement, refList, outputOperands);
-            case DIV -> new HATF16DivOp(typeElement, refList, outputOperands);
+            case ADD -> new HATF16AddOp(typeElement, refList, valF32Conversion, outputOperands);
+            case SUB -> new HATF16SubOp(typeElement, refList, valF32Conversion, outputOperands);
+            case MUL -> new HATF16MulOp(typeElement, refList, valF32Conversion, outputOperands);
+            case DIV -> new HATF16DivOp(typeElement, refList, valF32Conversion, outputOperands);
         };
 
         Op.Result op1 = blockBuilder.op(binaryOp);
@@ -319,7 +347,7 @@ public class HATDialectifyFP16Phase implements HATDialect {
     @Override
     public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
         for (OpMethod method : OpMethod.values())
-            // Operations
+            // F16 Operations
             funcOp = dialectifyF16Ops(funcOp, method);
 
         // Init analysis before the store

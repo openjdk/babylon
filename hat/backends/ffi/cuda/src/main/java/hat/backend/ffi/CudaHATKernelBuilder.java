@@ -27,17 +27,11 @@ package hat.backend.ffi;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.CodeBuilder;
 import hat.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.HATF16ConvOp;
-import hat.dialect.HATF16ToFloatConvOp;
-import hat.dialect.HATVectorBinaryOp;
-import hat.dialect.HATVectorLoadOp;
-import hat.dialect.HATVectorOfOp;
-import hat.dialect.HATVectorSelectLoadOp;
-import hat.dialect.HATVectorSelectStoreOp;
-import hat.dialect.HATVectorStoreView;
-import hat.dialect.HATVectorVarOp;
+import hat.dialect.*;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+
+import java.util.List;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
@@ -270,6 +264,51 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder genVectorIdentifier(ScopedCodeBuilderContext builderContext, HATVectorOfOp hatVectorOfOp) {
         identifier("make_" + hatVectorOfOp.buildType()).oparen();
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatF16BinaryOp(ScopedCodeBuilderContext buildContext, HATF16BinaryOp hatF16BinaryOp) {
+        oparen();
+        Value op1 = hatF16BinaryOp.operands().get(0);
+        Value op2 = hatF16BinaryOp.operands().get(1);
+        List<Boolean> references = hatF16BinaryOp.references();
+        byte f32Mixed = hatF16BinaryOp.getF32();
+
+        if (f32Mixed == HATF16BinaryOp.LAST_OP) {
+            identifier("__half2float").oparen();
+        }
+
+        if (op1 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+        if (references.getFirst()) {
+            rarrow().identifier("value");
+        }
+
+        if (f32Mixed == HATF16BinaryOp.LAST_OP) {
+            cparen();
+        }
+
+        space().identifier(hatF16BinaryOp.operationType().symbol()).space();
+
+        if (f32Mixed == HATF16BinaryOp.FIRST_OP) {
+            identifier("__half2float").oparen();
+        }
+
+        if (op2 instanceof Op.Result r) {
+            recurse(buildContext, r.op());
+        }
+
+        if (references.get(1)) {
+            rarrow().identifier("value");
+        }
+
+        if (f32Mixed == HATF16BinaryOp.FIRST_OP) {
+            cparen();
+        }
+
+        cparen();
         return self();
     }
 }
