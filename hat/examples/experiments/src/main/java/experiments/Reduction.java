@@ -27,9 +27,7 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.Global1D;
 import hat.KernelContext;
-import hat.Local1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.S32Array;
@@ -135,7 +133,7 @@ public class Reduction {
     @CodeReflection
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array input, @RW S32Array partialSums) {
         // 2 groups of 16 threads each
-        NDRange ndRange = NDRange.of(new Global1D(32), new Local1D(16));
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(32), new NDRange.Local1D(16));
         cc.dispatchKernel(ndRange, kc -> reduceLocal(kc, input, partialSums));
     }
 

@@ -27,7 +27,6 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.Global1D;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -71,19 +70,19 @@ public class TestParenthesis {
 
     @CodeReflection
     public static void compute(@RO ComputeContext cc, @RW S32Array data) {
-        NDRange ndRange = NDRange.of(new Global1D(data.length()));
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(data.length()));
         cc.dispatchKernel(ndRange,kc -> compute(kc, data));
     }
 
     @CodeReflection
     public static void compute2(@RO ComputeContext cc, @RW S32Array data) {
-        NDRange ndRange = NDRange.of(new Global1D(data.length()));
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(data.length()));
         cc.dispatchKernel(ndRange,kc -> compute2(kc, data));
     }
 
     @CodeReflection
     public static void compute3(@RO ComputeContext cc, @RW S32Array data) {
-        NDRange ndRange = NDRange.of(new Global1D(data.length()));
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(data.length()));
         cc.dispatchKernel(ndRange,kc -> compute3(kc, data));
     }
 
