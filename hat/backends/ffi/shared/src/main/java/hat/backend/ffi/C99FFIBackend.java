@@ -142,10 +142,9 @@ public abstract class C99FFIBackend extends FFIBackend  implements BufferTracker
             }
             boolean isLocalMeshDefined = kernelContext.hasLocalMesh();
             NDRange.Global global = range.global();
-            NDRange.Local local = range.local();
             setGlobalMesh(global);
             if (isLocalMeshDefined) {
-                setLocalMesh(local);
+                setLocalMesh(range.local());
             } else {
                 setDefaultLocalMesh();
             }

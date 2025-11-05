@@ -120,11 +120,11 @@ public interface NDRange {
     record NDRange3D(Global3D global, Local3D local) implements Range, _3D { }
 
     static NDRange1D of(int x) {
-        return new NDRange1D(new Global1D(x), null);
+        return new NDRange1D(new Global1D(x), NDRange.EMPTY_LOCAL_1D);
     }
 
     static NDRange1D of(Global1D global) {
-        return new NDRange1D(global, null);
+        return new NDRange1D(global, NDRange.EMPTY_LOCAL_1D);
     }
 
     static NDRange1D of(Global1D global, Local1D local) {
@@ -133,7 +133,7 @@ public interface NDRange {
 
 
     static NDRange2D of(Global2D global) {
-        return new NDRange2D(global, null);
+        return new NDRange2D(global, NDRange.EMPTY_LOCAL_2D);
     }
 
     static NDRange2D of(Global2D global, Local2D local) {
@@ -142,11 +142,15 @@ public interface NDRange {
 
 
     static NDRange3D of(Global3D global) {
-        return new NDRange3D(global, null);
+        return new NDRange3D(global, NDRange.EMPTY_LOCAL_3D);
     }
 
     static NDRange3D of(Global3D global, Local3D local) {
         return new NDRange3D(global, local);
     }
+
+    Local1D EMPTY_LOCAL_1D = new Local1D(0);
+    Local2D EMPTY_LOCAL_2D = new Local2D(0, 0);
+    Local3D EMPTY_LOCAL_3D = new Local3D(0, 0, 0);
 
 }

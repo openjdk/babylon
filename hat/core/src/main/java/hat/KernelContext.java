@@ -138,10 +138,16 @@ public class KernelContext {
         return this.ndRange;
     }
 
+    private boolean isLocalDefined(NDRange.Local local) {
+        return local != NDRange.EMPTY_LOCAL_1D
+                && local != NDRange.EMPTY_LOCAL_2D
+                && local != NDRange.EMPTY_LOCAL_3D;
+    }
+
     public boolean hasLocalMesh() {
         switch (ndRange) {
             case NDRange.Range range -> {
-                return range.local() != null;
+                return (isLocalDefined(range.local()));
             }
             case null, default -> {
                 throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
