@@ -65,7 +65,7 @@ public class F32Mesh3D {
                 triSumIdx.set(F32Vec3.addVec3(triSumIdx.get(), face.centerVec3Idx));
             }
         });
-        int meshCenterVec3 = F32Vec3.divScaler(triSumIdx.get(), faces.size());
+        int meshCenterVec3 = F32Vec3.divScaler(F32Vec3.f32Vec3Pool.idx(triSumIdx.get()), faces.size()).idx();
         faces.forEach(face ->{
             int v0CenterDiff = F32Vec3.subVec3(meshCenterVec3,face.v0VecIdx );
             float normDotProd = F32Vec3.dotProd(v0CenterDiff, face.normalIdx);

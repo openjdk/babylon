@@ -72,7 +72,7 @@ public interface F32Triangle3D {
         }
 
         public F32Triangle3D of(F32Vec3 v0, F32Vec3 v1, F32Vec3 v2, int rgb) {
-            var i = idx(count++);//pool.count * pool.stride
+            var i = idx(count++);
             entries[i.v0Idx()] = v0;
             entries[i.v1Idx()] = v1;
             entries[i.v2Idx()] = v2;
@@ -103,11 +103,8 @@ public interface F32Triangle3D {
         return i;
     }
 
-     static F32Triangle3D mulMat4(F32Triangle3D i, F32Matrix4x4.F32Matrix4x4Pool.Idx  m4) {
-        return f32Triangle3DPool.of(F32Vec3.mulMat4(i.v0().idx(), m4), F32Vec3.mulMat4(i.v1().idx(), m4), F32Vec3.mulMat4(i.v2().idx(), m4), i.rgb());
-    }
     static F32Triangle3D mulMat4(F32Triangle3D i, F32Matrix4x4  m4) {
-        return f32Triangle3DPool.of(F32Vec3.mulMat4(i.v0().idx(), m4), F32Vec3.mulMat4(i.v1().idx(), m4), F32Vec3.mulMat4(i.v2().idx(), m4), i.rgb());
+        return f32Triangle3DPool.of(F32Vec3.mulMat4(i.v0(), m4), F32Vec3.mulMat4(i.v1(), m4), F32Vec3.mulMat4(i.v2(), m4), i.rgb());
     }
 
 
@@ -124,7 +121,7 @@ public interface F32Triangle3D {
     }
 
      static int getCentre(F32Triangle3D i){// the average of all the vertices
-        return F32Vec3.divScaler(getVectorSum(i), 3);
+        return F32Vec3.divScaler(F32Vec3.f32Vec3Pool.idx(getVectorSum(i)), 3).idx();
     }
 
      static int getVectorSum(F32Triangle3D i){// the sum of all the vertices
@@ -140,7 +137,7 @@ public interface F32Triangle3D {
 
      static int normalSumOfSquares(F32Triangle3D i) {
         int normalVec3 = normal(i);
-        return F32Vec3.divScaler(normalVec3,  F32Vec3.sumOfSquares(normalVec3));
+        return F32Vec3.divScaler(F32Vec3.f32Vec3Pool.idx(normalVec3),  F32Vec3.sumOfSquares(normalVec3)).idx();
     }
 
     record F32Triangle3DImpl(F32Triangle3D id) implements F32Triangle3D {
