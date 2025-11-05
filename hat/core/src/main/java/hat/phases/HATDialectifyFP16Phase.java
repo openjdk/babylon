@@ -35,7 +35,6 @@ import hat.dialect.HATF16SubOp;
 import hat.dialect.HATF16ToFloatConvOp;
 import hat.dialect.HATF16VarLoadOp;
 import hat.dialect.HATF16VarOp;
-import hat.dialect.HATPhaseUtils;
 import hat.optools.OpTk;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -52,7 +51,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static hat.dialect.HATPhaseUtils.*;
+import static hat.dialect.HATPhaseUtils.findF16IsLocal;
 
 public class HATDialectifyFP16Phase implements HATDialect {
 
