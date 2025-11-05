@@ -44,10 +44,10 @@ public class Main {
 
     public static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
-     //   args.add("ANACONDA");
+        args.add("COBRA");
         var eliteReader = new EliteMeshReader();
 
-        var wire =
+        var wire =//RasterizingRenderer.fillOf(1024, 1024);
               //  Graphics2DRenderer.wireOf(1024,1024);
                 RasterizingRenderer.wireOf(1024, 1024);
         var fill = RasterizingRenderer.fillOf(1024, 1024);
