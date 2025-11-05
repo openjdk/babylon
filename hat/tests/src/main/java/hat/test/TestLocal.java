@@ -27,9 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.Global1D;
 import hat.KernelContext;
-import hat.Local1D;
 import hat.backend.Backend;
 import hat.buffer.Buffer;
 import hat.buffer.F32Array;
@@ -74,7 +72,7 @@ public class TestLocal {
 
     @CodeReflection
     private static void myCompute(@MappableIface.RO ComputeContext computeContext, @MappableIface.RW F32Array data) {
-        NDRange ndRange = NDRange.of(new Global1D(32), new Local1D(16));
+        NDRange ndRange = NDRange.of(new NDRange.Global1D(32), new NDRange.Local1D(16));
         computeContext.dispatchKernel(ndRange,
                 kernelContext -> compute(kernelContext, data)
         );
