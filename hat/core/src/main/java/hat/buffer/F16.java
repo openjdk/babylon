@@ -82,20 +82,40 @@ public interface F16 extends Buffer.Struct {
         return F16.of(f16ToFloat(ha) + f16ToFloat(hb));
     }
 
-    static float add(float ha, F16 hb) {
-        return ha + f16ToFloat(hb);
+    static F16 add(float f32, F16 hb) {
+        return F16.of(f32 + f16ToFloat(hb));
     }
 
     static F16 sub(F16 ha, F16 hb) {
         return F16.of(f16ToFloat(ha) - f16ToFloat(hb));
     }
 
+    static F16 sub(float f32, F16 hb) {
+        return F16.of(f32 - f16ToFloat(hb));
+    }
+
+    static F16 sub(F16 hb, float f32) {
+        return F16.of(f16ToFloat(hb) - f32);
+    }
+
     static F16 mul(F16 ha, F16 hb) {
         return F16.of(f16ToFloat(ha) * f16ToFloat(hb));
     }
 
+    static F16 mul(float f32, F16 hb) {
+        return F16.of(f32 * f16ToFloat(hb));
+    }
+
     static F16 div(F16 ha, F16 hb) {
         return F16.of(f16ToFloat(ha) / f16ToFloat(hb));
+    }
+
+    static F16 div(float f32, F16 hb) {
+        return F16.of(f32 / f16ToFloat(hb));
+    }
+
+    static F16 add(F16 hb, float f32) {
+        return F16.of(f16ToFloat(hb) / f32);
     }
 
     default F16 add(F16 ha) {

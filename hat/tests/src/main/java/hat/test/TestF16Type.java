@@ -211,6 +211,17 @@ public class TestF16Type {
         }
     }
 
+    @CodeReflection
+    public static void f16Ops_14(@RO KernelContext kernelContext, @RO F16Array a, @RW F16Array b) {
+        // Testing mixed float types
+        if (kernelContext.gix < kernelContext.gsx) {
+            F16 ha = a.array(kernelContext.gix);
+            float myFloat = 32.1f;
+            F16 result = F16.add(myFloat, ha);
+            b.array(kernelContext.gix).value(result.value());
+        }
+    }
+
 
     @CodeReflection
     public static void compute01(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
@@ -282,6 +293,12 @@ public class TestF16Type {
     public static void compute13(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RW F16Array c) {
         NDRange ndRange = NDRange.of(new Global1D(a.length()));
         computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_13(kernelContext, a, b, c));
+    }
+
+    @CodeReflection
+    public static void compute14(@RO ComputeContext computeContext, @RO F16Array a, @RW F16Array b) {
+        NDRange ndRange = NDRange.of(new Global1D(a.length()));
+        computeContext.dispatchKernel(ndRange, kernelContext -> TestF16Type.f16Ops_14(kernelContext, a, b));
     }
 
     @HatTest
@@ -567,6 +584,27 @@ public class TestF16Type {
         for (int i = 0; i < arrayB.length(); i++) {
             F16 result = arrayC.array(i);
             HatAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)), F16.f16ToFloat(result), 0.01f);
+        }
+    }
+
+    @HatTest
+    public void testF16_14() {
+        // Testing mixed types
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        F16Array arrayA = F16Array.create(accelerator, size);
+        F16Array arrayB = F16Array.create(accelerator, size);
+
+        Random r = new Random(73);
+        for (int i = 0; i < arrayA.length(); i++) {
+            arrayA.array(i).value(F16.floatToF16(r.nextFloat()).value());
+        }
+
+        accelerator.compute(computeContext -> TestF16Type.compute14(computeContext, arrayA, arrayB));
+
+        for (int i = 0; i < arrayB.length(); i++) {
+            F16 result = arrayB.array(i);
+            HatAsserts.assertEquals(F16.f16ToFloat(arrayA.array(i)) + 32.1f, F16.f16ToFloat(result), 0.1f);
         }
     }
 
