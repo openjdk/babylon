@@ -24,14 +24,18 @@
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.analysis.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.interpreter.Interpreter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
+import java.util.function.DoubleBinaryOperator;
+import java.util.function.DoubleUnaryOperator;
 
 /*
  * @test
@@ -43,20 +47,20 @@ public class TestExpressionElimination {
 
     @Test
     public void testAddZero() {
-        CoreOp.ClosureOp lf = generate((double a) -> a + 0.0);
+        JavaOp.LambdaOp lf = generate((Quotable & DoubleUnaryOperator) (double a) -> a + 0.0);
 
         Assertions.assertEquals(1.0d, (double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d));
     }
 
     @Test
     public void testF() {
-        CoreOp.ClosureOp lf = generate((double a, double b) -> -a + b);
+        JavaOp.LambdaOp lf = generate((Quotable & DoubleBinaryOperator) (double a, double b) -> -a + b);
 
         Assertions.assertEquals(0.0d, (double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d, 1.0d));
     }
 
-    static CoreOp.ClosureOp generate(Quoted q) {
-        return generateF((CoreOp.ClosureOp) q.op());
+    static JavaOp.LambdaOp generate(Quotable q) {
+        return generateF((JavaOp.LambdaOp)Op.ofQuotable(q).get().op());
     }
 
     static <T extends Op & Op.Invokable> T generateF(T f) {
