@@ -24,14 +24,17 @@
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.OpTransformer;
+import jdk.incubator.code.Quotable;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.util.function.IntBinaryOperator;
 
 /*
  * @test
@@ -43,11 +46,11 @@ public class TestQuoted {
 
     @Test
     public void testQuoted() throws Throwable {
-        Quoted q = (int i, int j) -> {
+        Quotable q = (IntBinaryOperator & Quotable)(int i, int j) -> {
             i = i + j;
             return i;
         };
-        CoreOp.ClosureOp cop = (CoreOp.ClosureOp) q.op();
+        JavaOp.LambdaOp cop = (JavaOp.LambdaOp) Op.ofQuotable(q).get().op();
 
         MethodHandle mh = generate(cop);
 
