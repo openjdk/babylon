@@ -36,8 +36,6 @@ public interface F32Triangle3D {
 
     int rgb();
 
-    int idx();
-
     default String asString() {
         return v0().asString() + " -> " + v1().asString() + " -> " + v2().asString() + " =" + String.format("0x%8x", rgb());
     }
@@ -157,34 +155,5 @@ public interface F32Triangle3D {
         return F32Vec3.divScaler(normal(i), F32Vec3.sumOfSquares(normal(i)));
     }
 
-    record F32Triangle3DImpl(F32Triangle3D id) implements F32Triangle3D {
-        public static List<F32Triangle3DImpl> all() {
-            List<F32Triangle3DImpl> all = new ArrayList<>();
-            for (int t = 0; t < f32Triangle3DPool.count; t++) {
-                all.add(new F32Triangle3DImpl(f32Triangle3DPool.idx(t))/*Pool.Idx.of(t))*/);
-            }
-            return all;
-        }
 
-        @Override
-        public int idx() {
-            return id.idx();
-        }
-
-        public F32Vec3 v0() {
-            return id.v0();
-        }
-
-        public F32Vec3 v1() {
-            return id.v1();
-        }
-
-        public F32Vec3 v2() {
-            return id.v2();
-        }
-
-        public int rgb() {
-            return id.rgb();
-        }
-    }
 }
