@@ -29,34 +29,52 @@ import java.util.ArrayList;
 import java.util.List;
 
 public interface F32Vec2 {
+    float x();
+    float y();
 
     static void reset(int markedVec2) {
         F32Vec2.f32Vec2Pool.count = markedVec2;
     }
 
-    class F32Vec2Pool extends FloatPool<F32Vec2Pool> {
-        static public int X = 0;
-        static public int Y = 1;
-        record Idx(F32Vec2Pool pool, int idx) implements Pool.Idx<F32Vec2Pool>{
-            int x(){return pool.stride * idx+X;}
-            float xEntry(){return pool.entries[x()];}
-            int y(){return pool.stride * idx+Y;}
-            float yEntry(){return pool.entries[y()];}
-        }
-        F32Vec2Pool() {
-            super(2,12800);
-        }
-        @Override
-        Idx idx(int idx) {
-            return new Idx(this, idx);
-        }
-    }
-    F32Vec2Pool f32Vec2Pool = new F32Vec2Pool();
+    class F32Vec2Pool extends FloatPool<F32Vec2.F32Vec2Pool> {
+        public static int X = 0;
+        public static int Y = 1;
+        public record Idx(F32Vec2Pool pool, int idx) implements Pool.Idx<F32Vec2.F32Vec2Pool>, F32Vec2 {
+            private int xIdx() {
+                return pool.stride * idx + X;
+            }
 
-    record F32Vec2Impl(int id, float x, float y) implements F32Vec2{ }
-     static F32Vec2Impl of(float x, float y) {
-        f32Vec2Pool.entries[f32Vec2Pool.count * f32Vec2Pool.stride + F32Vec2Pool.X] = x;
-        f32Vec2Pool.entries[f32Vec2Pool.count * f32Vec2Pool.stride + F32Vec2Pool.Y] = y;
-        return  new F32Vec2Impl(f32Vec2Pool.count++, x,y);
+            @Override
+            public float x() {
+                return pool.entries[xIdx()];
+            }
+
+            private int yIdx() {
+                return pool.stride * idx + Y;
+            }
+
+            @Override
+            public float y() {
+                return pool.entries[yIdx()];
+            }
+
+        }
+
+        F32Vec2Pool(int max) {
+            super(2, max);
+        }
+
+        @Override
+        F32Vec2.F32Vec2Pool.Idx idx(int idx) {
+            return new F32Vec2.F32Vec2Pool.Idx(this, idx);
+        }
+
+        public F32Vec2.F32Vec2Pool.Idx of(float x, float y) {
+            F32Vec2.F32Vec2Pool.Idx i = idx(count++);
+            entries[i.xIdx()] = x;
+            entries[i.yIdx()] = y;
+            return i;
+        }
     }
+    F32Vec2Pool f32Vec2Pool = new F32Vec2Pool(12000);
 }

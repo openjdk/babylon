@@ -79,6 +79,9 @@ public class ZPos implements Comparable<ZPos> {
         } else if (colourMode == ColourMode.WHITE) {
             r = g = b = 0xff;
         }
-        return F32Triangle2D.createTriangle(x0, y0, x1, y1, x2, y2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
+        F32Vec2 v0 = F32Vec2.f32Vec2Pool.of(x0,y0);
+        F32Vec2 v1 = F32Vec2.f32Vec2Pool.of(x1,y1);
+        F32Vec2 v2 = F32Vec2.f32Vec2Pool.of(x2,y2);
+        return F32Triangle2D.f32Triangle2DPool.of(v0,v1,v2, (r & 0xff) << 16 | (g & 0xff) << 8 | (b & 0xff));
     }
 }
