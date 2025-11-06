@@ -264,42 +264,42 @@ class EliteMeshReader {
                         case State.awaiting_hue_lig_sat _ when State.face6Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
 
                                 oldMesh.get().hex(
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(9)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(10)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(11)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(9)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(10)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(11)),
                                         0xff7f00);
 
                         }
                         case State.awaiting_hue_lig_sat _ when State.face5Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
 
                                    oldMesh.get().pent(
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(6)).idx(),
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(7)).idx(),
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(8)).idx(),
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(9)).idx(),
-                                           oldMesh.get().vecEntries.get(s32xN.asInt(10)).idx(),
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(6)),
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(7)),
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(8)),
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(9)),
+                                           oldMesh.get().vecEntries.get(s32xN.asInt(10)),
                                            0x7fff00);
 
                         }
                         case State.awaiting_hue_lig_sat _ when State.face4Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
 
                                 oldMesh.get().quad(
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(9)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(9)),
                                         0x00ff7f);
 
                         }
                         case State.awaiting_hue_lig_sat _ when State.face3Regex.is(line, S32xN::new) instanceof S32xN s32xN ->{
 
                                 oldMesh.get().tri(
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)).idx(),
-                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)).idx(),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(6)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(7)),
+                                        oldMesh.get().vecEntries.get(s32xN.asInt(8)),
                                         0x007fff);
 
                         }
