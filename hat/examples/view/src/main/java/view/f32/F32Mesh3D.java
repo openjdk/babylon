@@ -24,6 +24,7 @@
  */
 package view.f32;
 
+
 import hat.util.StreamMutable;
 
 import java.util.ArrayList;
@@ -53,22 +54,13 @@ public class F32Mesh3D {
         faces.add(face);
         return face;
     }
-  //  public Face tri(int v0Idx, int v1Idx, int v2Idx, int rgb) {
-    //    return tri(F32Vec3.f32Vec3Pool.idx(v0Idx), F32Vec3.f32Vec3Pool.idx(v1Idx), F32Vec3.f32Vec3Pool.idx(v2Idx), rgb);
-   // }
 
     public void fin(){
-        var  triSumIdx = StreamMutable.of(0);
-        var first  = StreamMutable.of(true);
-        faces.forEach(face ->{
-            if (first.get().equals(true)){
-                triSumIdx.set(face.centerVec3Idx.idx());
-                first.set(false);
-            }else {
-                triSumIdx.set(F32Vec3.addVec3(F32Vec3.f32Vec3Pool.idx(triSumIdx.get()), face.centerVec3Idx).idx());
-            }
+        var  triSumIdx =StreamMutable.of(faces.getFirst().centerVec3Idx);
+        faces.stream().skip(1).forEach(face -> {
+            triSumIdx.set(F32Vec3.addVec3(triSumIdx.get(), face.centerVec3Idx));
         });
-        var meshCenterVec3 = F32Vec3.divScaler(F32Vec3.f32Vec3Pool.idx(triSumIdx.get()), faces.size());
+        var meshCenterVec3 = F32Vec3.divScaler(triSumIdx.get(), faces.size());
         faces.forEach(face ->{
             var v0CenterDiff = F32Vec3.subVec3(meshCenterVec3,face.v0VecIdx);
             float normDotProd = F32Vec3.dotProd(v0CenterDiff, face.normalIdx);
